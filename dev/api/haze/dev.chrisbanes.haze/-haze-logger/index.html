@@ -93,7 +93,7 @@
   <div class="breadcrumbs"><a href="../../index.html">haze</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze</a><span class="delimiter">/</span><span class="current">HazeLogger</span></div>
   <div class="cover ">
     <h1 class="cover"><span>Haze</span><wbr><span><span>Logger</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="index.html">HazeLogger</a></div><p class="paragraph">Debug logging controls for diagnosing Haze rendering behavior.</p></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="index.html">HazeLogger</a></div><p class="paragraph">Debug logging controls for diagnosing Haze rendering behavior, including Backdrop selection.</p></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
@@ -110,7 +110,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="enabled.html">enabled</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Whether to print debug log statements to the relevant system logger. Do not build release artifacts with this enabled. It's purely for debugging purposes.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="enabled.html">enabled</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Whether to print debug log statements to the relevant system logger. Do not build release artifacts with this enabled. When enabled, Backdrop selection and source-fallback messages are included. Native backdrop work is marked separately by the <code class="lang-kotlin">HazeBackdrop.draw</code> trace section. This is purely for debugging purposes.</p></div></div></div>
                 </div>
               </div>
             </div>

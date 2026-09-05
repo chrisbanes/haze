@@ -12,13 +12,9 @@
         <meta name="author" content="Chris Banes">
       
       
-        <link rel="canonical" href="https://chrisbanes.github.io/haze/dev/blur/faq/">
+        <link rel="canonical" href="https://chrisbanes.github.io/haze/dev/adr/0009-use-opt-in-android-window-backdrops/">
       
       
-        <link rel="prev" href="../material3/">
-      
-      
-        <link rel="next" href="../platforms/">
       
       
         
@@ -29,7 +25,7 @@
     
     
       
-        <title>FAQs - Haze</title>
+        <title>Use opt-in Android window backdrops - Haze</title>
       
     
     
@@ -63,17 +59,17 @@
     
   
 <meta property="og:type" content="website" />
-<meta property="og:title" content="FAQs - Haze" />
+<meta property="og:title" content="Use opt-in Android window backdrops - Haze" />
 <meta property="og:description" content="Visual effects (blur and more) for Compose Multiplatform" />
-<meta property="og:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/blur/faq.png" />
+<meta property="og:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/adr/0009-use-opt-in-android-window-backdrops.png" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:url" content="https://chrisbanes.github.io/haze/dev/blur/faq/" />
+<meta property="og:url" content="https://chrisbanes.github.io/haze/dev/adr/0009-use-opt-in-android-window-backdrops/" />
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="FAQs - Haze" />
+<meta property="twitter:title" content="Use opt-in Android window backdrops - Haze" />
 <meta property="twitter:description" content="Visual effects (blur and more) for Compose Multiplatform" />
-<meta property="twitter:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/blur/faq.png" />
+<meta property="twitter:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/adr/0009-use-opt-in-android-window-backdrops.png" />
 </head>
   
   
@@ -91,7 +87,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#whats-the-difference-between-this-and-modifierblur" class="md-skip">
+        <a href="#use-opt-in-android-window-backdrops" class="md-skip">
           Skip to content
         </a>
       
@@ -130,7 +126,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              FAQs
+              Use opt-in Android window backdrops
             
           </span>
         </div>
@@ -327,20 +323,18 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
           <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
@@ -361,7 +355,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -379,7 +373,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
+      <a href="../../blur/" class="md-nav__link">
         
   
   
@@ -407,7 +401,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../usage/" class="md-nav__link">
+      <a href="../../blur/usage/" class="md-nav__link">
         
   
   
@@ -435,7 +429,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../materials/" class="md-nav__link">
+      <a href="../../blur/materials/" class="md-nav__link">
         
   
   
@@ -463,7 +457,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../material3/" class="md-nav__link">
+      <a href="../../blur/material3/" class="md-nav__link">
         
   
   
@@ -488,35 +482,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    FAQs
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../blur/faq/" class="md-nav__link">
         
   
   
@@ -532,79 +501,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#whats-the-difference-between-this-and-modifierblur" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What's the difference between this and Modifier.blur?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-does-my-blur-get-clipped-inside-a-graphics-layer" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why does my Blur get clipped inside a graphics layer?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#are-the-blur-implementations-the-same-across-different-platforms" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Are the blur implementations the same across different platforms?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-versions-of-android-does-haze-work-on" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What versions of Android does Haze work on?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#when-should-i-use-backdrop-instead-of-sources" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        When should I use Backdrop instead of Sources?
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -617,7 +513,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../platforms/" class="md-nav__link">
+      <a href="../../blur/platforms/" class="md-nav__link">
         
   
   
@@ -1125,6 +1021,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1133,54 +1031,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#whats-the-difference-between-this-and-modifierblur" class="md-nav__link">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's the difference between this and Modifier.blur?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-does-my-blur-get-clipped-inside-a-graphics-layer" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why does my Blur get clipped inside a graphics layer?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#are-the-blur-implementations-the-same-across-different-platforms" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Are the blur implementations the same across different platforms?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-versions-of-android-does-haze-work-on" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What versions of Android does Haze work on?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#when-should-i-use-backdrop-instead-of-sources" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        When should I use Backdrop instead of Sources?
+        Consequences
       
     </span>
   </a>
@@ -1207,60 +1061,41 @@
   
 
 
-  <h1>FAQs</h1>
-
-<div><h2 id="whats-the-difference-between-this-and-modifierblur">What's the difference between this and Modifier.blur?<a class="headerlink" href="#whats-the-difference-between-this-and-modifierblur" title="Permanent link">¶</a></h2>
-<p>The <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/Modifier#(androidx.compose.ui.Modifier).blur(androidx.compose.ui.unit.Dp,androidx.compose.ui.unit.Dp,androidx.compose.ui.draw.BlurredEdgeTreatment)">Modifier.blur</a> modifier and Haze may sound similar, but what they provide is different.</p>
-<p>Haze primarily provides background blurring, meaning that it will blur content behind, not the content itself. This is typically required to implement glass-like effects. <code>Modifier.blur</code> performs 'foreground blurring' (or content blurring) where the content in the node itself is blurred. Haze can work in this mode too, but it's not the primary goal.</p>
-<p>Other than that, Haze provides a whole bunch of other features which you can read about on the <a href="../usage/">Usage</a> page.</p>
-<h2 id="why-does-my-blur-get-clipped-inside-a-graphics-layer">Why does my Blur get clipped inside a graphics layer?<a class="headerlink" href="#why-does-my-blur-get-clipped-inside-a-graphics-layer" title="Permanent link">¶</a></h2>
-<p>An enclosing caller-owned <code>graphicsLayer</code> can become a separate compositing boundary when it uses
-<code>alpha</code> below one, an explicit offscreen strategy, a color filter, or similar options. Unbounded
-Blur pixels outside that layer's ordinary bounds are then clipped by the caller layer, even though
-Haze has expanded its own effect layer for the Blur radius.</p>
-<p>Use Compose 1.12's <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/LayerOutsets">LayerOutsets</a> on that enclosing layer, with only the edges that
-need the extra raster space. For a Blur that may overflow equally on every edge, match each outset
-to the configured Blur radius:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">32.</span><span class="n">dp</span>
-
-<span class="n">Box</span><span class="p">(</span>
-<span class="w">  </span><span class="n">Modifier</span><span class="p">.</span><span class="na">graphicsLayer</span><span class="p">(</span>
-<span class="w">    </span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">,</span>
-<span class="w">    </span><span class="n">outsets</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LayerOutsets</span><span class="p">(</span><span class="n">blurRadius</span><span class="p">,</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">,</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">,</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">),</span>
-<span class="w">  </span><span class="p">),</span>
-<span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">Box</span><span class="p">(</span>
-<span class="w">    </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
-<span class="w">      </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
-<span class="w">      </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">(</span><span class="n">blurRadius</span><span class="p">)</span><span class="w"> </span><span class="p">},</span>
-<span class="w">    </span><span class="p">),</span>
-<span class="w">  </span><span class="p">)</span>
-<span class="p">}</span>
-</code></pre></div>
-<p>This only expands the caller layer's visual raster bounds. It does not change Haze's capture or
-sampling geometry. An explicit caller clip remains authoritative, so outsets cannot make Blur draw
-outside geometry that you deliberately clip.</p>
-<h2 id="are-the-blur-implementations-the-same-across-different-platforms">Are the blur implementations the same across different platforms?<a class="headerlink" href="#are-the-blur-implementations-the-same-across-different-platforms" title="Permanent link">¶</a></h2>
-<p>The short answer to this is yes. The majority of the implementation is the same across all platforms.</p>
-<p>The only differences are in how the blur effect is implemented, especially on Android.</p>
-<p>For most platforms we can use on <a href="https://developer.android.com/reference/android/graphics/RenderEffect">RenderEffects</a> to implement the blurring, but the implementations used are platform specific. All of the platforms implement them in a very similar, its just the platform classes being used which are different.</p>
-<h2 id="what-versions-of-android-does-haze-work-on">What versions of Android does Haze work on?<a class="headerlink" href="#what-versions-of-android-does-haze-work-on" title="Permanent link">¶</a></h2>
-<p>See the <a href="../platforms/">Platforms</a> page for a detailed run down of what is supported on various platforms.</p>
-<h2 id="when-should-i-use-backdrop-instead-of-sources">When should I use Backdrop instead of Sources?<a class="headerlink" href="#when-should-i-use-backdrop-instead-of-sources" title="Permanent link">¶</a></h2>
-<p>Use <code>HazeInput.Backdrop(hazeState)</code> for ordinary built-in Blur when the intent is to consume all
-pixels drawn earlier in the same window. It has source capture as a portable fallback. Use
-<code>HazeInput.Sources(hazeState)</code> when you need exact source selection, cross-window alignment, or a
-retained-output policy that governs the actual input. Backdrop's fallback options do not filter
-native window pixels.
-The native path is currently experimental, disabled by default, and only eligible after the flag is
-set before attachment; eligibility is not a guarantee. See the <a href="../usage/">Blur usage</a> guide for
-fallback and diagnostic details.</p></div>
+<div><h1 id="use-opt-in-android-window-backdrops">Use opt-in Android window backdrops<a class="headerlink" href="#use-opt-in-android-window-backdrops" title="Permanent link">¶</a></h1>
+<p>Haze will expose <code>HazeInput.Backdrop(fallback: HazeInput.Sources)</code> as an experimental input. On a
+supported hardware-accelerated Android window, built-in effects may filter pixels already drawn
+behind the effect through a dedicated <code>RenderNode</code>. The fallback is mandatory and remains the
+authoritative result on older Android releases, other platforms, unsupported renderers, and after
+native setup or drawing fails.</p>
+<p>Backdrop input is not another source-selection policy. It samples the combined earlier pixels in
+the current window surface; it cannot select individual Haze sources, include later drawing, or
+cross a dialog, popup, or window boundary. Callers that require those semantics continue to use
+<code>HazeInput.Sources</code> directly.</p>
+<p>Core owns attachment-scoped backend selection, geometry, clipping, transforms, draw ordering, and
+fallback capture demand. A missing capability, unavailable canvas, unusable root effect, or native
+failure selects source fallback until the modifier node detaches. A healthy native node neither
+allocates nor records its fallback source layers. This keeps fallback reliable without charging
+the native path for dormant capture work.</p>
+<p>The Android platform renderer is gated on the full 37.2 SDK version and hardware acceleration,
+not major API 37 alone. Its backend and built-in renderer capability remain internal; callers
+cannot select a backend or supply a custom backdrop root effect through the supported public API.</p>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">¶</a></h2>
+<p>Existing <code>HazeInput.Sources</code> and <code>HazeInput.Content</code> behavior is unchanged. Blur and Glass retain
+ownership of their complete platform effect graphs and may opt into the internal capability only
+when their styling can be represented without weakening their public contract. A native-to-source
+transition may take one frame, but known failures are not retried every frame.</p>
+<p><a href="../0003-use-one-android-fused-glass-renderer/">ADR-0003</a> remains authoritative for source-backed
+Android Glass. Backdrop is an explicit input exception: it may reuse the fused effect graph, but it
+must not replace or simplify the retained source-backed renderer.</p></div>
 
 
 
 
 
 
+
+  
+  
 
 
 

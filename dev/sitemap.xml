@@ -69,6 +69,14 @@
          <lastmod>2026-09-05</lastmod>
     </url>
     <url>
+         <loc>https://chrisbanes.github.io/haze/dev/adr/0009-use-opt-in-android-window-backdrops/</loc>
+         <lastmod>2026-09-05</lastmod>
+    </url>
+    <url>
+         <loc>https://chrisbanes.github.io/haze/dev/adr/0010-adopt-backdrop-as-the-adaptive-haze-input/</loc>
+         <lastmod>2026-09-05</lastmod>
+    </url>
+    <url>
          <loc>https://chrisbanes.github.io/haze/dev/blur/</loc>
          <lastmod>2026-09-05</lastmod>
     </url>

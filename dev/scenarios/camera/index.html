@@ -1172,6 +1172,9 @@
 <div><h1 id="camera">Camera<a class="headerlink" href="#camera" title="Permanent link">¶</a></h1>
 <p>Haze can apply Blur and Glass to a live camera preview when the preview pixels are drawn into the
 same Compose graphics layer that contains <code>hazeSource</code>.</p>
+<p>This example intentionally uses <code>HazeInput.Sources</code>: camera and video integrations need explicit
+captured-source semantics, and a platform surface can sit outside the current window's earlier
+Compose pixels. <code>HazeInput.Backdrop</code> cannot cross that surface or window boundary.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 
 <span class="n">Box</span><span class="w"> </span><span class="p">{</span>

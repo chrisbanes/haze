@@ -1200,7 +1200,7 @@
 <span class="w">    </span><span class="n">TopAppBar</span><span class="p">(</span>
 <span class="w">      </span><span class="n">colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TopAppBarDefaults</span><span class="p">.</span><span class="na">topAppBarColors</span><span class="p">(</span><span class="n">containerColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Transparent</span><span class="p">),</span>
 <span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
-<span class="w">        </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">        </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">        </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">,</span>
 <span class="w">      </span><span class="p">),</span>
 <span class="w">    </span><span class="p">)</span>
@@ -1209,7 +1209,7 @@
 <span class="w">    </span><span class="n">NavigationBar</span><span class="p">(</span>
 <span class="w">      </span><span class="n">containerColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Transparent</span><span class="p">,</span>
 <span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
-<span class="w">        </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">        </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">        </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">,</span>
 <span class="w">      </span><span class="p">),</span>
 <span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -1238,7 +1238,7 @@ keeps interactive content clear of chrome while preserving source pixels behind 
 <span class="w">  </span><span class="n">stickyHeader</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">Header</span><span class="p">(</span>
 <span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
-<span class="w">        </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">        </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">        </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">,</span>
 <span class="w">        </span><span class="n">performanceMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePerformanceMode</span><span class="p">.</span><span class="na">Adaptive</span><span class="p">,</span>
 <span class="w">      </span><span class="p">),</span>
@@ -1271,10 +1271,10 @@ keeps interactive content clear of chrome while preserving source pixels behind 
 <span class="p">}</span>
 
 <span class="n">TopAppBar</span><span class="p">(</span>
-<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span><span class="w"> </span><span class="n">quiet</span><span class="p">),</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span><span class="w"> </span><span class="n">quiet</span><span class="p">),</span>
 <span class="p">)</span>
 <span class="n">BottomAppBar</span><span class="p">(</span>
-<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span><span class="w"> </span><span class="n">quiet</span><span class="p">),</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span><span class="w"> </span><span class="n">quiet</span><span class="p">),</span>
 <span class="p">)</span>
 </code></pre></div>
 <p>Both modifiers evaluate the shared Style into independent node-owned runtimes.</p></div>

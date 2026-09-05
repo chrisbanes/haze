@@ -1070,7 +1070,7 @@ It is a theme integration rather than a catalog of opinionated material presets;
 color. Pass <code>containerColor</code> to use a different color. When supplied, its block runs afterward, so
 a one-off Style can override that background without adding an implicit color effect:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
-<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="p">.</span><span class="na">Material3</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">blurRadius</span><span class="p">(</span><span class="m">12.</span><span class="n">dp</span><span class="p">)</span>
 <span class="w">  </span><span class="p">},</span>

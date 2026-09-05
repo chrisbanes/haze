@@ -1277,7 +1277,10 @@ must create an independent renderer for each one:</p>
 renderer per modifier node, reuses it for Style and input-policy updates, and disposes it when the
 factory is replaced or the node detaches.</p>
 <h2 id="draw-source-backed-input">Draw source-backed input<a class="headerlink" href="#draw-source-backed-input" title="Permanent link">¶</a></h2>
-<p>Use an explicit <code>HazeInput.Sources</code> when the effect consumes content captured by <code>hazeSource</code>:</p>
+<p>Use an explicit <code>HazeInput.Sources</code> when the effect consumes content captured by <code>hazeSource</code>:
+This is deliberate for custom effects: <code>Backdrop</code> is the built-in Blur and Glass input contract,
+and a generic factory does not receive the platform window-backdrop capability. <code>Sources</code> keeps
+the captured-source selection and retention semantics visible at the call site.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 
 <span class="n">Box</span><span class="w"> </span><span class="p">{</span>

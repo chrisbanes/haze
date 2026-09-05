@@ -783,6 +783,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#android-window-backdrop-glass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Android window-backdrop Glass
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1389,6 +1400,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#android-window-backdrop-glass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Android window-backdrop Glass
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1498,7 +1520,7 @@ derives a tint from <code>LocalContentColor</code>.</p>
 <span class="kd">val</span><span class="w"> </span><span class="nv">clear</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">clear</span><span class="p">.</span><span class="na">material3</span><span class="p">(</span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
-<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">Material3</span><span class="p">(</span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">optics</span><span class="p">(</span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">)</span>
 <span class="w">  </span><span class="p">},</span>
@@ -1521,7 +1543,7 @@ its authored refraction and distinct edge and lighting response remain recogniza
 that simplify advanced optical effects. These are Haze styles informed by the platform distinction;
 they do not promise pixel parity with another system.</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
-<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">clear</span><span class="p">.</span><span class="na">material3</span><span class="p">(</span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.12f</span><span class="p">)),</span>
 <span class="p">)</span>
 </code></pre></div>
@@ -1610,7 +1632,7 @@ when one element needs to differ.</p>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
 <span class="w">  </span><span class="n">Modifier</span>
 <span class="w">    </span><span class="p">.</span><span class="na">size</span><span class="p">(</span><span class="m">180.</span><span class="n">dp</span><span class="p">)</span>
-<span class="w">    </span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">))</span>
+<span class="w">    </span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)),</span>
 <span class="p">)</span>
 </code></pre></div>
 <h3 id="choosing-optics">Choosing optics<a class="headerlink" href="#choosing-optics" title="Permanent link">¶</a></h3>
@@ -1684,6 +1706,40 @@ of retaining pixels when the source disappears:</p>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
+<h3 id="android-window-backdrop-glass">Android window-backdrop Glass<a class="headerlink" href="#android-window-backdrop-glass" title="Permanent link">¶</a></h3>
+<p><code>HazeInput.Backdrop</code> is the normal Glass input when the surface should consume the combined pixels
+already drawn earlier in the current window. Its native path is experimental and eligible only
+after setting the process-wide flag before the effect node attaches:</p>
+<div class="highlight"><pre><span></span><code><span class="n">HazeFeatureFlags</span><span class="p">.</span><span class="na">isPlatformBackdropEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+
+<span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
+<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>The native path reuses Glass's fused blur, depth, refraction, detail, chromatic, tint, and tone
+graph at compositor resolution. Rim and interaction lighting remain independent foreground draws,
+and authored alpha, shape, and material transforms keep their normal ordering. It does not retain
+a source or fused-output layer while healthy.</p>
+<p>Backdrop input samples the current window's combined earlier pixels. It cannot select a Haze
+source, include content drawn later, or cross a dialog, popup, or window boundary. The <code>fallback</code>
+source input on <code>HazeInput.Backdrop</code> configures only its source fallback; it does not filter native
+window pixels. The current flag default is <code>false</code>, and
+<code>true</code> means eligible rather than guaranteed: the built-in effect, full Android 37.2 gate, window,
+canvas, native graph setup, and draw must all succeed. Unsupported platforms or a native failure
+select the source fallback for the rest of that attachment; the transition may take one frame.
+Changing the flag affects later attachments only, and healthy native rendering does not retain or
+record source layers.</p>
+<p>Set <code>HazeLogger.enabled = true</code> to inspect selection and fallback messages. Native work is marked
+by the <code>HazeBackdrop.draw</code> trace section. This is diagnostic information, not a performance claim;
+physical Android 37.2 acceptance remains a separate release gate. A later release may enable the
+flag by default, retain a temporary <code>false</code> escape hatch, and then remove the experimental flag.</p>
+<p>Use Sources directly when exact source selection, cross-window alignment, or retained-output
+behavior must govern the actual input rather than only the fallback.
+<a href="../../adr/0010-adopt-backdrop-as-the-adaptive-haze-input/">ADR-0010</a>
+defines the input and rollout, while
+<a href="../../adr/0003-use-one-android-fused-glass-renderer/">ADR-0003</a> remains authoritative for
+source-backed Android Glass.</p>
 <p>You can select a literal optical configuration when the built-in material does not fit the design:</p>
 <div class="highlight"><pre><span></span><code><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.20f</span><span class="p">))</span>
@@ -1755,7 +1811,7 @@ which Glass-specific workloads and interactions to test.</p>
 <p>Glass interaction is default-disabled and entirely opt-in. It adds a visual response only: it does
 not add click handling, focusability, semantics, or keyboard/D-pad activation.</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
-<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">pressed</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">lightingIntensity</span><span class="p">(</span><span class="m">1f</span><span class="p">)</span>
@@ -1790,7 +1846,7 @@ and your behavior modifiers:</p>
 <span class="w">  </span><span class="p">.</span><span class="na">clickable</span><span class="p">(</span><span class="n">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span><span class="p">,</span><span class="w"> </span><span class="n">indication</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">onClick</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
 <span class="w">  </span><span class="p">.</span><span class="na">focusable</span><span class="p">(</span><span class="n">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span><span class="p">)</span>
 <span class="w">  </span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
-<span class="w">    </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">    </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionStyle</span><span class="p">,</span>
 <span class="w">    </span><span class="n">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span><span class="p">,</span>
 <span class="w">    </span><span class="n">interactionTransformTarget</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassTransformTarget</span><span class="p">.</span><span class="na">MaterialAndContent</span><span class="p">,</span>
@@ -1829,7 +1885,7 @@ lighting and optics while suppressing transforms, and <code>Full</code> forces m
 <span class="w">  </span><span class="n">Modifier</span>
 <span class="w">    </span><span class="p">.</span><span class="na">size</span><span class="p">(</span><span class="m">180.</span><span class="n">dp</span><span class="p">)</span>
 <span class="w">    </span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
-<span class="w">      </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">      </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">      </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span>
 <span class="w">        </span><span class="n">optics</span><span class="p">(</span>

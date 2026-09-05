@@ -1309,9 +1309,13 @@ reuse the current renderer. Replacing the factory or detaching the node disposes
 <span class="w">    </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p><code>HazeInput.Sources</code> selects content captured by <code>hazeSource</code>; <code>HazeInput.Content</code> selects the
-modifier's own content. Source selection, retained-output privacy, sampling, and layer expansion
-remain core policies rather than effect-specific mutable configuration.</p>
+<p><code>HazeInput.Backdrop(state)</code> is the normal built-in input for the intent to consume all pixels drawn
+earlier in the current window. Its <code>fallback</code> source input configures only the source-capture
+fallback. <code>HazeInput.Sources</code> selects content captured by <code>hazeSource</code>,
+while <code>HazeInput.Content</code> selects the modifier's own content. Backdrop input is not a
+source-selection mode: it cannot select individual sources, include later drawing, or cross a
+window boundary. Source selection, retained-output privacy, sampling, and layer expansion remain
+core policies rather than effect-specific mutable configuration.</p>
 <h2 id="semantic-renderer-scopes">Semantic renderer scopes<a class="headerlink" href="#semantic-renderer-scopes" title="Permanent link">¶</a></h2>
 <p>The draw scope exposes ordinary <code>DrawScope</code> operations, the modifier bounds in the effect layer,
 the selected sampling policy, tracked composition-local access, and one <code>drawInput()</code> operation for
@@ -1336,6 +1340,15 @@ or captured layers.</p>
 <li>renderer replacement and disposal;</li>
 <li>draw and bounds invalidation.</li>
 </ul>
+<p>For Backdrop input, core also snapshots <code>HazeFeatureFlags.isPlatformBackdropEnabled</code> when the
+modifier node attaches, then owns the native/fallback decision, full Android minor-SDK and
+hardware-canvas gate, backdrop geometry and clipping, draw ordering, and dormant fallback capture
+demand. The flag makes native rendering eligible; it does not guarantee it. A native failure
+becomes sticky source fallback after at most one transition frame. <code>HazeLogger.enabled</code> exposes
+selection and fallback messages, and native work is marked by the <code>HazeBackdrop.draw</code> trace
+section. Blur and Glass own their platform root-effect graphs; no backend or platform effect is
+public. <a href="../adr/0010-adopt-backdrop-as-the-adaptive-haze-input/">ADR-0010</a> records this exception
+to the ordinary source-capture path.</p>
 <p>Those details are intentionally absent from the public typed renderer scopes.</p>
 <h2 id="built-in-blur">Built-in Blur<a class="headerlink" href="#built-in-blur" title="Permanent link">¶</a></h2>
 <p>Blur uses the same typed node lifecycle plus narrow <code>@InternalHazeApi</code> capabilities for lifecycle,
@@ -1355,6 +1368,10 @@ platform resources. A Style builder executes only during Style construction; cha
 input requires replacing the Style through recomposition.</p>
 <p>The old public effect, renderer, cache, grouped sentinel values, and <code>glassEffect</code> DSL are removed.
 No renderer or lifecycle object can be shared between Glass nodes.</p>
+<p>On supported Backdrop input, Glass reuses the Android fused effect graph with compositor input and
+keeps only independent rim and interaction-lighting foreground layers. It does not replace the
+source-backed renderer established by
+<a href="../adr/0003-use-one-android-fused-glass-renderer/">ADR-0003</a>.</p>
 <h2 id="modules">Modules<a class="headerlink" href="#modules" title="Permanent link">¶</a></h2>
 <ul>
 <li><strong>haze</strong> — core state, source capture, and typed custom-effect orchestration</li>

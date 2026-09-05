@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
-    <title>enabled</title>
+    <title>isPlatformBackdropEnabled</title>
 <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
     <script>document.documentElement.classList.replace("no-js", "js");</script>
     <script>const storage = localStorage.getItem("dokka-dark-mode")
@@ -89,12 +89,12 @@
         </nav>
         <div id="resizer" class="resizer" data-item-type="BAR"></div>
         <div id="main" data-item-type="SECTION" role="main">
-<div class="main-content" data-page-type="member" id="content" pageids="haze::dev.chrisbanes.haze/HazeLogger/enabled/#/PointingToDeclaration//-907335505">
-  <div class="breadcrumbs"><a href="../../index.html">haze</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze</a><span class="delimiter">/</span><a href="index.html">HazeLogger</a><span class="delimiter">/</span><span class="current">enabled</span></div>
+<div class="main-content" data-page-type="member" id="content" pageids="haze::dev.chrisbanes.haze/HazeFeatureFlags/isPlatformBackdropEnabled/#/PointingToDeclaration//-907335505">
+  <div class="breadcrumbs"><a href="../../index.html">haze</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze</a><span class="delimiter">/</span><a href="index.html">HazeFeatureFlags</a><span class="delimiter">/</span><span class="current">isPlatformBackdropEnabled</span></div>
   <div class="cover ">
-    <h1 class="cover"><span><span>enabled</span></span></h1>
+    <h1 class="cover"><span>is</span><wbr><span>Platform</span><wbr><span>Backdrop</span><wbr><span><span>Enabled</span></span></h1>
   </div>
-  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="enabled.html">enabled</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><p class="paragraph">Whether to print debug log statements to the relevant system logger. Do not build release artifacts with this enabled. When enabled, Backdrop selection and source-fallback messages are included. Native backdrop work is marked separately by the <code class="lang-kotlin">HazeBackdrop.draw</code> trace section. This is purely for debugging purposes.</p></div></div>
+  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-field/index.html"><span class="token annotation builtin">JvmField</span></a></div></div><span class="token keyword">var </span><a href="is-platform-backdrop-enabled.html">isPlatformBackdropEnabled</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><p class="paragraph">Whether built-in effects may use a platform window-backdrop renderer.</p><p class="paragraph">This value is read when a Haze effect modifier node is attached. Changing it does not alter nodes that are already attached; reattach a node for it to observe the new value. Enabling the flag only makes native rendering eligible. Platform, window, canvas, effect, setup, and draw checks can still select the configured source fallback, which remains the portable behavior. The default is <code class="lang-kotlin">false</code> while the platform implementation is experimental.</p><p class="paragraph">Once physical Android 37.2 acceptance is complete, a later release may flip the default while retaining a temporary <code class="lang-kotlin">false</code> escape hatch for regressions, then remove this experimental flag.</p></div></div>
 </div>
     <div class="footer">
         <div class="footer--container">

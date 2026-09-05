@@ -467,6 +467,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#choosing-the-input" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing the input
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#source-backed-blur" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -482,6 +493,17 @@
     <span class="md-ellipsis">
       
         Own-content Blur
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#android-window-backdrop-blur" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Android window-backdrop Blur
       
     </span>
   </a>
@@ -1178,6 +1200,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#choosing-the-input" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing the input
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#source-backed-blur" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1193,6 +1226,17 @@
     <span class="md-ellipsis">
       
         Own-content Blur
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#android-window-backdrop-blur" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Android window-backdrop Blur
       
     </span>
   </a>
@@ -1292,8 +1336,37 @@
 
 
 <div><h1 id="blur-usage">Blur usage<a class="headerlink" href="#blur-usage" title="Permanent link">¶</a></h1>
-<p>Blur works with either source-backed content or the modifier's own content. Both modes use the
-typed <code>hazeBlur</code> modifier and the same replayable Style.</p>
+<p>Blur works with a current-window Backdrop input, exact captured Sources input, or the modifier's
+own Content input. All modes use the typed <code>hazeBlur</code> modifier and the same replayable Style.</p>
+<h2 id="choosing-the-input">Choosing the input<a class="headerlink" href="#choosing-the-input" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Input</th>
+<th>What it consumes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Normal built-in Blur behind content</td>
+<td><code>HazeInput.Backdrop(hazeState)</code></td>
+<td>All earlier pixels in the same window, with source capture as fallback.</td>
+</tr>
+<tr>
+<td>Exact source ownership or selection</td>
+<td><code>HazeInput.Sources(hazeState)</code></td>
+<td>Pixels captured by selected <code>hazeSource</code> modifiers.</td>
+</tr>
+<tr>
+<td>Blur the modifier's own content</td>
+<td><code>HazeInput.Content</code></td>
+<td>Content drawn by the modifier's composable.</td>
+</tr>
+</tbody>
+</table>
+<p>Use <code>Backdrop</code> for the usual built-in Blur case. Its <code>fallback</code> source input applies only if
+source capture is needed; it does not filter the native window backdrop.</p>
 <h2 id="source-backed-blur">Source-backed Blur<a class="headerlink" href="#source-backed-blur" title="Permanent link">¶</a></h2>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
@@ -1334,11 +1407,37 @@ typed <code>hazeBlur</code> modifier and the same replayable Style.</p>
 <span class="w">  </span><span class="p">),</span>
 <span class="p">)</span>
 </code></pre></div>
+<h2 id="android-window-backdrop-blur">Android window-backdrop Blur<a class="headerlink" href="#android-window-backdrop-blur" title="Permanent link">¶</a></h2>
+<p><code>HazeInput.Backdrop</code> is portable, while its native path is an experimental eligibility path. Set
+the process-wide flag before attaching the effect nodes that should observe it:</p>
+<div class="highlight"><pre><span></span><code><span class="n">HazeFeatureFlags</span><span class="p">.</span><span class="na">isPlatformBackdropEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+
+<span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
+<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">(),</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>The current default is <code>false</code>. <code>true</code> makes native rendering eligible, not guaranteed: built-in
+effect support, the full Android 37.2 gate, the window and canvas, native setup, and the draw must
+all succeed. This is same-window, previous-pixel ordering—not selected-source capture. It cannot
+see later draw operations or pixels from another dialog, popup, or window. Native sampling stays
+at compositor resolution; <code>HazePerformanceMode</code> does not downsample that input. On older Android
+releases, other platforms, a software canvas, or after native setup/draw failure, the modifier uses
+the configured source fallback. That decision is sticky until detachment and the transition may
+take one frame. Changing the flag affects later attachments only, and healthy native consumers do
+not record fallback source layers.</p>
+<p>Set <code>HazeLogger.enabled = true</code> for selection and fallback messages. The native draw is marked by
+the <code>HazeBackdrop.draw</code> trace section. These diagnostics do not establish a performance result;
+physical Android 37.2 acceptance is still pending. A later release may flip the default, retain a
+temporary <code>false</code> escape hatch, and then remove the experimental flag.</p>
+<p>Use <code>HazeInput.Sources</code> when its exact selection, cross-window, or retention semantics must govern
+the actual input. See
+<a href="../../adr/0010-adopt-backdrop-as-the-adaptive-haze-input/">ADR-0010</a> for the complete boundary.</p>
 <h2 id="enabling-blur">Enabling Blur<a class="headerlink" href="#enabling-blur" title="Permanent link">¶</a></h2>
 <p>Blur is enabled by default only where Haze considers the platform implementation reliable. To
 override that decision, write <code>blurEnabled</code> in a Style:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
-<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">blurEnabled</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span>
 <span class="w">  </span><span class="p">},</span>

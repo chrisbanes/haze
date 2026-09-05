@@ -1535,12 +1535,48 @@ fallback effect; <code>null</code> is the only fallback-absence value.</p>
 </code></pre></div>
 <p>After:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
-<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">(),</span>
 <span class="p">)</span>
 </code></pre></div>
 <p>Customize a preset with <code>then</code>, not <code>copy</code>.</p>
 <h2 id="migrate-input-and-rendering-policy">Migrate input and rendering policy<a class="headerlink" href="#migrate-input-and-rendering-policy" title="Permanent link">¶</a></h2>
+<p>For ordinary built-in Blur and Glass, use the current-window Backdrop input. Keep
+<code>HazeInput.Sources</code> when the effect needs exact source selection, cross-window alignment, or a
+specific retained-output policy that governs the actual input:</p>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Input</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Normal built-in surface behind content</td>
+<td><code>HazeInput.Backdrop(hazeState)</code></td>
+</tr>
+<tr>
+<td>Exact captured-source semantics</td>
+<td><code>HazeInput.Sources(hazeState)</code></td>
+</tr>
+<tr>
+<td>Modifier's own content</td>
+<td><code>HazeInput.Content</code></td>
+</tr>
+</tbody>
+</table>
+<p>Use <code>HazeInput.Backdrop(state)</code> for the default source fallback. If you need to customize the
+portable fallback, pass a <code>HazeInput.Sources</code> value to <code>Backdrop</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span>
+<span class="w">  </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span>
+<span class="w">    </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">state</span><span class="p">,</span>
+<span class="w">    </span><span class="n">selection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceSelection</span><span class="p">.</span><span class="na">All</span><span class="p">,</span>
+<span class="w">    </span><span class="n">retention</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceRetention</span><span class="p">.</span><span class="na">ClearWhenUnavailable</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>The fallback source input does not filter native window pixels.</p>
 <p>These values are modifier structure, not Style:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span>
@@ -1552,6 +1588,15 @@ fallback effect; <code>null</code> is the only fallback-absence value.</p>
 <span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
+<p>The native Backdrop path is experimental and disabled by default. Set
+<code>HazeFeatureFlags.isPlatformBackdropEnabled = true</code> before the relevant effect nodes attach. The
+flag makes native rendering eligible rather than guaranteed, and changing it affects later
+attachments only. Unsupported platforms, incompatible effects, software canvases, native setup,
+or draw failures use sticky source fallback until detachment. Enable <code>HazeLogger.enabled</code> for
+selection/fallback messages and inspect the <code>HazeBackdrop.draw</code> trace section when diagnosing a
+native draw. No performance result is implied; physical Android 37.2 acceptance remains pending.
+Later releases may enable the default, retain a temporary <code>false</code> escape hatch, and then remove
+the flag.</p>
 <p><code>HazePerformanceMode.Default</code> points to <code>Adaptive</code> for built-in Blur and Glass. Use <code>Adaptive</code> to pin that policy,
 <code>Quality</code>, <code>Balanced</code>, or <code>Performance</code> for its named profiles, or <code>Fixed(qualityFraction)</code> for an
 explicit normalized trade-off. <code>Quality</code> replaces the previous built-in full-resolution choice;
@@ -1638,7 +1683,7 @@ generated API reference for property-specific ranges.</p>
 </tr>
 <tr>
 <td>implicit source/content</td>
-<td>explicit <code>HazeInput.Sources</code> or <code>HazeInput.Content</code></td>
+<td>explicit <code>HazeInput.Backdrop</code>, <code>HazeInput.Sources</code>, or <code>HazeInput.Content</code></td>
 </tr>
 <tr>
 <td><code>GlassOptics.Absolute</code> and <code>GlassOptics.Fixed</code></td>
@@ -1684,7 +1729,7 @@ former <code>Offset.Unspecified</code> behavior, logical start/end alignments fo
 <span class="p">}</span>
 
 <span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
-<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">glassStyle</span><span class="p">,</span>
 <span class="w">  </span><span class="n">performanceMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePerformanceMode</span><span class="p">.</span><span class="na">Adaptive</span><span class="p">,</span>
 <span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
@@ -1963,7 +2008,8 @@ and <code>then</code>.</p>
    <code>dev.chrisbanes.haze.blur.materials</code>.</li>
 <li>Replace <code>Modifier.haze(...)</code> with <code>Modifier.hazeSource(...)</code>.</li>
 <li>Replace Blur-configuring <code>hazeEffect</code> blocks with <code>hazeBlur</code>, choosing
-   <code>HazeInput.Sources(state)</code> or <code>HazeInput.Content</code>.</li>
+   <code>HazeInput.Backdrop(state)</code> for ordinary built-in surfaces, <code>HazeInput.Sources(state)</code> for
+   exact captured-source semantics, or <code>HazeInput.Content</code> for own-content Blur.</li>
 <li>Move Blur properties into <code>HazeBlurStyle { ... }</code>, changing property assignments into Style
    functions. Use <code>then</code> instead of <code>copy</code> when customizing a preset.</li>
 <li>Move built-in Blur input-scale choices to <code>HazePerformanceMode</code>: map the previous default to
