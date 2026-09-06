@@ -76,7 +76,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
 
   @Test
   fun fractionalAlpha_reusesGroupLayerAndZeroReleasesIt() {
-    val effect = GlassRuntimeEffect().apply { alpha = 0.5f }
+    val effect = GlassRuntimeEffect().apply { style = style.then { alpha(0.5f) } }
     val delegate = RuntimeShaderGlassDelegate(effect)
     val context = RecordingVisualEffectContext(
       size = Size(100f, 100f),
@@ -88,7 +88,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.prepareDrawForTest(context, effect)
     assertThat(delegate.layers.groupAlpha.layer).isSameInstanceAs(first)
 
-    effect.alpha = 0f
+    effect.style = effect.style.then { alpha(0f) }
     delegate.prepareDrawForTest(context, effect)
 
     assertThat(delegate.layers.groupAlpha.layer).isNull()
@@ -122,7 +122,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   @Test
   fun prepareDraw_consumesTheSelectedPreparedRenderParamsInstance() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics(depth = OpticalSizeValue.Fixed(0f))
+      style = style.then { optics(GlassOptics(depth = OpticalSizeValue.Fixed(0f))) }
     }
     val delegate = RuntimeShaderGlassDelegate(effect)
     val context = RecordingVisualEffectContext(
@@ -142,11 +142,15 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   @Test
   fun prepareDraw_budgetScaleReductionReleasesAndRebuildsRuntimeLayers() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics(
-        refractionStrength = 0f,
-        refractionDisplacement = 0.dp,
-        blurRadius = OpticalSizeValue.Fixed(0.dp),
-      )
+      style = style.then {
+        optics(
+          GlassOptics(
+            refractionStrength = 0f,
+            refractionDisplacement = 0.dp,
+            blurRadius = OpticalSizeValue.Fixed(0.dp),
+          ),
+        )
+      }
     }
     val delegate = RuntimeShaderGlassDelegate(effect)
     val graphicsContext = TestGraphicsContext()
@@ -178,13 +182,17 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   @Test
   fun prepareDraw_releasesObsoleteTopologyBeforeCreatingReplacementLayers() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics(
-        refractionStrength = 0.5f,
-        refractionDisplacement = 20.dp,
-        depth = OpticalSizeValue.Fixed(0f),
-        blurRadius = OpticalSizeValue.Fixed(0.dp),
-      )
-      specularIntensity = 1f
+      style = style.then {
+        optics(
+          GlassOptics(
+            refractionStrength = 0.5f,
+            refractionDisplacement = 20.dp,
+            depth = OpticalSizeValue.Fixed(0f),
+            blurRadius = OpticalSizeValue.Fixed(0.dp),
+          ),
+        )
+        specularIntensity(1f)
+      }
     }
     val delegate = RuntimeShaderGlassDelegate(effect)
     val graphicsContext = TestGraphicsContext()
@@ -208,13 +216,17 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     )
     graphicsContext.events.clear()
 
-    effect.optics = GlassOptics(
-      refractionStrength = 0f,
-      refractionDisplacement = 0.dp,
-      depth = OpticalSizeValue.Fixed(0.5f),
-      blurRadius = OpticalSizeValue.Fixed(24.dp),
-    )
-    effect.specularIntensity = 0f
+    effect.style = effect.style.then {
+      optics(
+        GlassOptics(
+          refractionStrength = 0f,
+          refractionDisplacement = 0.dp,
+          depth = OpticalSizeValue.Fixed(0.5f),
+          blurRadius = OpticalSizeValue.Fixed(24.dp),
+        ),
+      )
+      specularIntensity(0f)
+    }
     delegate.prepareDrawForTest(context, effect)
 
     val firstCreate = graphicsContext.events.indexOfFirst { it is LayerEvent.Create }
@@ -271,13 +283,17 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
       create()
     }
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics(
-        refractionStrength = 0.5f,
-        refractionDisplacement = 20.dp,
-        depth = OpticalSizeValue.Fixed(0f),
-        blurRadius = OpticalSizeValue.Fixed(0.dp),
-      )
-      specularIntensity = 0f
+      style = style.then {
+        optics(
+          GlassOptics(
+            refractionStrength = 0.5f,
+            refractionDisplacement = 20.dp,
+            depth = OpticalSizeValue.Fixed(0f),
+            blurRadius = OpticalSizeValue.Fixed(0.dp),
+          ),
+        )
+        specularIntensity(0f)
+      }
       runtimeEffectFactory = failingFactory
     }
     val context = RecordingVisualEffectContext(
@@ -339,13 +355,17 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   @Test
   fun prepareDraw_impossibleMaximumRefractionGeometryCreatesNoRuntimeLayers() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics(
-        refractionStrength = 1f,
-        refractionDisplacement = 16_384.dp,
-        blurRadius = OpticalSizeValue.Fixed(0.dp),
-      )
-      edgeSoftness = 0.dp
-      shape = RoundedCornerShape(0.dp)
+      style = style.then {
+        optics(
+          GlassOptics(
+            refractionStrength = 1f,
+            refractionDisplacement = 16_384.dp,
+            blurRadius = OpticalSizeValue.Fixed(0.dp),
+          ),
+        )
+        edgeSoftness(0.dp)
+        shape(RoundedCornerShape(0.dp))
+      }
     }
     val graphicsContext = TestGraphicsContext()
     val context = RecordingVisualEffectContext(

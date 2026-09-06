@@ -156,10 +156,14 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   fun interactiveOptics_usesFusedBaseRendererBeforeInteractionStarts() =
     assertFusedRenderer(
       interactiveEffect().apply {
-        optics = optics.copy(
-          depth = OpticalSizeValue.Fixed(0.5f),
-          blurRadius = OpticalSizeValue.Fixed(38.5.dp),
-        )
+        style = style.then {
+          optics(
+            optics.copy(
+              depth = OpticalSizeValue.Fixed(0.5f),
+              blurRadius = OpticalSizeValue.Fixed(38.5.dp),
+            ),
+          )
+        }
       },
     ) { delegate ->
       assertThat(delegate.layers.hasDepthMixed).isFalse()
@@ -170,7 +174,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   fun singleFullChroma_usesFusedBaseRenderer() =
     assertFusedRenderer(
       retainedBlurEffect().apply {
-        chromaticAberrationMode = ChromaticAberrationMode.Full
+        style = style.then { chromaticAberrationMode(ChromaticAberrationMode.Full) }
       },
     ) { delegate ->
       assertThat(delegate.layers.hasDepthMixed).isFalse()
@@ -187,10 +191,14 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   fun singleNoBlur_usesFusedBaseRenderer() =
     assertFusedRenderer(
       retainedBlurEffect().apply {
-        optics = optics.copy(
-          depth = OpticalSizeValue.Fixed(0f),
-          blurRadius = OpticalSizeValue.Fixed(0.dp),
-        )
+        style = style.then {
+          optics(
+            optics.copy(
+              depth = OpticalSizeValue.Fixed(0f),
+              blurRadius = OpticalSizeValue.Fixed(0.dp),
+            ),
+          )
+        }
       },
     ) { delegate ->
       assertThat(delegate.layers.hasBlurred).isFalse()
@@ -354,8 +362,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val callerCompositionLocalStyle = GlassStyle { tint(Color.Red) }
       val effect = animatedStageEffect().apply {
         interactionSource = callerInteractionSource
-        shape = callerShape
-        style = GlassStyle {
+        style = style.then { shape(callerShape) }
+        style = style.then {
           interactionPositionAnimationSpec(callerPositionAnimationSpec)
         }
       }
@@ -421,9 +429,13 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     runAndroidComposeUiTest<ComponentActivity> {
       val callerBrush = Brush.linearGradient(listOf(Color.Transparent, Color.Black))
       val effect = animatedStageEffect().apply {
-        optics = optics.copy(
-          progressive = HazeProgressive.Brush(callerBrush),
-        )
+        style = style.then {
+          optics(
+            optics.copy(
+              progressive = HazeProgressive.Brush(callerBrush),
+            ),
+          )
+        }
       }
       val attached = mutableStateOf(true)
       setContent { RuntimeGlassTestContent(effect, attachEffect = attached.value) }
@@ -512,7 +524,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   fun liveUniformChanges_retainShadersAndReplaceRetainedLayerRenderEffects() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = animatedStageEffect()
-      setContent { RuntimeGlassTestContent(effect) }
+      val style = mutableStateOf(effect.style)
+      setContent { RuntimeGlassTestContent(effect, style = style.value) }
       waitForIdle()
       drawFrame()
       val delegate = checkNotNull(runtime(effect).delegate as? RuntimeShaderGlassDelegate) {
@@ -524,7 +537,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
       val fusedShader = checkNotNull(delegate.fusedShader)
       val fusedEffect = checkNotNull(delegate.layers.optical?.renderEffect)
-      effect.ambientResponse = 0.6f
+      style.value = style.value.then { ambientResponse(0.6f) }
       waitForIdle()
       drawFrame()
 
@@ -536,7 +549,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val rimShader = delegate.rimShader
       val rimEffect = delegate.rimEffect
       val rimLayerEffect = checkNotNull(delegate.layers.rim?.renderEffect)
-      effect.lightPosition = exactLightAlignment(Offset(10f, 20f))
+      style.value = style.value.then { lightPosition(exactLightAlignment(Offset(10f, 20f))) }
       waitForIdle()
       drawFrame()
 
@@ -551,15 +564,16 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val effect = animatedStageEffect()
       val factory = TestGlassRuntimeFactory(effect)
       var contentSize by mutableStateOf(120.dp)
-      val configuration = GlassNodeConfiguration(
-        style = effect.style,
-        performanceMode = HazePerformanceMode.Quality,
-        interactionSource = effect.interactionSource,
-        interactionTransformTarget = effect.interactionTransformTarget,
-        interactionTransformPivot = effect.interactionTransformPivot,
-        interactionReducedMotionPolicy = effect.interactionReducedMotionPolicy,
-      )
+      val style = mutableStateOf(effect.style)
       setContent {
+        val configuration = GlassNodeConfiguration(
+          style = style.value,
+          performanceMode = HazePerformanceMode.Quality,
+          interactionSource = effect.interactionSource,
+          interactionTransformTarget = effect.interactionTransformTarget,
+          interactionTransformPivot = effect.interactionTransformPivot,
+          interactionReducedMotionPolicy = effect.interactionReducedMotionPolicy,
+        )
         Box(
           Modifier
             .size(contentSize)
@@ -607,14 +621,14 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.layers.rim).isSameInstanceAs(firstRimLayer)
       assertThat(repeatedPixels.size).isEqualTo(initialPixels.size)
 
-      effect.ambientResponse = 0.6f
+      style.value = style.value.then { ambientResponse(0.6f) }
       renderer.invalidateDraw()
       waitForIdle()
       capturePixels()
       assertThat(delegate.rimRecordCount).isEqualTo(firstCount)
       assertThat(delegate.layers.rim).isSameInstanceAs(firstRimLayer)
 
-      effect.alpha = 0.75f
+      style.value = style.value.then { alpha(0.75f) }
       renderer.invalidateDraw()
       waitForIdle()
       capturePixels()
@@ -631,7 +645,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
       val countBeforeLight = delegate.rimRecordCount
       val pixelsBeforeLight = resizedPixels
-      effect.lightPosition = exactLightAlignment(Offset(10f, 20f))
+      style.value = style.value.then { lightPosition(exactLightAlignment(Offset(10f, 20f))) }
       renderer.invalidateDraw()
       waitForIdle()
       val pixelsAfterLight = capturePixels()
@@ -643,15 +657,19 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(maximumPixelDelta).isGreaterThan(0.01f)
 
       val countBeforeDisable = delegate.rimRecordCount
-      effect.specularIntensity = 0f
-      effect.edgeShadow = Color.Transparent
+      style.value = style.value.then {
+        specularIntensity(0f)
+        edgeShadow(Color.Transparent)
+      }
       renderer.invalidateDraw()
       waitForIdle()
       capturePixels()
       assertThat(delegate.layers.rim).isNull()
 
-      effect.specularIntensity = 1f
-      effect.edgeShadow = Color.Black.copy(alpha = 0.2f)
+      style.value = style.value.then {
+        specularIntensity(1f)
+        edgeShadow(Color.Black.copy(alpha = 0.2f))
+      }
       renderer.invalidateDraw()
       waitForIdle()
       capturePixels()
@@ -672,7 +690,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   fun activeInteraction_liveAndBaseUniformChangesRetainFusedShaderHandles() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = interactiveEffect()
-      setContent { RuntimeGlassTestContent(effect) }
+      val style = mutableStateOf(effect.style)
+      setContent { RuntimeGlassTestContent(effect, style = style.value) }
       waitForIdle()
       drawFrame()
 
@@ -686,8 +705,10 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       runtime(effect).setPressedForTest(Offset(80f, 60f))
       waitForIdle()
       drawFrame()
-      effect.ambientResponse = 0.6f
-      effect.optics = effect.optics.copy(refractionDisplacement = 18.dp)
+      style.value = style.value.then {
+        ambientResponse(0.6f)
+        optics(effect.optics.copy(refractionDisplacement = 18.dp))
+      }
       waitForIdle()
       drawFrame()
 
@@ -716,7 +737,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   @Test
   fun fractionalAlpha_isAppliedToBaseGroupAndForegroundLighting() =
     runAndroidComposeUiTest<ComponentActivity> {
-      val effect = interactiveEffect().apply { alpha = 0.5f }
+      val effect = interactiveEffect().apply { style = style.then { alpha(0.5f) } }
       setContent { RuntimeGlassTestContent(effect) }
       waitForIdle()
       drawFrame()
@@ -855,7 +876,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   fun fusedOpticalUniformChanges_retainShaderAndReplaceRenderEffect() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = retainedBlurEffect()
-      setContent { RuntimeGlassTestContent(effect) }
+      val style = mutableStateOf(effect.style)
+      setContent { RuntimeGlassTestContent(effect, style = style.value) }
       waitForIdle()
       drawFrame()
       val delegate = checkNotNull(runtime(effect).delegate as? RuntimeShaderGlassDelegate)
@@ -863,9 +885,13 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val fusedShader = checkNotNull(delegate.fusedShader)
       val fusedEffect = checkNotNull(delegate.layers.optical?.renderEffect)
 
-      effect.optics = effect.optics.copy(
-        refractionDisplacement = 18.dp,
-      )
+      style.value = style.value.then {
+        optics(
+          effect.optics.copy(
+            refractionDisplacement = 18.dp,
+          ),
+        )
+      }
       waitForIdle()
       drawFrame()
 
@@ -881,14 +907,15 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   fun fusedBlurChanges_reuseShaderAndReplaceDepthInputGraph() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = retainedBlurEffect()
-      setContent { RuntimeGlassTestContent(effect) }
+      val style = mutableStateOf(effect.style)
+      setContent { RuntimeGlassTestContent(effect, style = style.value) }
       waitForIdle()
       drawFrame()
       val delegate = checkNotNull(runtime(effect).delegate as? RuntimeShaderGlassDelegate)
 
       val fusedShader = checkNotNull(delegate.fusedShader)
       val fusedEffect = checkNotNull(delegate.layers.optical?.renderEffect)
-      effect.optics = effect.optics.copy(blurRadius = OpticalSizeValue.Fixed(36.dp))
+      style.value = style.value.then { optics(effect.optics.copy(blurRadius = OpticalSizeValue.Fixed(36.dp))) }
       waitForIdle()
       drawFrame()
 
@@ -908,7 +935,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
           endIntensity = 1f,
         ),
       )
-      setContent { RuntimeGlassTestContent(effect) }
+      val style = mutableStateOf(effect.style)
+      setContent { RuntimeGlassTestContent(effect, style = style.value) }
       waitForIdle()
       drawFrame()
       val delegate = checkNotNull(runtime(effect).delegate as? RuntimeShaderGlassDelegate)
@@ -916,13 +944,17 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val fusedShader = checkNotNull(delegate.fusedShader)
       val fusedEffect = checkNotNull(delegate.layers.optical?.renderEffect)
 
-      effect.optics = effect.optics.copy(
-        blurRadius = OpticalSizeValue.Fixed(34.dp),
-        progressive = HazeProgressive.verticalGradient(
-          startIntensity = 0.1f,
-          endIntensity = 0.9f,
-        ),
-      )
+      style.value = style.value.then {
+        optics(
+          effect.optics.copy(
+            blurRadius = OpticalSizeValue.Fixed(34.dp),
+            progressive = HazeProgressive.verticalGradient(
+              startIntensity = 0.1f,
+              endIntensity = 0.9f,
+            ),
+          ),
+        )
+      }
       waitForIdle()
       drawFrame()
 
@@ -934,47 +966,59 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     }
 
   private fun animatedStageEffect() = GlassRuntimeEffect().apply {
-    optics = GlassOptics(
-      refractionStrength = 0.5f,
-      refractionDisplacement = 20.dp,
-      depth = OpticalSizeValue.Fixed(0.5f),
-      blurRadius = OpticalSizeValue.Fixed(14.dp),
-    )
-    specularIntensity = 1f
-    ambientResponse = 0.5f
-    lightPosition = Alignment.Center
+    style = style.then {
+      optics(
+        GlassOptics(
+          refractionStrength = 0.5f,
+          refractionDisplacement = 20.dp,
+          depth = OpticalSizeValue.Fixed(0.5f),
+          blurRadius = OpticalSizeValue.Fixed(14.dp),
+        ),
+      )
+      specularIntensity(1f)
+      ambientResponse(0.5f)
+      lightPosition(Alignment.Center)
+    }
   }
 
   private fun interactiveEffect() = GlassRuntimeEffect().apply {
-    optics = GlassOptics(
-      refractionStrength = 0.5f,
-      refractionDisplacement = 20.dp,
-      blurRadius = OpticalSizeValue.Fixed(0.dp),
-    )
-    specularIntensity = 0f
-    pressed {
-      lightingIntensity(1f)
-      refractionMultiplier(1.08f)
-      whitePointDelta(0.04f)
-    }
-    interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
-  }
-
-  private fun largePanelInteractiveEffect() = GlassRuntimeEffect().apply {
-    optics = GlassOptics(
-      refractionStrength = 0.5f,
-      refractionDisplacement = 20.dp,
-      blurRadius = OpticalSizeValue.Fixed(0.dp),
-    )
-    specularIntensity = 0f
-    pressed {
-      animate(toSpec = tween(1), fromSpec = tween(160)) {
+    style = style.then {
+      optics(
+        GlassOptics(
+          refractionStrength = 0.5f,
+          refractionDisplacement = 20.dp,
+          blurRadius = OpticalSizeValue.Fixed(0.dp),
+        ),
+      )
+      specularIntensity(0f)
+      pressed {
         lightingIntensity(1f)
         refractionMultiplier(1.08f)
         whitePointDelta(0.04f)
       }
     }
-    style = GlassStyle {
+    interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
+  }
+
+  private fun largePanelInteractiveEffect() = GlassRuntimeEffect().apply {
+    style = style.then {
+      optics(
+        GlassOptics(
+          refractionStrength = 0.5f,
+          refractionDisplacement = 20.dp,
+          blurRadius = OpticalSizeValue.Fixed(0.dp),
+        ),
+      )
+      specularIntensity(0f)
+      pressed {
+        animate(toSpec = tween(1), fromSpec = tween(160)) {
+          lightingIntensity(1f)
+          refractionMultiplier(1.08f)
+          whitePointDelta(0.04f)
+        }
+      }
+    }
+    style = style.then {
       interactionLightRadiusFraction(0.25f)
       interactionPositionAnimationSpec(tween(1))
     }
@@ -985,14 +1029,18 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     progressive: HazeProgressive? = null,
     refractionStrength: Float = 0.5f,
   ) = GlassRuntimeEffect().apply {
-    optics = GlassOptics(
-      refractionStrength = refractionStrength,
-      refractionDisplacement = 20.dp,
-      depth = OpticalSizeValue.Fixed(0.5f),
-      blurRadius = OpticalSizeValue.Fixed(38.5.dp),
-      progressive = progressive,
-    )
-    specularIntensity = 0f
+    style = style.then {
+      optics(
+        GlassOptics(
+          refractionStrength = refractionStrength,
+          refractionDisplacement = 20.dp,
+          depth = OpticalSizeValue.Fixed(0.5f),
+          blurRadius = OpticalSizeValue.Fixed(38.5.dp),
+          progressive = progressive,
+        ),
+      )
+      specularIntensity(0f)
+    }
   }
 
   @Composable
@@ -1000,13 +1048,14 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     effect: GlassRuntimeEffect,
     attachEffect: Boolean = true,
     size: Dp = 120.dp,
+    style: GlassStyle = effect.style,
   ) {
     Box(
       Modifier
         .size(size)
         .then(
           if (attachEffect) {
-            Modifier.testGlassRuntime(effect, HazeInput.Content)
+            Modifier.testGlassRuntime(effect, HazeInput.Content, style)
           } else {
             Modifier
           },
@@ -1121,12 +1170,13 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   private fun Modifier.testGlassRuntime(
     effect: GlassRuntimeEffect,
     input: HazeInput,
+    style: GlassStyle = effect.style,
   ): Modifier {
     val factory = remember(effect) { FixedGlassRuntimeFactory(effect) }
     return hazeGlass(
       factory = factory,
       input = input,
-      style = effect.style,
+      style = style,
       performanceMode = HazePerformanceMode.Quality,
       expandLayerBounds = true,
       interactionSource = effect.interactionSource,

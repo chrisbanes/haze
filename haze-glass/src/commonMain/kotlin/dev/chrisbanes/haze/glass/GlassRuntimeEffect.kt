@@ -237,9 +237,6 @@ internal class GlassRuntimeEffect() :
   private var resolvedStyleCacheSize: Size = Size.Unspecified
   private var resolvedStyleCacheDensity: Density? = null
 
-  internal val resolvedStyleCacheDensityForTest: Density?
-    get() = resolvedStyleCacheDensity
-
   private var resolvedStyleCacheLayoutDirection: LayoutDirection? = null
 
   private var geometrySnapshotObserver: SnapshotStateObserver? = null
@@ -1154,19 +1151,6 @@ internal fun RoundedCornerShape.hasZeroCornerRadii(): Boolean {
     bottomEnd.toPx(unitSize, unitDensity) == 0f &&
     bottomStart.toPx(unitSize, unitDensity) == 0f
 }
-
-internal inline fun Float.takeOrElse(default: () -> Float): Float {
-  return if (this.isNaN()) default() else this
-}
-
-internal fun Float.hasSameOverrideValueAs(other: Float): Boolean =
-  this == other || isNaN() && other.isNaN()
-
-internal inline fun Float.hasSameNormalizedOverrideValueAs(
-  other: Float,
-  normalize: (Float) -> Float,
-): Boolean = hasSameOverrideValueAs(other) ||
-  isFinite() && other.isFinite() && normalize(this) == normalize(other)
 
 internal fun reducedMotion(
   policy: GlassReducedMotionPolicy,

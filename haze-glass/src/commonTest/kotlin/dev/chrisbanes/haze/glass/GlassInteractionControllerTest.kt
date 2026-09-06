@@ -62,22 +62,22 @@ class GlassInteractionControllerTest : ContextTest() {
 
   @Test
   fun equivalentCustomInteraction_retainsSlotAndRevision() {
-    val effect = GlassRuntimeEffect().apply { pressed { lightingIntensity(0.5f) } }
-    val pressed = checkNotNull(effect.pressedSlot)
+    val effect = GlassRuntimeEffect().apply { style = style.then { pressed { lightingIntensity(0.5f) } } }
+    val pressed = checkNotNull(effect.runtimeSlots().pressed)
 
-    effect.pressed { lightingIntensity(0.5f) }
+    effect.style = effect.style.then { pressed { lightingIntensity(0.5f) } }
 
-    assertThat(effect.pressedSlot).isSameInstanceAs(pressed)
+    assertThat(effect.runtimeSlots().pressed).isSameInstanceAs(pressed)
   }
 
   @Test
   fun changedCustomInteraction_replacesSlotAndRevision() {
-    val effect = GlassRuntimeEffect().apply { pressed { lightingIntensity(0.5f) } }
-    val pressed = checkNotNull(effect.pressedSlot)
+    val effect = GlassRuntimeEffect().apply { style = style.then { pressed { lightingIntensity(0.5f) } } }
+    val pressed = checkNotNull(effect.runtimeSlots().pressed)
 
-    effect.pressed { lightingIntensity(0.6f) }
+    effect.style = effect.style.then { pressed { lightingIntensity(0.6f) } }
 
-    assertThat(checkNotNull(effect.pressedSlot).revision).isGreaterThan(pressed.revision)
+    assertThat(checkNotNull(effect.runtimeSlots().pressed).revision).isGreaterThan(pressed.revision)
   }
 
   @Test
@@ -85,7 +85,7 @@ class GlassInteractionControllerTest : ContextTest() {
     mainClock.autoAdvance = false
     val effect = GlassRuntimeEffect().apply {
       testPressResponse()
-      style = GlassStyle { interactionPositionAnimationSpec(tween(1_000)) }
+      style = style.then { interactionPositionAnimationSpec(tween(1_000)) }
     }
     setContent {
       Box(Modifier.size(100.dp).testGlass(effect))
@@ -99,7 +99,7 @@ class GlassInteractionControllerTest : ContextTest() {
   @Test
   fun materialOnlyTransform_isNotExposedToHazeNode() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
-      pressed { scale(0.9f, 0.8f) }
+      style = style.then { pressed { scale(0.9f, 0.8f) } }
       interactionTransformTarget = GlassTransformTarget.MaterialOnly
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
     }
@@ -120,7 +120,7 @@ class GlassInteractionControllerTest : ContextTest() {
   @Test
   fun materialAndContentTransform_usesConfiguredPivot() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
-      pressed { scale(0.9f) }
+      style = style.then { pressed { scale(0.9f) } }
       interactionTransformTarget = GlassTransformTarget.MaterialAndContent
       interactionTransformPivot = GlassTransformPivot.Center
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
@@ -142,7 +142,7 @@ class GlassInteractionControllerTest : ContextTest() {
   @Test
   fun invalidGeometry_returnsIdentityTransform() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
-      pressed { scale(0.9f) }
+      style = style.then { pressed { scale(0.9f) } }
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
     }
     setContent {
@@ -202,7 +202,7 @@ class GlassInteractionControllerTest : ContextTest() {
     val effect = GlassRuntimeEffect().apply {
       testPressResponse()
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
-      style = GlassStyle { interactionPositionAnimationSpec(tween(1_000)) }
+      style = style.then { interactionPositionAnimationSpec(tween(1_000)) }
     }
     setTaggedEffectContent(effect)
     mainClock.advanceTimeByFrame()
@@ -222,7 +222,7 @@ class GlassInteractionControllerTest : ContextTest() {
     val effect = GlassRuntimeEffect().apply {
       testPressResponse()
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
-      style = GlassStyle { interactionPositionAnimationSpec(tween(1_000)) }
+      style = style.then { interactionPositionAnimationSpec(tween(1_000)) }
     }
     setTaggedEffectContent(effect)
     mainClock.advanceTimeByFrame()
@@ -369,7 +369,7 @@ class GlassInteractionControllerTest : ContextTest() {
     val effect = GlassRuntimeEffect().apply {
       testHoverResponse()
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
-      style = GlassStyle { interactionPositionAnimationSpec(tween(1_000)) }
+      style = style.then { interactionPositionAnimationSpec(tween(1_000)) }
     }
     setTaggedEffectContent(effect)
     mainClock.advanceTimeByFrame()
@@ -389,7 +389,7 @@ class GlassInteractionControllerTest : ContextTest() {
     val effect = GlassRuntimeEffect().apply {
       testHoverResponse()
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
-      style = GlassStyle { interactionPositionAnimationSpec(tween(1_000)) }
+      style = style.then { interactionPositionAnimationSpec(tween(1_000)) }
     }
     setTaggedEffectContent(effect)
     mainClock.advanceTimeByFrame()
@@ -540,8 +540,10 @@ class GlassInteractionControllerTest : ContextTest() {
     val hover = HoverInteraction.Enter()
     val focus = FocusInteraction.Focus()
     val effect = GlassRuntimeEffect().apply {
-      hovered { lightingIntensity(0.4f) }
-      focused { lightingIntensity(0.2f) }
+      style = style.then {
+        hovered { lightingIntensity(0.4f) }
+        focused { lightingIntensity(0.2f) }
+      }
       interactionSource = source
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
     }
@@ -684,7 +686,7 @@ class GlassInteractionControllerTest : ContextTest() {
   fun resolver_customScaleOnlyPressRetainsHoverLightingAndOptics() {
     val effect = GlassRuntimeEffect().apply {
       testHoverResponse()
-      pressed { scale(0.97f) }
+      style = style.then { pressed { scale(0.97f) } }
     }
 
     val result = resolveGlassInteractionTargets(
@@ -701,8 +703,10 @@ class GlassInteractionControllerTest : ContextTest() {
   @Test
   fun resolver_hiddenStateChangeDoesNotChangeOwner() {
     val effect = GlassRuntimeEffect().apply {
-      hovered { lightingIntensity(0.4f) }
-      pressed { lightingIntensity(0.8f) }
+      style = style.then {
+        hovered { lightingIntensity(0.4f) }
+        pressed { lightingIntensity(0.8f) }
+      }
     }
 
     val pressedOnly = resolveGlassInteractionTargets(
@@ -725,8 +729,10 @@ class GlassInteractionControllerTest : ContextTest() {
     val pressTo = tween<Float>(300)
     val pressFrom = tween<Float>(400)
     val effect = GlassRuntimeEffect().apply {
-      hovered { animate(hoverTo, hoverFrom) { scale(0.99f) } }
-      pressed { animate(pressTo, pressFrom) { scale(0.96f) } }
+      style = style.then {
+        hovered { animate(hoverTo, hoverFrom) { scale(0.99f) } }
+        pressed { animate(pressTo, pressFrom) { scale(0.96f) } }
+      }
     }
     val idle = resolveGlassInteractionTargets(effect.runtimeSlots(), GlassInteractionSignals())
     val hover = resolveGlassInteractionTargets(
@@ -773,10 +779,12 @@ class GlassInteractionControllerTest : ContextTest() {
   @Test
   fun controller_animatesFromCurrentValueWithSelectedSpec() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
-      pressed {
-        animate(tween(100), tween(200)) {
-          lightingIntensity(1f)
-          scale(0.9f)
+      style = style.then {
+        pressed {
+          animate(tween(100), tween(200)) {
+            lightingIntensity(1f)
+            scale(0.9f)
+          }
         }
       }
     }
@@ -800,11 +808,13 @@ class GlassInteractionControllerTest : ContextTest() {
   fun controller_reducedMotionSnapsLightingAndOpticsButKeepsIdentityTransform() =
     runComposeUiTest {
       val effect = GlassRuntimeEffect().apply {
-        pressed {
-          lightingIntensity(1f)
-          refractionMultiplier(1.2f)
-          whitePointDelta(0.2f)
-          scale(0.9f)
+        style = style.then {
+          pressed {
+            lightingIntensity(1f)
+            refractionMultiplier(1.2f)
+            whitePointDelta(0.2f)
+            scale(0.9f)
+          }
         }
         interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
       }
@@ -833,10 +843,11 @@ class GlassInteractionControllerTest : ContextTest() {
   @Test
   fun controller_replacingActiveResponseUsesReplacementToSpec() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
-      pressed { lightingIntensity(1f) }
+      style = style.then { pressed { lightingIntensity(1f) } }
     }
+    val style = mutableStateOf(effect.style)
     setContent {
-      Box(Modifier.size(100.dp).testGlass(effect))
+      Box(Modifier.size(100.dp).testGlass(effect, style = style.value))
     }
     waitForIdle()
     val controller = checkNotNull(runtime(effect).interactionControllerForTest)
@@ -845,10 +856,13 @@ class GlassInteractionControllerTest : ContextTest() {
     assertThat(controller.renderState.lightingIntensity).isEqualTo(1f)
 
     mainClock.autoAdvance = false
-    effect.pressed {
-      animate(tween(100), snap()) { lightingIntensity(0.2f) }
+    style.value = style.value.then {
+      pressed {
+        animate(tween(100), snap()) { lightingIntensity(0.2f) }
+      }
     }
-    controller.updateConfiguration(effect.runtimeConfiguration(systemMotionScale = 1f))
+    mainClock.advanceTimeByFrame()
+    waitForIdle()
     mainClock.advanceTimeBy(50)
 
     assertThat(controller.renderState.lightingIntensity).isGreaterThan(0.2f)
@@ -858,7 +872,7 @@ class GlassInteractionControllerTest : ContextTest() {
   @Test
   fun controller_declarationOutsideAnimateSnapsImmediately() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
-      pressed { lightingIntensity(0.7f) }
+      style = style.then { pressed { lightingIntensity(0.7f) } }
     }
     setContent {
       Box(Modifier.size(100.dp).testGlass(effect))
@@ -875,9 +889,11 @@ class GlassInteractionControllerTest : ContextTest() {
   @Test
   fun controller_systemPolicyWithZeroScaleUsesReducedMotion() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
-      pressed {
-        lightingIntensity(1f)
-        scale(0.9f)
+      style = style.then {
+        pressed {
+          lightingIntensity(1f)
+          scale(0.9f)
+        }
       }
     }
     setContent {
@@ -899,10 +915,12 @@ class GlassInteractionControllerTest : ContextTest() {
   fun controller_fullPolicyOverridesZeroSystemScale() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
-      pressed {
-        animate(tween(100), tween(100)) {
-          lightingIntensity(1f)
-          scale(0.9f)
+      style = style.then {
+        pressed {
+          animate(tween(100), tween(100)) {
+            lightingIntensity(1f)
+            scale(0.9f)
+          }
         }
       }
     }
@@ -926,7 +944,7 @@ class GlassInteractionControllerTest : ContextTest() {
   fun controller_inFlightPositionRestartsWhenAnimationSpecChanges() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
       testPressResponse()
-      style = GlassStyle { interactionPositionAnimationSpec(tween(1_000)) }
+      style = style.then { interactionPositionAnimationSpec(tween(1_000)) }
     }
     setContent {
       Box(Modifier.size(100.dp).testGlass(effect))
@@ -956,9 +974,11 @@ class GlassInteractionControllerTest : ContextTest() {
   @Test
   fun controller_inFlightSystemAnimationRestartsWhenPolicyChangesToFull() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
-      style = GlassStyle { interactionPositionAnimationSpec(tween(200)) }
-      pressed {
-        animate(tween(200), tween(200)) { lightingIntensity(1f) }
+      style = style.then {
+        interactionPositionAnimationSpec(tween(200))
+        pressed {
+          animate(tween(200), tween(200)) { lightingIntensity(1f) }
+        }
       }
     }
     setContent {
@@ -990,9 +1010,11 @@ class GlassInteractionControllerTest : ContextTest() {
   fun controller_inFlightFullAnimationRestartsWhenPolicyChangesToSystem() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
-      style = GlassStyle { interactionPositionAnimationSpec(tween(200)) }
-      pressed {
-        animate(tween(200), tween(200)) { lightingIntensity(1f) }
+      style = style.then {
+        interactionPositionAnimationSpec(tween(200))
+        pressed {
+          animate(tween(200), tween(200)) { lightingIntensity(1f) }
+        }
       }
     }
     setContent {
@@ -1021,11 +1043,13 @@ class GlassInteractionControllerTest : ContextTest() {
   }
 
   private fun reducedPressEffect(): GlassRuntimeEffect = GlassRuntimeEffect().apply {
-    pressed {
-      lightingIntensity(1f)
-      refractionMultiplier(1.08f)
-      whitePointDelta(0.04f)
-      scale(0.98f)
+    style = style.then {
+      pressed {
+        lightingIntensity(1f)
+        refractionMultiplier(1.08f)
+        whitePointDelta(0.04f)
+        scale(0.98f)
+      }
     }
     interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
   }
@@ -1043,10 +1067,13 @@ class GlassInteractionControllerTest : ContextTest() {
     }
   }
 
-  private fun Modifier.testGlass(effect: GlassRuntimeEffect): Modifier {
+  private fun Modifier.testGlass(
+    effect: GlassRuntimeEffect,
+    style: GlassStyle = effect.style,
+  ): Modifier {
     val configuration = Snapshot.withoutReadObservation {
       GlassNodeConfiguration(
-        style = effect.style,
+        style = style,
         interactionSource = effect.interactionSource,
         interactionTransformTarget = effect.interactionTransformTarget,
         interactionTransformPivot = effect.interactionTransformPivot,
@@ -1093,11 +1120,15 @@ class GlassInteractionControllerTest : ContextTest() {
 
   private fun GlassRuntimeEffect.runtimeConfiguration(
     systemMotionScale: Float,
-  ): GlassInteractionControllerConfiguration =
-    controllerConfiguration(systemMotionScale)
+  ): GlassInteractionControllerConfiguration {
+    updateStyleInteractionSlots()
+    return controllerConfiguration(systemMotionScale)
+  }
 
-  private fun GlassRuntimeEffect.runtimeSlots(): GlassInteractionSlots =
-    interactionSlots
+  private fun GlassRuntimeEffect.runtimeSlots(): GlassInteractionSlots {
+    updateStyleInteractionSlots()
+    return interactionSlots
+  }
 
   private fun context(effect: GlassRuntimeEffect) =
     checkNotNull(runtime(effect).attachedContextForTest)

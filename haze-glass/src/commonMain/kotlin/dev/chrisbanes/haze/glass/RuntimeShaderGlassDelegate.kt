@@ -40,16 +40,10 @@ import dev.chrisbanes.haze.trace
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RuntimeShaderGlassDelegate(
   private val effect: GlassRuntimeEffect,
-  runtimeEffectFactory: GlassRuntimeEffectFactory = PlatformGlassRuntimeEffectFactory,
+  private val runtimeEffectFactory: GlassRuntimeEffectFactory = PlatformGlassRuntimeEffectFactory,
 ) : GlassRuntimeEffect.Delegate, RetainedOutputDelegate {
-  private var runtimeEffectFactory = runtimeEffectFactory
-
   internal val runtimeEffectFactoryForTest: GlassRuntimeEffectFactory
     get() = runtimeEffectFactory
-
-  internal fun updateRuntimeEffectFactory(value: GlassRuntimeEffectFactory) {
-    runtimeEffectFactory = value
-  }
 
   private var blurKey: GlassBlurEffectKey? = null
   private var blurEffects: GlassBlurRenderEffects? = null
@@ -1097,7 +1091,6 @@ internal class RuntimeShaderGlassDelegate(
       context = context,
       scaleFactor = params.coordinates.scaleFactor,
       layerSize = context.layerSize,
-      layerOffset = context.layerOffset,
       existingLayer = layers.source,
       backgroundColor = params.backgroundColor,
     )?.also {

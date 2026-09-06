@@ -10,10 +10,10 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.isSpecified
@@ -113,47 +113,11 @@ internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffe
   }
 }
 
-internal fun DrawScope.createAndDrawScaledContentLayer(
-  context: HazeEffectRuntimeDrawScope,
-  scaleFactor: Float,
-  clipToNodeBounds: Boolean,
-  backgroundColor: Color,
-  releaseLayerOnExit: Boolean = true,
-  block: DrawScope.(GraphicsLayer) -> Unit,
-) {
-  val graphicsContext = context.requireGraphicsContext()
-
-  val layer = createScaledContentLayer(
-    context = context,
-    scaleFactor = scaleFactor,
-    layerSize = context.layerSize,
-    layerOffset = context.layerOffset,
-    backgroundColor = backgroundColor,
-  )
-
-  if (layer != null) {
-    layer.clip = clipToNodeBounds
-
-    drawScaledContent(
-      offset = -context.layerOffset,
-      scaledSize = size * scaleFactor,
-      clip = clipToNodeBounds,
-    ) {
-      block(layer)
-    }
-
-    if (releaseLayerOnExit) {
-      graphicsContext.releaseGraphicsLayer(layer)
-    }
-  }
-}
-
 internal fun DrawScope.createScaledContentLayer(
   context: HazeEffectRuntimeDrawScope,
   backgroundColor: Color,
   scaleFactor: Float,
   layerSize: Size,
-  layerOffset: Offset,
   existingLayer: GraphicsLayer? = null,
 ): GraphicsLayer? {
   val scaledLayerSize = (layerSize * scaleFactor).roundToIntSize()
@@ -189,7 +153,7 @@ internal fun DrawScope.drawScaledContent(
   block: DrawScope.() -> Unit,
 ) {
   val scaleFactor = max(size.width / scaledSize.width, size.height / scaledSize.height)
-  optionalClipRect(enabled = clip) {
+  withTransform({ if (clip) clipRect() }) {
     translate(offset) {
       scale(scale = scaleFactor, pivot = Offset.Zero) {
         block()
@@ -197,20 +161,3 @@ internal fun DrawScope.drawScaledContent(
     }
   }
 }
-
-private inline fun DrawScope.optionalClipRect(
-  enabled: Boolean,
-  left: Float = 0.0f,
-  top: Float = 0.0f,
-  right: Float = size.width,
-  bottom: Float = size.height,
-  clipOp: ClipOp = ClipOp.Intersect,
-  block: DrawScope.() -> Unit,
-) = withTransform(
-  transformBlock = {
-    if (enabled) {
-      clipRect(left, top, right, bottom, clipOp)
-    }
-  },
-  drawBlock = block,
-)
