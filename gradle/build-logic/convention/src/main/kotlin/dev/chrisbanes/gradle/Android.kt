@@ -6,7 +6,6 @@ package dev.chrisbanes.gradle
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.CompileSdkSpec
 import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
-import com.android.build.api.dsl.LibraryExtension
 import com.android.build.api.dsl.TestExtension
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.api.variant.HasUnitTestBuilder
@@ -22,23 +21,6 @@ fun Project.configureAndroidApplication() {
     defaultConfig {
       minSdk = Versions.MIN_SDK
       targetSdk = Versions.TARGET_SDK
-    }
-
-    compileOptions {
-      sourceCompatibility = JavaVersion.VERSION_11
-      targetCompatibility = JavaVersion.VERSION_11
-    }
-  }
-
-  configureAndroidComponents()
-}
-
-fun Project.configureAndroidLibrary() {
-  extensions.configure<LibraryExtension> {
-    compileSdk { configureHazeCompileSdk() }
-
-    defaultConfig {
-      minSdk = Versions.MIN_SDK
     }
 
     compileOptions {

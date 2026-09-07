@@ -232,13 +232,16 @@ class GlassRenderParamsTest {
   @Test
   fun interactionTopology_usesConfiguredWorstCaseInsteadOfAnimatedValues() {
     val effect = GlassRuntimeEffect().apply {
-      hovered { lightingIntensity(0.4f) }
-      pressed {
-        refractionMultiplier(1.2f)
-        whitePointDelta(0.1f)
+      style = style.then {
+        hovered { lightingIntensity(0.4f) }
+        pressed {
+          refractionMultiplier(1.2f)
+          whitePointDelta(0.1f)
+        }
       }
     }
 
+    effect.updateStyleInteractionSlots()
     assertThat(effect.interactionSlots.resolveInteractionTopology()).isEqualTo(
       GlassInteractionTopology(
         hasOptics = true,
@@ -251,13 +254,16 @@ class GlassRenderParamsTest {
   @Test
   fun interactionTopology_ignoresIdentityOnlyDeclarations() {
     val effect = GlassRuntimeEffect().apply {
-      hovered {
-        lightingIntensity(0f)
-        refractionMultiplier(1f)
-        whitePointDelta(0f)
+      style = style.then {
+        hovered {
+          lightingIntensity(0f)
+          refractionMultiplier(1f)
+          whitePointDelta(0f)
+        }
       }
     }
 
+    effect.updateStyleInteractionSlots()
     assertThat(effect.interactionSlots.resolveInteractionTopology()).isEqualTo(
       GlassInteractionTopology(false, false, 1f),
     )
@@ -507,11 +513,15 @@ class GlassRenderParamsTest {
 
     listOf(Float.NaN, Float.POSITIVE_INFINITY, -1f).forEach { invalidRadius ->
       val effect = GlassRuntimeEffect().apply {
-        shape = RoundedCornerShape(
-          object : CornerSize {
-            override fun toPx(shapeSize: Size, density: Density): Float = invalidRadius
-          },
-        )
+        style = style.then {
+          shape(
+            RoundedCornerShape(
+              object : CornerSize {
+                override fun toPx(shapeSize: Size, density: Density): Float = invalidRadius
+              },
+            ),
+          )
+        }
       }
 
       val resolved = resolveGlassStyle(
@@ -528,13 +538,17 @@ class GlassRenderParamsTest {
   @Test
   fun resolvedStyle_propagatesCornerSizeConversionFailures() {
     val effect = GlassRuntimeEffect().apply {
-      shape = RoundedCornerShape(
-        object : CornerSize {
-          override fun toPx(shapeSize: Size, density: Density): Float {
-            throw IllegalArgumentException("custom corner conversion failed")
-          }
-        },
-      )
+      style = style.then {
+        shape(
+          RoundedCornerShape(
+            object : CornerSize {
+              override fun toPx(shapeSize: Size, density: Density): Float {
+                throw IllegalArgumentException("custom corner conversion failed")
+              }
+            },
+          ),
+        )
+      }
     }
 
     assertFailure {
@@ -927,7 +941,7 @@ class GlassRenderParamsTest {
       refractionDisplacement = 15.dp,
     )
     val effect = GlassRuntimeEffect().apply {
-      optics = fixed
+      style = style.then { optics(fixed) }
     }
     val rect = Rect(0f, 0f, 200f, 100f)
 
@@ -967,7 +981,7 @@ class GlassRenderParamsTest {
   @Test
   fun renderParams_deriveBlurSigmaFromScaledRadius() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics(blurRadius = OpticalSizeValue.Fixed(20.dp))
+      style = style.then { optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(20.dp))) }
     }
     val style = resolveGlassStyle(
       effect = effect,
@@ -997,12 +1011,16 @@ class GlassRenderParamsTest {
   @Test
   fun renderParams_scaleResolvedOpticalDistancesExactlyOnce() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics(
-        refractionHeightFraction = 0.25f,
-        refractionDisplacement = 12.dp,
-        blurRadius = OpticalSizeValue.Fixed(10.dp),
-        refractionFoldStrength = 0.4f,
-      )
+      style = style.then {
+        optics(
+          GlassOptics(
+            refractionHeightFraction = 0.25f,
+            refractionDisplacement = 12.dp,
+            blurRadius = OpticalSizeValue.Fixed(10.dp),
+            refractionFoldStrength = 0.4f,
+          ),
+        )
+      }
     }
     val style = resolveGlassStyle(
       effect = effect,
@@ -1034,7 +1052,7 @@ class GlassRenderParamsTest {
   @Test
   fun renderParams_applyInputScaleAfterInternalOpticalClamping() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics(refractionDisplacement = Float.MAX_VALUE.dp)
+      style = style.then { optics(GlassOptics(refractionDisplacement = Float.MAX_VALUE.dp)) }
     }
     val style = resolveGlassStyle(
       effect = effect,
@@ -1060,7 +1078,7 @@ class GlassRenderParamsTest {
   @Test
   fun renderParams_zeroBlurHasZeroRadiusAndSigma() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics(blurRadius = OpticalSizeValue.Fixed(0.dp))
+      style = style.then { optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(0.dp))) }
     }
     val style = resolveGlassStyle(
       effect = effect,
@@ -1221,8 +1239,10 @@ class GlassRenderParamsTest {
   @Test
   fun calculateLayerBounds_largeSurfaceUsesResponsiveBlur() {
     val effect = GlassRuntimeEffect().apply {
-      edgeSoftness = 0.dp
-      shape = RoundedCornerShape(0.dp)
+      style = style.then {
+        edgeSoftness(0.dp)
+        shape(RoundedCornerShape(0.dp))
+      }
     }
     val rect = Rect(0f, 0f, 440f, 220f)
     val density = Density(1f)
@@ -1240,13 +1260,17 @@ class GlassRenderParamsTest {
   @Test
   fun calculateLayerBounds_zeroRefractionUsesEffectiveSemanticBlurRadiusExactly() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics(
-        blurRadius = OpticalSizeValue.Fixed(32.dp),
-        refractionStrength = 0f,
-        refractionDisplacement = 0.dp,
-      )
-      edgeSoftness = 0.dp
-      shape = RoundedCornerShape(0.dp)
+      style = style.then {
+        optics(
+          GlassOptics(
+            blurRadius = OpticalSizeValue.Fixed(32.dp),
+            refractionStrength = 0f,
+            refractionDisplacement = 0.dp,
+          ),
+        )
+        edgeSoftness(0.dp)
+        shape(RoundedCornerShape(0.dp))
+      }
     }
     val rect = Rect(10f, 20f, 210f, 100f)
     val density = Density(1f)
@@ -1259,8 +1283,10 @@ class GlassRenderParamsTest {
   @Test
   fun calculateLayerBounds_shortSurfaceUsesResponsiveBlur() {
     val effect = GlassRuntimeEffect().apply {
-      edgeSoftness = 0.dp
-      shape = RoundedCornerShape(40.dp)
+      style = style.then {
+        edgeSoftness(0.dp)
+        shape(RoundedCornerShape(40.dp))
+      }
     }
     val rect = Rect(0f, 0f, 240f, 80f)
     val density = Density(1f)
@@ -1291,12 +1317,16 @@ class GlassRenderParamsTest {
       bottomStart = 24.dp,
     )
     val firstEffect = GlassRuntimeEffect().apply {
-      edgeSoftness = 0.dp
-      shape = firstShape
+      style = style.then {
+        edgeSoftness(0.dp)
+        shape(firstShape)
+      }
     }
     val secondEffect = GlassRuntimeEffect().apply {
-      edgeSoftness = 0.dp
-      shape = secondShape
+      style = style.then {
+        edgeSoftness(0.dp)
+        shape(secondShape)
+      }
     }
     val rect = Rect(0f, 0f, 240f, 100f)
     val density = Density(1f)
@@ -1311,13 +1341,17 @@ class GlassRenderParamsTest {
   @Test
   fun calculateLayerBounds_invalidGeometryProducesFiniteInflatedBounds() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics(
-        blurRadius = OpticalSizeValue.Fixed(32.dp),
-        refractionStrength = 1f,
-        refractionDisplacement = 0.dp,
-      )
-      edgeSoftness = 0.dp
-      shape = RoundedCornerShape(0.dp)
+      style = style.then {
+        optics(
+          GlassOptics(
+            blurRadius = OpticalSizeValue.Fixed(32.dp),
+            refractionStrength = 1f,
+            refractionDisplacement = 0.dp,
+          ),
+        )
+        edgeSoftness(0.dp)
+        shape(RoundedCornerShape(0.dp))
+      }
     }
     val density = Density(1f)
     val effectiveBlurRadius = effectiveSemanticBlurRadiusPx(32f)

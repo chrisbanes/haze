@@ -204,8 +204,6 @@ internal class GlassInteractionController(
   internal val configurationForTest: GlassInteractionControllerConfiguration
     get() = configuration
 
-  internal val isDisposedForTest: Boolean get() = disposed
-
   internal val currentSignals: GlassInteractionSignals
     get() = GlassInteractionSignals(
       rawHovered = rawHovered,

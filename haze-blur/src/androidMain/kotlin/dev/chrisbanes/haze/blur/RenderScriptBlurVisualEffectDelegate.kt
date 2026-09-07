@@ -100,7 +100,6 @@ internal class RenderScriptBlurVisualEffectDelegate(
         context = context,
         scaleFactor = scaleFactor,
         layerSize = context.layerSize,
-        layerOffset = offset,
         backgroundColor = blurVisualEffect.backgroundColor,
       )?.let { layer ->
         layer.clip = blurVisualEffect.shouldClipToNodeBounds()

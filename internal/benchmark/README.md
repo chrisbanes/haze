@@ -13,10 +13,20 @@ Verify the environment with `java -version`, `echo "$ANDROID_HOME"` (or
 management tooling is available, while Gradle uses the configured SDK environment. The managed-
 device definitions and AOSP images are declared in `internal/benchmark/build.gradle.kts`.
 
+`RenderScriptScrollRegressionTest` exercises allocation teardown while scrolling Images on API 30.
+It runs five launches with twelve alternating scrolls each, without profile compilation or timing
+metrics. Run it independently from profile collection:
+
+```shell
+./gradlew --no-scan :internal:benchmark:pixel5Api30NonMinifiedReleaseAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.RenderScriptScrollRegressionTest
+```
+
 Run generation from the repository root:
 
 ```shell
-./gradlew --no-scan :haze:generateBaselineProfile
+./gradlew --no-scan :haze:generateBaselineProfile \
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BaselineProfileGenerator
 ```
 
 The checked-in output is
@@ -58,11 +68,11 @@ python3 internal/benchmark/verify_baseline_profile.py \
   --apk sample/android/build/outputs/apk/nonMinifiedRelease/android-nonMinifiedRelease.apk
 ```
 
-For the retained final profile, the verifier reports 2,241 rules (208 class and 2,033 method), zero
-missing ordinary AAR members, and zero missing consumer-Dex members. Its ordinary counts are `433`
-(`haze`), `342` (`haze-blur`), `1,092` (`haze-glass`), `36` (`haze-utils`), `7`
-(`haze-materials`), and `3` (`haze-glass-material3`). The expected generated counts are 296
-external-synthetic entries, 15 lambda bridges, 16 `$-CC` interface companions, and one
+For the retained final profile, the verifier reports 2,285 rules (215 class and 2,070 method), zero
+missing ordinary AAR members, and zero missing consumer-Dex members. Its ordinary counts are `469`
+(`haze`), `341` (`haze-blur`), `1,101` (`haze-glass`), `36` (`haze-utils`), `7`
+(`haze-materials`), and `3` (`haze-glass-material3`). The expected generated counts are 295
+external-synthetic entries, 16 lambda bridges, 16 `$-CC` interface companions, and one
 namespaced `R$drawable` class. Generated entries still require exact consumer-Dex definitions;
 `$-CC` entries also require an interface owner with the interface access flag in an AAR, and
 `R$drawable` requires the matching AAR manifest namespace.

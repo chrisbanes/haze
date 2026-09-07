@@ -99,7 +99,6 @@ internal class RenderEffectBlurVisualEffectDelegate(
         context = context,
         scaleFactor = scaleFactor,
         layerSize = context.layerSize,
-        layerOffset = context.layerOffset,
         backgroundColor = blurVisualEffect.backgroundColor,
         existingLayer = layer,
       )?.also {

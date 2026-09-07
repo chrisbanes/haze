@@ -65,7 +65,7 @@ class FallbackGlassDelegateTest {
 
   @Test
   fun boundedFractionalAlpha_preparesAndReusesGroupLayer() {
-    val effect = GlassRuntimeEffect().apply { alpha = 0.5f }
+    val effect = GlassRuntimeEffect().apply { style = style.then { alpha(0.5f) } }
     val delegate = FallbackGlassDelegate(effect)
     val context = FallbackRecordingContext(size = Size(100f, 100f))
 
@@ -79,7 +79,7 @@ class FallbackGlassDelegateTest {
 
   @Test
   fun alphaZero_skipsFirstPreparationAndRetainsExistingFallbackGroupLayer() {
-    val effect = GlassRuntimeEffect().apply { alpha = 0f }
+    val effect = GlassRuntimeEffect().apply { style = style.then { alpha(0f) } }
     val delegate = FallbackGlassDelegate(effect)
     val context = FallbackRecordingContext(size = Size(100f, 100f))
 
@@ -88,12 +88,12 @@ class FallbackGlassDelegateTest {
     assertThat(delegate.preparedDrawForTest()).isNull()
     assertThat(context.graphicsContext.createdLayers).isEqualTo(emptyList())
 
-    effect.alpha = 0.5f
+    effect.style = effect.style.then { alpha(0.5f) }
     delegate.prepare(context)
     val groupLayer = checkNotNull(delegate.groupAlphaForTest().layer)
     val prepared = checkNotNull(delegate.preparedDrawForTest())
 
-    effect.alpha = 0f
+    effect.style = effect.style.then { alpha(0f) }
     delegate.prepare(context)
 
     assertThat(delegate.preparedDrawForTest()).isSameInstanceAs(prepared)
@@ -104,7 +104,7 @@ class FallbackGlassDelegateTest {
 
   @Test
   fun fallbackGroup_exceedingDimension_usesDirectAlphaWithoutAllocation() {
-    val effect = GlassRuntimeEffect().apply { alpha = 0.5f }
+    val effect = GlassRuntimeEffect().apply { style = style.then { alpha(0.5f) } }
     val delegate = FallbackGlassDelegate(effect)
     val context = FallbackRecordingContext(size = Size(4097f, 1f))
 
@@ -116,7 +116,7 @@ class FallbackGlassDelegateTest {
 
   @Test
   fun fallbackGroup_atExactPixelBoundary_isAllowed() {
-    val effect = GlassRuntimeEffect().apply { alpha = 0.5f }
+    val effect = GlassRuntimeEffect().apply { style = style.then { alpha(0.5f) } }
     val delegate = FallbackGlassDelegate(effect)
     val context = FallbackRecordingContext(size = Size(4096f, 4096f))
 
@@ -127,7 +127,7 @@ class FallbackGlassDelegateTest {
 
   @Test
   fun fallbackGroup_exceedingDimensionAndPixelLimit_usesDirectAlphaWithoutAllocation() {
-    val effect = GlassRuntimeEffect().apply { alpha = 0.5f }
+    val effect = GlassRuntimeEffect().apply { style = style.then { alpha(0.5f) } }
     val delegate = FallbackGlassDelegate(effect)
     val context = FallbackRecordingContext(size = Size(4096f, 4097f))
 
@@ -157,7 +157,7 @@ class FallbackGlassDelegateTest {
         sample.y.toInt(),
       ]
 
-      effect.alpha = 0.5f
+      effect.style = effect.style.then { alpha(0.5f) }
       visualEffect.disableGroupPreparation()
       waitForIdle()
       val direct = onNodeWithTag(FALLBACK_TAG).captureToImage().toPixelMap()[
@@ -172,45 +172,55 @@ class FallbackGlassDelegateTest {
 
     assertDirectAlphaHalvesContribution(
       effect = GlassRuntimeEffect().apply {
-        backgroundColor = Color.Red
-        tint = Color.Transparent
-        specularIntensity = 0f
-        edgeSoftness = 0.dp
+        style = style.then {
+          backgroundColor(Color.Red)
+          tint(Color.Transparent)
+          specularIntensity(0f)
+          edgeSoftness(0.dp)
+        }
       },
       sample = Offset(60f, 60f),
     )
     assertDirectAlphaHalvesContribution(
       effect = GlassRuntimeEffect().apply {
-        tint = Color.Red
-        specularIntensity = 0f
-        edgeSoftness = 0.dp
+        style = style.then {
+          tint(Color.Red)
+          specularIntensity(0f)
+          edgeSoftness(0.dp)
+        }
       },
       sample = Offset(60f, 60f),
     )
     assertDirectAlphaHalvesContribution(
       effect = GlassRuntimeEffect().apply {
-        tint = Color.Transparent
-        specularIntensity = 1f
-        edgeSoftness = 0.dp
-        lightPosition = Alignment.Center
+        style = style.then {
+          tint(Color.Transparent)
+          specularIntensity(1f)
+          edgeSoftness(0.dp)
+          lightPosition(Alignment.Center)
+        }
       },
       sample = Offset(60f, 60f),
     )
     assertDirectAlphaHalvesContribution(
       effect = GlassRuntimeEffect().apply {
-        tint = Color.Transparent
-        specularIntensity = 0f
-        ambientResponse = 1f
-        edgeSoftness = 8.dp
+        style = style.then {
+          tint(Color.Transparent)
+          specularIntensity(0f)
+          ambientResponse(1f)
+          edgeSoftness(8.dp)
+        }
       },
       sample = Offset(2f, 60f),
     )
     assertDirectAlphaHalvesContribution(
       effect = GlassRuntimeEffect().apply {
-        tint = Color.Transparent
-        specularIntensity = 0f
-        edgeSoftness = 0.dp
-        pressed { lightingIntensity(1f) }
+        style = style.then {
+          tint(Color.Transparent)
+          specularIntensity(0f)
+          edgeSoftness(0.dp)
+          pressed { lightingIntensity(1f) }
+        }
       },
       sample = Offset(60f, 60f),
       activateInteraction = true,
@@ -220,12 +230,14 @@ class FallbackGlassDelegateTest {
   @Test
   fun backgroundColor_compositesBehindCapturedContent() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
-      backgroundColor = Color.White
-      tint = Color.Transparent
-      specularIntensity = 0f
-      ambientResponse = 0f
-      edgeSoftness = 0.dp
-      shape = RoundedCornerShape(0.dp)
+      style = style.then {
+        backgroundColor(Color.White)
+        tint(Color.Transparent)
+        specularIntensity(0f)
+        ambientResponse(0f)
+        edgeSoftness(0.dp)
+        shape(RoundedCornerShape(0.dp))
+      }
     }
     val fallback = FallbackGlassDelegate(effect)
     val visualEffect = FallbackOnlyVisualEffect(effect, fallback)
@@ -245,12 +257,14 @@ class FallbackGlassDelegateTest {
   @Test
   fun directAlphaDegradation_appliesAlphaToReplayedInput() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
-      backgroundColor = Color.White
-      tint = Color.Transparent
-      specularIntensity = 0f
-      ambientResponse = 0f
-      edgeSoftness = 0.dp
-      shape = RoundedCornerShape(0.dp)
+      style = style.then {
+        backgroundColor(Color.White)
+        tint(Color.Transparent)
+        specularIntensity(0f)
+        ambientResponse(0f)
+        edgeSoftness(0.dp)
+        shape(RoundedCornerShape(0.dp))
+      }
     }
     val fallback = FallbackGlassDelegate(effect)
     val visualEffect = FallbackOnlyVisualEffect(effect, fallback)
@@ -262,7 +276,7 @@ class FallbackGlassDelegateTest {
     }
     waitForIdle()
 
-    effect.alpha = 0.5f
+    effect.style = effect.style.then { alpha(0.5f) }
     visualEffect.disableGroupPreparation()
     waitForIdle()
 
@@ -273,11 +287,13 @@ class FallbackGlassDelegateTest {
   @Test
   fun foregroundLighting_drawsOverOpaqueContent() {
     val effect = GlassRuntimeEffect().apply {
-      tint = Color.Transparent
-      specularIntensity = 1f
-      ambientResponse = 0f
-      edgeSoftness = 0.dp
-      lightPosition = Alignment.Center
+      style = style.then {
+        tint(Color.Transparent)
+        specularIntensity(1f)
+        ambientResponse(0f)
+        edgeSoftness(0.dp)
+        lightPosition(Alignment.Center)
+      }
     }
     val fallback = FallbackGlassDelegate(effect)
     val context = FallbackRecordingContext(size = Size(120f, 120f))
@@ -302,11 +318,13 @@ class FallbackGlassDelegateTest {
   @Test
   fun stablePrepare_reusesResourcesUntilTheirSemanticInputsChange() {
     val effect = GlassRuntimeEffect().apply {
-      tint = Color.Red
-      specularIntensity = 1f
-      ambientResponse = 1f
-      edgeSoftness = 8.dp
-      shape = RoundedCornerShape(12.dp)
+      style = style.then {
+        tint(Color.Red)
+        specularIntensity(1f)
+        ambientResponse(1f)
+        edgeSoftness(8.dp)
+        shape(RoundedCornerShape(12.dp))
+      }
     }
     val delegate = FallbackGlassDelegate(effect)
     val context = FallbackRecordingContext(size = Size(100f, 100f))
@@ -324,7 +342,7 @@ class FallbackGlassDelegateTest {
     assertThat(stable.edgeStroke).isSameInstanceAs(first.edgeStroke)
     assertThat(stable.edgeShadowBrush).isSameInstanceAs(first.edgeShadowBrush)
 
-    effect.lightPosition = exactLightAlignment(Offset(24f, 36f))
+    effect.style = effect.style.then { lightPosition(exactLightAlignment(Offset(24f, 36f))) }
     delegate.prepare(context)
     val movedLight = delegate.preparedResourcesForTest()
 
@@ -335,7 +353,7 @@ class FallbackGlassDelegateTest {
     assertThat(movedLight.edgeStroke).isSameInstanceAs(stable.edgeStroke)
     assertThat(movedLight.edgeShadowBrush).isSameInstanceAs(stable.edgeShadowBrush)
 
-    effect.ambientResponse = 0.5f
+    effect.style = effect.style.then { ambientResponse(0.5f) }
     delegate.prepare(context)
     val changedEdge = delegate.preparedResourcesForTest()
 
@@ -345,7 +363,7 @@ class FallbackGlassDelegateTest {
     assertThat(changedEdge.edgeShadowBrush).isSameInstanceAs(movedLight.edgeShadowBrush)
     assertThat(changedEdge.shapePath).isSameInstanceAs(movedLight.shapePath)
 
-    effect.edgeSoftness = 0.dp
+    effect.style = effect.style.then { edgeSoftness(0.dp) }
     delegate.prepare(context)
     val noEdge = delegate.preparedResourcesForTest()
 
@@ -354,7 +372,7 @@ class FallbackGlassDelegateTest {
     assertThat(noEdge.edgeStroke).isNotNull()
     assertThat(noEdge.edgeShadowBrush).isNotNull()
 
-    effect.edgeSoftness = 8.dp
+    effect.style = effect.style.then { edgeSoftness(8.dp) }
     delegate.prepare(context)
     val restoredEdge = delegate.preparedResourcesForTest()
 
