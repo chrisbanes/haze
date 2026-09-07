@@ -7,16 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added `HazeInput.Backdrop` with portable source fallback and an experimental native backend for
+  Android 17 QPR2. Native rendering is disabled by default and requires
+  `HazeFeatureFlags.isPlatformBackdropEnabled`; physical Android 37.2 acceptance remains pending
+  ([#1278](https://github.com/chrisbanes/haze/pull/1278)).
+- Added `GlassAccessibilitySettings` and `LocalGlassAccessibilitySettings` for app-supplied reduced
+  transparency, increased contrast, and visible borders, plus `GlassStyle.edgeShadow` and
+  `GlassOptics.refractionDetailIntensity` controls
+  ([#1272](https://github.com/chrisbanes/haze/pull/1272),
+  [#1275](https://github.com/chrisbanes/haze/pull/1275)).
+
 ### Changed
 
 - Replaced the experimental `GlassOptics.Adaptive` and `GlassOptics.Fixed` types with one public
   `GlassOptics` configuration. Blur and depth can now use independent shortest-dimension points
-  through `OpticalSizeValue.Responsive`.
+  through `OpticalSizeValue.Responsive`
+  ([#1272](https://github.com/chrisbanes/haze/pull/1272)).
+- Refined Glass edge shading and the default specular response
+  ([#1275](https://github.com/chrisbanes/haze/pull/1275)).
+- Skip source capture while no effects consume it
+  ([#1279](https://github.com/chrisbanes/haze/pull/1279)).
+- Validate progressive gradient intensities as finite values in `0f..1f` and require at least two
+  stops when converting gradients to brushes
+  ([#1282](https://github.com/chrisbanes/haze/pull/1282)).
+- Refreshed Android baseline profiles for Haze 2
+  ([#1293](https://github.com/chrisbanes/haze/pull/1293),
+  [#1294](https://github.com/chrisbanes/haze/pull/1294)).
+- Updated Kotlin to 2.4.20 ([#1295](https://github.com/chrisbanes/haze/pull/1295)).
 
 ### Fixed
 
 - Corrected the built-in Regular and Clear Glass blur and depth responses so compact surfaces retain
-  more source detail while larger surfaces increase their blur smoothly.
+  more source detail while larger surfaces increase their blur smoothly
+  ([#1272](https://github.com/chrisbanes/haze/pull/1272)).
+- Corrected published Compose dependency scopes
+  ([#1283](https://github.com/chrisbanes/haze/pull/1283)).
+- Fixed `Behind` source selection across nested independent Haze states
+  ([#1290](https://github.com/chrisbanes/haze/pull/1290)).
+- Accept subpixel blur radii in the RenderScript backend
+  ([#1291](https://github.com/chrisbanes/haze/pull/1291)).
+- Preserve progressive blur coverage for constant and restricted intensity ranges on Android 12
+  and 12L ([#1292](https://github.com/chrisbanes/haze/pull/1292)).
+- Fixed a RenderScript teardown race that could crash during scrolling and activity relaunch
+  ([#1294](https://github.com/chrisbanes/haze/pull/1294)).
 
 ## 2.0.0-beta02 <small>2026-08-27</small> { id="2.0.0-beta02" }
 
