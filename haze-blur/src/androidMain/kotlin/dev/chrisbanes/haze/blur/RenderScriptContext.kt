@@ -50,9 +50,12 @@ internal class RenderScriptContext(
 
     inputAlloc = Allocation.createTyped(rs, type, flags)
     inputAlloc.setOnBufferAvailableListener { allocation ->
-      if (!isDestroyed) {
-        allocation.ioReceive()
-        channel.trySendBlocking(Unit)
+      // Keep the liveness check and native receive atomic with allocation teardown.
+      lock.withLock {
+        if (!isDestroyed) {
+          allocation.ioReceive()
+          channel.trySendBlocking(Unit)
+        }
       }
     }
 
