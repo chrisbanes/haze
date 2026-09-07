@@ -21,8 +21,8 @@ config.resolve.fallback = Object.assign({}, config.resolve.fallback || {}, {
 config.optimization = config.optimization || {};
 config.optimization.minimize = true;
 config.optimization.minimizer = [
-    new (require("terser-webpack-plugin"))({
-        terserOptions: {
+    new (require("minimizer-webpack-plugin"))({
+        minimizerOptions: {
             mangle: true,    // Note: By default, mangle is set to true.
             compress: false, // Disable the transformations that reduce the code size.
             output: {
