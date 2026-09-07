@@ -39,6 +39,10 @@ tasks.named("check") {
 
 tasks.withType<KotlinNpmInstallTask>().configureEach {
   args.add("--userconfig=${rootProject.file("gradle/npmrc")}")
+  if (name == "kotlinWasmNpmInstall") {
+    // Kotlin supplies Wasm tooling separately; plugin peers must not install a second webpack.
+    args.add("--omit=peer")
+  }
 }
 
 subprojects {
