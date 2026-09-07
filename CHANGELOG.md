@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 2.0.0-beta03 <small>2026-09-07</small> { id="2.0.0-beta03" }
+
 ### Added
 
 - Added `HazeInput.Backdrop` with portable source fallback and an experimental native backend for
@@ -14,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `HazeFeatureFlags.isPlatformBackdropEnabled`; physical Android 37.2 acceptance remains pending
   ([#1278](https://github.com/chrisbanes/haze/pull/1278)).
 - Added `GlassAccessibilitySettings` and `LocalGlassAccessibilitySettings` for app-supplied reduced
-  transparency, increased contrast, and visible borders, plus `GlassStyle.edgeShadow` and
+  transparency, increased contrast, and visible borders, plus the `edgeShadow` style builder and
   `GlassOptics.refractionDetailIntensity` controls
   ([#1272](https://github.com/chrisbanes/haze/pull/1272),
   [#1275](https://github.com/chrisbanes/haze/pull/1275)).
