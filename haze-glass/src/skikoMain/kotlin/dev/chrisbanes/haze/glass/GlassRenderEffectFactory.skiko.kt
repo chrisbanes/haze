@@ -25,31 +25,23 @@ internal actual fun createGlassDepthInputRenderEffect(
 
 internal actual val supportsFusedGlassRenderEffect: Boolean = false
 
-internal actual fun createGlassRimBrushProvider(): ((GlassRimEffectKey) -> Brush?)? {
-  val builder = try {
+internal actual fun createGlassRimBrushProvider(): GlassRimBrushProvider? {
+  val builder = runCatching {
     RuntimeShaderBuilder(RuntimeEffect.makeForShader(GlassShaders.buildRim()))
-  } catch (_: RuntimeException) {
-    return null
-  }
+  }.getOrNull() ?: return null
   val uniforms = GlassRimUniformProvider(builder)
-  return { key ->
+  return GlassRimBrushProvider { key ->
     uniforms.setRimUniforms(key)
-    try {
+    runCatching {
       // Skia snapshots the uniforms, so each recorded rim needs its own shader.
       ShaderBrush(builder.makeShader().asComposeShader())
-    } catch (_: RuntimeException) {
-      null
-    }
+    }.getOrNull()
   }
 }
 
-internal actual fun DrawScope.drawGlassRimWithBrush(brush: Brush): Boolean = try {
-  drawRect(brush)
-  true
-} catch (_: RuntimeException) {
+internal actual fun DrawScope.drawGlassRimWithBrush(brush: Brush): Boolean =
   // Only this optional built-in brush draw is guarded; caller content is drawn separately.
-  false
-}
+  runCatching { drawRect(brush) }.isSuccess
 
 private class GlassRimUniformProvider(private val builder: RuntimeShaderBuilder) : RuntimeShaderUniformProvider {
   override fun setFloatUniform(name: String, value: Float) = builder.uniform(name, value)

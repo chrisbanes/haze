@@ -58,25 +58,16 @@ internal actual val supportsFusedGlassRenderEffect: Boolean = true
 
 internal actual fun DrawScope.drawGlassRimWithBrush(brush: Brush): Boolean {
   if (!drawContext.canvas.nativeCanvas.isHardwareAccelerated) return false
-  return try {
-    drawRect(brush)
-    true
-  } catch (_: RuntimeException) {
-    // Only this optional built-in brush draw is guarded; caller content is drawn separately.
-    false
-  }
+  // Only this optional built-in brush draw is guarded; caller content is drawn separately.
+  return runCatching { drawRect(brush) }.isSuccess
 }
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createGlassRimBrushProvider(): ((GlassRimEffectKey) -> Brush?)? {
-  val shader = try {
-    RuntimeShader(GlassShaders.buildRim())
-  } catch (_: RuntimeException) {
-    return null
-  }
+internal actual fun createGlassRimBrushProvider(): GlassRimBrushProvider? {
+  val shader = runCatching { RuntimeShader(GlassShaders.buildRim()) }.getOrNull() ?: return null
   val brush = ShaderBrush(shader)
   val uniforms = GlassRimUniformProvider(shader)
-  return { key ->
+  return GlassRimBrushProvider { key ->
     uniforms.setRimUniforms(key)
     brush
   }
