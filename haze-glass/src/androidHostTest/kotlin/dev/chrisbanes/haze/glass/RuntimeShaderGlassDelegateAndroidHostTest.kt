@@ -380,6 +380,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val fusedShader = checkNotNull(delegate.fusedShader)
       val detailShader = checkNotNull(delegate.refractionDetailShader)
       val rimShader = checkNotNull(delegate.rimShader)
+      val rimBrushProvider = checkNotNull(delegate.rimBrushProvider)
 
       attached.value = false
       waitForIdle()
@@ -390,6 +391,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.opticalShader).isNull()
       assertThat(delegate.refractionDetailShader).isNull()
       assertThat(delegate.rimShader).isNull()
+      assertThat(delegate.rimBrushProvider).isNull()
       assertThat(initialRuntime.interactionSource).isSameInstanceAs(callerInteractionSource)
       assertThat(initialRuntime.shape).isSameInstanceAs(callerShape)
       assertThat(initialRuntime.interactionPositionAnimationSpec)
@@ -414,6 +416,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(reattachedDelegate.opticalShader).isNull()
       assertThat(reattachedDelegate.refractionDetailShader).isNotSameInstanceAs(detailShader)
       assertThat(reattachedDelegate.rimShader).isNotSameInstanceAs(rimShader)
+      assertThat(reattachedDelegate.rimBrushProvider).isNotSameInstanceAs(rimBrushProvider)
       assertThat(reattachedRuntime.interactionSource).isSameInstanceAs(callerInteractionSource)
       assertThat(reattachedRuntime.shape).isSameInstanceAs(callerShape)
       assertThat(reattachedRuntime.interactionPositionAnimationSpec)
@@ -521,7 +524,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     }
 
   @Test
-  fun liveUniformChanges_retainShadersAndReplaceRetainedLayerRenderEffects() =
+  fun liveUniformChanges_retainShadersAndRefreshRecordedOutput() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = animatedStageEffect()
       val style = mutableStateOf(effect.style)
@@ -548,14 +551,18 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
       val rimShader = delegate.rimShader
       val rimEffect = delegate.rimEffect
-      val rimLayerEffect = checkNotNull(delegate.layers.rim?.renderEffect)
+      val rimBrushProvider = checkNotNull(delegate.rimBrushProvider)
+      val rimRecordCount = delegate.rimRecordCount
+      assertThat(delegate.layers.rim?.renderEffect).isNull()
       style.value = style.value.then { lightPosition(exactLightAlignment(Offset(10f, 20f))) }
       waitForIdle()
       drawFrame()
 
       assertThat(delegate.rimShader).isSameInstanceAs(rimShader)
       assertThat(delegate.rimEffect).isNotSameInstanceAs(rimEffect)
-      assertThat(delegate.layers.rim?.renderEffect).isNotSameInstanceAs(rimLayerEffect)
+      assertThat(delegate.rimBrushProvider).isSameInstanceAs(rimBrushProvider)
+      assertThat(delegate.rimRecordCount).isGreaterThan(rimRecordCount)
+      assertThat(delegate.layers.rim?.renderEffect).isNull()
     }
 
   @Test

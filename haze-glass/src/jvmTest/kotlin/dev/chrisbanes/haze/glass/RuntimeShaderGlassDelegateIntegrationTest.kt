@@ -497,7 +497,9 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       assertThat(delegate.interactionShaderHandle("interactionLightingEffect"))
         .isSameInstanceAs(lightingEffect)
 
+      assertThat(delegate.rimBrushProvider).isNotNull()
       runtime(effect).onTrimMemory(TrimMemoryLevel.UI_HIDDEN)
+      assertThat(delegate.rimBrushProvider).isNull()
       assertThat(delegate.interactionShaderHandleOrNull("interactionOpticalEffect")).isNull()
       assertThat(delegate.interactionShaderHandleOrNull("interactionDetailEffect")).isNull()
       assertThat(delegate.interactionShaderHandleOrNull("interactionLightingEffect")).isNull()
@@ -924,10 +926,14 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
     val beforeRim = delegate.rimRecordCount
     val rimShader = delegate.rimShader
+    val rimBrushProvider = checkNotNull(delegate.rimBrushProvider)
+    assertThat(delegate.layers.rim?.renderEffect).isNull()
     style.value = style.value.then { lightPosition(exactLightAlignment(Offset(10f, 20f))) }
     waitForIdle()
 
     assertThat(delegate.rimShader).isSameInstanceAs(rimShader)
+    assertThat(delegate.rimBrushProvider).isSameInstanceAs(rimBrushProvider)
+    assertThat(delegate.layers.rim?.renderEffect).isNull()
     assertThat(delegate.rimRecordCount).isEqualTo(beforeRim + 1)
   }
 

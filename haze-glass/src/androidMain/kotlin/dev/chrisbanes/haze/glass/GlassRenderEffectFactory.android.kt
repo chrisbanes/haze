@@ -9,10 +9,16 @@ import android.graphics.BlendMode
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.RenderEffect
+import android.graphics.RuntimeShader
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.nativeCanvas
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformRenderEffect
+import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 
 @RequiresApi(Build.VERSION_CODES.S)
 internal actual fun createGlassDepthInputRenderEffect(
@@ -48,3 +54,32 @@ internal actual fun createGlassDepthInputRenderEffect(
 }
 
 internal actual val supportsFusedGlassRenderEffect: Boolean = true
+
+internal actual fun DrawScope.supportsGlassRimBrush(): Boolean =
+  drawContext.canvas.nativeCanvas.isHardwareAccelerated
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+internal actual fun createGlassRimBrushProvider(): GlassRimBrushProvider? {
+  val shader = runCatchingGlassRim { RuntimeShader(GlassShaders.buildRim()) }.getOrNull() ?: return null
+  val brush = ShaderBrush(shader)
+  val uniforms = GlassRimUniformProvider(shader)
+  return GlassRimBrushProvider { key ->
+    uniforms.setRimUniforms(key)
+    brush
+  }
+}
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+private class GlassRimUniformProvider(private val shader: RuntimeShader) : RuntimeShaderUniformProvider {
+  override fun setFloatUniform(name: String, value: Float) = shader.setFloatUniform(name, value)
+
+  override fun setFloatUniform(name: String, value1: Float, value2: Float) =
+    shader.setFloatUniform(name, value1, value2)
+
+  override fun setFloatUniform(name: String, value1: Float, value2: Float, value3: Float, value4: Float) =
+    shader.setFloatUniform(name, value1, value2, value3, value4)
+
+  override fun setIntUniform(name: String, value: Int) = shader.setFloatUniform(name, value.toFloat())
+
+  override fun setChildShader(name: String, shader: Shader) = this.shader.setInputShader(name, shader)
+}
