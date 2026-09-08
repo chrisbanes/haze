@@ -1,9 +1,14 @@
-# Android Glass rim benchmark — 2026-09-08
+# Glass direct rim drawing — 2026-09-08
 
-The Android rim shader is procedural and does not sample its content input. Drawing it as a
+The rim shader is procedural and does not sample its content input. Drawing it as a
 retained shader brush avoids an offscreen RenderEffect while preserving the existing foreground
-layer, alpha, coordinates and light response. Software canvases and optional brush failures keep
-the original RenderEffect path; Skiko is unchanged.
+layer, alpha, coordinates and light response. Android software canvases and optional brush failures
+keep the original RenderEffect path.
+
+Skiko uses the same direct drawing path, retaining a RuntimeShaderBuilder and creating a shader
+snapshot when the rim's uniforms change. The expected benefit is less intermediate rendering and
+memory traffic; Skiko performance has not been measured. The Android numbers below do not establish
+the size of any Skiko improvement.
 
 ## Device and method
 
@@ -53,6 +58,19 @@ The subsequent `spotlessApply check --no-scan` run failed on the existing Deskto
 and landscape screenshot baselines. Both failures reproduced with the original production sources
 from `7d1dafdd`; their actual and comparison images were byte-for-byte identical to the candidate's.
 Those unrelated baselines were not regenerated in this change.
+
+For the Skiko extension, 31 runtime integration tests and two focused rim tests passed. The latter
+compare direct and image-filter pixels across geometry, colour and lighting changes (within one
+8-bit channel step), and verify that later uniform updates preserve earlier shader snapshots.
+Integration assertions cover direct-layer use, provider reuse and release.
+
+The extended implementation passes `:haze-glass:check` and compilation for JVM, JS, Wasm, iOS and
+macOS. Six of eight Desktop Gallery screenshots pass; Product portrait and landscape still fail
+their existing baselines. Compared with the saved original captures, direct Skiko drawing changes
+about 1.2% of pixels, concentrated around the rims (mean absolute channel difference below
+0.02/255; maximum 72/255). Visual inspection shows smoother edge sampling. Removing the intermediate
+image means transformed rims are not pixel-identical, despite matching at the tested native size.
+The existing screenshot baselines remain unchanged.
 
 Local evidence is retained under the ignored `internal/benchmark/build/glass-p90/` directory:
 `baseline-b`, `baseline-product-c`, `direct-rim-product-a`, `direct-rim-final-a`, and

@@ -68,7 +68,7 @@ internal actual fun DrawScope.drawGlassRimWithBrush(brush: Brush): Boolean {
 }
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createGlassRimBrushProvider(): ((GlassRimEffectKey) -> Brush)? {
+internal actual fun createGlassRimBrushProvider(): ((GlassRimEffectKey) -> Brush?)? {
   val shader = try {
     RuntimeShader(GlassShaders.buildRim())
   } catch (_: RuntimeException) {
