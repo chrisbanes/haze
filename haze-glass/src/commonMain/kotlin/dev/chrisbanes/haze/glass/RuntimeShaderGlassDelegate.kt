@@ -128,6 +128,7 @@ internal class RuntimeShaderGlassDelegate(
   private var recordedInteractionLightingSize: IntSize? = null
   private var recordedRimLayer: GraphicsLayer? = null
   private var recordedRimKey: GlassRimEffectKey? = null
+  private var recordedRimSupportsDirectDrawing = false
   internal val layers = GlassLayers()
   private var graphicsContext: GraphicsContext? = null
   private var preparedRender: GlassPreparedRender? = null
@@ -866,6 +867,10 @@ internal class RuntimeShaderGlassDelegate(
         }
       }
       layers.rim?.takeUnless { it.isReleased }?.let { rim ->
+        if (supportsGlassRimBrush() != recordedRimSupportsDirectDrawing) {
+          val effects = preparedRenderEffects ?: return
+          recordRimIfNeeded(params, effects) ?: return
+        }
         drawCompletedLayer(rim, context, params, alpha = render.alpha)
       }
     }
@@ -966,6 +971,7 @@ internal class RuntimeShaderGlassDelegate(
   private fun clearRimLayerMetadata() {
     recordedRimLayer = null
     recordedRimKey = null
+    recordedRimSupportsDirectDrawing = false
   }
 
   override fun detach() {
@@ -1271,10 +1277,13 @@ internal class RuntimeShaderGlassDelegate(
     val rimEffect = effects.rim ?: return Unit
     val layer = layers.rim?.takeUnless { it.isReleased } ?: return null
     val key = params.rimEffectKey()
+    // Recording canvases may support shaders even when the destination canvas does not.
+    val supportsDirectDrawing = supportsGlassRimBrush()
     layer.alpha = 1f
     if (
       layer !== recordedRimLayer ||
-      key != recordedRimKey
+      key != recordedRimKey ||
+      supportsDirectDrawing != recordedRimSupportsDirectDrawing
     ) {
       if (!rimBrushProviderInitialized) {
         rimBrushProvider = createGlassRimBrushProvider()
@@ -1283,7 +1292,7 @@ internal class RuntimeShaderGlassDelegate(
       val brush = rimBrushProvider?.invoke(key)
       var drawnDirectly = false
       layer.record(params.coordinates.sampleSize.roundToIntSize()) {
-        drawnDirectly = brush != null && drawGlassRimWithBrush(brush)
+        drawnDirectly = supportsDirectDrawing && brush != null && drawGlassRimWithBrush(brush)
         if (!drawnDirectly) drawRect(Color.Black)
       }
       // The rim is procedural: supported canvases can draw it without an offscreen effect.
@@ -1291,6 +1300,7 @@ internal class RuntimeShaderGlassDelegate(
       layer.renderEffect = rimEffect.takeUnless { drawnDirectly }?.asComposeRenderEffect()
       recordedRimLayer = layer
       recordedRimKey = key
+      recordedRimSupportsDirectDrawing = supportsDirectDrawing
       rimRecordCount++
     }
     return Unit
