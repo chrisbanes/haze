@@ -12,7 +12,6 @@ import android.graphics.RenderEffect
 import android.graphics.RuntimeShader
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -56,15 +55,12 @@ internal actual fun createGlassDepthInputRenderEffect(
 
 internal actual val supportsFusedGlassRenderEffect: Boolean = true
 
-internal actual fun DrawScope.drawGlassRimWithBrush(brush: Brush): Boolean {
-  if (!drawContext.canvas.nativeCanvas.isHardwareAccelerated) return false
-  // Only this optional built-in brush draw is guarded; caller content is drawn separately.
-  return runCatching { drawRect(brush) }.isSuccess
-}
+internal actual fun DrawScope.supportsGlassRimBrush(): Boolean =
+  drawContext.canvas.nativeCanvas.isHardwareAccelerated
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal actual fun createGlassRimBrushProvider(): GlassRimBrushProvider? {
-  val shader = runCatching { RuntimeShader(GlassShaders.buildRim()) }.getOrNull() ?: return null
+  val shader = runCatchingGlassRim { RuntimeShader(GlassShaders.buildRim()) }.getOrNull() ?: return null
   val brush = ShaderBrush(shader)
   val uniforms = GlassRimUniformProvider(shader)
   return GlassRimBrushProvider { key ->

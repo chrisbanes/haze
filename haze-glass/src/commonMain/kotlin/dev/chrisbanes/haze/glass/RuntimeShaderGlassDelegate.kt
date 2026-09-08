@@ -2205,14 +2205,6 @@ internal fun createFusedGlassBlurPrefilterRenderEffect(
 
 internal expect val supportsFusedGlassRenderEffect: Boolean
 
-internal fun interface GlassRimBrushProvider {
-  operator fun invoke(key: GlassRimEffectKey): Brush?
-}
-
-internal expect fun createGlassRimBrushProvider(): GlassRimBrushProvider?
-
-internal expect fun DrawScope.drawGlassRimWithBrush(brush: Brush): Boolean
-
 internal fun createRetainedGlassBlurRenderEffect(
   horizontal: Boolean,
   progressive: Boolean,

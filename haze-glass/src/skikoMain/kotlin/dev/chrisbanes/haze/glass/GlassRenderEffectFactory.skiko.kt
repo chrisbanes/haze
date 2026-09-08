@@ -5,7 +5,6 @@
 
 package dev.chrisbanes.haze.glass
 
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeShader
@@ -26,22 +25,20 @@ internal actual fun createGlassDepthInputRenderEffect(
 internal actual val supportsFusedGlassRenderEffect: Boolean = false
 
 internal actual fun createGlassRimBrushProvider(): GlassRimBrushProvider? {
-  val builder = runCatching {
+  val builder = runCatchingGlassRim {
     RuntimeShaderBuilder(RuntimeEffect.makeForShader(GlassShaders.buildRim()))
   }.getOrNull() ?: return null
   val uniforms = GlassRimUniformProvider(builder)
   return GlassRimBrushProvider { key ->
     uniforms.setRimUniforms(key)
-    runCatching {
+    runCatchingGlassRim {
       // Skia snapshots the uniforms, so each recorded rim needs its own shader.
       ShaderBrush(builder.makeShader().asComposeShader())
     }.getOrNull()
   }
 }
 
-internal actual fun DrawScope.drawGlassRimWithBrush(brush: Brush): Boolean =
-  // Only this optional built-in brush draw is guarded; caller content is drawn separately.
-  runCatching { drawRect(brush) }.isSuccess
+internal actual fun DrawScope.supportsGlassRimBrush(): Boolean = true
 
 private class GlassRimUniformProvider(private val builder: RuntimeShaderBuilder) : RuntimeShaderUniformProvider {
   override fun setFloatUniform(name: String, value: Float) = builder.uniform(name, value)
