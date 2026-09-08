@@ -88,13 +88,13 @@ public fun GlassProductSampleContent(
   onRecordingModeChanged: (Boolean) -> Unit,
   onBack: () -> Unit,
   modifier: Modifier = Modifier,
+  isDark: Boolean = androidx.compose.foundation.isSystemInDarkTheme(),
 ) {
   val hazeState = rememberHazeState()
   val pagerState = rememberPagerState(
     initialPage = selectedArtworkIndex,
     pageCount = { GalleryArtworks.size },
   )
-  val isDark = androidx.compose.foundation.isSystemInDarkTheme()
   var informationExpanded by rememberSaveable { mutableStateOf(false) }
 
   LaunchedEffect(selectedArtworkIndex) {
@@ -145,6 +145,7 @@ public fun GlassProductSampleContent(
 
     ProductTopBar(
       hazeState = hazeState,
+      style = productGlassStyle(isDark),
       selectedArtworkIndex = selectedArtworkIndex,
       recordingMode = recordingMode,
       onBack = onBack,
@@ -163,6 +164,7 @@ public fun GlassProductSampleContent(
     )
     ProductActionDock(
       hazeState = hazeState,
+      style = productGlassStyle(isDark),
       favorite = favorite,
       landscape = landscape,
       informationExpanded = informationExpanded,
@@ -195,6 +197,7 @@ private fun GalleryProductDetails(
 @Composable
 private fun ProductTopBar(
   hazeState: HazeState,
+  style: GlassStyle,
   selectedArtworkIndex: Int,
   recordingMode: Boolean,
   onBack: () -> Unit,
@@ -203,7 +206,7 @@ private fun ProductTopBar(
 ) {
   GlassSurface(
     hazeState = hazeState,
-    style = productGlassStyle(androidx.compose.foundation.isSystemInDarkTheme()),
+    style = style,
     shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
     modifier = modifier,
     interactionStyle = GlassStyle {
@@ -290,6 +293,7 @@ private fun ProductMetadataCard(
 @Composable
 private fun ProductActionDock(
   hazeState: HazeState,
+  style: GlassStyle,
   favorite: Boolean,
   landscape: Boolean,
   informationExpanded: Boolean,
@@ -301,7 +305,7 @@ private fun ProductActionDock(
 ) {
   GlassSurface(
     hazeState = hazeState,
-    style = productGlassStyle(androidx.compose.foundation.isSystemInDarkTheme()),
+    style = style,
     shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
     modifier = modifier,
     interactionStyle = GlassStyle {

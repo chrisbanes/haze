@@ -28,11 +28,12 @@ import dev.chrisbanes.haze.sample.SamplesTheme
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 
-internal fun ScreenshotUiTest.captureGlassProductHero() {
+internal fun ScreenshotUiTest.captureGlassProductHero(isDark: Boolean) {
   setContent {
     Box(Modifier.fillMaxSize().background(Color.White)) {
       GlassGalleryScreenshotTheme {
         GlassProductSampleContent(
+          isDark = isDark,
           selectedArtworkIndex = 0,
           favorite = false,
           recordingMode = true,

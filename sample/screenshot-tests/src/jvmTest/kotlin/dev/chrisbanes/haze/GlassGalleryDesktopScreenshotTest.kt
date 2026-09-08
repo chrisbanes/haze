@@ -23,11 +23,11 @@ import org.jetbrains.skia.Canvas
 import org.jetbrains.skia.Paint
 
 class GlassGalleryDesktopScreenshotTest : ScreenshotTest() {
-  @Test fun productPortrait() = runScreenshotTest { captureGlassProductHero() }
+  @Test fun productPortrait() = runScreenshotTest { captureGlassProductHero(isDark = true) }
 
   @Test
   fun productLandscape() = runScreenshotTest(size = Size(1920f, 1080f)) {
-    captureGlassProductHero()
+    captureGlassProductHero(isDark = true)
   }
 
   @Test fun playgroundBeats() = runScreenshotTest { captureGlassPlaygroundBeats() }

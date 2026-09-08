@@ -10,7 +10,7 @@ import org.robolectric.annotation.Config
 
 @Config(sdk = [35])
 class GlassGalleryPortraitAndroidScreenshotTest : ScreenshotTest() {
-  @Test fun productHero() = runScreenshotTest { captureGlassProductHero() }
+  @Test fun productHero() = runScreenshotTest { captureGlassProductHero(isDark = false) }
 
   @Test fun playgroundBeats() = runScreenshotTest { captureGlassPlaygroundBeats() }
 
