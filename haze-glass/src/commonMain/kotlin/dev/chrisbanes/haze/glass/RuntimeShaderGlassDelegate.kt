@@ -71,6 +71,9 @@ internal class RuntimeShaderGlassDelegate(
   private var rimKey: GlassRimEffectKey? = null
   internal var rimShader: MutableRuntimeShaderRenderEffect? = null
     private set
+  internal var rimBrushProvider: ((GlassRimEffectKey) -> Brush)? = null
+    private set
+  private var rimBrushProviderInitialized = false
   internal var rimEffect: PlatformRenderEffect? = null
     private set
   private var fusedEffectKey: GlassFusedEffectKey? = null
@@ -1007,6 +1010,8 @@ internal class RuntimeShaderGlassDelegate(
       refractionDetailShader = null
       refractionDetailCoverageShader = null
       rimShader = null
+      rimBrushProvider = null
+      rimBrushProviderInitialized = false
       fusedShader = null
       fusedInputKey = null
       fusedDepthInputShaders = null
@@ -1267,14 +1272,23 @@ internal class RuntimeShaderGlassDelegate(
     val layer = layers.rim?.takeUnless { it.isReleased } ?: return null
     val key = params.rimEffectKey()
     layer.alpha = 1f
-    layer.renderEffect = rimEffect.asComposeRenderEffect()
     if (
       layer !== recordedRimLayer ||
       key != recordedRimKey
     ) {
-      layer.record(params.coordinates.sampleSize.roundToIntSize()) {
-        drawRect(Color.Black)
+      if (supportsFusedGlassRenderEffect && !rimBrushProviderInitialized) {
+        rimBrushProvider = createGlassRimBrushProvider()
+        rimBrushProviderInitialized = true
       }
+      val brush = rimBrushProvider?.invoke(key)
+      var drawnDirectly = false
+      layer.record(params.coordinates.sampleSize.roundToIntSize()) {
+        drawnDirectly = brush != null && drawGlassRimWithBrush(brush)
+        if (!drawnDirectly) drawRect(Color.Black)
+      }
+      // The rim is procedural: hardware canvases can draw it without an offscreen effect.
+      // Keep the original RenderEffect path for canvases that cannot draw a RuntimeShader.
+      layer.renderEffect = if (drawnDirectly) null else rimEffect.asComposeRenderEffect()
       recordedRimLayer = layer
       recordedRimKey = key
       rimRecordCount++
@@ -2190,6 +2204,10 @@ internal fun createFusedGlassBlurPrefilterRenderEffect(
   )
 
 internal expect val supportsFusedGlassRenderEffect: Boolean
+
+internal expect fun createGlassRimBrushProvider(): ((GlassRimEffectKey) -> Brush)?
+
+internal expect fun DrawScope.drawGlassRimWithBrush(brush: Brush): Boolean
 
 internal fun createRetainedGlassBlurRenderEffect(
   horizontal: Boolean,

@@ -5,6 +5,8 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformRenderEffect
 
@@ -15,3 +17,7 @@ internal actual fun createGlassDepthInputRenderEffect(
 ): PlatformRenderEffect? = null
 
 internal actual val supportsFusedGlassRenderEffect: Boolean = false
+
+internal actual fun createGlassRimBrushProvider(): ((GlassRimEffectKey) -> Brush)? = null
+
+internal actual fun DrawScope.drawGlassRimWithBrush(brush: Brush): Boolean = false
