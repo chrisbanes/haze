@@ -30,6 +30,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
@@ -83,6 +85,48 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [35])
 class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
+  @Test
+  fun destinationCanvasChanges_refreshRetainedRimWithoutChangingStyle() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = animatedStageEffect()
+      val factory = TestGlassRuntimeFactory(effect)
+      setContent {
+        Box(
+          Modifier.size(120.dp).testTag("canvas-transition").hazeEffect(
+            factory = factory,
+            input = HazeInput.Content,
+            style = GlassNodeConfiguration(
+              style = effect.style,
+              performanceMode = HazePerformanceMode.Quality,
+              interactionSource = effect.interactionSource,
+            ),
+            expandLayerBounds = true,
+          ),
+        ) {
+          Box(Modifier.fillMaxSize().background(Color.Red))
+        }
+      }
+      waitForIdle()
+      onNodeWithTag("canvas-transition").captureToImage()
+      val delegate = effect.delegate as RuntimeShaderGlassDelegate
+      val rim = checkNotNull(delegate.layers.rim)
+      assertThat(rim.renderEffect).isNull()
+
+      factory.renderer.foregroundCanvas = androidx.compose.ui.graphics.Canvas(ImageBitmap(400, 400))
+      factory.renderer.invalidateDraw()
+      waitForIdle()
+      onNodeWithTag("canvas-transition").captureToImage()
+      assertThat(delegate.layers.rim).isSameInstanceAs(rim)
+      assertThat(rim.renderEffect).isNotNull()
+
+      factory.renderer.foregroundCanvas = null
+      factory.renderer.invalidateDraw()
+      waitForIdle()
+      onNodeWithTag("canvas-transition").captureToImage()
+      assertThat(delegate.layers.rim).isSameInstanceAs(rim)
+      assertThat(rim.renderEffect).isNull()
+    }
+
   @Test
   fun directRuntimePath_ownsRenderedResources() =
     runAndroidComposeUiTest<ComponentActivity> {
@@ -553,7 +597,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val rimEffect = delegate.rimEffect
       val rimBrushProvider = checkNotNull(delegate.rimBrushProvider)
       val rimRecordCount = delegate.rimRecordCount
-      assertThat(delegate.layers.rim?.renderEffect).isNull()
+      // drawFrame uses a software bitmap canvas, so the rim retains its RenderEffect fallback.
+      assertThat(delegate.layers.rim?.renderEffect).isNotNull()
       style.value = style.value.then { lightPosition(exactLightAlignment(Offset(10f, 20f))) }
       waitForIdle()
       drawFrame()
@@ -562,7 +607,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.rimEffect).isNotSameInstanceAs(rimEffect)
       assertThat(delegate.rimBrushProvider).isSameInstanceAs(rimBrushProvider)
       assertThat(delegate.rimRecordCount).isGreaterThan(rimRecordCount)
-      assertThat(delegate.layers.rim?.renderEffect).isNull()
+      assertThat(delegate.layers.rim?.renderEffect).isNotNull()
     }
 
   @Test
@@ -1282,6 +1327,7 @@ private class TestGlassRuntimeRenderer(
   HazeEffectRendererLifecycle<GlassNodeConfiguration>,
   HazeEffectRendererDrawHooks<GlassNodeConfiguration> {
   private var lifecycleScope: HazeEffectLifecycleScope? = null
+  var foregroundCanvas: androidx.compose.ui.graphics.Canvas? = null
 
   override fun attach(scope: HazeEffectLifecycleScope) {
     lifecycleScope = scope
@@ -1314,7 +1360,15 @@ private class TestGlassRuntimeRenderer(
   }
 
   override fun HazeEffectRuntimeDrawScope.drawForeground(style: GlassNodeConfiguration) {
-    with(effect) { drawForeground(style) }
+    val canvas = foregroundCanvas
+    if (canvas == null) {
+      with(effect) { drawForeground(style) }
+    } else {
+      val context = this
+      CanvasDrawScope().draw(this, layoutDirection, canvas, size) {
+        with(effect.delegate) { drawForeground(context) }
+      }
+    }
   }
 
   override fun shouldDrawContentBehind(): Boolean = effect.shouldDrawContentBehind()
