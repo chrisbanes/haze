@@ -107,8 +107,8 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
         Box(
           Modifier
             .fillMaxSize()
-            .background(sourceColor.value)
-            .hazeSource(hazeState),
+            .hazeSource(hazeState)
+            .background(sourceColor.value),
         )
         Box(
           Modifier
@@ -593,7 +593,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
-  fun heldInteraction_sourceContentChangeRecordsSource() = runComposeUiTest {
+  fun heldInteraction_sourceContentChangeUpdatesPixels() = runComposeUiTest {
     val hazeState = HazeState()
     val sourceColor = mutableStateOf(Color.Red)
     val effect = runtimeInteractiveEffect()
@@ -602,9 +602,10 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
         Box(
           Modifier
             .fillMaxSize()
-            .background(sourceColor.value)
-            .hazeSource(hazeState),
+            .hazeSource(hazeState)
+            .background(sourceColor.value),
         )
+        Box(Modifier.fillMaxSize().background(Color.Black))
         Box(
           Modifier
             .fillMaxSize()
@@ -621,25 +622,28 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     mainClock.advanceTimeBy(500)
     waitForIdle()
     val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
-    val sourceRecordsBeforeMutation = delegate.sourceRecordCount
-    val interactionOpticalRecordsBeforeMutation = delegate.interactionOpticalRecordCount
-    val interactionDetailRecordsBeforeMutation = delegate.interactionDetailRecordCount
-    val interactionCompositeRecordsBeforeMutation = delegate.interactionCompositeRecordCount
-    val acceptedSnapshotBeforeMutation = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
+    assertThat(delegate.interactionOpticalRecordCount).isGreaterThan(0)
+    assertThat(delegate.interactionDetailRecordCount).isGreaterThan(0)
+    assertThat(delegate.interactionCompositeRecordCount).isGreaterThan(0)
+
+    fun centerPixel(): Color = onNodeWithTag("glass").captureToImage().toPixelMap().let {
+      it[it.width / 2, it.height / 2]
+    }
+    val initial = centerPixel()
+    assertThat(initial.red).isGreaterThan(initial.blue + 0.5f)
 
     sourceColor.value = Color.Blue
     waitForIdle()
 
     assertThat(runtime(effect).currentInteractionSignals.pressed).isTrue()
-    assertThat(delegate.sourceRecordCount).isGreaterThan(sourceRecordsBeforeMutation)
-    assertThat(delegate.interactionOpticalRecordCount)
-      .isGreaterThan(interactionOpticalRecordsBeforeMutation)
-    assertThat(delegate.interactionDetailRecordCount)
-      .isGreaterThan(interactionDetailRecordsBeforeMutation)
-    assertThat(delegate.interactionCompositeRecordCount)
-      .isGreaterThan(interactionCompositeRecordsBeforeMutation)
-    assertThat(checkNotNull(delegate.lastSuccessfulSourceSnapshot))
-      .isNotEqualTo(acceptedSnapshotBeforeMutation)
+    // Retained layers may propagate new source pixels without recording every stage again.
+    val updated = centerPixel()
+    assertThat(updated.blue).isGreaterThan(updated.red + 0.5f)
+
+    sourceColor.value = Color.Red
+    waitForIdle()
+    val restored = centerPixel()
+    assertThat(restored.red).isGreaterThan(restored.blue + 0.5f)
   }
 
   @Test

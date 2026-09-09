@@ -98,6 +98,19 @@ startup, frame time, or any other performance improvement.
 
 Record the device model, API level, and selected refresh rate with saved results.
 
+### Check CPU placement before attributing a regression
+
+Android [fixed-performance mode](https://developer.android.com/games/optimize/adpf/fixed-performance-mode)
+constrains clocks but does not pin threads to CPU cores. Retain every iteration and report the
+aggregate frame metrics, then use Perfetto scheduler data within `measureBlock` to report main-thread
+and RenderThread CPU placement per iteration. Supplement the aggregate with comparable-placement
+groups; document their definitions and sample counts rather than dropping slower iterations.
+
+Repeat comparisons in both build orders with the same APKs and benchmark configuration. A small
+change in the proportion of slow-core iterations can move pooled P90 substantially. If placement
+coverage differs, repeat before attributing the aggregate difference to the code. Record thermal
+state and retain the original benchmark JSON, traces, build identities, and run order.
+
 ## Android 37.2 source/backdrop comparisons
 
 Backdrop comparisons require a physical, hardware-accelerated Android 37.2 device. Record the full
@@ -290,6 +303,21 @@ delegate. The no-Glass control intentionally omits that metric.
 Open representative traces in Android Studio or Perfetto. Application markers describe CPU-side
 preparation, recording, and submission; they do not directly measure GPU shader duration. Inspect
 system frame-timeline and GPU data when attributing GPU cost.
+
+For stable source-backed scenarios, check `HazeSource.record` separately from effect drawing:
+an unchanged source can remain captured while the effect continues to draw. For draw-only source
+updates, also verify output pixels; retained layers can propagate changes without re-recording
+every effect stage.
+
+Separate elapsed slice duration from running CPU time using scheduler states. `DrawFrames`,
+`Vulkan finish frame`, and `QueueSubmit` are nested scopes, so their durations cannot be added.
+Label stage averages separately from frame P90. Time inside `QueueSubmit` can include both CPU
+execution and waiting; the slice name alone does not identify the driver work or wait reason.
+
+Attribute compilation markers to their owning process and thread. `HazeGlass.createRenderEffect`
+measures Haze's effect construction, not every possible backend compilation step. Shader-related
+markers in SurfaceFlinger do not establish app shader compilation, and absent markers cannot
+rule out untraced driver work. Use native call stacks when finer CPU attribution is needed.
 
 Expected Glass markers include:
 

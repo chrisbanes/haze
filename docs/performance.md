@@ -39,6 +39,16 @@ adapt differently, so compare their results independently. Custom effects instea
 - **Effect complexity:** Progressive effects, masks, and advanced optics can add cost.
 - **Device and display:** Resolution, refresh rate, and GPU capability affect the result.
 
+### Stable and changing sources
+
+With `HazeInput.Sources`, Haze retains a source capture so unrelated sibling redraws can reuse it.
+Changes to the source's drawing still refresh that capture. Keep content that changes every frame
+outside the `hazeSource` subtree when the effect does not need to sample it.
+
+Reusing a capture avoids recording the source again; drawing the effect can still require renderer
+and GPU work. Measure both a stable background and scrolling or animated input. These capture
+details apply to source-backed effects; native `HazeInput.Backdrop` uses a different rendering path.
+
 ## Effect-specific guidance
 
 For Blur, see [Performance mode and layer expansion](blur/usage.md#performance-mode-and-layer-expansion). For Glass,
@@ -50,6 +60,11 @@ choices specific to that effect.
 Use a release-like build on physical hardware and reproduce the interactions users will perform.
 Keep device conditions and refresh rate consistent between runs. Measurements from another device
 or layout are useful context, not a guarantee for your application.
+
+Repeat comparisons in both build orders. Android's
+[fixed-performance mode](https://developer.android.com/games/optimize/adpf/fixed-performance-mode)
+still allows CPU core selection to change, which can move tail frame timings even when the code
+is unchanged. Use traces to check CPU placement when repeated results disagree.
 
 For Android, [Macrobenchmark](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview)
 is a good starting point for repeatable frame measurements.
