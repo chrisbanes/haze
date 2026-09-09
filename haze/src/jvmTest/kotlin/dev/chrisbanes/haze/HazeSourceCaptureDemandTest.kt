@@ -8,8 +8,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReusableContent
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
@@ -20,12 +24,126 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
+import assertk.assertions.isSameInstanceAs
+import assertk.assertions.isTrue
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class, InternalHazeApi::class)
 class HazeSourceCaptureDemandTest {
+
+  @Test
+  fun reusedSource_rebuildsReleasedCapture() = runComposeUiTest {
+    val state = HazeState()
+    val reuseKey = mutableIntStateOf(0)
+    val factory = DemandRecordingFactory()
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        ReusableContent(reuseKey.intValue) {
+          Source(state)
+        }
+        Effect(state, factory)
+      }
+    }
+    waitForIdle()
+    val area = state.areas.single()
+    val originalLayer = requireNotNull(area.contentLayer)
+
+    reuseKey.intValue++
+    waitForIdle()
+
+    assertThat(state.areas.single()).isSameInstanceAs(area)
+    assertThat(originalLayer.isReleased).isTrue()
+    assertThat(area.contentLayer).isNotNull()
+    assertThat(requireNotNull(area.contentLayer).isReleased).isFalse()
+    assertThat(factory.renderer.snapshots.last()).isNotNull()
+  }
+
+  @Test
+  fun capturedSource_preservesDrawingOutsideLayoutBounds() = runComposeUiTest {
+    val state = HazeState()
+    val factory = DemandRecordingFactory()
+
+    setContent {
+      Box(Modifier.size(100.dp).background(Color.Black).testTag("root")) {
+        Box(
+          Modifier.size(40.dp).hazeSource(state).drawBehind {
+            drawRect(Color.Red, size = Size(size.width * 2f, size.height))
+          },
+        )
+        Effect(state, factory)
+      }
+    }
+    waitForIdle()
+    assertThat(state.areas.single().contentLayer).isNotNull()
+    val pixels = onNodeWithTag("root").captureToImage().toPixelMap()
+    assertThat(pixels[pixels.width * 3 / 5, pixels.height / 5])
+      .isEqualTo(Color.Red)
+  }
+
+  @Test
+  fun siblingRedraw_keepsUnchangedSourceCapture() = runComposeUiTest {
+    val state = HazeState()
+    val siblingFrame = mutableIntStateOf(0)
+    val factory = DemandRecordingFactory()
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Source(state)
+        Effect(state, factory)
+        Box(
+          Modifier.size(1.dp).drawBehind {
+            drawRect(if (siblingFrame.intValue % 2 == 0) Color.White else Color.Black)
+          },
+        )
+      }
+    }
+    waitForIdle()
+    val area = state.areas.single()
+    val initialVersion = area.contentVersion
+    assertThat(initialVersion).isGreaterThan(0L)
+
+    repeat(5) {
+      siblingFrame.intValue++
+      waitForIdle()
+    }
+
+    assertThat(area.contentVersion).isEqualTo(initialVersion)
+  }
+
+  @Test
+  fun sourceDrawChange_refreshesCaptureAndEffect() = runComposeUiTest {
+    val state = HazeState()
+    val sourceColor = mutableStateOf(Color.Red)
+    val factory = DemandRecordingFactory()
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Box(
+          Modifier.fillMaxSize().hazeSource(state).drawBehind {
+            drawRect(sourceColor.value)
+          },
+        )
+        Effect(state, factory)
+      }
+    }
+    waitForIdle()
+    val area = state.areas.single()
+    val initialVersion = area.contentVersion
+    assertThat(onNodeWithTag(EFFECT_TAG).captureToImage().toPixelMap()[50, 50])
+      .isEqualTo(Color.Red)
+
+    sourceColor.value = Color.Blue
+    waitForIdle()
+
+    assertThat(area.contentVersion).isGreaterThan(initialVersion)
+    assertThat(onNodeWithTag(EFFECT_TAG).captureToImage().toPixelMap()[50, 50])
+      .isEqualTo(Color.Blue)
+  }
 
   @Test
   fun sourceWithoutAttachedEffect_drawsDirectlyWithoutCapture() = runComposeUiTest {

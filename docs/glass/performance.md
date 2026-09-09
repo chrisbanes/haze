@@ -43,6 +43,11 @@ Exercise the states that represent the real screen:
 - resizing, orientation changes, and other layout transitions;
 - the lowest-performance devices and highest display resolutions you support.
 
+Measure effect attachment separately from steady-state drawing. Glass retains runtime shaders
+between draws, but renderer and submission work can remain after source capture and effect
+creation have settled. A slow frame alone does not identify shader compilation as the cause;
+inspect main-thread and RenderThread work before changing the material's optics.
+
 ## Reference measurements
 
 The following Haze reference run is a reproducible comparison point, not a performance target or
@@ -65,7 +70,9 @@ delegate/shader creation rather than representative interaction performance. The
 by the internal [Glass benchmark runbook][benchmark-runbook]. Compare the interactions, content,
 and device classes that your application supports.
 
-### Current performance-mode calibration
+<a id="current-performance-mode-calibration"></a>
+
+### Performance-mode calibration (2026-08-09)
 
 On 2026-08-09, the controlled Glass matrix ran in the `benchmarkRelease` variant on a Pixel 6
 (Android 17/API 37, 1080×2400), locked to 60 Hz with Android fixed-performance mode enabled. Each

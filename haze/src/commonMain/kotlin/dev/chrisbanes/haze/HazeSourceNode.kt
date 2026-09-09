@@ -13,17 +13,24 @@ import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
+import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateDraw
+import androidx.compose.ui.node.invalidatePlacement
 import androidx.compose.ui.node.observeReads
+import androidx.compose.ui.node.updateLayerBlock
 import androidx.compose.ui.platform.LocalGraphicsContext
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.toSize
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
@@ -46,6 +53,7 @@ internal class HazeSourceNode(
   CompositionLocalConsumerModifierNode,
   GlobalPositionAwareModifierNode,
   LayoutAwareModifierNode,
+  LayoutModifierNode,
   DrawModifierNode,
   TraversableNode,
   ObserverModifierNode {
@@ -81,6 +89,7 @@ internal class HazeSourceNode(
       if (isAttached) {
         onObservedReadsChanged()
         invalidateDraw()
+        invalidatePlacement()
       }
     }
 
@@ -132,6 +141,20 @@ internal class HazeSourceNode(
         invalidateDraw()
       } else {
         area.releaseLayer()
+      }
+    }
+  }
+
+  override fun MeasureScope.measure(measurable: Measurable, constraints: Constraints): MeasureResult {
+    val placeable = measurable.measure(constraints)
+    return layout(placeable.width, placeable.height) {
+      // Isolate captures from sibling redraws. Observing demand in placement also recreates
+      // the layer when capture resumes, invalidating its parent so this source draws before
+      // a reattached sibling effect tries to consume it.
+      if (state.hasSourceDemand && area.hasCaptureDemand) {
+        placeable.placeWithLayer(0, 0)
+      } else {
+        placeable.place(0, 0)
       }
     }
   }
@@ -327,6 +350,9 @@ internal class HazeSourceNode(
   }
 
   override fun onReset() {
+    // The placement layer must not retain a reference to the capture released below.
+    updateLayerBlock(null)
+    invalidatePlacement()
     HazeLogger.d(TAG) { "onReset. Resetting HazeArea: $area" }
     disablePreDrawListener()
     area.releaseLayer()
