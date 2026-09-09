@@ -843,6 +843,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#haze-2-compared-with-haze-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Haze 2 compared with Haze 1
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#a-reference-point-not-a-target" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1246,6 +1257,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#haze-2-compared-with-haze-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Haze 2 compared with Haze 1
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#a-reference-point-not-a-target" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1338,6 +1360,37 @@ still allows CPU core selection to change, which can move tail frame timings eve
 is unchanged. Use traces to check CPU placement when repeated results disagree.</p>
 <p>For Android, <a href="https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview">Macrobenchmark</a>
 is a good starting point for repeatable frame measurements.</p>
+<h3 id="haze-2-compared-with-haze-1">Haze 2 compared with Haze 1<a class="headerlink" href="#haze-2-compared-with-haze-1" title="Permanent link">¶</a></h3>
+<p>Haze 2 was faster in both of the sample interactions shared with Haze 1. P90 CPU frame duration
+improved by 37% while scrolling the Images List and by 15% while dragging the Credit Card.</p>
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th style="text-align: right;">Haze 1</th>
+<th style="text-align: right;">Haze 2</th>
+<th style="text-align: right;">Improvement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Images List scrolling</td>
+<td style="text-align: right;">14.9 ms</td>
+<td style="text-align: right;">9.3 ms</td>
+<td style="text-align: right;">37% faster</td>
+</tr>
+<tr>
+<td>Credit Card dragging</td>
+<td style="text-align: right;">11.5 ms</td>
+<td style="text-align: right;">9.8 ms</td>
+<td style="text-align: right;">15% faster</td>
+</tr>
+</tbody>
+</table>
+<p>These results come from Android Macrobenchmarks on a Pixel 6 running Android 17 at 60 Hz, with 32
+iterations per workload. The comparison used Haze 1 at <code>7a2557f1</code> and Haze 2 at <code>fc46813e</code>. P90
+highlights the slower frames during each interaction. Treat these as a useful reference rather
+than a guarantee for a different screen or device.</p>
 <h3 id="a-reference-point-not-a-target">A reference point, not a target<a class="headerlink" href="#a-reference-point-not-a-target" title="Permanent link">¶</a></h3>
 <p>In Haze's 2026-08-04 Glass reference run on a Pixel 6 (Android 17/API 37, 1080×2400 at
 60 Hz), the Gallery's <code>productPager</code> journey measured 7.5 ms P90 CPU frame duration and its
