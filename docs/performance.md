@@ -69,6 +69,20 @@ is unchanged. Use traces to check CPU placement when repeated results disagree.
 For Android, [Macrobenchmark](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview)
 is a good starting point for repeatable frame measurements.
 
+### Haze 2 compared with Haze 1
+
+Haze 2 was faster in both of the sample interactions shared with Haze 1. P90 CPU frame duration
+improved by 37% while scrolling the Images List and by 15% while dragging the Credit Card.
+
+| Workload | Haze 1 | Haze 2 | Improvement |
+| --- | ---: | ---: | ---: |
+| Images List scrolling | 14.9 ms | 9.3 ms | 37% faster |
+| Credit Card dragging | 11.5 ms | 9.8 ms | 15% faster |
+
+These results come from Android Macrobenchmarks on a Pixel 6 running Android 17 at 60 Hz, with 32
+iterations per workload. P90 highlights the slower frames during each interaction. Treat these as
+a useful reference rather than a guarantee for a different screen or device.
+
 ### A reference point, not a target
 
 In Haze's 2026-08-04 Glass reference run on a Pixel 6 (Android 17/API 37, 1080×2400 at
