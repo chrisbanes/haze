@@ -190,9 +190,9 @@ val maskedStyle = HazeBlurStyle {
 }
 ```
 
-## Performance mode
+<a id="performance-mode"></a>
 
-### Performance mode and layer expansion
+## Performance mode and layer expansion
 
 Performance mode and layer expansion are structural modifier policies, not Style properties:
 
@@ -205,31 +205,10 @@ Modifier.hazeBlur(
 )
 ```
 
-- `HazePerformanceMode.Default` and `Adaptive` let Blur balance quality and cost automatically.
-- `HazePerformanceMode.Quality`, `Balanced`, and `Performance` select named fixed fidelity
-  profiles.
-- `HazePerformanceMode.Fixed(qualityFraction)` selects a deterministic fidelity profile for a
-  normalized quality fraction from `0f` through `1f`.
-
-Start with the default. Override it only after comparing visual quality and performance on the
-devices you support. `Default` is `Adaptive`, and `Quality` replaces the previous built-in
-full-resolution choice. Remeasure any previous built-in fixed input-pixel fraction before choosing
-an explicit `Fixed(qualityFraction)` value.
+See the [performance guide](../performance.md#performance-mode) for mode selection and
+[Blur guidance](../performance.md#blur) for the cost and edge behaviour of layer expansion.
 
 ### Controlled calibration reference
 
-The following Android Macrobenchmark reference is a comparison point, not a performance target or
-promise. It was captured on 2026-08-09 with the `benchmarkRelease` variant on a Pixel 6 (Android
-17/API 37, 1080×2400), with the display locked to 60 Hz and Android fixed-performance mode enabled.
-Each row contains 16 fixed-duration iterations of the controlled Blur sample. Values are **P90 CPU
-frame duration / P90 frame overrun**, in milliseconds; a negative overrun is margin below the
-60 Hz frame budget.
-
-| Workload | Adaptive | Quality | Balanced | Performance |
-| --- | ---: | ---: | ---: | ---: |
-| Stable source | 10.0 / -3.2 | 10.2 / -3.0 | 10.1 / -3.1 | 10.0 / -2.7 |
-| Continuously changing source | 10.0 / -2.9 | 10.2 / -2.7 | 10.1 / -1.8 | 10.1 / -3.0 |
-
-The controlled sample holds all other style choices fixed. It is useful for comparing the named
-profiles, but measure the layout, content, and interaction patterns of your application before
-choosing an override.
+The historical Blur table has moved to
+[performance-mode calibration (2026-08-09)](../benchmark-results.md#performance-mode-calibration-2026-08-09).

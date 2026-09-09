@@ -22,14 +22,13 @@ their input changes.
 - **`Default` or `Adaptive`**: Recommended for most applications. Built-in effects adjust the
   quality and cost trade-off automatically.
 - **`Quality`**, **`Balanced`**, or **`Performance`**: Select a named, deterministic profile.
-- **`Fixed(qualityFraction)`**: Select a normalized, deterministic profile when the named
-  profiles are not the right fit.
+- **`Fixed(qualityFraction)`**: Select a normalized, deterministic profile from `0f` through `1f`
+  when the named profiles are not the right fit.
 
-`Default` is `Adaptive`, and `Quality` replaces the previous built-in full-resolution choice.
-There is no formula for translating a previous built-in fixed input-pixel fraction: remeasure an
-explicit `Fixed(qualityFraction)` choice on the effect and layout you actually use. Blur and Glass
-adapt differently, so compare their results independently. Custom effects instead use
-`HazeSampling` to control how much input they process.
+`Default` is `Adaptive`. Blur and Glass resolve these profiles differently, so a quality fraction
+is not an input-pixel scale or a cross-effect resolution guarantee. Custom effects use
+`HazeSampling` to control how much input they process. For older built-in sampling settings, see
+the [migration guide](migrating-2.0.md).
 
 ## Common cost drivers
 
@@ -49,46 +48,52 @@ Reusing a capture avoids recording the source again; drawing the effect can stil
 and GPU work. Measure both a stable background and scrolling or animated input. These capture
 details apply to source-backed effects; native `HazeInput.Backdrop` uses a different rendering path.
 
-## Effect-specific guidance
+<a id="effect-specific-guidance"></a>
 
-For Blur, see [Performance mode and layer expansion](blur/usage.md#performance-mode-and-layer-expansion). For Glass,
-see the [Glass performance guide](glass/performance.md), which covers optical and interaction
-choices specific to that effect.
+## Blur
+
+Progressive Blur varies blur intensity across the surface. If you only need to fade opacity, use a
+mask; see [Progressive Blur and masks](blur/usage.md#progressive-blur-and-masks).
+
+For source-backed Blur, `expandLayerBounds` allows the capture layer to expand by the resolved blur
+radius. This gives the blur surrounding input to sample, at the cost of a larger capture area.
+Disabling it limits that area and can change the result near the edges. Keep the default unless
+visual and performance comparisons justify changing it. See the
+[modifier example](blur/usage.md#performance-mode-and-layer-expansion).
+
+## Glass
+
+Start with `GlassStyle.regular`. Progressive blur and Full chromatic aberration can add work;
+measure them at the surface sizes and effect counts your screen uses. Animated lighting,
+refraction, and transforms also add work during hover, focus, and press responses. Include those
+states, background scrolling, and layout transitions in your comparison.
+
+Measure effect attachment separately from steady-state drawing. Glass retains runtime shaders
+between draws, but renderer and submission work can remain after source capture and effect
+creation have settled. A slow frame alone does not identify shader compilation as the cause;
+inspect main-thread and RenderThread work before changing the material's optics.
+
+For styling and API examples, see the [Glass overview](effects/glass.md).
 
 ## Measure on target devices
 
 Use a release-like build on physical hardware and reproduce the interactions users will perform.
-Keep device conditions and refresh rate consistent between runs. Measurements from another device
-or layout are useful context, not a guarantee for your application.
-
-Repeat comparisons in both build orders. Android's
-[fixed-performance mode](https://developer.android.com/games/optimize/adpf/fixed-performance-mode)
-still allows CPU core selection to change, which can move tail frame timings even when the code
-is unchanged. Use traces to check CPU placement when repeated results disagree.
+Keep device conditions and refresh rate consistent between runs. Compare frame timing and visual
+quality, including on the slowest devices you support.
 
 For Android, [Macrobenchmark](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview)
-is a good starting point for repeatable frame measurements.
+provides repeatable frame measurements. Use frame overrun to identify deadline misses and CPU frame
+duration to assess UI-thread and RenderThread cost. Neither directly measures GPU shader duration.
 
-### Haze 2 compared with Haze 1
+Repeat comparisons in both build orders. If repeated results disagree, inspect traces before
+attributing the difference to the code. Haze's [Android benchmark runbook][benchmark-runbook] covers
+device preparation, CPU-placement checks, workload selection, and trace interpretation.
 
-Haze 2 was faster in both of the sample interactions shared with Haze 1. P90 CPU frame duration
-improved by 37% while scrolling the Images List and by 15% while dragging the Credit Card.
+<a id="haze-2-compared-with-haze-1"></a>
+<a id="a-reference-point-not-a-target"></a>
 
-| Workload | Haze 1 | Haze 2 | Improvement |
-| --- | ---: | ---: | ---: |
-| Images List scrolling | 14.9 ms | 9.3 ms | 37% faster |
-| Credit Card dragging | 11.5 ms | 9.8 ms | 15% faster |
+See the [Haze 1 versus Haze 2 comparison](benchmark-results.md#haze-2-compared-with-haze-1) and
+[Blur and Glass reference measurements](benchmark-results.md), with the recorded setup and
+limitations for each run.
 
-These results come from Android Macrobenchmarks on a Pixel 6 running Android 17 at 60 Hz, with 32
-iterations per workload. The comparison used Haze 1 at `7a2557f1` and Haze 2 at `fc46813e`. P90
-highlights the slower frames during each interaction. Treat these as a useful reference rather
-than a guarantee for a different screen or device.
-
-### A reference point, not a target
-
-In Haze's 2026-08-04 Glass reference run on a Pixel 6 (Android 17/API 37, 1080×2400 at
-60 Hz), the Gallery's `productPager` journey measured 7.5 ms P90 CPU frame duration and its
-`playgroundTimeline` journey measured 11.2 ms. These are one workload on one device, not a
-performance budget or promise for other devices and layouts. See the
-[Glass reference measurements](glass/performance.md#reference-measurements) for the setup and
-controlled scenarios.
+[benchmark-runbook]: https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md

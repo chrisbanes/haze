@@ -32,8 +32,8 @@ nav:
     - "Overview": effects/glass.md
   - "Custom Effects": custom-effects.md
   - "Performance":
-    - "Overview": performance.md
-    - "Glass": glass/performance.md
+    - "Guide": performance.md
+    - "Benchmark results": benchmark-results.md
   - "Scenarios":
     - "Camera": scenarios/camera.md
   - "Recipes": recipes.md
