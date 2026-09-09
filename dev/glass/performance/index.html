@@ -854,10 +854,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#current-performance-mode-calibration" class="md-nav__link">
+  <a href="#performance-mode-calibration-2026-08-09" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Current performance-mode calibration
+        Performance-mode calibration (2026-08-09)
       
     </span>
   </a>
@@ -1212,10 +1212,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#current-performance-mode-calibration" class="md-nav__link">
+  <a href="#performance-mode-calibration-2026-08-09" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Current performance-mode calibration
+        Performance-mode calibration (2026-08-09)
       
     </span>
   </a>
@@ -1287,6 +1287,10 @@ specific to Glass.</p>
 <li>resizing, orientation changes, and other layout transitions;</li>
 <li>the lowest-performance devices and highest display resolutions you support.</li>
 </ul>
+<p>Measure effect attachment separately from steady-state drawing. Glass retains runtime shaders
+between draws, but renderer and submission work can remain after source capture and effect
+creation have settled. A slow frame alone does not identify shader compilation as the cause;
+inspect main-thread and RenderThread work before changing the material's optics.</p>
 <h2 id="reference-measurements">Reference measurements<a class="headerlink" href="#reference-measurements" title="Permanent link">¶</a></h2>
 <p>The following Haze reference run is a reproducible comparison point, not a performance target or
 promise. It used the <code>benchmarkRelease</code> build at commit <code>334557df</code> on 2026-08-04: Pixel 6,
@@ -1334,7 +1338,8 @@ are deliberately omitted: they attach new effects at the measurement boundary an
 delegate/shader creation rather than representative interaction performance. They remain covered
 by the internal <a href="https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md">Glass benchmark runbook</a>. Compare the interactions, content,
 and device classes that your application supports.</p>
-<h3 id="current-performance-mode-calibration">Current performance-mode calibration<a class="headerlink" href="#current-performance-mode-calibration" title="Permanent link">¶</a></h3>
+<p><a id="current-performance-mode-calibration"></a></p>
+<h3 id="performance-mode-calibration-2026-08-09">Performance-mode calibration (2026-08-09)<a class="headerlink" href="#performance-mode-calibration-2026-08-09" title="Permanent link">¶</a></h3>
 <p>On 2026-08-09, the controlled Glass matrix ran in the <code>benchmarkRelease</code> variant on a Pixel 6
 (Android 17/API 37, 1080×2400), locked to 60 Hz with Android fixed-performance mode enabled. Each
 row contains 16 fixed-duration iterations. Values are <strong>P90 CPU frame duration / P90 frame

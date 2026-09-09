@@ -800,6 +800,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Common cost drivers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#stable-and-changing-sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stable and changing sources
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1186,6 +1203,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Common cost drivers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#stable-and-changing-sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stable and changing sources
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1283,6 +1317,13 @@ adapt differently, so compare their results independently. Custom effects instea
 <li><strong>Effect complexity:</strong> Progressive effects, masks, and advanced optics can add cost.</li>
 <li><strong>Device and display:</strong> Resolution, refresh rate, and GPU capability affect the result.</li>
 </ul>
+<h3 id="stable-and-changing-sources">Stable and changing sources<a class="headerlink" href="#stable-and-changing-sources" title="Permanent link">¶</a></h3>
+<p>With <code>HazeInput.Sources</code>, Haze retains a source capture so unrelated sibling redraws can reuse it.
+Changes to the source's drawing still refresh that capture. Keep content that changes every frame
+outside the <code>hazeSource</code> subtree when the effect does not need to sample it.</p>
+<p>Reusing a capture avoids recording the source again; drawing the effect can still require renderer
+and GPU work. Measure both a stable background and scrolling or animated input. These capture
+details apply to source-backed effects; native <code>HazeInput.Backdrop</code> uses a different rendering path.</p>
 <h2 id="effect-specific-guidance">Effect-specific guidance<a class="headerlink" href="#effect-specific-guidance" title="Permanent link">¶</a></h2>
 <p>For Blur, see <a href="../blur/usage/#performance-mode-and-layer-expansion">Performance mode and layer expansion</a>. For Glass,
 see the <a href="../glass/performance/">Glass performance guide</a>, which covers optical and interaction
@@ -1291,6 +1332,10 @@ choices specific to that effect.</p>
 <p>Use a release-like build on physical hardware and reproduce the interactions users will perform.
 Keep device conditions and refresh rate consistent between runs. Measurements from another device
 or layout are useful context, not a guarantee for your application.</p>
+<p>Repeat comparisons in both build orders. Android's
+<a href="https://developer.android.com/games/optimize/adpf/fixed-performance-mode">fixed-performance mode</a>
+still allows CPU core selection to change, which can move tail frame timings even when the code
+is unchanged. Use traces to check CPU placement when repeated results disagree.</p>
 <p>For Android, <a href="https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview">Macrobenchmark</a>
 is a good starting point for repeatable frame measurements.</p>
 <h3 id="a-reference-point-not-a-target">A reference point, not a target<a class="headerlink" href="#a-reference-point-not-a-target" title="Permanent link">¶</a></h3>
