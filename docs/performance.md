@@ -80,8 +80,9 @@ improved by 37% while scrolling the Images List and by 15% while dragging the Cr
 | Credit Card dragging | 11.5 ms | 9.8 ms | 15% faster |
 
 These results come from Android Macrobenchmarks on a Pixel 6 running Android 17 at 60 Hz, with 32
-iterations per workload. P90 highlights the slower frames during each interaction. Treat these as
-a useful reference rather than a guarantee for a different screen or device.
+iterations per workload. The comparison used Haze 1 at `7a2557f1` and Haze 2 at `fc46813e`. P90
+highlights the slower frames during each interaction. Treat these as a useful reference rather
+than a guarantee for a different screen or device.
 
 ### A reference point, not a target
 
