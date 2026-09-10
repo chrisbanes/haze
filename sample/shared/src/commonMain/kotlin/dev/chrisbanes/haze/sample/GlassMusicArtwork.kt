@@ -23,8 +23,12 @@ internal fun MusicArtwork(track: MusicTrack, modifier: Modifier = Modifier) {
     ),
   ) {
     Canvas(Modifier.fillMaxSize()) {
-      drawCircle(Color(0xfff7d7a8).copy(alpha = 0.55f), size.minDimension * 0.26f, Offset(size.width * 0.28f, size.height * 0.3f))
-      drawCircle(Color(0xff3f275c).copy(alpha = 0.62f), size.minDimension * 0.32f, Offset(size.width * 0.72f, size.height * 0.7f))
+      drawCircle(Color(0xffffd166).copy(alpha = 0.52f), size.minDimension * 0.26f, Offset(size.width * 0.28f, size.height * 0.3f))
+      drawCircle(Color(0xffe76f51).copy(alpha = 0.52f), size.minDimension * 0.32f, Offset(size.width * 0.72f, size.height * 0.7f))
+      repeat(6) { index ->
+        val x = size.width * (index + 1) / 7f
+        drawLine(Color.White.copy(alpha = 0.26f), Offset(x, 0f), Offset(x - size.width * 0.35f, size.height), size.minDimension * 0.035f)
+      }
     }
     AsyncImage(
       model = track.artworkUrl,

@@ -65,9 +65,10 @@ public fun GlassSlider(
   var width by remember { mutableFloatStateOf(1f) }
   val layoutDirection = LocalLayoutDirection.current
   val thumbDiameter = with(LocalDensity.current) { 32.dp.toPx() }
+  val rangeLength = (valueRange.endInclusive - valueRange.start).takeIf { it > 0f } ?: 1f
   val fraction = (
     (value.coerceIn(valueRange.start, valueRange.endInclusive) - valueRange.start) /
-      (valueRange.endInclusive - valueRange.start).takeIf { it > 0f }.orEmpty()
+      rangeLength
     ).coerceIn(0f, 1f)
   val interactionSource = remember { MutableInteractionSource() }
   fun updateAt(x: Float) {
@@ -170,5 +171,3 @@ public fun GlassSlider(
     )
   }
 }
-
-private fun Float?.orEmpty(): Float = this ?: 1f

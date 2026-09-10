@@ -7,11 +7,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.v2.runComposeUiTest
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
@@ -53,7 +58,7 @@ class GlassMusicPlayerSampleTest : ContextTest() {
       GlassMusicPlayerSampleContent(
         currentTrack = MusicCatalog[trackIndex], tracks = MusicCatalog, currentTrackIndex = trackIndex,
         positionMillis = 0, isPlaying = playing, shuffleEnabled = false, tab = tab,
-        onTabSelected = { tab = it }, onPlayPause = { playing = !playing }, onPrevious = {}, onNext = {}, onShuffle = {}, onShuffleChanged = {},
+        onTabSelected = { tab = it }, onPlayPause = { playing = !playing }, onPrevious = {}, onNext = {}, onShuffleChanged = {},
         onSeekStarted = {}, onSeek = {}, onSeekFinished = {}, onTrackSelected = { trackIndex = it }, onBack = {},
       )
     }
@@ -63,5 +68,48 @@ class GlassMusicPlayerSampleTest : ContextTest() {
     waitForIdle()
     onNodeWithText("Loud Places").assertExists()
     runOnIdle { assertThat(playing).isEqualTo(true) }
+  }
+
+  @Test
+  fun playerControls_updateHoistedStateAcrossTabChanges() = runComposeUiTest {
+    val player = MusicPlayerState(MusicCatalog, randomTrackIndex = { 0 })
+    var tab by mutableStateOf(MusicPlayerTab.NowPlaying)
+    setContent {
+      GlassMusicPlayerSampleContent(
+        currentTrack = player.currentTrack,
+        tracks = MusicCatalog,
+        currentTrackIndex = player.currentTrackIndex,
+        positionMillis = player.positionMillis,
+        isPlaying = player.isPlaying,
+        shuffleEnabled = player.shuffleEnabled,
+        tab = tab,
+        onTabSelected = { tab = it },
+        onPlayPause = player::togglePlaying,
+        onPrevious = player::previous,
+        onNext = player::next,
+        onShuffleChanged = player::updateShuffleEnabled,
+        onSeekStarted = player::beginSeeking,
+        onSeek = player::seekTo,
+        onSeekFinished = player::endSeeking,
+        onTrackSelected = player::selectTrack,
+        onBack = {},
+      )
+    }
+    onNodeWithTag("music_play").performClick()
+    onNodeWithTag("music_shuffle").performClick()
+    onNodeWithTag("music_progress").performTouchInput {
+      down(Offset(width * 0.2f, height / 2f))
+      moveTo(Offset(width * 0.7f, height / 2f))
+      up()
+    }
+    onNodeWithText("Library").performClick()
+    onNodeWithText("Now Playing").performClick()
+    runOnIdle {
+      assertThat(player.isPlaying).isEqualTo(true)
+      assertThat(player.positionMillis).isGreaterThan(0L)
+      assertThat(player.isSeeking).isEqualTo(false)
+      assertThat(player.shuffleEnabled).isEqualTo(true)
+      assertThat(tab).isEqualTo(MusicPlayerTab.NowPlaying)
+    }
   }
 }

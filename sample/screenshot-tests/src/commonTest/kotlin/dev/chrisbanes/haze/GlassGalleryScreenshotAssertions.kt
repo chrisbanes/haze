@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import dev.chrisbanes.haze.sample.GlassGalleryBackdropId
 import dev.chrisbanes.haze.sample.GlassLabScreenshotContent
@@ -128,7 +129,11 @@ internal fun ScreenshotUiTest.captureGlassLabStyles() {
   captureRoot("clear")
 }
 
-internal fun ScreenshotUiTest.captureGlassMusicPlayer(isDark: Boolean, library: Boolean = false) {
+internal fun ScreenshotUiTest.captureGlassMusicPlayer(
+  isDark: Boolean,
+  library: Boolean = false,
+  contentWrapper: @Composable (@Composable () -> Unit) -> Unit = { content -> content() },
+) {
   val track = MusicTrack(
     title = "Give Life Back to Music",
     artist = "Daft Punk",
@@ -141,21 +146,23 @@ internal fun ScreenshotUiTest.captureGlassMusicPlayer(isDark: Boolean, library: 
   var shuffle by mutableStateOf(false)
   var selectedTab by mutableStateOf(if (library) MusicPlayerTab.Library else MusicPlayerTab.NowPlaying)
   setContent {
-    SamplesTheme(useDarkColors = isDark) {
-      ScreenshotTheme {
-        GlassMusicPlayerSampleContent(
-          currentTrack = track,
-          tracks = listOf(track),
-          currentTrackIndex = 0,
-          positionMillis = position.toLong(),
-          isPlaying = false,
-          shuffleEnabled = shuffle,
-          tab = selectedTab,
-          onTabSelected = { selectedTab = it }, onPlayPause = {}, onPrevious = {}, onNext = {}, onShuffle = {},
-          onShuffleChanged = { shuffle = it }, onSeekStarted = {}, onSeek = { position = it.toFloat() }, onSeekFinished = {},
-          onTrackSelected = {}, onBack = {},
-          isDark = isDark,
-        )
+    contentWrapper {
+      SamplesTheme(useDarkColors = isDark) {
+        ScreenshotTheme {
+          GlassMusicPlayerSampleContent(
+            currentTrack = track,
+            tracks = listOf(track),
+            currentTrackIndex = 0,
+            positionMillis = position.toLong(),
+            isPlaying = false,
+            shuffleEnabled = shuffle,
+            tab = selectedTab,
+            onTabSelected = { selectedTab = it }, onPlayPause = {}, onPrevious = {}, onNext = {},
+            onShuffleChanged = { shuffle = it }, onSeekStarted = {}, onSeek = { position = it.toFloat() }, onSeekFinished = {},
+            onTrackSelected = {}, onBack = {},
+            isDark = isDark,
+          )
+        }
       }
     }
   }
@@ -175,6 +182,9 @@ internal fun ScreenshotUiTest.captureGlassMusicPlayer(isDark: Boolean, library: 
     waitForIdle()
     captureRoot("dragged")
     slider.performTouchInput { up() }
+    onNodeWithTag("music_shuffle").performClick()
+    waitForIdle()
+    captureRoot("shuffleOn")
   }
 }
 

@@ -75,7 +75,6 @@ public fun GlassMusicPlayerSample(navController: NavHostController) {
     onPlayPause = player::togglePlaying,
     onPrevious = player::previous,
     onNext = player::next,
-    onShuffle = player::shuffle,
     onShuffleChanged = player::updateShuffleEnabled,
     onSeekStarted = player::beginSeeking,
     onSeek = player::seekTo,
@@ -110,7 +109,6 @@ public fun GlassMusicPlayerSampleContent(
   onPlayPause: () -> Unit,
   onPrevious: () -> Unit,
   onNext: () -> Unit,
-  onShuffle: () -> Unit,
   onShuffleChanged: (Boolean) -> Unit,
   onSeekStarted: () -> Unit,
   onSeek: (Long) -> Unit,
@@ -125,7 +123,9 @@ public fun GlassMusicPlayerSampleContent(
   val foreground = if (isDark) Color.White else Color(0xff15121b)
   BoxWithConstraints(modifier = modifier.fillMaxSize().testTag("glass_music_player")) {
     val wide = maxWidth > maxHeight
+    val compactWide = wide && maxHeight < 500.dp
     val artworkHeight = when {
+      compactWide -> 190.dp
       wide -> 300.dp
       maxHeight < 700.dp -> 160.dp
       else -> 260.dp
@@ -138,7 +138,6 @@ public fun GlassMusicPlayerSampleContent(
     Column(
       modifier = Modifier
         .fillMaxSize()
-        .verticalScroll(rememberScrollState())
         .padding(WindowInsets.safeDrawing.asPaddingValues())
         .padding(20.dp),
     ) {
@@ -148,19 +147,23 @@ public fun GlassMusicPlayerSampleContent(
         }
         Text("Glass music", color = foreground, style = MaterialTheme.typography.titleLarge)
       }
-      if (tab == MusicPlayerTab.NowPlaying) {
-        if (wide) {
-          Row(horizontalArrangement = Arrangement.spacedBy(28.dp), modifier = Modifier.fillMaxWidth()) {
-            ArtworkCard(currentTrack, artworkHeight, Modifier.weight(1f).widthIn(max = 440.dp))
-            PlayerControls(currentTrack, positionMillis, isPlaying, shuffleEnabled, input, foreground, onPlayPause, onPrevious, onNext, onShuffle, onShuffleChanged, onSeekStarted, onSeek, onSeekFinished, Modifier.weight(1f))
+      Box(Modifier.weight(1f)) {
+        Column(Modifier.verticalScroll(rememberScrollState())) {
+          if (tab == MusicPlayerTab.NowPlaying) {
+            if (wide) {
+              Row(horizontalArrangement = Arrangement.spacedBy(28.dp), modifier = Modifier.fillMaxWidth()) {
+                ArtworkCard(currentTrack, artworkHeight, Modifier.weight(1f).widthIn(max = 440.dp))
+                PlayerControls(currentTrack, positionMillis, isPlaying, shuffleEnabled, input, foreground, onPlayPause, onPrevious, onNext, onShuffleChanged, onSeekStarted, onSeek, onSeekFinished, compact = compactWide, modifier = Modifier.weight(1f))
+              }
+            } else {
+              ArtworkCard(currentTrack, artworkHeight, Modifier.fillMaxWidth())
+              Spacer(Modifier.height(18.dp))
+              PlayerControls(currentTrack, positionMillis, isPlaying, shuffleEnabled, input, foreground, onPlayPause, onPrevious, onNext, onShuffleChanged, onSeekStarted, onSeek, onSeekFinished, modifier = Modifier.fillMaxWidth())
+            }
+          } else {
+            Library(tracks, currentTrackIndex, input, foreground, onTrackSelected)
           }
-        } else {
-          ArtworkCard(currentTrack, artworkHeight, Modifier.fillMaxWidth())
-          Spacer(Modifier.height(18.dp))
-          PlayerControls(currentTrack, positionMillis, isPlaying, shuffleEnabled, input, foreground, onPlayPause, onPrevious, onNext, onShuffle, onShuffleChanged, onSeekStarted, onSeek, onSeekFinished, Modifier.fillMaxWidth())
         }
-      } else {
-        Library(tracks, currentTrackIndex, input, foreground, onTrackSelected)
       }
       Spacer(Modifier.height(20.dp))
       GlassBottomTabs(
@@ -200,16 +203,16 @@ private fun PlayerControls(
   onPlayPause: () -> Unit,
   onPrevious: () -> Unit,
   onNext: () -> Unit,
-  onShuffle: () -> Unit,
   onShuffleChanged: (Boolean) -> Unit,
   onSeekStarted: () -> Unit,
   onSeek: (Long) -> Unit,
   onSeekFinished: () -> Unit,
+  compact: Boolean = false,
   modifier: Modifier,
 ) {
-  Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-    Text(track.title, color = foreground, style = MaterialTheme.typography.headlineMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    Text("${track.artist} · ${track.album}", color = foreground.copy(alpha = 0.75f), style = MaterialTheme.typography.bodyLarge)
+  Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 14.dp)) {
+    Text(track.title, color = foreground, style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Text("${track.artist} · ${track.album}", color = foreground.copy(alpha = 0.75f), style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
     GlassSlider(
       value = positionMillis.toFloat(),
       valueRange = 0f..track.durationMillis.toFloat(),
@@ -222,7 +225,7 @@ private fun PlayerControls(
     Text("${formatTime(positionMillis)} / ${formatTime(track.durationMillis)}", color = foreground.copy(alpha = 0.72f))
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
       IconButton(onClick = onPrevious) { Icon(PreviousTrackIcon, "Previous track", tint = foreground) }
-      GlassButton(input = input, onClick = onPlayPause, modifier = Modifier.size(64.dp).testTag("music_play")) {
+      GlassButton(input = input, onClick = onPlayPause, modifier = Modifier.size(if (compact) 52.dp else 64.dp).testTag("music_play")) {
         Icon(if (isPlaying) PauseIcon else PlayIcon, if (isPlaying) "Pause" else "Play", tint = foreground)
       }
       IconButton(onClick = onNext) { Icon(NextTrackIcon, "Next track", tint = foreground) }

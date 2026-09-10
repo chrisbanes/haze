@@ -35,6 +35,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.sample.components.GlassBottomTabs
 import dev.chrisbanes.haze.sample.components.GlassButton
@@ -60,7 +61,7 @@ class GlassMusicComponentsTest : ContextTest() {
       up()
     }
     runOnIdle {
-      assertThat(value > 0.7f).isEqualTo(true)
+      assertThat(value).isGreaterThan(0.7f)
       assertThat(starts).isEqualTo(2)
       assertThat(finishes).isEqualTo(2)
     }
@@ -88,7 +89,7 @@ class GlassMusicComponentsTest : ContextTest() {
       keyDown(Key.DirectionRight)
       keyUp(Key.DirectionRight)
     }
-    runOnIdle { assertThat(value > 0.5f).isEqualTo(true) }
+    runOnIdle { assertThat(value).isGreaterThan(0.5f) }
   }
 
   @Test
@@ -120,7 +121,7 @@ class GlassMusicComponentsTest : ContextTest() {
       up()
     }
     runOnIdle {
-      assertThat(sliderValue > 0.7f).isEqualTo(true)
+      assertThat(sliderValue).isGreaterThan(0.7f)
       assertThat(checked).isEqualTo(true)
     }
   }
