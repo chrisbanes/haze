@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -65,7 +66,7 @@ public fun GlassBottomTabs(
       modifier = Modifier
         .offset(x = indicatorOffset)
         .width(tabWidth)
-        .fillMaxHeight()
+        .height(48.dp)
         .hazeGlass(
           input = input,
           style = GlassStyle.clear.then { this.shape(RoundedCornerShape(24.dp)); tint(Color.White.copy(alpha = 0.26f)) },
