@@ -8,6 +8,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -84,11 +85,12 @@ public fun GlassSlider(
       .semantics {
         progressBarRangeInfo = ProgressBarRangeInfo(value, valueRange, 0)
         setProgress { requested ->
+          if (!enabled) return@setProgress false
           onValueChange(requested.coerceIn(valueRange.start, valueRange.endInclusive))
           true
         }
       }
-      .focusable(enabled)
+      .focusable(enabled, interactionSource)
       .onPreviewKeyEvent { event ->
         if (!enabled || event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
         val step = (valueRange.endInclusive - valueRange.start) / 20f
@@ -101,13 +103,24 @@ public fun GlassSlider(
       }
       .pointerInput(enabled, width) {
         if (enabled) {
+          var press: PressInteraction.Press? = null
           detectDragGestures(
             onDragStart = {
+              press = PressInteraction.Press(it)
+              interactionSource.tryEmit(press!!)
               onValueChangeStarted?.invoke()
               updateAt(it.x)
             },
-            onDragEnd = { onValueChangeFinished?.invoke() },
-            onDragCancel = { onValueChangeFinished?.invoke() },
+            onDragEnd = {
+              press?.let { interactionSource.tryEmit(PressInteraction.Release(it)) }
+              press = null
+              onValueChangeFinished?.invoke()
+            },
+            onDragCancel = {
+              press?.let { interactionSource.tryEmit(PressInteraction.Cancel(it)) }
+              press = null
+              onValueChangeFinished?.invoke()
+            },
           ) { change, _ ->
             updateAt(change.position.x)
             change.consume()
@@ -117,8 +130,11 @@ public fun GlassSlider(
       .pointerInput(enabled, width) {
         if (enabled) {
           detectTapGestures { offset ->
+            val press = PressInteraction.Press(offset)
+            interactionSource.tryEmit(press)
             onValueChangeStarted?.invoke()
             updateAt(offset.x)
+            interactionSource.tryEmit(PressInteraction.Release(press))
             onValueChangeFinished?.invoke()
           }
         }

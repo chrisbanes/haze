@@ -24,6 +24,9 @@ import dev.chrisbanes.haze.sample.GlassLabStyleId
 import dev.chrisbanes.haze.sample.GlassPlaygroundSampleContent
 import dev.chrisbanes.haze.sample.GlassPlaygroundSurfaceId
 import dev.chrisbanes.haze.sample.GlassProductSampleContent
+import dev.chrisbanes.haze.sample.GlassMusicPlayerSampleContent
+import dev.chrisbanes.haze.sample.MusicPlayerTab
+import dev.chrisbanes.haze.sample.MusicTrack
 import dev.chrisbanes.haze.sample.SamplesTheme
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
@@ -122,6 +125,37 @@ internal fun ScreenshotUiTest.captureGlassLabStyles() {
   backdrop = GlassGalleryBackdropId.Grid
   waitForIdle()
   captureRoot("clear")
+}
+
+internal fun ScreenshotUiTest.captureGlassMusicPlayer(isDark: Boolean, library: Boolean = false) {
+  val track = MusicTrack(
+    title = "Give Life Back to Music",
+    artist = "Daft Punk",
+    album = "Random Access Memories",
+    durationMillis = 274_000,
+    artworkUrl = "https://example.invalid/cover.jpg",
+    sourceUrl = "https://music.apple.com/us/album/random-access-memories/617154241",
+  )
+  setContent {
+    SamplesTheme(useDarkColors = isDark) {
+      ScreenshotTheme {
+        GlassMusicPlayerSampleContent(
+          currentTrack = track,
+          tracks = listOf(track),
+          currentTrackIndex = 0,
+          positionMillis = 90_000,
+          isPlaying = false,
+          shuffleEnabled = false,
+          tab = if (library) MusicPlayerTab.Library else MusicPlayerTab.NowPlaying,
+          onTabSelected = {}, onPlayPause = {}, onPrevious = {}, onNext = {}, onShuffle = {},
+          onShuffleChanged = {}, onSeekStarted = {}, onSeek = {}, onSeekFinished = {},
+          onTrackSelected = {}, onBack = {},
+        )
+      }
+    }
+  }
+  waitForIdle()
+  captureRoot(if (library) "library" else "nowPlaying")
 }
 
 @Composable

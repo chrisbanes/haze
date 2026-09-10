@@ -4,14 +4,21 @@
 package dev.chrisbanes.haze.sample.components
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,9 +42,12 @@ public fun GlassBottomTabs(
   onSelected: (Int) -> Unit,
   input: HazeInput,
   modifier: Modifier = Modifier,
+  tabContent: @Composable (label: String, selected: Boolean) -> Unit = { label, _ ->
+    androidx.compose.material3.Text(label)
+  },
 ) {
   val shape = RoundedCornerShape(28.dp)
-  Row(
+  BoxWithConstraints(
     modifier = modifier
       .hazeGlass(
         input = input,
@@ -49,6 +59,22 @@ public fun GlassBottomTabs(
       .padding(4.dp)
       .selectableGroup(),
   ) {
+    val tabWidth = maxWidth / tabs.size.coerceAtLeast(1)
+    val indicatorOffset by animateDpAsState(tabWidth * selectedIndex.coerceIn(0, tabs.lastIndex), label = "Glass tab indicator")
+    Box(
+      modifier = Modifier
+        .offset(x = indicatorOffset)
+        .width(tabWidth)
+        .fillMaxHeight()
+        .hazeGlass(
+          input = input,
+          style = GlassStyle.clear.then { this.shape(RoundedCornerShape(24.dp)); tint(Color.White.copy(alpha = 0.26f)) },
+          interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
+          interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
+        )
+        .clip(RoundedCornerShape(24.dp)),
+    )
+    Row(Modifier.fillMaxWidth()) {
     tabs.forEachIndexed { index, label ->
       val selected = selectedIndex == index
       val interactionSource = remember { MutableInteractionSource() }
@@ -57,16 +83,6 @@ public fun GlassBottomTabs(
         modifier = Modifier
           .weight(1f)
           .defaultMinSize(minHeight = 48.dp)
-          .hazeGlass(
-            input = input,
-            style = GlassStyle.clear.then {
-              this.shape(RoundedCornerShape(24.dp))
-              tint(if (selected) Color.White.copy(alpha = 0.26f) else Color.Transparent)
-            },
-            interactionSource = interactionSource,
-            interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
-            interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
-          )
           .clip(RoundedCornerShape(24.dp))
           .selectable(
             selected = selected,
@@ -77,8 +93,9 @@ public fun GlassBottomTabs(
           )
           .padding(horizontal = 12.dp),
       ) {
-        androidx.compose.material3.Text(label)
+        tabContent(label, selected)
       }
+    }
     }
   }
 }

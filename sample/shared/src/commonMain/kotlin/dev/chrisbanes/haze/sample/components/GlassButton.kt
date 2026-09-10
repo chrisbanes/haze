@@ -16,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
@@ -48,6 +50,9 @@ public fun GlassButton(
         style = GlassStyle.regular.then {
           this.shape(shape)
           tint(Color.White.copy(alpha = if (enabled) 0.16f else 0.06f))
+          hovered { lightingIntensity(0.35f); refractionMultiplier(1.02f) }
+          focused { lightingIntensity(0.5f); whitePointDelta(0.03f) }
+          pressed { lightingIntensity(0.9f); refractionMultiplier(1.08f); scale(0.98f) }
         },
         interactionSource = interactionSource,
         interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
@@ -60,7 +65,7 @@ public fun GlassButton(
         indication = null,
         onClick = onClick,
       )
-      .semantics(mergeDescendants = true) {}
+      .semantics(mergeDescendants = true) { role = Role.Button }
       .padding(horizontal = 18.dp, vertical = 10.dp),
   ) {
     content()

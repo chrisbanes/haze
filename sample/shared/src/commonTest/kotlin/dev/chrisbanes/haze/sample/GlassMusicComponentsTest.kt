@@ -35,6 +35,16 @@ import kotlin.test.Test
 @OptIn(ExperimentalTestApi::class)
 class GlassMusicComponentsTest {
   @Test
+  fun disabledButton_doesNotDeliverClick() = runComposeUiTest {
+    var clicks by mutableIntStateOf(0)
+    setContent {
+      GlassButton(input = HazeInput.Content, enabled = false, onClick = { clicks++ }, modifier = Modifier.testTag("disabled")) { Text("Disabled") }
+    }
+    onNodeWithTag("disabled").performClick()
+    runOnIdle { assertThat(clicks).isEqualTo(0) }
+  }
+
+  @Test
   fun buttonAndToggle_deliverControlledChanges() = runComposeUiTest {
     var clicks by mutableIntStateOf(0)
     var checked by mutableStateOf(false)

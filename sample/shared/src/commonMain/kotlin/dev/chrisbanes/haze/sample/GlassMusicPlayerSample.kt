@@ -11,17 +11,20 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,7 +39,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -67,12 +75,14 @@ public fun GlassMusicPlayerSample(navController: NavHostController) {
     currentTrackIndex = player.currentTrackIndex,
     positionMillis = player.positionMillis,
     isPlaying = player.isPlaying,
+    shuffleEnabled = player.shuffleEnabled,
     tab = tab,
     onTabSelected = { tab = it },
     onPlayPause = player::togglePlaying,
     onPrevious = player::previous,
     onNext = player::next,
     onShuffle = player::shuffle,
+    onShuffleChanged = player::updateShuffleEnabled,
     onSeekStarted = player::beginSeeking,
     onSeek = player::seekTo,
     onSeekFinished = player::endSeeking,
@@ -90,12 +100,14 @@ public fun GlassMusicPlayerSampleContent(
   currentTrackIndex: Int,
   positionMillis: Long,
   isPlaying: Boolean,
+  shuffleEnabled: Boolean,
   tab: MusicPlayerTab,
   onTabSelected: (MusicPlayerTab) -> Unit,
   onPlayPause: () -> Unit,
   onPrevious: () -> Unit,
   onNext: () -> Unit,
   onShuffle: () -> Unit,
+  onShuffleChanged: (Boolean) -> Unit,
   onSeekStarted: () -> Unit,
   onSeek: (Long) -> Unit,
   onSeekFinished: () -> Unit,
@@ -109,6 +121,11 @@ public fun GlassMusicPlayerSampleContent(
   val foreground = if (isDark) Color.White else Color(0xff15121b)
   BoxWithConstraints(modifier = modifier.fillMaxSize().testTag("glass_music_player")) {
     val wide = maxWidth > maxHeight
+    val artworkHeight = when {
+      wide -> 300.dp
+      maxHeight < 700.dp -> 160.dp
+      else -> 260.dp
+    }
     MusicArtwork(
       track = currentTrack,
       modifier = Modifier.fillMaxSize().hazeSource(hazeState),
@@ -118,6 +135,7 @@ public fun GlassMusicPlayerSampleContent(
       modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
+        .padding(WindowInsets.safeDrawing.asPaddingValues())
         .padding(20.dp),
     ) {
       Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -129,13 +147,13 @@ public fun GlassMusicPlayerSampleContent(
       if (tab == MusicPlayerTab.NowPlaying) {
         if (wide) {
           Row(horizontalArrangement = Arrangement.spacedBy(28.dp), modifier = Modifier.fillMaxWidth()) {
-            ArtworkCard(currentTrack, input, Modifier.weight(1f).widthIn(max = 440.dp))
-            PlayerControls(currentTrack, positionMillis, isPlaying, input, foreground, onPlayPause, onPrevious, onNext, onShuffle, onSeekStarted, onSeek, onSeekFinished, Modifier.weight(1f))
+            ArtworkCard(currentTrack, artworkHeight, Modifier.weight(1f).widthIn(max = 440.dp))
+            PlayerControls(currentTrack, positionMillis, isPlaying, shuffleEnabled, input, foreground, onPlayPause, onPrevious, onNext, onShuffle, onShuffleChanged, onSeekStarted, onSeek, onSeekFinished, Modifier.weight(1f))
           }
         } else {
-          ArtworkCard(currentTrack, input, Modifier.fillMaxWidth())
+          ArtworkCard(currentTrack, artworkHeight, Modifier.fillMaxWidth())
           Spacer(Modifier.height(18.dp))
-          PlayerControls(currentTrack, positionMillis, isPlaying, input, foreground, onPlayPause, onPrevious, onNext, onShuffle, onSeekStarted, onSeek, onSeekFinished, Modifier.fillMaxWidth())
+          PlayerControls(currentTrack, positionMillis, isPlaying, shuffleEnabled, input, foreground, onPlayPause, onPrevious, onNext, onShuffle, onShuffleChanged, onSeekStarted, onSeek, onSeekFinished, Modifier.fillMaxWidth())
         }
       } else {
         Library(tracks, currentTrackIndex, input, foreground, onTrackSelected)
@@ -147,15 +165,23 @@ public fun GlassMusicPlayerSampleContent(
         onSelected = { onTabSelected(MusicPlayerTab.entries[it]) },
         input = input,
         modifier = Modifier.fillMaxWidth(),
+        tabContent = { label, selected ->
+          Text(label, color = foreground, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+        },
       )
     }
   }
 }
 
 @Composable
-private fun ArtworkCard(track: MusicTrack, input: HazeInput, modifier: Modifier) {
-  Box(modifier = modifier.aspectRatio(1f).clip(androidx.compose.foundation.shape.RoundedCornerShape(32.dp))) {
-    MusicArtwork(track, Modifier.fillMaxSize())
+private fun ArtworkCard(track: MusicTrack, height: androidx.compose.ui.unit.Dp, modifier: Modifier) {
+  Box(modifier = modifier.height(height), contentAlignment = Alignment.Center) {
+    MusicArtwork(
+      track,
+      Modifier
+        .size(height)
+        .clip(androidx.compose.foundation.shape.RoundedCornerShape(32.dp)),
+    )
   }
 }
 
@@ -164,12 +190,14 @@ private fun PlayerControls(
   track: MusicTrack,
   positionMillis: Long,
   isPlaying: Boolean,
+  shuffleEnabled: Boolean,
   input: HazeInput,
   foreground: Color,
   onPlayPause: () -> Unit,
   onPrevious: () -> Unit,
   onNext: () -> Unit,
   onShuffle: () -> Unit,
+  onShuffleChanged: (Boolean) -> Unit,
   onSeekStarted: () -> Unit,
   onSeek: (Long) -> Unit,
   onSeekFinished: () -> Unit,
@@ -189,16 +217,15 @@ private fun PlayerControls(
     )
     Text("${formatTime(positionMillis)} / ${formatTime(track.durationMillis)}", color = foreground.copy(alpha = 0.72f))
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-      IconButton(onClick = onShuffle) { Text("⇄", color = foreground) }
-      IconButton(onClick = onPrevious) { Text("◀", color = foreground) }
+      IconButton(onClick = onPrevious) { Icon(PreviousTrackIcon, "Previous track", tint = foreground) }
       GlassButton(input = input, onClick = onPlayPause, modifier = Modifier.size(64.dp)) {
-        Text(if (isPlaying) "Ⅱ" else "▶", color = foreground, style = MaterialTheme.typography.titleLarge)
+        Icon(if (isPlaying) PauseIcon else PlayIcon, if (isPlaying) "Pause" else "Play", tint = foreground)
       }
-      IconButton(onClick = onNext) { Text("▶", color = foreground) }
+      IconButton(onClick = onNext) { Icon(NextTrackIcon, "Next track", tint = foreground) }
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-      Text("Simulated playback", color = foreground.copy(alpha = 0.72f), modifier = Modifier.weight(1f))
-      GlassToggle(checked = isPlaying, onCheckedChange = { onPlayPause() }, input = input)
+      Text("Shuffle", color = foreground.copy(alpha = 0.72f), modifier = Modifier.weight(1f))
+      GlassToggle(checked = shuffleEnabled, onCheckedChange = onShuffleChanged, input = input)
     }
   }
 }
@@ -224,4 +251,18 @@ private fun Library(
   }
 }
 
-private fun formatTime(millis: Long): String = "%d:%02d".format(millis / 60_000, (millis / 1_000) % 60)
+private fun formatTime(millis: Long): String {
+  val minutes = millis / 60_000
+  val seconds = (millis / 1_000) % 60
+  return "$minutes:${seconds.toString().padStart(2, '0')}"
+}
+
+private val PlayIcon = musicIcon("Play") { moveTo(8f, 5f); lineTo(19f, 12f); lineTo(8f, 19f); close() }
+private val PauseIcon = musicIcon("Pause") { moveTo(6f, 5f); lineTo(10f, 5f); lineTo(10f, 19f); lineTo(6f, 19f); close(); moveTo(14f, 5f); lineTo(18f, 5f); lineTo(18f, 19f); lineTo(14f, 19f); close() }
+private val PreviousTrackIcon = musicIcon("Previous track") { moveTo(5f, 5f); lineTo(7f, 5f); lineTo(7f, 19f); lineTo(5f, 19f); close(); moveTo(18f, 5f); lineTo(8f, 12f); lineTo(18f, 19f); close() }
+private val NextTrackIcon = musicIcon("Next track") { moveTo(17f, 5f); lineTo(19f, 5f); lineTo(19f, 19f); lineTo(17f, 19f); close(); moveTo(6f, 5f); lineTo(16f, 12f); lineTo(6f, 19f); close() }
+
+private fun musicIcon(name: String, block: androidx.compose.ui.graphics.vector.PathBuilder.() -> Unit): ImageVector =
+  ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f).apply {
+    path(fill = SolidColor(Color.Black), pathBuilder = block)
+  }.build()

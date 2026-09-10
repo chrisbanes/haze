@@ -101,6 +101,10 @@ internal class MusicPlayerState(
     selectTrack(differentTrackIndex())
   }
 
+  fun updateShuffleEnabled(enabled: Boolean) {
+    if (enabled && !shuffleEnabled) shuffle() else shuffleEnabled = enabled
+  }
+
   private fun differentTrackIndex(): Int {
     if (tracks.size < 2) return currentTrackIndex
     val candidate = randomTrackIndex(tracks.size - 1).mod(tracks.size - 1)
