@@ -11,5 +11,6 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class GlassMusicPlayerAndroidScreenshotTest : ScreenshotTest() {
   @Test fun nowPlaying() = runScreenshotTest { captureGlassMusicPlayer(isDark = false) }
+
   @Test fun library() = runScreenshotTest { captureGlassMusicPlayer(isDark = true, library = true) }
 }

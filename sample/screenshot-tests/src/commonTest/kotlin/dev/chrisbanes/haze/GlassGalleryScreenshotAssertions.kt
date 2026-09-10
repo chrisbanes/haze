@@ -22,10 +22,10 @@ import androidx.compose.ui.test.performTouchInput
 import dev.chrisbanes.haze.sample.GlassGalleryBackdropId
 import dev.chrisbanes.haze.sample.GlassLabScreenshotContent
 import dev.chrisbanes.haze.sample.GlassLabStyleId
+import dev.chrisbanes.haze.sample.GlassMusicPlayerSampleContent
 import dev.chrisbanes.haze.sample.GlassPlaygroundSampleContent
 import dev.chrisbanes.haze.sample.GlassPlaygroundSurfaceId
 import dev.chrisbanes.haze.sample.GlassProductSampleContent
-import dev.chrisbanes.haze.sample.GlassMusicPlayerSampleContent
 import dev.chrisbanes.haze.sample.MusicPlayerTab
 import dev.chrisbanes.haze.sample.MusicTrack
 import dev.chrisbanes.haze.sample.SamplesTheme
@@ -168,7 +168,10 @@ internal fun ScreenshotUiTest.captureGlassMusicPlayer(isDark: Boolean, library: 
     captureRoot("pressed")
     play.performTouchInput { up() }
     val slider = onNodeWithTag("music_progress")
-    slider.performTouchInput { down(center); moveTo(center.copy(x = center.x * 1.4f)) }
+    slider.performTouchInput {
+      down(center)
+      moveTo(center.copy(x = center.x * 1.4f))
+    }
     waitForIdle()
     captureRoot("dragged")
     slider.performTouchInput { up() }

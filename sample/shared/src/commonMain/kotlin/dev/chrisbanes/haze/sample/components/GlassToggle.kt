@@ -3,18 +3,17 @@
 
 package dev.chrisbanes.haze.sample.components
 
-import androidx.compose.foundation.background
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -22,10 +21,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
@@ -46,6 +45,7 @@ public fun GlassToggle(
 ) {
   val shape = RoundedCornerShape(24.dp)
   val interactionSource = remember { MutableInteractionSource() }
+  val direction = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
   Box(
     modifier = modifier
       .defaultMinSize(minWidth = 64.dp, minHeight = 48.dp)
@@ -59,14 +59,15 @@ public fun GlassToggle(
         interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
         interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
       )
-      .pointerInput(enabled, checked) {
+      .pointerInput(enabled, checked, direction) {
         if (enabled) {
           var totalDrag = 0f
           detectDragGestures(
             onDragStart = { totalDrag = 0f },
             onDragEnd = {
-              if (totalDrag > 8f && !checked) onCheckedChange(true)
-              if (totalDrag < -8f && checked) onCheckedChange(false)
+              val logicalDrag = totalDrag * direction
+              if (logicalDrag > 8f && !checked) onCheckedChange(true)
+              if (logicalDrag < -8f && checked) onCheckedChange(false)
             },
           ) { change, amount ->
             totalDrag += amount.x
@@ -75,7 +76,6 @@ public fun GlassToggle(
         }
       }
       .clip(shape)
-      .semantics { contentDescription = "Glass toggle" }
       .toggleable(
         value = checked,
         enabled = enabled,

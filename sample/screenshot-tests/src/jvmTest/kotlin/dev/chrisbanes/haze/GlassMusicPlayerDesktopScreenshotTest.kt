@@ -10,7 +10,10 @@ import kotlin.test.Test
 
 class GlassMusicPlayerDesktopScreenshotTest : ScreenshotTest() {
   @Test fun compactDark() = runScreenshotTest { captureGlassMusicPlayer(isDark = true) }
+
   @Test fun compactLightLibrary() = runScreenshotTest { captureGlassMusicPlayer(isDark = false, library = true) }
+
   @Test fun wideDark() = runScreenshotTest(size = Size(1920f, 1080f)) { captureGlassMusicPlayer(isDark = true) }
+
   @Test fun wideLight() = runScreenshotTest(size = Size(1920f, 1080f)) { captureGlassMusicPlayer(isDark = false) }
 }

@@ -11,20 +11,19 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -230,7 +229,14 @@ private fun PlayerControls(
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
       Text("Shuffle", color = foreground.copy(alpha = 0.72f), modifier = Modifier.weight(1f))
-      GlassToggle(checked = shuffleEnabled, onCheckedChange = onShuffleChanged, input = input, modifier = Modifier.testTag("music_shuffle"))
+      GlassToggle(
+        checked = shuffleEnabled,
+        onCheckedChange = onShuffleChanged,
+        input = input,
+        modifier = Modifier
+          .testTag("music_shuffle")
+          .semantics { contentDescription = "Shuffle" },
+      )
     }
   }
 }
@@ -262,10 +268,46 @@ private fun formatTime(millis: Long): String {
   return "$minutes:${seconds.toString().padStart(2, '0')}"
 }
 
-private val PlayIcon = musicIcon("Play") { moveTo(8f, 5f); lineTo(19f, 12f); lineTo(8f, 19f); close() }
-private val PauseIcon = musicIcon("Pause") { moveTo(6f, 5f); lineTo(10f, 5f); lineTo(10f, 19f); lineTo(6f, 19f); close(); moveTo(14f, 5f); lineTo(18f, 5f); lineTo(18f, 19f); lineTo(14f, 19f); close() }
-private val PreviousTrackIcon = musicIcon("Previous track") { moveTo(5f, 5f); lineTo(7f, 5f); lineTo(7f, 19f); lineTo(5f, 19f); close(); moveTo(18f, 5f); lineTo(8f, 12f); lineTo(18f, 19f); close() }
-private val NextTrackIcon = musicIcon("Next track") { moveTo(17f, 5f); lineTo(19f, 5f); lineTo(19f, 19f); lineTo(17f, 19f); close(); moveTo(6f, 5f); lineTo(16f, 12f); lineTo(6f, 19f); close() }
+private val PlayIcon = musicIcon("Play") {
+  moveTo(8f, 5f)
+  lineTo(19f, 12f)
+  lineTo(8f, 19f)
+  close()
+}
+private val PauseIcon = musicIcon("Pause") {
+  moveTo(6f, 5f)
+  lineTo(10f, 5f)
+  lineTo(10f, 19f)
+  lineTo(6f, 19f)
+  close()
+  moveTo(14f, 5f)
+  lineTo(18f, 5f)
+  lineTo(18f, 19f)
+  lineTo(14f, 19f)
+  close()
+}
+private val PreviousTrackIcon = musicIcon("Previous track") {
+  moveTo(5f, 5f)
+  lineTo(7f, 5f)
+  lineTo(7f, 19f)
+  lineTo(5f, 19f)
+  close()
+  moveTo(18f, 5f)
+  lineTo(8f, 12f)
+  lineTo(18f, 19f)
+  close()
+}
+private val NextTrackIcon = musicIcon("Next track") {
+  moveTo(17f, 5f)
+  lineTo(19f, 5f)
+  lineTo(19f, 19f)
+  lineTo(17f, 19f)
+  close()
+  moveTo(6f, 5f)
+  lineTo(16f, 12f)
+  lineTo(6f, 19f)
+  close()
+}
 
 private fun musicIcon(name: String, block: androidx.compose.ui.graphics.vector.PathBuilder.() -> Unit): ImageVector =
   ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f).apply {

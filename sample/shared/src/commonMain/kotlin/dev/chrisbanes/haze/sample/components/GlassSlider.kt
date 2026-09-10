@@ -24,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -35,12 +34,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.semantics.setProgress
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
@@ -66,8 +65,10 @@ public fun GlassSlider(
   var width by remember { mutableFloatStateOf(1f) }
   val layoutDirection = LocalLayoutDirection.current
   val thumbDiameter = with(LocalDensity.current) { 32.dp.toPx() }
-  val fraction = ((value.coerceIn(valueRange.start, valueRange.endInclusive) - valueRange.start) /
-    (valueRange.endInclusive - valueRange.start).takeIf { it > 0f }.orEmpty()).coerceIn(0f, 1f)
+  val fraction = (
+    (value.coerceIn(valueRange.start, valueRange.endInclusive) - valueRange.start) /
+      (valueRange.endInclusive - valueRange.start).takeIf { it > 0f }.orEmpty()
+    ).coerceIn(0f, 1f)
   val interactionSource = remember { MutableInteractionSource() }
   fun updateAt(x: Float) {
     val directionFraction = (x / width).coerceIn(0f, 1f)
@@ -75,7 +76,6 @@ public fun GlassSlider(
     val next = valueRange.start + logicalFraction * (valueRange.endInclusive - valueRange.start)
     onValueChange(next)
   }
-  val visualFraction = if (layoutDirection == LayoutDirection.Rtl) 1f - fraction else fraction
   Box(
     contentAlignment = Alignment.CenterStart,
     modifier = modifier
@@ -149,14 +149,14 @@ public fun GlassSlider(
     )
     Box(
       modifier = Modifier
-        .fillMaxWidth(visualFraction)
+        .fillMaxWidth(fraction)
         .height(6.dp)
         .clip(RoundedCornerShape(3.dp))
         .background(Color.White.copy(alpha = 0.75f)),
     )
     Box(
       modifier = Modifier
-        .offset { IntOffset((visualFraction * (width - thumbDiameter)).roundToInt(), 0) }
+        .offset { IntOffset((fraction * (width - thumbDiameter)).roundToInt(), 0) }
         .size(32.dp)
         .hazeGlass(
           input = input,

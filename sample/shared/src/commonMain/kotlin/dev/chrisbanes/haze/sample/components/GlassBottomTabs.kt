@@ -3,18 +3,17 @@
 
 package dev.chrisbanes.haze.sample.components
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,7 +51,10 @@ public fun GlassBottomTabs(
     modifier = modifier
       .hazeGlass(
         input = input,
-        style = GlassStyle.regular.then { this.shape(shape); tint(Color.White.copy(alpha = 0.12f)) },
+        style = GlassStyle.regular.then {
+          this.shape(shape)
+          tint(Color.White.copy(alpha = 0.12f))
+        },
         interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
         interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
       )
@@ -69,34 +71,37 @@ public fun GlassBottomTabs(
         .height(48.dp)
         .hazeGlass(
           input = input,
-          style = GlassStyle.clear.then { this.shape(RoundedCornerShape(24.dp)); tint(Color.White.copy(alpha = 0.26f)) },
+          style = GlassStyle.clear.then {
+            this.shape(RoundedCornerShape(24.dp))
+            tint(Color.White.copy(alpha = 0.26f))
+          },
           interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
           interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
         )
         .clip(RoundedCornerShape(24.dp)),
     )
     Row(Modifier.fillMaxWidth()) {
-    tabs.forEachIndexed { index, label ->
-      val selected = selectedIndex == index
-      val interactionSource = remember { MutableInteractionSource() }
-      Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-          .weight(1f)
-          .defaultMinSize(minHeight = 48.dp)
-          .clip(RoundedCornerShape(24.dp))
-          .selectable(
-            selected = selected,
-            onClick = { onSelected(index) },
-            role = Role.Tab,
-            interactionSource = interactionSource,
-            indication = null,
-          )
-          .padding(horizontal = 12.dp),
-      ) {
-        tabContent(label, selected)
+      tabs.forEachIndexed { index, label ->
+        val selected = selectedIndex == index
+        val interactionSource = remember { MutableInteractionSource() }
+        Box(
+          contentAlignment = Alignment.Center,
+          modifier = Modifier
+            .weight(1f)
+            .defaultMinSize(minHeight = 48.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .selectable(
+              selected = selected,
+              onClick = { onSelected(index) },
+              role = Role.Tab,
+              interactionSource = interactionSource,
+              indication = null,
+            )
+            .padding(horizontal = 12.dp),
+        ) {
+          tabContent(label, selected)
+        }
       }
-    }
     }
   }
 }
