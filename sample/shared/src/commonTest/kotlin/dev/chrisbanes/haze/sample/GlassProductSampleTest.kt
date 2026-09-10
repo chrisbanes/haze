@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -24,6 +25,28 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
 class GlassProductSampleTest : ContextTest() {
+  @Test
+  fun embeddedMode_hidesExitControlButKeepsArtworkNavigation() = runComposeUiTest {
+    var selectedIndex by mutableIntStateOf(0)
+    setContent {
+      CompositionLocalProvider(LocalSampleNavigationEnabled provides false) {
+        GlassProductSampleContent(
+          selectedArtworkIndex = selectedIndex,
+          favorite = false,
+          recordingMode = false,
+          onArtworkSelected = { selectedIndex = it },
+          onFavoriteChanged = {},
+          onRecordingModeChanged = {},
+          onBack = {},
+        )
+      }
+    }
+
+    onAllNodesWithContentDescription("Back").assertCountEquals(0)
+    onNodeWithContentDescription("Next artwork").performClick()
+    onNodeWithText("Signal Garden").assertIsDisplayed()
+  }
+
   @Test
   fun normalMode_showsProductSceneTopBar() = runComposeUiTest {
     setContent {

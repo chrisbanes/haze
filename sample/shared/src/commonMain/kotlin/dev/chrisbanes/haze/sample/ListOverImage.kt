@@ -45,6 +45,7 @@ import dev.chrisbanes.haze.rememberHazeState
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
 @Composable
 fun ListOverImage(navController: NavHostController, effect: SampleEffect) {
+  val navigationEnabled = LocalSampleNavigationEnabled.current
   var imageIndex by remember { mutableIntStateOf(0) }
 
   MaterialTheme {
@@ -53,8 +54,10 @@ fun ListOverImage(navController: NavHostController, effect: SampleEffect) {
         TopAppBar(
           title = { Text(text = "List over Image") },
           navigationIcon = {
-            IconButton(onClick = navController::navigateUp) {
-              Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+            if (navigationEnabled) {
+              IconButton(onClick = navController::navigateUp) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+              }
             }
           },
           actions = {

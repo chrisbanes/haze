@@ -60,6 +60,7 @@ fun LayerTransformations(
   topOffset: DpOffset = DpOffset.Zero,
   modifier: Modifier = Modifier,
 ) {
+  val navigationEnabled = LocalSampleNavigationEnabled.current
   val hazeState = rememberHazeState()
   val glassBackgroundColor = MaterialTheme.colorScheme.surface
 
@@ -138,23 +139,25 @@ fun LayerTransformations(
         .padding(16.dp),
     )
 
-    Surface(
-      modifier = Modifier
-        .align(Alignment.TopStart)
-        .windowInsetsPadding(WindowInsets.statusBars)
-        .padding(16.dp),
-      shape = CircleShape,
-      color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-      shadowElevation = 6.dp,
-    ) {
-      IconButton(
-        onClick = onBack,
-        modifier = Modifier.size(48.dp).testTag("back"),
+    if (navigationEnabled) {
+      Surface(
+        modifier = Modifier
+          .align(Alignment.TopStart)
+          .windowInsetsPadding(WindowInsets.statusBars)
+          .padding(16.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        shadowElevation = 6.dp,
       ) {
-        Icon(
-          imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-          contentDescription = "Back",
-        )
+        IconButton(
+          onClick = onBack,
+          modifier = Modifier.size(48.dp).testTag("back"),
+        ) {
+          Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Back",
+          )
+        }
       }
     }
   }

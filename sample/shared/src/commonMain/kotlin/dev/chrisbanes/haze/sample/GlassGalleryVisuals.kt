@@ -184,6 +184,7 @@ internal fun DemoChrome(
   isPlaying: Boolean? = null,
   onPlayPause: (() -> Unit)? = null,
 ) {
+  val navigationEnabled = LocalSampleNavigationEnabled.current
   val shape = RoundedCornerShape(24.dp)
   GlassSurface(
     hazeState = hazeState,
@@ -214,8 +215,10 @@ internal fun DemoChrome(
       modifier = Modifier.padding(4.dp),
       verticalAlignment = Alignment.CenterVertically,
     ) {
-      IconButton(onClick = onBack) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+      if (navigationEnabled) {
+        IconButton(onClick = onBack) {
+          Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+        }
       }
       if (isPlaying != null && onPlayPause != null) {
         IconButton(onClick = onPlayPause) {

@@ -101,6 +101,7 @@ fun ScaffoldSample(
   profilingDrawProgress: (() -> Float)? = null,
   useBackdrop: Boolean = false,
 ) {
+  val navigationEnabled = LocalSampleNavigationEnabled.current
   val hazeState = rememberHazeState()
   val hazeInput = if (useBackdrop) {
     HazeInput.Backdrop(hazeState)
@@ -154,11 +155,13 @@ fun ScaffoldSample(
         SampleEffect.Blur -> LargeTopAppBar(
           title = {},
           navigationIcon = {
-            IconButton(
-              onClick = navController::navigateUp,
-              modifier = Modifier.testTag("back"),
-            ) {
-              Icon(Icons.AutoMirrored.Default.ArrowBack, null)
+            if (navigationEnabled) {
+              IconButton(
+                onClick = navController::navigateUp,
+                modifier = Modifier.testTag("back"),
+              ) {
+                Icon(Icons.AutoMirrored.Default.ArrowBack, "Back")
+              }
             }
           },
           colors = TopAppBarDefaults.topAppBarColors(
@@ -197,7 +200,7 @@ fun ScaffoldSample(
             else -> GlassDefaults.optics
           },
           title = "Glass shaped boundary".takeIf { mode == ScaffoldSampleMode.Mask },
-          onBack = navController::navigateUp,
+          onBack = if (navigationEnabled) ({ navController.navigateUp() }) else null,
           modifier = Modifier
             .drawWithContent {
               profilingDrawProgress?.invoke()
@@ -293,7 +296,7 @@ private fun GlassScaffoldTopBar(
   performanceMode: HazePerformanceMode,
   optics: GlassOptics,
   title: String?,
-  onBack: () -> Unit,
+  onBack: (() -> Unit)?,
   modifier: Modifier = Modifier,
 ) {
   Row(
@@ -303,20 +306,22 @@ private fun GlassScaffoldTopBar(
     horizontalArrangement = Arrangement.spacedBy(8.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    GlassScaffoldSurface(
-      hazeState = hazeState,
-      backgroundColor = backgroundColor,
-      tint = tint,
-      performanceMode = performanceMode,
-      optics = optics,
-      shape = RoundedCornerShape(50),
-      modifier = Modifier.size(56.dp).testTag("glass_scaffold_back"),
-    ) {
-      IconButton(onClick = onBack) {
-        Icon(
-          imageVector = Icons.AutoMirrored.Default.ArrowBack,
-          contentDescription = "Back",
-        )
+    if (onBack != null) {
+      GlassScaffoldSurface(
+        hazeState = hazeState,
+        backgroundColor = backgroundColor,
+        tint = tint,
+        performanceMode = performanceMode,
+        optics = optics,
+        shape = RoundedCornerShape(50),
+        modifier = Modifier.size(56.dp).testTag("glass_scaffold_back"),
+      ) {
+        IconButton(onClick = onBack) {
+          Icon(
+            imageVector = Icons.AutoMirrored.Default.ArrowBack,
+            contentDescription = "Back",
+          )
+        }
       }
     }
 
