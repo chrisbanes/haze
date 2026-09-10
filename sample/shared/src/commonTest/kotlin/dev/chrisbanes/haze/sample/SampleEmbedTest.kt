@@ -46,6 +46,7 @@ class SampleEmbedTest : ContextTest() {
     val blurOnly = Sample(route = "blur", title = "Blur") { _, _ -> }
     listOf(
       mapOf("embed" to "true"),
+      mapOf("embed" to "true", "sample" to "blur"),
       mapOf("embed" to "true", "sample" to "missing", "effect" to "blur"),
       mapOf("embed" to "true", "sample" to "blur", "effect" to "missing"),
       mapOf("embed" to "true", "sample" to "blur", "effect" to "glass"),

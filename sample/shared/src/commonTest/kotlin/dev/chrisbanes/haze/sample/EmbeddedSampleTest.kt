@@ -102,7 +102,8 @@ class EmbeddedSampleTest : ContextTest() {
   fun embeddedMode_hidesContentBlurringExitControl() = assertEmbeddedSampleHidesBack(Sample.ContentBlurring)
 
   @Test
-  fun embeddedMode_hidesCustomVisualEffectExitControl() = assertEmbeddedSampleHidesBack(Sample.CustomVisualEffect)
+  fun embeddedMode_hidesCustomVisualEffectExitControl() =
+    assertEmbeddedSampleHidesBack(Sample.CustomVisualEffect, SampleEffect.Blur)
 
   @Test
   fun embeddedMode_hidesMaterialsExitControl() = assertEmbeddedSampleHidesBack(Sample.Materials)
