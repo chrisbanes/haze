@@ -63,12 +63,7 @@ import kotlinx.coroutines.delay
 public fun GlassMusicPlayerSample(navController: NavHostController) {
   val player = remember { MusicPlayerState(MusicCatalog) }
   var tab by remember { mutableStateOf(MusicPlayerTab.NowPlaying) }
-  LaunchedEffect(player.isPlaying, player.isSeeking, player.currentTrackIndex) {
-    while (player.isPlaying && !player.isSeeking) {
-      delay(1_000)
-      player.advanceBy(1_000)
-    }
-  }
+  SimulatedPlaybackTimer(player)
   GlassMusicPlayerSampleContent(
     currentTrack = player.currentTrack,
     tracks = MusicCatalog,
@@ -89,6 +84,16 @@ public fun GlassMusicPlayerSample(navController: NavHostController) {
     onTrackSelected = player::selectTrack,
     onBack = navController::navigateUp,
   )
+}
+
+@Composable
+internal fun SimulatedPlaybackTimer(player: MusicPlayerState) {
+  LaunchedEffect(player.isPlaying, player.isSeeking, player.currentTrackIndex) {
+    while (player.isPlaying && !player.isSeeking) {
+      delay(1_000)
+      player.advanceBy(1_000)
+    }
+  }
 }
 
 /** The rendering seam for screenshot and compose tests; playback in this sample is simulated. */

@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.sample
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -16,6 +17,26 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class GlassMusicPlayerSampleTest {
+  @Test
+  fun playbackTimer_advancesAndCancelsWithComposition() = runComposeUiTest {
+    val player = MusicPlayerState(MusicCatalog)
+    player.isPlaying = true
+    var attached by mutableStateOf(true)
+    mainClock.autoAdvance = false
+    setContent { if (attached) SimulatedPlaybackTimer(player) }
+    mainClock.advanceTimeBy(1_100)
+    runOnIdle { assertThat(player.positionMillis).isEqualTo(1_000) }
+    player.togglePlaying()
+    mainClock.advanceTimeBy(1_100)
+    runOnIdle { assertThat(player.positionMillis).isEqualTo(1_000) }
+    player.togglePlaying()
+    mainClock.advanceTimeBy(1_100)
+    runOnIdle { assertThat(player.positionMillis).isEqualTo(2_000) }
+    attached = false
+    mainClock.advanceTimeBy(2_000)
+    runOnIdle { assertThat(player.positionMillis).isEqualTo(2_000) }
+  }
+
   @Test
   fun librarySelection_updatesNowPlayingTrackAndPreservesPlayback() = runComposeUiTest {
     var trackIndex by mutableStateOf(0)
