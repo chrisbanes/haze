@@ -1,0 +1,227 @@
+// Copyright 2026, Christopher Banes and the Haze project contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package dev.chrisbanes.haze.sample
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.sample.components.GlassBottomTabs
+import dev.chrisbanes.haze.sample.components.GlassButton
+import dev.chrisbanes.haze.sample.components.GlassSlider
+import dev.chrisbanes.haze.sample.components.GlassToggle
+import kotlinx.coroutines.delay
+
+@Composable
+public fun GlassMusicPlayerSample(navController: NavHostController) {
+  val player = remember { MusicPlayerState(MusicCatalog) }
+  var tab by remember { mutableStateOf(MusicPlayerTab.NowPlaying) }
+  LaunchedEffect(player.isPlaying, player.isSeeking, player.currentTrackIndex) {
+    while (player.isPlaying && !player.isSeeking) {
+      delay(1_000)
+      player.advanceBy(1_000)
+    }
+  }
+  GlassMusicPlayerSampleContent(
+    currentTrack = player.currentTrack,
+    tracks = MusicCatalog,
+    currentTrackIndex = player.currentTrackIndex,
+    positionMillis = player.positionMillis,
+    isPlaying = player.isPlaying,
+    tab = tab,
+    onTabSelected = { tab = it },
+    onPlayPause = player::togglePlaying,
+    onPrevious = player::previous,
+    onNext = player::next,
+    onShuffle = player::shuffle,
+    onSeekStarted = player::beginSeeking,
+    onSeek = player::seekTo,
+    onSeekFinished = player::endSeeking,
+    onTrackSelected = player::selectTrack,
+    onBack = navController::navigateUp,
+  )
+}
+
+/** The rendering seam for screenshot and compose tests; playback in this sample is simulated. */
+@OptIn(ExperimentalHazeApi::class)
+@Composable
+public fun GlassMusicPlayerSampleContent(
+  currentTrack: MusicTrack,
+  tracks: List<MusicTrack>,
+  currentTrackIndex: Int,
+  positionMillis: Long,
+  isPlaying: Boolean,
+  tab: MusicPlayerTab,
+  onTabSelected: (MusicPlayerTab) -> Unit,
+  onPlayPause: () -> Unit,
+  onPrevious: () -> Unit,
+  onNext: () -> Unit,
+  onShuffle: () -> Unit,
+  onSeekStarted: () -> Unit,
+  onSeek: (Long) -> Unit,
+  onSeekFinished: () -> Unit,
+  onTrackSelected: (Int) -> Unit,
+  onBack: () -> Unit,
+  modifier: Modifier = Modifier,
+  isDark: Boolean = isSystemInDarkTheme(),
+) {
+  val hazeState = rememberHazeState()
+  val input = HazeInput.Backdrop(hazeState)
+  val foreground = if (isDark) Color.White else Color(0xff15121b)
+  BoxWithConstraints(modifier = modifier.fillMaxSize().testTag("glass_music_player")) {
+    val wide = maxWidth > maxHeight
+    MusicArtwork(
+      track = currentTrack,
+      modifier = Modifier.fillMaxSize().hazeSource(hazeState),
+    )
+    Box(Modifier.fillMaxSize().background((if (isDark) Color.Black else Color.White).copy(alpha = 0.30f)))
+    Column(
+      modifier = Modifier
+        .fillMaxSize()
+        .verticalScroll(rememberScrollState())
+        .padding(20.dp),
+    ) {
+      Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        IconButton(onClick = onBack) {
+          Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = foreground)
+        }
+        Text("Glass music", color = foreground, style = MaterialTheme.typography.titleLarge)
+      }
+      if (tab == MusicPlayerTab.NowPlaying) {
+        if (wide) {
+          Row(horizontalArrangement = Arrangement.spacedBy(28.dp), modifier = Modifier.fillMaxWidth()) {
+            ArtworkCard(currentTrack, input, Modifier.weight(1f).widthIn(max = 440.dp))
+            PlayerControls(currentTrack, positionMillis, isPlaying, input, foreground, onPlayPause, onPrevious, onNext, onShuffle, onSeekStarted, onSeek, onSeekFinished, Modifier.weight(1f))
+          }
+        } else {
+          ArtworkCard(currentTrack, input, Modifier.fillMaxWidth())
+          Spacer(Modifier.height(18.dp))
+          PlayerControls(currentTrack, positionMillis, isPlaying, input, foreground, onPlayPause, onPrevious, onNext, onShuffle, onSeekStarted, onSeek, onSeekFinished, Modifier.fillMaxWidth())
+        }
+      } else {
+        Library(tracks, currentTrackIndex, input, foreground, onTrackSelected)
+      }
+      Spacer(Modifier.height(20.dp))
+      GlassBottomTabs(
+        selectedIndex = tab.ordinal,
+        tabs = listOf("Now Playing", "Library"),
+        onSelected = { onTabSelected(MusicPlayerTab.entries[it]) },
+        input = input,
+        modifier = Modifier.fillMaxWidth(),
+      )
+    }
+  }
+}
+
+@Composable
+private fun ArtworkCard(track: MusicTrack, input: HazeInput, modifier: Modifier) {
+  Box(modifier = modifier.aspectRatio(1f).clip(androidx.compose.foundation.shape.RoundedCornerShape(32.dp))) {
+    MusicArtwork(track, Modifier.fillMaxSize())
+  }
+}
+
+@Composable
+private fun PlayerControls(
+  track: MusicTrack,
+  positionMillis: Long,
+  isPlaying: Boolean,
+  input: HazeInput,
+  foreground: Color,
+  onPlayPause: () -> Unit,
+  onPrevious: () -> Unit,
+  onNext: () -> Unit,
+  onShuffle: () -> Unit,
+  onSeekStarted: () -> Unit,
+  onSeek: (Long) -> Unit,
+  onSeekFinished: () -> Unit,
+  modifier: Modifier,
+) {
+  Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Text(track.title, color = foreground, style = MaterialTheme.typography.headlineMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Text("${track.artist} · ${track.album}", color = foreground.copy(alpha = 0.75f), style = MaterialTheme.typography.bodyLarge)
+    GlassSlider(
+      value = positionMillis.toFloat(),
+      valueRange = 0f..track.durationMillis.toFloat(),
+      onValueChange = { onSeek(it.toLong()) },
+      onValueChangeStarted = onSeekStarted,
+      onValueChangeFinished = onSeekFinished,
+      input = input,
+      modifier = Modifier.fillMaxWidth().testTag("music_progress"),
+    )
+    Text("${formatTime(positionMillis)} / ${formatTime(track.durationMillis)}", color = foreground.copy(alpha = 0.72f))
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+      IconButton(onClick = onShuffle) { Text("⇄", color = foreground) }
+      IconButton(onClick = onPrevious) { Text("◀", color = foreground) }
+      GlassButton(input = input, onClick = onPlayPause, modifier = Modifier.size(64.dp)) {
+        Text(if (isPlaying) "Ⅱ" else "▶", color = foreground, style = MaterialTheme.typography.titleLarge)
+      }
+      IconButton(onClick = onNext) { Text("▶", color = foreground) }
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+      Text("Simulated playback", color = foreground.copy(alpha = 0.72f), modifier = Modifier.weight(1f))
+      GlassToggle(checked = isPlaying, onCheckedChange = { onPlayPause() }, input = input)
+    }
+  }
+}
+
+@Composable
+private fun Library(
+  tracks: List<MusicTrack>,
+  currentTrackIndex: Int,
+  input: HazeInput,
+  foreground: Color,
+  onTrackSelected: (Int) -> Unit,
+) {
+  Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Text("Library", color = foreground, style = MaterialTheme.typography.headlineMedium)
+    tracks.forEachIndexed { index, track ->
+      GlassButton(input = input, onClick = { onTrackSelected(index) }, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth()) {
+          Text(track.title, color = foreground, fontWeight = if (index == currentTrackIndex) FontWeight.Bold else FontWeight.Normal)
+          Text(track.artist, color = foreground.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
+        }
+      }
+    }
+  }
+}
+
+private fun formatTime(millis: Long): String = "%d:%02d".format(millis / 60_000, (millis / 1_000) % 60)
