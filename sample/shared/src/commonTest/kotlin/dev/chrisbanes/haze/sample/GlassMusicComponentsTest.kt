@@ -30,6 +30,7 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.v2.runComposeUiTest
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.test.ContextTest
 import dev.chrisbanes.haze.sample.components.GlassBottomTabs
 import dev.chrisbanes.haze.sample.components.GlassButton
 import dev.chrisbanes.haze.sample.components.GlassSlider
@@ -39,7 +40,7 @@ import assertk.assertions.isEqualTo
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
-class GlassMusicComponentsTest {
+class GlassMusicComponentsTest : ContextTest() {
   @Test
   fun sliderTapAndDrag_updateValueAndCompleteGesture() = runComposeUiTest {
     var value by mutableFloatStateOf(0f)

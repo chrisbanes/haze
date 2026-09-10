@@ -13,10 +13,12 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
+import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
-class GlassMusicPlayerSampleTest {
+class GlassMusicPlayerSampleTest : ContextTest() {
   @Test
   fun playbackTimer_advancesAndCancelsWithComposition() = runComposeUiTest {
     val player = MusicPlayerState(MusicCatalog)
@@ -26,15 +28,22 @@ class GlassMusicPlayerSampleTest {
     setContent { if (attached) SimulatedPlaybackTimer(player) }
     mainClock.advanceTimeBy(1_100)
     runOnIdle { assertThat(player.positionMillis).isEqualTo(1_000) }
-    player.togglePlaying()
+    runOnIdle { player.togglePlaying() }
+    mainClock.advanceTimeByFrame()
+    waitForIdle()
     mainClock.advanceTimeBy(1_100)
     runOnIdle { assertThat(player.positionMillis).isEqualTo(1_000) }
-    player.togglePlaying()
+    runOnIdle { player.togglePlaying() }
+    mainClock.advanceTimeByFrame()
+    waitForIdle()
     mainClock.advanceTimeBy(1_100)
     runOnIdle { assertThat(player.positionMillis).isEqualTo(2_000) }
-    attached = false
+    val positionBeforeRemoval = player.positionMillis
+    runOnIdle { attached = false }
+    mainClock.advanceTimeByFrame()
+    waitForIdle()
     mainClock.advanceTimeBy(2_000)
-    runOnIdle { assertThat(player.positionMillis).isEqualTo(2_000) }
+    runOnIdle { assertThat(player.positionMillis).isEqualTo(positionBeforeRemoval) }
   }
 
   @Test
