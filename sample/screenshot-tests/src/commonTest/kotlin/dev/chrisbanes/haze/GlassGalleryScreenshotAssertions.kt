@@ -137,6 +137,9 @@ internal fun ScreenshotUiTest.captureGlassMusicPlayer(isDark: Boolean, library: 
     artworkUrl = "https://example.invalid/cover.jpg",
     sourceUrl = "https://music.apple.com/us/album/random-access-memories/617154241",
   )
+  var position by mutableFloatStateOf(90_000f)
+  var shuffle by mutableStateOf(false)
+  var selectedTab by mutableStateOf(if (library) MusicPlayerTab.Library else MusicPlayerTab.NowPlaying)
   setContent {
     SamplesTheme(useDarkColors = isDark) {
       ScreenshotTheme {
@@ -144,13 +147,14 @@ internal fun ScreenshotUiTest.captureGlassMusicPlayer(isDark: Boolean, library: 
           currentTrack = track,
           tracks = listOf(track),
           currentTrackIndex = 0,
-          positionMillis = 90_000,
+          positionMillis = position.toLong(),
           isPlaying = false,
-          shuffleEnabled = false,
-          tab = if (library) MusicPlayerTab.Library else MusicPlayerTab.NowPlaying,
-          onTabSelected = {}, onPlayPause = {}, onPrevious = {}, onNext = {}, onShuffle = {},
-          onShuffleChanged = {}, onSeekStarted = {}, onSeek = {}, onSeekFinished = {},
+          shuffleEnabled = shuffle,
+          tab = selectedTab,
+          onTabSelected = { selectedTab = it }, onPlayPause = {}, onPrevious = {}, onNext = {}, onShuffle = {},
+          onShuffleChanged = { shuffle = it }, onSeekStarted = {}, onSeek = { position = it.toFloat() }, onSeekFinished = {},
           onTrackSelected = {}, onBack = {},
+          isDark = isDark,
         )
       }
     }
