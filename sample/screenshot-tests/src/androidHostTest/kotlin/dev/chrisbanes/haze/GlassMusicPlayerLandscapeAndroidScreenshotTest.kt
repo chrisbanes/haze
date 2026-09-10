@@ -3,18 +3,19 @@
 
 package dev.chrisbanes.haze
 
-import dev.chrisbanes.haze.test.ScreenshotTest
-import dev.chrisbanes.haze.test.runScreenshotTest
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalInspectionMode
+import dev.chrisbanes.haze.test.ScreenshotTest
+import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.test.Test
 import org.robolectric.annotation.Config
 
-@Config(sdk = [35])
-class GlassMusicPlayerAndroidScreenshotTest : ScreenshotTest() {
-  @Test fun nowPlaying() = runScreenshotTest { captureGlassMusicPlayer(isDark = false, contentWrapper = ::previewContent) }
-
-  @Test fun library() = runScreenshotTest { captureGlassMusicPlayer(isDark = true, library = true, contentWrapper = ::previewContent) }
+@Config(sdk = [35], qualifiers = "+land")
+class GlassMusicPlayerLandscapeAndroidScreenshotTest : ScreenshotTest() {
+  @Test
+  fun nowPlaying() = runScreenshotTest {
+    captureGlassMusicPlayer(isDark = false, contentWrapper = ::previewContent)
+  }
 }
 
 @androidx.compose.runtime.Composable
