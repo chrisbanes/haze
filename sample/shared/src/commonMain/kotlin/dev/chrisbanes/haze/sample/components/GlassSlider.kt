@@ -90,7 +90,6 @@ public fun GlassSlider(
           true
         }
       }
-      .focusable(enabled, interactionSource)
       .onPreviewKeyEvent { event ->
         if (!enabled || event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
         val step = (valueRange.endInclusive - valueRange.start) / 20f
@@ -101,6 +100,7 @@ public fun GlassSlider(
         }
         true
       }
+      .focusable(enabled, interactionSource)
       .pointerInput(enabled, width) {
         if (enabled) {
           var press: PressInteraction.Press? = null
