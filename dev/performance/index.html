@@ -18,7 +18,7 @@
         <link rel="prev" href="../custom-effects/">
       
       
-        <link rel="next" href="../glass/performance/">
+        <link rel="next" href="../benchmark-results/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Overview - Haze</title>
+        <title>Guide - Haze</title>
       
     
     
@@ -63,7 +63,7 @@
     
   
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Overview - Haze" />
+<meta property="og:title" content="Guide - Haze" />
 <meta property="og:description" content="Visual effects (blur and more) for Compose Multiplatform" />
 <meta property="og:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/performance.png" />
 <meta property="og:image:type" content="image/png" />
@@ -71,7 +71,7 @@
 <meta property="og:image:height" content="630" />
 <meta property="og:url" content="https://chrisbanes.github.io/haze/dev/performance/" />
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="Overview - Haze" />
+<meta property="twitter:title" content="Guide - Haze" />
 <meta property="twitter:description" content="Visual effects (blur and more) for Compose Multiplatform" />
 <meta property="twitter:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/performance.png" />
 </head>
@@ -130,7 +130,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Overview
+              Guide
             
           </span>
         </div>
@@ -726,7 +726,7 @@
   <span class="md-ellipsis">
     
   
-    Overview
+    Guide
   
 
     
@@ -744,7 +744,7 @@
   <span class="md-ellipsis">
     
   
-    Overview
+    Guide
   
 
     
@@ -820,10 +820,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#effect-specific-guidance" class="md-nav__link">
+  <a href="#blur" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Effect-specific guidance
+        Blur
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#glass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glass
       
     </span>
   </a>
@@ -838,34 +849,6 @@
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Measure on target devices">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#haze-2-compared-with-haze-1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Haze 2 compared with Haze 1
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#a-reference-point-not-a-target" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        A reference point, not a target
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -885,14 +868,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../glass/performance/" class="md-nav__link">
+      <a href="../benchmark-results/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Glass
+    Benchmark results
   
 
     
@@ -1234,10 +1217,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#effect-specific-guidance" class="md-nav__link">
+  <a href="#blur" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Effect-specific guidance
+        Blur
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#glass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glass
       
     </span>
   </a>
@@ -1252,34 +1246,6 @@
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Measure on target devices">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#haze-2-compared-with-haze-1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Haze 2 compared with Haze 1
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#a-reference-point-not-a-target" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        A reference point, not a target
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1323,14 +1289,13 @@ their input changes.</p>
 <li><strong><code>Default</code> or <code>Adaptive</code></strong>: Recommended for most applications. Built-in effects adjust the
   quality and cost trade-off automatically.</li>
 <li><strong><code>Quality</code></strong>, <strong><code>Balanced</code></strong>, or <strong><code>Performance</code></strong>: Select a named, deterministic profile.</li>
-<li><strong><code>Fixed(qualityFraction)</code></strong>: Select a normalized, deterministic profile when the named
-  profiles are not the right fit.</li>
+<li><strong><code>Fixed(qualityFraction)</code></strong>: Select a normalized, deterministic profile from <code>0f</code> through <code>1f</code>
+  when the named profiles are not the right fit.</li>
 </ul>
-<p><code>Default</code> is <code>Adaptive</code>, and <code>Quality</code> replaces the previous built-in full-resolution choice.
-There is no formula for translating a previous built-in fixed input-pixel fraction: remeasure an
-explicit <code>Fixed(qualityFraction)</code> choice on the effect and layout you actually use. Blur and Glass
-adapt differently, so compare their results independently. Custom effects instead use
-<code>HazeSampling</code> to control how much input they process.</p>
+<p><code>Default</code> is <code>Adaptive</code>. Blur and Glass resolve these profiles differently, so a quality fraction
+is not an input-pixel scale or a cross-effect resolution guarantee. Custom effects use
+<code>HazeSampling</code> to control how much input they process. For older built-in sampling settings, see
+the <a href="../migrating-2.0/">migration guide</a>.</p>
 <h2 id="common-cost-drivers">Common cost drivers<a class="headerlink" href="#common-cost-drivers" title="Permanent link">¶</a></h2>
 <ul>
 <li><strong>Affected area:</strong> Larger effects process more content.</li>
@@ -1346,58 +1311,40 @@ outside the <code>hazeSource</code> subtree when the effect does not need to sam
 <p>Reusing a capture avoids recording the source again; drawing the effect can still require renderer
 and GPU work. Measure both a stable background and scrolling or animated input. These capture
 details apply to source-backed effects; native <code>HazeInput.Backdrop</code> uses a different rendering path.</p>
-<h2 id="effect-specific-guidance">Effect-specific guidance<a class="headerlink" href="#effect-specific-guidance" title="Permanent link">¶</a></h2>
-<p>For Blur, see <a href="../blur/usage/#performance-mode-and-layer-expansion">Performance mode and layer expansion</a>. For Glass,
-see the <a href="../glass/performance/">Glass performance guide</a>, which covers optical and interaction
-choices specific to that effect.</p>
+<p><a id="effect-specific-guidance"></a></p>
+<h2 id="blur">Blur<a class="headerlink" href="#blur" title="Permanent link">¶</a></h2>
+<p>Progressive Blur varies blur intensity across the surface. If you only need to fade opacity, use a
+mask; see <a href="../blur/usage/#progressive-blur-and-masks">Progressive Blur and masks</a>.</p>
+<p>For source-backed Blur, <code>expandLayerBounds</code> allows the capture layer to expand by the resolved blur
+radius. This gives the blur surrounding input to sample, at the cost of a larger capture area.
+Disabling it limits that area and can change the result near the edges. Keep the default unless
+visual and performance comparisons justify changing it. See the
+<a href="../blur/usage/#performance-mode-and-layer-expansion">modifier example</a>.</p>
+<h2 id="glass">Glass<a class="headerlink" href="#glass" title="Permanent link">¶</a></h2>
+<p>Start with <code>GlassStyle.regular</code>. Progressive blur and Full chromatic aberration can add work;
+measure them at the surface sizes and effect counts your screen uses. Animated lighting,
+refraction, and transforms also add work during hover, focus, and press responses. Include those
+states, background scrolling, and layout transitions in your comparison.</p>
+<p>Measure effect attachment separately from steady-state drawing. Glass retains runtime shaders
+between draws, but renderer and submission work can remain after source capture and effect
+creation have settled. A slow frame alone does not identify shader compilation as the cause;
+inspect main-thread and RenderThread work before changing the material's optics.</p>
+<p>For styling and API examples, see the <a href="../effects/glass/">Glass overview</a>.</p>
 <h2 id="measure-on-target-devices">Measure on target devices<a class="headerlink" href="#measure-on-target-devices" title="Permanent link">¶</a></h2>
 <p>Use a release-like build on physical hardware and reproduce the interactions users will perform.
-Keep device conditions and refresh rate consistent between runs. Measurements from another device
-or layout are useful context, not a guarantee for your application.</p>
-<p>Repeat comparisons in both build orders. Android's
-<a href="https://developer.android.com/games/optimize/adpf/fixed-performance-mode">fixed-performance mode</a>
-still allows CPU core selection to change, which can move tail frame timings even when the code
-is unchanged. Use traces to check CPU placement when repeated results disagree.</p>
+Keep device conditions and refresh rate consistent between runs. Compare frame timing and visual
+quality, including on the slowest devices you support.</p>
 <p>For Android, <a href="https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview">Macrobenchmark</a>
-is a good starting point for repeatable frame measurements.</p>
-<h3 id="haze-2-compared-with-haze-1">Haze 2 compared with Haze 1<a class="headerlink" href="#haze-2-compared-with-haze-1" title="Permanent link">¶</a></h3>
-<p>Haze 2 was faster in both of the sample interactions shared with Haze 1. P90 CPU frame duration
-improved by 37% while scrolling the Images List and by 15% while dragging the Credit Card.</p>
-<table>
-<thead>
-<tr>
-<th>Workload</th>
-<th style="text-align: right;">Haze 1</th>
-<th style="text-align: right;">Haze 2</th>
-<th style="text-align: right;">Improvement</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Images List scrolling</td>
-<td style="text-align: right;">14.9 ms</td>
-<td style="text-align: right;">9.3 ms</td>
-<td style="text-align: right;">37% faster</td>
-</tr>
-<tr>
-<td>Credit Card dragging</td>
-<td style="text-align: right;">11.5 ms</td>
-<td style="text-align: right;">9.8 ms</td>
-<td style="text-align: right;">15% faster</td>
-</tr>
-</tbody>
-</table>
-<p>These results come from Android Macrobenchmarks on a Pixel 6 running Android 17 at 60 Hz, with 32
-iterations per workload. The comparison used Haze 1 at <code>7a2557f1</code> and Haze 2 at <code>fc46813e</code>. P90
-highlights the slower frames during each interaction. Treat these as a useful reference rather
-than a guarantee for a different screen or device.</p>
-<h3 id="a-reference-point-not-a-target">A reference point, not a target<a class="headerlink" href="#a-reference-point-not-a-target" title="Permanent link">¶</a></h3>
-<p>In Haze's 2026-08-04 Glass reference run on a Pixel 6 (Android 17/API 37, 1080×2400 at
-60 Hz), the Gallery's <code>productPager</code> journey measured 7.5 ms P90 CPU frame duration and its
-<code>playgroundTimeline</code> journey measured 11.2 ms. These are one workload on one device, not a
-performance budget or promise for other devices and layouts. See the
-<a href="../glass/performance/#reference-measurements">Glass reference measurements</a> for the setup and
-controlled scenarios.</p></div>
+provides repeatable frame measurements. Use frame overrun to identify deadline misses and CPU frame
+duration to assess UI-thread and RenderThread cost. Neither directly measures GPU shader duration.</p>
+<p>Repeat comparisons in both build orders. If repeated results disagree, inspect traces before
+attributing the difference to the code. Haze's <a href="https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md">Android benchmark runbook</a> covers
+device preparation, CPU-placement checks, workload selection, and trace interpretation.</p>
+<p><a id="haze-2-compared-with-haze-1"></a>
+<a id="a-reference-point-not-a-target"></a></p>
+<p>See the <a href="../benchmark-results/#haze-2-compared-with-haze-1">Haze 1 versus Haze 2 comparison</a> and
+<a href="../benchmark-results/">Blur and Glass reference measurements</a>, with the recorded setup and
+limitations for each run.</p></div>
 
 
 

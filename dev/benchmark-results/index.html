@@ -12,27 +12,31 @@
         <meta name="author" content="Chris Banes">
       
       
-        <link rel="canonical" href="https://chrisbanes.github.io/haze/dev/adr/0008-represent-responsive-glass-optics-as-public-configuration/">
+        <link rel="canonical" href="https://chrisbanes.github.io/haze/dev/benchmark-results/">
       
       
+        <link rel="prev" href="../performance/">
+      
+      
+        <link rel="next" href="../scenarios/camera/">
       
       
         
       
       
-      <link rel="icon" href="../../media/logo.webp">
+      <link rel="icon" href="../media/logo.webp">
       <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.7">
     
     
       
-        <title>Represent responsive Glass optics as public configuration - Haze</title>
+        <title>Benchmark results - Haze</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,7 +55,7 @@
       
     
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -59,17 +63,17 @@
     
   
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Represent responsive Glass optics as public configuration - Haze" />
+<meta property="og:title" content="Benchmark results - Haze" />
 <meta property="og:description" content="Visual effects (blur and more) for Compose Multiplatform" />
-<meta property="og:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/adr/0008-represent-responsive-glass-optics-as-public-configuration.png" />
+<meta property="og:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/benchmark-results.png" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:url" content="https://chrisbanes.github.io/haze/dev/adr/0008-represent-responsive-glass-optics-as-public-configuration/" />
+<meta property="og:url" content="https://chrisbanes.github.io/haze/dev/benchmark-results/" />
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="Represent responsive Glass optics as public configuration - Haze" />
+<meta property="twitter:title" content="Benchmark results - Haze" />
 <meta property="twitter:description" content="Visual effects (blur and more) for Compose Multiplatform" />
-<meta property="twitter:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/adr/0008-represent-responsive-glass-optics-as-public-configuration.png" />
+<meta property="twitter:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/benchmark-results.png" />
 </head>
   
   
@@ -87,7 +91,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#represent-responsive-glass-optics-as-public-configuration" class="md-skip">
+        <a href="#benchmark-results" class="md-skip">
           Skip to content
         </a>
       
@@ -107,9 +111,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="Haze" class="md-header__button md-logo" aria-label="Haze" data-md-component="logo">
+    <a href=".." title="Haze" class="md-header__button md-logo" aria-label="Haze" data-md-component="logo">
       
-  <img src="../../media/logo.webp" alt="logo">
+  <img src="../media/logo.webp" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -126,7 +130,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Represent responsive Glass optics as public configuration
+              Benchmark results
             
           </span>
         </div>
@@ -216,9 +220,9 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="Haze" class="md-nav__button md-logo" aria-label="Haze" data-md-component="logo">
+    <a href=".." title="Haze" class="md-nav__button md-logo" aria-label="Haze" data-md-component="logo">
       
-  <img src="../../media/logo.webp" alt="logo">
+  <img src="../media/logo.webp" alt="logo">
 
     </a>
     Haze
@@ -245,7 +249,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -272,7 +276,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../architecture/" class="md-nav__link">
+      <a href="../architecture/" class="md-nav__link">
         
   
   
@@ -299,7 +303,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../core-concepts/" class="md-nav__link">
+      <a href="../core-concepts/" class="md-nav__link">
         
   
   
@@ -373,7 +377,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../blur/" class="md-nav__link">
+      <a href="../blur/" class="md-nav__link">
         
   
   
@@ -401,7 +405,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../blur/usage/" class="md-nav__link">
+      <a href="../blur/usage/" class="md-nav__link">
         
   
   
@@ -429,7 +433,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../blur/materials/" class="md-nav__link">
+      <a href="../blur/materials/" class="md-nav__link">
         
   
   
@@ -457,7 +461,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../blur/material3/" class="md-nav__link">
+      <a href="../blur/material3/" class="md-nav__link">
         
   
   
@@ -485,7 +489,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../blur/faq/" class="md-nav__link">
+      <a href="../blur/faq/" class="md-nav__link">
         
   
   
@@ -513,7 +517,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../blur/platforms/" class="md-nav__link">
+      <a href="../blur/platforms/" class="md-nav__link">
         
   
   
@@ -595,7 +599,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../effects/glass/" class="md-nav__link">
+      <a href="../effects/glass/" class="md-nav__link">
         
   
   
@@ -630,7 +634,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../custom-effects/" class="md-nav__link">
+      <a href="../custom-effects/" class="md-nav__link">
         
   
   
@@ -654,18 +658,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
         
           
           <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
@@ -686,7 +692,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
@@ -704,7 +710,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../performance/" class="md-nav__link">
+      <a href="../performance/" class="md-nav__link">
         
   
   
@@ -729,10 +735,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../benchmark-results/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmark results
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -748,6 +781,87 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#haze-2-compared-with-haze-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Haze 2 compared with Haze 1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#glass-journeys-and-steady-state-2026-08-04" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glass journeys and steady state (2026-08-04)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-mode-calibration-2026-08-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance-mode calibration (2026-08-09)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance-mode calibration (2026-08-09)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#blur" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blur
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#glass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glass
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -814,7 +928,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../scenarios/camera/" class="md-nav__link">
+      <a href="../scenarios/camera/" class="md-nav__link">
         
   
   
@@ -849,7 +963,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../recipes/" class="md-nav__link">
+      <a href="../recipes/" class="md-nav__link">
         
   
   
@@ -876,7 +990,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../migrating-2.0/" class="md-nav__link">
+      <a href="../migrating-2.0/" class="md-nav__link">
         
   
   
@@ -903,7 +1017,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../changelog/" class="md-nav__link">
+      <a href="../changelog/" class="md-nav__link">
         
   
   
@@ -930,7 +1044,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/" class="md-nav__link">
+      <a href="../api/" class="md-nav__link">
         
   
   
@@ -984,7 +1098,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../sample/wasm/" class="md-nav__link">
+      <a href="../sample/wasm/" class="md-nav__link">
         
   
   
@@ -1031,13 +1145,63 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
+  <a href="#haze-2-compared-with-haze-1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Haze 2 compared with Haze 1
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#glass-journeys-and-steady-state-2026-08-04" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glass journeys and steady state (2026-08-04)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-mode-calibration-2026-08-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance-mode calibration (2026-08-09)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance-mode calibration (2026-08-09)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#blur" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blur
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#glass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glass
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1061,39 +1225,165 @@
   
 
 
-<div><h1 id="represent-responsive-glass-optics-as-public-configuration">Represent responsive Glass optics as public configuration<a class="headerlink" href="#represent-responsive-glass-optics-as-public-configuration" title="Permanent link">¶</a></h1>
-<p><code>GlassOptics</code> will be one immutable configuration value rather than a sealed choice between
-<code>Adaptive</code> and <code>Fixed</code>. Its blur radius and depth each own an independent <code>OpticalSizeValue&lt;T&gt;</code>:
-either a <code>Fixed</code> value or a <code>Responsive</code> value containing two or more
-<code>OpticalSizePoint&lt;T&gt;</code> values. Each point pairs a strictly increasing shortest dimension with one
-parameter value; values interpolate with smoothstep and clamp outside the authored range. This makes
-responsive optics a public customization capability, lets parameters use different size points, and
-lets Regular and Clear use the same model as caller-authored styles without subtype or identity-based
-behavior.</p>
-<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">¶</a></h2>
-<p>Regular uses authored refraction constants of <code>48.dp</code> displacement and <code>0.6f</code> height rather than its
-previous private aspect-ratio and roundness adjustments. <code>refractionDetailIntensity</code> becomes a
-validated public optical value so Regular can select <code>0f</code> and Clear can select <code>0.76f</code> without hidden
-runtime distinctions. Responsive-value points are snapshotted and rejected unless they contain at
-least two valid points in strictly increasing dimension order. This revises ADR-0007's optics
-boundary without changing its decision to expose Regular and Clear as built-in Glass styles.</p>
-<p><code>OpticalSizeValue.Fixed&lt;T&gt;</code> and <code>OpticalSizeValue.Responsive&lt;T&gt;</code> are single-field domain values and
-therefore use <code>@JvmInline value class</code>; the responsive variant snapshots its public constructor
-input before the <code>init</code> block validates it. <code>OpticalSizePoint&lt;T&gt;</code> and <code>GlassOptics</code> remain data
-classes because they contain multiple independent values. The generic containers deliberately do
-not carry <code>@Immutable</code>, because callers may instantiate them with a mutable <code>T</code>; <code>GlassOptics</code>
-retains that annotation because its public properties constrain <code>T</code> to <code>Float</code> and <code>Dp</code>. Using the
-variants through <code>OpticalSizeValue&lt;T&gt;</code> may box them, so this choice states the domain model rather
-than promising an allocation optimization.</p></div>
+<div><h1 id="benchmark-results">Benchmark results<a class="headerlink" href="#benchmark-results" title="Permanent link">¶</a></h1>
+<p>These Android measurements record specific builds, workloads, and devices. They are historical
+reference points, not performance budgets for other applications or measurements of the current
+checkout. Use the <a href="../performance/">performance guide</a> to tune your screen and the
+<a href="https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md">Android benchmark runbook</a> to run Haze's workloads.</p>
+<p>CPU frame duration describes UI-thread and RenderThread cost; it does not directly measure GPU
+shader duration. Frame overrun describes deadline misses. The tables below retain the metrics and
+conditions recorded for each run.</p>
+<h2 id="haze-2-compared-with-haze-1">Haze 2 compared with Haze 1<a class="headerlink" href="#haze-2-compared-with-haze-1" title="Permanent link">¶</a></h2>
+<p>Haze 2 had lower P90 CPU frame duration in both sample interactions shared with Haze 1:
+37% lower while scrolling the Images List and 15% lower while dragging the Credit Card.</p>
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th style="text-align: right;">Haze 1</th>
+<th style="text-align: right;">Haze 2</th>
+<th style="text-align: right;">Reduction in P90 CPU frame duration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Images List scrolling</td>
+<td style="text-align: right;">14.9 ms</td>
+<td style="text-align: right;">9.3 ms</td>
+<td style="text-align: right;">37% lower</td>
+</tr>
+<tr>
+<td>Credit Card dragging</td>
+<td style="text-align: right;">11.5 ms</td>
+<td style="text-align: right;">9.8 ms</td>
+<td style="text-align: right;">15% lower</td>
+</tr>
+</tbody>
+</table>
+<p>These results come from Android Macrobenchmarks on a Pixel 6 running Android 17 at 60 Hz, with 32
+iterations per workload. The comparison used Haze 1 at <code>7a2557f1</code> and Haze 2 at <code>fc46813e</code>. P90
+highlights the slower frames during each interaction. The original summary did not record the run
+date, build variant, or run order.</p>
+<h2 id="glass-journeys-and-steady-state-2026-08-04">Glass journeys and steady state (2026-08-04)<a class="headerlink" href="#glass-journeys-and-steady-state-2026-08-04" title="Permanent link">¶</a></h2>
+<p>This run used the <code>benchmarkRelease</code> build at commit <code>334557df</code> on 2026-08-04: Pixel 6,
+Android 17/API 37, 1080×2400, locked 60 Hz render rate, locked CPU frequency, and eight
+Macrobenchmark iterations per scenario. The metric is P90 CPU frame duration in milliseconds.</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Workload</th>
+<th style="text-align: right;">P90 CPU frame duration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>productPager</code></td>
+<td>Gallery paging journey</td>
+<td style="text-align: right;">7.5 ms</td>
+</tr>
+<tr>
+<td><code>playgroundTimeline</code></td>
+<td>Gallery animated timeline journey</td>
+<td style="text-align: right;">11.2 ms</td>
+</tr>
+<tr>
+<td><code>steadyFull</code></td>
+<td>Controlled steady state, 1 Glass effect</td>
+<td style="text-align: right;">5.6 ms</td>
+</tr>
+<tr>
+<td><code>steadyFull3</code></td>
+<td>Controlled steady state, 3 Glass effects</td>
+<td style="text-align: right;">5.2 ms</td>
+</tr>
+<tr>
+<td><code>steadyFull9</code></td>
+<td>Controlled steady state, 9 Glass effects</td>
+<td style="text-align: right;">8.1 ms</td>
+</tr>
+</tbody>
+</table>
+<p>The Gallery journeys are closest to the sample's visible user work. The <code>steadyFull*</code> controls
+characterize the baseline at different effect counts. Cold-initialization <code>effectAttach*</code> results
+are deliberately omitted: they attach new effects at the measurement boundary and diagnose
+delegate/shader creation rather than representative interaction performance. They remain covered
+by the internal <a href="https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md">Glass benchmark runbook</a>. Compare the interactions, content,
+and device classes that your application supports.</p>
+<h2 id="performance-mode-calibration-2026-08-09">Performance-mode calibration (2026-08-09)<a class="headerlink" href="#performance-mode-calibration-2026-08-09" title="Permanent link">¶</a></h2>
+<p>The controlled Blur and Glass samples ran in <code>benchmarkRelease</code> on a Pixel 6 (Android 17/API 37,
+1080×2400), locked to 60 Hz with Android fixed-performance mode enabled. Each row contains 16
+fixed-duration iterations. The original summaries did not record the build SHA or run order;
+these tables cannot establish the calibration of the current implementation.</p>
+<p>Values are <strong>P90 CPU frame duration / P90 frame overrun</strong>, in milliseconds. A negative overrun
+is margin below the 60 Hz frame budget. Each sample holds its other style choices fixed; the Glass
+run keeps the other <code>GlassDefaults</code> values unchanged.</p>
+<h3 id="blur">Blur<a class="headerlink" href="#blur" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th style="text-align: right;">Adaptive</th>
+<th style="text-align: right;">Quality</th>
+<th style="text-align: right;">Balanced</th>
+<th style="text-align: right;">Performance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stable source</td>
+<td style="text-align: right;">10.0 / -3.2</td>
+<td style="text-align: right;">10.2 / -3.0</td>
+<td style="text-align: right;">10.1 / -3.1</td>
+<td style="text-align: right;">10.0 / -2.7</td>
+</tr>
+<tr>
+<td>Continuously changing source</td>
+<td style="text-align: right;">10.0 / -2.9</td>
+<td style="text-align: right;">10.2 / -2.7</td>
+<td style="text-align: right;">10.1 / -1.8</td>
+<td style="text-align: right;">10.1 / -3.0</td>
+</tr>
+</tbody>
+</table>
+<h3 id="glass">Glass<a class="headerlink" href="#glass" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th style="text-align: right;">Adaptive</th>
+<th style="text-align: right;">Quality</th>
+<th style="text-align: right;">Balanced</th>
+<th style="text-align: right;">Performance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stable source</td>
+<td style="text-align: right;">6.6 / -7.1</td>
+<td style="text-align: right;">8.2 / -1.7</td>
+<td style="text-align: right;">8.9 / -4.0</td>
+<td style="text-align: right;">7.2 / -6.5</td>
+</tr>
+<tr>
+<td>Continuously changing source</td>
+<td style="text-align: right;">6.5 / -7.3</td>
+<td style="text-align: right;">8.2 / -1.6</td>
+<td style="text-align: right;">8.3 / -4.5</td>
+<td style="text-align: right;">6.9 / -6.9</td>
+</tr>
+</tbody>
+</table>
+<p>These CPU timings do not rank visual quality or establish that the named profiles have a monotonic
+frame-time cost. Use a visual comparison alongside measurements before choosing an override.</p>
+<p>The adaptive-policy decisions and their original evidence remain in <a href="../adr/0004-use-quality-gated-adaptive-input-scaling-for-blur/">ADR-0004</a> and
+<a href="../adr/0005-use-cadence-weighted-adaptive-input-scaling-for-glass/">ADR-0005</a>. <a href="../adr/0006-reconcile-built-in-performance-mode-terminology/">ADR-0006</a> records the current public terminology.</p></div>
 
 
 
 
 
 
-
-  
-  
 
 
 
@@ -1139,12 +1429,12 @@ than promising an allocation optimization.</p></div>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.tabs.link", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.tabs.link", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
-        <script src="../../javascripts/snapshot-version.js"></script>
+        <script src="../javascripts/snapshot-version.js"></script>
       
     
   </body>

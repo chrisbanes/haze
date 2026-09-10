@@ -544,18 +544,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#performance-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Performance mode
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Performance mode">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#performance-mode-and-layer-expansion" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -564,7 +552,8 @@
     </span>
   </a>
   
-</li>
+    <nav class="md-nav" aria-label="Performance mode and layer expansion">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#controlled-calibration-reference" class="md-nav__link">
@@ -880,7 +869,7 @@
   <span class="md-ellipsis">
     
   
-    Overview
+    Guide
   
 
     
@@ -901,14 +890,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../glass/performance/" class="md-nav__link">
+      <a href="../../benchmark-results/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Glass
+    Benchmark results
   
 
     
@@ -1277,18 +1266,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#performance-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Performance mode
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Performance mode">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#performance-mode-and-layer-expansion" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1297,7 +1274,8 @@
     </span>
   </a>
   
-</li>
+    <nav class="md-nav" aria-label="Performance mode and layer expansion">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#controlled-calibration-reference" class="md-nav__link">
@@ -1503,8 +1481,8 @@ clears inherited color effects:</p>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<h2 id="performance-mode">Performance mode<a class="headerlink" href="#performance-mode" title="Permanent link">¶</a></h2>
-<h3 id="performance-mode-and-layer-expansion">Performance mode and layer expansion<a class="headerlink" href="#performance-mode-and-layer-expansion" title="Permanent link">¶</a></h3>
+<p><a id="performance-mode"></a></p>
+<h2 id="performance-mode-and-layer-expansion">Performance mode and layer expansion<a class="headerlink" href="#performance-mode-and-layer-expansion" title="Permanent link">¶</a></h2>
 <p>Performance mode and layer expansion are structural modifier policies, not Style properties:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
@@ -1513,54 +1491,11 @@ clears inherited color effects:</p>
 <span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<ul>
-<li><code>HazePerformanceMode.Default</code> and <code>Adaptive</code> let Blur balance quality and cost automatically.</li>
-<li><code>HazePerformanceMode.Quality</code>, <code>Balanced</code>, and <code>Performance</code> select named fixed fidelity
-  profiles.</li>
-<li><code>HazePerformanceMode.Fixed(qualityFraction)</code> selects a deterministic fidelity profile for a
-  normalized quality fraction from <code>0f</code> through <code>1f</code>.</li>
-</ul>
-<p>Start with the default. Override it only after comparing visual quality and performance on the
-devices you support. <code>Default</code> is <code>Adaptive</code>, and <code>Quality</code> replaces the previous built-in
-full-resolution choice. Remeasure any previous built-in fixed input-pixel fraction before choosing
-an explicit <code>Fixed(qualityFraction)</code> value.</p>
+<p>See the <a href="../../performance/#performance-mode">performance guide</a> for mode selection and
+<a href="../../performance/#blur">Blur guidance</a> for the cost and edge behaviour of layer expansion.</p>
 <h3 id="controlled-calibration-reference">Controlled calibration reference<a class="headerlink" href="#controlled-calibration-reference" title="Permanent link">¶</a></h3>
-<p>The following Android Macrobenchmark reference is a comparison point, not a performance target or
-promise. It was captured on 2026-08-09 with the <code>benchmarkRelease</code> variant on a Pixel 6 (Android
-17/API 37, 1080×2400), with the display locked to 60 Hz and Android fixed-performance mode enabled.
-Each row contains 16 fixed-duration iterations of the controlled Blur sample. Values are <strong>P90 CPU
-frame duration / P90 frame overrun</strong>, in milliseconds; a negative overrun is margin below the
-60 Hz frame budget.</p>
-<table>
-<thead>
-<tr>
-<th>Workload</th>
-<th style="text-align: right;">Adaptive</th>
-<th style="text-align: right;">Quality</th>
-<th style="text-align: right;">Balanced</th>
-<th style="text-align: right;">Performance</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Stable source</td>
-<td style="text-align: right;">10.0 / -3.2</td>
-<td style="text-align: right;">10.2 / -3.0</td>
-<td style="text-align: right;">10.1 / -3.1</td>
-<td style="text-align: right;">10.0 / -2.7</td>
-</tr>
-<tr>
-<td>Continuously changing source</td>
-<td style="text-align: right;">10.0 / -2.9</td>
-<td style="text-align: right;">10.2 / -2.7</td>
-<td style="text-align: right;">10.1 / -1.8</td>
-<td style="text-align: right;">10.1 / -3.0</td>
-</tr>
-</tbody>
-</table>
-<p>The controlled sample holds all other style choices fixed. It is useful for comparing the named
-profiles, but measure the layout, content, and interaction patterns of your application before
-choosing an override.</p></div>
+<p>The historical Blur table has moved to
+<a href="../../benchmark-results/#performance-mode-calibration-2026-08-09">performance-mode calibration (2026-08-09)</a>.</p></div>
 
 
 
