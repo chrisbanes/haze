@@ -9,7 +9,8 @@ import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.test.Test
 
 class GlassMusicPlayerDesktopScreenshotTest : ScreenshotTest() {
-  @Test fun nowPlaying() = runScreenshotTest { captureGlassMusicPlayer(isDark = true) }
-  @Test fun library() = runScreenshotTest { captureGlassMusicPlayer(isDark = false, library = true) }
-  @Test fun landscape() = runScreenshotTest(size = Size(1920f, 1080f)) { captureGlassMusicPlayer(isDark = true) }
+  @Test fun compactDark() = runScreenshotTest { captureGlassMusicPlayer(isDark = true) }
+  @Test fun compactLightLibrary() = runScreenshotTest { captureGlassMusicPlayer(isDark = false, library = true) }
+  @Test fun wideDark() = runScreenshotTest(size = Size(1920f, 1080f)) { captureGlassMusicPlayer(isDark = true) }
+  @Test fun wideLight() = runScreenshotTest(size = Size(1920f, 1080f)) { captureGlassMusicPlayer(isDark = false) }
 }
