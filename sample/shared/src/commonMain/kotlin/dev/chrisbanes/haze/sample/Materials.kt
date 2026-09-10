@@ -57,6 +57,7 @@ import dev.chrisbanes.haze.rememberHazeState
 @OptIn(ExperimentalHazeApi::class)
 @Composable
 fun MaterialsSample(navController: NavHostController, effect: SampleEffect) {
+  val navigationEnabled = LocalSampleNavigationEnabled.current
   val hazeState = rememberHazeState()
 
   Box(modifier = Modifier.fillMaxSize()) {
@@ -175,23 +176,25 @@ fun MaterialsSample(navController: NavHostController, effect: SampleEffect) {
       GlassMaterialsContent(hazeState = hazeState)
     }
 
-    Surface(
-      modifier = Modifier
-        .align(Alignment.TopStart)
-        .windowInsetsPadding(WindowInsets.statusBars)
-        .padding(16.dp),
-      shape = CircleShape,
-      color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-      shadowElevation = 6.dp,
-    ) {
-      IconButton(
-        onClick = navController::navigateUp,
-        modifier = Modifier.size(48.dp).testTag("back"),
+    if (navigationEnabled) {
+      Surface(
+        modifier = Modifier
+          .align(Alignment.TopStart)
+          .windowInsetsPadding(WindowInsets.statusBars)
+          .padding(16.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        shadowElevation = 6.dp,
       ) {
-        Icon(
-          imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-          contentDescription = "Back",
-        )
+        IconButton(
+          onClick = navController::navigateUp,
+          modifier = Modifier.size(48.dp).testTag("back"),
+        ) {
+          Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Back",
+          )
+        }
       }
     }
   }

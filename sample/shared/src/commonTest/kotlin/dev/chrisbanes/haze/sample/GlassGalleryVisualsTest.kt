@@ -5,10 +5,13 @@ package dev.chrisbanes.haze.sample
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -21,6 +24,26 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class GlassGalleryVisualsTest : ContextTest() {
+  @Test
+  fun embeddedMode_hidesDemoChromeExitControlButKeepsReset() = runComposeUiTest {
+    var resetCount = 0
+    setContent {
+      val hazeState = rememberHazeState()
+      CompositionLocalProvider(LocalSampleNavigationEnabled provides false) {
+        DemoChrome(
+          hazeState = hazeState,
+          onBack = {},
+          onEnterRecordingMode = {},
+          onReset = { resetCount++ },
+        )
+      }
+    }
+
+    onAllNodesWithContentDescription("Back").assertCountEquals(0)
+    onNodeWithContentDescription("Reset demo").performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
+    assertThat(resetCount).isEqualTo(1)
+  }
+
   @Test
   fun demoChrome_showsAndForwardsConfiguredActions() = runComposeUiTest {
     var playPauseCount = 0

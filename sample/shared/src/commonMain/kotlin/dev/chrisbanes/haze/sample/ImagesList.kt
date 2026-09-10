@@ -41,17 +41,20 @@ import dev.chrisbanes.haze.rememberHazeState
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
 @Composable
 fun ImagesList(navController: NavHostController, effect: SampleEffect) {
+  val navigationEnabled = LocalSampleNavigationEnabled.current
   MaterialTheme {
     Scaffold(
       topBar = {
         LargeTopAppBar(
           title = { Text(text = "Images") },
           navigationIcon = {
-            IconButton(
-              onClick = navController::navigateUp,
-              modifier = Modifier.testTag("back"),
-            ) {
-              Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+            if (navigationEnabled) {
+              IconButton(
+                onClick = navController::navigateUp,
+                modifier = Modifier.testTag("back"),
+              ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+              }
             }
           },
           modifier = Modifier.fillMaxWidth(),

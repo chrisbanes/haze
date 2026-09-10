@@ -84,6 +84,7 @@ private val LocalSparklePhase = compositionLocalOf { 0f }
 fun CustomVisualEffectSample(
   navController: NavHostController,
 ) {
+  val navigationEnabled = LocalSampleNavigationEnabled.current
   val hazeState = rememberHazeState()
   var selectedSparkIndex by remember { mutableIntStateOf(0) }
   var sparkAlpha by remember { mutableFloatStateOf(0.30f) }
@@ -109,11 +110,13 @@ fun CustomVisualEffectSample(
       TopAppBar(
         title = { Text("Custom VisualEffect") },
         navigationIcon = {
-          IconButton(
-            onClick = navController::navigateUp,
-            modifier = Modifier.testTag("back"),
-          ) {
-            Icon(Icons.AutoMirrored.Default.ArrowBack, null)
+          if (navigationEnabled) {
+            IconButton(
+              onClick = navController::navigateUp,
+              modifier = Modifier.testTag("back"),
+            ) {
+              Icon(Icons.AutoMirrored.Default.ArrowBack, "Back")
+            }
           }
         },
         modifier = Modifier.fillMaxWidth(),

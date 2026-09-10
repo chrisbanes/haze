@@ -45,6 +45,7 @@ import dev.chrisbanes.haze.rememberHazeState
 )
 @Composable
 fun ListWithStickyHeaders(navController: NavHostController, effect: SampleEffect) {
+  val navigationEnabled = LocalSampleNavigationEnabled.current
   val hazeState = rememberHazeState()
   val listState = rememberLazyListState()
 
@@ -58,8 +59,10 @@ fun ListWithStickyHeaders(navController: NavHostController, effect: SampleEffect
       TopAppBar(
         title = { },
         navigationIcon = {
-          IconButton(onClick = navController::navigateUp, modifier = Modifier.testTag("back")) {
-            Icon(Icons.AutoMirrored.Default.ArrowBack, null)
+          if (navigationEnabled) {
+            IconButton(onClick = navController::navigateUp, modifier = Modifier.testTag("back")) {
+              Icon(Icons.AutoMirrored.Default.ArrowBack, "Back")
+            }
           }
         },
         modifier = Modifier.fillMaxWidth(),

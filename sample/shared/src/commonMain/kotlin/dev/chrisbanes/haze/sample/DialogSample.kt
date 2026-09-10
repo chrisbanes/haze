@@ -51,15 +51,18 @@ import kotlin.time.Duration.Companion.seconds
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
 @Composable
 fun DialogSample(navController: NavHostController, effect: SampleEffect) {
+  val navigationEnabled = LocalSampleNavigationEnabled.current
   Scaffold(
     modifier = Modifier.fillMaxSize(),
     topBar = {
       TopAppBar(
         title = { Text(text = "Haze Dialog sample") },
         navigationIcon = {
-          IconButton(onClick = navController::navigateUp) {
-            @Suppress("DEPRECATION")
-            Icon(Icons.Default.ArrowBack, null)
+          if (navigationEnabled) {
+            IconButton(onClick = navController::navigateUp) {
+              @Suppress("DEPRECATION")
+              Icon(Icons.Default.ArrowBack, "Back")
+            }
           }
         },
         modifier = Modifier.fillMaxWidth(),

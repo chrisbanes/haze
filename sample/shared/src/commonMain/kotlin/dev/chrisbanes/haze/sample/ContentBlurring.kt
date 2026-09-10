@@ -57,6 +57,7 @@ fun ContentBlurring(
   navController: NavHostController,
   effect: SampleEffect,
 ) {
+  val navigationEnabled = LocalSampleNavigationEnabled.current
   var imageIndex by remember { mutableIntStateOf(0) }
   val glassBackgroundColor = MaterialTheme.colorScheme.surface
 
@@ -65,11 +66,13 @@ fun ContentBlurring(
       TopAppBar(
         title = { Text("Content Blurring") },
         navigationIcon = {
-          IconButton(
-            onClick = navController::navigateUp,
-            modifier = Modifier.testTag("back"),
-          ) {
-            Icon(Icons.AutoMirrored.Default.ArrowBack, null)
+          if (navigationEnabled) {
+            IconButton(
+              onClick = navController::navigateUp,
+              modifier = Modifier.testTag("back"),
+            ) {
+              Icon(Icons.AutoMirrored.Default.ArrowBack, "Back")
+            }
           }
         },
         actions = {

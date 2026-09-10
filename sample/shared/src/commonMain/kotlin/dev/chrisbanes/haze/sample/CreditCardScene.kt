@@ -53,6 +53,7 @@ internal fun CreditCardScene(
     zIndex: Float,
   ) -> Unit,
 ) {
+  val navigationEnabled = LocalSampleNavigationEnabled.current
   val hazeState = rememberHazeState()
 
   Box(modifier = modifier) {
@@ -95,16 +96,19 @@ internal fun CreditCardScene(
       )
     }
 
-    FloatingActionButton(
-      onClick = onNavigateUp,
-      modifier = Modifier
-        .windowInsetsPadding(WindowInsets.statusBars)
-        .padding(24.dp),
-    ) {
-      Icon(
-        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-        contentDescription = null,
-      )
+    if (navigationEnabled) {
+      FloatingActionButton(
+        onClick = onNavigateUp,
+        modifier = Modifier
+          .testTag("credit_card_back")
+          .windowInsetsPadding(WindowInsets.statusBars)
+          .padding(24.dp),
+      ) {
+        Icon(
+          imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+          contentDescription = "Back",
+        )
+      }
     }
   }
 }

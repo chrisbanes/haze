@@ -204,6 +204,7 @@ private fun ProductTopBar(
   onRecordingModeChanged: (Boolean) -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val navigationEnabled = LocalSampleNavigationEnabled.current
   GlassSurface(
     hazeState = hazeState,
     style = style,
@@ -231,8 +232,10 @@ private fun ProductTopBar(
       modifier = Modifier.padding(4.dp),
       verticalAlignment = Alignment.CenterVertically,
     ) {
-      IconButton(onClick = onBack) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+      if (navigationEnabled) {
+        IconButton(onClick = onBack) {
+          Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+        }
       }
       Column(modifier = Modifier.padding(horizontal = 8.dp)) {
         Text("Glass Gallery", color = Color.White, style = MaterialTheme.typography.labelLarge)
