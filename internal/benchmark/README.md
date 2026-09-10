@@ -1,93 +1,32 @@
 # Android benchmarks
 
-## Android baseline profiles
+Use this runbook for local physical-device measurements and trace analysis. For application tuning,
+see the [performance guide](../../docs/performance.md); published historical measurements live in
+[benchmark results](../../docs/benchmark-results.md).
 
-The library baseline profile generator exercises the current core, Blur, and Glass paths through
-the sample's Images List, Scaffold, Credit Card, Glass Product, and Glass Playground journeys. It
-runs on both AOSP managed devices: `pixel5Api30` (API 30) and `pixel5Api34` (API 34). The profile
-filter is limited to Haze-owned packages under `dev.chrisbanes.haze.**`.
+## Choose a workload
 
-Generation requires JDK 21 and an Android SDK selected by `ANDROID_HOME` or `ANDROID_SDK_ROOT`.
-Verify the environment with `java -version`, `echo "$ANDROID_HOME"` (or
-`echo "$ANDROID_SDK_ROOT"`), and `command -v sdkmanager`; the latter checks that SDK package
-management tooling is available, while Gradle uses the configured SDK environment. The managed-
-device definitions and AOSP images are declared in `internal/benchmark/build.gradle.kts`.
+| Task | Start here |
+| --- | --- |
+| Compare Blur and Glass performance modes | [Calibration matrix](#calibration-matrix) |
+| Diagnose one controlled scenario or run Gallery journeys | [Run a profile](#run-a-profile) |
+| Compare source and native backdrop paths | [Android 37.2 comparisons](#android-372-sourcebackdrop-comparisons) |
+| Find artifacts and interpret metrics or traces | [Results](#results) |
+| Generate and verify library baseline profiles | [Baseline-profile maintenance](BASELINE_PROFILES.md) |
 
-`RenderScriptScrollRegressionTest` exercises allocation teardown while scrolling Images on API 30.
-It runs five launches with twelve alternating scrolls each, without profile compilation or timing
-metrics. Run it independently from profile collection:
+<a id="emulator-correctness-evidence-2026-09-05"></a>
 
-```shell
-./gradlew --no-scan :internal:benchmark:pixel5Api30NonMinifiedReleaseAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.RenderScriptScrollRegressionTest
-```
+Saved preview-emulator correctness evidence is recorded separately in
+[Backdrop validation](BACKDROP_VALIDATION.md). It does not establish physical-device performance.
 
-Run generation from the repository root:
+<a id="android-baseline-profiles"></a>
 
-```shell
-./gradlew --no-scan :haze:generateBaselineProfile \
-  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BaselineProfileGenerator
-```
+For managed-device profile collection and artifact checks, use
+[baseline-profile maintenance](BASELINE_PROFILES.md).
 
-The checked-in output is
-`haze/src/androidMain/generated/baselineProfiles/baseline-prof.txt`. Generation and packaging
-coverage verify which classes and methods are exercised and shipped; they do not measure startup,
-frame time, or any other performance improvement.
+<a id="performance-mode-benchmark-requirements"></a>
 
-After generating, package the six existing Haze Kotlin Multiplatform `androidMain` AARs and the
-non-minified sample consumer. The package task is `bundleAndroidMainAar`; skip profile generation
-when validating packaging because the checked-in profile is the input to this check:
-
-```shell
-./gradlew --no-scan \
-  :haze-utils:bundleAndroidMainAar \
-  :haze:bundleAndroidMainAar \
-  :haze-blur:bundleAndroidMainAar \
-  :haze-glass:bundleAndroidMainAar \
-  :haze-materials:bundleAndroidMainAar \
-  :haze-glass-material3:bundleAndroidMainAar \
-  :sample:android:assembleNonMinifiedRelease \
-  -Pandroidx.baselineprofile.skipgeneration
-```
-
-The six AARs are written to `build/outputs/aar/<module>.aar` in their respective module
-directories. The consumer APK is
-`sample/android/build/outputs/apk/nonMinifiedRelease/android-nonMinifiedRelease.apk`. Verify the
-profile against exact defined class and method members in every AAR and every consumer
-`classes*.dex` file:
-
-```shell
-python3 internal/benchmark/verify_baseline_profile.py \
-  --profile haze/src/androidMain/generated/baselineProfiles/baseline-prof.txt \
-  --aar haze/build/outputs/aar/haze.aar \
-  --aar haze-blur/build/outputs/aar/haze-blur.aar \
-  --aar haze-glass/build/outputs/aar/haze-glass.aar \
-  --aar haze-utils/build/outputs/aar/haze-utils.aar \
-  --aar haze-materials/build/outputs/aar/haze-materials.aar \
-  --aar haze-glass-material3/build/outputs/aar/haze-glass-material3.aar \
-  --apk sample/android/build/outputs/apk/nonMinifiedRelease/android-nonMinifiedRelease.apk
-```
-
-For the retained final profile, the verifier reports 2,285 rules (215 class and 2,070 method), zero
-missing ordinary AAR members, and zero missing consumer-Dex members. Its ordinary counts are `469`
-(`haze`), `341` (`haze-blur`), `1,101` (`haze-glass`), `36` (`haze-utils`), `7`
-(`haze-materials`), and `3` (`haze-glass-material3`). The expected generated counts are 295
-external-synthetic entries, 16 lambda bridges, 16 `$-CC` interface companions, and one
-namespaced `R$drawable` class. Generated entries still require exact consumer-Dex definitions;
-`$-CC` entries also require an interface owner with the interface access flag in an AAR, and
-`R$drawable` requires the matching AAR manifest namespace.
-
-Only the root `haze` AAR may contain `baseline-prof.txt`, and its bytes must match the checked-in
-file exactly. The other five AARs must contain no profile asset. The verifier preserves HSP flags,
-nested `$` names, synthetic names, and complete method descriptors. It rejects malformed,
-foreign/sample, missing, or unexplained rules instead of deleting or renaming them. Keep the
-generated profile as collection output; do not hand-author rules or retain obsolete Haze 1 rules.
-The API 30 and API 34 device collections need no rerun for verifier or README changes while the
-collection-relevant generator, sample/runtime, and toolchain inputs remain unchanged. Generation,
-packaging, and descriptor verification establish artifact coverage only; they do not measure
-startup, frame time, or any other performance improvement.
-
-## Performance-mode benchmark requirements
+## Prepare the device
 
 - Physical Android device on API 33 or newer.
 - Release-like, non-debuggable target build.
@@ -110,69 +49,6 @@ Repeat comparisons in both build orders with the same APKs and benchmark configu
 change in the proportion of slow-core iterations can move pooled P90 substantially. If placement
 coverage differs, repeat before attributing the aggregate difference to the code. Record thermal
 state and retain the original benchmark JSON, traces, build identities, and run order.
-
-## Android 37.2 source/backdrop comparisons
-
-Backdrop comparisons require a physical, hardware-accelerated Android 37.2 device. Record the full
-SDK level (including the minor release), build SHA and variant, display refresh rate, fixed-
-performance state, starting battery level, and thermal status with every JSON/Perfetto result.
-
-The paired Quality workloads are:
-
-| Effect | Source | Backdrop |
-| --- | --- | --- |
-| Blur stable | `blurStableQuality` | `blurBackdropStableQuality` |
-| Blur updating | `blurSourceUpdateQuality` | `blurBackdropSourceUpdateQuality` |
-| Glass stable | `stableQuality` | `backdropStableQuality` |
-| Glass updating | `sourceUpdateQuality` | `backdropSourceUpdateQuality` |
-| Nine Glass nodes updating | `sourceUpdate9` | `backdropSourceUpdate9` |
-
-Each row records `FrameTimingMetric`, max `MemoryUsageMetric`, `HazeBackdrop.draw` count, and
-`HazeSource.record` count. A healthy backdrop result has native backdrop draws and zero source
-records; its source control has source records and no required backdrop draw.
-
-Run a dry run first on the same physical 37.2 device:
-
-```shell
-./gradlew --no-scan :sample:shared:testAndroidHostTest \
-  :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true \
-  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurStableQuality,dev.chrisbanes.haze.BenchmarkTest#blurBackdropStableQuality,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateQuality,dev.chrisbanes.haze.BenchmarkTest#blurBackdropSourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#stableQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#backdropStableQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#backdropSourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdate9,dev.chrisbanes.haze.GlassProfilingBenchmark#backdropSourceUpdate9
-```
-
-Measure three source/backdrop pairs, then repeat three pairs in backdrop/source order. Return the
-device to the same thermal envelope before each pair. Keep all JSON and Perfetto outputs; compare
-CPU P90, actual-frame P90, frame overrun, and peak memory against the order-reversed control
-envelope rather than one run.
-
-```shell
-adb shell cmd power set-fixed-performance-mode-enabled true
-# Run one source/backdrop pair with the focused class argument above, then reverse its order.
-adb shell cmd power set-fixed-performance-mode-enabled false
-```
-
-Always run the final cleanup command, including after a failed or interrupted benchmark. Verify
-fixed-performance mode is off before returning the device to normal use.
-
-## Emulator correctness evidence (2026-09-05)
-
-The committed native-backdrop fixes were exercised on the supported preview emulator before any
-performance claim. The run used the `Medium_Phone` AVD with the
-`android-37.2-beta3/google_apis_playstore_ps16k/arm64-v8a` revision 3 image, SDK 37, full SDK
-37.1, preview 3723, fingerprint
-`google/sdk_gphone16k_arm64/emu64a16k:DEV/CP41.260731.005.B1/16056512:user/dev-keys`, emulator
-37.1.11.0 build 15917651, and the Apple M1 Max `skiagl` host renderer. The tested commit was
-`56c866937a872cc9b73e063b34b12d3c4d74ade5`.
-
-The core suite passed 4 tests, Blur passed 6, and Glass passed 5; all had zero failures, errors,
-or skips. The suites covered native fallback state, progressive Blur, clip transitions, paired
-offscreen pixel scenes, and Glass window/offscreen pixel scenes. The saved XML reports are
-`haze/build/outputs/androidTest-results/connected/androidMain/TEST-Medium_Phone(AVD) - 17.xml`,
-with equivalent paths under `haze-blur/` and `haze-glass/`.
-
-This emulator result establishes preview correctness only. It does not provide physical-device
-37.2 compositor evidence, per-offscreen capture-counter evidence, or the order-reversed
-fixed-performance measurements required by the physical performance gate above.
 
 ## Calibration matrix
 
@@ -340,3 +216,46 @@ Expected Glass markers include:
 - `HazeGlass.interactionLighting`
 - `HazeGlass.groupAlpha`
 - `HazeGlass.compose`
+
+## Android 37.2 source/backdrop comparisons
+
+Backdrop comparisons require a physical, hardware-accelerated Android 37.2 device. Record the full
+SDK level (including the minor release), build SHA and variant, display refresh rate, fixed-
+performance state, starting battery level, and thermal status with every JSON/Perfetto result.
+
+The paired Quality workloads are:
+
+| Effect | Source | Backdrop |
+| --- | --- | --- |
+| Blur stable | `blurStableQuality` | `blurBackdropStableQuality` |
+| Blur updating | `blurSourceUpdateQuality` | `blurBackdropSourceUpdateQuality` |
+| Glass stable | `stableQuality` | `backdropStableQuality` |
+| Glass updating | `sourceUpdateQuality` | `backdropSourceUpdateQuality` |
+| Nine Glass nodes updating | `sourceUpdate9` | `backdropSourceUpdate9` |
+
+Each row records `FrameTimingMetric`, max `MemoryUsageMetric`, `HazeBackdrop.draw` count, and
+`HazeSource.record` count. A healthy backdrop result has native backdrop draws and zero source
+records; its source control has source records and no required backdrop draw.
+
+Run a dry run first on the same physical 37.2 device:
+
+```shell
+./gradlew --no-scan :sample:shared:testAndroidHostTest \
+  :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true \
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurStableQuality,dev.chrisbanes.haze.BenchmarkTest#blurBackdropStableQuality,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateQuality,dev.chrisbanes.haze.BenchmarkTest#blurBackdropSourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#stableQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#backdropStableQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#backdropSourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdate9,dev.chrisbanes.haze.GlassProfilingBenchmark#backdropSourceUpdate9
+```
+
+Measure three source/backdrop pairs, then repeat three pairs in backdrop/source order. Return the
+device to the same thermal envelope before each pair. Keep all JSON and Perfetto outputs; compare
+CPU P90, actual-frame P90, frame overrun, and peak memory against the order-reversed control
+envelope rather than one run.
+
+```shell
+adb shell cmd power set-fixed-performance-mode-enabled true
+# Run one source/backdrop pair with the focused class argument above, then reverse its order.
+adb shell cmd power set-fixed-performance-mode-enabled false
+```
+
+Always run the final cleanup command, including after a failed or interrupted benchmark. Verify
+fixed-performance mode is off before returning the device to normal use.
