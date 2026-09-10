@@ -69,5 +69,5 @@ playback, reset, and recording controls; navigation back to the sample browser i
 | Glass — Playground | `glass-playground` | `glass` |
 | Glass — Lab | `glass-lab` | `glass` |
 
-Find the first release that supports embedding in its release notes or documentation navigation, and
-pin that exact version in the article. A query string cannot add this feature to an older release.
+Check a release's `sample/web/README.md` for embedding support, then pin that exact documentation
+version in the article. A query string cannot add this feature to an older release.
