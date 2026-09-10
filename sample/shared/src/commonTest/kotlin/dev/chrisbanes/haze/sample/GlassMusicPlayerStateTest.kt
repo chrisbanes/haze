@@ -9,6 +9,30 @@ import kotlin.test.Test
 
 class GlassMusicPlayerStateTest {
   @Test
+  fun advance_onlyMovesWhilePlayingAndNotSeeking() {
+    val state = MusicPlayerState(MusicCatalog, randomTrackIndex = { 0 })
+    state.advanceBy(1_000)
+    assertThat(state.positionMillis).isEqualTo(0)
+    state.isPlaying = true
+    state.beginSeeking()
+    state.advanceBy(1_000)
+    assertThat(state.positionMillis).isEqualTo(0)
+    state.endSeeking()
+    state.advanceBy(1_000)
+    assertThat(state.positionMillis).isEqualTo(1_000)
+  }
+
+  @Test
+  fun shuffleMode_canBeDisabledForOrderedNextTrack() {
+    val state = MusicPlayerState(MusicCatalog, randomTrackIndex = { 1 })
+    state.updateShuffleEnabled(true)
+    state.updateShuffleEnabled(false)
+    state.next()
+    assertThat(state.shuffleEnabled).isEqualTo(false)
+    assertThat(state.currentTrackIndex).isEqualTo(0)
+  }
+
+  @Test
   fun seeking_clampsAndRestoresPlayback() {
     val state = MusicPlayerState(MusicCatalog, randomTrackIndex = { 1 })
     state.isPlaying = true
