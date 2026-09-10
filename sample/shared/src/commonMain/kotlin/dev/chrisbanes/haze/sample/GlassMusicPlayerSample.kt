@@ -223,14 +223,14 @@ private fun PlayerControls(
     Text("${formatTime(positionMillis)} / ${formatTime(track.durationMillis)}", color = foreground.copy(alpha = 0.72f))
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
       IconButton(onClick = onPrevious) { Icon(PreviousTrackIcon, "Previous track", tint = foreground) }
-      GlassButton(input = input, onClick = onPlayPause, modifier = Modifier.size(64.dp)) {
+      GlassButton(input = input, onClick = onPlayPause, modifier = Modifier.size(64.dp).testTag("music_play")) {
         Icon(if (isPlaying) PauseIcon else PlayIcon, if (isPlaying) "Pause" else "Play", tint = foreground)
       }
       IconButton(onClick = onNext) { Icon(NextTrackIcon, "Next track", tint = foreground) }
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
       Text("Shuffle", color = foreground.copy(alpha = 0.72f), modifier = Modifier.weight(1f))
-      GlassToggle(checked = shuffleEnabled, onCheckedChange = onShuffleChanged, input = input)
+      GlassToggle(checked = shuffleEnabled, onCheckedChange = onShuffleChanged, input = input, modifier = Modifier.testTag("music_shuffle"))
     }
   }
 }

@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.performTouchInput
 import dev.chrisbanes.haze.sample.GlassGalleryBackdropId
 import dev.chrisbanes.haze.sample.GlassLabScreenshotContent
 import dev.chrisbanes.haze.sample.GlassLabStyleId
@@ -156,6 +157,18 @@ internal fun ScreenshotUiTest.captureGlassMusicPlayer(isDark: Boolean, library: 
   }
   waitForIdle()
   captureRoot(if (library) "library" else "nowPlaying")
+  if (!library) {
+    val play = onNodeWithTag("music_play")
+    play.performTouchInput { down(center) }
+    waitForIdle()
+    captureRoot("pressed")
+    play.performTouchInput { up() }
+    val slider = onNodeWithTag("music_progress")
+    slider.performTouchInput { down(center); moveTo(center.copy(x = center.x * 1.4f)) }
+    waitForIdle()
+    captureRoot("dragged")
+    slider.performTouchInput { up() }
+  }
 }
 
 @Composable
