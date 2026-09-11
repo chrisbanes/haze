@@ -59,6 +59,11 @@ def update_changelog(version: str, changelog: Path) -> None:
     changelog.write_text(new_content)
 
 
+def verify_screenshot_matrix() -> None:
+    print("\nPreflight: verifying the full screenshot matrix...")
+    run(["./gradlew", ":haze-screenshot-tests:verifyScreenshotMatrixFull", "--no-scan"])
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: release.py <release-version> [next-snapshot-version]")
@@ -86,6 +91,8 @@ def main():
         base = new_version.split("-")[0]
         major, minor, patch = base.split(".")
         next_snapshot = f"{major}.{minor}.{int(patch) + 1}-SNAPSHOT"
+
+    verify_screenshot_matrix()
     
     print("=" * 50)
     print(f"  Releasing:     {new_version}")

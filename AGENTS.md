@@ -53,8 +53,10 @@ such as `isNull()`, `contains()`, or `isInstanceOf()`. Avoid converting conditio
 and asserting `isTrue()` or `isFalse()`; reserve those assertions for APIs whose actual result is
 boolean. Prefer descriptive method-level names such as `functionName_emitsExpectedBlur`. Run
 `./gradlew check` locally before opening a PR. Regenerate library snapshots with
-`./gradlew :haze-screenshot-tests:recordRoborazzi`; regenerate Glass Gallery snapshots with
-`./gradlew :sample:screenshot-tests:recordRoborazzi` when intentional UI changes occur.
+`./gradlew :haze-screenshot-tests:recordRoborazzi` for intentional changes, scoped to the affected
+test class or matrix case; regenerate Glass Gallery snapshots with
+`./gradlew :sample:screenshot-tests:recordRoborazzi` when intentional UI changes occur. Inspect
+image diffs and rerun verification after recording; do not re-record broad suites to hide a failure.
 
 ## VisualEffect Implementation Patterns
 
@@ -99,6 +101,12 @@ Secrets are not required for local builds, but Android sample runs need a connec
 emulator with API level ≥34, matching the raised compile SDK settings.
 
 ## Agent skills
+
+### Screenshot tests
+
+The screenshot matrix and its evidence requirements are documented in
+`docs/agents/screenshot-tests.md`. Canonical commands, profiles, scoped recording, and release
+gates are in `docs/screenshot-tests.md`.
 
 ### Issue tracker
 

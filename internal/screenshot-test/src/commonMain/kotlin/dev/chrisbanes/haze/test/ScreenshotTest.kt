@@ -21,6 +21,7 @@ interface ScreenshotUiTest {
   fun captureRoot(
     nameSuffix: String? = null,
     unmatchedPixelThreshold: Float? = null,
+    artifactPath: String? = null,
   )
   fun captureRootPixels(): PixelMap
   fun onNodeWithTag(testTag: String): SemanticsNodeInteraction

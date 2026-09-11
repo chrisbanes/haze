@@ -59,6 +59,7 @@ internal fun CreditCardSample(
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
   performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
+  input: (HazeState) -> HazeInput = { HazeInput.Sources(it) },
   numberCards: Int = 1,
 ) {
   require(visualEffects.size == numberCards)
@@ -84,6 +85,7 @@ internal fun CreditCardSample(
         shape = shape,
         enabled = enabled,
         performanceMode = performanceMode,
+        input = input(hazeState),
         visualEffect = visualEffects[index],
         modifier = Modifier
           .align(Alignment.Center),
@@ -99,6 +101,8 @@ internal fun CreditCardGlassSample(
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
+  performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
+  input: (HazeState) -> HazeInput = { HazeInput.Sources(it) },
   numberCards: Int = 1,
 ) {
   require(styles.size == numberCards)
@@ -125,7 +129,8 @@ internal fun CreditCardGlassSample(
           .then(
             if (enabled) {
               Modifier.hazeGlass(
-                input = HazeInput.Sources(hazeState),
+                input = input(hazeState),
+                performanceMode = performanceMode,
                 style = styles[index],
               )
             } else {
@@ -400,6 +405,7 @@ private fun CreditCard(
   shape: RoundedCornerShape,
   enabled: Boolean,
   performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
+  input: HazeInput = HazeInput.Sources(hazeState),
   visualEffect: HazeBlurStyle,
   modifier: Modifier = Modifier,
   baseWidth: Float = .7f,
@@ -415,7 +421,7 @@ private fun CreditCard(
       .then(
         if (enabled) {
           Modifier.hazeBlur(
-            input = HazeInput.Sources(hazeState),
+            input = input,
             performanceMode = performanceMode,
             style = visualEffect,
           )

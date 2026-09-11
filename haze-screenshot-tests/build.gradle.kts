@@ -6,6 +6,7 @@ import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import org.gradle.api.tasks.testing.TestDescriptor
 import org.gradle.api.tasks.testing.TestOutputEvent
 import org.gradle.api.tasks.testing.TestOutputListener
+import org.gradle.api.GradleException
 
 plugins {
   id("dev.chrisbanes.android.library")
@@ -121,6 +122,69 @@ tasks.configureEach {
   if (name == "testAndroidHostTest") {
     mustRunAfter("jvmTest")
   }
+}
+
+val screenshotMatrixCase = providers.gradleProperty("screenshotMatrixCase")
+val screenshotMatrixRecord = providers.gradleProperty("roborazzi.test.record")
+
+val requestsFullScreenshotMatrix = gradle.startParameter.taskNames.any {
+  it.substringAfterLast(':') == "verifyScreenshotMatrixFull"
+}
+
+if (requestsFullScreenshotMatrix) {
+  require(screenshotMatrixCase.orNull == null) {
+    "verifyScreenshotMatrixFull cannot be narrowed with -PscreenshotMatrixCase"
+  }
+  require(screenshotMatrixRecord.orNull != "true") {
+    "verifyScreenshotMatrixFull cannot record baselines"
+  }
+}
+
+tasks.withType<Test>().configureEach {
+  screenshotMatrixCase.orNull?.let {
+    systemProperty("haze.screenshot.matrix.case", it)
+  }
+}
+
+fun requireFullScreenshotMatrixInputs() {
+  check(screenshotMatrixCase.orNull == null) {
+    "verifyScreenshotMatrixFull cannot be narrowed with -PscreenshotMatrixCase"
+  }
+  check(screenshotMatrixRecord.orNull != "true") {
+    "verifyScreenshotMatrixFull cannot record baselines"
+  }
+}
+
+val verifyScreenshotMatrixPr = tasks.register("verifyScreenshotMatrixPr") {
+  group = "verification"
+  description = "Verifies legacy screenshots and every enrolled host screenshot matrix case."
+  dependsOn("jvmTest", "testAndroidHostTest")
+  doFirst {
+    check(screenshotMatrixCase.orNull == null) {
+      "verifyScreenshotMatrixPr cannot be narrowed with -PscreenshotMatrixCase"
+    }
+    check(screenshotMatrixRecord.orNull != "true") {
+      "verifyScreenshotMatrixPr cannot record baselines"
+    }
+  }
+}
+
+val verifyScreenshotMatrixDevice = tasks.register("verifyScreenshotMatrixDevice") {
+  group = "verification"
+  description = "Fails closed until fresh qualified-device native backdrop evidence is verified."
+  doLast {
+    throw GradleException(
+      "Screenshot matrix device verification requires fresh Pixel 6 Android 37.2 native " +
+        "backdrop artifacts; host screenshots cannot satisfy the full gate.",
+    )
+  }
+}
+
+tasks.register("verifyScreenshotMatrixFull") {
+  group = "verification"
+  description = "Verifies host coverage and requires qualified-device native backdrop evidence."
+  dependsOn(verifyScreenshotMatrixPr, verifyScreenshotMatrixDevice)
+  doFirst { requireFullScreenshotMatrixInputs() }
 }
 
 // Compose resources plugin generates this task for withDeviceTest() even when
