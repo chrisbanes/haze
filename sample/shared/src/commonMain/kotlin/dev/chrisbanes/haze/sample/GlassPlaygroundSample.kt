@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -182,7 +183,13 @@ internal fun GlassPlaygroundSample(
   runAutoplay: suspend GlassPlaygroundState.() -> Unit = { runAutoplayLoop() },
 ) {
   val scope = rememberCoroutineScope()
+  val chromeController = LocalSampleChromeController.current
   val returnJobs = remember { mutableMapOf<GlassPlaygroundSurfaceId, Job>() }
+
+  DisposableEffect(state.recordingMode, chromeController) {
+    chromeController.updateVisibility(!state.recordingMode)
+    onDispose { chromeController.updateVisibility(true) }
+  }
 
   LaunchedEffect(state.isPlaying, state.autoplayGeneration) {
     val animationsEnabled = (coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f) > 0f
@@ -453,6 +460,7 @@ private fun PlaygroundSurface(
       .zIndex(zIndex)
       .hazeGlass(
         input = HazeInput.Backdrop(hazeState),
+        performanceMode = LocalSamplePerformanceMode.current,
         style = style,
         interactionSource = interactionSource,
         interactionTransformTarget = GlassTransformTarget.MaterialAndContent,

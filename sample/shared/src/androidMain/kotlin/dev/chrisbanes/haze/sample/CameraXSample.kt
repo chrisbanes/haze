@@ -170,6 +170,7 @@ private fun CameraXCamera(
                 .clip(shape)
                 .hazeBlur(
                   input = HazeInput.Sources(hazeState),
+                  performanceMode = LocalSamplePerformanceMode.current,
                   style = HazeMaterials.ultraThin(),
                 )
 
@@ -177,6 +178,7 @@ private fun CameraXCamera(
               Modifier
                 .hazeGlass(
                   input = HazeInput.Sources(hazeState),
+                  performanceMode = LocalSamplePerformanceMode.current,
                   style = GlassStyle.regular.then {
                     backgroundColor(glassBackgroundColor)
                     tint(glassTint)

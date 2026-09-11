@@ -101,6 +101,7 @@ fun ImagesList(navController: NavHostController, effect: SampleEffect) {
                           .clip(shape)
                           .hazeBlur(
                             input = HazeInput.Backdrop(hazeState),
+                            performanceMode = LocalSamplePerformanceMode.current,
                             style = HazeMaterials.thin(),
                           )
 
@@ -108,6 +109,7 @@ fun ImagesList(navController: NavHostController, effect: SampleEffect) {
                         Modifier
                           .hazeGlass(
                             input = HazeInput.Backdrop(hazeState),
+                            performanceMode = LocalSamplePerformanceMode.current,
                             style = GlassStyle.regular.then {
                               backgroundColor(glassBackgroundColor)
                               tint(glassTint)

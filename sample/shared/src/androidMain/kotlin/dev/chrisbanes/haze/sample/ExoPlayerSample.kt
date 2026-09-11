@@ -102,6 +102,7 @@ fun ExoPlayerSample(
                 .clip(shape)
                 .hazeBlur(
                   input = HazeInput.Sources(hazeState),
+                  performanceMode = LocalSamplePerformanceMode.current,
                   style = HazeMaterials.ultraThin(),
                 )
 
@@ -109,6 +110,7 @@ fun ExoPlayerSample(
               Modifier
                 .hazeGlass(
                   input = HazeInput.Sources(hazeState),
+                  performanceMode = LocalSamplePerformanceMode.current,
                   style = GlassStyle.regular.then {
                     backgroundColor(glassBackgroundColor)
                     tint(glassTint)

@@ -95,7 +95,7 @@ fun ScaffoldSample(
   navController: NavHostController,
   effect: SampleEffect = SampleEffect.Blur,
   mode: ScaffoldSampleMode = ScaffoldSampleMode.Default,
-  performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
+  performanceMode: HazePerformanceMode = LocalSamplePerformanceMode.current,
   sourceOffset: (() -> Float)? = null,
   sourceDrawProgress: (() -> Float)? = null,
   profilingDrawProgress: (() -> Float)? = null,

@@ -9,15 +9,21 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -49,12 +55,12 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.LocalHazeBlurStyle
 
@@ -78,14 +84,8 @@ internal fun List<Sample>.forEffect(effect: SampleEffect): List<Sample> = filter
 @OptIn(ExperimentalHazeApi::class)
 val CommonSamples: List<Sample> = listOf(
   Sample.Scaffold,
-  Sample.ScaffoldAdaptive,
-  Sample.ScaffoldQuality,
-  Sample.ScaffoldBalanced,
-  Sample.ScaffoldPerformance,
   Sample.ScaffoldProgressive,
-  Sample.ScaffoldProgressiveQuality,
   Sample.ScaffoldMasked,
-  Sample.ScaffoldMaskedQuality,
   Sample.CreditCard,
   Sample.ImageList,
   Sample.ListOverImage,
@@ -124,54 +124,6 @@ class Sample(
       ScaffoldSample(navController = navController, effect = effect)
     }
 
-    val ScaffoldAdaptive = Sample(
-      route = "scaffold-adaptive",
-      title = "Scaffold (adaptive)",
-      effects = BuiltInEffects,
-    ) { navController, effect ->
-      ScaffoldSample(
-        navController = navController,
-        effect = effect,
-        performanceMode = HazePerformanceMode.Adaptive,
-      )
-    }
-
-    val ScaffoldQuality = Sample(
-      route = "scaffold-quality",
-      title = "Scaffold (quality)",
-      effects = BuiltInEffects,
-    ) { navController, effect ->
-      ScaffoldSample(
-        navController = navController,
-        effect = effect,
-        performanceMode = HazePerformanceMode.Quality,
-      )
-    }
-
-    val ScaffoldBalanced = Sample(
-      route = "scaffold-balanced",
-      title = "Scaffold (balanced)",
-      effects = BuiltInEffects,
-    ) { navController, effect ->
-      ScaffoldSample(
-        navController = navController,
-        effect = effect,
-        performanceMode = HazePerformanceMode.Balanced,
-      )
-    }
-
-    val ScaffoldPerformance = Sample(
-      route = "scaffold-performance",
-      title = "Scaffold (performance)",
-      effects = BuiltInEffects,
-    ) { navController, effect ->
-      ScaffoldSample(
-        navController = navController,
-        effect = effect,
-        performanceMode = HazePerformanceMode.Performance,
-      )
-    }
-
     val ScaffoldProgressive = Sample(
       route = "scaffold-progressive",
       title = "Scaffold (progressive blur)",
@@ -184,19 +136,6 @@ class Sample(
       )
     }
 
-    val ScaffoldProgressiveQuality = Sample(
-      route = "scaffold-progressive-quality",
-      title = "Scaffold (progressive blur, quality)",
-      effects = BuiltInEffects,
-    ) { navController, effect ->
-      ScaffoldSample(
-        navController = navController,
-        effect = effect,
-        mode = ScaffoldSampleMode.Progressive,
-        performanceMode = HazePerformanceMode.Quality,
-      )
-    }
-
     val ScaffoldMasked = Sample(
       route = "scaffold-masked",
       title = "Scaffold (masked)",
@@ -206,19 +145,6 @@ class Sample(
         navController = navController,
         effect = effect,
         mode = ScaffoldSampleMode.Mask,
-      )
-    }
-
-    val ScaffoldMaskedQuality = Sample(
-      route = "scaffold-masked-quality",
-      title = "Scaffold (masked, quality)",
-      effects = BuiltInEffects,
-    ) { navController, effect ->
-      ScaffoldSample(
-        navController = navController,
-        effect = effect,
-        mode = ScaffoldSampleMode.Mask,
-        performanceMode = HazePerformanceMode.Quality,
       )
     }
 
@@ -378,44 +304,37 @@ fun Samples(
       HazeBlurStyle
     }
   }
+  val settings = rememberSamplePerformanceSettingsState()
+  val chromeController = remember { SampleChromeController() }
+  val metrics = remember { SampleFrameMetrics(SampleFrameMetricsSource.FrameCadence) }
+  val currentDestination by navController.currentBackStackEntryAsState()
+  LaunchedEffect(settings.performanceMode, currentDestination?.destination?.route) {
+    metrics.clear()
+  }
+  var showSettings by remember { mutableStateOf(false) }
 
   SamplesTheme(useDarkColors = useDarkColors) {
-    CompositionLocalProvider(LocalHazeBlurStyle provides localBlurStyle) {
-      NavHost(
-        navController = navController,
-        startDestination = SAMPLES_ROUTE,
-        modifier = Modifier.testTagsAsResourceId(true),
-      ) {
-        composable(SAMPLES_ROUTE) {
-          EffectList(
-            appTitle = appTitle,
-            effects = SampleEffect.entries.toList(),
-            onEffectSelected = { effect -> navController.navigate(effect.route()) },
-          )
-        }
-
-        SampleEffect.entries.forEach { effect ->
-          composable(effect.route()) {
-            val effectSamples = remember(samples, effect) {
-              samples.forEffect(effect).sortedBy(Sample::title)
-            }
-            SamplesListDetail(
-              appTitle = "$appTitle — ${effect.label}",
-              navController = navController,
-              effect = effect,
-              samples = effectSamples,
-              selectedSample = null,
-              onListNavigateUp = navController::navigateUp,
-              onSampleSelected = { selected ->
-                navController.navigate(selected.route(effect))
-              },
+    CompositionLocalProvider(
+      LocalHazeBlurStyle provides localBlurStyle,
+      LocalSamplePerformanceMode provides settings.performanceMode,
+      LocalSampleChromeController provides chromeController,
+    ) {
+      Box(Modifier.fillMaxSize()) {
+        NavHost(
+          navController = navController,
+          startDestination = SAMPLES_ROUTE,
+          modifier = Modifier.testTagsAsResourceId(true),
+        ) {
+          composable(SAMPLES_ROUTE) {
+            EffectList(
+              appTitle = appTitle,
+              effects = SampleEffect.entries.toList(),
+              onEffectSelected = { effect -> navController.navigate(effect.route()) },
             )
           }
-        }
 
-        samples.forEach { sample ->
-          sample.effects.forEach { effect ->
-            composable(sample.route(effect)) {
+          SampleEffect.entries.forEach { effect ->
+            composable(effect.route()) {
               val effectSamples = remember(samples, effect) {
                 samples.forEffect(effect).sortedBy(Sample::title)
               }
@@ -424,20 +343,71 @@ fun Samples(
                 navController = navController,
                 effect = effect,
                 samples = effectSamples,
-                selectedSample = sample,
-                onListNavigateUp = {
-                  navController.popBackStack(SAMPLES_ROUTE, inclusive = false)
-                },
+                selectedSample = null,
+                onListNavigateUp = navController::navigateUp,
                 onSampleSelected = { selected ->
-                  navController.navigate(selected.route(effect)) {
-                    popUpTo(effect.route())
-                    launchSingleTop = true
-                  }
+                  navController.navigate(selected.route(effect))
                 },
               )
             }
           }
+
+          samples.forEach { sample ->
+            sample.effects.forEach { effect ->
+              composable(sample.route(effect)) {
+                val effectSamples = remember(samples, effect) {
+                  samples.forEffect(effect).sortedBy(Sample::title)
+                }
+                SamplesListDetail(
+                  appTitle = "$appTitle — ${effect.label}",
+                  navController = navController,
+                  effect = effect,
+                  samples = effectSamples,
+                  selectedSample = sample,
+                  onListNavigateUp = {
+                    navController.popBackStack(SAMPLES_ROUTE, inclusive = false)
+                  },
+                  onSampleSelected = { selected ->
+                    navController.navigate(selected.route(effect)) {
+                      popUpTo(effect.route())
+                      launchSingleTop = true
+                    }
+                  },
+                )
+              }
+            }
+          }
         }
+        if (settings.metricsEnabled) {
+          SampleFrameMetricsCollector(enabled = true, metrics = metrics)
+          if (chromeController.isVisible) {
+            SampleMetricsOverlay(
+              mode = settings.preset,
+              performanceMode = settings.performanceMode,
+              metrics = metrics,
+              modifier = Modifier
+                .align(Alignment.BottomStart)
+                .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.safeDrawing)
+                .padding(16.dp),
+            )
+          }
+        }
+        if (chromeController.isVisible) {
+          FilledIconButton(
+            onClick = { showSettings = true },
+            colors = IconButtonDefaults.filledIconButtonColors(),
+            modifier = Modifier
+              .align(Alignment.TopEnd)
+              .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.safeDrawing)
+              .padding(8.dp)
+              .testTag("sample_performance_settings"),
+          ) {
+            Icon(Icons.Default.Settings, contentDescription = "Performance settings")
+          }
+        }
+      }
+      if (showSettings) {
+        SamplePerformanceSettingsSheet(state = settings, onDismissRequest = { showSettings = false })
       }
       var initialSelectionApplied by rememberSaveable { mutableStateOf(false) }
       LaunchedEffect(navController, initialSelection) {

@@ -34,6 +34,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -62,6 +63,12 @@ public fun GlassProductSample(navController: NavHostController) {
   var selectedArtworkIndex by rememberSaveable { mutableIntStateOf(0) }
   val favorites = remember { mutableStateMapOf<Int, Boolean>() }
   var recordingMode by rememberSaveable { mutableStateOf(false) }
+  val chromeController = LocalSampleChromeController.current
+
+  DisposableEffect(recordingMode, chromeController) {
+    chromeController.updateVisibility(!recordingMode)
+    onDispose { chromeController.updateVisibility(true) }
+  }
 
   GlassProductSampleContent(
     selectedArtworkIndex = selectedArtworkIndex,
