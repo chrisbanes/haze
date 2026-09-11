@@ -73,6 +73,8 @@ public fun GlassLabSample(navController: NavHostController) {
   var state by remember { mutableStateOf(GlassLabState()) }
   var recordingMode by rememberSaveable { mutableStateOf(false) }
 
+  SampleChromeVisibilityEffect(visible = !recordingMode)
+
   GlassLabSampleContent(
     state = state,
     recordingMode = recordingMode,

@@ -34,6 +34,7 @@ import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
@@ -108,7 +109,11 @@ internal class BlurVisualEffect :
     sampling: HazeSampling,
   ) {
     this.style = style.style
-    performanceMode = style.performanceMode
+    val resolvedPerformanceMode = style.performanceMode ?: scope.currentValueOf(LocalHazePerformanceMode)
+    if (performanceMode != resolvedPerformanceMode) {
+      performanceMode = resolvedPerformanceMode
+      scope.invalidateDraw()
+    }
     compositionLocalStyle = scope.currentValueOf(LocalHazeBlurStyle)
     if (dirtyTracker.any(BlurDirtyFields.InvalidateFlags)) {
       needsDelegateSelection = true
@@ -257,8 +262,8 @@ internal class BlurVisualEffect :
       }
     }
 
-  private var performanceMode: HazePerformanceMode = HazePerformanceMode.Default
-    set(value) {
+  internal var performanceMode: HazePerformanceMode = HazePerformanceMode.Default
+    private set(value) {
       if (field != value) {
         HazeLogger.d(TAG) { "performanceMode changed. Current: $field. New: $value" }
         field = value

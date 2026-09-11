@@ -30,7 +30,6 @@ import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.glass.GlassStyle
@@ -88,7 +87,7 @@ fun ListWithStickyHeaders(navController: NavHostController, effect: SampleEffect
                   SampleEffect.Blur -> Modifier.hazeBlur(
                     input = HazeInput.Backdrop(hazeState),
                     style = blurStyle,
-                    performanceMode = HazePerformanceMode.Adaptive,
+
                   )
 
                   SampleEffect.Glass -> Modifier.hazeGlass(
@@ -98,7 +97,6 @@ fun ListWithStickyHeaders(navController: NavHostController, effect: SampleEffect
                       tint(glassTint)
                       shape(glassShape)
                     },
-                    performanceMode = HazePerformanceMode.Adaptive,
                   )
                 },
               ),

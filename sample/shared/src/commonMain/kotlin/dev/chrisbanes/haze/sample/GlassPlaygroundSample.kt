@@ -184,6 +184,8 @@ internal fun GlassPlaygroundSample(
   val scope = rememberCoroutineScope()
   val returnJobs = remember { mutableMapOf<GlassPlaygroundSurfaceId, Job>() }
 
+  SampleChromeVisibilityEffect(visible = !state.recordingMode)
+
   LaunchedEffect(state.isPlaying, state.autoplayGeneration) {
     val animationsEnabled = (coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f) > 0f
     if (!animationsEnabled) {

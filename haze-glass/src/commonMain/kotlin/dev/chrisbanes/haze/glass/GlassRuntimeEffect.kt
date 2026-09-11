@@ -41,6 +41,7 @@ import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
@@ -153,9 +154,12 @@ internal class GlassRuntimeEffect() :
     onConfigurationChanged = ::onRuntimeConfigurationChanged
   }
 
-  private fun applyConfiguration(configuration: GlassNodeConfiguration) {
+  private fun applyConfiguration(
+    configuration: GlassNodeConfiguration,
+    performanceMode: HazePerformanceMode = configuration.performanceMode ?: HazePerformanceMode.Default,
+  ) {
     style = configuration.style
-    performanceMode = configuration.performanceMode
+    this.performanceMode = performanceMode
     interactionSource = configuration.interactionSource
     interactionTransformTarget = configuration.interactionTransformTarget
     interactionTransformPivot = configuration.interactionTransformPivot
@@ -362,7 +366,7 @@ internal class GlassRuntimeEffect() :
     sampling: HazeSampling,
   ) {
     val context = scope
-    applyConfiguration(style)
+    applyConfiguration(style, style.performanceMode ?: scope.currentValueOf(LocalHazePerformanceMode))
     dirtyTrackerVersion
     compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
     accessibilitySettings = context.currentValueOf(LocalGlassAccessibilitySettings)

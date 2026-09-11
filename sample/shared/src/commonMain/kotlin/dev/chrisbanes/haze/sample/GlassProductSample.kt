@@ -63,6 +63,8 @@ public fun GlassProductSample(navController: NavHostController) {
   val favorites = remember { mutableStateMapOf<Int, Boolean>() }
   var recordingMode by rememberSaveable { mutableStateOf(false) }
 
+  SampleChromeVisibilityEffect(visible = !recordingMode)
+
   GlassProductSampleContent(
     selectedArtworkIndex = selectedArtworkIndex,
     favorite = favorites[selectedArtworkIndex] == true,

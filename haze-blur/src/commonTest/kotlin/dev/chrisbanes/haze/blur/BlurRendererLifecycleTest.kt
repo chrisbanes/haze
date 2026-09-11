@@ -16,10 +16,12 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
+import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
+import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.TrimMemoryLevel
 import kotlin.coroutines.EmptyCoroutineContext
@@ -27,6 +29,37 @@ import kotlin.test.Test
 import kotlinx.coroutines.CoroutineScope
 
 class BlurRendererLifecycleTest {
+
+  @Test
+  fun performanceMode_inheritsLocalUpdatesAndPreservesExplicitOverride() {
+    var localMode: HazePerformanceMode = HazePerformanceMode.Default
+    var drawInvalidations = 0
+    val scope = object : HazeEffectLifecycleScope by BlurTestLifecycleScope {
+      override fun invalidateDraw() {
+        drawInvalidations++
+      }
+
+      @Suppress("UNCHECKED_CAST")
+      override fun <T> currentValueOf(local: CompositionLocal<T>): T =
+        if (local === LocalHazePerformanceMode) localMode as T else BlurTestLifecycleScope.currentValueOf(local)
+    }
+    val renderer = BlurVisualEffect()
+    val inherited = BlurConfiguration(HazeBlurStyle, null)
+    renderer.update(scope, inherited, HazeSampling.Default)
+    assertThat(renderer.performanceMode).isEqualTo(HazePerformanceMode.Adaptive)
+    assertThat(renderer.dirtyTracker).isEqualTo(Bitmask())
+    drawInvalidations = 0
+    localMode = HazePerformanceMode.Quality
+    renderer.update(scope, inherited, HazeSampling.Default)
+    assertThat(renderer.performanceMode).isEqualTo(HazePerformanceMode.Quality)
+    assertThat(drawInvalidations).isEqualTo(1)
+    renderer.update(scope, BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Adaptive), HazeSampling.Default)
+    assertThat(renderer.performanceMode).isEqualTo(HazePerformanceMode.Adaptive)
+    assertThat(drawInvalidations).isEqualTo(2)
+    localMode = HazePerformanceMode.Performance
+    renderer.update(scope, BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Adaptive), HazeSampling.Default)
+    assertThat(drawInvalidations).isEqualTo(2)
+  }
 
   @Test
   fun styleReplacement_reusesRendererAndReconfiguresResolvedStyle() {

@@ -19,8 +19,10 @@ import assertk.assertions.isNull
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.TrimMemoryLevel
 import kotlin.coroutines.EmptyCoroutineContext
@@ -147,6 +149,7 @@ private class TrackingLifecycleScope(
 
   @Suppress("UNCHECKED_CAST")
   override fun <T> currentValueOf(local: CompositionLocal<T>): T = when (local) {
+    LocalHazePerformanceMode -> HazePerformanceMode.Default
     LocalGlassStyle -> localStyle
     LocalGlassAccessibilitySettings -> accessibilitySettings
     LocalLayoutDirection -> LayoutDirection.Ltr

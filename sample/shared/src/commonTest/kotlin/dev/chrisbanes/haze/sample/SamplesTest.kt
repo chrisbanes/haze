@@ -43,7 +43,7 @@ class SamplesTest : ContextTest() {
   fun commonSamples_catalogsIncludeCustomVisualEffectAndGlassShowcases() {
     assertThat(CommonSamples.forEffect(SampleEffect.Blur).map(Sample::title))
       .contains("Custom VisualEffect")
-    assertThat(CommonSamples.forEffect(SampleEffect.Glass).size).isEqualTo(22)
+    assertThat(CommonSamples.forEffect(SampleEffect.Glass).size).isEqualTo(16)
     val glassTitles = CommonSamples.forEffect(SampleEffect.Glass).map(Sample::title)
     assertThat(glassTitles).contains("Glass — Product")
     assertThat(glassTitles).contains("Glass — Playground")
@@ -51,21 +51,11 @@ class SamplesTest : ContextTest() {
   }
 
   @Test
-  fun scaffoldProfiles_haveExplicitNamedPerformanceModes() {
+  fun commonSamples_catalog_hasOneEntryPerScaffoldFeature() {
     assertThat(
-      listOf(
-        Sample.ScaffoldAdaptive,
-        Sample.ScaffoldQuality,
-        Sample.ScaffoldBalanced,
-        Sample.ScaffoldPerformance,
-      ).map(Sample::title),
+      CommonSamples.filter { it.route.startsWith("scaffold") }.map(Sample::title),
     ).isEqualTo(
-      listOf(
-        "Scaffold (adaptive)",
-        "Scaffold (quality)",
-        "Scaffold (balanced)",
-        "Scaffold (performance)",
-      ),
+      listOf("Scaffold", "Scaffold (progressive blur)", "Scaffold (masked)"),
     )
   }
 
@@ -73,14 +63,8 @@ class SamplesTest : ContextTest() {
   fun commonBuiltInSamples_exposeBothBuiltInEffects() {
     val comparisonSamples = listOf(
       Sample.Scaffold,
-      Sample.ScaffoldAdaptive,
-      Sample.ScaffoldQuality,
-      Sample.ScaffoldBalanced,
-      Sample.ScaffoldPerformance,
       Sample.ScaffoldProgressive,
-      Sample.ScaffoldProgressiveQuality,
       Sample.ScaffoldMasked,
-      Sample.ScaffoldMaskedQuality,
       Sample.CreditCard,
       Sample.ImageList,
       Sample.ListOverImage,

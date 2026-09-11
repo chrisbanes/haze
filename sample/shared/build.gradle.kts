@@ -30,13 +30,13 @@ kotlin {
     val kameraMain = create("kameraMain") {
       dependsOn(getByName("commonMain"))
       dependencies {
-        implementation(libs.androidx.lifecycle.runtime.compose)
         implementation(libs.kamera)
       }
     }
 
     commonMain {
       dependencies {
+        implementation(libs.androidx.lifecycle.runtime.compose)
         api(projects.haze)
         api(projects.hazeBlur)
         api(projects.hazeGlass)

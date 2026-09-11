@@ -13,6 +13,7 @@ import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
+import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.hazeEffect
 
@@ -35,7 +36,7 @@ import dev.chrisbanes.haze.hazeEffect
  * @param input Source-backed content, this modifier's own content, or an experimental Android
  * window backdrop with a required source fallback.
  * @param style Explicit appearance applied after defaults and [LocalGlassStyle].
- * @param performanceMode Effect-owned rendering-fidelity policy for this Glass runtime. The
+ * @param performanceMode Rendering-fidelity policy, or `null` to inherit [LocalHazePerformanceMode]. The
  * default adaptive policy selects one of Glass's validated performance profiles from retained work
  * and recent update cadence. Named and fixed modes select a normalized, deterministic profile.
  * @param expandLayerBounds Whether Glass may expand its capture layer for optical sampling.
@@ -49,7 +50,7 @@ import dev.chrisbanes.haze.hazeEffect
 public fun Modifier.hazeGlass(
   input: HazeInput,
   style: GlassStyle = GlassStyle,
-  performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
+  performanceMode: HazePerformanceMode? = null,
   expandLayerBounds: Boolean = true,
   interactionSource: InteractionSource? = null,
   interactionTransformTarget: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
@@ -71,7 +72,7 @@ internal fun Modifier.hazeGlass(
   factory: HazeEffectFactory<GlassNodeConfiguration>,
   input: HazeInput,
   style: GlassStyle,
-  performanceMode: HazePerformanceMode,
+  performanceMode: HazePerformanceMode?,
   expandLayerBounds: Boolean,
   interactionSource: InteractionSource?,
   interactionTransformTarget: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
@@ -94,7 +95,7 @@ internal fun Modifier.hazeGlass(
 @Poko
 internal class GlassNodeConfiguration(
   val style: GlassStyle,
-  val performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
+  val performanceMode: HazePerformanceMode? = null,
   val interactionSource: InteractionSource?,
   val interactionTransformTarget: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
   val interactionTransformPivot: GlassTransformPivot = GlassTransformPivot.Pointer,
