@@ -3,8 +3,8 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.ui.geometry.Size
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalInspectionMode
 import coil3.annotation.ExperimentalCoilApi
 import coil3.compose.AsyncImagePreviewHandler

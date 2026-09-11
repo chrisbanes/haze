@@ -3,14 +3,14 @@
 
 package dev.chrisbanes.haze
 
-import dev.chrisbanes.haze.test.ScreenshotTest
-import dev.chrisbanes.haze.test.runScreenshotTest
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalInspectionMode
 import coil3.ColorImage
 import coil3.annotation.ExperimentalCoilApi
 import coil3.compose.AsyncImagePreviewHandler
 import coil3.compose.LocalAsyncImagePreviewHandler
+import dev.chrisbanes.haze.test.ScreenshotTest
+import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.test.Test
 import org.robolectric.annotation.Config
 

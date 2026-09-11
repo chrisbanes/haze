@@ -6,13 +6,15 @@ package dev.chrisbanes.haze.sample
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.v2.runComposeUiTest
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -74,17 +76,18 @@ class GlassMusicPlayerSampleTest : ContextTest() {
   fun playerControls_updateHoistedStateAcrossTabChanges() = runComposeUiTest {
     val player = MusicPlayerState(MusicCatalog, randomTrackIndex = { 0 })
     var tab by mutableStateOf(MusicPlayerTab.NowPlaying)
+    var isPlaying by mutableStateOf(false)
     setContent {
       GlassMusicPlayerSampleContent(
         currentTrack = player.currentTrack,
         tracks = MusicCatalog,
         currentTrackIndex = player.currentTrackIndex,
         positionMillis = player.positionMillis,
-        isPlaying = player.isPlaying,
+        isPlaying = isPlaying,
         shuffleEnabled = player.shuffleEnabled,
         tab = tab,
         onTabSelected = { tab = it },
-        onPlayPause = player::togglePlaying,
+        onPlayPause = { isPlaying = !isPlaying },
         onPrevious = player::previous,
         onNext = player::next,
         onShuffleChanged = player::updateShuffleEnabled,
@@ -95,17 +98,22 @@ class GlassMusicPlayerSampleTest : ContextTest() {
         onBack = {},
       )
     }
-    onNodeWithTag("music_play").performClick()
-    onNodeWithTag("music_shuffle").performClick()
-    onNodeWithTag("music_progress").performTouchInput {
+    onNodeWithTag("music_play").performScrollTo().assertIsDisplayed().assertHasClickAction().performClick()
+    waitForIdle()
+    runOnIdle { assertThat(isPlaying).isEqualTo(true) }
+    onNodeWithTag("music_shuffle").performScrollTo().assertIsDisplayed().performClick()
+    waitForIdle()
+    onNodeWithTag("music_progress").performScrollTo().assertIsDisplayed().performTouchInput {
       down(Offset(width * 0.2f, height / 2f))
       moveTo(Offset(width * 0.7f, height / 2f))
       up()
     }
+    waitForIdle()
     onNodeWithText("Library").performClick()
+    waitForIdle()
     onNodeWithText("Now Playing").performClick()
     runOnIdle {
-      assertThat(player.isPlaying).isEqualTo(true)
+      assertThat(isPlaying).isEqualTo(true)
       assertThat(player.positionMillis).isGreaterThan(0L)
       assertThat(player.isSeeking).isEqualTo(false)
       assertThat(player.shuffleEnabled).isEqualTo(true)
