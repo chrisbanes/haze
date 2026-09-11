@@ -58,14 +58,8 @@ playback, reset, and recording controls; navigation back to the sample browser i
 | Sample | `sample` | Effects |
 | --- | --- | --- |
 | Scaffold | `scaffold` | `blur`, `glass` |
-| Scaffold (adaptive) | `scaffold-adaptive` | `blur`, `glass` |
-| Scaffold (quality) | `scaffold-quality` | `blur`, `glass` |
-| Scaffold (balanced) | `scaffold-balanced` | `blur`, `glass` |
-| Scaffold (performance) | `scaffold-performance` | `blur`, `glass` |
 | Scaffold (progressive blur) | `scaffold-progressive` | `blur`, `glass` |
-| Scaffold (progressive blur, quality) | `scaffold-progressive-quality` | `blur`, `glass` |
 | Scaffold (masked) | `scaffold-masked` | `blur`, `glass` |
-| Scaffold (masked, quality) | `scaffold-masked-quality` | `blur`, `glass` |
 | Credit Card | `credit-card` | `blur`, `glass` |
 | Images List | `images-list` | `blur`, `glass` |
 | List over Image | `list-over-image` | `blur`, `glass` |

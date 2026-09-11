@@ -31,7 +31,7 @@ class SampleMetricsOverlayTest : ContextTest() {
   @Test
   fun overlay_labelsWindowTimingAndUnavailableDeadlineData() = runComposeUiTest {
     val metrics = SampleFrameMetrics(SampleFrameMetricsSource.RenderedFrameTiming)
-    metrics.add(timestampNanos = 1L, duration = 10.nanoseconds)
+    metrics.add(timestampNanos = 1L, duration = 10.nanoseconds, droppedReports = 2)
 
     setContent {
       SampleMetricsOverlay(
@@ -43,6 +43,7 @@ class SampleMetricsOverlayTest : ContextTest() {
 
     onNodeWithText("Host-window frame timing · Custom (70%)").assertIsDisplayed()
     onNodeWithText("Deadline data unavailable on this API level.").assertIsDisplayed()
+    onNodeWithText("Callback reports lost (cumulative): 2").assertIsDisplayed()
   }
 
   @Test

@@ -109,7 +109,11 @@ internal class BlurVisualEffect :
     sampling: HazeSampling,
   ) {
     this.style = style.style
-    performanceMode = style.performanceMode ?: scope.currentValueOf(LocalHazePerformanceMode)
+    val resolvedPerformanceMode = style.performanceMode ?: scope.currentValueOf(LocalHazePerformanceMode)
+    if (performanceMode != resolvedPerformanceMode) {
+      performanceMode = resolvedPerformanceMode
+      scope.invalidateDraw()
+    }
     compositionLocalStyle = scope.currentValueOf(LocalHazeBlurStyle)
     if (dirtyTracker.any(BlurDirtyFields.InvalidateFlags)) {
       needsDelegateSelection = true

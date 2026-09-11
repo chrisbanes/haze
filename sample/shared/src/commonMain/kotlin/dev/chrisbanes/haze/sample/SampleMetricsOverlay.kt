@@ -84,7 +84,7 @@ internal fun SampleMetricsOverlay(
       }
       if (summary.reportLossCount > 0) {
         Text(
-          "Callback reports lost: ${summary.reportLossCount}",
+          "Callback reports lost (cumulative): ${summary.reportLossCount}",
           color = MaterialTheme.colorScheme.inverseOnSurface,
         )
       }
