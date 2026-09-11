@@ -123,13 +123,11 @@ fun LayerTransformations(
           when (effect) {
             SampleEffect.Blur -> Modifier.hazeBlur(
               input = HazeInput.Sources(hazeState),
-              performanceMode = LocalSamplePerformanceMode.current,
               style = HazeBlurStyle { blurRadius(20.dp) },
             )
 
             SampleEffect.Glass -> Modifier.hazeGlass(
               input = HazeInput.Sources(hazeState),
-              performanceMode = LocalSamplePerformanceMode.current,
               style = GlassStyle.regular.then {
                 backgroundColor(glassBackgroundColor)
                 tint(Color.White.copy(alpha = 0.14f))

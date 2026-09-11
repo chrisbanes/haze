@@ -50,17 +50,17 @@ class AndroidSampleFrameMetricsTest : ContextTest() {
   }
 
   @Test
-  fun registration_detachesWhenDisabledOrBackgrounded() {
+  fun registration_detachesWhenDisposedOrBackgrounded() {
     val events = mutableListOf<String>()
     val registration = AndroidFrameMetricsRegistration(
       onAttach = { events += "attach" },
       onDetach = { events += "detach" },
     )
 
-    registration.update(enabled = true, isForeground = true)
-    registration.update(enabled = false, isForeground = true)
-    registration.update(enabled = true, isForeground = true)
-    registration.update(enabled = true, isForeground = false)
+    registration.update(isForeground = true)
+    registration.detach()
+    registration.update(isForeground = true)
+    registration.update(isForeground = false)
     registration.detach()
 
     assertThat(events).isEqualTo(listOf("attach", "detach", "attach", "detach"))

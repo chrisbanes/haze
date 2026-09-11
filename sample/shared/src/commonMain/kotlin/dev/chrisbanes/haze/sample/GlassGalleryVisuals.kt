@@ -160,7 +160,6 @@ internal fun GlassSurface(
       // independently-rasterized rounded boundary and exposes isolated carrier pixels on Skiko.
       .hazeGlass(
         input = HazeInput.Backdrop(hazeState),
-        performanceMode = LocalSamplePerformanceMode.current,
         style = style.material3().then {
           this.shape(shape)
         }.then(interactionStyle),

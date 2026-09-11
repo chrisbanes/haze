@@ -58,6 +58,7 @@ import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.HazeSourceRetention
 import dev.chrisbanes.haze.HazeSourceSelection
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.hazeSource
@@ -66,6 +67,38 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
 class HazeGlassModifierTest : ContextTest() {
+
+  @Test
+  fun performanceMode_inheritsLocalUpdatesAndPreservesExplicitOverride() = runComposeUiTest {
+    val localMode = mutableStateOf<HazePerformanceMode>(HazePerformanceMode.Performance)
+    val factory = RecordingGlassFactory()
+    setContent {
+      CompositionLocalProvider(LocalHazePerformanceMode provides localMode.value) {
+        Box {
+          listOf(null, HazePerformanceMode.Adaptive).forEach { mode ->
+            Spacer(
+              Modifier.size(10.dp).hazeGlass(
+                factory = factory,
+                input = HazeInput.Content,
+                style = GlassStyle,
+                performanceMode = mode,
+                expandLayerBounds = true,
+                interactionSource = null,
+              ),
+            )
+          }
+        }
+      }
+    }
+    waitForIdle()
+    assertThat(factory.effects[0].performanceMode).isEqualTo(HazePerformanceMode.Performance)
+    assertThat(factory.effects[1].performanceMode).isEqualTo(HazePerformanceMode.Adaptive)
+    runOnIdle { localMode.value = HazePerformanceMode.Quality }
+    waitForIdle()
+    assertThat(factory.effects).hasSize(2)
+    assertThat(factory.effects[0].performanceMode).isEqualTo(HazePerformanceMode.Quality)
+    assertThat(factory.effects[1].performanceMode).isEqualTo(HazePerformanceMode.Adaptive)
+  }
 
   @Test
   fun portableStyle_flowsUnchangedThroughFullAndAutomaticFallbackSelection() =

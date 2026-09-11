@@ -3,6 +3,8 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.compositionLocalOf
 import kotlin.jvm.JvmInline
 
 /**
@@ -47,3 +49,11 @@ public sealed interface HazePerformanceMode {
     }
   }
 }
+
+/**
+ * Default rendering-fidelity policy for built-in Blur and Glass effects in this subtree.
+ *
+ * Effects observe changes at their modifier nodes. An explicit performance mode on an effect
+ * takes precedence over this value. Without a provider, effects use [HazePerformanceMode.Default].
+ */
+public val LocalHazePerformanceMode: ProvidableCompositionLocal<HazePerformanceMode> = compositionLocalOf { HazePerformanceMode.Default }

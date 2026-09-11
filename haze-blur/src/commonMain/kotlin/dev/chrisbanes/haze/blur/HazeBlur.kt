@@ -9,6 +9,7 @@ import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
+import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.hazeEffect
 
@@ -21,14 +22,14 @@ import dev.chrisbanes.haze.hazeEffect
  *
  * @param input Source-backed content or this modifier's own content.
  * @param style Explicit Blur Style replayed after [LocalHazeBlurStyle].
- * @param performanceMode Effect-owned rendering-fidelity policy for the Blur runtime.
+ * @param performanceMode Rendering-fidelity policy, or `null` to inherit [LocalHazePerformanceMode].
  * @param expandLayerBounds Whether Blur may expand its capture layer by the resolved radius.
  */
 @Stable
 public fun Modifier.hazeBlur(
   input: HazeInput,
   style: HazeBlurStyle = HazeBlurStyle,
-  performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
+  performanceMode: HazePerformanceMode? = null,
   expandLayerBounds: Boolean = true,
 ): Modifier = hazeEffect(
   factory = HazeBlurFactory,
@@ -40,7 +41,7 @@ public fun Modifier.hazeBlur(
 @Poko
 internal class BlurConfiguration(
   val style: HazeBlurStyle,
-  val performanceMode: HazePerformanceMode,
+  val performanceMode: HazePerformanceMode?,
 )
 
 internal object HazeBlurFactory : HazeEffectFactory<BlurConfiguration> {

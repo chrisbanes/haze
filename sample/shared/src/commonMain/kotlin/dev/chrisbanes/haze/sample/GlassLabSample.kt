@@ -37,7 +37,6 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -73,12 +72,8 @@ import kotlinx.coroutines.launch
 public fun GlassLabSample(navController: NavHostController) {
   var state by remember { mutableStateOf(GlassLabState()) }
   var recordingMode by rememberSaveable { mutableStateOf(false) }
-  val chromeController = LocalSampleChromeController.current
 
-  DisposableEffect(recordingMode, chromeController) {
-    chromeController.updateVisibility(!recordingMode)
-    onDispose { chromeController.updateVisibility(true) }
-  }
+  SampleChromeVisibilityEffect(visible = !recordingMode)
 
   GlassLabSampleContent(
     state = state,

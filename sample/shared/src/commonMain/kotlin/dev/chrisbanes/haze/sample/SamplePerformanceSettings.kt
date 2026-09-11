@@ -19,6 +19,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -34,10 +35,6 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazePerformanceMode
 import kotlin.math.roundToInt
 
-internal val LocalSamplePerformanceMode = compositionLocalOf<HazePerformanceMode> {
-  HazePerformanceMode.Adaptive
-}
-
 internal val LocalSampleChromeController = compositionLocalOf { SampleChromeController() }
 
 @Stable
@@ -50,17 +47,35 @@ internal class SampleChromeController {
   }
 }
 
-internal enum class SamplePerformancePreset(val label: String) {
-  Adaptive("Adaptive"),
-  Performance("Performance"),
-  Balanced("Balanced"),
-  Quality("Quality"),
-  Custom("Custom"),
+@Composable
+internal fun SampleChromeVisibilityEffect(visible: Boolean) {
+  val controller = LocalSampleChromeController.current
+  DisposableEffect(visible, controller) {
+    controller.updateVisibility(visible)
+    onDispose { controller.updateVisibility(true) }
+  }
 }
+
+private val performanceModes = listOf(
+  HazePerformanceMode.Adaptive,
+  HazePerformanceMode.Performance,
+  HazePerformanceMode.Balanced,
+  HazePerformanceMode.Quality,
+  null,
+)
+
+internal val HazePerformanceMode?.sampleLabel: String
+  get() = when (this) {
+    HazePerformanceMode.Adaptive -> "Adaptive"
+    HazePerformanceMode.Performance -> "Performance"
+    HazePerformanceMode.Balanced -> "Balanced"
+    HazePerformanceMode.Quality -> "Quality"
+    else -> "Custom"
+  }
 
 @Stable
 internal class SamplePerformanceSettingsState {
-  var preset by mutableStateOf(SamplePerformancePreset.Adaptive)
+  var selectedMode by mutableStateOf<HazePerformanceMode?>(HazePerformanceMode.Adaptive)
     private set
   var customQuality by mutableStateOf(0.5f)
     private set
@@ -68,21 +83,15 @@ internal class SamplePerformanceSettingsState {
     private set
 
   val performanceMode: HazePerformanceMode
-    get() = when (preset) {
-      SamplePerformancePreset.Adaptive -> HazePerformanceMode.Adaptive
-      SamplePerformancePreset.Performance -> HazePerformanceMode.Performance
-      SamplePerformancePreset.Balanced -> HazePerformanceMode.Balanced
-      SamplePerformancePreset.Quality -> HazePerformanceMode.Quality
-      SamplePerformancePreset.Custom -> HazePerformanceMode.Fixed(customQuality)
-    }
+    get() = selectedMode ?: HazePerformanceMode.Fixed(customQuality)
 
-  fun selectPreset(preset: SamplePerformancePreset) {
-    this.preset = preset
+  fun selectMode(mode: HazePerformanceMode?) {
+    selectedMode = mode
   }
 
   fun updateCustomQuality(value: Float) {
     customQuality = value.coerceIn(0f, 1f)
-    preset = SamplePerformancePreset.Custom
+    selectedMode = null
   }
 
   fun updateMetricsEnabled(enabled: Boolean) {
@@ -114,23 +123,23 @@ internal fun SamplePerformanceSettingsSheet(
           "resolution percentage.",
         style = MaterialTheme.typography.bodyMedium,
       )
-      SamplePerformancePreset.entries.forEach { preset ->
+      performanceModes.forEach { mode ->
         ListItem(
-          headlineContent = { Text(preset.label) },
+          headlineContent = { Text(mode.sampleLabel) },
           leadingContent = {
             RadioButton(
-              selected = state.preset == preset,
+              selected = state.selectedMode == mode,
               onClick = null,
             )
           },
           modifier = Modifier
             .selectable(
-              selected = state.preset == preset,
+              selected = state.selectedMode == mode,
               role = Role.RadioButton,
-              onClick = { state.selectPreset(preset) },
+              onClick = { state.selectMode(mode) },
             )
-            .testTag("sample_performance_${preset.name.lowercase()}")
-            .semantics { contentDescription = "${preset.label} performance mode" },
+            .testTag("sample_performance_${mode.sampleLabel.lowercase()}")
+            .semantics { contentDescription = "${mode.sampleLabel} performance mode" },
         )
       }
       Text("Custom quality: ${state.customQuality.formatFraction()}")

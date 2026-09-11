@@ -8,49 +8,24 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.FrameMetrics
+import android.view.Window
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.nanoseconds
 
 @Composable
 internal actual fun SampleFrameMetricsCollector(
-  enabled: Boolean,
   metrics: SampleFrameMetrics,
 ) {
   val activity = LocalContext.current as? Activity
-  val lifecycle = LocalLifecycleOwner.current.lifecycle
-  var isForeground by remember(lifecycle) {
-    mutableStateOf(lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
-  }
-  DisposableEffect(lifecycle, metrics) {
-    val observer = LifecycleEventObserver { _, event ->
-      when (event) {
-        Lifecycle.Event.ON_START -> {
-          metrics.clear()
-          isForeground = true
-        }
-        Lifecycle.Event.ON_STOP -> {
-          isForeground = false
-          metrics.clear()
-        }
-        else -> Unit
-      }
-    }
-    lifecycle.addObserver(observer)
-    onDispose { lifecycle.removeObserver(observer) }
-  }
+  val isForeground = rememberSampleMetricsForeground(metrics)
   if (androidFrameMetricsSourceForSdk(Build.VERSION.SDK_INT) == SampleFrameMetricsSource.RenderedFrameTiming && activity != null) {
     LaunchedEffect(metrics) { metrics.updateSource(SampleFrameMetricsSource.RenderedFrameTiming) }
-    AndroidFrameMetricsCollector(enabled, activity, isForeground, metrics)
+    AndroidFrameMetricsCollector(activity, isForeground, metrics)
   } else {
     LaunchedEffect(metrics, activity) {
       metrics.updateSource(
@@ -58,46 +33,28 @@ internal actual fun SampleFrameMetricsCollector(
         hostWindowTimingUnavailable = Build.VERSION.SDK_INT >= 24 && activity == null,
       )
     }
-    CadenceFallbackCollector(enabled, isForeground, metrics)
-  }
-}
-
-@Composable
-private fun CadenceFallbackCollector(
-  enabled: Boolean,
-  isForeground: Boolean,
-  metrics: SampleFrameMetrics,
-) {
-  LaunchedEffect(enabled, isForeground, metrics) {
-    if (!enabled || !isForeground) return@LaunchedEffect
-    var previousFrameNanos: Long? = null
-    while (true) {
-      val frameNanos = withFrameNanos { it }
-      val interval = previousFrameNanos?.let { frameNanos - it }
-      previousFrameNanos = frameNanos
-      if (interval != null && interval in 1L..<1_000_000_000L) {
-        metrics.add(timestampNanos = frameNanos, durationNanos = interval)
-      }
-    }
+    SampleFrameCadenceCollector(isForeground, metrics)
   }
 }
 
 @Composable
 private fun AndroidFrameMetricsCollector(
-  enabled: Boolean,
   activity: Activity,
   isForeground: Boolean,
   metrics: SampleFrameMetrics,
 ) {
   val listener = remember(activity.window, metrics) {
-    WindowFrameMetricsListener { durationNanos, deadlineNanos, droppedReports, firstDraw ->
+    Window.OnFrameMetricsAvailableListener { _, frameMetrics, droppedReports ->
       metrics.recordAndroidFrame(
         // System.nanoTime and Compose frame timestamps share Android's monotonic time base.
         timestampNanos = System.nanoTime(),
-        durationNanos = durationNanos,
-        deadlineNanos = deadlineNanos,
+        durationNanos = frameMetrics.getMetric(FrameMetrics.TOTAL_DURATION),
+        deadlineNanos = androidDeadlineNanos(
+          sdkInt = Build.VERSION.SDK_INT,
+          readDeadlineNanos = { frameMetrics.getMetric(FrameMetrics.DEADLINE) },
+        ),
         droppedReports = droppedReports,
-        firstDraw = firstDraw,
+        firstDraw = frameMetrics.getMetric(FrameMetrics.FIRST_DRAW_FRAME) != 0L,
       )
     }
   }
@@ -109,8 +66,8 @@ private fun AndroidFrameMetricsCollector(
       onDetach = { activity.window.removeOnFrameMetricsAvailableListener(listener) },
     )
   }
-  DisposableEffect(enabled, activity.window, isForeground, metrics) {
-    registration.update(enabled = enabled, isForeground = isForeground)
+  DisposableEffect(activity.window, isForeground, metrics) {
+    registration.update(isForeground = isForeground)
     onDispose { registration.detach() }
   }
 }
@@ -121,8 +78,8 @@ internal class AndroidFrameMetricsRegistration(
 ) {
   private var attached = false
 
-  fun update(enabled: Boolean, isForeground: Boolean) {
-    if (enabled && isForeground) attach() else detach()
+  fun update(isForeground: Boolean) {
+    if (isForeground) attach() else detach()
   }
 
   fun detach() {
@@ -148,40 +105,13 @@ internal fun SampleFrameMetrics.recordAndroidFrame(
   firstDraw: Boolean,
 ) {
   if (firstDraw) {
-    if (droppedReports > 0) add(timestampNanos, 0, droppedReports = droppedReports)
+    if (droppedReports > 0) add(timestampNanos, Duration.ZERO, droppedReports = droppedReports)
   } else {
     add(
       timestampNanos = timestampNanos,
-      durationNanos = durationNanos,
+      duration = durationNanos.nanoseconds,
       missedDeadline = deadlineNanos?.let { durationNanos > it },
       droppedReports = droppedReports,
-    )
-  }
-}
-
-private class WindowFrameMetricsListener(
-  private val onFrame: (
-    durationNanos: Long,
-    deadlineNanos: Long?,
-    droppedReports: Int,
-    firstDraw: Boolean,
-  ) -> Unit,
-) : android.view.Window.OnFrameMetricsAvailableListener {
-  override fun onFrameMetricsAvailable(
-    window: android.view.Window,
-    frameMetrics: FrameMetrics,
-    dropCountSinceLastInvocation: Int,
-  ) {
-    val durationNanos = frameMetrics.getMetric(FrameMetrics.TOTAL_DURATION)
-    val deadlineNanos = androidDeadlineNanos(
-      sdkInt = Build.VERSION.SDK_INT,
-      readDeadlineNanos = { frameMetrics.getMetric(FrameMetrics.DEADLINE) },
-    )
-    onFrame(
-      durationNanos,
-      deadlineNanos,
-      dropCountSinceLastInvocation,
-      frameMetrics.getMetric(FrameMetrics.FIRST_DRAW_FRAME) != 0L,
     )
   }
 }

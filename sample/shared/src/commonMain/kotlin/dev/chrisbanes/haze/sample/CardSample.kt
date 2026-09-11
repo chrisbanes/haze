@@ -38,7 +38,6 @@ fun CreditCardSample(
                 .clip(shape)
                 .hazeBlur(
                   input = HazeInput.Backdrop(hazeState),
-                  performanceMode = LocalSamplePerformanceMode.current,
                   style = HazeBlurStyle {
                     backgroundColor(Color.Black)
                     colorEffects(listOf(HazeColorEffect.tint(Color.Yellow.copy(alpha = 0.4f))))
@@ -50,7 +49,6 @@ fun CreditCardSample(
               Modifier
                 .hazeGlass(
                   input = HazeInput.Backdrop(hazeState),
-                  performanceMode = LocalSamplePerformanceMode.current,
                   style = GlassStyle.regular.then {
                     backgroundColor(glassBackgroundColor)
                     tint(Color.Yellow.copy(alpha = 0.18f))

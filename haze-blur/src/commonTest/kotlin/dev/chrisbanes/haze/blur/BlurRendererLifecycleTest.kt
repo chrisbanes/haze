@@ -20,6 +20,7 @@ import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
+import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.TrimMemoryLevel
 import kotlin.coroutines.EmptyCoroutineContext
@@ -27,6 +28,25 @@ import kotlin.test.Test
 import kotlinx.coroutines.CoroutineScope
 
 class BlurRendererLifecycleTest {
+
+  @Test
+  fun performanceMode_inheritsLocalUpdatesAndPreservesExplicitOverride() {
+    var localMode: HazePerformanceMode = HazePerformanceMode.Default
+    val scope = object : HazeEffectLifecycleScope by BlurTestLifecycleScope {
+      @Suppress("UNCHECKED_CAST")
+      override fun <T> currentValueOf(local: CompositionLocal<T>): T =
+        if (local === LocalHazePerformanceMode) localMode as T else BlurTestLifecycleScope.currentValueOf(local)
+    }
+    val renderer = BlurVisualEffect()
+    val inherited = BlurConfiguration(HazeBlurStyle, null)
+    renderer.update(scope, inherited, HazeSampling.Default)
+    assertThat(renderer.performanceMode).isEqualTo(HazePerformanceMode.Adaptive)
+    localMode = HazePerformanceMode.Quality
+    renderer.update(scope, inherited, HazeSampling.Default)
+    assertThat(renderer.performanceMode).isEqualTo(HazePerformanceMode.Quality)
+    renderer.update(scope, BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Adaptive), HazeSampling.Default)
+    assertThat(renderer.performanceMode).isEqualTo(HazePerformanceMode.Adaptive)
+  }
 
   @Test
   fun styleReplacement_reusesRendererAndReconfiguresResolvedStyle() {

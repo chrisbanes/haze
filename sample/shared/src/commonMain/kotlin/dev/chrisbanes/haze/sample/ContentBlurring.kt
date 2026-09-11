@@ -106,7 +106,6 @@ fun ContentBlurring(
             when (effect) {
               SampleEffect.Blur -> Modifier.hazeBlur(
                 input = HazeInput.Content,
-                performanceMode = LocalSamplePerformanceMode.current,
                 style = HazeMaterials.ultraThin().then {
                   backgroundColor(Color.Transparent)
                   blurredEdgeTreatment(
@@ -123,7 +122,6 @@ fun ContentBlurring(
                 Modifier
                   .hazeGlass(
                     input = HazeInput.Content,
-                    performanceMode = LocalSamplePerformanceMode.current,
                     style = GlassStyle.regular.then {
                       backgroundColor(glassBackgroundColor)
                       tint(Color.White.copy(alpha = 0.14f))

@@ -20,12 +20,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazePerformanceMode
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.DurationUnit
 import kotlinx.coroutines.delay
 
 @Composable
 internal fun SampleMetricsOverlay(
-  mode: SamplePerformancePreset,
+  isCustom: Boolean = false,
   performanceMode: HazePerformanceMode,
   metrics: SampleFrameMetrics,
   modifier: Modifier = Modifier,
@@ -52,8 +54,8 @@ internal fun SampleMetricsOverlay(
       .testTag("sample_metrics_overlay"),
   ) {
     Text(
-      "$label · ${mode.label}${
-        if (mode == SamplePerformancePreset.Custom) performanceMode.customFractionLabel() else ""
+      "$label · ${if (isCustom) "Custom" else performanceMode.sampleLabel}${
+        if (isCustom) performanceMode.customFractionLabel() else ""
       }",
       color = MaterialTheme.colorScheme.inverseOnSurface,
     )
@@ -61,8 +63,8 @@ internal fun SampleMetricsOverlay(
       Text("Collecting…", color = MaterialTheme.colorScheme.inverseOnSurface)
     } else {
       Text(
-        "${summary.sampleCount} samples · mean ${summary.meanNanos.toMillis()} · " +
-          "P95 ${summary.p95Nanos.toMillis()}",
+        "${summary.sampleCount} samples · mean ${summary.meanDuration.toMillis()} · " +
+          "P95 ${summary.p95Duration.toMillis()}",
         color = MaterialTheme.colorScheme.inverseOnSurface,
       )
       summary.deadlineMisses?.let { misses ->
@@ -105,7 +107,4 @@ private fun HazePerformanceMode.customFractionLabel(): String = when (this) {
   HazePerformanceMode.Adaptive -> ""
 }
 
-private fun Long?.toMillis(): String = this?.let { nanos ->
-  val tenths = nanos / 100_000L
-  "${tenths / 10}.${tenths % 10} ms"
-} ?: "no data"
+private fun Duration?.toMillis(): String = this?.toString(DurationUnit.MILLISECONDS, decimals = 1) ?: "no data"

@@ -8,6 +8,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isNull
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlin.time.Duration.Companion.nanoseconds
 
 class SampleFrameMetricsTest : ContextTest() {
   @Test
@@ -17,28 +18,28 @@ class SampleFrameMetricsTest : ContextTest() {
     val summary = metrics.summary(nowNanos = 0)
 
     assertThat(summary.sampleCount).isEqualTo(0)
-    assertThat(summary.meanNanos).isNull()
-    assertThat(summary.p95Nanos).isNull()
+    assertThat(summary.meanDuration).isNull()
+    assertThat(summary.p95Duration).isNull()
   }
 
   @Test
   fun summary_evictsOldSamplesAndCalculatesP95() {
     val metrics = SampleFrameMetrics(SampleFrameMetricsSource.FrameCadence)
-    metrics.add(timestampNanos = 1_000_000_000, durationNanos = 10)
-    metrics.add(timestampNanos = 2_500_000_000, durationNanos = 30)
-    metrics.add(timestampNanos = 2_600_000_000, durationNanos = 20)
+    metrics.add(timestampNanos = 1_000_000_000, duration = 10.nanoseconds)
+    metrics.add(timestampNanos = 2_500_000_000, duration = 30.nanoseconds)
+    metrics.add(timestampNanos = 2_600_000_000, duration = 20.nanoseconds)
 
     val summary = metrics.summary(nowNanos = 3_000_000_000)
 
     assertThat(summary.sampleCount).isEqualTo(2)
-    assertThat(summary.meanNanos).isEqualTo(25)
-    assertThat(summary.p95Nanos).isEqualTo(30)
+    assertThat(summary.meanDuration).isEqualTo(25.nanoseconds)
+    assertThat(summary.p95Duration).isEqualTo(30.nanoseconds)
   }
 
   @Test
   fun invalidDuration_isIgnoredButReportLossIsRetained() {
     val metrics = SampleFrameMetrics(SampleFrameMetricsSource.RenderedFrameTiming)
-    metrics.add(timestampNanos = 10, durationNanos = 0, droppedReports = 2)
+    metrics.add(timestampNanos = 10, duration = 0.nanoseconds, droppedReports = 2)
 
     val summary = metrics.summary(nowNanos = 10)
 
@@ -49,7 +50,7 @@ class SampleFrameMetricsTest : ContextTest() {
   @Test
   fun clear_resetsSamplesAndLostReportsForModeOrDestinationChanges() {
     val metrics = SampleFrameMetrics(SampleFrameMetricsSource.FrameCadence)
-    metrics.add(timestampNanos = 10, durationNanos = 10, droppedReports = 1)
+    metrics.add(timestampNanos = 10, duration = 10.nanoseconds, droppedReports = 1)
     metrics.clear()
 
     val summary = metrics.summary(nowNanos = 10)

@@ -17,6 +17,7 @@ import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isEqualTo
 import dev.chrisbanes.haze.HazePerformanceMode
+import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
@@ -143,7 +144,7 @@ class SamplesAndroidTest : ContextTest() {
     title = title,
     effects = listOf(SampleEffect.Blur),
   ) { _, _ ->
-    val mode = LocalSamplePerformanceMode.current
+    val mode = LocalHazePerformanceMode.current
     Text(
       text = mode.toString(),
       modifier = Modifier.testTag(

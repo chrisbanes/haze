@@ -211,6 +211,11 @@ package dev.chrisbanes.haze {
     property public float qualityFraction;
   }
 
+  public final class HazePerformanceModeKt {
+    method @InaccessibleFromKotlin public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.HazePerformanceMode> getLocalHazePerformanceMode();
+    property public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.HazePerformanceMode> LocalHazePerformanceMode;
+  }
+
   @androidx.compose.runtime.Immutable public sealed exhaustive interface HazeProgressive {
     field public static final dev.chrisbanes.haze.HazeProgressive.Companion Companion;
   }

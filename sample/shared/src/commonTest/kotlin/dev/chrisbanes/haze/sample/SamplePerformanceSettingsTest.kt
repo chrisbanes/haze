@@ -30,8 +30,8 @@ class SamplePerformanceSettingsTest : ContextTest() {
     val settings = SamplePerformanceSettingsState()
 
     settings.updateCustomQuality(0.7f)
-    settings.selectPreset(SamplePerformancePreset.Quality)
-    settings.selectPreset(SamplePerformancePreset.Custom)
+    settings.selectMode(HazePerformanceMode.Quality)
+    settings.selectMode(null)
 
     assertThat(settings.performanceMode).isEqualTo(HazePerformanceMode.Fixed(0.7f))
   }

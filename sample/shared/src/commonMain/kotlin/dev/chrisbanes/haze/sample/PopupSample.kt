@@ -93,13 +93,11 @@ fun PopupSample(navController: NavHostController, effect: SampleEffect) {
               when (effect) {
                 SampleEffect.Blur -> Modifier.hazeBlur(
                   input = HazeInput.Sources(hazeState),
-                  performanceMode = LocalSamplePerformanceMode.current,
                   style = HazeMaterials.regular(),
                 )
 
                 SampleEffect.Glass -> Modifier.hazeGlass(
                   input = HazeInput.Sources(hazeState),
-                  performanceMode = LocalSamplePerformanceMode.current,
                   style = GlassStyle.regular.then {
                     backgroundColor(glassBackgroundColor)
                     tint(glassTint)

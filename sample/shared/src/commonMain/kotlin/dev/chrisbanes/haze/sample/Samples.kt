@@ -61,6 +61,7 @@ import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.LocalHazeBlurStyle
 
@@ -319,7 +320,7 @@ fun Samples(
   SamplesTheme(useDarkColors = useDarkColors) {
     CompositionLocalProvider(
       LocalHazeBlurStyle provides localBlurStyle,
-      LocalSamplePerformanceMode provides settings.performanceMode,
+      LocalHazePerformanceMode provides settings.performanceMode,
       LocalSampleChromeController provides chromeController,
     ) {
       Box(Modifier.fillMaxSize()) {
@@ -382,10 +383,10 @@ fun Samples(
           }
         }
         if (settings.metricsEnabled && !profilingRoute) {
-          SampleFrameMetricsCollector(enabled = true, metrics = metrics)
+          SampleFrameMetricsCollector(metrics = metrics)
           if (chromeController.isVisible) {
             SampleMetricsOverlay(
-              mode = settings.preset,
+              isCustom = settings.selectedMode == null,
               performanceMode = settings.performanceMode,
               metrics = metrics,
               modifier = Modifier

@@ -10,6 +10,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlin.time.Duration.Companion.nanoseconds
 
 @OptIn(ExperimentalTestApi::class)
 class SampleMetricsOverlayTest : ContextTest() {
@@ -19,7 +20,6 @@ class SampleMetricsOverlayTest : ContextTest() {
 
     setContent {
       SampleMetricsOverlay(
-        mode = SamplePerformancePreset.Adaptive,
         performanceMode = HazePerformanceMode.Adaptive,
         metrics = metrics,
       )
@@ -31,11 +31,11 @@ class SampleMetricsOverlayTest : ContextTest() {
   @Test
   fun overlay_labelsWindowTimingAndUnavailableDeadlineData() = runComposeUiTest {
     val metrics = SampleFrameMetrics(SampleFrameMetricsSource.RenderedFrameTiming)
-    metrics.add(timestampNanos = 1L, durationNanos = 10L)
+    metrics.add(timestampNanos = 1L, duration = 10.nanoseconds)
 
     setContent {
       SampleMetricsOverlay(
-        mode = SamplePerformancePreset.Custom,
+        isCustom = true,
         performanceMode = HazePerformanceMode.Fixed(0.7f),
         metrics = metrics,
       )
@@ -55,7 +55,6 @@ class SampleMetricsOverlayTest : ContextTest() {
 
     setContent {
       SampleMetricsOverlay(
-        mode = SamplePerformancePreset.Adaptive,
         performanceMode = HazePerformanceMode.Adaptive,
         metrics = metrics,
       )

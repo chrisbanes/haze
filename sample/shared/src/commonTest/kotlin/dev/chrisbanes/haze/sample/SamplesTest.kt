@@ -57,19 +57,6 @@ class SamplesTest : ContextTest() {
     ).isEqualTo(
       listOf("Scaffold", "Scaffold (progressive blur)", "Scaffold (masked)"),
     )
-    assertThat(
-      listOf(
-        Sample.Scaffold,
-        Sample.ScaffoldProgressive,
-        Sample.ScaffoldMasked,
-      ).map(Sample::title),
-    ).isEqualTo(
-      listOf(
-        "Scaffold",
-        "Scaffold (progressive blur)",
-        "Scaffold (masked)",
-      ),
-    )
   }
 
   @Test
