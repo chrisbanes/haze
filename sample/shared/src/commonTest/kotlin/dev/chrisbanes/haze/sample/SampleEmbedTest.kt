@@ -12,18 +12,45 @@ import kotlin.test.Test
 class SampleEmbedTest : ContextTest() {
   @Test
   fun resolver_withoutEmbedFlag_startsTheNormalApp() {
-    assertThat(resolveSampleEmbed(emptyMap(), CommonSamples)).isEqualTo(SampleEmbedRequest.Normal)
+    assertThat(resolveSampleLaunch(emptyMap(), CommonSamples)).isEqualTo(SampleLaunchRequest.Normal)
+    assertThat(resolveSampleLaunch(mapOf("embed" to "false"), CommonSamples))
+      .isEqualTo(SampleLaunchRequest.Normal)
+  }
+
+  @Test
+  fun resolver_selectionWithoutEmbedding_retainsNavigationAndTheme() {
+    val selection = mapOf("sample" to "glass-product", "effect" to "glass", "theme" to "dark")
+    listOf(selection, selection + ("embed" to "false")).forEach { query ->
+      assertThat(resolveSampleLaunch(query, CommonSamples)).isEqualTo(
+        SampleLaunchRequest.Selected(Sample.GlassProduct, SampleEffect.Glass, SampleEmbedTheme.Dark, embedded = false),
+      )
+    }
+  }
+
+  @Test
+  fun resolver_invalidNavigationSelection_showsAnError() {
+    listOf(
+      mapOf("sample" to "glass-product"),
+      mapOf("effect" to "glass"),
+      mapOf("sample" to "missing", "effect" to "glass"),
+      mapOf("sample" to "glass-product", "effect" to "blur"),
+      mapOf("sample" to "glass-product", "effect" to "glass", "theme" to "blue"),
+    ).forEach { query ->
+      listOf(query, query + ("embed" to "false")).forEach {
+        assertThat(resolveSampleLaunch(it, CommonSamples)).isInstanceOf<SampleLaunchRequest.Invalid>()
+      }
+    }
   }
 
   @Test
   fun resolver_validSelection_selectsTheRequestedSampleEffectAndTheme() {
     assertThat(
-      resolveSampleEmbed(
+      resolveSampleLaunch(
         mapOf("embed" to "true", "sample" to "scaffold", "effect" to "glass", "theme" to "dark"),
         CommonSamples,
       ),
     ).isEqualTo(
-      SampleEmbedRequest.Embedded(Sample.Scaffold, SampleEffect.Glass, SampleEmbedTheme.Dark),
+      SampleLaunchRequest.Selected(Sample.Scaffold, SampleEffect.Glass, SampleEmbedTheme.Dark),
     )
   }
 
@@ -32,11 +59,11 @@ class SampleEmbedTest : ContextTest() {
     CommonSamples.forEach { sample ->
       sample.effects.forEach { effect ->
         assertThat(
-          resolveSampleEmbed(
+          resolveSampleLaunch(
             mapOf("embed" to "true", "sample" to sample.route, "effect" to effect.name.lowercase()),
             CommonSamples,
           ),
-        ).isEqualTo(SampleEmbedRequest.Embedded(sample, effect, SampleEmbedTheme.System))
+        ).isEqualTo(SampleLaunchRequest.Selected(sample, effect, SampleEmbedTheme.System))
       }
     }
   }
@@ -50,25 +77,25 @@ class SampleEmbedTest : ContextTest() {
       mapOf("embed" to "true", "sample" to "missing", "effect" to "blur"),
       mapOf("embed" to "true", "sample" to "blur", "effect" to "missing"),
       mapOf("embed" to "true", "sample" to "blur", "effect" to "glass"),
-      mapOf("embed" to "false", "sample" to "blur", "effect" to "blur"),
+      mapOf("embed" to "invalid", "sample" to "blur", "effect" to "blur"),
     ).forEach { query ->
-      assertThat(resolveSampleEmbed(query, listOf(blurOnly))).isInstanceOf<SampleEmbedRequest.Invalid>()
+      assertThat(resolveSampleLaunch(query, listOf(blurOnly))).isInstanceOf<SampleLaunchRequest.Invalid>()
     }
   }
 
   @Test
   fun resolver_usesSystemThemeByDefaultAndAcceptsEveryTheme() {
     val query = mapOf("embed" to "true", "sample" to "scaffold", "effect" to "blur")
-    assertThat(resolveSampleEmbed(query, CommonSamples))
-      .isEqualTo(SampleEmbedRequest.Embedded(Sample.Scaffold, SampleEffect.Blur, SampleEmbedTheme.System))
+    assertThat(resolveSampleLaunch(query, CommonSamples))
+      .isEqualTo(SampleLaunchRequest.Selected(Sample.Scaffold, SampleEffect.Blur, SampleEmbedTheme.System))
 
     mapOf("system" to SampleEmbedTheme.System, "light" to SampleEmbedTheme.Light, "dark" to SampleEmbedTheme.Dark)
       .forEach { (theme, expected) ->
-        assertThat(resolveSampleEmbed(query + ("theme" to theme), CommonSamples))
-          .isEqualTo(SampleEmbedRequest.Embedded(Sample.Scaffold, SampleEffect.Blur, expected))
+        assertThat(resolveSampleLaunch(query + ("theme" to theme), CommonSamples))
+          .isEqualTo(SampleLaunchRequest.Selected(Sample.Scaffold, SampleEffect.Blur, expected))
       }
 
-    assertThat(resolveSampleEmbed(query + ("theme" to "blue"), CommonSamples))
-      .isInstanceOf<SampleEmbedRequest.Invalid>()
+    assertThat(resolveSampleLaunch(query + ("theme" to "blue"), CommonSamples))
+      .isInstanceOf<SampleLaunchRequest.Invalid>()
   }
 }

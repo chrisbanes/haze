@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,13 +18,25 @@ import androidx.compose.ui.window.ComposeViewport
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
-  val request = resolveSampleEmbed(sampleEmbedQuery(), Samples)
+  val request = resolveSampleLaunch(sampleEmbedQuery(), Samples)
   ComposeViewport(viewportContainerId = "Sample") {
     PageLoadNotify()
     when (request) {
-      SampleEmbedRequest.Normal -> Samples("Haze Samples")
-      is SampleEmbedRequest.Embedded -> EmbeddedSample(request)
-      is SampleEmbedRequest.Invalid -> InvalidSampleEmbed()
+      SampleLaunchRequest.Normal -> Samples("Haze Samples")
+      is SampleLaunchRequest.Selected -> if (request.embedded) {
+        EmbeddedSample(request)
+      } else {
+        Samples(
+          appTitle = "Haze Samples",
+          initialSelection = request,
+          useDarkColors = when (request.theme) {
+            SampleEmbedTheme.System -> isSystemInDarkTheme()
+            SampleEmbedTheme.Light -> false
+            SampleEmbedTheme.Dark -> true
+          },
+        )
+      }
+      is SampleLaunchRequest.Invalid -> InvalidSampleEmbed()
     }
   }
 }
@@ -46,7 +59,7 @@ private fun InvalidSampleEmbed() {
         verticalArrangement = Arrangement.Center,
         modifier = Modifier.fillMaxSize(),
       ) {
-        Text("Invalid sample embed")
+        Text("Invalid sample link")
         Text("Check the sample and effect query parameters.")
       }
     }

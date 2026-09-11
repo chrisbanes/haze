@@ -26,52 +26,57 @@ public enum class SampleEmbedTheme {
   Dark,
 }
 
-public sealed interface SampleEmbedRequest {
-  public data object Normal : SampleEmbedRequest
+public sealed interface SampleLaunchRequest {
+  public data object Normal : SampleLaunchRequest
 
   @Poko
-  public class Embedded(
+  public class Selected(
     val sample: Sample,
     val effect: SampleEffect,
     val theme: SampleEmbedTheme,
-  ) : SampleEmbedRequest
+    val embedded: Boolean = true,
+  ) : SampleLaunchRequest
 
   @Poko
-  public class Invalid(val message: String) : SampleEmbedRequest
+  public class Invalid(val message: String) : SampleLaunchRequest
 }
 
-public fun resolveSampleEmbed(
+public fun resolveSampleLaunch(
   query: Map<String, String>,
   samples: List<Sample>,
-): SampleEmbedRequest {
-  if ("embed" !in query) return SampleEmbedRequest.Normal
-  if (query["embed"] != "true") return SampleEmbedRequest.Invalid("embed must be true")
+): SampleLaunchRequest {
+  val embedded = when (query["embed"]) {
+    "true" -> true
+    null, "false" -> false
+    else -> return SampleLaunchRequest.Invalid("embed must be true or false")
+  }
+  if (!embedded && "sample" !in query && "effect" !in query) return SampleLaunchRequest.Normal
 
-  val route = query["sample"] ?: return SampleEmbedRequest.Invalid("sample is required")
+  val route = query["sample"] ?: return SampleLaunchRequest.Invalid("sample is required")
   val effect = when (query["effect"]) {
     "blur" -> SampleEffect.Blur
     "glass" -> SampleEffect.Glass
-    null -> return SampleEmbedRequest.Invalid("effect is required")
-    else -> return SampleEmbedRequest.Invalid("effect is invalid")
+    null -> return SampleLaunchRequest.Invalid("effect is required")
+    else -> return SampleLaunchRequest.Invalid("effect is invalid")
   }
   val theme = when (query["theme"]) {
     null, "system" -> SampleEmbedTheme.System
     "light" -> SampleEmbedTheme.Light
     "dark" -> SampleEmbedTheme.Dark
-    else -> return SampleEmbedRequest.Invalid("theme is invalid")
+    else -> return SampleLaunchRequest.Invalid("theme is invalid")
   }
   val sample = samples.firstOrNull { it.route == route }
-    ?: return SampleEmbedRequest.Invalid("sample is invalid")
-  if (effect !in sample.effects) return SampleEmbedRequest.Invalid("effect is unsupported for sample")
+    ?: return SampleLaunchRequest.Invalid("sample is invalid")
+  if (effect !in sample.effects) return SampleLaunchRequest.Invalid("effect is unsupported for sample")
 
-  return SampleEmbedRequest.Embedded(sample, effect, theme)
+  return SampleLaunchRequest.Selected(sample, effect, theme, embedded)
 }
 
 internal val LocalSampleNavigationEnabled = staticCompositionLocalOf { true }
 
 @Composable
 public fun EmbeddedSample(
-  request: SampleEmbedRequest.Embedded,
+  request: SampleLaunchRequest.Selected,
   modifier: Modifier = Modifier,
 ) {
   val useDarkColors = when (request.theme) {

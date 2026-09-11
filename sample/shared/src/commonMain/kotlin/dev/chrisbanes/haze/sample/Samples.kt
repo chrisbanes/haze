@@ -35,8 +35,12 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -352,6 +356,7 @@ fun Samples(
   samples: List<Sample> = Samples,
   forceBlur: Boolean = false,
   useDarkColors: Boolean = isSystemInDarkTheme(),
+  initialSelection: SampleLaunchRequest.Selected? = null,
 ) {
   val coilPlatformContext = LocalPlatformContext.current
   val inspectionMode = LocalInspectionMode.current
@@ -432,6 +437,16 @@ fun Samples(
               )
             }
           }
+        }
+      }
+      var initialSelectionApplied by rememberSaveable { mutableStateOf(false) }
+      LaunchedEffect(navController, initialSelection) {
+        if (!initialSelectionApplied) {
+          initialSelection?.let { selection ->
+            navController.navigate(selection.effect.route())
+            navController.navigate(selection.sample.route(selection.effect))
+          }
+          initialSelectionApplied = true
         }
       }
     }
