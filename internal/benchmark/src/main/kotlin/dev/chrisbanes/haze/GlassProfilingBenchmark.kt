@@ -7,6 +7,7 @@ import androidx.benchmark.macro.CompilationMode
 import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -53,6 +54,24 @@ class GlassProfilingBenchmark {
   fun stablePerformance() = measureCalibrationScenario("stable_performance")
 
   @Test
+  fun stableFixed0() = measureCalibrationScenario("stable_fixed_0")
+
+  @Test
+  fun stableFixed25() = measureCalibrationScenario("stable_fixed_25")
+
+  @Test
+  fun stableFixed33() = measureCalibrationScenario("stable_fixed_33")
+
+  @Test
+  fun stableFixed50() = measureCalibrationScenario("stable_fixed_50")
+
+  @Test
+  fun stableFixed75() = measureCalibrationScenario("stable_fixed_75")
+
+  @Test
+  fun stableFixed100() = measureCalibrationScenario("stable_fixed_100")
+
+  @Test
   fun sourceUpdateAdaptive() = measureCalibrationScenario("source_update_adaptive")
 
   @Test
@@ -72,6 +91,24 @@ class GlassProfilingBenchmark {
 
   @Test
   fun sourceUpdatePerformance() = measureCalibrationScenario("source_update_performance")
+
+  @Test
+  fun sourceUpdateFixed0() = measureCalibrationScenario("source_update_fixed_0")
+
+  @Test
+  fun sourceUpdateFixed25() = measureCalibrationScenario("source_update_fixed_25")
+
+  @Test
+  fun sourceUpdateFixed33() = measureCalibrationScenario("source_update_fixed_33")
+
+  @Test
+  fun sourceUpdateFixed50() = measureCalibrationScenario("source_update_fixed_50")
+
+  @Test
+  fun sourceUpdateFixed75() = measureCalibrationScenario("source_update_fixed_75")
+
+  @Test
+  fun sourceUpdateFixed100() = measureCalibrationScenario("source_update_fixed_100")
 
   @Test
   fun steadyFull3() = measureScenario("steady_full_3")
@@ -202,7 +239,11 @@ class GlassProfilingBenchmark {
       startupMode = StartupMode.WARM,
       iterations = GLASS_BENCHMARK_ITERATIONS,
       setupBlock = {
-        startActivityAndWait()
+        startActivityAndWait { intent ->
+          InstrumentationRegistry.getArguments().getString("haze.cpuAffinityMask")?.let { mask ->
+            intent.putExtra("dev.chrisbanes.haze.sample.android.BENCHMARK_CPU_AFFINITY", mask)
+          }
+        }
         device.navigateToGlassProfiling(scenarioId)
       },
     ) {

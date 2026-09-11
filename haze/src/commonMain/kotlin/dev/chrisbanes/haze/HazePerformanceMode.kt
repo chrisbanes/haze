@@ -11,8 +11,7 @@ import kotlin.jvm.JvmInline
  * Rendering-fidelity policies used by built-in Haze effects.
  *
  * [Default] is [Adaptive]. [Quality] replaces the previous built-in full-resolution choice.
- * Previous built-in fixed input-pixel fractions do not have a direct performance-mode equivalent;
- * remeasure an explicit [Fixed] choice for the effect and layout that you support.
+ * [Fixed] lets you choose a quality level instead of adjusting quality automatically.
  */
 public sealed interface HazePerformanceMode {
   /** Library-defined performance defaults. */
@@ -23,7 +22,7 @@ public sealed interface HazePerformanceMode {
     /** Requests the highest rendering fidelity. */
     public val Quality: HazePerformanceMode = Fixed(1f)
 
-    /** Requests balanced rendering fidelity. */
+    /** Offers a middle ground between visual detail and rendering cost. */
     public val Balanced: HazePerformanceMode = Fixed(0.5f)
 
     /** Requests the lowest supported rendering fidelity. */
@@ -36,9 +35,15 @@ public sealed interface HazePerformanceMode {
   public data object Adaptive : HazePerformanceMode
 
   /**
-   * Requests a fixed rendering quality fraction.
+   * Requests a quality level that stays fixed instead of adjusting automatically.
    *
-   * @param qualityFraction The overall rendering-fidelity fraction, in the range 0 <= x <= 1.
+   * Lower values prioritise rendering performance; higher values prioritise visual detail.
+   * If an effect looks too pixelated, try a higher value and check that scrolling and animations
+   * remain smooth on the devices you support. Appearance and cost depend on the effect, surface
+   * size, and device.
+   *
+   * @param qualityFraction The quality level, from `0f` (lowest supported quality) to `1f`
+   * (highest supported quality). Must be finite and within this range.
    */
   @JvmInline
   public value class Fixed(public val qualityFraction: Float) : HazePerformanceMode {

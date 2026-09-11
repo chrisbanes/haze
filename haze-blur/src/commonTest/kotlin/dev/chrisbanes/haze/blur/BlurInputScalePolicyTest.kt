@@ -6,16 +6,27 @@ package dev.chrisbanes.haze.blur
 import androidx.compose.ui.geometry.Size
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
+import kotlin.math.sqrt
 import kotlin.test.Test
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TestTimeSource
 
 class BlurInputScalePolicyTest {
+
+  @Test
+  fun fixedQuality_interpolatesTotalPixelsAcrossSupportedRange() {
+    for (step in 0..100) {
+      val quality = step / 100f
+      val scale = BlurInputScalePolicy().resolve(HazePerformanceMode.Fixed(quality), 60f, Size(1000f, 1000f))
+      assertThat(scale * scale).isCloseTo(0.25f + 0.75f * quality, 0.000001f)
+    }
+  }
 
   @Test
   fun progressiveLayeredRoute_requiresFullResolutionLinearGradient() {
@@ -67,7 +78,7 @@ class BlurInputScalePolicyTest {
         blurRadiusPx = BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
         layerSize = largeWorkload,
       ),
-    ).isEqualTo(0.8f)
+    ).isEqualTo(sqrt(0.625f))
     assertThat(
       policy.resolve(
         HazePerformanceMode.Performance,
@@ -105,7 +116,7 @@ class BlurInputScalePolicyTest {
         blurRadiusPx = BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
         layerSize = Size(1000f, 1000f),
       ),
-    ).isEqualTo(0.8f)
+    ).isEqualTo(sqrt(0.625f))
   }
 
   @Test
@@ -119,50 +130,7 @@ class BlurInputScalePolicyTest {
       )
     }
 
-    assertThat(profiles).containsExactly(0.5f, 0.8f, 0.8f, 1f, 1f)
-  }
-
-  @Test
-  fun adaptiveTiers_resolveThroughTheSameFixedProfiles() {
-    val small = Size(1f, 1f)
-    val balanced = Size(BlurInputScalePolicy.BALANCED_AREA_PX, 1f)
-    val aggressive = Size(BlurInputScalePolicy.AGGRESSIVE_AREA_PX, 1f)
-
-    assertThat(
-      BlurInputScalePolicy().resolve(
-        HazePerformanceMode.Adaptive,
-        blurRadiusPx = 1f,
-        layerSize = small,
-      ),
-    ).isEqualTo(
-      BlurInputScalePolicy().resolve(HazePerformanceMode.Quality, 1f, small),
-    )
-    assertThat(
-      BlurInputScalePolicy().resolve(
-        HazePerformanceMode.Adaptive,
-        blurRadiusPx = BlurInputScalePolicy.BALANCED_RADIUS_PX,
-        layerSize = balanced,
-      ),
-    ).isEqualTo(
-      BlurInputScalePolicy().resolve(
-        HazePerformanceMode.Balanced,
-        BlurInputScalePolicy.BALANCED_RADIUS_PX,
-        balanced,
-      ),
-    )
-    assertThat(
-      BlurInputScalePolicy().resolve(
-        HazePerformanceMode.Adaptive,
-        blurRadiusPx = BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
-        layerSize = aggressive,
-      ),
-    ).isEqualTo(
-      BlurInputScalePolicy().resolve(
-        HazePerformanceMode.Performance,
-        BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
-        aggressive,
-      ),
-    )
+    assertThat(profiles).containsExactly(0.5f, sqrt(0.4375f), sqrt(0.625f), sqrt(0.8125f), 1f)
   }
 
   @Test

@@ -86,6 +86,19 @@ nine-effect variants. `source_update_adaptive`, `source_update_quality`,
 `source_update_balanced`, and `source_update_performance` are the controlled changing-input
 calibration rows. The default steady scenario additionally has a three-effect variant.
 
+### Fixed-quality sweep
+
+The Glass-only fixed-quality sweep measures one regular-style effect at each requested
+`HazePerformanceMode.Fixed` input level: `0`, `0.25`, `1/3`, `0.5`, `0.75`, and `1`. It runs the
+same six levels under both the stable source workload (`stable_fixed_*`) and the continuously
+changing source workload (`source_update_fixed_*`). These rows retain the calibration geometry and
+metrics, so their results can be compared within each workload without changing style or effect
+count.
+
+The input levels are benchmark labels. Interpret their resolution using the Glass implementation
+under test and preserve its build identity with the result. The sweep does not establish a public
+minimum-resolution guarantee.
+
 ## Validate automation
 
 Run the Blur and Glass calibration automation without meaningful measurements:
@@ -107,6 +120,48 @@ adb shell cmd power set-fixed-performance-mode-enabled true
 ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurStableAdaptive,dev.chrisbanes.haze.BenchmarkTest#blurStableQuality,dev.chrisbanes.haze.BenchmarkTest#blurStableBalanced,dev.chrisbanes.haze.BenchmarkTest#blurStablePerformance,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateAdaptive,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateQuality,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateBalanced,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdatePerformance,dev.chrisbanes.haze.GlassProfilingBenchmark#stableAdaptive,dev.chrisbanes.haze.GlassProfilingBenchmark#stableQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#stableBalanced,dev.chrisbanes.haze.GlassProfilingBenchmark#stablePerformance,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateAdaptive,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateBalanced,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdatePerformance
 adb shell cmd power set-fixed-performance-mode-enabled false
+```
+
+## Run the fixed-quality sweep
+
+Run each Glass fixed-quality method explicitly and verify its result label. A combined selector
+can execute only the first method on some runner/tooling combinations; a successful Gradle exit
+alone does not establish complete coverage. First run the loop with
+`-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true` added to
+validate all twelve cases without treating those runs as measurements.
+
+```shell
+adb shell cmd power set-fixed-performance-mode-enabled true
+for level in 0 25 33 50 75 100; do
+  for workload in stable sourceUpdate; do
+    ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
+      -Pandroid.testInstrumentationRunnerArguments.class="dev.chrisbanes.haze.GlassProfilingBenchmark#${workload}Fixed${level}"
+    # Preserve this method's JSON and traces before the next invocation replaces output files.
+  done
+done
+adb shell cmd power set-fixed-performance-mode-enabled false
+```
+
+For paired order checks, repeat with reversed level and workload order using the same APKs.
+Record actual iteration counts, thermal state, and run order. Restore temporary device settings
+and disable fixed-performance mode even when a run fails.
+
+### Control CPU placement
+
+For a controlled Glass profiling comparison, the optional instrumentation argument
+`haze.cpuAffinityMask` passes a hexadecimal CPU mask to the sample. The sample applies it to its
+process threads before rendering starts; new threads inherit their creator's affinity. For
+example, `-Pandroid.testInstrumentationRunnerArguments.haze.cpuAffinityMask=30` requests CPUs 4–5.
+Check the device's CPU topology before choosing a mask; this example identifies the middle cluster
+on the Pixel 6 used for the quality sweep.
+
+This control is opt-in and failures stop the sample rather than silently continuing without the
+requested affinity. Verify main-thread and RenderThread placement in every measured Perfetto trace,
+because Android may change scheduling constraints. Keep these results separate from measurements
+under normal scheduling. Stop the sample process after the run to clear its affinity:
+
+```shell
+adb shell am force-stop dev.chrisbanes.haze.sample.android
 ```
 
 `connectedBenchmarkReleaseAndroidTest` runs only this module's release benchmark variant. Do not

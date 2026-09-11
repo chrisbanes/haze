@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted. The fixed-mode mapping is amended below on 2026-09-11.
 
 ## Date
 
@@ -57,6 +57,25 @@ performance guidance; raw Macrobenchmark artifacts remain local build outputs.
   instead of presenting a speculative fixed-fraction conversion.
 - ADR-0004 and ADR-0005 retain their historical evidence and implementation-policy decisions, but
   their built-in public-API terminology is superseded by this ADR.
+
+## Amendment: continuous fixed quality (2026-09-11)
+
+`Fixed(qualityFraction)` now interpolates the total input pixel fraction between the supported
+minimum and full resolution, replacing the three-bucket fixed selector above. The minimum is an
+internal implementation value, not a documented numeric guarantee. Interpolation is linear in
+total input pixels, rather than each dimension.
+The public name and finite `0f..1f` validation remain unchanged. Renderer resource limits and
+whole-pixel rounding still apply.
+
+`Quality = Fixed(1f)` and `Performance = Fixed(0f)` retain their previous scales.
+`Balanced = Fixed(0.5f)` requests the midpoint between minimum and full-resolution pixel counts.
+Adaptive retains its previous scales, workload thresholds, cadence handling, and hysteresis;
+its tiers are resolved independently from fixed quality.
+
+The implementation preserves the existing minimum fixed resolution. It is not a newly measured visual
+quality threshold. Fresh paired visual and performance testing remains necessary before changing
+Adaptive's default behavior. Earlier benchmark tables describe the old fixed profiles and must
+not be interpreted as measurements of this new mapping.
 
 ## References
 

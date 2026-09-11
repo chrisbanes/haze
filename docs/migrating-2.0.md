@@ -172,9 +172,10 @@ the flag.
 
 `HazePerformanceMode.Default` points to `Adaptive` for built-in Blur and Glass. Use `Adaptive` to pin that policy,
 `Quality`, `Balanced`, or `Performance` for its named profiles, or `Fixed(qualityFraction)` for an
-explicit normalized trade-off. `Quality` replaces the previous built-in full-resolution choice;
-remeasure a previous built-in fixed input-pixel fraction before choosing `Fixed`. `HazeSampling`
-remains the generic policy used by custom effects.
+explicit quality level from `0f` (lowest) to `1f` (highest). `Quality` replaces the previous
+built-in full-resolution choice. Previous fixed input-pixel fractions are not equivalent to the
+same `qualityFraction` value; compare appearance and performance before choosing a replacement.
+`HazeSampling` remains the generic policy used by custom effects.
 
 ## Lifecycle and sharing
 

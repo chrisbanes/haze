@@ -17,18 +17,23 @@ their input changes.
 
 ## Performance mode
 
-`HazePerformanceMode` controls the quality and cost trade-off for built-in effects:
+`HazePerformanceMode` controls the quality and rendering cost of built-in Blur and Glass:
 
-- **`Default` or `Adaptive`**: Recommended for most applications. Built-in effects adjust the
-  quality and cost trade-off automatically.
-- **`Quality`**, **`Balanced`**, or **`Performance`**: Select a named, deterministic profile.
-- **`Fixed(qualityFraction)`**: Select a normalized, deterministic profile from `0f` through `1f`
-  when the named profiles are not the right fit.
+- **`Default` or `Adaptive`**: Adjusts quality automatically. Start here for most screens.
+- **`Quality`**: Prioritises visual detail and generally requires more rendering work.
+- **`Balanced`**: Offers a middle ground between detail and rendering cost.
+- **`Performance`**: Prioritises lower rendering cost; fine detail may look softer or more pixelated.
+- **`Fixed(qualityFraction)`**: Choose a quality level from `0f` (lowest supported quality) to `1f`
+  (highest supported quality). `Performance`, `Balanced`, and `Quality` correspond to `0f`, `0.5f`,
+  and `1f` respectively.
 
-`Default` is `Adaptive`. Blur and Glass resolve these profiles differently, so a quality fraction
-is not an input-pixel scale or a cross-effect resolution guarantee. Custom effects use
-`HazeSampling` to control how much input they process. For older built-in sampling settings, see
-the [migration guide](migrating-2.0.md).
+`qualityFraction` is a quality setting, not a percentage of pixels or a promised reduction in
+rendering time. A fixed level keeps your chosen setting instead of adjusting it automatically;
+its appearance and cost still depend on the effect, surface size, and device.
+
+If an effect looks too pixelated, try a higher quality level. Compare it while scrolling and
+animating, since a sharper effect may also make it harder to keep frames smooth. Custom effects
+use `HazeSampling`; see the [migration guide](migrating-2.0.md) for older built-in sampling settings.
 
 ## Common cost drivers
 
@@ -40,13 +45,10 @@ the [migration guide](migrating-2.0.md).
 
 ### Stable and changing sources
 
-With `HazeInput.Sources`, Haze retains a source capture so unrelated sibling redraws can reuse it.
-Changes to the source's drawing still refresh that capture. Keep content that changes every frame
-outside the `hazeSource` subtree when the effect does not need to sample it.
-
-Reusing a capture avoids recording the source again; drawing the effect can still require renderer
-and GPU work. Measure both a stable background and scrolling or animated input. These capture
-details apply to source-backed effects; native `HazeInput.Backdrop` uses a different rendering path.
+With `HazeInput.Sources`, a stable background generally costs less than one that changes every
+frame. Keep animations outside the `hazeSource` subtree when the effect does not need to include
+them. A stable background does not make the effect free: measure both stationary content and the
+scrolling or animated content users will see.
 
 <a id="effect-specific-guidance"></a>
 
@@ -68,12 +70,36 @@ measure them at the surface sizes and effect counts your screen uses. Animated l
 refraction, and transforms also add work during hover, focus, and press responses. Include those
 states, background scrolling, and layout transitions in your comparison.
 
-Measure effect attachment separately from steady-state drawing. Glass retains runtime shaders
-between draws, but renderer and submission work can remain after source capture and effect
-creation have settled. A slow frame alone does not identify shader compilation as the cause;
-inspect main-thread and RenderThread work before changing the material's optics.
+Check both the first appearance of a Glass surface and its ongoing interactions. A screen that
+scrolls smoothly can still pause when an effect first appears.
 
 For styling and API examples, see the [Glass overview](effects/glass.md).
+
+### Choosing a fixed quality level
+
+Higher quality can make fine detail and glass edges clearer, but leaves less time for the rest of
+your screen to render. If you need a fixed level, start with `Balanced` and increase it only when
+it visibly improves your screen.
+
+For reference, these measurements used one 280 dp × 180 dp Regular Glass surface with continuously
+changing source content on a Pixel 6 running Android 17 at 60 Hz. CPU placement was controlled to
+make the levels easier to compare. Each number averages the P90 from two runs; negative frame
+overrun means the frame finished before its deadline, with more negative values indicating more
+spare time.
+
+| `qualityFraction` | CPU frame duration: mean per-pass P90 (ms) | Frame overrun: mean per-pass P90 (ms) |
+| --- | ---: | ---: |
+| `0` | 3.17 | -10.95 |
+| `0.25` | 3.12 | -10.17 |
+| `1f / 3f` | 3.11 | -9.77 |
+| `0.5` (`Balanced`) | 3.17 | -9.11 |
+| `0.75` | 4.87 | -6.34 |
+| `1` (`Quality`) | 4.74 | -5.53 |
+
+In this scene, increasing from `Balanced` to `Fixed(0.75f)` used another 2.77 ms of frame deadline
+margin. All levels met their deadlines, but a screen with more effects or a higher refresh rate
+may have less time to spare. These Android results do not predict performance on Web or other
+devices. See the [full measurements and test conditions](benchmark-results.md#glass-fixed-quality-with-controlled-cpu-placement-2026-09-11).
 
 ## Measure on target devices
 
@@ -85,9 +111,8 @@ For Android, [Macrobenchmark](https://developer.android.com/topic/performance/be
 provides repeatable frame measurements. Use frame overrun to identify deadline misses and CPU frame
 duration to assess UI-thread and RenderThread cost. Neither directly measures GPU shader duration.
 
-Repeat comparisons in both build orders. If repeated results disagree, inspect traces before
-attributing the difference to the code. Haze's [Android benchmark runbook][benchmark-runbook] covers
-device preparation, CPU-placement checks, workload selection, and trace interpretation.
+Repeat comparisons to check that an improvement holds across runs. For details of Haze's own
+measurements, see the [benchmark results](benchmark-results.md).
 
 <a id="haze-2-compared-with-haze-1"></a>
 <a id="a-reference-point-not-a-target"></a>
@@ -95,5 +120,3 @@ device preparation, CPU-placement checks, workload selection, and trace interpre
 See the [Haze 1 versus Haze 2 comparison](benchmark-results.md#haze-2-compared-with-haze-1) and
 [Blur and Glass reference measurements](benchmark-results.md), with the recorded setup and
 limitations for each run.
-
-[benchmark-runbook]: https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md
