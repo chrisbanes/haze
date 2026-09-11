@@ -125,7 +125,7 @@ public fun GlassMusicPlayerSampleContent(
     val wide = maxWidth > maxHeight
     val compactWide = wide && maxHeight < 500.dp
     val artworkHeight = when {
-      compactWide -> 190.dp
+      compactWide -> 160.dp
       wide -> 300.dp
       maxHeight < 700.dp -> 160.dp
       else -> 260.dp
@@ -153,7 +153,7 @@ public fun GlassMusicPlayerSampleContent(
             if (wide) {
               Row(horizontalArrangement = Arrangement.spacedBy(28.dp), modifier = Modifier.fillMaxWidth()) {
                 ArtworkCard(currentTrack, artworkHeight, Modifier.weight(1f).widthIn(max = 440.dp))
-                PlayerControls(currentTrack, positionMillis, isPlaying, shuffleEnabled, input, foreground, onPlayPause, onPrevious, onNext, onShuffleChanged, onSeekStarted, onSeek, onSeekFinished, compact = compactWide, modifier = Modifier.weight(1f))
+                PlayerControls(currentTrack, positionMillis, isPlaying, shuffleEnabled, input, foreground, onPlayPause, onPrevious, onNext, onShuffleChanged, onSeekStarted, onSeek, onSeekFinished, compact = compactWide, modifier = Modifier.weight(1f).padding(end = 12.dp))
               }
             } else {
               ArtworkCard(currentTrack, artworkHeight, Modifier.fillMaxWidth())
@@ -210,9 +210,9 @@ private fun PlayerControls(
   compact: Boolean = false,
   modifier: Modifier,
 ) {
-  Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 14.dp)) {
-    Text(track.title, color = foreground, style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    Text("${track.artist} · ${track.album}", color = foreground.copy(alpha = 0.75f), style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+  Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 14.dp)) {
+    Text(track.title, color = foreground, style = if (compact) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.headlineMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Text("${track.artist} · ${track.album}", color = foreground.copy(alpha = 0.75f), style = if (compact) MaterialTheme.typography.labelLarge else MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
     GlassSlider(
       value = positionMillis.toFloat(),
       valueRange = 0f..track.durationMillis.toFloat(),
@@ -225,7 +225,7 @@ private fun PlayerControls(
     Text("${formatTime(positionMillis)} / ${formatTime(track.durationMillis)}", color = foreground.copy(alpha = 0.72f))
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
       IconButton(onClick = onPrevious) { Icon(PreviousTrackIcon, "Previous track", tint = foreground) }
-      GlassButton(input = input, onClick = onPlayPause, modifier = Modifier.size(if (compact) 52.dp else 64.dp).testTag("music_play")) {
+      GlassButton(input = input, onClick = onPlayPause, modifier = Modifier.size(if (compact) 48.dp else 64.dp).testTag("music_play")) {
         Icon(if (isPlaying) PauseIcon else PlayIcon, if (isPlaying) "Pause" else "Play", tint = foreground)
       }
       IconButton(onClick = onNext) { Icon(NextTrackIcon, "Next track", tint = foreground) }
