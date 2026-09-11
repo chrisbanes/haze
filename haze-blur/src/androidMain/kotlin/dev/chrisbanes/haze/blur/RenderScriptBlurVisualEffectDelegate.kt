@@ -420,7 +420,9 @@ internal class RenderScriptBlurVisualEffectDelegate(
   internal companion object {
     const val TAG = "RenderScriptBlurVisualEffectDelegate"
 
-    private var isEnabled: Boolean = true
+    // Robolectric 4.17 can create RenderScript, but its Allocation has no input Surface.
+    // Keep host tests on the scrim fallback rather than failing later during the draw.
+    private var isEnabled: Boolean = Build.FINGERPRINT != "robolectric"
 
     fun createOrNull(
       effect: BlurVisualEffect,

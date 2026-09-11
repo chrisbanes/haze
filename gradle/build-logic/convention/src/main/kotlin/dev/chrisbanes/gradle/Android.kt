@@ -12,7 +12,9 @@ import com.android.build.api.variant.HasUnitTestBuilder
 import com.android.build.api.variant.KotlinMultiplatformAndroidComponentsExtension
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
+import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.configure
+import org.gradle.kotlin.dsl.withType
 
 fun Project.configureAndroidApplication() {
   extensions.configure<ApplicationExtension> {
@@ -33,6 +35,11 @@ fun Project.configureAndroidApplication() {
 }
 
 fun Project.configureKotlinMultiplatformAndroidLibrary() {
+  tasks.withType<Test>().matching { it.name == "testAndroidHostTest" }.configureEach {
+    // Robolectric 4.17 accesses FileDescriptor internals through SharedSecrets on Java 17+.
+    jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED")
+  }
+
   kotlin {
     targets.configureEach {
       if (this is KotlinMultiplatformAndroidLibraryTarget) {

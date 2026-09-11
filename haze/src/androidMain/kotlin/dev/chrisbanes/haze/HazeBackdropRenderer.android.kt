@@ -86,6 +86,10 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
 
 private fun isAndroidBackdropSdkSupported(): Boolean {
   if (Build.VERSION.SDK_INT < 36) return false
+  // Robolectric 4.17 implements native backdrop rendering on its SDK 37 runtime,
+  // which reports 37.0 rather than the device API's 37.2.
+  // https://github.com/robolectric/robolectric/issues/11510
+  if (Build.VERSION.SDK_INT == 37 && Build.FINGERPRINT == "robolectric") return true
   return isHazeBackdropSdkSupported(
     fullSdkInt = Build.VERSION.SDK_INT_FULL,
     previewSdkInt = Build.VERSION.PREVIEW_SDK_INT,
