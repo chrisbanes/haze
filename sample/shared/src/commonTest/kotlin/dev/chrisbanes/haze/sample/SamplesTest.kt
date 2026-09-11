@@ -53,6 +53,11 @@ class SamplesTest : ContextTest() {
   @Test
   fun commonSamples_catalog_hasOneEntryPerScaffoldFeature() {
     assertThat(
+      CommonSamples.filter { it.route.startsWith("scaffold") }.map(Sample::title),
+    ).isEqualTo(
+      listOf("Scaffold", "Scaffold (progressive blur)", "Scaffold (masked)"),
+    )
+    assertThat(
       listOf(
         Sample.Scaffold,
         Sample.ScaffoldProgressive,

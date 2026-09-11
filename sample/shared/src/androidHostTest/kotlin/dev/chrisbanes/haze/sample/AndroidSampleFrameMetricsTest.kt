@@ -34,4 +34,35 @@ class AndroidSampleFrameMetricsTest : ContextTest() {
     assertThat(summary.deadlineMisses).isNull()
     assertThat(summary.deadlineEligibleFrames).isNull()
   }
+
+  @Test
+  fun api23_usesCadenceFallbackAndApi24To30HideDeadlines() {
+    assertThat(androidFrameMetricsSourceForSdk(23)).isEqualTo(SampleFrameMetricsSource.FrameCadence)
+    assertThat(androidFrameMetricsSourceForSdk(24)).isEqualTo(SampleFrameMetricsSource.RenderedFrameTiming)
+    assertThat(androidDeadlineNanos(24, 16)).isNull()
+    assertThat(androidDeadlineNanos(30, 16)).isNull()
+  }
+
+  @Test
+  fun api31_exposesOnlyValidDeadlines() {
+    assertThat(androidDeadlineNanos(31, 16)).isEqualTo(16)
+    assertThat(androidDeadlineNanos(31, 0)).isNull()
+  }
+
+  @Test
+  fun registration_detachesWhenDisabledOrBackgrounded() {
+    val events = mutableListOf<String>()
+    val registration = AndroidFrameMetricsRegistration(
+      onAttach = { events += "attach" },
+      onDetach = { events += "detach" },
+    )
+
+    registration.update(enabled = true, isForeground = true)
+    registration.update(enabled = false, isForeground = true)
+    registration.update(enabled = true, isForeground = true)
+    registration.update(enabled = true, isForeground = false)
+    registration.detach()
+
+    assertThat(events).isEqualTo(listOf("attach", "detach", "attach", "detach"))
+  }
 }

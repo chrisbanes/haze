@@ -71,12 +71,27 @@ internal fun SampleMetricsOverlay(
           color = MaterialTheme.colorScheme.inverseOnSurface,
         )
       }
+      if (
+        summary.source == SampleFrameMetricsSource.RenderedFrameTiming &&
+        summary.deadlineMisses == null
+      ) {
+        Text(
+          "Deadline data unavailable on this API level.",
+          color = MaterialTheme.colorScheme.inverseOnSurface,
+        )
+      }
       if (summary.reportLossCount > 0) {
         Text(
           "Callback reports lost: ${summary.reportLossCount}",
           color = MaterialTheme.colorScheme.inverseOnSurface,
         )
       }
+    }
+    if (summary.hostWindowTimingUnavailable) {
+      Text(
+        "Host-window timing unavailable for this screen.",
+        color = MaterialTheme.colorScheme.inverseOnSurface,
+      )
     }
     Text(
       "Diagnostic readings affected by the observer.",

@@ -3,15 +3,13 @@
 
 package dev.chrisbanes.haze.sample
 
-import androidx.compose.material3.Text
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.v2.runComposeUiTest
-import androidx.navigation.compose.rememberNavController
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import dev.chrisbanes.haze.HazePerformanceMode
@@ -51,64 +49,39 @@ class SamplePerformanceSettingsTest : ContextTest() {
     }
   }
 
+  @OptIn(ExperimentalTestApi::class)
   @Test
-  fun metricsFlag_canBeEnabledAndDisabled() {
+  fun settingsSheet_sliderSelectsCustomFixedMode() = runComposeUiTest {
     val settings = SamplePerformanceSettingsState()
-    settings.updateMetricsEnabled(true)
-    assertThat(settings.metricsEnabled).isEqualTo(true)
-    settings.updateMetricsEnabled(false)
-    assertThat(settings.metricsEnabled).isEqualTo(false)
+    setContent { SamplePerformanceSettingsSheet(settings, onDismissRequest = {}) }
+
+    onNodeWithTag("sample_performance_custom_slider")
+      .performSemanticsAction(SemanticsActions.SetProgress) { action -> action(0.7f) }
+    runOnIdle {
+      assertThat(settings.performanceMode).isEqualTo(HazePerformanceMode.Fixed(0.7f))
+    }
   }
 
   @OptIn(ExperimentalTestApi::class)
   @Test
-  fun shell_retainsSelectedModeAcrossNavigation() = runComposeUiTest {
-    val firstSample = Sample(
-      route = "performance-detail",
-      title = "Performance detail",
-      effects = listOf(SampleEffect.Blur),
-    ) { _, _ ->
-      val mode = LocalSamplePerformanceMode.current
-      Text(
-        text = mode.toString(),
-        modifier = Modifier.testTag(
-          if (mode == HazePerformanceMode.Quality) "selected_mode_quality" else "selected_mode_other",
-        ),
-      )
-    }
-    val secondSample = Sample(
-      route = "second-performance-detail",
-      title = "Second performance detail",
-      effects = listOf(SampleEffect.Blur),
-    ) { _, _ ->
-      val mode = LocalSamplePerformanceMode.current
-      Text(
-        text = mode.toString(),
-        modifier = Modifier.testTag(
-          if (mode == HazePerformanceMode.Quality) {
-            "second_selected_mode_quality"
-          } else {
-            "second_selected_mode_other"
-          },
-        ),
-      )
-    }
-    lateinit var navController: androidx.navigation.NavHostController
-    setContent {
-      navController = rememberNavController()
-      Samples(
-        appTitle = "Haze Samples",
-        navController = navController,
-        samples = listOf(firstSample, secondSample),
-      )
-    }
+  fun settingsSheet_metricsSwitchEnablesAndDisablesCollection() = runComposeUiTest {
+    val settings = SamplePerformanceSettingsState()
+    setContent { SamplePerformanceSettingsSheet(settings, onDismissRequest = {}) }
 
-    onNodeWithTag("sample_effect_blur").performClick()
-    onNodeWithTag("Performance detail").performClick()
+    onNodeWithTag("sample_metrics_enabled")
+      .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
+    runOnIdle { assertThat(settings.metricsEnabled).isEqualTo(true) }
+    onNodeWithTag("sample_metrics_enabled")
+      .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
+    runOnIdle { assertThat(settings.metricsEnabled).isEqualTo(false) }
+  }
+
+  @OptIn(ExperimentalTestApi::class)
+  @Test
+  fun freshShell_exposesAdaptivePreset() = runComposeUiTest {
+    setContent { Samples(appTitle = "Haze Samples", samples = listOf(Sample.CreditCard)) }
+
     onNodeWithTag("sample_performance_settings").performClick()
-    onNodeWithTag("sample_performance_quality").performClick()
-    onNodeWithTag("sample_performance_done").performClick()
-    runOnIdle { navController.navigate("second-performance-detail/blur") }
-    onNodeWithTag("second_selected_mode_quality").assertIsDisplayed()
+    onNodeWithTag("sample_performance_adaptive").assertIsSelected()
   }
 }

@@ -3,12 +3,12 @@
 
 package dev.chrisbanes.haze.sample
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ListItem
@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -119,11 +120,15 @@ internal fun SamplePerformanceSettingsSheet(
           leadingContent = {
             RadioButton(
               selected = state.preset == preset,
-              onClick = { state.selectPreset(preset) },
+              onClick = null,
             )
           },
           modifier = Modifier
-            .clickable { state.selectPreset(preset) }
+            .selectable(
+              selected = state.preset == preset,
+              role = Role.RadioButton,
+              onClick = { state.selectPreset(preset) },
+            )
             .testTag("sample_performance_${preset.name.lowercase()}")
             .semantics { contentDescription = "${preset.label} performance mode" },
         )

@@ -20,6 +20,7 @@ internal class SampleFrameMetricsSummary(
   val deadlineEligibleFrames: Int?,
   val reportLossCount: Int,
   val source: SampleFrameMetricsSource,
+  val hostWindowTimingUnavailable: Boolean,
 )
 
 internal enum class SampleFrameMetricsSource {
@@ -42,10 +43,15 @@ internal class SampleFrameMetrics(
   private var reportLossCount = 0
   private var latestTimestampNanos = 0L
   private var source = initialSource
+  private var hostWindowTimingUnavailable = false
 
-  fun updateSource(source: SampleFrameMetricsSource) {
+  fun updateSource(
+    source: SampleFrameMetricsSource,
+    hostWindowTimingUnavailable: Boolean = false,
+  ) {
     if (this.source != source) clear()
     this.source = source
+    this.hostWindowTimingUnavailable = hostWindowTimingUnavailable
   }
 
   fun add(
@@ -81,6 +87,7 @@ internal class SampleFrameMetrics(
       deadlineEligibleFrames = deadlineSamples.takeIf(List<Boolean>::isNotEmpty)?.size,
       reportLossCount = reportLossCount,
       source = source,
+      hostWindowTimingUnavailable = hostWindowTimingUnavailable,
     )
   }
 

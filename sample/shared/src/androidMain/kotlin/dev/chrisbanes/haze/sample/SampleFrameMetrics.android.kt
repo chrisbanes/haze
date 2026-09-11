@@ -48,11 +48,16 @@ internal actual fun SampleFrameMetricsCollector(
     lifecycle.addObserver(observer)
     onDispose { lifecycle.removeObserver(observer) }
   }
-  if (Build.VERSION.SDK_INT >= 24 && activity != null) {
+  if (androidFrameMetricsSourceForSdk(Build.VERSION.SDK_INT) == SampleFrameMetricsSource.RenderedFrameTiming && activity != null) {
     LaunchedEffect(metrics) { metrics.updateSource(SampleFrameMetricsSource.RenderedFrameTiming) }
     AndroidFrameMetricsCollector(enabled, activity, isForeground, metrics)
   } else {
-    LaunchedEffect(metrics) { metrics.updateSource(SampleFrameMetricsSource.FrameCadence) }
+    LaunchedEffect(metrics, activity) {
+      metrics.updateSource(
+        source = SampleFrameMetricsSource.FrameCadence,
+        hostWindowTimingUnavailable = Build.VERSION.SDK_INT >= 24 && activity == null,
+      )
+    }
     CadenceFallbackCollector(enabled, isForeground, metrics)
   }
 }
@@ -84,12 +89,10 @@ private fun AndroidFrameMetricsCollector(
   isForeground: Boolean,
   metrics: SampleFrameMetrics,
 ) {
-  DisposableEffect(enabled, activity.window, isForeground, metrics) {
-    if (!enabled || !isForeground) {
-      return@DisposableEffect onDispose { }
-    }
-    val listener = WindowFrameMetricsListener { durationNanos, deadlineNanos, droppedReports, firstDraw ->
+  val listener = remember(activity.window, metrics) {
+    WindowFrameMetricsListener { durationNanos, deadlineNanos, droppedReports, firstDraw ->
       metrics.recordAndroidFrame(
+        // System.nanoTime and Compose frame timestamps share Android's monotonic time base.
         timestampNanos = System.nanoTime(),
         durationNanos = durationNanos,
         deadlineNanos = deadlineNanos,
@@ -97,8 +100,43 @@ private fun AndroidFrameMetricsCollector(
         firstDraw = firstDraw,
       )
     }
-    activity.window.addOnFrameMetricsAvailableListener(listener, Handler(Looper.getMainLooper()))
-    onDispose { activity.window.removeOnFrameMetricsAvailableListener(listener) }
+  }
+  val registration = remember(activity.window, listener) {
+    AndroidFrameMetricsRegistration(
+      onAttach = {
+        activity.window.addOnFrameMetricsAvailableListener(listener, Handler(Looper.getMainLooper()))
+      },
+      onDetach = { activity.window.removeOnFrameMetricsAvailableListener(listener) },
+    )
+  }
+  DisposableEffect(enabled, activity.window, isForeground, metrics) {
+    registration.update(enabled = enabled, isForeground = isForeground)
+    onDispose { registration.detach() }
+  }
+}
+
+internal class AndroidFrameMetricsRegistration(
+  private val onAttach: () -> Unit,
+  private val onDetach: () -> Unit,
+) {
+  private var attached = false
+
+  fun update(enabled: Boolean, isForeground: Boolean) {
+    if (enabled && isForeground) attach() else detach()
+  }
+
+  fun detach() {
+    if (attached) {
+      onDetach()
+      attached = false
+    }
+  }
+
+  private fun attach() {
+    if (!attached) {
+      onAttach()
+      attached = true
+    }
   }
 }
 
@@ -135,11 +173,10 @@ private class WindowFrameMetricsListener(
     dropCountSinceLastInvocation: Int,
   ) {
     val durationNanos = frameMetrics.getMetric(FrameMetrics.TOTAL_DURATION)
-    val deadlineNanos = if (Build.VERSION.SDK_INT >= 31) {
-      frameMetrics.getMetric(FrameMetrics.DEADLINE).takeIf { it > 0L }
-    } else {
-      null
-    }
+    val deadlineNanos = androidDeadlineNanos(
+      sdkInt = Build.VERSION.SDK_INT,
+      rawDeadlineNanos = frameMetrics.getMetric(FrameMetrics.DEADLINE),
+    )
     onFrame(
       durationNanos,
       deadlineNanos,
@@ -148,3 +185,9 @@ private class WindowFrameMetricsListener(
     )
   }
 }
+
+internal fun androidFrameMetricsSourceForSdk(sdkInt: Int): SampleFrameMetricsSource =
+  if (sdkInt >= 24) SampleFrameMetricsSource.RenderedFrameTiming else SampleFrameMetricsSource.FrameCadence
+
+internal fun androidDeadlineNanos(sdkInt: Int, rawDeadlineNanos: Long): Long? =
+  rawDeadlineNanos.takeIf { sdkInt >= 31 && it > 0L }

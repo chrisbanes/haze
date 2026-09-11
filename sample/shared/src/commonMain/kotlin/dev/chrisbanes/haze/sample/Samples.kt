@@ -308,7 +308,10 @@ fun Samples(
   val chromeController = remember { SampleChromeController() }
   val metrics = remember { SampleFrameMetrics(SampleFrameMetricsSource.FrameCadence) }
   val currentDestination by navController.currentBackStackEntryAsState()
-  LaunchedEffect(settings.performanceMode, currentDestination?.destination?.route) {
+  val currentRoute = currentDestination?.destination?.route
+  val profilingRoute = currentRoute?.startsWith("blur-profiling/") == true ||
+    currentRoute?.startsWith("glass-profiling/") == true
+  LaunchedEffect(settings.performanceMode, currentRoute) {
     metrics.clear()
   }
   var showSettings by remember { mutableStateOf(false) }
@@ -378,7 +381,7 @@ fun Samples(
             }
           }
         }
-        if (settings.metricsEnabled) {
+        if (settings.metricsEnabled && !profilingRoute) {
           SampleFrameMetricsCollector(enabled = true, metrics = metrics)
           if (chromeController.isVisible) {
             SampleMetricsOverlay(
@@ -392,7 +395,7 @@ fun Samples(
             )
           }
         }
-        if (chromeController.isVisible) {
+        if (chromeController.isVisible && !profilingRoute) {
           FilledIconButton(
             onClick = { showSettings = true },
             colors = IconButtonDefaults.filledIconButtonColors(),
