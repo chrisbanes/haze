@@ -44,7 +44,7 @@ internal val MusicCatalog = listOf(
   ),
 )
 
-public enum class MusicPlayerTab { NowPlaying, Library }
+public enum class MusicPlayerTab { NowPlaying, Library, Home }
 
 /** A deliberately small, composition-owned simulation. It never starts audio playback. */
 internal class MusicPlayerState(

@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -73,6 +74,27 @@ class GlassMusicPlayerSampleTest : ContextTest() {
   }
 
   @Test
+  fun homeMiniPlayer_expandsAndDismissesWithoutLosingPlayback() = runComposeUiTest {
+    var tab by mutableStateOf(MusicPlayerTab.Home)
+    setContent {
+      GlassMusicPlayerSampleContent(
+        tracks = MusicCatalog, currentTrackIndex = 0, positionMillis = 90_000,
+        isPlaying = true, shuffleEnabled = false, tab = tab,
+        onTabSelected = { tab = it }, onPlayPause = {}, onPrevious = {}, onNext = {},
+        onShuffleChanged = {}, onSeekStarted = {}, onSeek = {}, onSeekFinished = {},
+        onTrackSelected = {}, onBack = {},
+      )
+    }
+    onNodeWithText("Top Picks for You").assertExists()
+    onNodeWithTag("music_mini_player").performClick()
+    onNodeWithText("1:30").assertExists()
+    onNodeWithContentDescription("Pause").assertExists()
+    onNodeWithContentDescription("Close Now Playing").performClick()
+    runOnIdle { assertThat(tab).isEqualTo(MusicPlayerTab.Home) }
+    onNodeWithTag("music_mini_player").assertIsDisplayed()
+  }
+
+  @Test
   fun playerControls_updateHoistedStateAcrossTabChanges() = runComposeUiTest {
     val player = MusicPlayerState(MusicCatalog, randomTrackIndex = { 0 })
     var tab by mutableStateOf(MusicPlayerTab.NowPlaying)
@@ -108,9 +130,9 @@ class GlassMusicPlayerSampleTest : ContextTest() {
       up()
     }
     waitForIdle()
-    onNodeWithText("Library").performClick()
+    onNodeWithContentDescription("Library").performScrollTo().performClick()
     waitForIdle()
-    onNodeWithText("Now Playing").performClick()
+    onNodeWithTag("music_mini_player").performClick()
     runOnIdle {
       assertThat(isPlaying).isEqualTo(true)
       assertThat(player.positionMillis).isGreaterThan(0L)

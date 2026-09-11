@@ -132,6 +132,7 @@ internal fun ScreenshotUiTest.captureGlassLabStyles() {
 internal fun ScreenshotUiTest.captureGlassMusicPlayer(
   isDark: Boolean,
   library: Boolean = false,
+  home: Boolean = false,
   contentWrapper: @Composable (@Composable () -> Unit) -> Unit = { content -> content() },
 ) {
   val track = MusicTrack(
@@ -144,13 +145,13 @@ internal fun ScreenshotUiTest.captureGlassMusicPlayer(
   )
   var position by mutableFloatStateOf(90_000f)
   var shuffle by mutableStateOf(false)
-  var selectedTab by mutableStateOf(if (library) MusicPlayerTab.Library else MusicPlayerTab.NowPlaying)
+  var selectedTab by mutableStateOf(if (home) MusicPlayerTab.Home else if (library) MusicPlayerTab.Library else MusicPlayerTab.NowPlaying)
   setContent {
     contentWrapper {
       SamplesTheme(useDarkColors = isDark) {
         ScreenshotTheme {
           GlassMusicPlayerSampleContent(
-            tracks = listOf(track),
+            tracks = listOf(track, MusicTrack("Loud Places", "Jamie xx", "In Colour", 283_000, "https://example.invalid/colour.jpg", "https://music.apple.com/us/album/in-colour/1525506447"), MusicTrack("Look at the Sky", "Porter Robinson", "Nurture", 310_000, "https://example.invalid/nurture.jpg", "https://music.apple.com/us/album/nurture/1894533111")),
             currentTrackIndex = 0,
             positionMillis = position.toLong(),
             isPlaying = false,
@@ -165,8 +166,8 @@ internal fun ScreenshotUiTest.captureGlassMusicPlayer(
     }
   }
   waitForIdle()
-  captureRoot(if (library) "library" else "nowPlaying")
-  if (!library) {
+  captureRoot(if (home) "home" else if (library) "library" else "nowPlaying")
+  if (!library && !home) {
     val play = onNodeWithTag("music_play")
     play.performTouchInput { down(center) }
     waitForIdle()

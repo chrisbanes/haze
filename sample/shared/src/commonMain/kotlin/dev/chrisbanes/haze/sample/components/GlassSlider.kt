@@ -65,7 +65,7 @@ public fun GlassSlider(
   val colors = MaterialTheme.colorScheme
   var width by remember { mutableFloatStateOf(1f) }
   val layoutDirection = LocalLayoutDirection.current
-  val thumbDiameter = with(LocalDensity.current) { 32.dp.toPx() }
+  val thumbDiameter = with(LocalDensity.current) { 12.dp.toPx() }
   val rangeLength = (valueRange.endInclusive - valueRange.start).takeIf { it > 0f } ?: 1f
   val fraction = (
     (value.coerceIn(valueRange.start, valueRange.endInclusive) - valueRange.start) /
@@ -145,21 +145,21 @@ public fun GlassSlider(
     Box(
       modifier = Modifier
         .fillMaxWidth()
-        .height(6.dp)
-        .clip(RoundedCornerShape(3.dp))
+        .height(4.dp)
+        .clip(RoundedCornerShape(2.dp))
         .background(colors.onSurface.copy(alpha = 0.22f)),
     )
     Box(
       modifier = Modifier
         .fillMaxWidth(fraction)
-        .height(6.dp)
-        .clip(RoundedCornerShape(3.dp))
+        .height(4.dp)
+        .clip(RoundedCornerShape(2.dp))
         .background(colors.onSurface.copy(alpha = 0.75f)),
     )
     Box(
       modifier = Modifier
         .offset { IntOffset((fraction * (width - thumbDiameter)).roundToInt(), 0) }
-        .size(32.dp)
+        .size(12.dp)
         .hazeGlass(
           input = input,
           style = remember { GlassStyle.clear then GlassStyle { shape(CircleShape) } },
