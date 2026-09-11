@@ -163,6 +163,12 @@ public fun GlassMusicPlayerSampleContent(
           }
         }
       } else {
+        // Keep a full-window source behind the floating controls. The scroll content can end above
+        // the mini-player, but this source still gives its glass material artwork to refract and blur.
+        Box(Modifier.fillMaxSize().hazeSource(hazeState)) {
+          MusicArtwork(currentTrack, Modifier.fillMaxSize().blur(48.dp))
+          Box(Modifier.fillMaxSize().background(colors.surface.copy(alpha = 0.78f)))
+        }
         Column(Modifier.fillMaxSize().hazeSource(hazeState).verticalScroll(rememberScrollState()).padding(WindowInsets.safeDrawing.asPaddingValues()).padding(bottom = 180.dp)) {
           Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 24.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = colors.onSurface) }
