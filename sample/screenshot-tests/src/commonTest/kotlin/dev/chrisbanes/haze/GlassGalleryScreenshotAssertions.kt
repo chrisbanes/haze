@@ -8,9 +8,12 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -129,6 +132,7 @@ internal fun ScreenshotUiTest.captureGlassLabStyles() {
   captureRoot("clear")
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 internal fun ScreenshotUiTest.captureGlassMusicPlayer(
   isDark: Boolean,
   library: Boolean = false,
@@ -150,17 +154,20 @@ internal fun ScreenshotUiTest.captureGlassMusicPlayer(
     contentWrapper {
       SamplesTheme(useDarkColors = isDark) {
         ScreenshotTheme {
-          GlassMusicPlayerSampleContent(
-            tracks = listOf(track, MusicTrack("Loud Places", "Jamie xx", "In Colour", 283_000, "https://example.invalid/colour.jpg", "https://music.apple.com/us/album/in-colour/1525506447"), MusicTrack("Look at the Sky", "Porter Robinson", "Nurture", 310_000, "https://example.invalid/nurture.jpg", "https://music.apple.com/us/album/nurture/1894533111")),
-            currentTrackIndex = 0,
-            positionMillis = position.toLong(),
-            isPlaying = false,
-            shuffleEnabled = shuffle,
-            tab = selectedTab,
-            onTabSelected = { selectedTab = it }, onPlayPause = {}, onPrevious = {}, onNext = {},
-            onShuffleChanged = { shuffle = it }, onSeekStarted = {}, onSeek = { position = it.toFloat() }, onSeekFinished = {},
-            onTrackSelected = {}, onBack = {},
-          )
+          // Native ripples run outside the Compose test clock on Android.
+          CompositionLocalProvider(LocalRippleConfiguration provides null) {
+            GlassMusicPlayerSampleContent(
+              tracks = listOf(track, MusicTrack("Loud Places", "Jamie xx", "In Colour", 283_000, "https://example.invalid/colour.jpg", "https://music.apple.com/us/album/in-colour/1525506447"), MusicTrack("Look at the Sky", "Porter Robinson", "Nurture", 310_000, "https://example.invalid/nurture.jpg", "https://music.apple.com/us/album/nurture/1894533111")),
+              currentTrackIndex = 0,
+              positionMillis = position.toLong(),
+              isPlaying = false,
+              shuffleEnabled = shuffle,
+              tab = selectedTab,
+              onTabSelected = { selectedTab = it }, onPlayPause = {}, onPrevious = {}, onNext = {},
+              onShuffleChanged = { shuffle = it }, onSeekStarted = {}, onSeek = { position = it.toFloat() }, onSeekFinished = {},
+              onTrackSelected = {}, onBack = {},
+            )
+          }
         }
       }
     }
