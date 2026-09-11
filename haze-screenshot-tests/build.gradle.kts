@@ -60,6 +60,13 @@ kotlin {
       }
     }
 
+    named("androidHostTest") {
+      dependencies {
+        implementation(libs.compose.ui.test.junit4)
+        implementation(libs.androidx.activity)
+      }
+    }
+
     jvmTest {
       dependencies {
         implementation(compose.desktop.currentOs)

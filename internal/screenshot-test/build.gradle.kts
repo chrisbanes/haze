@@ -33,6 +33,8 @@ kotlin {
     androidMain {
       dependencies {
         implementation(libs.androidx.test.ext.junit)
+        // Compose's older transitive Espresso still calls InputManager.getInstance on API 37.
+        implementation(libs.androidx.test.espresso.core)
         implementation(libs.androidx.compose.ui.test.manifest)
 
         implementation(libs.compose.ui.test.junit4)
