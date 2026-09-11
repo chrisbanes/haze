@@ -9,7 +9,8 @@ in `sample/`; library screenshots in `haze-screenshot-tests`, sample screenshots
 
 - Use `rg` and `rg --files` for searches. Use worktrees or subagents when isolation or independent
   work makes them worthwhile; keep validation proportional to the change.
-- Use Java 21 and run Gradle with `--no-scan` unless a Build Scan is explicitly authorized.
+- Use Java 21. Agent-invoked Gradle commands must use `--no-scan` unless a Build Scan is explicitly
+  authorized. Preserve the repository's configured CI Build Scan behaviour.
   Prefer targeted module tasks; run `./gradlew check --no-scan` before opening a PR.
 - Follow `.editorconfig`: two-space Kotlin indentation, ktlint `intellij_idea`, and trailing commas.
   Apply Spotless to changed modules before committing.
