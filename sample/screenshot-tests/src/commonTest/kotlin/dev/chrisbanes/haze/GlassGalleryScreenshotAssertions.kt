@@ -150,7 +150,6 @@ internal fun ScreenshotUiTest.captureGlassMusicPlayer(
       SamplesTheme(useDarkColors = isDark) {
         ScreenshotTheme {
           GlassMusicPlayerSampleContent(
-            currentTrack = track,
             tracks = listOf(track),
             currentTrackIndex = 0,
             positionMillis = position.toLong(),

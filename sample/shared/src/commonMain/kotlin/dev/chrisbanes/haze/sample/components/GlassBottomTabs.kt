@@ -51,9 +51,11 @@ public fun GlassBottomTabs(
     modifier = modifier
       .hazeGlass(
         input = input,
-        style = GlassStyle.regular.then {
-          this.shape(shape)
-          tint(Color.White.copy(alpha = 0.12f))
+        style = remember {
+          GlassStyle.regular.then {
+            this.shape(shape)
+            tint(Color.White.copy(alpha = 0.12f))
+          }
         },
         interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
         interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
@@ -71,9 +73,11 @@ public fun GlassBottomTabs(
         .height(48.dp)
         .hazeGlass(
           input = input,
-          style = GlassStyle.clear.then {
-            this.shape(RoundedCornerShape(24.dp))
-            tint(Color.White.copy(alpha = 0.26f))
+          style = remember {
+            GlassStyle.clear.then {
+              this.shape(RoundedCornerShape(24.dp))
+              tint(Color.White.copy(alpha = 0.26f))
+            }
           },
           interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
           interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,

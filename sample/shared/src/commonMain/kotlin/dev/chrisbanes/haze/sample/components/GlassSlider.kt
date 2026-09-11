@@ -161,7 +161,7 @@ public fun GlassSlider(
         .size(32.dp)
         .hazeGlass(
           input = input,
-          style = GlassStyle.clear.then { shape(CircleShape) },
+          style = remember { GlassStyle.clear.then { shape(CircleShape) } },
           interactionSource = interactionSource,
           interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
           interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,

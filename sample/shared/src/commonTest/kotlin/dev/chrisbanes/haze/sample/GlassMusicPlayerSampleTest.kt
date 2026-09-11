@@ -58,7 +58,7 @@ class GlassMusicPlayerSampleTest : ContextTest() {
     var playing by mutableStateOf(true)
     setContent {
       GlassMusicPlayerSampleContent(
-        currentTrack = MusicCatalog[trackIndex], tracks = MusicCatalog, currentTrackIndex = trackIndex,
+        tracks = MusicCatalog, currentTrackIndex = trackIndex,
         positionMillis = 0, isPlaying = playing, shuffleEnabled = false, tab = tab,
         onTabSelected = { tab = it }, onPlayPause = { playing = !playing }, onPrevious = {}, onNext = {}, onShuffleChanged = {},
         onSeekStarted = {}, onSeek = {}, onSeekFinished = {}, onTrackSelected = { trackIndex = it }, onBack = {},
@@ -79,7 +79,6 @@ class GlassMusicPlayerSampleTest : ContextTest() {
     var isPlaying by mutableStateOf(false)
     setContent {
       GlassMusicPlayerSampleContent(
-        currentTrack = player.currentTrack,
         tracks = MusicCatalog,
         currentTrackIndex = player.currentTrackIndex,
         positionMillis = player.positionMillis,

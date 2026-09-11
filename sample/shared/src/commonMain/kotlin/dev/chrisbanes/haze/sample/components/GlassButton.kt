@@ -47,21 +47,23 @@ public fun GlassButton(
       .defaultMinSize(minHeight = 48.dp)
       .hazeGlass(
         input = input,
-        style = GlassStyle.regular.then {
-          this.shape(shape)
-          tint(Color.White.copy(alpha = if (enabled) 0.16f else 0.06f))
-          hovered {
-            lightingIntensity(0.35f)
-            refractionMultiplier(1.02f)
-          }
-          focused {
-            lightingIntensity(0.5f)
-            whitePointDelta(0.03f)
-          }
-          pressed {
-            lightingIntensity(0.9f)
-            refractionMultiplier(1.08f)
-            scale(0.98f)
+        style = remember(enabled) {
+          GlassStyle.regular.then {
+            this.shape(shape)
+            tint(Color.White.copy(alpha = if (enabled) 0.16f else 0.06f))
+            hovered {
+              lightingIntensity(0.35f)
+              refractionMultiplier(1.02f)
+            }
+            focused {
+              lightingIntensity(0.5f)
+              whitePointDelta(0.03f)
+            }
+            pressed {
+              lightingIntensity(0.9f)
+              refractionMultiplier(1.08f)
+              scale(0.98f)
+            }
           }
         },
         interactionSource = interactionSource,

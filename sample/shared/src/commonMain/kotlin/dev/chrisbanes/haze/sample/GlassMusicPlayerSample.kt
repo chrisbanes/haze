@@ -64,7 +64,6 @@ public fun GlassMusicPlayerSample(navController: NavHostController) {
   var tab by remember { mutableStateOf(MusicPlayerTab.NowPlaying) }
   SimulatedPlaybackTimer(player)
   GlassMusicPlayerSampleContent(
-    currentTrack = player.currentTrack,
     tracks = MusicCatalog,
     currentTrackIndex = player.currentTrackIndex,
     positionMillis = player.positionMillis,
@@ -98,7 +97,6 @@ internal fun SimulatedPlaybackTimer(player: MusicPlayerState) {
 @OptIn(ExperimentalHazeApi::class)
 @Composable
 public fun GlassMusicPlayerSampleContent(
-  currentTrack: MusicTrack,
   tracks: List<MusicTrack>,
   currentTrackIndex: Int,
   positionMillis: Long,
@@ -118,6 +116,7 @@ public fun GlassMusicPlayerSampleContent(
   modifier: Modifier = Modifier,
   isDark: Boolean = isSystemInDarkTheme(),
 ) {
+  val currentTrack = tracks[currentTrackIndex]
   val hazeState = rememberHazeState()
   val input = HazeInput.Backdrop(hazeState)
   val foreground = if (isDark) Color.White else Color(0xff15121b)

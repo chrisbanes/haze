@@ -51,9 +51,11 @@ public fun GlassToggle(
       .defaultMinSize(minWidth = 64.dp, minHeight = 48.dp)
       .hazeGlass(
         input = input,
-        style = GlassStyle.regular.then {
-          this.shape(shape)
-          tint(if (checked) Color(0xff82d7ff).copy(alpha = 0.32f) else Color.White.copy(alpha = 0.14f))
+        style = remember(checked) {
+          GlassStyle.regular.then {
+            this.shape(shape)
+            tint(if (checked) Color(0xff82d7ff).copy(alpha = 0.32f) else Color.White.copy(alpha = 0.14f))
+          }
         },
         interactionSource = interactionSource,
         interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
