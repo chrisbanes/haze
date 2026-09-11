@@ -55,7 +55,7 @@ actual fun ScreenshotTest.runScreenshotTest(
   createScreenshotUiTest(composeTestRule).block()
 }
 
-@OptIn(ExperimentalRoborazziApi::class)
+@OptIn(ExperimentalRoborazziApi::class, InternalRoborazziApi::class)
 private fun createScreenshotUiTest(rule: AndroidComposeTestRule<*, *>) =
   object : ScreenshotUiTest {
     override val supportsRuntimeBlur: Boolean = Build.VERSION.SDK_INT >= 31
@@ -68,15 +68,24 @@ private fun createScreenshotUiTest(rule: AndroidComposeTestRule<*, *>) =
     override fun captureRoot(
       nameSuffix: String?,
       unmatchedPixelThreshold: Float?,
+      artifactPath: String?,
     ) {
-      val output = when {
+      val output = artifactPath?.substringAfterLast('/') ?: when {
         nameSuffix.isNullOrEmpty() -> "${roboOutputName()}.webp"
         else -> "${roboOutputName()}_$nameSuffix.webp"
       }
       val options = unmatchedPixelThreshold
         ?.let(HazeRoborazziDefaults::roborazziOptions)
         ?: HazeRoborazziDefaults.roborazziOptions
-      rule.onRoot().captureRoboImage(output, options)
+      val context = provideRoborazziContext()
+      val previousOutputDirectory = context.outputDirectory
+      artifactPath?.substringBeforeLast('/', missingDelimiterValue = "")?.takeIf(String::isNotEmpty)
+        ?.let { provideRoborazziContext().setRuleOverrideOutputDirectory(it) }
+      try {
+        rule.onRoot().captureRoboImage(output, options)
+      } finally {
+        if (artifactPath != null) context.setRuleOverrideOutputDirectory(previousOutputDirectory)
+      }
     }
 
     override fun captureRootPixels(): PixelMap {

@@ -41,7 +41,7 @@ actual fun ScreenshotTest.runScreenshotTest(
   }
 }
 
-@OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class)
+@OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class, InternalRoborazziApi::class)
 private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiTest {
   override val supportsRuntimeBlur: Boolean = true
 
@@ -52,15 +52,24 @@ private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiT
   override fun captureRoot(
     nameSuffix: String?,
     unmatchedPixelThreshold: Float?,
+    artifactPath: String?,
   ) {
-    val output = when {
+    val output = artifactPath?.substringAfterLast('/') ?: when {
       nameSuffix.isNullOrEmpty() -> "${roboOutputName()}.webp"
       else -> "${roboOutputName()}_$nameSuffix.webp"
     }
     val options = unmatchedPixelThreshold
       ?.let(HazeRoborazziDefaults::roborazziOptions)
       ?: HazeRoborazziDefaults.roborazziOptions
-    this@createScreenshotUiTest.onRoot().captureRoboImage(output, options)
+    val context = provideRoborazziContext()
+    val previousOutputDirectory = context.outputDirectory
+    artifactPath?.substringBeforeLast('/', missingDelimiterValue = "")?.takeIf(String::isNotEmpty)
+      ?.let { provideRoborazziContext().setRuleOverrideOutputDirectory(it) }
+    try {
+      this@createScreenshotUiTest.onRoot().captureRoboImage(output, options)
+    } finally {
+      if (artifactPath != null) context.setRuleOverrideOutputDirectory(previousOutputDirectory)
+    }
   }
 
   override fun captureRootPixels(): PixelMap =

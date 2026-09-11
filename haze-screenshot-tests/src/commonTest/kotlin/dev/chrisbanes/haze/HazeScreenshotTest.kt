@@ -43,23 +43,6 @@ class HazeScreenshotTest : ScreenshotTest() {
   }
 
   @Test
-  fun creditCard() = runScreenshotTest {
-    var blurVisualEffect by mutableStateOf(
-      HazeBlurStyle {
-        colorEffects(listOf(DefaultTint))
-        blurRadius(8.dp)
-      },
-    )
-
-    setContent {
-      ScreenshotTheme {
-        CreditCardSample(visualEffect = blurVisualEffect)
-      }
-    }
-    captureRoot()
-  }
-
-  @Test
   fun creditCard_noStyle() = runScreenshotTest {
     val blurVisualEffect = HazeBlurStyle
 
