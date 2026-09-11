@@ -1076,7 +1076,7 @@ internal fun ScreenshotUiTest.assertGlassProgressiveMaskScaleInvariant() {
     startY = 35,
     endY = 75,
   )
-  val verticalScaledGeometry = capture(vertical, HazePerformanceMode.Fixed(0.5f))
+  val verticalScaledGeometry = capture(vertical, HazePerformanceMode.Balanced)
     .detectVerticalBlurGeometry(bounds = verticalBounds, startY = 35, endY = 75)
   assertWithinOnePixel(verticalUnscaledGeometry.firstBoundary, verticalScaledGeometry.firstBoundary)
   assertWithinOnePixel(verticalUnscaledGeometry.secondBoundary, verticalScaledGeometry.secondBoundary)
@@ -1090,7 +1090,7 @@ internal fun ScreenshotUiTest.assertGlassProgressiveMaskScaleInvariant() {
     centerY = 62f,
     radius = 48f,
   )
-  val radialScaledGeometry = capture(radial, HazePerformanceMode.Fixed(0.5f))
+  val radialScaledGeometry = capture(radial, HazePerformanceMode.Balanced)
     .detectRadialBlurGeometry(
       bounds = radialBounds,
       centerX = 84f,
@@ -1653,7 +1653,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
     xRange = geometry.leftEdgeRange,
   )
 
-  performanceMode = HazePerformanceMode.Fixed(0.5f)
+  performanceMode = HazePerformanceMode.Balanced
   waitForIdle()
   val fixedScale = captureTransparentSnapshot { matte = it }
   assertInvariantMaterialSilhouette(largePadding, geometry)

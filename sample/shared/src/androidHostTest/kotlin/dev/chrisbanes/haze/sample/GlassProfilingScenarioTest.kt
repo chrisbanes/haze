@@ -65,6 +65,71 @@ class GlassProfilingScenarioTest {
   }
 
   @Test
+  fun fixedQualitySweep_exposesSixInputLevelsForStableAndSourceChangingWorkloads() {
+    val sweep = listOf(
+      GlassProfilingScenario.StableFixed0,
+      GlassProfilingScenario.StableFixed25,
+      GlassProfilingScenario.StableFixed33,
+      GlassProfilingScenario.StableFixed50,
+      GlassProfilingScenario.StableFixed75,
+      GlassProfilingScenario.StableFixed100,
+      GlassProfilingScenario.SourceUpdateFixed0,
+      GlassProfilingScenario.SourceUpdateFixed25,
+      GlassProfilingScenario.SourceUpdateFixed33,
+      GlassProfilingScenario.SourceUpdateFixed50,
+      GlassProfilingScenario.SourceUpdateFixed75,
+      GlassProfilingScenario.SourceUpdateFixed100,
+    )
+
+    assertThat(sweep.map(GlassProfilingScenario::id)).isEqualTo(
+      listOf(
+        "stable_fixed_0",
+        "stable_fixed_25",
+        "stable_fixed_33",
+        "stable_fixed_50",
+        "stable_fixed_75",
+        "stable_fixed_100",
+        "source_update_fixed_0",
+        "source_update_fixed_25",
+        "source_update_fixed_33",
+        "source_update_fixed_50",
+        "source_update_fixed_75",
+        "source_update_fixed_100",
+      ),
+    )
+    assertThat(sweep.map(GlassProfilingScenario::performanceMode)).isEqualTo(
+      listOf(
+        HazePerformanceMode.Fixed(0f),
+        HazePerformanceMode.Fixed(0.25f),
+        HazePerformanceMode.Fixed(1f / 3f),
+        HazePerformanceMode.Fixed(0.5f),
+        HazePerformanceMode.Fixed(0.75f),
+        HazePerformanceMode.Fixed(1f),
+        HazePerformanceMode.Fixed(0f),
+        HazePerformanceMode.Fixed(0.25f),
+        HazePerformanceMode.Fixed(1f / 3f),
+        HazePerformanceMode.Fixed(0.5f),
+        HazePerformanceMode.Fixed(0.75f),
+        HazePerformanceMode.Fixed(1f),
+      ),
+    )
+    assertThat(sweep.take(6).map(GlassProfilingScenario::steadyDraw)).isEqualTo(
+      List(6) { true },
+    )
+    assertThat(sweep.drop(6).map(GlassProfilingScenario::steadyDraw)).isEqualTo(
+      List(6) { false },
+    )
+    assertThat(sweep.map(GlassProfilingScenario::effectCount)).isEqualTo(List(12) { 1 })
+    assertThat(sweep.map(GlassProfilingScenario::glassEnabled)).isEqualTo(List(12) { true })
+    assertThat(sweep.map(GlassProfilingScenario::rimEnabled)).isEqualTo(List(12) { true })
+    assertThat(sweep.map(GlassProfilingScenario::fullChroma)).isEqualTo(List(12) { false })
+    assertThat(sweep.map(GlassProfilingScenario::usesBackdrop)).isEqualTo(List(12) { false })
+    assertThat(sweep.map(GlassProfilingScenario::opticsOverride)).isEqualTo(
+      List<GlassOptics?>(12) { null },
+    )
+  }
+
+  @Test
   fun scenarioIds_areStableAndUnique() {
     assertThat(GlassProfilingScenario.entries.map(GlassProfilingScenario::id)).isEqualTo(
       listOf(
@@ -77,6 +142,12 @@ class GlassProfilingScenarioTest {
         "backdrop_stable_quality",
         "stable_balanced",
         "stable_performance",
+        "stable_fixed_0",
+        "stable_fixed_25",
+        "stable_fixed_33",
+        "stable_fixed_50",
+        "stable_fixed_75",
+        "stable_fixed_100",
         "steady_full_3",
         "steady_full_9",
         "steady_progressive",
@@ -103,6 +174,12 @@ class GlassProfilingScenarioTest {
         "backdrop_source_update_quality",
         "source_update_balanced",
         "source_update_performance",
+        "source_update_fixed_0",
+        "source_update_fixed_25",
+        "source_update_fixed_33",
+        "source_update_fixed_50",
+        "source_update_fixed_75",
+        "source_update_fixed_100",
         "source_update_9",
         "backdrop_source_update_9",
         "source_update_no_glass",
@@ -168,6 +245,12 @@ class GlassProfilingScenarioTest {
         GlassProfilingScenario.BackdropSourceUpdateQuality,
         GlassProfilingScenario.SourceUpdateBalanced,
         GlassProfilingScenario.SourceUpdatePerformance,
+        GlassProfilingScenario.SourceUpdateFixed0,
+        GlassProfilingScenario.SourceUpdateFixed25,
+        GlassProfilingScenario.SourceUpdateFixed33,
+        GlassProfilingScenario.SourceUpdateFixed50,
+        GlassProfilingScenario.SourceUpdateFixed75,
+        GlassProfilingScenario.SourceUpdateFixed100,
         GlassProfilingScenario.SourceUpdate9,
         GlassProfilingScenario.BackdropSourceUpdate9,
         GlassProfilingScenario.SourceUpdateNoGlass,
@@ -249,6 +332,12 @@ class GlassProfilingScenarioTest {
         scenario == GlassProfilingScenario.BackdropSourceUpdateQuality ||
         scenario == GlassProfilingScenario.SourceUpdateBalanced ||
         scenario == GlassProfilingScenario.SourceUpdatePerformance ||
+        scenario == GlassProfilingScenario.SourceUpdateFixed0 ||
+        scenario == GlassProfilingScenario.SourceUpdateFixed25 ||
+        scenario == GlassProfilingScenario.SourceUpdateFixed33 ||
+        scenario == GlassProfilingScenario.SourceUpdateFixed50 ||
+        scenario == GlassProfilingScenario.SourceUpdateFixed75 ||
+        scenario == GlassProfilingScenario.SourceUpdateFixed100 ||
         scenario == GlassProfilingScenario.SourceUpdate9 ||
         scenario == GlassProfilingScenario.BackdropSourceUpdate9 ||
         scenario == GlassProfilingScenario.SourceUpdateNoGlass

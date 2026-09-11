@@ -163,18 +163,19 @@ the existing renderer. Factory replacement and detachment dispose it exactly onc
 
 ## Built-in performance mode
 
-- `HazePerformanceMode.Default` is `Adaptive` and lets built-in Blur and Glass balance quality and
-  cost automatically.
-- `HazePerformanceMode.Quality`, `Balanced`, and `Performance` select effect-owned named profiles.
-- `HazePerformanceMode.Fixed(qualityFraction)` selects a normalized, deterministic profile for a
-  built-in effect.
+`HazePerformanceMode` lets you choose the quality and performance trade-off for built-in Blur and
+Glass:
 
-Start with the default. Choose a fixed profile only when visual comparison shows that you need a
-stable quality and performance trade-off.
+- `Default` (`Adaptive`) adjusts quality automatically.
+- `Quality` prioritises detail, `Performance` prioritises lower rendering cost, and `Balanced`
+  offers a middle ground.
+- `Fixed(qualityFraction)` lets you choose a level from `0f` (lowest supported quality) to `1f`
+  (highest supported quality).
 
-`Quality` replaces the previous built-in full-resolution choice. Previous built-in fixed
-input-pixel fractions have no direct equivalent: remeasure an explicit `Fixed(qualityFraction)`
-choice on the effect and layout you support.
+Start with the default. If the effect looks too pixelated, try a higher fixed quality level and
+check that scrolling and animations remain smooth on the devices you support. See the
+[performance guide](performance.md) for more guidance and the [migration guide](migrating-2.0.md)
+for replacing older sampling settings.
 
 ## Generic sampling
 

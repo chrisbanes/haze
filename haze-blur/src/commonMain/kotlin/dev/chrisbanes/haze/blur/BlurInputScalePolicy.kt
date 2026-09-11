@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.blur
 import androidx.compose.ui.geometry.Size
 import dev.chrisbanes.haze.HazeInputUpdateCadence
 import dev.chrisbanes.haze.HazePerformanceMode
+import kotlin.math.sqrt
 import kotlin.time.TimeSource
 
 /**
@@ -33,12 +34,10 @@ internal class BlurInputScalePolicy(
           previousAutomaticScale = NONE_SCALE
           inputUpdateCadence.reset()
         }
-        resolveFixedProfile(
-          resolveAutomaticQualityFraction(
-            blurRadiusPx = blurRadiusPx,
-            areaPx = layerSize.width * layerSize.height * inputUpdateCadence.multiplier,
-            progressive = progressive,
-          ),
+        resolveAutomaticScale(
+          blurRadiusPx = blurRadiusPx,
+          areaPx = layerSize.width * layerSize.height * inputUpdateCadence.multiplier,
+          progressive = progressive,
         ).also {
           previousAutomaticScale = it
           previousProgressive = progressive
@@ -58,7 +57,7 @@ internal class BlurInputScalePolicy(
     inputUpdateCadence.reset()
   }
 
-  private fun resolveAutomaticQualityFraction(
+  private fun resolveAutomaticScale(
     blurRadiusPx: Float,
     areaPx: Float,
     progressive: Boolean,
@@ -71,62 +70,55 @@ internal class BlurInputScalePolicy(
       return when {
         previousAutomaticScale <= BALANCED_SCALE &&
           blurRadiusPx >= BALANCED_RADIUS_EXIT_PX &&
-          areaPx >= BALANCED_AREA_EXIT_PX -> BALANCED_FRACTION
+          areaPx >= BALANCED_AREA_EXIT_PX -> BALANCED_SCALE
 
-        blurRadiusPx >= BALANCED_RADIUS_PX && areaPx >= BALANCED_AREA_PX -> BALANCED_FRACTION
-        else -> QUALITY_FRACTION
+        blurRadiusPx >= BALANCED_RADIUS_PX && areaPx >= BALANCED_AREA_PX -> BALANCED_SCALE
+        else -> NONE_SCALE
       }
     }
 
     return when (previousAutomaticScale) {
       AGGRESSIVE_SCALE -> when {
         blurRadiusPx < AGGRESSIVE_RADIUS_EXIT_PX || areaPx < AGGRESSIVE_AREA_EXIT_PX ->
-          resolveAdaptiveQualityFractionWithoutAggressiveTier(blurRadiusPx, areaPx)
+          resolveAdaptiveScaleWithoutAggressiveTier(blurRadiusPx, areaPx)
 
-        else -> PERFORMANCE_FRACTION
+        else -> AGGRESSIVE_SCALE
       }
 
       BALANCED_SCALE -> when {
-        blurRadiusPx >= AGGRESSIVE_RADIUS_PX && areaPx >= AGGRESSIVE_AREA_PX -> PERFORMANCE_FRACTION
-        blurRadiusPx < BALANCED_RADIUS_EXIT_PX || areaPx < BALANCED_AREA_EXIT_PX -> QUALITY_FRACTION
-        else -> BALANCED_FRACTION
+        blurRadiusPx >= AGGRESSIVE_RADIUS_PX && areaPx >= AGGRESSIVE_AREA_PX -> AGGRESSIVE_SCALE
+        blurRadiusPx < BALANCED_RADIUS_EXIT_PX || areaPx < BALANCED_AREA_EXIT_PX -> NONE_SCALE
+        else -> BALANCED_SCALE
       }
 
       else -> when {
-        blurRadiusPx >= AGGRESSIVE_RADIUS_PX && areaPx >= AGGRESSIVE_AREA_PX -> PERFORMANCE_FRACTION
-        blurRadiusPx >= BALANCED_RADIUS_PX && areaPx >= BALANCED_AREA_PX -> BALANCED_FRACTION
-        else -> QUALITY_FRACTION
+        blurRadiusPx >= AGGRESSIVE_RADIUS_PX && areaPx >= AGGRESSIVE_AREA_PX -> AGGRESSIVE_SCALE
+        blurRadiusPx >= BALANCED_RADIUS_PX && areaPx >= BALANCED_AREA_PX -> BALANCED_SCALE
+        else -> NONE_SCALE
       }
     }
   }
 
-  private fun resolveAdaptiveQualityFractionWithoutAggressiveTier(
+  private fun resolveAdaptiveScaleWithoutAggressiveTier(
     blurRadiusPx: Float,
     areaPx: Float,
   ): Float {
     return when {
-      blurRadiusPx >= BALANCED_RADIUS_EXIT_PX && areaPx >= BALANCED_AREA_EXIT_PX -> BALANCED_FRACTION
-      else -> QUALITY_FRACTION
+      blurRadiusPx >= BALANCED_RADIUS_EXIT_PX && areaPx >= BALANCED_AREA_EXIT_PX -> BALANCED_SCALE
+      else -> NONE_SCALE
     }
   }
 
-  private fun resolveFixedProfile(qualityFraction: Float): Float = when {
-    qualityFraction >= QUALITY_THRESHOLD -> NONE_SCALE
-    qualityFraction >= BALANCED_THRESHOLD -> BALANCED_SCALE
-    else -> AGGRESSIVE_SCALE
-  }
+  private fun resolveFixedProfile(qualityFraction: Float): Float =
+    sqrt(MIN_FIXED_PIXEL_FRACTION + (MAX_FIXED_PIXEL_FRACTION - MIN_FIXED_PIXEL_FRACTION) * qualityFraction)
 
   internal companion object {
+    private const val MIN_FIXED_PIXEL_FRACTION = 0.25f
+    private const val MAX_FIXED_PIXEL_FRACTION = 1f
+
     const val BALANCED_SCALE = 0.8f
     const val AGGRESSIVE_SCALE = 0.5f
     const val NONE_SCALE = 1f
-
-    const val QUALITY_FRACTION = 1f
-    const val BALANCED_FRACTION = 0.5f
-    const val PERFORMANCE_FRACTION = 0f
-
-    const val QUALITY_THRESHOLD = 0.75f
-    const val BALANCED_THRESHOLD = 0.25f
 
     // At these boundaries, the downsampled blur kernel remains at least 25.6px / 30px.
     const val BALANCED_RADIUS_PX = 32f
