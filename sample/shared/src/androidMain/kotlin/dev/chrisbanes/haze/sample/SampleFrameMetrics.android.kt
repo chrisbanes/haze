@@ -175,7 +175,7 @@ private class WindowFrameMetricsListener(
     val durationNanos = frameMetrics.getMetric(FrameMetrics.TOTAL_DURATION)
     val deadlineNanos = androidDeadlineNanos(
       sdkInt = Build.VERSION.SDK_INT,
-      rawDeadlineNanos = frameMetrics.getMetric(FrameMetrics.DEADLINE),
+      readDeadlineNanos = { frameMetrics.getMetric(FrameMetrics.DEADLINE) },
     )
     onFrame(
       durationNanos,
@@ -189,5 +189,7 @@ private class WindowFrameMetricsListener(
 internal fun androidFrameMetricsSourceForSdk(sdkInt: Int): SampleFrameMetricsSource =
   if (sdkInt >= 24) SampleFrameMetricsSource.RenderedFrameTiming else SampleFrameMetricsSource.FrameCadence
 
-internal fun androidDeadlineNanos(sdkInt: Int, rawDeadlineNanos: Long): Long? =
-  rawDeadlineNanos.takeIf { sdkInt >= 31 && it > 0L }
+internal fun androidDeadlineNanos(
+  sdkInt: Int,
+  readDeadlineNanos: () -> Long,
+): Long? = if (sdkInt >= 31) readDeadlineNanos().takeIf { it > 0L } else null

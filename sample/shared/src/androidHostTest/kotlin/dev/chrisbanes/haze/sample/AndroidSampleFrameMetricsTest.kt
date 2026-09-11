@@ -39,14 +39,14 @@ class AndroidSampleFrameMetricsTest : ContextTest() {
   fun api23_usesCadenceFallbackAndApi24To30HideDeadlines() {
     assertThat(androidFrameMetricsSourceForSdk(23)).isEqualTo(SampleFrameMetricsSource.FrameCadence)
     assertThat(androidFrameMetricsSourceForSdk(24)).isEqualTo(SampleFrameMetricsSource.RenderedFrameTiming)
-    assertThat(androidDeadlineNanos(24, 16)).isNull()
-    assertThat(androidDeadlineNanos(30, 16)).isNull()
+    assertThat(androidDeadlineNanos(24) { error("API 24 must not read DEADLINE") }).isNull()
+    assertThat(androidDeadlineNanos(30) { error("API 30 must not read DEADLINE") }).isNull()
   }
 
   @Test
   fun api31_exposesOnlyValidDeadlines() {
-    assertThat(androidDeadlineNanos(31, 16)).isEqualTo(16)
-    assertThat(androidDeadlineNanos(31, 0)).isNull()
+    assertThat(androidDeadlineNanos(31) { 16 }).isEqualTo(16)
+    assertThat(androidDeadlineNanos(31) { 0 }).isNull()
   }
 
   @Test
