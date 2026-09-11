@@ -1097,6 +1097,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#amendment-continuous-fixed-quality-2026-09-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment: continuous fixed quality (2026-09-11)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#references" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1129,7 +1140,7 @@
 
 <div><h1 id="adr-0006-reconcile-built-in-performance-mode-terminology">ADR-0006: Reconcile built-in performance-mode terminology<a class="headerlink" href="#adr-0006-reconcile-built-in-performance-mode-terminology" title="Permanent link">¶</a></h1>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">¶</a></h2>
-<p>Accepted</p>
+<p>Accepted. The fixed-mode mapping is amended below on 2026-09-11.</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">¶</a></h2>
 <p>2026-08-09</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">¶</a></h2>
@@ -1175,6 +1186,21 @@ performance guidance; raw Macrobenchmark artifacts remain local build outputs.</
 <li>ADR-0004 and ADR-0005 retain their historical evidence and implementation-policy decisions, but
   their built-in public-API terminology is superseded by this ADR.</li>
 </ul>
+<h2 id="amendment-continuous-fixed-quality-2026-09-11">Amendment: continuous fixed quality (2026-09-11)<a class="headerlink" href="#amendment-continuous-fixed-quality-2026-09-11" title="Permanent link">¶</a></h2>
+<p><code>Fixed(qualityFraction)</code> now interpolates the total input pixel fraction between the supported
+minimum and full resolution, replacing the three-bucket fixed selector above. The minimum is an
+internal implementation value, not a documented numeric guarantee. Interpolation is linear in
+total input pixels, rather than each dimension.
+The public name and finite <code>0f..1f</code> validation remain unchanged. Renderer resource limits and
+whole-pixel rounding still apply.</p>
+<p><code>Quality = Fixed(1f)</code> and <code>Performance = Fixed(0f)</code> retain their previous scales.
+<code>Balanced = Fixed(0.5f)</code> requests the midpoint between minimum and full-resolution pixel counts.
+Adaptive retains its previous scales, workload thresholds, cadence handling, and hysteresis;
+its tiers are resolved independently from fixed quality.</p>
+<p>The implementation preserves the existing minimum fixed resolution. It is not a newly measured visual
+quality threshold. Fresh paired visual and performance testing remains necessary before changing
+Adaptive's default behavior. Earlier benchmark tables describe the old fixed profiles and must
+not be interpreted as measurements of this new mapping.</p>
 <h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">¶</a></h2>
 <ul>
 <li><a href="https://github.com/chrisbanes/haze/issues/1206">Issue #1206: Calibrate performance modes</a></li>

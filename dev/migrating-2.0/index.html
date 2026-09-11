@@ -1599,9 +1599,10 @@ Later releases may enable the default, retain a temporary <code>false</code> esc
 the flag.</p>
 <p><code>HazePerformanceMode.Default</code> points to <code>Adaptive</code> for built-in Blur and Glass. Use <code>Adaptive</code> to pin that policy,
 <code>Quality</code>, <code>Balanced</code>, or <code>Performance</code> for its named profiles, or <code>Fixed(qualityFraction)</code> for an
-explicit normalized trade-off. <code>Quality</code> replaces the previous built-in full-resolution choice;
-remeasure a previous built-in fixed input-pixel fraction before choosing <code>Fixed</code>. <code>HazeSampling</code>
-remains the generic policy used by custom effects.</p>
+explicit quality level from <code>0f</code> (lowest) to <code>1f</code> (highest). <code>Quality</code> replaces the previous
+built-in full-resolution choice. Previous fixed input-pixel fractions are not equivalent to the
+same <code>qualityFraction</code> value; compare appearance and performance before choosing a replacement.
+<code>HazeSampling</code> remains the generic policy used by custom effects.</p>
 <h2 id="lifecycle-and-sharing">Lifecycle and sharing<a class="headerlink" href="#lifecycle-and-sharing" title="Permanent link">¶</a></h2>
 <p>Styles are immutable and safe to share. Supply a replacement Style through recomposition when the
 appearance changes.</p>

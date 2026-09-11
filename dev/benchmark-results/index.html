@@ -858,6 +858,28 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#glass-fixed-quality-with-controlled-cpu-placement-2026-09-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glass fixed quality with controlled CPU placement (2026-09-11)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#glass-fixed-quality-under-normal-scheduling-2026-09-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glass fixed quality under normal scheduling (2026-09-11)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1205,6 +1227,28 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#glass-fixed-quality-with-controlled-cpu-placement-2026-09-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glass fixed quality with controlled CPU placement (2026-09-11)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#glass-fixed-quality-under-normal-scheduling-2026-09-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glass fixed quality under normal scheduling (2026-09-11)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1314,7 +1358,9 @@ and device classes that your application supports.</p>
 <p>The controlled Blur and Glass samples ran in <code>benchmarkRelease</code> on a Pixel 6 (Android 17/API 37,
 1080×2400), locked to 60 Hz with Android fixed-performance mode enabled. Each row contains 16
 fixed-duration iterations. The original summaries did not record the build SHA or run order;
-these tables cannot establish the calibration of the current implementation.</p>
+these tables cannot establish the calibration of the current implementation. In particular,
+<code>Balanced</code> was measured with the earlier discrete mapping, before fixed quality began interpolating
+pixel counts. These values do not measure the current <code>Balanced</code> resolution.</p>
 <p>Values are <strong>P90 CPU frame duration / P90 frame overrun</strong>, in milliseconds. A negative overrun
 is margin below the 60 Hz frame budget. Each sample holds its other style choices fixed; the Glass
 run keeps the other <code>GlassDefaults</code> values unchanged.</p>
@@ -1377,7 +1423,180 @@ run keeps the other <code>GlassDefaults</code> values unchanged.</p>
 <p>These CPU timings do not rank visual quality or establish that the named profiles have a monotonic
 frame-time cost. Use a visual comparison alongside measurements before choosing an override.</p>
 <p>The adaptive-policy decisions and their original evidence remain in <a href="../adr/0004-use-quality-gated-adaptive-input-scaling-for-blur/">ADR-0004</a> and
-<a href="../adr/0005-use-cadence-weighted-adaptive-input-scaling-for-glass/">ADR-0005</a>. <a href="../adr/0006-reconcile-built-in-performance-mode-terminology/">ADR-0006</a> records the current public terminology.</p></div>
+<a href="../adr/0005-use-cadence-weighted-adaptive-input-scaling-for-glass/">ADR-0005</a>. <a href="../adr/0006-reconcile-built-in-performance-mode-terminology/">ADR-0006</a> records the current public terminology.</p>
+<h2 id="glass-fixed-quality-with-controlled-cpu-placement-2026-09-11">Glass fixed quality with controlled CPU placement (2026-09-11)<a class="headerlink" href="#glass-fixed-quality-with-controlled-cpu-placement-2026-09-11" title="Permanent link">¶</a></h2>
+<p>On 11 September 2026, a CPU-affinity sweep compared six <code>qualityFraction</code> values using the updated
+fixed-quality mapping. It used a release build on a Pixel 6 running Android 17
+(full SDK 37.1), at 60 Hz with fixed-performance mode enabled. The scene contained one 280 dp ×
+180 dp Regular Glass surface using <code>HazeInput.Sources</code>.</p>
+<p>The sample process requested affinity to CPUs 4–5, the device's middle CPU cluster. Perfetto checks
+verified that main and RenderThread executed only on those CPUs during the measurement interval in every trace.
+Other Android processes remained unrestricted. This measures a controlled quality comparison;
+applications normally leave CPU placement to Android.</p>
+<p>Each level ran with stable and continuously changing input, first in ascending quality order,
+then descending with the workload order also reversed. Eight iterations per case produced 192
+iterations and 34,753 measured frames. Runs started at thermal status 0 and a battery
+temperature of at most 30°C. Brightness was fixed during measurement; cooldowns used a dimmer screen
+and disabled fixed-performance mode. No completed timing iteration was discarded.</p>
+<p>The table shows the <strong>changing-input</strong> results. Negative frame overrun means the frame finished
+before its deadline; more negative values indicate more spare time. Each value is the arithmetic
+mean of the two per-pass P90 values, calculated before rounding, not the P90 of the combined
+frames. CPU frame duration is not GPU shader duration.</p>
+<table>
+<thead>
+<tr>
+<th><code>qualityFraction</code></th>
+<th style="text-align: right;">CPU frame duration: mean per-pass P90 (ms)</th>
+<th style="text-align: right;">Frame overrun: mean per-pass P90 (ms)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td style="text-align: right;">3.17</td>
+<td style="text-align: right;">-10.95</td>
+</tr>
+<tr>
+<td><code>0.25</code></td>
+<td style="text-align: right;">3.12</td>
+<td style="text-align: right;">-10.17</td>
+</tr>
+<tr>
+<td><code>1f / 3f</code></td>
+<td style="text-align: right;">3.11</td>
+<td style="text-align: right;">-9.77</td>
+</tr>
+<tr>
+<td><code>0.5</code> (<code>Balanced</code>)</td>
+<td style="text-align: right;">3.17</td>
+<td style="text-align: right;">-9.11</td>
+</tr>
+<tr>
+<td><code>0.75</code></td>
+<td style="text-align: right;">4.87</td>
+<td style="text-align: right;">-6.34</td>
+</tr>
+<tr>
+<td><code>1</code> (<code>Quality</code>)</td>
+<td style="text-align: right;">4.74</td>
+<td style="text-align: right;">-5.53</td>
+</tr>
+</tbody>
+</table>
+<p>The largest difference in changing-input CPU P90 between the two passes was 0.12 ms.
+Stable-input CPU P90 ranged from 2.60 to 2.72 ms across all levels and both passes.
+No measured frame missed its deadline.</p>
+<p>The <a href="./#glass-fixed-quality-under-normal-scheduling-2026-09-11">earlier normal-scheduling sweep</a>
+had CPU results sensitive to slower-core placement, including a reversed ranking when two levels
+were repeated. Those results are preserved separately; this rerun also fixed screen brightness,
+so the difference between runs is not an isolated estimate of affinity's effect.</p>
+<p>For this scene, <code>Fixed(0.75f)</code> used 2.77 ms more deadline margin than <code>Balanced</code>, based on the
+mean per-pass P90 frame overrun. The new mapping already gives <code>Balanced</code> more resolution than the
+previous Glass Balanced profile, reproduced here with <code>Fixed(1f / 3f)</code>. The earlier stationary
+reference captures showed a subtle visual difference between <code>0.5</code> and <code>0.75</code>, supporting keeping
+<code>Balanced</code> at <code>Fixed(0.5f)</code> for now.</p>
+<p>These measurements do not establish the right setting for Web, Clear Glass, larger or multiple
+surfaces, or higher refresh rates. Compare visual quality and frame timing in the actual screen
+under normal scheduling before selecting a higher fixed level.</p>
+<h2 id="glass-fixed-quality-under-normal-scheduling-2026-09-11">Glass fixed quality under normal scheduling (2026-09-11)<a class="headerlink" href="#glass-fixed-quality-under-normal-scheduling-2026-09-11" title="Permanent link">¶</a></h2>
+<p>These measurements and their follow-up used normal CPU placement. See the
+<a href="../performance/#choosing-a-fixed-quality-level">performance guide</a> for the later comparison
+with CPU affinity controlled.</p>
+<p>On 11 September 2026, a sweep compared six <code>qualityFraction</code> values using the continuous fixed-quality
+mapping described above. It used a release build on a Pixel 6 running Android 17 (full SDK 37.1),
+at 60 Hz with fixed-performance mode enabled. The scene contained one 280 dp × 180 dp Regular Glass
+surface using <code>HazeInput.Sources</code>.</p>
+<p>Each level ran with both stable and continuously changing input, first in ascending quality order,
+then descending with the workload order also reversed. Eight iterations per case produced 192
+iterations and 34,753 measured frames. Runs started at thermal status 0 and a battery temperature
+of at most 30°C, with cooldowns outside measurement. Interrupted runs resumed from completed cases;
+no completed iteration was discarded. Automatic brightness remained enabled during measurement.</p>
+<p>The table shows the <strong>changing-input</strong> results. Negative frame overrun means the frame finished
+before its deadline; more negative values indicate more spare time. Each value is the arithmetic
+mean of the two per-pass P90 values, calculated before rounding, not the P90 of the combined
+frames. CPU frame duration is not GPU shader duration.</p>
+<table>
+<thead>
+<tr>
+<th><code>qualityFraction</code></th>
+<th style="text-align: right;">CPU frame duration: mean per-pass P90 (ms)</th>
+<th style="text-align: right;">Frame overrun: mean per-pass P90 (ms)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td style="text-align: right;">4.39</td>
+<td style="text-align: right;">-10.02</td>
+</tr>
+<tr>
+<td><code>0.25</code></td>
+<td style="text-align: right;">5.06</td>
+<td style="text-align: right;">-8.73</td>
+</tr>
+<tr>
+<td><code>1f / 3f</code></td>
+<td style="text-align: right;">4.20</td>
+<td style="text-align: right;">-8.83</td>
+</tr>
+<tr>
+<td><code>0.5</code> (<code>Balanced</code>)</td>
+<td style="text-align: right;">4.47</td>
+<td style="text-align: right;">-8.00</td>
+</tr>
+<tr>
+<td><code>0.75</code></td>
+<td style="text-align: right;">5.33</td>
+<td style="text-align: right;">-5.76</td>
+</tr>
+<tr>
+<td><code>1</code> (<code>Quality</code>)</td>
+<td style="text-align: right;">5.18</td>
+<td style="text-align: right;">-4.96</td>
+</tr>
+</tbody>
+</table>
+<p>Stable-input CPU frame P90 ranged from 3.25 to 3.74 ms across all levels and both passes. One frame
+missed its deadline in the entire sweep, in the ascending changing-input <code>Fixed(1f / 3f)</code> case.
+Perfetto traces showed varying main-thread and RenderThread CPU placement, so the CPU differences
+between passes should not be attributed solely to input resolution.</p>
+<p>A follow-up repeated the changing-input <code>0f</code> and <code>0.25f</code> cases with the same APKs and device
+settings, in <code>0 → 0.25 → 0.25 → 0</code> order. Its 32 iterations produced 5,792 frames with no missed
+deadlines. These additional results are reported separately from the original sweep above:</p>
+<table>
+<thead>
+<tr>
+<th><code>qualityFraction</code></th>
+<th style="text-align: right;">CPU frame duration: mean per-pass P90 (ms)</th>
+<th style="text-align: right;">Frame overrun: mean per-pass P90 (ms)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td style="text-align: right;">4.98</td>
+<td style="text-align: right;">-9.69</td>
+</tr>
+<tr>
+<td><code>0.25</code></td>
+<td style="text-align: right;">3.68</td>
+<td style="text-align: right;">-9.44</td>
+</tr>
+</tbody>
+</table>
+<p>The CPU ranking reversed in the follow-up. In one <code>0f</code> pass, an iteration running mainly on the
+smaller CPU cores had a CPU P90 of 6.05 ms, while the other seven iterations ranged from 3.52 to
+3.99 ms. All iterations remain included in the reported means. These CPU results are sensitive
+to scheduling and should not be read as a stable ranking of input-resolution cost; compare frame
+overrun and traces alongside them.</p>
+<p>For this scene, <code>Fixed(0.75f)</code> used 2.24 ms more deadline margin than <code>Balanced</code>, based on the
+mean per-pass P90 frame overrun.
+The new mapping already gives <code>Balanced</code> more resolution than the previous Glass Balanced profile,
+which this sweep reproduced with <code>Fixed(1f / 3f)</code>. The visual difference between <code>0.5</code> and <code>0.75</code>
+was subtle in the stationary reference scene, supporting keeping <code>Balanced</code> at <code>Fixed(0.5f)</code> for
+now. This is a reference measurement for one device and workload: it does not establish the right
+setting for Web, Clear Glass, larger or multiple surfaces, or higher refresh rates. Compare visual
+quality and frame timing in the actual screen before selecting a higher fixed level.</p></div>
 
 
 

@@ -1543,18 +1543,19 @@ does not update the modifier node; provide a replacement Style when a configured
 <p>The renderer can own mutable resources and releases them in <code>dispose</code>. Style replacement updates
 the existing renderer. Factory replacement and detachment dispose it exactly once.</p>
 <h2 id="built-in-performance-mode">Built-in performance mode<a class="headerlink" href="#built-in-performance-mode" title="Permanent link">¶</a></h2>
+<p><code>HazePerformanceMode</code> lets you choose the quality and performance trade-off for built-in Blur and
+Glass:</p>
 <ul>
-<li><code>HazePerformanceMode.Default</code> is <code>Adaptive</code> and lets built-in Blur and Glass balance quality and
-  cost automatically.</li>
-<li><code>HazePerformanceMode.Quality</code>, <code>Balanced</code>, and <code>Performance</code> select effect-owned named profiles.</li>
-<li><code>HazePerformanceMode.Fixed(qualityFraction)</code> selects a normalized, deterministic profile for a
-  built-in effect.</li>
+<li><code>Default</code> (<code>Adaptive</code>) adjusts quality automatically.</li>
+<li><code>Quality</code> prioritises detail, <code>Performance</code> prioritises lower rendering cost, and <code>Balanced</code>
+  offers a middle ground.</li>
+<li><code>Fixed(qualityFraction)</code> lets you choose a level from <code>0f</code> (lowest supported quality) to <code>1f</code>
+  (highest supported quality).</li>
 </ul>
-<p>Start with the default. Choose a fixed profile only when visual comparison shows that you need a
-stable quality and performance trade-off.</p>
-<p><code>Quality</code> replaces the previous built-in full-resolution choice. Previous built-in fixed
-input-pixel fractions have no direct equivalent: remeasure an explicit <code>Fixed(qualityFraction)</code>
-choice on the effect and layout you support.</p>
+<p>Start with the default. If the effect looks too pixelated, try a higher fixed quality level and
+check that scrolling and animations remain smooth on the devices you support. See the
+<a href="../performance/">performance guide</a> for more guidance and the <a href="../migrating-2.0/">migration guide</a>
+for replacing older sampling settings.</p>
 <h2 id="generic-sampling">Generic sampling<a class="headerlink" href="#generic-sampling" title="Permanent link">¶</a></h2>
 <p><code>HazeSampling</code> remains the generic input-sampling contract for custom effects. Built-in Blur and
 Glass use <code>HazePerformanceMode</code> instead. <code>HazeSampling</code>'s <code>Default</code>, <code>Adaptive</code>, <code>FullResolution</code>, and
