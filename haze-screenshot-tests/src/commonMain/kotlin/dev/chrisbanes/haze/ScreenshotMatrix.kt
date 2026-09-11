@@ -6,6 +6,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.blur.HazeBlurStyle
@@ -24,6 +25,8 @@ internal object ScreenshotMatrix {
     ScreenshotMatrixInput.BackdropFallback,
   )
 
+  private val nativeHostInputs = listOf(ScreenshotMatrixInput.BackdropNative)
+
   val modes = listOf(
     ScreenshotMatrixMode.Quality,
     ScreenshotMatrixMode.Balanced,
@@ -41,11 +44,32 @@ internal object ScreenshotMatrix {
     return matrixCases(profile, hostInputs)
   }
 
+  fun nativeHostCases(profile: ScreenshotMatrixProfile.AndroidHost): List<ScreenshotMatrixCase> {
+    require(profile.sdk == SCREENSHOT_MATRIX_ANDROID_SDK_37) {
+      "Native host cases require SDK $SCREENSHOT_MATRIX_ANDROID_SDK_37, was ${profile.sdk}"
+    }
+    return matrixCases(profile, nativeHostInputs)
+  }
+
   fun selectHostCases(
     profile: ScreenshotMatrixProfile,
     selectedCaseId: String?,
   ): List<ScreenshotMatrixCase> {
-    val cases = hostCases(profile)
+    return selectCases(hostCases(profile), selectedCaseId, profile)
+  }
+
+  fun selectNativeHostCases(
+    profile: ScreenshotMatrixProfile.AndroidHost,
+    selectedCaseId: String?,
+  ): List<ScreenshotMatrixCase> {
+    return selectCases(nativeHostCases(profile), selectedCaseId, profile)
+  }
+
+  private fun selectCases(
+    cases: List<ScreenshotMatrixCase>,
+    selectedCaseId: String?,
+    profile: ScreenshotMatrixProfile,
+  ): List<ScreenshotMatrixCase> {
     if (selectedCaseId == null) return cases
     return listOf(
       requireNotNull(cases.singleOrNull { it.selectorId == selectedCaseId }) {
@@ -72,6 +96,7 @@ internal const val SCREENSHOT_MATRIX_CASE_PROPERTY = "haze.screenshot.matrix.cas
 internal const val SCREENSHOT_MATRIX_ANDROID_SDK_28 = 28
 internal const val SCREENSHOT_MATRIX_ANDROID_SDK_32 = 32
 internal const val SCREENSHOT_MATRIX_ANDROID_SDK_35 = 35
+internal const val SCREENSHOT_MATRIX_ANDROID_SDK_37 = 37
 
 internal enum class ScreenshotMatrixScene(val id: String) {
   BlurCreditCard("blur-credit-card"),
@@ -81,6 +106,7 @@ internal enum class ScreenshotMatrixScene(val id: String) {
 internal enum class ScreenshotMatrixInput(val id: String) {
   Sources("sources"),
   BackdropFallback("backdrop-fallback"),
+  BackdropNative("backdrop-native"),
 }
 
 internal enum class ScreenshotMatrixMode(
@@ -123,6 +149,7 @@ internal class ScreenshotMatrixCase(
 
 @Composable
 internal fun ScreenshotMatrixCase.Render() {
+  val nativeFallbackState = remember { HazeState() }
   when (scene) {
     ScreenshotMatrixScene.BlurCreditCard -> CreditCardSample(
       visualEffect = HazeBlurStyle {
@@ -130,12 +157,12 @@ internal fun ScreenshotMatrixCase.Render() {
         blurRadius(8.dp)
       },
       performanceMode = mode.performanceMode,
-      input = input::createInput,
+      input = { sourceState -> input.createInput(sourceState, nativeFallbackState) },
     )
     ScreenshotMatrixScene.GlassCreditCard -> CreditCardGlassSample(
       style = GlassStyle { tint(MatrixTintColor) },
       performanceMode = mode.performanceMode,
-      input = input::createInput,
+      input = { sourceState -> input.createInput(sourceState, nativeFallbackState) },
     )
   }
 }
@@ -143,15 +170,19 @@ internal fun ScreenshotMatrixCase.Render() {
 private val MatrixTintColor = Color.White.copy(alpha = 0.1f)
 private val MatrixTint = HazeColorEffect.tint(MatrixTintColor)
 
-internal fun ScreenshotMatrixInput.createInput(state: HazeState): HazeInput = when (this) {
-  ScreenshotMatrixInput.Sources -> HazeInput.Sources(state)
-  ScreenshotMatrixInput.BackdropFallback -> HazeInput.Backdrop(state)
+internal fun ScreenshotMatrixInput.createInput(
+  sourceState: HazeState,
+  nativeFallbackState: HazeState,
+): HazeInput = when (this) {
+  ScreenshotMatrixInput.Sources -> HazeInput.Sources(sourceState)
+  ScreenshotMatrixInput.BackdropFallback -> HazeInput.Backdrop(sourceState)
+  ScreenshotMatrixInput.BackdropNative -> HazeInput.Backdrop(nativeFallbackState)
 }
 
 @OptIn(ExperimentalHazeApi::class)
 internal inline fun <T> ScreenshotMatrixCase.withPlatformBackdropFlag(block: () -> T): T {
   val previous = HazeFeatureFlags.isPlatformBackdropEnabled
-  HazeFeatureFlags.isPlatformBackdropEnabled = false
+  HazeFeatureFlags.isPlatformBackdropEnabled = input == ScreenshotMatrixInput.BackdropNative
   return try {
     block()
   } finally {

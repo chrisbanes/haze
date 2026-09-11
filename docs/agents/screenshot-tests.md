@@ -9,14 +9,17 @@ multiple configurations inside one test loop: each matrix case needs its own JUn
 baseline. Keep mode-transition and pixel-invariant tests separate because they check lifecycle
 behavior rather than fresh configuration setup.
 
-Use an exact selected case for diagnosis and the PR gate for normal coverage. Native-device work and the full release gate are deferred; do not present the host gate as
-release acceptance. Always include `--no-scan`; use the repository's Gradle workflow guidance when
-running Gradle.
+Use an exact selected case for diagnosis and the PR gate for normal coverage. The Android host gate
+also runs the narrow SDK 37 native-Backdrop runner and the native pixel proof. It is not release
+acceptance: physical-device correctness and performance remain deferred. Always include `--no-scan`;
+use the repository's Gradle workflow guidance when running Gradle.
 
 For Backdrop cases, set the platform flag before the effect attaches and restore it even when
-capture fails. `sources`, `backdrop-fallback`, and `backdrop-native` are named input requests.
-Only a qualified-device empty-fallback probe can establish native execution; a requested native
-input, SDK check, log, or visually similar fallback image cannot.
+capture fails. `sources`, `backdrop-fallback`, and `backdrop-native` are named input requests. The
+SDK 37 host-native cases must use a distinct empty fallback state and invalidate the decor view
+before capture. Their acceptance also depends on `BackdropAndroidRegressionTest` positive native
+pixel checks and unsupported/disabled negative controls. This establishes host-native coverage;
+only physical hardware can establish physical correctness or performance.
 
 Diagnose a failure before recording. Record only intentional case changes, inspect image diffs,
 keep unrelated baselines and global tolerances intact, then run verification again. Preserve the

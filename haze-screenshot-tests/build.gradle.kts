@@ -166,7 +166,7 @@ val verifyScreenshotMatrixJvm = tasks.register<Exec>("verifyScreenshotMatrixJvm"
     layout.buildDirectory.file("test-results/jvmTest/TEST-dev.chrisbanes.haze.ScreenshotMatrixDesktopTest.xml").get().asFile,
   )
 }
-val verifyScreenshotMatrixAndroid = tasks.register<Exec>("verifyScreenshotMatrixAndroid") {
+val verifyScreenshotMatrixAndroidCases = tasks.register<Exec>("verifyScreenshotMatrixAndroidCases") {
   group = "verification"
   dependsOn(matrixPreflight, "testAndroidHostTest")
   commandLine(
@@ -174,6 +174,35 @@ val verifyScreenshotMatrixAndroid = tasks.register<Exec>("verifyScreenshotMatrix
     rootProject.file("scripts/verify_screenshot_matrix.py"),
     "android",
     layout.buildDirectory.file("test-results/testAndroidHostTest/TEST-dev.chrisbanes.haze.ScreenshotMatrixAndroidTest.xml").get().asFile,
+  )
+}
+val verifyScreenshotMatrixAndroidNative = tasks.register<Exec>("verifyScreenshotMatrixAndroidNative") {
+  group = "verification"
+  dependsOn(matrixPreflight, "testAndroidHostTest")
+  commandLine(
+    "python3",
+    rootProject.file("scripts/verify_screenshot_matrix.py"),
+    "android-native",
+    layout.buildDirectory.file("test-results/testAndroidHostTest/TEST-dev.chrisbanes.haze.ScreenshotMatrixNativeBackdropAndroidTest.xml").get().asFile,
+  )
+}
+val verifyScreenshotMatrixNativeBackdropProof = tasks.register<Exec>("verifyScreenshotMatrixNativeBackdropProof") {
+  group = "verification"
+  dependsOn(matrixPreflight, "testAndroidHostTest")
+  commandLine(
+    "python3",
+    rootProject.file("scripts/verify_screenshot_matrix.py"),
+    "native-backdrop-proof",
+    layout.buildDirectory.file("test-results/testAndroidHostTest/TEST-dev.chrisbanes.haze.BackdropAndroidRegressionTest.xml").get().asFile,
+  )
+}
+val verifyScreenshotMatrixAndroid = tasks.register("verifyScreenshotMatrixAndroid") {
+  group = "verification"
+  description = "Verifies fallback and native Backdrop Robolectric screenshot coverage."
+  dependsOn(
+    verifyScreenshotMatrixAndroidCases,
+    verifyScreenshotMatrixAndroidNative,
+    verifyScreenshotMatrixNativeBackdropProof,
   )
 }
 tasks.register("verifyScreenshotMatrixPr") {

@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from verify_screenshot_matrix import verify_report
+from verify_screenshot_matrix import NATIVE_BACKDROP_PROOF, expected_cases, verify_report
 
 
 class ScreenshotMatrixReportTest(unittest.TestCase):
@@ -30,3 +30,13 @@ class ScreenshotMatrixReportTest(unittest.TestCase):
     def test_rejects_unexpected_cases(self):
         with self.assertRaises(ValueError):
             verify_report(self.report('<testcase name="capture[b]"/>'), {"capture[a]"})
+
+    def test_declares_exact_native_matrix_and_proof_cases(self):
+        expected_native = {
+            f"capture[{scene}-backdrop-native-{mode}]"
+            for scene in ["blur-credit-card", "glass-credit-card"]
+            for mode in ["quality", "balanced", "performance", "adaptive"]
+        }
+
+        self.assertEqual(expected_cases("android-native"), expected_native)
+        self.assertEqual(expected_cases("native-backdrop-proof"), NATIVE_BACKDROP_PROOF)
