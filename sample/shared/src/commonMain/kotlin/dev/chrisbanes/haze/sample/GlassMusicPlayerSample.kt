@@ -4,7 +4,6 @@
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -114,12 +113,11 @@ public fun GlassMusicPlayerSampleContent(
   onTrackSelected: (Int) -> Unit,
   onBack: () -> Unit,
   modifier: Modifier = Modifier,
-  isDark: Boolean = isSystemInDarkTheme(),
 ) {
   val currentTrack = tracks[currentTrackIndex]
   val hazeState = rememberHazeState()
   val input = HazeInput.Backdrop(hazeState)
-  val foreground = if (isDark) Color.White else Color(0xff15121b)
+  val foreground = MaterialTheme.colorScheme.onSurface
   BoxWithConstraints(modifier = modifier.fillMaxSize().testTag("glass_music_player")) {
     val wide = maxWidth > maxHeight
     val compactWide = wide && maxHeight < 500.dp
@@ -133,7 +131,7 @@ public fun GlassMusicPlayerSampleContent(
       track = currentTrack,
       modifier = Modifier.fillMaxSize().hazeSource(hazeState),
     )
-    Box(Modifier.fillMaxSize().background((if (isDark) Color.Black else Color.White).copy(alpha = 0.30f)))
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.30f)))
     Column(
       modifier = Modifier
         .fillMaxSize()

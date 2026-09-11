@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -24,7 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -62,6 +62,7 @@ public fun GlassSlider(
   onValueChangeStarted: (() -> Unit)? = null,
   onValueChangeFinished: (() -> Unit)? = null,
 ) {
+  val colors = MaterialTheme.colorScheme
   var width by remember { mutableFloatStateOf(1f) }
   val layoutDirection = LocalLayoutDirection.current
   val thumbDiameter = with(LocalDensity.current) { 32.dp.toPx() }
@@ -146,14 +147,14 @@ public fun GlassSlider(
         .fillMaxWidth()
         .height(6.dp)
         .clip(RoundedCornerShape(3.dp))
-        .background(Color.White.copy(alpha = 0.22f)),
+        .background(colors.onSurface.copy(alpha = 0.22f)),
     )
     Box(
       modifier = Modifier
         .fillMaxWidth(fraction)
         .height(6.dp)
         .clip(RoundedCornerShape(3.dp))
-        .background(Color.White.copy(alpha = 0.75f)),
+        .background(colors.onSurface.copy(alpha = 0.75f)),
     )
     Box(
       modifier = Modifier
@@ -161,13 +162,13 @@ public fun GlassSlider(
         .size(32.dp)
         .hazeGlass(
           input = input,
-          style = remember { GlassStyle.clear.then { shape(CircleShape) } },
+          style = remember { GlassStyle.clear then GlassStyle { shape(CircleShape) } },
           interactionSource = interactionSource,
           interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
           interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
         )
         .clip(CircleShape)
-        .background(Color.White.copy(alpha = 0.32f)),
+        .background(colors.onSurface.copy(alpha = 0.32f)),
     )
   }
 }

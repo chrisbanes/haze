@@ -14,13 +14,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
@@ -43,6 +43,7 @@ public fun GlassToggle(
   modifier: Modifier = Modifier,
   enabled: Boolean = true,
 ) {
+  val colors = MaterialTheme.colorScheme
   val shape = RoundedCornerShape(24.dp)
   val interactionSource = remember { MutableInteractionSource() }
   val direction = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
@@ -51,10 +52,10 @@ public fun GlassToggle(
       .defaultMinSize(minWidth = 64.dp, minHeight = 48.dp)
       .hazeGlass(
         input = input,
-        style = remember(checked) {
-          GlassStyle.regular.then {
+        style = remember(checked, colors) {
+          GlassStyle.regular then GlassStyle {
             this.shape(shape)
-            tint(if (checked) Color(0xff82d7ff).copy(alpha = 0.32f) else Color.White.copy(alpha = 0.14f))
+            tint(if (checked) colors.primary.copy(alpha = 0.32f) else colors.onSurface.copy(alpha = 0.14f))
           }
         },
         interactionSource = interactionSource,
@@ -95,7 +96,7 @@ public fun GlassToggle(
         .padding(start = thumbOffset)
         .size(40.dp)
         .clip(CircleShape)
-        .background(Color.White.copy(alpha = if (enabled) 0.9f else 0.35f)),
+        .background(colors.onSurface.copy(alpha = if (enabled) 0.9f else 0.35f)),
     )
   }
 }

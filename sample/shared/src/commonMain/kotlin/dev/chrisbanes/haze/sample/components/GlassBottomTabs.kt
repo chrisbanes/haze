@@ -17,13 +17,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -46,15 +46,16 @@ public fun GlassBottomTabs(
     androidx.compose.material3.Text(label)
   },
 ) {
+  val colors = MaterialTheme.colorScheme
   val shape = RoundedCornerShape(28.dp)
   BoxWithConstraints(
     modifier = modifier
       .hazeGlass(
         input = input,
-        style = remember {
-          GlassStyle.regular.then {
+        style = remember(colors) {
+          GlassStyle.regular then GlassStyle {
             this.shape(shape)
-            tint(Color.White.copy(alpha = 0.12f))
+            tint(colors.onSurface.copy(alpha = 0.12f))
           }
         },
         interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
@@ -73,10 +74,10 @@ public fun GlassBottomTabs(
         .height(48.dp)
         .hazeGlass(
           input = input,
-          style = remember {
-            GlassStyle.clear.then {
+          style = remember(colors) {
+            GlassStyle.clear then GlassStyle {
               this.shape(RoundedCornerShape(24.dp))
-              tint(Color.White.copy(alpha = 0.26f))
+              tint(colors.onSurface.copy(alpha = 0.26f))
             }
           },
           interactionTransformTarget = GlassTransformTarget.MaterialAndContent,

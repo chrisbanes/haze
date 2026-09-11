@@ -9,12 +9,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -39,6 +39,7 @@ public fun GlassButton(
   enabled: Boolean = true,
   content: @Composable () -> Unit,
 ) {
+  val colors = MaterialTheme.colorScheme
   val shape = RoundedCornerShape(24.dp)
   val interactionSource = remember { MutableInteractionSource() }
   Box(
@@ -47,10 +48,10 @@ public fun GlassButton(
       .defaultMinSize(minHeight = 48.dp)
       .hazeGlass(
         input = input,
-        style = remember(enabled) {
-          GlassStyle.regular.then {
+        style = remember(enabled, colors) {
+          GlassStyle.regular then GlassStyle {
             this.shape(shape)
-            tint(Color.White.copy(alpha = if (enabled) 0.16f else 0.06f))
+            tint(colors.onSurface.copy(alpha = if (enabled) 0.16f else 0.06f))
             hovered {
               lightingIntensity(0.35f)
               refractionMultiplier(1.02f)

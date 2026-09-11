@@ -159,7 +159,6 @@ internal fun ScreenshotUiTest.captureGlassMusicPlayer(
             onTabSelected = { selectedTab = it }, onPlayPause = {}, onPrevious = {}, onNext = {},
             onShuffleChanged = { shuffle = it }, onSeekStarted = {}, onSeek = { position = it.toFloat() }, onSeekFinished = {},
             onTrackSelected = {}, onBack = {},
-            isDark = isDark,
           )
         }
       }
