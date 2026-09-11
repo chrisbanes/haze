@@ -77,12 +77,14 @@ private fun createScreenshotUiTest(rule: AndroidComposeTestRule<*, *>) =
       val options = unmatchedPixelThreshold
         ?.let(HazeRoborazziDefaults::roborazziOptions)
         ?: HazeRoborazziDefaults.roborazziOptions
+      val context = provideRoborazziContext()
+      val previousOutputDirectory = context.outputDirectory
       artifactPath?.substringBeforeLast('/', missingDelimiterValue = "")?.takeIf(String::isNotEmpty)
         ?.let { provideRoborazziContext().setRuleOverrideOutputDirectory(it) }
       try {
         rule.onRoot().captureRoboImage(output, options)
       } finally {
-        if (artifactPath != null) provideRoborazziContext().clearRuleOverrideOutputDirectory()
+        if (artifactPath != null) context.setRuleOverrideOutputDirectory(previousOutputDirectory)
       }
     }
 

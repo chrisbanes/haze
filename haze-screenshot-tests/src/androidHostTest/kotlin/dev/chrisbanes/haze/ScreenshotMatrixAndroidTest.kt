@@ -7,7 +7,6 @@ package dev.chrisbanes.haze
 
 import android.os.Build
 import dev.chrisbanes.haze.test.ScreenshotTest
-import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -17,9 +16,9 @@ import org.robolectric.annotation.Config
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @Config(
   sdk = [
-    ScreenshotMatrixAndroidSdk28,
-    ScreenshotMatrixAndroidSdk32,
-    ScreenshotMatrixAndroidSdk35,
+    SCREENSHOT_MATRIX_ANDROID_SDK_28,
+    SCREENSHOT_MATRIX_ANDROID_SDK_32,
+    SCREENSHOT_MATRIX_ANDROID_SDK_35,
   ],
 )
 internal class ScreenshotMatrixAndroidTest(
@@ -31,12 +30,7 @@ internal class ScreenshotMatrixAndroidTest(
     val profiledCase = case.withProfile(ScreenshotMatrixProfile.AndroidHost(Build.VERSION.SDK_INT))
     profiledCase.withPlatformBackdropFlag {
       runScreenshotTest {
-        setContent {
-          ScreenshotTheme {
-            profiledCase.Render()
-          }
-        }
-        captureRoot(artifactPath = profiledCase.artifactPath)
+        captureMatrixCase(profiledCase)
       }
     }
   }
@@ -45,9 +39,8 @@ internal class ScreenshotMatrixAndroidTest(
     @JvmStatic
     @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")
     fun cases(): List<Array<Any>> = ScreenshotMatrix.selectHostCases(
-      profile = ScreenshotMatrixProfile.AndroidHost(ScreenshotMatrixAndroidSdk28),
-      selectedCaseId = System.getProperty(ScreenshotMatrixCaseProperty),
-      fullRun = System.getProperty(ScreenshotMatrixFullRunProperty).toBoolean(),
+      profile = ScreenshotMatrixProfile.AndroidHost(SCREENSHOT_MATRIX_ANDROID_SDK_28),
+      selectedCaseId = System.getProperty(SCREENSHOT_MATRIX_CASE_PROPERTY),
     ).map { arrayOf<Any>(it) }
   }
 }

@@ -9,7 +9,7 @@ multiple configurations inside one test loop: each matrix case needs its own JUn
 baseline. Keep mode-transition and pixel-invariant tests separate because they check lifecycle
 behavior rather than fresh configuration setup.
 
-Use an exact selected case for diagnosis and the PR gate for normal coverage. Use the full gate for
+Use an exact selected case for diagnosis and the PR gate for normal coverage. Native-device work and the full release gate are deferred; do not present the host gate as
 release acceptance. Always include `--no-scan`; use the repository's Gradle workflow guidance when
 running Gradle.
 
@@ -22,8 +22,9 @@ Diagnose a failure before recording. Record only intentional case changes, inspe
 keep unrelated baselines and global tolerances intact, then run verification again. Preserve the
 stable profile/scene/input/mode path, and make baseline moves explicit when case IDs change.
 
-Before treating full coverage as complete, verify the device profile and capability gate, run a
+When native-device work resumes, before treating full coverage as complete, verify the device profile and capability gate, run a
 fresh capture, and check positive native evidence. Missing hardware, stale artifacts, unsupported
 SDKs, filtered runs, and record mode are incomplete full validation, not skips. Report the baseline
 revision, selected coverage, results, and missing device evidence accurately. When adding a case,
-update expected coverage so test discovery cannot silently omit it.
+update the independent acceptance set in `scripts/verify_screenshot_matrix.py` alongside the catalog
+and tests so discovery cannot silently omit it.

@@ -4,7 +4,6 @@
 package dev.chrisbanes.haze
 
 import dev.chrisbanes.haze.test.ScreenshotTest
-import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -18,12 +17,7 @@ internal class ScreenshotMatrixDesktopTest(
   @Test
   fun capture() = case.withPlatformBackdropFlag {
     runScreenshotTest {
-      setContent {
-        ScreenshotTheme {
-          case.Render()
-        }
-      }
-      captureRoot(artifactPath = case.artifactPath)
+      captureMatrixCase(case)
     }
   }
 
@@ -34,8 +28,7 @@ internal class ScreenshotMatrixDesktopTest(
 
     private fun selectedCases(): List<ScreenshotMatrixCase> = ScreenshotMatrix.selectHostCases(
       profile = ScreenshotMatrixProfile.Desktop,
-      selectedCaseId = System.getProperty(ScreenshotMatrixCaseProperty),
-      fullRun = System.getProperty(ScreenshotMatrixFullRunProperty).toBoolean(),
+      selectedCaseId = System.getProperty(SCREENSHOT_MATRIX_CASE_PROPERTY),
     )
   }
 }

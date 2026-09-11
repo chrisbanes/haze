@@ -8,8 +8,8 @@ package dev.chrisbanes.haze
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.glass.GlassStyle
 
 /** Test-only catalog for the screenshot configurations enrolled in the matrix. */
@@ -32,39 +32,19 @@ internal object ScreenshotMatrix {
   )
 
   val androidSdkProfiles = listOf(
-    ScreenshotMatrixAndroidSdk28,
-    ScreenshotMatrixAndroidSdk32,
-    ScreenshotMatrixAndroidSdk35,
+    SCREENSHOT_MATRIX_ANDROID_SDK_28,
+    SCREENSHOT_MATRIX_ANDROID_SDK_32,
+    SCREENSHOT_MATRIX_ANDROID_SDK_35,
   )
 
-  val fullCaseIds: Set<String> = buildSet {
-    addAll(hostCases(ScreenshotMatrixProfile.Desktop).map { it.id })
-    androidSdkProfiles.forEach { sdk ->
-      addAll(hostCases(ScreenshotMatrixProfile.AndroidHost(sdk)).map { it.id })
-    }
-    addAll(
-      matrixCases(
-        profile = ScreenshotMatrixProfile.QualifiedDevice,
-        inputs = ScreenshotMatrixInput.entries,
-      ).map { it.id },
-    )
-  }
-
   fun hostCases(profile: ScreenshotMatrixProfile): List<ScreenshotMatrixCase> {
-    require(profile != ScreenshotMatrixProfile.QualifiedDevice) {
-      "Device cases must be run through the native-device verifier"
-    }
     return matrixCases(profile, hostInputs)
   }
 
   fun selectHostCases(
     profile: ScreenshotMatrixProfile,
     selectedCaseId: String?,
-    fullRun: Boolean,
   ): List<ScreenshotMatrixCase> {
-    require(!(fullRun && selectedCaseId != null)) {
-      "A full screenshot matrix run cannot be narrowed to one case"
-    }
     val cases = hostCases(profile)
     if (selectedCaseId == null) return cases
     return listOf(
@@ -72,19 +52,6 @@ internal object ScreenshotMatrix {
         "Unknown screenshot matrix case '$selectedCaseId' for ${profile.id}"
       },
     )
-  }
-
-  fun requireCompleteFullCoverage(
-    passedCaseIds: Set<String>,
-    unsupportedCaseIds: Set<String>,
-  ) {
-    require(unsupportedCaseIds.isEmpty()) {
-      "Full screenshot matrix coverage cannot contain unsupported cases: $unsupportedCaseIds"
-    }
-    val missing = fullCaseIds - passedCaseIds
-    require(missing.isEmpty()) {
-      "Full screenshot matrix coverage is missing: $missing"
-    }
   }
 
   private fun matrixCases(
@@ -101,11 +68,10 @@ internal object ScreenshotMatrix {
   }
 }
 
-internal const val ScreenshotMatrixCaseProperty = "haze.screenshot.matrix.case"
-internal const val ScreenshotMatrixFullRunProperty = "haze.screenshot.matrix.full"
-internal const val ScreenshotMatrixAndroidSdk28 = 28
-internal const val ScreenshotMatrixAndroidSdk32 = 32
-internal const val ScreenshotMatrixAndroidSdk35 = 35
+internal const val SCREENSHOT_MATRIX_CASE_PROPERTY = "haze.screenshot.matrix.case"
+internal const val SCREENSHOT_MATRIX_ANDROID_SDK_28 = 28
+internal const val SCREENSHOT_MATRIX_ANDROID_SDK_32 = 32
+internal const val SCREENSHOT_MATRIX_ANDROID_SDK_35 = 35
 
 internal enum class ScreenshotMatrixScene(val id: String) {
   BlurCreditCard("blur-credit-card"),
@@ -115,7 +81,6 @@ internal enum class ScreenshotMatrixScene(val id: String) {
 internal enum class ScreenshotMatrixInput(val id: String) {
   Sources("sources"),
   BackdropFallback("backdrop-fallback"),
-  BackdropNative("backdrop-native"),
 }
 
 internal enum class ScreenshotMatrixMode(
@@ -133,13 +98,6 @@ internal sealed class ScreenshotMatrixProfile(val id: String) {
 
   @Poko
   class AndroidHost(val sdk: Int) : ScreenshotMatrixProfile("android-sdk-$sdk")
-
-  /**
-   * Artifacts from this runner are intentionally isolated from host images and from other devices.
-   * The device verifier records and checks its full SDK, preview SDK, density, viewport, and build
-   * fingerprint before this profile can be accepted.
-   */
-  data object QualifiedDevice : ScreenshotMatrixProfile("pixel-6-android-37-2")
 }
 
 @Poko
@@ -160,7 +118,7 @@ internal class ScreenshotMatrixCase(
     profile = profile,
   )
 
-  override fun toString(): String = id
+  override fun toString(): String = selectorId
 }
 
 @Composable
@@ -187,15 +145,13 @@ private val MatrixTint = HazeColorEffect.tint(MatrixTintColor)
 
 internal fun ScreenshotMatrixInput.createInput(state: HazeState): HazeInput = when (this) {
   ScreenshotMatrixInput.Sources -> HazeInput.Sources(state)
-  ScreenshotMatrixInput.BackdropFallback,
-  ScreenshotMatrixInput.BackdropNative,
-  -> HazeInput.Backdrop(state)
+  ScreenshotMatrixInput.BackdropFallback -> HazeInput.Backdrop(state)
 }
 
 @OptIn(ExperimentalHazeApi::class)
 internal inline fun <T> ScreenshotMatrixCase.withPlatformBackdropFlag(block: () -> T): T {
   val previous = HazeFeatureFlags.isPlatformBackdropEnabled
-  HazeFeatureFlags.isPlatformBackdropEnabled = input == ScreenshotMatrixInput.BackdropNative
+  HazeFeatureFlags.isPlatformBackdropEnabled = false
   return try {
     block()
   } finally {

@@ -105,8 +105,8 @@ emulator with API level ≥34, matching the raised compile SDK settings.
 ### Screenshot tests
 
 The screenshot matrix and its evidence requirements are documented in
-`docs/agents/screenshot-tests.md`. Canonical commands, profiles, scoped recording, and release
-gates are in `docs/screenshot-tests.md`.
+`docs/agents/screenshot-tests.md`. Canonical commands, profiles, scoped recording, and deferred device
+coverage are in `docs/screenshot-tests.md`.
 
 ### Issue tracker
 

@@ -3,12 +3,15 @@
 
 package dev.chrisbanes.haze
 
-import assertk.assertThat
 import assertk.assertFailure
+import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.each
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isNotEmpty
 import assertk.assertions.isTrue
+import assertk.assertions.startsWith
 import kotlin.test.Test
 
 class ScreenshotMatrixConfigurationTest {
@@ -30,8 +33,7 @@ class ScreenshotMatrixConfigurationTest {
     assertThat(cases).isNotEmpty()
     assertThat(cases.map { it.id }.toSet().size).isEqualTo(cases.size)
     assertThat(cases.map { it.artifactPath }.toSet().size).isEqualTo(cases.size)
-    assertThat(cases.map { it.artifactPath }.all { it.startsWith("screenshots/matrix/desktop/") })
-      .isTrue()
+    assertThat(cases.map { it.artifactPath }).each { it.startsWith("screenshots/matrix/desktop/") }
   }
 
   @Test
@@ -39,7 +41,6 @@ class ScreenshotMatrixConfigurationTest {
     val selected = ScreenshotMatrix.selectHostCases(
       profile = ScreenshotMatrixProfile.Desktop,
       selectedCaseId = "blur-credit-card-sources-quality",
-      fullRun = false,
     )
 
     assertThat(selected.map { it.selectorId }).containsExactly("blur-credit-card-sources-quality")
@@ -47,40 +48,22 @@ class ScreenshotMatrixConfigurationTest {
       ScreenshotMatrix.selectHostCases(
         profile = ScreenshotMatrixProfile.Desktop,
         selectedCaseId = "missing",
-        fullRun = false,
       )
     }
   }
 
   @Test
-  fun fullRun_rejectsNarrowing() {
-    assertFailure {
-      ScreenshotMatrix.selectHostCases(
-        profile = ScreenshotMatrixProfile.Desktop,
-        selectedCaseId = "blur-credit-card-sources-quality",
-        fullRun = true,
-      )
-    }
-  }
-
-  @Test
-  fun fullCoverage_requiresEveryApplicableNativeCase() {
-    val expected = ScreenshotMatrix.fullCaseIds
-    val missingNative = "pixel-6-android-37-2/blur-credit-card-backdrop-native-quality"
-    val successful = expected - missingNative
-
-    assertFailure {
-      ScreenshotMatrix.requireCompleteFullCoverage(
-        passedCaseIds = successful,
-        unsupportedCaseIds = emptySet(),
-      )
-    }
-
-    assertFailure {
-      ScreenshotMatrix.requireCompleteFullCoverage(
-        passedCaseIds = successful,
-        unsupportedCaseIds = setOf(missingNative),
-      )
+  fun backdropFlag_isRestoredAfterSuccessAndFailure() {
+    val original = HazeFeatureFlags.isPlatformBackdropEnabled
+    val case = ScreenshotMatrix.hostCases(ScreenshotMatrixProfile.Desktop).first()
+    try {
+      HazeFeatureFlags.isPlatformBackdropEnabled = true
+      case.withPlatformBackdropFlag { assertThat(HazeFeatureFlags.isPlatformBackdropEnabled).isFalse() }
+      assertThat(HazeFeatureFlags.isPlatformBackdropEnabled).isTrue()
+      assertFailure { case.withPlatformBackdropFlag { error("capture failed") } }
+      assertThat(HazeFeatureFlags.isPlatformBackdropEnabled).isTrue()
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = original
     }
   }
 }

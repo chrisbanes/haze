@@ -55,18 +55,6 @@ class GlassScreenshotTest : ScreenshotTest() {
   }
 
   @Test
-  fun creditCard() = runScreenshotTest {
-    val style = GlassStyle { tint(DefaultTint) }
-
-    setContent {
-      ScreenshotTheme {
-        CreditCardGlassSample(style = style)
-      }
-    }
-    captureRoot()
-  }
-
-  @Test
   fun creditCard_noTint() = runScreenshotTest {
     val style = GlassStyle { tint(Color.Transparent) }
 

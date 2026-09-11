@@ -82,7 +82,7 @@ jobs:
 
       - name: Assemble and check
         run: >
-          ./gradlew check assembleDebug
+          ./gradlew check assembleDebug :haze-screenshot-tests:verifyScreenshotMatrixJvm
           -x :haze-screenshot-tests:testAndroidHostTest
           -Phaze.disableAppleTargets
           -Pandroidx.baselineprofile.skipgeneration
@@ -124,7 +124,7 @@ jobs:
 
       - name: Run screenshot tests
         run: >
-          ./gradlew :haze-screenshot-tests:testAndroidHostTest
+          ./gradlew :haze-screenshot-tests:verifyScreenshotMatrixAndroid
           -Phaze.disableAppleTargets
           -Pandroidx.baselineprofile.skipgeneration
         env:
