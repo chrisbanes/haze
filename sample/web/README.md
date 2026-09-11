@@ -25,10 +25,21 @@ https://chrisbanes.github.io/haze/<VERSION-WITH-EMBED-SUPPORT>/sample/wasm/index
 
 ## URL parameters
 
-`embed=true` enables the standalone sample view. It requires both `sample` and `effect`. The browser
+`sample` and `effect` together open a sample directly with normal navigation retained:
+
+```text
+https://chrisbanes.github.io/haze/<VERSION-WITH-EMBED-SUPPORT>/sample/wasm/index.html?sample=glass-product&effect=glass&theme=light
+```
+
+In-app Back returns to the effect's sample list, then the Blur/Glass chooser. These parameters select
+the initial screen only: navigating does not update the URL or add browser Back/Forward history.
+Omitting both parameters opens the ordinary chooser.
+
+`embed=true` enables the standalone sample view with navigation hidden. Omitting `embed` or setting
+`embed=false` retains navigation. Both selection modes require `sample` and `effect`. The browser
 decodes the query string and uses the first value if a key appears more than once. Unknown keys are
-ignored. Any missing or invalid explicit embed value, sample, effect, unsupported sample/effect pair,
-or theme shows a compact error instead of selecting another demo.
+ignored. Any invalid explicit embed value, incomplete selection, invalid sample or effect, unsupported
+sample/effect pair, or invalid theme shows a compact error instead of selecting another demo.
 
 | Parameter | Values | Default |
 | --- | --- | --- |
@@ -36,8 +47,9 @@ or theme shows a compact error instead of selecting another demo.
 | `effect` | `blur` or `glass`, when the chosen sample supports it | Required |
 | `theme` | `system`, `light`, or `dark` | `system` |
 
-The theme changes the sample app theme only. It does not synchronize with the parent page or recolor
-artwork that deliberately uses its own dark scene design. Each embed starts with the ordinary defaults
+The theme works for both direct sample links and embeds. It changes the sample app theme only.
+It does not synchronize with the parent page or recolor artwork that deliberately uses its own dark
+scene design. Each embed starts with the ordinary defaults
 for that sample. Its own controls remain available, including artwork paging, dialogs, drag gestures,
 playback, reset, and recording controls; navigation back to the sample browser is hidden.
 

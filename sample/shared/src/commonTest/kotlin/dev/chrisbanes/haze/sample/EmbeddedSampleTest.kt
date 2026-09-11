@@ -42,7 +42,7 @@ class EmbeddedSampleTest : ContextTest() {
     }
 
     setContent {
-      EmbeddedSample(SampleEmbedRequest.Embedded(probe, SampleEffect.Glass, SampleEmbedTheme.Dark))
+      EmbeddedSample(SampleLaunchRequest.Selected(probe, SampleEffect.Glass, SampleEmbedTheme.Dark))
     }
 
     onNodeWithTag("embedded_sample").assertIsDisplayed()
@@ -61,7 +61,7 @@ class EmbeddedSampleTest : ContextTest() {
     setContent {
       androidx.compose.foundation.layout.Box(Modifier.size(width = width, height = 560.dp)) {
         EmbeddedSample(
-          SampleEmbedRequest.Embedded(Sample.Scaffold, SampleEffect.Glass, SampleEmbedTheme.Light),
+          SampleLaunchRequest.Selected(Sample.Scaffold, SampleEffect.Glass, SampleEmbedTheme.Light),
         )
       }
     }
@@ -78,7 +78,7 @@ class EmbeddedSampleTest : ContextTest() {
   fun embeddedMode_hidesCreditCardExitButton() = runComposeUiTest {
     setContent {
       EmbeddedSample(
-        SampleEmbedRequest.Embedded(Sample.CreditCard, SampleEffect.Glass, SampleEmbedTheme.System),
+        SampleLaunchRequest.Selected(Sample.CreditCard, SampleEffect.Glass, SampleEmbedTheme.System),
       )
     }
 
@@ -116,7 +116,7 @@ class EmbeddedSampleTest : ContextTest() {
     effect: SampleEffect = SampleEffect.Glass,
   ) = runComposeUiTest {
     setContent {
-      EmbeddedSample(SampleEmbedRequest.Embedded(sample, effect, SampleEmbedTheme.System))
+      EmbeddedSample(SampleLaunchRequest.Selected(sample, effect, SampleEmbedTheme.System))
     }
 
     onAllNodesWithContentDescription("Back").assertCountEquals(0)
