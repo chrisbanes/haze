@@ -57,28 +57,6 @@ effect is drawn, so repeated redraws can cost more even when those pixels appear
 depends on the effect, invalidation pattern, surface area, and device. Compare both inputs with the
 real screen behaviour before choosing one for performance reasons.
 
-### Native Android Backdrop
-
-The following Pixel 8a measurements compare source-backed effects with native Android Backdrop at
-60 Hz. Each value is the arithmetic mean of the P90 from two order-reversed passes, with eight
-measured iterations per method. Negative frame overrun means the frame finished before its deadline;
-more negative values indicate more spare time.
-
-| Quality workload | Source CPU P90 (ms) | Backdrop CPU P90 (ms) | Source overrun P90 (ms) | Backdrop overrun P90 (ms) |
-| --- | ---: | ---: | ---: | ---: |
-| Blur, stable input | 4.59 | 5.07 | -7.75 | -2.44 |
-| Blur, changing input | 4.59 | 5.12 | -5.40 | -2.21 |
-| Glass, stable input | 3.54 | 5.18 | -10.69 | -0.48 |
-| Glass, changing input | 3.46 | 4.24 | -1.84 | -0.48 |
-| Nine Glass nodes, changing input | 3.94 | 4.74 | -6.85 | -5.18 |
-
-Backdrop had higher CPU frame P90 in both passes for changing-input Blur and all three Glass
-workloads. Stable Blur changed order between the passes, so its mean does not establish a stable
-ranking. All workloads retained spare frame-deadline time at P90, while Backdrop used approximately
-6–10 MB less median peak GPU memory. These normal-scheduling results describe this device and these
-Quality workloads, not a general rule. See the
-[complete setup and measurements](benchmark-results.md#native-android-backdrop).
-
 <a id="effect-specific-guidance"></a>
 
 ## Blur
@@ -129,6 +107,43 @@ In this scene, increasing from `Balanced` to `Fixed(0.75f)` used another 2.77 ms
 margin. All levels met their deadlines, but a screen with more effects or a higher refresh rate
 may have less time to spare. These Android results do not predict performance on Web or other
 devices. See the [full measurements and test conditions](benchmark-results.md#glass-fixed-quality).
+
+## Performance measurements
+
+The following measurements provide a reference point for built-in Blur and Glass using
+`HazeInput.Sources` and `HazePerformanceMode.Quality`. They were recorded on a Pixel 8a at 60 Hz.
+Each value is the arithmetic mean of the P90 from two order-reversed passes, with eight measured
+iterations per workload. Negative frame overrun means the frame finished before its deadline; more
+negative values indicate more spare time.
+
+| Workload | CPU frame P90 (ms) | Frame overrun P90 (ms) |
+| --- | ---: | ---: |
+| Blur, stable input | 4.59 | -7.75 |
+| Blur, changing input | 4.59 | -5.40 |
+| Glass, stable input | 3.54 | -10.69 |
+| Glass, changing input | 3.46 | -1.84 |
+| Nine Glass nodes, changing input | 3.94 | -6.85 |
+
+All workloads retained spare frame-deadline time at P90. These normal-scheduling results describe
+this device and these workloads; they are not performance guarantees for other screens or devices.
+
+### Backdrop versus Sources
+
+On eligible Android devices, the same workloads can use native `HazeInput.Backdrop` instead of
+`HazeInput.Sources`. This comparison uses the same runs and aggregation as the general measurements.
+
+| Quality workload | Sources CPU P90 (ms) | Backdrop CPU P90 (ms) | Backdrop CPU difference | Sources overrun P90 (ms) | Backdrop overrun P90 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Blur, stable input | 4.59 | 5.07 | 10% higher | -7.75 | -2.44 |
+| Blur, changing input | 4.59 | 5.12 | 12% higher | -5.40 | -2.21 |
+| Glass, stable input | 3.54 | 5.18 | 46% higher | -10.69 | -0.48 |
+| Glass, changing input | 3.46 | 4.24 | 23% higher | -1.84 | -0.48 |
+| Nine Glass nodes, changing input | 3.94 | 4.74 | 20% higher | -6.85 | -5.18 |
+
+Backdrop had higher CPU frame P90 in both passes for changing-input Blur and all three Glass
+workloads. Stable Blur changed order between the passes, so its mean does not establish a stable
+ranking. Backdrop used approximately 6–10 MB less median peak GPU memory. See the
+[complete setup and measurements](benchmark-results.md#native-android-backdrop).
 
 ## Measure on target devices
 
