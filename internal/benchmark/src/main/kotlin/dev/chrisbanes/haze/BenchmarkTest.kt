@@ -13,7 +13,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-private const val DEFAULT_ITERATIONS = 16
+private const val DEFAULT_ITERATIONS = 8
 private const val APP_PACKAGE = "dev.chrisbanes.haze.sample.android"
 
 @RunWith(AndroidJUnit4::class)
@@ -24,7 +24,8 @@ class BenchmarkTest {
   @Test
   fun imagesList() {
     measureSample(
-      navigate = { navigateToImagesList() },
+      sampleRoute = "images-list",
+      awaitReady = { waitForImagesList() },
       measure = { repeatedScrolls("lazy_column") },
     )
   }
@@ -73,8 +74,9 @@ class BenchmarkTest {
       setupBlock = {
         startActivityAndWait { intent ->
           intent.putExtra(FORCE_BLUR_EXTRA, true)
+          intent.selectBenchmarkSample(route = "blur-style-churn", effect = "blur")
         }
-        device.navigateToScaffoldWithEquivalentStyleChurn()
+        device.waitForScaffoldWithEquivalentStyleChurn()
       },
     ) {
       SystemClock.sleep(STYLE_CHURN_MEASURE_MILLIS)
@@ -106,7 +108,8 @@ class BenchmarkTest {
   @Test
   fun creditCard() {
     measureSample(
-      navigate = { navigateToCreditCard() },
+      sampleRoute = "credit-card",
+      awaitReady = { waitForCreditCard() },
       measure = { repeatedDrags("credit_card_2") },
     )
   }
@@ -116,27 +119,36 @@ class BenchmarkTest {
     includeBackdropComparisonMetrics: Boolean = false,
     requireBackdropDraw: Boolean = false,
   ) {
-    benchmarkRule.measureRepeated(
-      packageName = APP_PACKAGE,
-      metrics = if (includeBackdropComparisonMetrics) {
-        backdropComparisonMetrics(requireBackdropDraw)
-      } else {
-        listOf(FrameTimingMetric())
-      },
-      startupMode = StartupMode.WARM,
-      iterations = DEFAULT_ITERATIONS,
-      setupBlock = {
-        startActivityAndWait()
-        device.navigateToBlurProfiling(scenarioId)
-      },
-    ) {
-      device.runBlurProfilingScenario(scenarioId)
+    withoutUiAutomatorIdleWait {
+      benchmarkRule.measureRepeated(
+        packageName = APP_PACKAGE,
+        metrics = if (includeBackdropComparisonMetrics) {
+          backdropComparisonMetrics(requireBackdropDraw)
+        } else {
+          listOf(FrameTimingMetric())
+        },
+        startupMode = StartupMode.WARM,
+        iterations = DEFAULT_ITERATIONS,
+        setupBlock = {
+          startActivityAndWait { intent ->
+            intent.selectBenchmarkSample(
+              route = "blur-profiling",
+              effect = "blur",
+              scenarioId = scenarioId,
+            )
+          }
+          device.waitForBlurProfilingScenario(scenarioId)
+        },
+      ) {
+        device.runBlurProfilingScenario(scenarioId)
+      }
     }
   }
 
   private fun measureSample(
+    sampleRoute: String,
     iterations: Int = DEFAULT_ITERATIONS,
-    navigate: UiDevice.() -> Unit,
+    awaitReady: UiDevice.() -> Unit,
     measure: UiDevice.() -> Unit,
   ) {
     benchmarkRule.measureRepeated(
@@ -145,8 +157,10 @@ class BenchmarkTest {
       startupMode = StartupMode.WARM,
       iterations = iterations,
       setupBlock = {
-        startActivityAndWait()
-        device.navigate()
+        startActivityAndWait { intent ->
+          intent.selectBenchmarkSample(route = sampleRoute, effect = "blur")
+        }
+        device.awaitReady()
       },
     ) {
       device.measure()

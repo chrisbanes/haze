@@ -21,8 +21,15 @@ internal val AndroidGlassProfiling = Sample(
   title = "Glass — Profiling",
   effects = listOf(SampleEffect.Glass),
 ) { navController, _ ->
+  val initialScenarioId = LocalInitialProfilingScenarioId.current
   GlassProfilingSampleContent(
-    state = remember { GlassProfilingState() },
+    state = remember(initialScenarioId) {
+      GlassProfilingState().apply {
+        initialScenarioId?.let { id ->
+          select(checkNotNull(GlassProfilingScenario.entries.singleOrNull { it.id == id }))
+        }
+      }
+    },
     onBack = navController::navigateUp,
   )
 }
@@ -32,8 +39,15 @@ internal val AndroidBlurProfiling = Sample(
   title = "Blur — Profiling",
   effects = listOf(SampleEffect.Blur),
 ) { navController, _ ->
+  val initialScenarioId = LocalInitialProfilingScenarioId.current
   BlurProfilingSampleContent(
-    state = remember { BlurProfilingState() },
+    state = remember(initialScenarioId) {
+      BlurProfilingState().apply {
+        initialScenarioId?.let { id ->
+          select(checkNotNull(BlurProfilingScenario.entries.singleOrNull { it.id == id }))
+        }
+      }
+    },
     navController = navController,
     onBack = navController::navigateUp,
   )

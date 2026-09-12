@@ -31,8 +31,10 @@ class GlassGalleryBenchmark {
       startupMode = StartupMode.WARM,
       iterations = GLASS_BENCHMARK_ITERATIONS,
       setupBlock = {
-        startActivityAndWait()
-        device.navigateToGlassProduct()
+        startActivityAndWait { intent ->
+          intent.selectBenchmarkSample(route = "glass-product", effect = "glass")
+        }
+        device.waitForGlassProduct()
       },
     ) {
       device.advanceGlassProduct()
@@ -51,8 +53,10 @@ class GlassGalleryBenchmark {
       startupMode = StartupMode.WARM,
       iterations = GLASS_BENCHMARK_ITERATIONS,
       setupBlock = {
-        startActivityAndWait()
-        device.navigateToGlassPlayground()
+        startActivityAndWait { intent ->
+          intent.selectBenchmarkSample(route = "glass-playground", effect = "glass")
+        }
+        device.waitForGlassPlayground()
       },
     ) {
       device.measureFullGlassPlaygroundLoop()
