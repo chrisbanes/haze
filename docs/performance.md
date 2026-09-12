@@ -50,6 +50,13 @@ frame. Keep animations outside the `hazeSource` subtree when the effect does not
 them. A stable background does not make the effect free: measure both stationary content and the
 scrolling or animated content users will see.
 
+Do not assume that an eligible native Android `HazeInput.Backdrop` is faster than
+`HazeInput.Sources`. A source-backed effect can retain captured and processed output while its input
+is unchanged. The native path instead filters the earlier pixels in the current window when the
+effect is drawn, so repeated redraws can cost more even when those pixels appear stable. The balance
+depends on the effect, invalidation pattern, surface area, and device. Compare both inputs with the
+real screen behaviour before choosing one for performance reasons.
+
 <a id="effect-specific-guidance"></a>
 
 ## Blur
