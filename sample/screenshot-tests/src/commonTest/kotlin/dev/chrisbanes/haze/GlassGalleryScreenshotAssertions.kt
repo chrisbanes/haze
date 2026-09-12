@@ -8,9 +8,12 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -18,12 +21,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import dev.chrisbanes.haze.sample.GlassGalleryBackdropId
 import dev.chrisbanes.haze.sample.GlassLabScreenshotContent
 import dev.chrisbanes.haze.sample.GlassLabStyleId
+import dev.chrisbanes.haze.sample.GlassMusicPlayerSampleContent
 import dev.chrisbanes.haze.sample.GlassPlaygroundSampleContent
 import dev.chrisbanes.haze.sample.GlassPlaygroundSurfaceId
 import dev.chrisbanes.haze.sample.GlassProductSampleContent
+import dev.chrisbanes.haze.sample.MusicPlayerTab
+import dev.chrisbanes.haze.sample.MusicTrack
 import dev.chrisbanes.haze.sample.SamplesTheme
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
@@ -122,6 +130,67 @@ internal fun ScreenshotUiTest.captureGlassLabStyles() {
   backdrop = GlassGalleryBackdropId.Grid
   waitForIdle()
   captureRoot("clear")
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+internal fun ScreenshotUiTest.captureGlassMusicPlayer(
+  isDark: Boolean,
+  tab: MusicPlayerTab = MusicPlayerTab.NowPlaying,
+  contentWrapper: @Composable (@Composable () -> Unit) -> Unit = { content -> content() },
+) {
+  val track = MusicTrack(
+    title = "Give Life Back to Music",
+    artist = "Daft Punk",
+    album = "Random Access Memories",
+    durationMillis = 274_000,
+    artworkUrl = "https://example.invalid/cover.jpg",
+    sourceUrl = "https://music.apple.com/us/album/random-access-memories/617154241",
+  )
+  var position by mutableFloatStateOf(90_000f)
+  var shuffle by mutableStateOf(false)
+  var selectedTab by mutableStateOf(tab)
+  setContent {
+    contentWrapper {
+      SamplesTheme(useDarkColors = isDark) {
+        ScreenshotTheme {
+          // Native ripples run outside the Compose test clock on Android.
+          CompositionLocalProvider(LocalRippleConfiguration provides null) {
+            GlassMusicPlayerSampleContent(
+              tracks = listOf(track, MusicTrack("Loud Places", "Jamie xx", "In Colour", 283_000, "https://example.invalid/colour.jpg", "https://music.apple.com/us/album/in-colour/1525506447"), MusicTrack("Look at the Sky", "Porter Robinson", "Nurture", 310_000, "https://example.invalid/nurture.jpg", "https://music.apple.com/us/album/nurture/1894533111")),
+              currentTrackIndex = 0,
+              positionMillis = position.toLong(),
+              isPlaying = false,
+              shuffleEnabled = shuffle,
+              tab = selectedTab,
+              onTabSelected = { selectedTab = it }, onPlayPause = {}, onPrevious = {}, onNext = {},
+              onShuffleChanged = { shuffle = it }, onSeekStarted = {}, onSeek = { position = it.toFloat() }, onSeekFinished = {},
+              onTrackSelected = {}, onBack = {},
+            )
+          }
+        }
+      }
+    }
+  }
+  waitForIdle()
+  captureRoot(tab.name.replaceFirstChar { it.lowercase() })
+  if (tab == MusicPlayerTab.NowPlaying) {
+    val play = onNodeWithTag("music_play")
+    play.performTouchInput { down(center) }
+    waitForIdle()
+    captureRoot("pressed")
+    play.performTouchInput { up() }
+    val slider = onNodeWithTag("music_progress")
+    slider.performTouchInput {
+      down(center)
+      moveTo(center.copy(x = center.x * 1.4f))
+    }
+    waitForIdle()
+    captureRoot("dragged")
+    slider.performTouchInput { up() }
+    onNodeWithTag("music_shuffle").performClick()
+    waitForIdle()
+    captureRoot("shuffleOn")
+  }
 }
 
 @Composable
