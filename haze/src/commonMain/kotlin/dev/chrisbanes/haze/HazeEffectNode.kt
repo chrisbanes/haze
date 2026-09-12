@@ -659,6 +659,10 @@ internal class HazeEffectNode(
       withVisualEffectTransform { drawContentSafely() }
       return
     }
+    if (backdropBackendState.usesFallback && resolvedSourcesInput() == null) {
+      withVisualEffectTransform { drawContentSafely() }
+      return
+    }
 
     val capability = typedEffectRenderer as? HazeEffectRendererBackdrop<Any?>
     if (capability == null) {
@@ -753,13 +757,14 @@ internal class HazeEffectNode(
       backdropBackendState.resolve(nativeAvailable = false)
     }
     HazeLogger.d(TAG) {
-      "Backdrop selected ${backdropBackendState.selection}; using source fallback"
+      "Backdrop selected ${backdropBackendState.selection}; " +
+        if (resolvedSourcesInput() == null) "drawing content unchanged" else "using source fallback"
     }
     releaseBackdropRenderer()
     refreshResolvedSourcesInput(previousSources)
     coroutineScope.launch {
       yield()
-      if (isAttached && backdropBackendState.usesFallback) {
+      if (isAttached && resolvedSourcesInput() != null) {
         dirtyTracker += DirtyFields.Areas
         dirtyTracker += DirtyFields.VisualEffectLayerBounds
         update()
