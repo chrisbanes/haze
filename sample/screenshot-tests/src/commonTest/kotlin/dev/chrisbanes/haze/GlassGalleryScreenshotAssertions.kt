@@ -135,8 +135,7 @@ internal fun ScreenshotUiTest.captureGlassLabStyles() {
 @OptIn(ExperimentalMaterial3Api::class)
 internal fun ScreenshotUiTest.captureGlassMusicPlayer(
   isDark: Boolean,
-  library: Boolean = false,
-  home: Boolean = false,
+  tab: MusicPlayerTab = MusicPlayerTab.NowPlaying,
   contentWrapper: @Composable (@Composable () -> Unit) -> Unit = { content -> content() },
 ) {
   val track = MusicTrack(
@@ -149,7 +148,7 @@ internal fun ScreenshotUiTest.captureGlassMusicPlayer(
   )
   var position by mutableFloatStateOf(90_000f)
   var shuffle by mutableStateOf(false)
-  var selectedTab by mutableStateOf(if (home) MusicPlayerTab.Home else if (library) MusicPlayerTab.Library else MusicPlayerTab.NowPlaying)
+  var selectedTab by mutableStateOf(tab)
   setContent {
     contentWrapper {
       SamplesTheme(useDarkColors = isDark) {
@@ -173,8 +172,8 @@ internal fun ScreenshotUiTest.captureGlassMusicPlayer(
     }
   }
   waitForIdle()
-  captureRoot(if (home) "home" else if (library) "library" else "nowPlaying")
-  if (!library && !home) {
+  captureRoot(tab.name.replaceFirstChar { it.lowercase() })
+  if (tab == MusicPlayerTab.NowPlaying) {
     val play = onNodeWithTag("music_play")
     play.performTouchInput { down(center) }
     waitForIdle()

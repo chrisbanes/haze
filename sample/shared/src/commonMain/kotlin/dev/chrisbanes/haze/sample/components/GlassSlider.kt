@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,12 +73,14 @@ public fun GlassSlider(
       rangeLength
     ).coerceIn(0f, 1f)
   val interactionSource = remember { MutableInteractionSource() }
-  fun updateAt(x: Float) {
+  val onStarted by rememberUpdatedState(onValueChangeStarted)
+  val onFinished by rememberUpdatedState(onValueChangeFinished)
+  val updateAt by rememberUpdatedState<(Float) -> Unit>({ x ->
     val directionFraction = (x / width).coerceIn(0f, 1f)
     val logicalFraction = if (layoutDirection == LayoutDirection.Rtl) 1f - directionFraction else directionFraction
     val next = valueRange.start + logicalFraction * (valueRange.endInclusive - valueRange.start)
     onValueChange(next)
-  }
+  })
   Box(
     contentAlignment = Alignment.CenterStart,
     modifier = modifier
@@ -110,18 +113,18 @@ public fun GlassSlider(
             onDragStart = {
               press = PressInteraction.Press(it)
               interactionSource.tryEmit(press!!)
-              onValueChangeStarted?.invoke()
+              onStarted?.invoke()
               updateAt(it.x)
             },
             onDragEnd = {
               press?.let { interactionSource.tryEmit(PressInteraction.Release(it)) }
               press = null
-              onValueChangeFinished?.invoke()
+              onFinished?.invoke()
             },
             onDragCancel = {
               press?.let { interactionSource.tryEmit(PressInteraction.Cancel(it)) }
               press = null
-              onValueChangeFinished?.invoke()
+              onFinished?.invoke()
             },
           ) { change, _ ->
             updateAt(change.position.x)
@@ -134,10 +137,10 @@ public fun GlassSlider(
           detectTapGestures { offset ->
             val press = PressInteraction.Press(offset)
             interactionSource.tryEmit(press)
-            onValueChangeStarted?.invoke()
+            onStarted?.invoke()
             updateAt(offset.x)
             interactionSource.tryEmit(PressInteraction.Release(press))
-            onValueChangeFinished?.invoke()
+            onFinished?.invoke()
           }
         }
       },

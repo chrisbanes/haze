@@ -62,7 +62,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -230,6 +232,8 @@ public fun GlassMusicPlayerSampleContent(
               style = remember(colors) {
                 GlassStyle.regular then GlassStyle {
                   shape(RoundedCornerShape(24.dp))
+                  // Regular's size-responsive depth is zero at this bar's 64.dp height.
+                  optics(GlassDefaults.optics.copy(depth = OpticalSizeValue.Fixed(1f), blurRadius = OpticalSizeValue.Fixed(16.dp)))
                   tint(colors.surface.copy(alpha = 0.7f))
                 }
               },

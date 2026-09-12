@@ -9,18 +9,19 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import coil3.annotation.ExperimentalCoilApi
 import coil3.compose.AsyncImagePreviewHandler
 import coil3.compose.LocalAsyncImagePreviewHandler
+import dev.chrisbanes.haze.sample.MusicPlayerTab
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.test.Test
 
 class GlassMusicPlayerDesktopScreenshotTest : ScreenshotTest() {
-  @Test fun homeLight() = runScreenshotTest { captureGlassMusicPlayer(isDark = false, home = true, contentWrapper = ::previewContent) }
+  @Test fun homeLight() = runScreenshotTest { captureGlassMusicPlayer(isDark = false, tab = MusicPlayerTab.Home, contentWrapper = ::previewContent) }
 
-  @Test fun homeDark() = runScreenshotTest { captureGlassMusicPlayer(isDark = true, home = true, contentWrapper = ::previewContent) }
+  @Test fun homeDark() = runScreenshotTest { captureGlassMusicPlayer(isDark = true, tab = MusicPlayerTab.Home, contentWrapper = ::previewContent) }
 
   @Test fun compactDark() = runScreenshotTest { captureGlassMusicPlayer(isDark = true, contentWrapper = ::previewContent) }
 
-  @Test fun compactLightLibrary() = runScreenshotTest { captureGlassMusicPlayer(isDark = false, library = true, contentWrapper = ::previewContent) }
+  @Test fun compactLightLibrary() = runScreenshotTest { captureGlassMusicPlayer(isDark = false, tab = MusicPlayerTab.Library, contentWrapper = ::previewContent) }
 
   @Test fun wideDark() = runScreenshotTest(size = Size(1920f, 1080f)) { captureGlassMusicPlayer(isDark = true, contentWrapper = ::previewContent) }
 

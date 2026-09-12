@@ -68,6 +68,41 @@ class GlassMusicComponentsTest : ContextTest() {
   }
 
   @Test
+  fun sliderGestures_useCurrentRangeAndCallbacksAfterTrackChange() = runComposeUiTest {
+    var track by mutableIntStateOf(0)
+    val values = mutableListOf<Pair<Int, Float>>()
+    val starts = mutableListOf<Int>()
+    val finishes = mutableListOf<Int>()
+    setContent {
+      val currentTrack = track
+      GlassSlider(
+        value = 0f,
+        onValueChange = { values += currentTrack to it },
+        input = HazeInput.Content,
+        modifier = Modifier.testTag("slider"),
+        valueRange = 0f..if (currentTrack == 0) 100f else 300f,
+        onValueChangeStarted = { starts += currentTrack },
+        onValueChangeFinished = { finishes += currentTrack },
+      )
+    }
+    // Start both long-lived pointer handlers before changing the track.
+    onNodeWithTag("slider").performTouchInput { click(center) }
+    runOnIdle { track = 1 }
+    onNodeWithTag("slider").performTouchInput { click(center) }
+    runOnIdle { assertThat(values.last()).isEqualTo(1 to 150f) }
+    onNodeWithTag("slider").performTouchInput {
+      down(Offset(width * 0.2f, height / 2f))
+      moveTo(Offset(width * 0.8f, height / 2f))
+      up()
+    }
+    runOnIdle {
+      assertThat(values.last()).isEqualTo(1 to 240f)
+      assertThat(starts).isEqualTo(listOf(0, 1, 1))
+      assertThat(finishes).isEqualTo(listOf(0, 1, 1))
+    }
+  }
+
+  @Test
   fun disabledSlider_ignoresSemanticProgress() = runComposeUiTest {
     var value by mutableFloatStateOf(0f)
     setContent { GlassSlider(value, { value = it }, HazeInput.Content, Modifier.testTag("slider"), enabled = false) }
