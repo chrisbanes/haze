@@ -50,12 +50,14 @@ frame. Keep animations outside the `hazeSource` subtree when the effect does not
 them. A stable background does not make the effect free: measure both stationary content and the
 scrolling or animated content users will see.
 
-Do not assume that an eligible native Android `HazeInput.Backdrop` is faster than
-`HazeInput.Sources`. A source-backed effect can retain captured and processed output while its input
-is unchanged. The native path instead filters the earlier pixels in the current window when the
-effect is drawn, so repeated redraws can cost more even when those pixels appear stable. The balance
-depends on the effect, invalidation pattern, surface area, and device. Compare both inputs with the
-real screen behaviour before choosing one for performance reasons.
+!!! note "Backdrop performance"
+
+    Do not assume that an eligible native Android `HazeInput.Backdrop` is faster than
+    `HazeInput.Sources`. A source-backed effect can retain captured and processed output while its
+    input is unchanged. The native path instead filters the earlier pixels in the current window
+    when the effect is drawn, so repeated redraws can cost more even when those pixels appear stable.
+    The balance depends on the effect, invalidation pattern, surface area, and device. Compare both
+    inputs with the real screen behaviour before choosing one for performance reasons.
 
 <a id="effect-specific-guidance"></a>
 
@@ -131,6 +133,13 @@ this device and these workloads; they are not performance guarantees for other s
 
 On eligible Android devices, the same workloads can use native `HazeInput.Backdrop` instead of
 `HazeInput.Sources`. This comparison uses the same runs and aggregation as the general measurements.
+
+!!! warning "Experimental native Backdrop"
+
+    Native Backdrop is disabled by default. Set
+    `HazeFeatureFlags.isPlatformBackdropEnabled = true` before attaching the effect node. Enabling
+    the flag makes native rendering eligible, not guaranteed; unsupported configurations use the
+    source fallback. See [Android window backdrops](core-concepts.md#android-window-backdrops).
 
 | Quality workload | Sources CPU P90 (ms) | Backdrop CPU P90 (ms) | Backdrop CPU difference | Sources overrun P90 (ms) | Backdrop overrun P90 (ms) |
 | --- | ---: | ---: | ---: | ---: | ---: |
