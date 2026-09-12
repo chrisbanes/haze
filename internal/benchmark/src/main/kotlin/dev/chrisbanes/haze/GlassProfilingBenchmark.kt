@@ -226,28 +226,35 @@ class GlassProfilingBenchmark {
     includeBackdropComparisonMetrics: Boolean = false,
     requireBackdropDraw: Boolean = false,
   ) {
-    benchmarkRule.measureRepeated(
-      packageName = GLASS_TARGET_PACKAGE,
-      metrics = glassMetrics(
-        includeMemory = includeMemory,
-        requireRuntimeMarker = requireRuntimeMarker,
-        includePreparationMetrics = includePreparationMetrics,
-        includeBackdropComparisonMetrics = includeBackdropComparisonMetrics,
-        requireBackdropDraw = requireBackdropDraw,
-      ),
-      compilationMode = CompilationMode.Full(),
-      startupMode = StartupMode.WARM,
-      iterations = GLASS_BENCHMARK_ITERATIONS,
-      setupBlock = {
-        startActivityAndWait { intent ->
-          InstrumentationRegistry.getArguments().getString("haze.cpuAffinityMask")?.let { mask ->
-            intent.putExtra("dev.chrisbanes.haze.sample.android.BENCHMARK_CPU_AFFINITY", mask)
+    withoutUiAutomatorIdleWait {
+      benchmarkRule.measureRepeated(
+        packageName = GLASS_TARGET_PACKAGE,
+        metrics = glassMetrics(
+          includeMemory = includeMemory,
+          requireRuntimeMarker = requireRuntimeMarker,
+          includePreparationMetrics = includePreparationMetrics,
+          includeBackdropComparisonMetrics = includeBackdropComparisonMetrics,
+          requireBackdropDraw = requireBackdropDraw,
+        ),
+        compilationMode = CompilationMode.Full(),
+        startupMode = StartupMode.WARM,
+        iterations = GLASS_BENCHMARK_ITERATIONS,
+        setupBlock = {
+          startActivityAndWait { intent ->
+            intent.selectBenchmarkSample(
+              route = "glass-profiling",
+              effect = "glass",
+              scenarioId = scenarioId,
+            )
+            InstrumentationRegistry.getArguments().getString("haze.cpuAffinityMask")?.let { mask ->
+              intent.putExtra("dev.chrisbanes.haze.sample.android.BENCHMARK_CPU_AFFINITY", mask)
+            }
           }
-        }
-        device.navigateToGlassProfiling(scenarioId)
-      },
-    ) {
-      device.runGlassProfilingScenario(scenarioId)
+          device.waitForGlassProfilingScenario(scenarioId)
+        },
+      ) {
+        device.runGlassProfilingScenario(scenarioId)
+      }
     }
   }
 }

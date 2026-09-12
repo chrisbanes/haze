@@ -3,10 +3,12 @@
 
 package dev.chrisbanes.haze
 
+import android.content.Intent
 import android.graphics.Point
 import android.os.SystemClock
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
+import androidx.test.uiautomator.Configurator
 import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.SearchCondition
 import androidx.test.uiautomator.UiDevice
@@ -17,6 +19,33 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 internal const val FORCE_BLUR_EXTRA = "dev.chrisbanes.haze.sample.android.FORCE_BLUR"
+private const val BENCHMARK_SAMPLE_ROUTE_EXTRA =
+  "dev.chrisbanes.haze.sample.android.BENCHMARK_SAMPLE_ROUTE"
+private const val BENCHMARK_SAMPLE_EFFECT_EXTRA =
+  "dev.chrisbanes.haze.sample.android.BENCHMARK_SAMPLE_EFFECT"
+private const val BENCHMARK_SCENARIO_EXTRA =
+  "dev.chrisbanes.haze.sample.android.BENCHMARK_SCENARIO"
+
+internal fun Intent.selectBenchmarkSample(
+  route: String,
+  effect: String,
+  scenarioId: String? = null,
+) {
+  putExtra(BENCHMARK_SAMPLE_ROUTE_EXTRA, route)
+  putExtra(BENCHMARK_SAMPLE_EFFECT_EXTRA, effect)
+  scenarioId?.let { putExtra(BENCHMARK_SCENARIO_EXTRA, it) }
+}
+
+internal inline fun <T> withoutUiAutomatorIdleWait(block: () -> T): T {
+  val configurator = Configurator.getInstance()
+  val previousTimeout = configurator.waitForIdleTimeout
+  configurator.setWaitForIdleTimeout(0)
+  return try {
+    block()
+  } finally {
+    configurator.setWaitForIdleTimeout(previousTimeout)
+  }
+}
 
 internal fun UiDevice.waitForObject(
   selector: BySelector,
@@ -38,6 +67,12 @@ internal fun <R> UiDevice.wait(condition: SearchCondition<R>, timeout: Duration)
   return wait(condition, timeout.inWholeMilliseconds)
 }
 
+internal fun UiDevice.waitForImagesList() = waitForObject(By.res("lazy_column"))
+
+internal fun UiDevice.waitForScaffoldWithEquivalentStyleChurn() = waitForObject(By.res("lazy_grid"))
+
+internal fun UiDevice.waitForCreditCard() = waitForObject(By.res("credit_card_2"))
+
 internal fun UiDevice.navigateToImagesList() {
   findBlurSampleListItem(By.res("Images List")).click()
   waitForIdle()
@@ -48,25 +83,12 @@ internal fun UiDevice.navigateToScaffold() {
   waitForIdle()
 }
 
-internal fun UiDevice.navigateToScaffoldWithEquivalentStyleChurn() {
-  findBlurSampleListItem(By.res("Blur — Equivalent Style Churn")).click()
-  waitForIdle()
-}
-
 internal fun UiDevice.navigateToCreditCard() {
   findBlurSampleListItem(By.res("Credit Card")).click()
   waitForIdle()
 }
 
-internal fun UiDevice.navigateToBlurProfiling(scenarioId: String) {
-  findBlurSampleListItem(By.res("Blur — Profiling")).click()
-  waitForObject(By.res("blur_profiling_picker"))
-    .apply { setGestureMarginPercentage(0.1f) }
-    .scrollUntil(
-      Direction.DOWN,
-      Until.findObject(By.res("blur_profiling_select_$scenarioId")),
-    )
-    .click()
+internal fun UiDevice.waitForBlurProfilingScenario(scenarioId: String) {
   waitForProfilingObject(
     effectName = "Blur",
     scenarioId = scenarioId,
@@ -91,9 +113,11 @@ internal fun UiDevice.runBlurProfilingScenario(scenarioId: String) {
   SystemClock.sleep(BLUR_PROFILING_MEASURE_MILLIS)
 }
 
+internal fun UiDevice.waitForGlassProduct() = waitForObject(By.res("glass_product_page_0"))
+
 internal fun UiDevice.navigateToGlassProduct() {
   findGlassSampleListItem(By.res("Glass — Product")).click()
-  waitForObject(By.res("glass_product_page_0"))
+  waitForGlassProduct()
 }
 
 internal fun UiDevice.advanceGlassProduct() {
@@ -101,9 +125,12 @@ internal fun UiDevice.advanceGlassProduct() {
   waitForObject(By.res("glass_product_page_1"))
 }
 
+internal fun UiDevice.waitForGlassPlayground() =
+  waitForObject(By.res("glass_playground_loop_1"), timeout = 20.seconds)
+
 internal fun UiDevice.navigateToGlassPlayground() {
   findGlassSampleListItem(By.res("Glass — Playground")).click()
-  waitForObject(By.res("glass_playground_loop_1"), timeout = 20.seconds)
+  waitForGlassPlayground()
 }
 
 internal fun UiDevice.measureFullGlassPlaygroundLoop() {
@@ -112,15 +139,7 @@ internal fun UiDevice.measureFullGlassPlaygroundLoop() {
   waitForObject(By.res("glass_playground_loop_1"), timeout = 20.seconds)
 }
 
-internal fun UiDevice.navigateToGlassProfiling(scenarioId: String) {
-  findGlassSampleListItem(By.res("Glass — Profiling")).click()
-  waitForObject(By.res("glass_profiling_picker"))
-    .apply { setGestureMarginPercentage(0.1f) }
-    .scrollUntil(
-      Direction.DOWN,
-      Until.findObject(By.res("glass_profiling_select_$scenarioId")),
-    )
-    .click()
+internal fun UiDevice.waitForGlassProfilingScenario(scenarioId: String) {
   waitForProfilingObject(
     effectName = "Glass",
     scenarioId = scenarioId,

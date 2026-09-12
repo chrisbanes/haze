@@ -78,6 +78,58 @@ frame-time cost. Use a visual comparison alongside measurements before choosing 
 The adaptive-policy decisions and their original evidence remain in [ADR-0004][blur-adr] and
 [ADR-0005][glass-adr]. [ADR-0006][performance-mode-adr] records the current public terminology.
 
+<a id="native-android-backdrop"></a>
+
+## Android 37.2 native Backdrop on Pixel 8a (2026-09-12)
+
+On 12 September 2026, a source/backdrop comparison exercised the experimental native Android
+Backdrop path in a `benchmarkRelease` build at commit `f06cd64a`. It used a Pixel 8a running
+Android 17/API 37 build `CP41.260814.003.B1`, at 60 Hz with fixed-performance mode enabled and
+normal CPU scheduling. The device was connected to AC power at 100% charge. The first pass started
+at thermal status 0 and a battery temperature of 26.0°C; after cooling, the reverse pass started at
+thermal status 0 and 28.1°C. Screen brightness was left unchanged and was not recorded.
+
+Each of the ten source or backdrop methods ran for eight iterations. The first pass used source then
+backdrop order for each workload; the second reversed both method and workload order. This produced
+160 measured iterations and 160 Perfetto traces. One interrupted second-pass attempt was excluded
+before a complete replacement ran. No completed comparison was discarded. The Google app was
+force-stopped during measurement to prevent its Chromium trace producer from adding a known
+collection delay.
+
+The table reports the arithmetic mean of the two per-pass P90 values, calculated before rounding.
+It is not the P90 of pooled frames. Negative frame overrun means the frame finished before its
+deadline; more negative values indicate more spare time. CPU frame duration includes UI-thread and
+RenderThread work and does not measure GPU shader duration.
+
+| Quality workload | Source CPU P90 (ms) | Backdrop CPU P90 (ms) | Backdrop CPU difference | Source overrun P90 (ms) | Backdrop overrun P90 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Blur, stable input | 4.59 | 5.07 | 10% higher | -7.75 | -2.44 |
+| Blur, changing input | 4.59 | 5.12 | 12% higher | -5.40 | -2.21 |
+| Glass, stable input | 3.54 | 5.18 | 46% higher | -10.69 | -0.48 |
+| Glass, changing input | 3.46 | 4.24 | 23% higher | -1.84 | -0.48 |
+| Nine Glass nodes, changing input | 3.94 | 4.74 | 20% higher | -6.85 | -5.18 |
+
+All rows retained negative P90 frame overrun. Backdrop used approximately 6–10 MB less median peak
+GPU memory, based on the mean of each pass's median `memoryGpuMaxKb` value. The expected native
+Backdrop trace counters were present with zero source records, confirming that these rows did not
+measure source fallback.
+
+The ordering held in both passes for changing-input Blur and all three Glass workloads. Stable Blur
+did not: Backdrop was slower in the first pass and slightly faster in the reverse pass, so its mean
+does not establish a stable ranking. Perfetto also showed normal scheduler variation: the mean of
+the per-iteration RenderThread time shares on the little CPU cluster ranged from 0.9% to 49.6%
+across method executions. Stable Glass remained slower with comparable placement in the first pass
+and more favourable Backdrop placement in the reverse pass, supporting the narrower conclusion
+that native Backdrop was not a CPU performance win for this Glass scene on this device.
+
+The stable workloads continuously invalidate the effect while leaving source pixels unchanged.
+They compare retained source output with repeated native backdrop composition rather than measuring
+an idle static screen. The changing-input rows are the better reference for scrolling or animated
+content. Raw JSON, benchmark messages, and traces are retained locally under
+`internal/benchmark/build/pixel8a-2026-09-12-full-backdrop-2pass/`.
+
+<a id="glass-fixed-quality"></a>
+
 ## Glass fixed quality with controlled CPU placement (2026-09-11)
 
 On 11 September 2026, a CPU-affinity sweep compared six `qualityFraction` values using the updated

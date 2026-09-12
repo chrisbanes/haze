@@ -47,6 +47,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -68,6 +69,8 @@ import dev.chrisbanes.haze.blur.LocalHazeBlurStyle
 expect val Samples: List<Sample>
 
 private const val SAMPLES_ROUTE = "samples"
+
+internal val LocalInitialProfilingScenarioId = staticCompositionLocalOf<String?> { null }
 
 enum class SampleEffect(val label: String) {
   Blur("Blur"),
@@ -284,6 +287,7 @@ fun Samples(
   forceBlur: Boolean = false,
   useDarkColors: Boolean = isSystemInDarkTheme(),
   initialSelection: SampleLaunchRequest.Selected? = null,
+  initialProfilingScenarioId: String? = null,
 ) {
   val coilPlatformContext = LocalPlatformContext.current
   val inspectionMode = LocalInspectionMode.current
@@ -322,6 +326,7 @@ fun Samples(
       LocalHazeBlurStyle provides localBlurStyle,
       LocalHazePerformanceMode provides settings.performanceMode,
       LocalSampleChromeController provides chromeController,
+      LocalInitialProfilingScenarioId provides initialProfilingScenarioId,
     ) {
       Box(Modifier.fillMaxSize()) {
         NavHost(

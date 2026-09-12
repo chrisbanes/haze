@@ -292,6 +292,28 @@ Each row records `FrameTimingMetric`, max `MemoryUsageMetric`, `HazeBackdrop.dra
 `HazeSource.record` count. A healthy backdrop result has native backdrop draws and zero source
 records; its source control has source records and no required backdrop draw.
 
+### Interpret source/backdrop results
+
+Source and native backdrop inputs have different reuse boundaries. A stable source can retain its
+captured pixels and processed effect stages across later draws. Native backdrop rendering instead
+applies the platform effect to the earlier pixels in the current window whenever the backdrop node
+is drawn. It avoids Haze source capture, but it does not use the source path's retained-output
+policy. Native rendering is therefore not inherently the faster path.
+
+The stable comparison scenarios intentionally keep invalidating the effect while leaving the source
+pixels unchanged. They measure retained-source reuse against repeated native backdrop composition;
+they are not static-screen idle measurements. Read them alongside the updating-source rows, where
+both inputs must consume changing pixels. Preserve this workload distinction when reporting a
+result.
+
+`HazeBackdrop.draw` measures CPU-side preparation and submission around the backdrop `RenderNode`.
+Its duration is not the complete backdrop cost and does not measure GPU shader duration. In a
+representative trace, compare app `RenderThread` `DrawFrames`, `Vulkan finish frame`, `QueueSubmit`,
+and Skia operation counts between the paired cases. Keep nested slice durations separate, and check
+main-thread and RenderThread CPU placement before attributing their duration difference to the
+rendering path. A higher operation or submission count establishes more RenderThread work; exact GPU
+cost still requires GPU timeline or profiler evidence.
+
 Run a dry run first on the same physical 37.2 device:
 
 ```shell

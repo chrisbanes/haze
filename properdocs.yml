@@ -78,6 +78,7 @@ plugins:
         'usage.md': 'blur/usage.md'
         'faq.md': 'blur/faq.md'
         'platforms.md': 'blur/platforms.md'
+        'glass/performance.md': 'performance.md#glass'
 
 # Extensions
 markdown_extensions:
