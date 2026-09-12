@@ -19,12 +19,21 @@ See [performance mode](../performance.md#performance-mode).
 
 See [Glass guidance](../performance.md#glass) and [measurement advice](../performance.md#measure-on-target-devices).
 
-## Reference measurements
+## Benchmark results
 
-See [Glass journeys and steady state (2026-08-04)](../benchmark-results.md#glass-journeys-and-steady-state-2026-08-04).
+These Pixel 8a measurements compare source-backed Glass with native Android Backdrop at 60 Hz. Each
+value is the arithmetic mean of the P90 from two order-reversed passes, with eight measured
+iterations per method. Negative frame overrun means the frame finished before its deadline.
 
-<a id="current-performance-mode-calibration"></a>
+| Quality workload | Source CPU P90 (ms) | Backdrop CPU P90 (ms) | Backdrop CPU difference | Source overrun P90 (ms) | Backdrop overrun P90 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Glass, stable input | 3.54 | 5.18 | 46% higher | -10.69 | -0.48 |
+| Glass, changing input | 3.46 | 4.24 | 23% higher | -1.84 | -0.48 |
+| Nine Glass nodes, changing input | 3.94 | 4.74 | 20% higher | -6.85 | -5.18 |
 
-### Performance-mode calibration (2026-08-09)
-
-See the [Blur and Glass calibration results](../benchmark-results.md#performance-mode-calibration-2026-08-09).
+Backdrop had higher CPU frame P90 in both passes for all three workloads, although every row
+retained spare frame-deadline time at P90. Backdrop used approximately 6–9 MB less median peak GPU
+memory for these Glass workloads. The stable test continuously invalidates the effect while leaving
+the source pixels unchanged; it does not represent an idle static screen. These normal-scheduling
+CPU results are device-specific and do not measure GPU shader duration. See the
+[complete setup and measurements](../benchmark-results.md#native-android-backdrop).
