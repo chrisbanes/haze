@@ -74,7 +74,7 @@ class GlassMusicPlayerSampleTest : ContextTest() {
   }
 
   @Test
-  fun homeMiniPlayer_expandsAndDismissesWithoutLosingPlayback() = runComposeUiTest {
+  fun miniPlayer_dismissesToOriginatingTabWithoutLosingPlayback() = runComposeUiTest {
     var tab by mutableStateOf(MusicPlayerTab.Home)
     setContent {
       GlassMusicPlayerSampleContent(
@@ -92,6 +92,13 @@ class GlassMusicPlayerSampleTest : ContextTest() {
     onNodeWithContentDescription("Close Now Playing").performClick()
     runOnIdle { assertThat(tab).isEqualTo(MusicPlayerTab.Home) }
     onNodeWithTag("music_mini_player").assertIsDisplayed()
+    onNodeWithText("Library").performClick()
+    onNodeWithTag("music_mini_player").performClick()
+    onNodeWithText("1:30").assertExists()
+    onNodeWithContentDescription("Pause").assertExists()
+    onNodeWithContentDescription("Close Now Playing").performClick()
+    runOnIdle { assertThat(tab).isEqualTo(MusicPlayerTab.Library) }
+    onNodeWithText("Albums").assertExists()
   }
 
   @Test

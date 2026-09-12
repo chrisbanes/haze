@@ -31,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -69,9 +70,7 @@ import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.sample.components.GlassBottomTabs
-import dev.chrisbanes.haze.sample.components.GlassButton
 import dev.chrisbanes.haze.sample.components.GlassSlider
-import dev.chrisbanes.haze.sample.components.GlassToggle
 import kotlinx.coroutines.delay
 
 @Composable
@@ -136,6 +135,11 @@ public fun GlassMusicPlayerSampleContent(
   val hazeState = rememberHazeState()
   val input = HazeInput.Backdrop(hazeState)
   val expanded = tab == MusicPlayerTab.NowPlaying
+  var returnTab by remember { mutableStateOf(MusicPlayerTab.Home) }
+  fun openNowPlaying() {
+    returnTab = tab
+    onTabSelected(MusicPlayerTab.NowPlaying)
+  }
   CompositionLocalProvider(LocalContentColor provides colors.onSurface) {
     BoxWithConstraints(modifier.fillMaxSize().background(colors.surface).testTag("glass_music_player")) {
       val wide = maxWidth > maxHeight
@@ -146,7 +150,7 @@ public fun GlassMusicPlayerSampleContent(
           Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(colors.surface.copy(alpha = 0.68f), colors.surface.copy(alpha = 0.94f)))))
         }
         Column(Modifier.fillMaxSize().padding(WindowInsets.safeDrawing.asPaddingValues()).verticalScroll(rememberScrollState()).padding(horizontal = 32.dp)) {
-          Box(Modifier.fillMaxWidth().height(44.dp).clickable { onTabSelected(MusicPlayerTab.Home) }.semantics { contentDescription = "Close Now Playing" }, contentAlignment = Alignment.Center) {
+          Box(Modifier.fillMaxWidth().height(44.dp).clickable { onTabSelected(returnTab) }.semantics { contentDescription = "Close Now Playing" }, contentAlignment = Alignment.Center) {
             Box(Modifier.size(36.dp, 5.dp).clip(CircleShape).background(colors.onSurface.copy(alpha = 0.25f)))
           }
           if (wide) {
@@ -158,9 +162,11 @@ public fun GlassMusicPlayerSampleContent(
             }
           } else {
             Spacer(Modifier.height(18.dp))
-            AlbumCover(currentTrack, Modifier.size(artworkSize).align(Alignment.CenterHorizontally))
-            Spacer(Modifier.height(32.dp))
-            NowPlayingControls(currentTrack, positionMillis, isPlaying, shuffleEnabled, input, onPlayPause, onPrevious, onNext, onShuffleChanged, onSeekStarted, onSeek, onSeekFinished, { onTabSelected(MusicPlayerTab.Library) })
+            Column(Modifier.width(artworkSize).align(Alignment.CenterHorizontally)) {
+              AlbumCover(currentTrack, Modifier.fillMaxWidth().aspectRatio(1f))
+              Spacer(Modifier.height(24.dp))
+              NowPlayingControls(currentTrack, positionMillis, isPlaying, shuffleEnabled, input, onPlayPause, onPrevious, onNext, onShuffleChanged, onSeekStarted, onSeek, onSeekFinished, { onTabSelected(MusicPlayerTab.Library) })
+            }
             Spacer(Modifier.height(24.dp))
           }
         }
@@ -182,16 +188,15 @@ public fun GlassMusicPlayerSampleContent(
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
               tracks.forEachIndexed { index, track ->
                 Column(
-                  Modifier.width(240.dp).clip(RoundedCornerShape(14.dp)).clickable {
+                  Modifier.width(224.dp).clip(RoundedCornerShape(14.dp)).clickable {
                     onTrackSelected(index)
-                    onTabSelected(MusicPlayerTab.NowPlaying)
+                    openNowPlaying()
                   }.background(colors.surfaceContainer),
                 ) {
                   MusicArtwork(track, Modifier.fillMaxWidth().aspectRatio(1f))
-                  Column(Modifier.padding(14.dp)) {
-                    Text(if (index == 0) "ON REPEAT" else "PICKED FOR YOU", color = colors.primary, fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.Bold)
-                    Text(track.album, Modifier.padding(top = 5.dp), fontSize = 20.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(track.artist, color = colors.onSurfaceVariant, fontSize = 14.sp)
+                  Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                    Text(track.album, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(track.artist, color = colors.onSurfaceVariant, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                   }
                 }
               }
@@ -202,7 +207,7 @@ public fun GlassMusicPlayerSampleContent(
                 Column(
                   Modifier.width(154.dp).clickable {
                     onTrackSelected(tracks.indexOf(track))
-                    onTabSelected(MusicPlayerTab.NowPlaying)
+                    openNowPlaying()
                   },
                 ) {
                   MusicArtwork(track, Modifier.size(154.dp).clip(RoundedCornerShape(8.dp)))
@@ -238,7 +243,7 @@ public fun GlassMusicPlayerSampleContent(
                 }
               },
             )
-              .clip(RoundedCornerShape(24.dp)).clickable { onTabSelected(MusicPlayerTab.NowPlaying) }.testTag("music_mini_player").padding(start = 10.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+              .clip(RoundedCornerShape(24.dp)).clickable { openNowPlaying() }.testTag("music_mini_player").padding(start = 10.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
           ) {
             MusicArtwork(currentTrack, Modifier.size(44.dp).clip(RoundedCornerShape(8.dp)))
@@ -286,8 +291,8 @@ private fun NowPlayingControls(
   val colors = MaterialTheme.colorScheme
   var volume by remember { mutableFloatStateOf(0.65f) }
   Column(Modifier.fillMaxWidth()) {
-    Text(track.title, fontSize = 23.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    Text(track.artist, fontSize = 20.sp, color = colors.onSurfaceVariant, maxLines = 1)
+    Text(track.title, fontSize = 20.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Text(track.artist, fontSize = 18.sp, color = colors.onSurfaceVariant, maxLines = 1)
     Spacer(Modifier.height(if (compact) 8.dp else 20.dp))
     GlassSlider(value = positionMillis.toFloat(), valueRange = 0f..track.durationMillis.toFloat(), onValueChange = { onSeek(it.toLong()) }, onValueChangeStarted = onSeekStarted, onValueChangeFinished = onSeekFinished, input = input, modifier = Modifier.testTag("music_progress"))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -303,12 +308,11 @@ private fun NowPlayingControls(
       Icon(VolumeIcon, "Simulated volume", Modifier.size(18.dp), tint = colors.onSurfaceVariant)
       GlassSlider(value = volume, onValueChange = { volume = it }, input = input, modifier = Modifier.weight(1f).semantics { contentDescription = "Simulated volume" })
     }
-    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-      Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Shuffle", fontSize = 13.sp, color = colors.onSurfaceVariant)
-        GlassToggle(checked = shuffleEnabled, onCheckedChange = onShuffleChanged, input = input, modifier = Modifier.testTag("music_shuffle").semantics { contentDescription = "Shuffle" })
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceEvenly) {
+      IconToggleButton(checked = shuffleEnabled, onCheckedChange = onShuffleChanged, modifier = Modifier.testTag("music_shuffle")) {
+        Icon(ShuffleIcon, "Shuffle", Modifier.size(24.dp), tint = if (shuffleEnabled) colors.primary else colors.onSurfaceVariant)
       }
-      GlassButton(input = input, onClick = onLibrary) { Icon(LibraryIcon, "Library", Modifier.size(20.dp), tint = colors.onSurface) }
+      IconButton(onClick = onLibrary) { Icon(LibraryIcon, "Library", Modifier.size(24.dp), tint = colors.onSurfaceVariant) }
     }
   }
 }
@@ -319,6 +323,35 @@ private val PlayIcon = musicIcon("Play") {
   moveTo(8f, 5f)
   lineTo(19f, 12f)
   lineTo(8f, 19f)
+  close()
+}
+private val ShuffleIcon = musicIcon("Shuffle") {
+  moveTo(3f, 5f)
+  lineTo(7f, 5f)
+  lineTo(17f, 17f)
+  lineTo(17f, 14f)
+  lineTo(22f, 18f)
+  lineTo(17f, 22f)
+  lineTo(17f, 19f)
+  lineTo(16f, 19f)
+  lineTo(6f, 7f)
+  lineTo(3f, 7f)
+  close()
+  moveTo(3f, 17f)
+  lineTo(6f, 17f)
+  lineTo(9f, 13.4f)
+  lineTo(10.3f, 15f)
+  lineTo(7f, 19f)
+  lineTo(3f, 19f)
+  close()
+  moveTo(12.7f, 9f)
+  lineTo(16f, 5f)
+  lineTo(17f, 5f)
+  lineTo(17f, 2f)
+  lineTo(22f, 6f)
+  lineTo(17f, 10f)
+  lineTo(17f, 7f)
+  lineTo(14f, 10.6f)
   close()
 }
 private val PauseIcon = musicIcon("Pause") {

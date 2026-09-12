@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.sample.components
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -55,7 +56,8 @@ public fun GlassBottomTabs(
         style = remember(colors) {
           GlassStyle.regular then GlassStyle {
             this.shape(shape)
-            tint(colors.onSurface.copy(alpha = 0.12f))
+            optics(depth = 1f, blurRadius = 16.dp, refractionDisplacement = 4.dp)
+            tint(colors.surface.copy(alpha = 0.8f))
           }
         },
         interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
@@ -72,18 +74,8 @@ public fun GlassBottomTabs(
         .offset(x = indicatorOffset)
         .width(tabWidth)
         .height(48.dp)
-        .hazeGlass(
-          input = input,
-          style = remember(colors) {
-            GlassStyle.clear then GlassStyle {
-              this.shape(RoundedCornerShape(24.dp))
-              tint(colors.onSurface.copy(alpha = 0.26f))
-            }
-          },
-          interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
-          interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
-        )
-        .clip(RoundedCornerShape(24.dp)),
+        .clip(RoundedCornerShape(24.dp))
+        .background(colors.onSurface.copy(alpha = 0.08f)),
     )
     Row(Modifier.fillMaxWidth()) {
       tabs.forEachIndexed { index, label ->
