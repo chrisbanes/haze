@@ -1727,9 +1727,11 @@ source input on <code>HazeInput.Backdrop</code> configures only its source fallb
 window pixels. The current flag default is <code>false</code>, and
 <code>true</code> means eligible rather than guaranteed: the built-in effect, full Android 37.2 gate, window,
 canvas, native graph setup, and draw must all succeed. Unsupported platforms or a native failure
-select the source fallback for the rest of that attachment; the transition may take one frame.
-Changing the flag affects later attachments only, and healthy native rendering does not retain or
-record source layers.</p>
+use a supplied source fallback as portable rendering for the rest of that attachment.
+<code>HazeInput.Backdrop()</code> has no fallback: if native backdrop is unavailable or fails, its content
+draws unchanged and creates no source-capture demand. The transition may take one frame. Changing
+the flag affects later attachments only, and healthy native rendering does not retain or record
+source layers.</p>
 <p>Set <code>HazeLogger.enabled = true</code> to inspect selection and fallback messages. Native work is marked
 by the <code>HazeBackdrop.draw</code> trace section. This is diagnostic information, not a performance claim;
 physical Android 37.2 acceptance remains a separate release gate. A later release may enable the

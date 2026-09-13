@@ -1484,10 +1484,12 @@ Haze sources, include content drawn later, or cross a dialog, popup, or window b
 </code></pre></div>
 <p>The flag defaults to <code>false</code>, and <code>true</code> means eligible rather than guaranteed. Native backdrop
 sampling uses compositor resolution rather than the effect's source-capture scale. If the platform,
-window, canvas, built-in effect, native setup, or native draw is unavailable, that modifier switches
-to its configured source fallback for the rest of the attachment. The switch may take one frame;
-a known-bad native path is not retried every frame. Healthy native-only consumers do not cause
-their dormant fallback sources to record. Changing the flag affects later attachments only.</p>
+window, canvas, built-in effect, native setup, or native draw is unavailable, a supplied source
+fallback provides portable rendering for the rest of the attachment. <code>HazeInput.Backdrop()</code> has no
+fallback: if native backdrop is unavailable or fails, its content draws unchanged and creates no
+source-capture demand. The switch may take one frame; a known-bad native path is not retried every
+frame. Healthy native-only consumers do not cause their dormant fallback sources to record.
+Changing the flag affects later attachments only.</p>
 <p>For diagnostics, set <code>HazeLogger.enabled = true</code> to see backdrop selection and fallback messages.
 Native work is marked by the <code>HazeBackdrop.draw</code> trace section. No performance claim is implied by
 native eligibility; physical Android 37.2 acceptance remains a separate release gate. Later

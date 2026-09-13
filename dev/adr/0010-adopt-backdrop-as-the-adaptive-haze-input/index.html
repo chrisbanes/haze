@@ -1082,9 +1082,10 @@ behind it in the current window:</p>
 </code></pre></div>
 <p>The native path samples the combined earlier pixels in the same window surface. It cannot select
 individual Haze sources, include later drawing, or cross a dialog, popup, or other window boundary.
-When the native path is unavailable, Haze uses <code>Backdrop</code>'s <code>fallback</code> source input. Its
-selection and retention policies apply only to that source-capture path; they do not filter native
-window pixels.</p>
+When the native path is unavailable, Haze uses <code>Backdrop</code>'s <code>fallback</code> source input when one is
+supplied. <code>HazeInput.Backdrop()</code> has no portable source fallback: content remains unchanged and
+Haze does not demand source capture. A supplied fallback's selection and retention policies apply
+only to that source-capture path; they do not filter native window pixels.</p>
 <h2 id="eligibility-and-fallback">Eligibility and fallback<a class="headerlink" href="#eligibility-and-fallback" title="Permanent link">¶</a></h2>
 <p><code>HazeFeatureFlags.isPlatformBackdropEnabled</code> is an experimental process-wide switch. It is
 <code>false</code> by default. Set it before attaching the Haze effect nodes that should observe the switch:</p>
@@ -1093,9 +1094,10 @@ window pixels.</p>
 <p>The switch makes the platform renderer eligible; it does not force native rendering. Built-in
 effect support, the Android full 37.2 SDK gate, the current window and canvas, native setup, and
 native drawing must all succeed. Unsupported platforms, incompatible effects, software canvases,
-and setup or draw failures use source fallback. A known unavailable or failed native path remains
-sticky until that modifier node detaches. Existing attached nodes keep the value observed at
-attachment; a later attachment reads the current value.</p>
+and setup or draw failures use a supplied source fallback. Without a fallback, content remains
+unchanged and Haze does not demand source capture. A known unavailable or failed native path
+remains sticky until that modifier node detaches. Existing attached nodes keep the value observed
+at attachment; a later attachment reads the current value.</p>
 <p>The current implementation is experimental and has not established physical Android 37.2
 acceptance or a performance result. Those remain release gates. The rollout is deliberately
 staged: after acceptance a later release may enable the default, retain <code>false</code> temporarily as a
@@ -1105,10 +1107,10 @@ regression escape hatch, and then remove the flag.</p>
 also marked by the <code>HazeBackdrop.draw</code> trace section. These are diagnostics, not a public backend
 selection or status API.</p>
 <p>On a healthy native attachment, Haze does not record dormant source layers. A native-to-source
-transition may take one frame, and source fallback remains responsible for portable rendering and
-retained-output behavior. <a href="../0009-use-opt-in-android-window-backdrops/">ADR-0009</a> records the
-earlier wrapper-based decision and remains unchanged as historical context; this ADR supersedes
-its public input shape.</p></div>
+transition may take one frame when a fallback is supplied; that fallback remains responsible for
+portable rendering and retained-output behavior.
+<a href="../0009-use-opt-in-android-window-backdrops/">ADR-0009</a> records the earlier wrapper-based decision
+and remains unchanged as historical context; this ADR supersedes its public input shape.</p></div>
 
 
 
