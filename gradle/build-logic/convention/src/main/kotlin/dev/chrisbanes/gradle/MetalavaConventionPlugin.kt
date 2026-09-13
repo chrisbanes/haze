@@ -35,6 +35,17 @@ class MetalavaConventionPlugin : Plugin<Project> {
       resolutionStrategy.force("com.android.tools.metalava:metalava:$METALAVA_VERSION")
     }
 
+    // Metalava writes an extra blank line at EOF for some module API signatures. Keep checked-in
+    // signatures stable so regeneration does not create whitespace-only diffs.
+    tasks.named("metalavaGenerateSignature").configure {
+      val apiFile = target.layout.projectDirectory.file("api/api.txt").asFile
+      doLast {
+        val contents = apiFile.readText()
+        val normalized = contents.trimEnd() + "\n"
+        if (contents != normalized) apiFile.writeText(normalized)
+      }
+    }
+
     tasks.named { it.startsWith("metalavaCheckCompatibility") }.configureEach {
       dependsOn(tasks.named { it.startsWith("generateResourceAccessors") })
     }

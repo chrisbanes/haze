@@ -125,4 +125,3 @@ package dev.chrisbanes.haze {
   }
 
 }
-
