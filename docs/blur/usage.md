@@ -210,5 +210,5 @@ See the [performance guide](../performance.md#performance-mode) for mode selecti
 
 ### Controlled calibration reference
 
-The historical Blur table has moved to
-[performance-mode calibration (2026-08-09)](../benchmark-results.md#performance-mode-calibration-2026-08-09).
+The latest controlled Blur measurements are in the
+[performance-mode calibration](../benchmark-results.md#performance-mode-calibration).

@@ -8,9 +8,17 @@ import android.os.Process
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import dev.chrisbanes.haze.sample.SampleLaunchRequest
 import dev.chrisbanes.haze.sample.Samples
+import dev.chrisbanes.haze.sample.resolveSampleLaunch
 
 private const val FORCE_BLUR_EXTRA = "dev.chrisbanes.haze.sample.android.FORCE_BLUR"
+private const val BENCHMARK_SAMPLE_ROUTE_EXTRA =
+  "dev.chrisbanes.haze.sample.android.BENCHMARK_SAMPLE_ROUTE"
+private const val BENCHMARK_SAMPLE_EFFECT_EXTRA =
+  "dev.chrisbanes.haze.sample.android.BENCHMARK_SAMPLE_EFFECT"
+private const val BENCHMARK_SCENARIO_EXTRA =
+  "dev.chrisbanes.haze.sample.android.BENCHMARK_SCENARIO"
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,10 +35,28 @@ class MainActivity : ComponentActivity() {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
 
+    val initialSelection = intent.getStringExtra(BENCHMARK_SAMPLE_ROUTE_EXTRA)?.let { route ->
+      val effect = requireNotNull(intent.getStringExtra(BENCHMARK_SAMPLE_EFFECT_EXTRA)) {
+        "$BENCHMARK_SAMPLE_EFFECT_EXTRA is required with $BENCHMARK_SAMPLE_ROUTE_EXTRA"
+      }
+      when (
+        val request = resolveSampleLaunch(
+          query = mapOf("sample" to route, "effect" to effect),
+          samples = dev.chrisbanes.haze.sample.Samples,
+        )
+      ) {
+        is SampleLaunchRequest.Selected -> request
+        is SampleLaunchRequest.Invalid -> error(request.message)
+        SampleLaunchRequest.Normal -> error("Benchmark sample selection was not resolved")
+      }
+    }
+
     setContent {
       Samples(
         appTitle = title.toString(),
         forceBlur = intent.getBooleanExtra(FORCE_BLUR_EXTRA, false),
+        initialSelection = initialSelection,
+        initialProfilingScenarioId = intent.getStringExtra(BENCHMARK_SCENARIO_EXTRA),
       )
     }
   }

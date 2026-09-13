@@ -37,6 +37,14 @@ For managed-device profile collection and artifact checks, use
 
 Record the device model, API level, and selected refresh rate with saved results.
 
+On Android 17 beta devices, verify that force-stopping the Google app actually removes all of its
+processes before starting Perfetto. Some builds immediately restart the app and its Chromium trace
+producer. If that happens, bring another app such as Settings to the foreground, record the Google
+app's enabled state, temporarily disable it with
+`adb shell pm disable-user --user 0 com.google.android.googlequicksearchbox`, and verify its
+processes are gone. Restore it with `adb shell pm enable com.google.android.googlequicksearchbox`
+after the run, including after a failure.
+
 ### Check CPU placement before attributing a regression
 
 Android [fixed-performance mode](https://developer.android.com/games/optimize/adpf/fixed-performance-mode)
@@ -101,45 +109,101 @@ minimum-resolution guarantee.
 
 ## Validate automation
 
-Run the Blur and Glass calibration automation without meaningful measurements:
+Run every method listed in the measurement loop below once without meaningful measurements. Add
+the dry-run argument to each individual Gradle invocation, and verify the XML result names that
+method. Do not use a combined method selector as an automation check.
 
 ```shell
 ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true \
-  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest,dev.chrisbanes.haze.GlassProfilingBenchmark
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurStableAdaptive
 ```
 
 ## Run comparable performance-mode measurements
 
-Run the sixteen controlled calibration methods together after a successful dry run. This excludes
-`BaselineProfileGenerator` and unrelated sample benchmarks; each result remains labeled with its
-individual Blur or Glass scenario.
+The examples below run in a subshell so cleanup traps do not change your interactive shell.
+They disable fixed-performance mode on exit, including command failure, Ctrl-C, or termination.
+A killed shell or disconnected device can prevent cleanup; reconnect and disable the mode manually
+in that case. These examples assume it was off before the run.
 
-```shell
+Run the sixteen controlled calibration methods individually after a successful dry run. A combined
+comma-separated method selector can silently execute only the first method on some runner/tooling
+combinations, even though Gradle exits successfully. Verify each XML result, JSON method label,
+`repeatIterations`, and trace count, then preserve its output before starting the next method.
+
+The loops require Python 3.9 or newer and one connected device. Each invocation copies its JSON,
+XML, messages, and traces into a new per-method directory, then verifies the selected method,
+eight measured iterations, a passing XML testcase, and eight distinct non-empty trace files.
+Verification failure stops the loop but retains the copied evidence. Each run gets a fresh archive
+directory; existing results are never overwritten.
+
+```bash
+(
+set -e
+trap 'adb shell cmd power set-fixed-performance-mode-enabled false' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 adb shell cmd power set-fixed-performance-mode-enabled true
-./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurStableAdaptive,dev.chrisbanes.haze.BenchmarkTest#blurStableQuality,dev.chrisbanes.haze.BenchmarkTest#blurStableBalanced,dev.chrisbanes.haze.BenchmarkTest#blurStablePerformance,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateAdaptive,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateQuality,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateBalanced,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdatePerformance,dev.chrisbanes.haze.GlassProfilingBenchmark#stableAdaptive,dev.chrisbanes.haze.GlassProfilingBenchmark#stableQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#stableBalanced,dev.chrisbanes.haze.GlassProfilingBenchmark#stablePerformance,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateAdaptive,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateBalanced,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdatePerformance
-adb shell cmd power set-fixed-performance-mode-enabled false
+mkdir -p internal/benchmark/build/benchmark-results
+results_dir=$(mktemp -d internal/benchmark/build/benchmark-results/modes.XXXXXX)
+echo "Results: $results_dir"
+methods=(
+  "BenchmarkTest#blurStableAdaptive"
+  "BenchmarkTest#blurStableQuality"
+  "BenchmarkTest#blurStableBalanced"
+  "BenchmarkTest#blurStablePerformance"
+  "BenchmarkTest#blurSourceUpdateAdaptive"
+  "BenchmarkTest#blurSourceUpdateQuality"
+  "BenchmarkTest#blurSourceUpdateBalanced"
+  "BenchmarkTest#blurSourceUpdatePerformance"
+  "GlassProfilingBenchmark#stableAdaptive"
+  "GlassProfilingBenchmark#stableQuality"
+  "GlassProfilingBenchmark#stableBalanced"
+  "GlassProfilingBenchmark#stablePerformance"
+  "GlassProfilingBenchmark#sourceUpdateAdaptive"
+  "GlassProfilingBenchmark#sourceUpdateQuality"
+  "GlassProfilingBenchmark#sourceUpdateBalanced"
+  "GlassProfilingBenchmark#sourceUpdatePerformance"
+)
+for method in "${methods[@]}"; do
+  ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
+    -Pandroid.testInstrumentationRunnerArguments.class="dev.chrisbanes.haze.${method}"
+  python3 internal/benchmark/archive_result.py \
+    --method "dev.chrisbanes.haze.${method}" \
+    --destination "$results_dir/$method"
+done
+)
 ```
 
 ## Run the fixed-quality sweep
 
 Run each Glass fixed-quality method explicitly and verify its result label. A combined selector
 can execute only the first method on some runner/tooling combinations; a successful Gradle exit
-alone does not establish complete coverage. First run the loop with
-`-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true` added to
-validate all twelve cases without treating those runs as measurements.
+alone does not establish complete coverage. For automation validation, invoke each method with
+`-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true` and check
+its XML result. Do not use the measured-result archiver for dry runs: they do not provide the
+eight measured iterations and traces required below.
 
-```shell
+```bash
+(
+set -e
+trap 'adb shell cmd power set-fixed-performance-mode-enabled false' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 adb shell cmd power set-fixed-performance-mode-enabled true
+mkdir -p internal/benchmark/build/benchmark-results
+results_dir=$(mktemp -d internal/benchmark/build/benchmark-results/fixed-quality.XXXXXX)
+echo "Results: $results_dir"
 for level in 0 25 33 50 75 100; do
   for workload in stable sourceUpdate; do
     ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
       -Pandroid.testInstrumentationRunnerArguments.class="dev.chrisbanes.haze.GlassProfilingBenchmark#${workload}Fixed${level}"
-    # Preserve this method's JSON and traces before the next invocation replaces output files.
+    python3 internal/benchmark/archive_result.py \
+      --method "dev.chrisbanes.haze.GlassProfilingBenchmark#${workload}Fixed${level}" \
+      --destination "$results_dir/${workload}Fixed${level}"
   done
 done
-adb shell cmd power set-fixed-performance-mode-enabled false
+)
 ```
 
 For paired order checks, repeat with reversed level and workload order using the same APKs.
@@ -172,12 +236,17 @@ instrumentation work, which can change device state or mix artifact output with 
 
 Run one controlled scenario:
 
-```shell
+```bash
+(
+set -e
+trap 'adb shell cmd power set-fixed-performance-mode-enabled false' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 adb shell cmd power set-fixed-performance-mode-enabled true
 ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.fullTracing.enable=true \
   -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateAdaptive
-adb shell cmd power set-fixed-performance-mode-enabled false
+)
 ```
 
 Always disable fixed-performance mode after profiling, including after a failed run.
@@ -292,13 +361,38 @@ Each row records `FrameTimingMetric`, max `MemoryUsageMetric`, `HazeBackdrop.dra
 `HazeSource.record` count. A healthy backdrop result has native backdrop draws and zero source
 records; its source control has source records and no required backdrop draw.
 
-Run a dry run first on the same physical 37.2 device:
+### Interpret source/backdrop results
+
+Source and native backdrop inputs have different reuse boundaries. A stable source can retain its
+captured pixels and processed effect stages across later draws. Native backdrop rendering instead
+applies the platform effect to the earlier pixels in the current window whenever the backdrop node
+is drawn. It avoids Haze source capture, but it does not use the source path's retained-output
+policy. Native rendering is therefore not inherently the faster path.
+
+The stable comparison scenarios intentionally keep invalidating the effect while leaving the source
+pixels unchanged. They measure retained-source reuse against repeated native backdrop composition;
+they are not static-screen idle measurements. Read them alongside the updating-source rows, where
+both inputs must consume changing pixels. Preserve this workload distinction when reporting a
+result.
+
+`HazeBackdrop.draw` measures CPU-side preparation and submission around the backdrop `RenderNode`.
+Its duration is not the complete backdrop cost and does not measure GPU shader duration. In a
+representative trace, compare app `RenderThread` `DrawFrames`, `Vulkan finish frame`, `QueueSubmit`,
+and Skia operation counts between the paired cases. Keep nested slice durations separate, and check
+main-thread and RenderThread CPU placement before attributing their duration difference to the
+rendering path. A higher operation or submission count establishes more RenderThread work; exact GPU
+cost still requires GPU timeline or profiler evidence.
+
+Run a dry run first on the same physical 37.2 device. Repeat this one-method invocation for every
+source and backdrop method in the table above, using `BenchmarkTest` for Blur and
+`GlassProfilingBenchmark` for Glass. Verify the exact result label before measuring; do not combine
+the methods into one comma-separated selector.
 
 ```shell
 ./gradlew --no-scan :sample:shared:testAndroidHostTest \
   :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true \
-  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurStableQuality,dev.chrisbanes.haze.BenchmarkTest#blurBackdropStableQuality,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateQuality,dev.chrisbanes.haze.BenchmarkTest#blurBackdropSourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#stableQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#backdropStableQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#backdropSourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdate9,dev.chrisbanes.haze.GlassProfilingBenchmark#backdropSourceUpdate9
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurStableQuality
 ```
 
 Measure three source/backdrop pairs, then repeat three pairs in backdrop/source order. Return the
@@ -306,11 +400,16 @@ device to the same thermal envelope before each pair. Keep all JSON and Perfetto
 CPU P90, actual-frame P90, frame overrun, and peak memory against the order-reversed control
 envelope rather than one run.
 
-```shell
+```bash
+(
+set -e
+trap 'adb shell cmd power set-fixed-performance-mode-enabled false' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 adb shell cmd power set-fixed-performance-mode-enabled true
 # Run one source/backdrop pair with the focused class argument above, then reverse its order.
-adb shell cmd power set-fixed-performance-mode-enabled false
+)
 ```
 
-Always run the final cleanup command, including after a failed or interrupted benchmark. Verify
-fixed-performance mode is off before returning the device to normal use.
+Verify fixed-performance mode is off before returning the device to normal use, including after
+failed or interrupted benchmarks.

@@ -135,6 +135,46 @@ class SamplesAndroidTest : ContextTest() {
     onNodeWithTag("sample_performance_settings").assertDoesNotExist()
   }
 
+  @Test
+  fun initialGlassProfilingScenario_bypassesSampleAndScenarioPickers() = runComposeUiTest {
+    setContent {
+      Samples(
+        appTitle = "Haze Samples",
+        samples = listOf(AndroidGlassProfiling),
+        initialSelection = SampleLaunchRequest.Selected(
+          sample = AndroidGlassProfiling,
+          effect = SampleEffect.Glass,
+          theme = SampleEmbedTheme.System,
+        ),
+        initialProfilingScenarioId = "source_update_quality",
+      )
+    }
+
+    onNodeWithTag("glass_profiling_selected_source_update_quality").assertIsDisplayed()
+    onNodeWithTag("sample_list").assertDoesNotExist()
+    onNodeWithTag("glass_profiling_picker").assertDoesNotExist()
+  }
+
+  @Test
+  fun initialBlurProfilingScenario_bypassesSampleAndScenarioPickers() = runComposeUiTest {
+    setContent {
+      Samples(
+        appTitle = "Haze Samples",
+        samples = listOf(AndroidBlurProfiling),
+        initialSelection = SampleLaunchRequest.Selected(
+          sample = AndroidBlurProfiling,
+          effect = SampleEffect.Blur,
+          theme = SampleEmbedTheme.System,
+        ),
+        initialProfilingScenarioId = "source_update_quality",
+      )
+    }
+
+    onNodeWithTag("blur_profiling_selected_source_update_quality").assertIsDisplayed()
+    onNodeWithTag("sample_list").assertDoesNotExist()
+    onNodeWithTag("blur_profiling_picker").assertDoesNotExist()
+  }
+
   private fun performanceModeSample(
     route: String,
     title: String,

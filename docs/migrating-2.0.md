@@ -393,6 +393,27 @@ Modifier.hazeEffect(
 
 See [Custom effects](custom-effects.md) for lifecycle and ownership guidance.
 
+## Performance compared with Haze 1
+
+In a historical comparison of two shared sample interactions, Haze 2 had lower P90 CPU frame
+duration than Haze 1:
+
+| Workload | Haze 1 | Haze 2 | Reduction in P90 CPU frame duration |
+| --- | ---: | ---: | ---: |
+| Images List scrolling | 14.9 ms | 9.3 ms | 37% lower |
+| Credit Card dragging | 11.5 ms | 9.8 ms | 15% lower |
+
+These results describe the compared builds, not a guaranteed improvement for every app.
+Use the [performance guide](performance.md) to measure and tune your migrated screen.
+
+??? info "Measurement details"
+
+    Android Macrobenchmarks ran on a Pixel 6 with Android 17 at 60 Hz, with 32 iterations
+    per workload. The comparison used Haze 1 at `7a2557f1` and Haze 2 at `fc46813e`.
+    P90 highlights the slower frames during each interaction; CPU frame duration does not
+    directly measure GPU shader time. The original summary did not record the run date,
+    build variant, or run order.
+
 ## Getting help
 
 - Read the [Blur usage guide](blur/usage.md).

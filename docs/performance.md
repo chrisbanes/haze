@@ -1,122 +1,166 @@
 # Performance
 
-Haze uses the best available rendering path on each platform, but real-time effects still add work.
-The impact depends on the device, the affected area, how many effects are visible, and how often
-their input changes.
+Start with Haze's defaults, then tune the effects that cause problems on your screen. Check
+scrolling, transitions, and visual quality together: a setting is useful only if the screen still
+looks right and feels smooth.
 
-## Recommended workflow
+## Start with the defaults
 
-1. Start built-in effects with the default Style and `HazePerformanceMode.Default`; custom effects
-   continue to use `HazeSampling.Default`.
-2. Build the real screen, including its scrolling, transitions, and interactions.
-3. Measure a release-like build on representative physical devices.
-4. Change one setting at a time and compare both frame timing and visual quality.
-5. Keep an override only when it provides clear value on the devices you support.
+Use `HazePerformanceMode.Default` for built-in Blur and Glass, and start Glass with
+`GlassStyle.regular`. The default performance mode adjusts quality automatically. Custom effects
+use `HazeSampling.Default`.
+
+Build the complete screen before choosing overrides. The area covered by effects, their number,
+and the content moving behind them all affect the cost.
+
+<a id="measure-on-target-devices"></a>
+
+## Measure your screen
+
+Use a release-like build on physical devices, including the slowest devices you support. Test
+scrolling, transitions, and the first appearance of an effect. For interactive Glass surfaces,
+also test hover, focus, and press responses.
+
+Change one setting at a time. Keep device conditions and refresh rate consistent, then repeat the
+same interaction. Look for fewer missed frame deadlines and smoother motion without an
+unacceptable loss of detail.
+
+On Android, [Macrobenchmark](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview)
+can measure these interactions. Frame overrun tells you whether frames finish before their
+deadline; positive values indicate misses. CPU frame duration helps assess UI-thread and
+RenderThread cost, but does not directly measure GPU shader time. Check both metrics before
+deciding that a change helped.
+
+<a id="common-cost-drivers"></a>
+
+## If frames are slow
+
+Try these changes in order, measuring after each:
+
+1. **Reduce the affected area.** Apply the effect only where it is visible. Smaller surfaces
+   process less content.
+2. **Reduce unnecessary effects.** Remove effects that add little to the design. Where the design
+   allows it, compare one shared surface with several independent surfaces.
+3. **Try a lower quality setting.** Test `Performance`, then increase quality if the result looks
+   too soft or pixelated. See [Choose a performance mode](#performance-mode).
+4. **Simplify the styling.** Try uniform blur in place of progressive blur, or reduce Glass
+   features such as Full chromatic aberration. Keep the simpler style if the visual difference
+   does not justify the cost.
+5. **Keep unrelated animation out of captured sources.** With `HazeInput.Sources`, move animation
+   outside the `hazeSource` subtree when the effect does not need to include it.
+
+<a id="stable-and-changing-sources"></a>
+
+A stable source can reuse captured and processed output. Scrolling or animated backgrounds need
+fresh input, so always test those interactions as well as stationary content.
 
 <a id="input-scale"></a>
+<a id="performance-mode"></a>
+<a id="performance-modes"></a>
+<a id="choosing-a-fixed-quality-level"></a>
 
-## Performance mode
+## Choose a performance mode
 
-`HazePerformanceMode` controls the quality and rendering cost of built-in Blur and Glass:
+`HazePerformanceMode` controls the quality and rendering cost of built-in Blur and Glass. Choose
+based on the problem you can see:
 
-- **`Default` or `Adaptive`**: Adjusts quality automatically. Start here for most screens.
-- **`Quality`**: Prioritises visual detail and generally requires more rendering work.
-- **`Balanced`**: Offers a middle ground between detail and rendering cost.
-- **`Performance`**: Prioritises lower rendering cost; fine detail may look softer or more pixelated.
-- **`Fixed(qualityFraction)`**: Choose a quality level from `0f` (lowest supported quality) to `1f`
-  (highest supported quality). `Performance`, `Balanced`, and `Quality` correspond to `0f`, `0.5f`,
-  and `1f` respectively.
+| What you need | What to try |
+| --- | --- |
+| A starting point for most screens | `Default` or `Adaptive`, which adjusts quality automatically. |
+| Lower rendering cost | `Performance`; check for softer or more pixelated detail. |
+| A consistent middle quality setting | `Balanced`. |
+| Sharper detail | `Quality`; check scrolling and transitions for missed deadlines. |
+| A specific fixed quality setting | `Fixed(qualityFraction)`, after comparing the named modes. |
 
-`qualityFraction` is a quality setting, not a percentage of pixels or a promised reduction in
-rendering time. A fixed level keeps your chosen setting instead of adjusting it automatically;
-its appearance and cost still depend on the effect, surface size, and device.
+For example, to try a lower-cost Blur setting with an existing source input:
 
-If an effect looks too pixelated, try a higher quality level. Compare it while scrolling and
-animating, since a sharper effect may also make it harder to keep frames smooth. Custom effects
-use `HazeSampling`; see the [migration guide](migrating-2.0.md) for older built-in sampling settings.
+```kotlin
+Modifier.hazeBlur(
+  input = HazeInput.Sources(hazeState),
+  performanceMode = HazePerformanceMode.Performance,
+)
+```
 
-## Common cost drivers
+The same `performanceMode` parameter is available on `hazeGlass`. Fixed modes keep the chosen
+quality setting instead of adapting it. `Performance`, `Balanced`, and `Quality` correspond to
+`Fixed(0f)`, `Fixed(0.5f)`, and `Fixed(1f)`. The fraction describes quality, not a percentage
+reduction in rendering time.
 
-- **Affected area:** Larger effects process more content.
-- **Number of effects:** Several independent effects cost more than one.
-- **Changing input:** Scrolling and animation require more work than a stable background.
-- **Effect complexity:** Progressive effects, masks, and advanced optics can add cost.
-- **Device and display:** Resolution, refresh rate, and GPU capability affect the result.
+!!! note "Measured quality trade-offs"
 
-### Stable and changing sources
+    In a Pixel 8a test at 60 Hz with a changing background, Glass `Balanced` left about **5 ms**
+    of frame-deadline headroom at P90, compared with **1.7 ms** for `Quality`. Glass
+    `Performance` used roughly **9% less median peak GPU memory** than `Quality` in both stable
+    and changing-background tests. These observations come from one pass with eight iterations
+    per case; they are useful reference points, not guaranteed savings on another screen.
+    See the [full mode comparison](benchmark-results.md#performance-mode-calibration).
 
-With `HazeInput.Sources`, a stable background generally costs less than one that changes every
-frame. Keep animations outside the `hazeSource` subtree when the effect does not need to include
-them. A stable background does not make the effect free: measure both stationary content and the
-scrolling or animated content users will see.
+Keep a fixed override only when repeated measurements and visual checks show a useful benefit.
+A lower quality setting does not guarantee a lower CPU frame time in every workload.
 
 <a id="effect-specific-guidance"></a>
 
 ## Blur
 
-Progressive Blur varies blur intensity across the surface. If you only need to fade opacity, use a
-mask; see [Progressive Blur and masks](blur/usage.md#progressive-blur-and-masks).
+If you only need to fade an effect's opacity, use a mask instead of progressive blur.
+Progressive blur is useful when the blur intensity itself needs to vary across the surface.
+See [Progressive Blur and masks](blur/usage.md#progressive-blur-and-masks).
 
-For source-backed Blur, `expandLayerBounds` allows the capture layer to expand by the resolved blur
-radius. This gives the blur surrounding input to sample, at the cost of a larger capture area.
-Disabling it limits that area and can change the result near the edges. Keep the default unless
-visual and performance comparisons justify changing it. See the
+Keep `expandLayerBounds` enabled unless a measured improvement justifies changing it. It lets
+source-backed Blur sample surrounding content near the edges. Disabling it reduces the capture
+area but can change the edge appearance. See the
 [modifier example](blur/usage.md#performance-mode-and-layer-expansion).
 
 ## Glass
 
-Start with `GlassStyle.regular`. Progressive blur and Full chromatic aberration can add work;
-measure them at the surface sizes and effect counts your screen uses. Animated lighting,
-refraction, and transforms also add work during hover, focus, and press responses. Include those
-states, background scrolling, and layout transitions in your comparison.
+Start with `GlassStyle.regular` and add optical features only where they improve the design.
+If Glass is expensive, compare simpler blur and chromatic aberration settings at the sizes and
+effect counts your screen actually uses.
 
-Check both the first appearance of a Glass surface and its ongoing interactions. A screen that
-scrolls smoothly can still pause when an effect first appears.
+Check an effect's first appearance separately from its ongoing animation: smooth scrolling does
+not rule out a pause when a Glass surface is first created. Include lighting, refraction, and
+transform changes during interaction in your measurements.
 
-For styling and API examples, see the [Glass overview](effects/glass.md).
+For styling examples, see the [Glass overview](effects/glass.md).
 
-### Choosing a fixed quality level
+<a id="backdrop-input"></a>
 
-Higher quality can make fine detail and glass edges clearer, but leaves less time for the rest of
-your screen to render. If you need a fixed level, start with `Balanced` and increase it only when
-it visibly improves your screen.
+## Backdrop versus Sources
 
-For reference, these measurements used one 280 dp × 180 dp Regular Glass surface with continuously
-changing source content on a Pixel 6 running Android 17 at 60 Hz. CPU placement was controlled to
-make the levels easier to compare. Each number averages the P90 from two runs; negative frame
-overrun means the frame finished before its deadline, with more negative values indicating more
-spare time.
+`HazeInput.Backdrop` lets built-in Blur and Glass consume pixels already drawn behind them in the
+current window. Its native Android path can filter those pixels directly, without marking the
+background with `hazeSource` or capturing a separate source layer.
 
-| `qualityFraction` | CPU frame duration: mean per-pass P90 (ms) | Frame overrun: mean per-pass P90 (ms) |
-| --- | ---: | ---: |
-| `0` | 3.17 | -10.95 |
-| `0.25` | 3.12 | -10.17 |
-| `1f / 3f` | 3.11 | -9.77 |
-| `0.5` (`Balanced`) | 3.17 | -9.11 |
-| `0.75` | 4.87 | -6.34 |
-| `1` (`Quality`) | 4.74 | -5.53 |
+The current API still takes a `HazeState` or `HazeInput.Sources` for fallback. Keep the
+`hazeSource` setup if you need the effect to work when native rendering is unavailable, including
+on other platforms or after a native failure. Without captured sources, the fallback has no
+background content to process.
 
-In this scene, increasing from `Balanced` to `Fixed(0.75f)` used another 2.77 ms of frame deadline
-margin. All levels met their deadlines, but a screen with more effects or a higher refresh rate
-may have less time to spare. These Android results do not predict performance on Web or other
-devices. See the [full measurements and test conditions](benchmark-results.md#glass-fixed-quality-with-controlled-cpu-placement-2026-09-11).
+Use explicit `HazeInput.Sources` when you need to select particular captured content. Native
+Backdrop uses the combined earlier pixels in the same window; it cannot include later drawing
+or content from another dialog, popup, or window. See [Explicit inputs](core-concepts.md#explicit-inputs)
+for examples.
 
-## Measure on target devices
+!!! warning "Experimental native Backdrop"
 
-Use a release-like build on physical hardware and reproduce the interactions users will perform.
-Keep device conditions and refresh rate consistent between runs. Compare frame timing and visual
-quality, including on the slowest devices you support.
+    Native rendering requires a supported, hardware-accelerated Android 37.2 window and is
+    disabled by default. Set `HazeFeatureFlags.isPlatformBackdropEnabled = true` before attaching
+    the effect node to make it eligible. Unsupported configurations use source fallback.
+    See [Android window backdrops](core-concepts.md#android-window-backdrops).
 
-For Android, [Macrobenchmark](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview)
-provides repeatable frame measurements. Use frame overrun to identify deadline misses and CPU frame
-duration to assess UI-thread and RenderThread cost. Neither directly measures GPU shader duration.
+Compare native Backdrop with Sources before enabling it for performance reasons. Sources can
+reuse processed output when their input is stable; native Backdrop filters window pixels again
+when the effect draws.
 
-Repeat comparisons to check that an improvement holds across runs. For details of Haze's own
-measurements, see the [benchmark results](benchmark-results.md).
+!!! note "Measured Backdrop cost"
 
-<a id="haze-2-compared-with-haze-1"></a>
-<a id="a-reference-point-not-a-target"></a>
+    On a Pixel 8a at 60 Hz, native Backdrop had **23–46% higher CPU frame P90** than Sources in
+    the tested single-surface Glass workloads. Those figures are based on two passes in opposite
+    orders at `Quality`, with eight iterations per method per pass. Native rendering can simplify source
+    capture, but these tests did not show a CPU performance benefit for Glass.
+    See the [full Backdrop comparison](benchmark-results.md#native-android-backdrop).
 
-See the [Haze 1 versus Haze 2 comparison](benchmark-results.md#haze-2-compared-with-haze-1) and
-[Blur and Glass reference measurements](benchmark-results.md), with the recorded setup and
-limitations for each run.
+<a id="performance-measurements"></a>
+
+The [benchmark results](benchmark-results.md) contain the complete tables and test conditions.
+Use them as reference points when measuring your own screen.

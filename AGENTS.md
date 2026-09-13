@@ -34,12 +34,49 @@ and locally complete. Do not extract helpers or parameterize sample composables 
 duplication; flag duplication only when it creates a concrete correctness or maintenance risk.
 Share application infrastructure, fixtures, or abstractions that are themselves being demonstrated.
 
+## Android physical-device benchmarks
+
+- Read [`internal/benchmark/README.md`](internal/benchmark/README.md) before running or interpreting
+  Macrobenchmarks. Use a physical device, keep it plugged in, awake, and unlocked for the complete
+  run, and restore temporary device settings such as fixed-performance mode afterward.
+- Use eight measured iterations for comparable Blur and Glass results. Use dry-run mode for one
+  automation-validation iteration, or override `androidx.benchmark.iterations` to three for a quick
+  diagnostic signal; do not publish either as benchmark evidence.
+- Launch measured samples and profiling scenarios directly through their benchmark intent extras.
+  Do not scroll through the sample list in per-iteration setup. Disable UiAutomator's idle wait only
+  around continuously animating profiling scenarios and restore its previous timeout afterward.
+- On Android 17 beta devices, a Chromium process hosted by the Google app can leave Perfetto waiting
+  about 30 seconds for the `track_event` data source on every iteration. If logcat reports that
+  producer timing out, run `adb shell am force-stop com.google.android.googlequicksearchbox` before
+  restarting the suite. If the package immediately respawns, use the runbook's temporary-disable
+  fallback and restore its original state afterward. Do not attribute that delay to the measured
+  workload.
+- Run performance-mode matrices as explicit per-method invocations. A combined method selector can
+  execute only its first entry while Gradle still reports success; verify and preserve each method's
+  XML, JSON iteration count, and traces before continuing.
+- Treat Gradle wall time, instrumentation time, and the fixed-duration measured window as separate
+  quantities. Preserve every completed iteration and its trace, confirm the expected result and
+  artifact count, and inspect thermal state and CPU placement before attributing a regression.
+
+## Performance documentation
+
+- Keep `docs/performance.md` action-oriented: defaults, trade-offs, and troubleshooting, supported
+  by a few qualified measurements rather than full result tables.
+- Keep full tables in `docs/benchmark-results.md`, organised by comparison, with build identifiers
+  and artifact provenance in collapsible measurement details.
+- Publish only the latest results per comparison; avoid dated or versioned sections. Historical
+  version comparisons belong in migration material, and superseded results remain in git history.
+- Preserve measurement limits: identify devices, conditions, aggregation, and single-pass
+  uncertainty. Keep controlled CPU-placement results separate from normal scheduling, and do not
+  describe CPU frame timings as GPU shader cost.
+
 ## Task guides
 
 Read the relevant guide before starting that work:
 
 | Task | Guidance |
 | --- | --- |
+| Android physical-device benchmarks | [Runbook](internal/benchmark/README.md) |
 | Screenshot tests | [Agent rules](docs/agents/screenshot-tests.md) and [commands, profiles, recording](docs/screenshot-tests.md) |
 | Built-in effect runtimes | [Implementation patterns](docs/agents/effect-runtimes.md) |
 | Release changelog | [Release guidance](docs/agents/releases.md) |

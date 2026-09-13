@@ -1,105 +1,157 @@
 # Benchmark results
 
-These Android measurements record specific builds, workloads, and devices. They are historical
-reference points, not performance budgets for other applications or measurements of the current
-checkout. Use the [performance guide](performance.md) to tune your screen and the
-[Android benchmark runbook][benchmark-runbook] to run Haze's workloads.
+The latest available Android measurements for each comparison are collected here. Use the
+[performance guide](performance.md) to choose what to try on your screen, and the
+[benchmark runbook][benchmark-runbook] to reproduce Haze's workloads. Sections use different
+devices and builds: compare configurations within a table, not timings across sections.
 
-CPU frame duration describes UI-thread and RenderThread cost; it does not directly measure GPU
-shader duration. Frame overrun describes deadline misses. The tables below retain the metrics and
-conditions recorded for each run.
+## Reading the results
 
-## Haze 2 compared with Haze 1
+- **CPU frame duration** measures UI-thread and RenderThread cost, not GPU shader duration.
+- **Frame overrun** measures how far a frame finishes past its deadline. Negative values mean
+  spare time; more negative is better.
+- **P90** describes the slower end of the measured frames. Negative P90 overrun does not mean
+  every frame met its deadline.
 
-Haze 2 had lower P90 CPU frame duration in both sample interactions shared with Haze 1:
-37% lower while scrolling the Images List and 15% lower while dragging the Credit Card.
+These are measurements of specific sample workloads, not performance budgets for other apps.
+Each section records its aggregation method and measurement conditions.
 
-| Workload | Haze 1 | Haze 2 | Reduction in P90 CPU frame duration |
-| --- | ---: | ---: | ---: |
-| Images List scrolling | 14.9 ms | 9.3 ms | 37% lower |
-| Credit Card dragging | 11.5 ms | 9.8 ms | 15% lower |
+<a id="performance-mode-calibration"></a>
 
-These results come from Android Macrobenchmarks on a Pixel 6 running Android 17 at 60 Hz, with 32
-iterations per workload. The comparison used Haze 1 at `7a2557f1` and Haze 2 at `fc46813e`. P90
-highlights the slower frames during each interaction. The original summary did not record the run
-date, build variant, or run order.
+## Performance modes
 
-## Glass journeys and steady state (2026-08-04)
+This comparison measures `Adaptive`, `Quality`, `Balanced`, and `Performance` with stable
+and continuously changing source input. It used a Pixel 8a running Android 17 (full SDK 37.2)
+at 60 Hz, with fixed-performance mode enabled and normal Android CPU scheduling.
 
-This run used the `benchmarkRelease` build at commit `334557df` on 2026-08-04: Pixel 6,
-Android 17/API 37, 1080×2400, locked 60 Hz render rate, locked CPU frequency, and eight
-Macrobenchmark iterations per scenario. The metric is P90 CPU frame duration in milliseconds.
-
-| Scenario | Workload | P90 CPU frame duration |
-| --- | --- | ---: |
-| `productPager` | Gallery paging journey | 7.5 ms |
-| `playgroundTimeline` | Gallery animated timeline journey | 11.2 ms |
-| `steadyFull` | Controlled steady state, 1 Glass effect | 5.6 ms |
-| `steadyFull3` | Controlled steady state, 3 Glass effects | 5.2 ms |
-| `steadyFull9` | Controlled steady state, 9 Glass effects | 8.1 ms |
-
-The Gallery journeys are closest to the sample's visible user work. The `steadyFull*` controls
-characterize the baseline at different effect counts. Cold-initialization `effectAttach*` results
-are deliberately omitted: they attach new effects at the measurement boundary and diagnose
-delegate/shader creation rather than representative interaction performance. They remain covered
-by the internal [Glass benchmark runbook][benchmark-runbook]. Compare the interactions, content,
-and device classes that your application supports.
-
-## Performance-mode calibration (2026-08-09)
-
-The controlled Blur and Glass samples ran in `benchmarkRelease` on a Pixel 6 (Android 17/API 37,
-1080×2400), locked to 60 Hz with Android fixed-performance mode enabled. Each row contains 16
-fixed-duration iterations. The original summaries did not record the build SHA or run order;
-these tables cannot establish the calibration of the current implementation. In particular,
-`Balanced` was measured with the earlier discrete mapping, before fixed quality began interpolating
-pixel counts. These values do not measure the current `Balanced` resolution.
-
-Values are **P90 CPU frame duration / P90 frame overrun**, in milliseconds. A negative overrun
-is margin below the 60 Hz frame budget. Each sample holds its other style choices fixed; the Glass
-run keeps the other `GlassDefaults` values unchanged.
+Values are **P90 CPU frame duration / P90 frame overrun**, in milliseconds, from one pass with
+eight iterations per method. Other style choices stay fixed within each sample.
 
 ### Blur
 
 | Workload | Adaptive | Quality | Balanced | Performance |
 | --- | ---: | ---: | ---: | ---: |
-| Stable source | 10.0 / -3.2 | 10.2 / -3.0 | 10.1 / -3.1 | 10.0 / -2.7 |
-| Continuously changing source | 10.0 / -2.9 | 10.2 / -2.7 | 10.1 / -1.8 | 10.1 / -3.0 |
+| Stable source | 5.16 / -7.27 | 4.38 / -7.64 | 5.41 / -7.40 | 3.20 / -8.52 |
+| Continuously changing source | 4.66 / -6.15 | 4.72 / -4.98 | 4.49 / -6.07 | 5.03 / -6.28 |
 
 ### Glass
 
 | Workload | Adaptive | Quality | Balanced | Performance |
 | --- | ---: | ---: | ---: | ---: |
-| Stable source | 6.6 / -7.1 | 8.2 / -1.7 | 8.9 / -4.0 | 7.2 / -6.5 |
-| Continuously changing source | 6.5 / -7.3 | 8.2 / -1.6 | 8.3 / -4.5 | 6.9 / -6.9 |
+| Stable source | 3.99 / -10.41 | 3.45 / -10.74 | 3.27 / -10.78 | 3.90 / -10.37 |
+| Continuously changing source | 4.21 / -8.76 | 3.51 / -1.68 | 4.90 / -4.98 | 4.59 / -8.62 |
 
-These CPU timings do not rank visual quality or establish that the named profiles have a monotonic
-frame-time cost. Use a visual comparison alongside measurements before choosing an override.
+All configurations had spare time at P90. For changing-input Glass, `Balanced` left about
+5 ms of deadline margin, compared with 1.7 ms for `Quality`. `Performance` used roughly
+9% less median peak GPU memory than `Quality`.
 
-The adaptive-policy decisions and their original evidence remain in [ADR-0004][blur-adr] and
-[ADR-0005][glass-adr]. [ADR-0006][performance-mode-adr] records the current public terminology.
+!!! warning "A single pass is not a mode ranking"
 
-## Glass fixed quality with controlled CPU placement (2026-09-11)
+    Changing-input CPU timings did not produce a consistent ranking. Glass `Quality` had
+    the lowest CPU P90 but the least deadline margin; the CPU metric alone cannot explain
+    GPU cost. This forward-order pass does not control order effects or CPU placement.
+    Compare appearance and repeat measurements on your screen before choosing an override.
 
-On 11 September 2026, a CPU-affinity sweep compared six `qualityFraction` values using the updated
-fixed-quality mapping. It used a release build on a Pixel 6 running Android 17
-(full SDK 37.1), at 60 Hz with fixed-performance mode enabled. The scene contained one 280 dp ×
-180 dp Regular Glass surface using `HazeInput.Sources`.
+??? info "Measurement details"
 
-The sample process requested affinity to CPUs 4–5, the device's middle CPU cluster. Perfetto checks
-verified that main and RenderThread executed only on those CPUs during the measurement interval in every trace.
-Other Android processes remained unrestricted. This measures a controlled quality comparison;
-applications normally leave CPU placement to Android.
+    The `benchmarkRelease` build used commit `d1d12494`; the Android build was
+    `CP41.260814.003.B1`. The device was on AC power at 100% charge and reported thermal
+    status 0 before and after the matrix. Brightness was unchanged and not recorded.
+    Glass kept the other `GlassDefaults` values unchanged.
 
-Each level ran with stable and continuously changing input, first in ascending quality order,
-then descending with the workload order also reversed. Eight iterations per case produced 192
-iterations and 34,753 measured frames. Runs started at thermal status 0 and a battery
-temperature of at most 30°C. Brightness was fixed during measurement; cooldowns used a dimmer screen
-and disabled fixed-performance mode. No completed timing iteration was discarded.
+    The 16 methods produced 128 measured iterations and 128 Perfetto traces. Order was
+    Blur stable, Blur changing, Glass stable, then Glass changing; each group ran
+    Adaptive, Quality, Balanced, then Performance.
 
-The table shows the **changing-input** results. Negative frame overrun means the frame finished
-before its deadline; more negative values indicate more spare time. Each value is the arithmetic
-mean of the two per-pass P90 values, calculated before rounding, not the P90 of the combined
-frames. CPU frame duration is not GPU shader duration.
+    A combined method selector executed only the first method. Its clean eight-iteration
+    result was retained; all remaining methods were invoked and verified individually.
+    An earlier attempt affected by a stale Google-app Chromium trace producer was stopped
+    and replaced. The Google app was restored after measurement.
+
+    Blur rows did not all record GPU memory. Raw JSON, benchmark messages, and traces are
+    retained locally under
+    `internal/benchmark/build/benchmark-results/performance-levels-latest/`.
+
+    See [ADR-0004][blur-adr] and [ADR-0005][glass-adr] for adaptive-policy decisions, and
+    [ADR-0006][performance-mode-adr] for the public terminology.
+
+<a id="native-android-backdrop"></a>
+
+## Backdrop versus Sources
+
+Native Android Backdrop reads pixels behind the effect from the window, instead of using
+captured `hazeSource` content. See [Backdrop guidance](performance.md#backdrop-input) for
+its practical benefits, fallback requirements, and experimental feature flag.
+
+This comparison used `Quality` on a Pixel 8a running Android 17 (full SDK 37.2) at 60 Hz,
+with fixed-performance mode enabled and normal CPU scheduling. Each method ran eight
+iterations in each of two passes, reversing both method and workload order.
+
+Values are the **arithmetic mean of the two per-pass P90s**, not the P90 of pooled frames.
+
+| Quality workload | Sources CPU P90 (ms) | Backdrop CPU P90 (ms) | Backdrop CPU difference | Sources overrun P90 (ms) | Backdrop overrun P90 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Blur, stable input | 4.59 | 5.07 | 10% higher | -7.75 | -2.44 |
+| Blur, changing input | 4.59 | 5.12 | 12% higher | -5.40 | -2.21 |
+| Glass, stable input | 3.54 | 5.18 | 46% higher | -10.69 | -0.48 |
+| Glass, changing input | 3.46 | 4.24 | 23% higher | -1.84 | -0.48 |
+| Nine Glass nodes, changing input | 3.94 | 4.74 | 20% higher | -6.85 | -5.18 |
+
+Backdrop had higher CPU P90 in both passes for changing-input Blur and all Glass workloads.
+All rows retained negative P90 overrun, but Backdrop left less deadline margin. Stable Blur's
+ranking reversed between passes, so its average does not establish a consistent difference.
+
+!!! note "Stable input is not an idle screen"
+
+    These workloads continuously invalidate the effect while leaving source pixels unchanged.
+    They compare retained source output with repeated native Backdrop composition.
+    Use the changing-input rows as the closer reference for scrolling or animated content.
+    These results do not establish that Backdrop is slower on every screen.
+
+??? info "Measurement details"
+
+    The `benchmarkRelease` build used commit `f06cd64a`; the Android build was
+    `CP41.260814.003.B1`. The device was on AC power at 100% charge. The first pass started
+    at thermal status 0 and battery temperature 26.0°C; after cooling, the reverse pass
+    started at thermal status 0 and 28.1°C. Brightness was unchanged and not recorded.
+
+    Ten methods, eight iterations each, and two passes produced 160 measured iterations and
+    160 Perfetto traces. The first pass ran Sources then Backdrop for each workload.
+    One interrupted second-pass attempt was replaced; no completed comparison was discarded.
+    The Google app was force-stopped to prevent its Chromium trace producer from adding a
+    known collection delay. Table values and percentage differences were calculated before
+    rounding.
+
+    Native Backdrop trace counters were present with zero source records, confirming that
+    the native rows did not measure source fallback. Backdrop also used less peak GPU memory:
+    the recorded difference was approximately 6–10 MB, based on the mean of each pass's
+    median `memoryGpuMaxKb` value.
+
+    Perfetto showed scheduler variation: the mean per-iteration RenderThread time share on
+    the little CPU cluster ranged from 0.9% to 49.6% across method executions. Stable Glass
+    remained slower with comparable placement in the first pass and more favourable
+    Backdrop placement in the reverse pass. This supports a narrower conclusion: native
+    Backdrop was not a CPU performance win for this Glass scene on this device.
+
+    Raw JSON, benchmark messages, and traces are retained locally under
+    `internal/benchmark/build/pixel8a-2026-09-12-full-backdrop-2pass/`.
+
+<a id="glass-fixed-quality"></a>
+
+## Glass fixed quality
+
+This comparison isolates six `qualityFraction` settings for one 280 dp × 180 dp Regular
+Glass surface using `HazeInput.Sources`. It used a Pixel 6 running Android 17 (full SDK 37.1)
+at 60 Hz, with fixed-performance mode enabled.
+
+!!! warning "Controlled CPU placement"
+
+    The sample's main thread and RenderThread were restricted to the middle CPU cluster.
+    These are controlled quality comparisons, not expected timings under normal Android
+    scheduling. Do not combine them with the Pixel 8a mode results above.
+
+The table shows **changing-input** results. Each value is the arithmetic mean of two
+per-pass P90s, calculated before rounding, not the P90 of pooled frames.
 
 | `qualityFraction` | CPU frame duration: mean per-pass P90 (ms) | Frame overrun: mean per-pass P90 (ms) |
 | --- | ---: | ---: |
@@ -110,84 +162,62 @@ frames. CPU frame duration is not GPU shader duration.
 | `0.75` | 4.87 | -6.34 |
 | `1` (`Quality`) | 4.74 | -5.53 |
 
-The largest difference in changing-input CPU P90 between the two passes was 0.12 ms.
-Stable-input CPU P90 ranged from 2.60 to 2.72 ms across all levels and both passes.
-No measured frame missed its deadline.
+For this scene, `Fixed(0.75f)` left 2.77 ms less deadline margin than `Balanced`.
+No measured frame missed its deadline. These results do not establish the right setting
+for Web, Clear Glass, larger or multiple surfaces, or higher refresh rates. Check both
+appearance and frame timing on the actual screen under normal scheduling.
 
-The [earlier normal-scheduling sweep](benchmark-results.md#glass-fixed-quality-under-normal-scheduling-2026-09-11)
-had CPU results sensitive to slower-core placement, including a reversed ranking when two levels
-were repeated. Those results are preserved separately; this rerun also fixed screen brightness,
-so the difference between runs is not an isolated estimate of affinity's effect.
+??? info "Measurement details"
 
-For this scene, `Fixed(0.75f)` used 2.77 ms more deadline margin than `Balanced`, based on the
-mean per-pass P90 frame overrun. The new mapping already gives `Balanced` more resolution than the
-previous Glass Balanced profile, reproduced here with `Fixed(1f / 3f)`. The earlier stationary
-reference captures showed a subtle visual difference between `0.5` and `0.75`, supporting keeping
-`Balanced` at `Fixed(0.5f)` for now.
+    The sweep used a release build. The sample process requested affinity to CPUs 4–5;
+    every Perfetto trace confirmed that main and RenderThread executed only on those CPUs
+    during measurement. Other Android processes remained unrestricted.
 
-These measurements do not establish the right setting for Web, Clear Glass, larger or multiple
-surfaces, or higher refresh rates. Compare visual quality and frame timing in the actual screen
-under normal scheduling before selecting a higher fixed level.
+    Six levels ran with stable and changing input, first in ascending quality order, then
+    descending with workload order reversed. Eight iterations per case produced 192
+    iterations and 34,753 measured frames. No completed timing iteration was discarded.
+    Runs started at thermal status 0 and a battery temperature at most 30°C. Brightness
+    was fixed during measurement; cooldowns dimmed the screen and disabled fixed-performance
+    mode.
 
-## Glass fixed quality under normal scheduling (2026-09-11)
+    The largest changing-input CPU P90 difference between passes was 0.12 ms. Stable-input
+    CPU P90 ranged from 2.60 to 2.72 ms across all levels and both passes.
 
-These measurements and their follow-up used normal CPU placement. See the
-[performance guide](performance.md#choosing-a-fixed-quality-level) for the later comparison
-with CPU affinity controlled.
+    An earlier normal-scheduling experiment showed CPU rankings sensitive to slower-core
+    placement, including a reversed ranking when two levels were repeated. That experiment
+    remains in git history. This controlled sweep also fixed brightness, so differences
+    between the experiments cannot be attributed to CPU affinity alone.
 
-On 11 September 2026, a sweep compared six `qualityFraction` values using the continuous fixed-quality
-mapping described above. It used a release build on a Pixel 6 running Android 17 (full SDK 37.1),
-at 60 Hz with fixed-performance mode enabled. The scene contained one 280 dp × 180 dp Regular Glass
-surface using `HazeInput.Sources`.
+## Representative workloads
 
-Each level ran with both stable and continuously changing input, first in ascending quality order,
-then descending with the workload order also reversed. Eight iterations per case produced 192
-iterations and 34,753 measured frames. Runs started at thermal status 0 and a battery temperature
-of at most 30°C, with cooldowns outside measurement. Interrupted runs resumed from completed cases;
-no completed iteration was discarded. Automatic brightness remained enabled during measurement.
+These Glass sample measurements cover paging, an animated timeline, and steady-state scenes
+with different effect counts. They used a Pixel 6 running Android 17/API 37 at 60 Hz, with
+locked CPU frequency and eight iterations per scenario.
 
-The table shows the **changing-input** results. Negative frame overrun means the frame finished
-before its deadline; more negative values indicate more spare time. Each value is the arithmetic
-mean of the two per-pass P90 values, calculated before rounding, not the P90 of the combined
-frames. CPU frame duration is not GPU shader duration.
+| Scenario | Workload | P90 CPU frame duration |
+| --- | --- | ---: |
+| `productPager` | Gallery paging journey | 7.5 ms |
+| `playgroundTimeline` | Gallery animated timeline journey | 11.2 ms |
+| `steadyFull` | Controlled steady state, 1 Glass effect | 5.6 ms |
+| `steadyFull3` | Controlled steady state, 3 Glass effects | 5.2 ms |
+| `steadyFull9` | Controlled steady state, 9 Glass effects | 8.1 ms |
 
-| `qualityFraction` | CPU frame duration: mean per-pass P90 (ms) | Frame overrun: mean per-pass P90 (ms) |
-| --- | ---: | ---: |
-| `0` | 4.39 | -10.02 |
-| `0.25` | 5.06 | -8.73 |
-| `1f / 3f` | 4.20 | -8.83 |
-| `0.5` (`Balanced`) | 4.47 | -8.00 |
-| `0.75` | 5.33 | -5.76 |
-| `1` (`Quality`) | 5.18 | -4.96 |
+The Gallery journeys are closer to visible user interactions than the steady-state controls.
+The effect-count rows are separate workload measurements, not a per-effect cost formula:
+three effects were not slower than one in this run. Measure the content and interactions your
+application actually uses.
 
-Stable-input CPU frame P90 ranged from 3.25 to 3.74 ms across all levels and both passes. One frame
-missed its deadline in the entire sweep, in the ascending changing-input `Fixed(1f / 3f)` case.
-Perfetto traces showed varying main-thread and RenderThread CPU placement, so the CPU differences
-between passes should not be attributed solely to input resolution.
+??? info "Measurement details"
 
-A follow-up repeated the changing-input `0f` and `0.25f` cases with the same APKs and device
-settings, in `0 → 0.25 → 0.25 → 0` order. Its 32 iterations produced 5,792 frames with no missed
-deadlines. These additional results are reported separately from the original sweep above:
+    The `benchmarkRelease` build used commit `334557df`. Display resolution was 1080×2400
+    and render rate was locked to 60 Hz.
 
-| `qualityFraction` | CPU frame duration: mean per-pass P90 (ms) | Frame overrun: mean per-pass P90 (ms) |
-| --- | ---: | ---: |
-| `0` | 4.98 | -9.69 |
-| `0.25` | 3.68 | -9.44 |
+    Cold-initialization `effectAttach*` results are omitted because they attach effects at
+    the measurement boundary and diagnose delegate/shader creation rather than representative
+    interactions. They remain covered by the [benchmark runbook][benchmark-runbook].
 
-The CPU ranking reversed in the follow-up. In one `0f` pass, an iteration running mainly on the
-smaller CPU cores had a CPU P90 of 6.05 ms, while the other seven iterations ranged from 3.52 to
-3.99 ms. All iterations remain included in the reported means. These CPU results are sensitive
-to scheduling and should not be read as a stable ranking of input-resolution cost; compare frame
-overrun and traces alongside them.
-
-For this scene, `Fixed(0.75f)` used 2.24 ms more deadline margin than `Balanced`, based on the
-mean per-pass P90 frame overrun.
-The new mapping already gives `Balanced` more resolution than the previous Glass Balanced profile,
-which this sweep reproduced with `Fixed(1f / 3f)`. The visual difference between `0.5` and `0.75`
-was subtle in the stationary reference scene, supporting keeping `Balanced` at `Fixed(0.5f)` for
-now. This is a reference measurement for one device and workload: it does not establish the right
-setting for Web, Clear Glass, larger or multiple surfaces, or higher refresh rates. Compare visual
-quality and frame timing in the actual screen before selecting a higher fixed level.
+For the historical scrolling and dragging comparison between Haze 1 and Haze 2, see the
+[migration guide](migrating-2.0.md#performance-compared-with-haze-1).
 
 [benchmark-runbook]: https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md
 [blur-adr]: adr/0004-use-quality-gated-adaptive-input-scaling-for-blur.md
