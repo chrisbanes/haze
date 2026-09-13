@@ -86,10 +86,12 @@ Modifier.hazeBlur(
 
 The flag defaults to `false`, and `true` means eligible rather than guaranteed. Native backdrop
 sampling uses compositor resolution rather than the effect's source-capture scale. If the platform,
-window, canvas, built-in effect, native setup, or native draw is unavailable, that modifier switches
-to its configured source fallback for the rest of the attachment. The switch may take one frame;
-a known-bad native path is not retried every frame. Healthy native-only consumers do not cause
-their dormant fallback sources to record. Changing the flag affects later attachments only.
+window, canvas, built-in effect, native setup, or native draw is unavailable, a supplied source
+fallback provides portable rendering for the rest of the attachment. `HazeInput.Backdrop()` has no
+fallback: if native backdrop is unavailable or fails, its content draws unchanged and creates no
+source-capture demand. The switch may take one frame; a known-bad native path is not retried every
+frame. Healthy native-only consumers do not cause their dormant fallback sources to record.
+Changing the flag affects later attachments only.
 
 For diagnostics, set `HazeLogger.enabled = true` to see backdrop selection and fallback messages.
 Native work is marked by the `HazeBackdrop.draw` trace section. No performance claim is implied by
