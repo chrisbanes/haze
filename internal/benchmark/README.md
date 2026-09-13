@@ -131,6 +131,12 @@ comma-separated method selector can silently execute only the first method on so
 combinations, even though Gradle exits successfully. Verify each XML result, JSON method label,
 `repeatIterations`, and trace count, then preserve its output before starting the next method.
 
+The loops require Python 3.9 or newer and one connected device. Each invocation copies its JSON,
+XML, messages, and traces into a new per-method directory, then verifies the selected method,
+eight measured iterations, a passing XML testcase, and eight distinct non-empty trace files.
+Verification failure stops the loop but retains the copied evidence. Each run gets a fresh archive
+directory; existing results are never overwritten.
+
 ```bash
 (
 set -e
@@ -138,6 +144,9 @@ trap 'adb shell cmd power set-fixed-performance-mode-enabled false' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 adb shell cmd power set-fixed-performance-mode-enabled true
+mkdir -p internal/benchmark/build/benchmark-results
+results_dir=$(mktemp -d internal/benchmark/build/benchmark-results/modes.XXXXXX)
+echo "Results: $results_dir"
 methods=(
   "BenchmarkTest#blurStableAdaptive"
   "BenchmarkTest#blurStableQuality"
@@ -159,7 +168,9 @@ methods=(
 for method in "${methods[@]}"; do
   ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
     -Pandroid.testInstrumentationRunnerArguments.class="dev.chrisbanes.haze.${method}"
-  # Verify and preserve this method's JSON, XML, and traces before continuing.
+  python3 internal/benchmark/archive_result.py \
+    --method "dev.chrisbanes.haze.${method}" \
+    --destination "$results_dir/$method"
 done
 )
 ```
@@ -168,9 +179,10 @@ done
 
 Run each Glass fixed-quality method explicitly and verify its result label. A combined selector
 can execute only the first method on some runner/tooling combinations; a successful Gradle exit
-alone does not establish complete coverage. First run the loop with
-`-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true` added to
-validate all twelve cases without treating those runs as measurements.
+alone does not establish complete coverage. For automation validation, invoke each method with
+`-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true` and check
+its XML result. Do not use the measured-result archiver for dry runs: they do not provide the
+eight measured iterations and traces required below.
 
 ```bash
 (
@@ -179,11 +191,16 @@ trap 'adb shell cmd power set-fixed-performance-mode-enabled false' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 adb shell cmd power set-fixed-performance-mode-enabled true
+mkdir -p internal/benchmark/build/benchmark-results
+results_dir=$(mktemp -d internal/benchmark/build/benchmark-results/fixed-quality.XXXXXX)
+echo "Results: $results_dir"
 for level in 0 25 33 50 75 100; do
   for workload in stable sourceUpdate; do
     ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
       -Pandroid.testInstrumentationRunnerArguments.class="dev.chrisbanes.haze.GlassProfilingBenchmark#${workload}Fixed${level}"
-    # Preserve this method's JSON and traces before the next invocation replaces output files.
+    python3 internal/benchmark/archive_result.py \
+      --method "dev.chrisbanes.haze.GlassProfilingBenchmark#${workload}Fixed${level}" \
+      --destination "$results_dir/${workload}Fixed${level}"
   done
 done
 )
