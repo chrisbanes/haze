@@ -48,10 +48,27 @@ Share application infrastructure, fixtures, or abstractions that are themselves 
 - On Android 17 beta devices, a Chromium process hosted by the Google app can leave Perfetto waiting
   about 30 seconds for the `track_event` data source on every iteration. If logcat reports that
   producer timing out, run `adb shell am force-stop com.google.android.googlequicksearchbox` before
-  restarting the suite; do not attribute that delay to the measured workload.
+  restarting the suite. If the package immediately respawns, use the runbook's temporary-disable
+  fallback and restore its original state afterward. Do not attribute that delay to the measured
+  workload.
+- Run performance-mode matrices as explicit per-method invocations. A combined method selector can
+  execute only its first entry while Gradle still reports success; verify and preserve each method's
+  XML, JSON iteration count, and traces before continuing.
 - Treat Gradle wall time, instrumentation time, and the fixed-duration measured window as separate
   quantities. Preserve every completed iteration and its trace, confirm the expected result and
   artifact count, and inspect thermal state and CPU placement before attributing a regression.
+
+## Performance documentation
+
+- Keep `docs/performance.md` action-oriented: defaults, trade-offs, and troubleshooting, supported
+  by a few qualified measurements rather than full result tables.
+- Keep full tables in `docs/benchmark-results.md`, organised by comparison, with build identifiers
+  and artifact provenance in collapsible measurement details.
+- Publish only the latest results per comparison; avoid dated or versioned sections. Historical
+  version comparisons belong in migration material, and superseded results remain in git history.
+- Preserve measurement limits: identify devices, conditions, aggregation, and single-pass
+  uncertainty. Keep controlled CPU-placement results separate from normal scheduling, and do not
+  describe CPU frame timings as GPU shader cost.
 
 ## Task guides
 

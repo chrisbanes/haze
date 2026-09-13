@@ -37,6 +37,14 @@ For managed-device profile collection and artifact checks, use
 
 Record the device model, API level, and selected refresh rate with saved results.
 
+On Android 17 beta devices, verify that force-stopping the Google app actually removes all of its
+processes before starting Perfetto. Some builds immediately restart the app and its Chromium trace
+producer. If that happens, bring another app such as Settings to the foreground, record the Google
+app's enabled state, temporarily disable it with
+`adb shell pm disable-user --user 0 com.google.android.googlequicksearchbox`, and verify its
+processes are gone. Restore it with `adb shell pm enable com.google.android.googlequicksearchbox`
+after the run, including after a failure.
+
 ### Check CPU placement before attributing a regression
 
 Android [fixed-performance mode](https://developer.android.com/games/optimize/adpf/fixed-performance-mode)
@@ -101,24 +109,48 @@ minimum-resolution guarantee.
 
 ## Validate automation
 
-Run the Blur and Glass calibration automation without meaningful measurements:
+Run every method listed in the measurement loop below once without meaningful measurements. Add
+the dry-run argument to each individual Gradle invocation, and verify the XML result names that
+method. Do not use a combined method selector as an automation check.
 
 ```shell
 ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true \
-  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest,dev.chrisbanes.haze.GlassProfilingBenchmark
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurStableAdaptive
 ```
 
 ## Run comparable performance-mode measurements
 
-Run the sixteen controlled calibration methods together after a successful dry run. This excludes
-`BaselineProfileGenerator` and unrelated sample benchmarks; each result remains labeled with its
-individual Blur or Glass scenario.
+Run the sixteen controlled calibration methods individually after a successful dry run. A combined
+comma-separated method selector can silently execute only the first method on some runner/tooling
+combinations, even though Gradle exits successfully. Verify each XML result, JSON method label,
+`repeatIterations`, and trace count, then preserve its output before starting the next method.
 
 ```shell
 adb shell cmd power set-fixed-performance-mode-enabled true
-./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurStableAdaptive,dev.chrisbanes.haze.BenchmarkTest#blurStableQuality,dev.chrisbanes.haze.BenchmarkTest#blurStableBalanced,dev.chrisbanes.haze.BenchmarkTest#blurStablePerformance,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateAdaptive,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateQuality,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateBalanced,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdatePerformance,dev.chrisbanes.haze.GlassProfilingBenchmark#stableAdaptive,dev.chrisbanes.haze.GlassProfilingBenchmark#stableQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#stableBalanced,dev.chrisbanes.haze.GlassProfilingBenchmark#stablePerformance,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateAdaptive,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateBalanced,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdatePerformance
+methods=(
+  "BenchmarkTest#blurStableAdaptive"
+  "BenchmarkTest#blurStableQuality"
+  "BenchmarkTest#blurStableBalanced"
+  "BenchmarkTest#blurStablePerformance"
+  "BenchmarkTest#blurSourceUpdateAdaptive"
+  "BenchmarkTest#blurSourceUpdateQuality"
+  "BenchmarkTest#blurSourceUpdateBalanced"
+  "BenchmarkTest#blurSourceUpdatePerformance"
+  "GlassProfilingBenchmark#stableAdaptive"
+  "GlassProfilingBenchmark#stableQuality"
+  "GlassProfilingBenchmark#stableBalanced"
+  "GlassProfilingBenchmark#stablePerformance"
+  "GlassProfilingBenchmark#sourceUpdateAdaptive"
+  "GlassProfilingBenchmark#sourceUpdateQuality"
+  "GlassProfilingBenchmark#sourceUpdateBalanced"
+  "GlassProfilingBenchmark#sourceUpdatePerformance"
+)
+for method in "${methods[@]}"; do
+  ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
+    -Pandroid.testInstrumentationRunnerArguments.class="dev.chrisbanes.haze.${method}"
+  # Verify and preserve this method's JSON, XML, and traces before continuing.
+done
 adb shell cmd power set-fixed-performance-mode-enabled false
 ```
 
@@ -314,13 +346,16 @@ main-thread and RenderThread CPU placement before attributing their duration dif
 rendering path. A higher operation or submission count establishes more RenderThread work; exact GPU
 cost still requires GPU timeline or profiler evidence.
 
-Run a dry run first on the same physical 37.2 device:
+Run a dry run first on the same physical 37.2 device. Repeat this one-method invocation for every
+source and backdrop method in the table above, using `BenchmarkTest` for Blur and
+`GlassProfilingBenchmark` for Glass. Verify the exact result label before measuring; do not combine
+the methods into one comma-separated selector.
 
 ```shell
 ./gradlew --no-scan :sample:shared:testAndroidHostTest \
   :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true \
-  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurStableQuality,dev.chrisbanes.haze.BenchmarkTest#blurBackdropStableQuality,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateQuality,dev.chrisbanes.haze.BenchmarkTest#blurBackdropSourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#stableQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#backdropStableQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#backdropSourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdate9,dev.chrisbanes.haze.GlassProfilingBenchmark#backdropSourceUpdate9
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurStableQuality
 ```
 
 Measure three source/backdrop pairs, then repeat three pairs in backdrop/source order. Return the
