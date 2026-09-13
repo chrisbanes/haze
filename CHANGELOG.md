@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added `LocalHazePerformanceMode` for providing the default Blur and Glass performance mode to a
+  composition subtree. Explicit modifier values still take precedence
+  ([#1314](https://github.com/chrisbanes/haze/pull/1314)).
+- Allow `HazeInput.Backdrop()` to omit its source fallback. When native Backdrop rendering is
+  unavailable, effects without a fallback leave their content unchanged
+  ([#1318](https://github.com/chrisbanes/haze/pull/1318)).
+- Added direct and embeddable web sample links, sample performance controls, and a Glass music
+  player example
+  ([#1307](https://github.com/chrisbanes/haze/pull/1307),
+  [#1310](https://github.com/chrisbanes/haze/pull/1310),
+  [#1313](https://github.com/chrisbanes/haze/pull/1313),
+  [#1314](https://github.com/chrisbanes/haze/pull/1314)).
+
+### Changed
+
+- `HazePerformanceMode.Fixed` now interpolates quality continuously across its supported input-pixel
+  range instead of selecting one of three tiers. `Balanced` remains `Fixed(0.5f)` and now retains
+  more detail in Glass
+  ([#1316](https://github.com/chrisbanes/haze/pull/1316)).
+- Consolidated performance guidance and published updated Haze 1 versus Haze 2, performance-mode,
+  fixed-quality, and native Backdrop measurements
+  ([#1301](https://github.com/chrisbanes/haze/pull/1301),
+  [#1304](https://github.com/chrisbanes/haze/pull/1304),
+  [#1317](https://github.com/chrisbanes/haze/pull/1317)).
+
+### Fixed
+
+- Draw Glass rims without an unnecessary offscreen effect on supported Android and Skiko canvases,
+  while retaining the fallback when the destination canvas cannot use the direct shader path
+  ([#1297](https://github.com/chrisbanes/haze/pull/1297),
+  [#1298](https://github.com/chrisbanes/haze/pull/1298)).
+- Prevent unrelated sibling redraws from re-recording an unchanged retained Haze source
+  ([#1299](https://github.com/chrisbanes/haze/pull/1299)).
+
 ## 2.0.0-beta03 <small>2026-09-07</small> { id="2.0.0-beta03" }
 
 ### Added
