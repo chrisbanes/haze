@@ -1,0 +1,9 @@
+// Signature format: 4.0
+package dev.chrisbanes.haze.blur.material3 {
+
+  public final class BlurMaterial3Kt {
+    method @KotlinOnly @androidx.compose.runtime.Composable public static dev.chrisbanes.haze.blur.HazeBlurStyle Material3(dev.chrisbanes.haze.blur.HazeBlurStyle.Companion, optional androidx.compose.ui.graphics.Color containerColor);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public static dev.chrisbanes.haze.blur.HazeBlurStyle Material3(dev.chrisbanes.haze.blur.HazeBlurStyle.Companion, optional androidx.compose.ui.graphics.Color containerColor, kotlin.jvm.functions.Function1<dev.chrisbanes.haze.blur.HazeBlurStyleScope,kotlin.Unit> block);
+  }
+
+}
