@@ -1106,6 +1106,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#performance-compared-with-haze-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance compared with Haze 1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#getting-help" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1418,6 +1429,17 @@
     <span class="md-ellipsis">
       
         Custom effects and architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-compared-with-haze-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance compared with Haze 1
       
     </span>
   </a>
@@ -2050,6 +2072,43 @@ modifier. Keep configuration in the Style and mutable resources in the renderer.
 <span class="p">)</span>
 </code></pre></div>
 <p>See <a href="../custom-effects/">Custom effects</a> for lifecycle and ownership guidance.</p>
+<h2 id="performance-compared-with-haze-1">Performance compared with Haze 1<a class="headerlink" href="#performance-compared-with-haze-1" title="Permanent link">¶</a></h2>
+<p>In a historical comparison of two shared sample interactions, Haze 2 had lower P90 CPU frame
+duration than Haze 1:</p>
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th style="text-align: right;">Haze 1</th>
+<th style="text-align: right;">Haze 2</th>
+<th style="text-align: right;">Reduction in P90 CPU frame duration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Images List scrolling</td>
+<td style="text-align: right;">14.9 ms</td>
+<td style="text-align: right;">9.3 ms</td>
+<td style="text-align: right;">37% lower</td>
+</tr>
+<tr>
+<td>Credit Card dragging</td>
+<td style="text-align: right;">11.5 ms</td>
+<td style="text-align: right;">9.8 ms</td>
+<td style="text-align: right;">15% lower</td>
+</tr>
+</tbody>
+</table>
+<p>These results describe the compared builds, not a guaranteed improvement for every app.
+Use the <a href="../performance/">performance guide</a> to measure and tune your migrated screen.</p>
+<details class="info">
+<summary>Measurement details</summary>
+<p>Android Macrobenchmarks ran on a Pixel 6 with Android 17 at 60 Hz, with 32 iterations
+per workload. The comparison used Haze 1 at <code>7a2557f1</code> and Haze 2 at <code>fc46813e</code>.
+P90 highlights the slower frames during each interaction; CPU frame duration does not
+directly measure GPU shader time. The original summary did not record the run date,
+build variant, or run order.</p>
+</details>
 <h2 id="getting-help">Getting help<a class="headerlink" href="#getting-help" title="Permanent link">¶</a></h2>
 <ul>
 <li>Read the <a href="../blur/usage/">Blur usage guide</a>.</li>
