@@ -58,7 +58,7 @@ class GlassGalleryDesktopScreenshotTest : ScreenshotTest() {
   }
 }
 
-private fun checkerboardImage(): BitmapImage {
+internal fun checkerboardImage(): BitmapImage {
   val size = 256
   val squareSize = 16
   val bitmap = Bitmap().apply {
