@@ -44,9 +44,11 @@ _Avoid_: Size response, blur profile, adaptive optics
 
 **Backdrop input**:
 The `HazeInput.Backdrop` intent to consume all pixels drawn earlier in the same window. A native
-renderer may consume those current-window pixels when it is eligible; source capture is the
-portable fallback. Backdrop input cannot select individual Haze sources, include later drawing, or
-cross a dialog, popup, or other window boundary.
+renderer may consume those current-window pixels when it is eligible. When native rendering is
+unavailable, incompatible, or fails, a supplied source fallback provides portable rendering;
+without one, content remains unchanged and Haze does not demand source capture. Backdrop input
+cannot select individual Haze sources, include later drawing, or cross a dialog, popup, or other
+window boundary.
 _Avoid_: Backdrop source, native backdrop guarantee
 
 **Sources input**:

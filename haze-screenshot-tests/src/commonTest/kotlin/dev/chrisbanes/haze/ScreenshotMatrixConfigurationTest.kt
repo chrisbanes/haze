@@ -10,6 +10,7 @@ import assertk.assertions.each
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNotEmpty
+import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
@@ -63,8 +64,10 @@ class ScreenshotMatrixConfigurationTest {
     val input = ScreenshotMatrixInput.BackdropNative.createInput(sourceState, nativeFallbackState)
       as HazeInput.Backdrop
 
-    assertThat(input.fallback.state).isSameInstanceAs(nativeFallbackState)
-    assertThat(input.fallback.state).isNotSameInstanceAs(sourceState)
+    assertThat(input.fallback).isNotNull().given { fallback ->
+      assertThat(fallback.state).isSameInstanceAs(nativeFallbackState)
+      assertThat(fallback.state).isNotSameInstanceAs(sourceState)
+    }
   }
 
   @Test

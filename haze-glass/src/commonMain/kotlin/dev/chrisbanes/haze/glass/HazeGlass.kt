@@ -34,7 +34,8 @@ import dev.chrisbanes.haze.hazeEffect
  * including a `null` interaction source.
  *
  * @param input Source-backed content, this modifier's own content, or an experimental Android
- * window backdrop with a required source fallback.
+ * window backdrop with an optional source fallback. Without a fallback, unavailable or failed
+ * native backdrop draws content unchanged and does not demand source capture.
  * @param style Explicit appearance applied after defaults and [LocalGlassStyle].
  * @param performanceMode Rendering-fidelity policy, or `null` to inherit [LocalHazePerformanceMode]. The
  * default adaptive policy selects one of Glass's validated performance profiles from retained work

@@ -120,6 +120,51 @@ class HazeBackdropFallbackTest {
   }
 
   @Test
+  fun rendererCreationFailure_withoutFallbackDrawsContentWithoutCaptureDemand() = runComposeUiTest {
+    val state = HazeState()
+    var creationAttempts = 0
+    val previousFlag = HazeFeatureFlags.isPlatformBackdropEnabled
+    HazeFeatureFlags.isPlatformBackdropEnabled = true
+    try {
+      setContent {
+        val lifecycle = LocalLifecycleOwner.current.lifecycle
+        Box(Modifier.size(100.dp)) {
+          Box(
+            Modifier
+              .fillMaxSize()
+              .hazeSource(state)
+              .background(Color.Red),
+          )
+          Box(
+            Modifier
+              .fillMaxSize()
+              .testTag("no-fallback-effect")
+              .then(
+                FaultInjectedEffectElement(
+                  input = HazeInput.Backdrop(),
+                  lifecycle = lifecycle,
+                  createRenderer = {
+                    creationAttempts++
+                    error("test renderer creation failure")
+                  },
+                  renderer = ThrowingBackdropRenderer(),
+                ),
+              ),
+          )
+        }
+      }
+      waitForIdle()
+
+      assertThat(onNodeWithTag("no-fallback-effect").captureToImage().toPixelMap()[50, 50])
+        .isEqualTo(Color.Red)
+      assertThat(state.areas.single().captureConsumerCount).isEqualTo(0)
+      assertThat(creationAttempts).isEqualTo(1)
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousFlag
+    }
+  }
+
+  @Test
   fun preparationFailure_activatesStickyFallbackAndDemandsCapture() = runComposeUiTest {
     val state = HazeState()
     var creationAttempts = 0

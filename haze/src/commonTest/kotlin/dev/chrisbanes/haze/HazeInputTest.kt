@@ -7,6 +7,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import kotlin.test.Test
@@ -39,9 +40,17 @@ class HazeInputTest {
     val input = HazeInput.Backdrop(state)
 
     assertThat(input).isEqualTo(HazeInput.Backdrop(HazeInput.Sources(state)))
-    assertThat(input.fallback.state).isEqualTo(state)
-    assertThat(input.fallback.selection).isEqualTo(HazeSourceSelection.Behind)
-    assertThat(input.fallback.retention).isEqualTo(HazeSourceRetention.KeepLastFrame)
+    assertThat(input.fallback?.state).isEqualTo(state)
+    assertThat(input.fallback?.selection).isEqualTo(HazeSourceSelection.Behind)
+    assertThat(input.fallback?.retention).isEqualTo(HazeSourceRetention.KeepLastFrame)
+  }
+
+  @Test
+  fun backdrop_withoutStateHasNoFallback() {
+    val input = HazeInput.Backdrop()
+
+    assertThat(input.fallback).isNull()
+    assertThat(input.copy()).isEqualTo(input)
   }
 
   @Test

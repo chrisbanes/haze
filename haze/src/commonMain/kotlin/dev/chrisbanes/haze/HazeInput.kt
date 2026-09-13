@@ -39,15 +39,16 @@ public sealed interface HazeInput {
    * Changing it affects later attachments only. A native-to-source fallback transition can take
    * one frame and remains selected until detachment after a known native failure.
    *
-   * @property fallback Source input used only when the native backdrop is unavailable or fails; it
-   * does not filter native window pixels.
+   * @property fallback Optional source input used only when the native backdrop is unavailable or
+   * fails. A `null` fallback leaves the content unchanged when native backdrop rendering is not
+   * available. It does not filter native window pixels.
    */
   @Stable
   public data class Backdrop(
-    public val fallback: HazeInput.Sources,
+    public val fallback: HazeInput.Sources?,
   ) : HazeInput {
-    /** Creates a backdrop input with the default source fallback for [state]. */
-    public constructor(state: HazeState) : this(Sources(state))
+    /** Creates a backdrop input with the default source fallback for [state], when provided. */
+    public constructor(state: HazeState? = null) : this(state?.let(::Sources))
   }
 
   /**
