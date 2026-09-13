@@ -162,10 +162,10 @@ class GlassProfilingBenchmark {
   fun retainedReuse() = measureScenario("retained_reuse")
 
   @Test
-  fun interactionUpdate() = measureScenario("interaction_update")
+  fun interactionUpdate() = measureScenario("interaction_update", continuouslyAnimating = false)
 
   @Test
-  fun interactionUpdate9() = measureScenario("interaction_update_9")
+  fun interactionUpdate9() = measureScenario("interaction_update_9", continuouslyAnimating = false)
 
   @Test
   fun opticalUpdate() = measureScenario("optical_update")
@@ -197,6 +197,7 @@ class GlassProfilingBenchmark {
   private fun measureColdInitializationScenario(scenarioId: String) {
     measureScenario(
       scenarioId = scenarioId,
+      continuouslyAnimating = false,
       includeMemory = true,
       includePreparationMetrics = true,
     )
@@ -220,13 +221,15 @@ class GlassProfilingBenchmark {
 
   private fun measureScenario(
     scenarioId: String,
+    continuouslyAnimating: Boolean = true,
     includeMemory: Boolean = false,
     requireRuntimeMarker: Boolean = true,
     includePreparationMetrics: Boolean = false,
     includeBackdropComparisonMetrics: Boolean = false,
     requireBackdropDraw: Boolean = false,
   ) {
-    withoutUiAutomatorIdleWait {
+    // Stable-source scenarios still animate draw progress throughout the measured window.
+    withoutUiAutomatorIdleWait(enabled = continuouslyAnimating) {
       benchmarkRule.measureRepeated(
         packageName = GLASS_TARGET_PACKAGE,
         metrics = glassMetrics(

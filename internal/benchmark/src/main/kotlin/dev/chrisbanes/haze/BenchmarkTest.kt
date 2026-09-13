@@ -119,6 +119,7 @@ class BenchmarkTest {
     includeBackdropComparisonMetrics: Boolean = false,
     requireBackdropDraw: Boolean = false,
   ) {
+    // All Blur profiling scenarios animate draw progress, including stable-source scenarios.
     withoutUiAutomatorIdleWait {
       benchmarkRule.measureRepeated(
         packageName = APP_PACKAGE,

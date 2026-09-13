@@ -36,7 +36,11 @@ internal fun Intent.selectBenchmarkSample(
   scenarioId?.let { putExtra(BENCHMARK_SCENARIO_EXTRA, it) }
 }
 
-internal inline fun <T> withoutUiAutomatorIdleWait(block: () -> T): T {
+internal inline fun <T> withoutUiAutomatorIdleWait(
+  enabled: Boolean = true,
+  block: () -> T,
+): T {
+  if (!enabled) return block()
   val configurator = Configurator.getInstance()
   val previousTimeout = configurator.waitForIdleTimeout
   configurator.setWaitForIdleTimeout(0)

@@ -156,7 +156,7 @@ when the effect draws.
 
     On a Pixel 8a at 60 Hz, native Backdrop had **23–46% higher CPU frame P90** than Sources in
     the tested single-surface Glass workloads. Those figures are based on two passes in opposite
-    orders at `Quality`, with eight iterations per case. Native rendering can simplify source
+    orders at `Quality`, with eight iterations per method per pass. Native rendering can simplify source
     capture, but these tests did not show a CPU performance benefit for Glass.
     See the [full Backdrop comparison](benchmark-results.md#native-android-backdrop).
 

@@ -121,12 +121,22 @@ method. Do not use a combined method selector as an automation check.
 
 ## Run comparable performance-mode measurements
 
+The examples below run in a subshell so cleanup traps do not change your interactive shell.
+They disable fixed-performance mode on exit, including command failure, Ctrl-C, or termination.
+A killed shell or disconnected device can prevent cleanup; reconnect and disable the mode manually
+in that case. These examples assume it was off before the run.
+
 Run the sixteen controlled calibration methods individually after a successful dry run. A combined
 comma-separated method selector can silently execute only the first method on some runner/tooling
 combinations, even though Gradle exits successfully. Verify each XML result, JSON method label,
 `repeatIterations`, and trace count, then preserve its output before starting the next method.
 
-```shell
+```bash
+(
+set -e
+trap 'adb shell cmd power set-fixed-performance-mode-enabled false' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 adb shell cmd power set-fixed-performance-mode-enabled true
 methods=(
   "BenchmarkTest#blurStableAdaptive"
@@ -151,7 +161,7 @@ for method in "${methods[@]}"; do
     -Pandroid.testInstrumentationRunnerArguments.class="dev.chrisbanes.haze.${method}"
   # Verify and preserve this method's JSON, XML, and traces before continuing.
 done
-adb shell cmd power set-fixed-performance-mode-enabled false
+)
 ```
 
 ## Run the fixed-quality sweep
@@ -162,7 +172,12 @@ alone does not establish complete coverage. First run the loop with
 `-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true` added to
 validate all twelve cases without treating those runs as measurements.
 
-```shell
+```bash
+(
+set -e
+trap 'adb shell cmd power set-fixed-performance-mode-enabled false' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 adb shell cmd power set-fixed-performance-mode-enabled true
 for level in 0 25 33 50 75 100; do
   for workload in stable sourceUpdate; do
@@ -171,7 +186,7 @@ for level in 0 25 33 50 75 100; do
     # Preserve this method's JSON and traces before the next invocation replaces output files.
   done
 done
-adb shell cmd power set-fixed-performance-mode-enabled false
+)
 ```
 
 For paired order checks, repeat with reversed level and workload order using the same APKs.
@@ -204,12 +219,17 @@ instrumentation work, which can change device state or mix artifact output with 
 
 Run one controlled scenario:
 
-```shell
+```bash
+(
+set -e
+trap 'adb shell cmd power set-fixed-performance-mode-enabled false' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 adb shell cmd power set-fixed-performance-mode-enabled true
 ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.fullTracing.enable=true \
   -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateAdaptive
-adb shell cmd power set-fixed-performance-mode-enabled false
+)
 ```
 
 Always disable fixed-performance mode after profiling, including after a failed run.
@@ -363,11 +383,16 @@ device to the same thermal envelope before each pair. Keep all JSON and Perfetto
 CPU P90, actual-frame P90, frame overrun, and peak memory against the order-reversed control
 envelope rather than one run.
 
-```shell
+```bash
+(
+set -e
+trap 'adb shell cmd power set-fixed-performance-mode-enabled false' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 adb shell cmd power set-fixed-performance-mode-enabled true
 # Run one source/backdrop pair with the focused class argument above, then reverse its order.
-adb shell cmd power set-fixed-performance-mode-enabled false
+)
 ```
 
-Always run the final cleanup command, including after a failed or interrupted benchmark. Verify
-fixed-performance mode is off before returning the device to normal use.
+Verify fixed-performance mode is off before returning the device to normal use, including after
+failed or interrupted benchmarks.
