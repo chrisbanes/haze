@@ -42,6 +42,22 @@ dependencies {
 
     See [Architecture](architecture.md) for more details about the effect system.
 
+## Why Haze
+
+- [Select independent captured sources](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/SourceInputContractsSample.kt) for an effect instead of relying
+  on incidental layout order. The runnable sample shows selection by source key.
+- [Capture follows transformed layouts](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/LayerTransformations.kt),
+  including scale and rotation.
+- [Choose retained-output behavior](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/SourceInputContractsSample.kt) when a source disappears or
+  is replaced. The sample shows both `KeepLastFrame` and `ClearWhenUnavailable`.
+- Capture starts only when an attached effect needs source input; see the
+  [demand-driven input contract](core-concepts.md#explicit-inputs). This is a rendering mechanism,
+  not a universal performance claim.
+
+The [sample catalogue](https://github.com/chrisbanes/haze/tree/main/sample) includes the runnable
+examples. The [screenshot-test guide](screenshot-tests.md) documents configuration coverage, and
+the [benchmark results](benchmark-results.md) preserve qualified, reproducible measurements.
+
 ## Acknowledgements
 
 In previous versions, the Skia-backed implementation (used on iOS and Desktop) was heavily influenced by [Kirill Grouchnikov](https://www.pushing-pixels.org)'s explorations on Compose Desktop. He wrote about it in his [Shader based render effects in Compose Desktop with Skia](https://www.pushing-pixels.org/2022/04/09/shader-based-render-effects-in-compose-desktop-with-skia.html) blog post.

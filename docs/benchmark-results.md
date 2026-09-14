@@ -16,6 +16,18 @@ devices and builds: compare configurations within a table, not timings across se
 These are measurements of specific sample workloads, not performance budgets for other apps.
 Each section records its aggregation method and measurement conditions.
 
+## Evidence artifacts
+
+The raw JSON, benchmark messages, and Perfetto traces named in the measurement details were not
+present in this checkout, so no durable downloadable bundle or checksum manifest can be prepared
+from them. This affects the performance-mode calibration and native Android Backdrop comparisons;
+the tables remain qualified summaries, not downloadable raw evidence.
+
+To recover downloadable evidence, rerun the documented physical-device workload at the recorded
+revision, archive each complete method with `internal/benchmark/archive_result.py`, then publish a
+bundle and checksum manifest through an authorized delivery process. Do not treat emulator coverage
+or an incomplete archive as physical-device acceptance.
+
 <a id="performance-mode-calibration"></a>
 
 ## Performance modes

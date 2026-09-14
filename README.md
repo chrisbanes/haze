@@ -59,6 +59,23 @@ dependencies {
 }
 ```
 
+## Why Haze
+
+- Select exactly the captured sources an effect consumes with `HazeInput.Sources` and
+  `HazeSourceSelection`; run the [source-selection sample](sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/SourceInputContractsSample.kt).
+- Captured input follows layout transforms, including scale and rotation; run the
+  [Layer Transformations sample](sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/LayerTransformations.kt).
+- Choose how source-backed effects behave while a source is replaced: the default
+  `KeepLastFrame` retains the last output, while `ClearWhenUnavailable` clears it. Both are shown
+  in the [retention sample](sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/SourceInputContractsSample.kt).
+- Source capture is demand-driven: source layers record only while an attached consumer needs
+  them. The [input contract](docs/core-concepts.md#explicit-inputs) explains the mechanism without
+  making a performance promise.
+
+The [screenshot-test guide](docs/screenshot-tests.md) describes the checked configuration matrix.
+For qualified physical-device observations and their limits, see the
+[benchmark results](docs/benchmark-results.md).
+
 ## Blur
 
 ```kotlin

@@ -99,6 +99,7 @@ val CommonSamples: List<Sample> = listOf(
   Sample.ListWithStickyHeaders,
   Sample.BottomSheet,
   Sample.ContentBlurring,
+  Sample.SourceInputContracts,
   Sample.CustomVisualEffect,
   Sample.LayerTransformations,
   Sample.GlassProduct,
@@ -223,6 +224,14 @@ class Sample(
       effects = BuiltInEffects,
     ) { navController, effect ->
       ContentBlurring(navController, effect)
+    }
+
+    val SourceInputContracts = Sample(
+      route = "source-input-contracts",
+      title = "Source selection and retention",
+      effects = BuiltInEffects,
+    ) { navController, effect ->
+      SourceInputContractsSample(navController, effect)
     }
 
     val CustomVisualEffect = Sample(
