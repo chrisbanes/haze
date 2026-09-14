@@ -34,6 +34,14 @@ internal val AndroidGlassProfiling = Sample(
   )
 }
 
+internal val AndroidGlassTilt = Sample(
+  route = "glass-tilt",
+  title = "Glass — Fixed / Tilt",
+  effects = listOf(SampleEffect.Glass),
+) { navController, _ ->
+  GlassTiltSample(onBack = navController::navigateUp)
+}
+
 internal val AndroidBlurProfiling = Sample(
   route = "blur-profiling",
   title = "Blur — Profiling",
@@ -84,4 +92,5 @@ actual val Samples: List<Sample> = buildList {
   add(AndroidBlurProfiling)
   add(AndroidBlurStyleChurn)
   add(AndroidGlassProfiling)
+  add(AndroidGlassTilt)
 }
