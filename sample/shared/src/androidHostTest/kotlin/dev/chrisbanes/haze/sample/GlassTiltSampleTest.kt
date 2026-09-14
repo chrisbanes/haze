@@ -20,7 +20,7 @@ import kotlin.test.Test
 @OptIn(ExperimentalTestApi::class)
 class GlassTiltSampleTest : ContextTest() {
   @Test
-  fun fixedMode_usesTheSameOffCenterLightPosition() {
+  fun fixedMode_usesTheCenteredLightPosition() {
     val state = GlassTiltState()
 
     assertThat(state.lightPosition).isEqualTo(GLASS_TILT_FIXED_LIGHT_POSITION)
@@ -29,14 +29,28 @@ class GlassTiltSampleTest : ContextTest() {
   }
 
   @Test
-  fun gravity_updatesAreFiniteAndBoundedAroundTheFixedPosition() {
+  fun gravity_updatesReachBothSidesOfCenterAndStayFiniteAndBounded() {
     val state = GlassTiltState()
     state.updateTiltEnabled(true)
 
-    state.onGravity(Offset(100f, -100f), GlassTiltDisplayRotation.Rotation0)
+    state.onGravity(Offset(-100f, -100f), GlassTiltDisplayRotation.Rotation0)
+    val leftPosition = state.lightPosition
+    state.restartFromFixedPosition()
+    state.onGravity(Offset(100f, 100f), GlassTiltDisplayRotation.Rotation0)
+    val rightPosition = state.lightPosition
 
-    assertThat(state.lightPosition.x <= GLASS_TILT_FIXED_LIGHT_POSITION.x + GLASS_TILT_MAX_DISPLACEMENT).isTrue()
-    assertThat(state.lightPosition.y >= GLASS_TILT_FIXED_LIGHT_POSITION.y - GLASS_TILT_MAX_DISPLACEMENT).isTrue()
+    assertThat(leftPosition.x < 0.5f).isTrue()
+    assertThat(rightPosition.x > 0.5f).isTrue()
+    assertThat(leftPosition.x.isFinite() && leftPosition.y.isFinite()).isTrue()
+    assertThat(rightPosition.x.isFinite() && rightPosition.y.isFinite()).isTrue()
+    assertThat(leftPosition.x >= GLASS_TILT_FIXED_LIGHT_POSITION.x - GLASS_TILT_MAX_DISPLACEMENT).isTrue()
+    assertThat(leftPosition.x <= GLASS_TILT_FIXED_LIGHT_POSITION.x + GLASS_TILT_MAX_DISPLACEMENT).isTrue()
+    assertThat(leftPosition.y >= GLASS_TILT_FIXED_LIGHT_POSITION.y - GLASS_TILT_MAX_DISPLACEMENT).isTrue()
+    assertThat(leftPosition.y <= GLASS_TILT_FIXED_LIGHT_POSITION.y + GLASS_TILT_MAX_DISPLACEMENT).isTrue()
+    assertThat(rightPosition.x >= GLASS_TILT_FIXED_LIGHT_POSITION.x - GLASS_TILT_MAX_DISPLACEMENT).isTrue()
+    assertThat(rightPosition.x <= GLASS_TILT_FIXED_LIGHT_POSITION.x + GLASS_TILT_MAX_DISPLACEMENT).isTrue()
+    assertThat(rightPosition.y >= GLASS_TILT_FIXED_LIGHT_POSITION.y - GLASS_TILT_MAX_DISPLACEMENT).isTrue()
+    assertThat(rightPosition.y <= GLASS_TILT_FIXED_LIGHT_POSITION.y + GLASS_TILT_MAX_DISPLACEMENT).isTrue()
   }
 
   @Test

@@ -39,7 +39,7 @@ import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.roundToInt
 
-internal val GLASS_TILT_FIXED_LIGHT_POSITION = Offset(0.32f, 0.28f)
+internal val GLASS_TILT_FIXED_LIGHT_POSITION = Offset(0.50f, 0.50f)
 internal const val GLASS_TILT_MAX_DISPLACEMENT = 0.18f
 
 // These are deliberately conservative experiment values; device tuning remains pending.
