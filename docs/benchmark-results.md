@@ -18,15 +18,21 @@ Each section records its aggregation method and measurement conditions.
 
 ## Evidence artifacts
 
-The raw JSON, benchmark messages, and Perfetto traces named in the measurement details were not
-present in this checkout, so no durable downloadable bundle or checksum manifest can be prepared
-from them. This affects the performance-mode calibration and native Android Backdrop comparisons;
-the tables remain qualified summaries, not downloadable raw evidence.
+No raw JSON, benchmark messages, or Perfetto traces for these tables were present in this checkout,
+so no durable downloadable bundle or checksum manifest can be prepared from the published results.
+The tables remain qualified summaries, not downloadable raw evidence.
 
-To recover downloadable evidence, rerun the documented physical-device workload at the recorded
-revision, archive each complete method with `internal/benchmark/archive_result.py`, then publish a
-bundle and checksum manifest through an authorized delivery process. Do not treat emulator coverage
-or an incomplete archive as physical-device acceptance.
+| Comparison | Published revision | Missing evidence and smallest recovery |
+| --- | --- | --- |
+| [Performance modes](#performance-mode-calibration) | `d1d12494` | The named archive is absent. Locate its complete original archive at this revision, then bundle it with checksums. |
+| [Backdrop versus Sources](#native-android-backdrop) | `f06cd64a` | The named archive is absent. Locate its complete original archive at this revision, then bundle it with checksums. |
+| [Glass fixed quality](#glass-fixed-quality) | Not recorded | The original archive and source revision are unavailable. Locate the original run record and archive first; a new run would be a separately identified measurement, not recovery of these numbers. |
+| [Representative workloads](#representative-workloads) | `334557df` | The original archive is absent. Locate the complete original archive at this revision, then bundle it with checksums. |
+
+After original evidence is recovered, archive each complete method with
+`internal/benchmark/archive_result.py` and publish a bundle and checksum manifest through an
+authorized delivery process. Do not treat emulator coverage, an incomplete archive, or a new run
+as physical-device acceptance for the published numbers.
 
 <a id="performance-mode-calibration"></a>
 

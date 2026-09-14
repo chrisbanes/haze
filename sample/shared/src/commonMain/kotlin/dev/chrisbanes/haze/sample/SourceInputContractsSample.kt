@@ -86,6 +86,7 @@ private fun SourceSelectionExample(effect: SampleEffect) {
       effect = effect,
       input = HazeInput.Sources(hazeState, selection = HazeSourceSelection.All.where { it.key == "selected" }),
       label = "Only the green source is selected",
+      modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp),
     )
   }
 }
