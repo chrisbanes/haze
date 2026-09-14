@@ -77,6 +77,22 @@ class GlassTiltSampleTest : ContextTest() {
   }
 
   @Test
+  fun invalidGravity_restoresTheFixedPositionAfterTilt() {
+    val state = GlassTiltState()
+    state.updateTiltEnabled(true)
+
+    state.onGravity(Offset(6f, -6f), GlassTiltDisplayRotation.Rotation0)
+    assertThat(state.lightPosition != GLASS_TILT_FIXED_LIGHT_POSITION).isTrue()
+    state.onGravity(Offset(Float.NaN, 1f), GlassTiltDisplayRotation.Rotation0)
+    assertThat(state.lightPosition).isEqualTo(GLASS_TILT_FIXED_LIGHT_POSITION)
+
+    state.onGravity(Offset(-6f, 6f), GlassTiltDisplayRotation.Rotation0)
+    assertThat(state.lightPosition != GLASS_TILT_FIXED_LIGHT_POSITION).isTrue()
+    state.onGravity(Offset(1f, Float.NEGATIVE_INFINITY), GlassTiltDisplayRotation.Rotation0)
+    assertThat(state.lightPosition).isEqualTo(GLASS_TILT_FIXED_LIGHT_POSITION)
+  }
+
+  @Test
   fun smoothing_convergesAndRestartsFromTheFixedPosition() {
     val state = GlassTiltState()
     state.updateTiltEnabled(true)

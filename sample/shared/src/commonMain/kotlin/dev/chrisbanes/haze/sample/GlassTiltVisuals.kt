@@ -79,9 +79,16 @@ public class GlassTiltState {
   }
 
   public fun onGravity(gravity: Offset, displayRotation: GlassTiltDisplayRotation) {
-    if (!isTiltEnabled || !gravity.isFinite()) return
+    if (!isTiltEnabled) return
+    if (!gravity.isFinite()) {
+      restartFromFixedPosition()
+      return
+    }
     val mappedGravity = mapGlassTiltGravity(gravity, displayRotation)
-    if (!mappedGravity.isFinite()) return
+    if (!mappedGravity.isFinite()) {
+      restartFromFixedPosition()
+      return
+    }
 
     val target = boundedGlassTiltPosition(
       GLASS_TILT_FIXED_LIGHT_POSITION + mappedGravity * GLASS_TILT_GAIN,
