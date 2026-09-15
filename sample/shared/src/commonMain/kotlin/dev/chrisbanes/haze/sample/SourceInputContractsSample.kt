@@ -52,13 +52,16 @@ fun SourceInputContractsSample(
   navController: NavHostController,
   effect: SampleEffect,
 ) {
+  val navigationEnabled = LocalSampleNavigationEnabled.current
   Scaffold(
     topBar = {
       TopAppBar(
         title = { Text("Source selection and retention") },
         navigationIcon = {
-          IconButton(onClick = navController::navigateUp) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+          if (navigationEnabled) {
+            IconButton(onClick = navController::navigateUp) {
+              Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
           }
         },
       )
@@ -77,21 +80,32 @@ fun SourceInputContractsSample(
 }
 
 @Composable
+@OptIn(ExperimentalHazeApi::class)
 private fun SourceSelectionExample(effect: SampleEffect) {
   val hazeState = rememberHazeState()
   Box(Modifier.fillMaxWidth().height(160.dp)) {
     Box(Modifier.fillMaxSize().hazeSource(hazeState, key = "selected").background(Color(0xff006c4c)))
     Box(Modifier.fillMaxWidth().height(80.dp).align(Alignment.BottomCenter).hazeSource(hazeState, key = "excluded").background(Color(0xff6b3fa0)))
-    EffectLabel(
-      effect = effect,
-      input = HazeInput.Sources(hazeState, selection = HazeSourceSelection.All.where { it.key == "selected" }),
-      label = "Only the green source is selected",
-      modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp),
-    )
+    val input = HazeInput.Sources(hazeState, selection = HazeSourceSelection.All.where { it.key == "selected" })
+    val effectModifier = when (effect) {
+      SampleEffect.Blur -> Modifier.hazeBlur(input, HazeBlurStyle { blurRadius(18.dp) })
+      SampleEffect.Glass -> Modifier.hazeGlass(input, GlassStyle.regular)
+    }
+    Box(
+      Modifier
+        .align(Alignment.BottomCenter)
+        .padding(12.dp)
+        .then(effectModifier)
+        .background(Color.Black.copy(alpha = 0.18f), RoundedCornerShape(12.dp))
+        .padding(12.dp),
+    ) {
+      Text("Only the green source is selected", color = Color.White, style = MaterialTheme.typography.labelLarge)
+    }
   }
 }
 
 @Composable
+@OptIn(ExperimentalHazeApi::class)
 private fun SourceRetentionExample(effect: SampleEffect) {
   val hazeState = rememberHazeState()
   var sourceVisible by remember { mutableStateOf(true) }
@@ -107,31 +121,35 @@ private fun SourceRetentionExample(effect: SampleEffect) {
         modifier = Modifier.align(Alignment.Center).fillMaxWidth().padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
       ) {
-        EffectLabel(effect, HazeInput.Sources(hazeState), "Keep last frame", Modifier.weight(1f))
-        EffectLabel(
-          effect,
-          HazeInput.Sources(hazeState, retention = HazeSourceRetention.ClearWhenUnavailable),
-          "Clear when unavailable",
-          Modifier.weight(1f),
-        )
+        val retainedInput = HazeInput.Sources(hazeState)
+        val retainedEffectModifier = when (effect) {
+          SampleEffect.Blur -> Modifier.hazeBlur(retainedInput, HazeBlurStyle { blurRadius(18.dp) })
+          SampleEffect.Glass -> Modifier.hazeGlass(retainedInput, GlassStyle.regular)
+        }
+        Box(
+          Modifier
+            .weight(1f)
+            .then(retainedEffectModifier)
+            .background(Color.Black.copy(alpha = 0.18f), RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        ) {
+          Text("Keep last frame", color = Color.White, style = MaterialTheme.typography.labelLarge)
+        }
+        val clearInput = HazeInput.Sources(hazeState, retention = HazeSourceRetention.ClearWhenUnavailable)
+        val clearEffectModifier = when (effect) {
+          SampleEffect.Blur -> Modifier.hazeBlur(clearInput, HazeBlurStyle { blurRadius(18.dp) })
+          SampleEffect.Glass -> Modifier.hazeGlass(clearInput, GlassStyle.regular)
+        }
+        Box(
+          Modifier
+            .weight(1f)
+            .then(clearEffectModifier)
+            .background(Color.Black.copy(alpha = 0.18f), RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        ) {
+          Text("Clear when unavailable", color = Color.White, style = MaterialTheme.typography.labelLarge)
+        }
       }
     }
-  }
-}
-
-@Composable
-@OptIn(ExperimentalHazeApi::class)
-private fun EffectLabel(
-  effect: SampleEffect,
-  input: HazeInput.Sources,
-  label: String,
-  modifier: Modifier = Modifier,
-) {
-  val effectModifier = when (effect) {
-    SampleEffect.Blur -> Modifier.hazeBlur(input, HazeBlurStyle { blurRadius(18.dp) })
-    SampleEffect.Glass -> Modifier.hazeGlass(input, GlassStyle.regular)
-  }
-  Box(modifier.then(effectModifier).background(Color.Black.copy(alpha = 0.18f), RoundedCornerShape(12.dp)).padding(12.dp)) {
-    Text(label, color = Color.White, style = MaterialTheme.typography.labelLarge)
   }
 }

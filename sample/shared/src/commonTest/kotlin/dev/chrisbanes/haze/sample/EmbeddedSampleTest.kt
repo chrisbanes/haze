@@ -111,6 +111,9 @@ class EmbeddedSampleTest : ContextTest() {
   @Test
   fun embeddedMode_hidesLayerTransformationsExitControl() = assertEmbeddedSampleHidesBack(Sample.LayerTransformations)
 
+  @Test
+  fun embeddedMode_hidesSourceInputContractsExitControl() = assertEmbeddedSampleHidesBack(Sample.SourceInputContracts)
+
   private fun assertEmbeddedSampleHidesBack(
     sample: Sample,
     effect: SampleEffect = SampleEffect.Glass,
