@@ -38,14 +38,13 @@ dependencies {
 
 ## Android SDK 37.2
 
-Haze is built with Android SDK 37.2. Its Android artifacts do not publish a `minCompileSdk` or
-`minCompileSdkExtension` requirement, so consuming Haze does not by itself require your project to
-compile with SDK 37.2.
+Haze is built with Android SDK 37.2. Its Android artifacts declare `minCompileSdk=37` and
+`minCompileMinorSdk=2`, so projects that consume Haze must compile with SDK 37.2. They declare
+`minCompileSdkExtension=0`: SDK 37.2 is a minor SDK version, not an SDK Extension.
 
-If your project needs to compile with Android SDK 37.2, such as when building Haze from source,
-install the [Android 17 SDK](https://developer.android.com/about/versions/17/setup-sdk) from Android
-Studio's **Tools > SDK Manager**, then configure an Android Gradle Plugin (AGP) 9.4.0 project as
-follows:
+To consume Haze or build it from source, install the
+[Android 17 SDK](https://developer.android.com/about/versions/17/setup-sdk) from Android Studio's
+**Tools > SDK Manager**, then configure an Android Gradle Plugin (AGP) 9.4.0 project as follows:
 
 ```kotlin
 android {
@@ -60,9 +59,10 @@ android {
 AGP 9.4.0 requires Gradle 9.6 or later and JDK 17 or later; see the
 [AGP 9.4.0 release notes](https://developer.android.com/build/releases/agp-9-4-0-release-notes).
 
-This uses an Android SDK *minor* version, not an [SDK Extension](https://developer.android.com/guide/sdk-extensions).
-Do not set `compileSdkExtension` for SDK 37.2. `minCompileSdk` and `minCompileSdkExtension` are
-library AAR metadata for library producers; they are not consumer application settings.
+This configuration uses an Android SDK *minor* version, not an
+[SDK Extension](https://developer.android.com/guide/sdk-extensions). Do not set `compileSdkExtension`
+for SDK 37.2. `minCompileSdk`, `minCompileMinorSdk`, and `minCompileSdkExtension` are library AAR
+metadata; configure your app with `compileSdk` instead.
 
 `compileSdk` only controls the APIs available while building. It does not change your app's
 `minSdk` or `targetSdk`, and it does not enable Haze's experimental native Backdrop path. Native
