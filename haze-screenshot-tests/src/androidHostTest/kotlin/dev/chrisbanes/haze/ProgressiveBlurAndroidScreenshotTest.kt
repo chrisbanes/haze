@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
@@ -26,6 +27,58 @@ import org.robolectric.annotation.Config
 
 @Config(sdk = [31, 32])
 class ProgressiveBlurAndroidScreenshotTest : ScreenshotTest() {
+
+  @Test
+  fun progressiveBlur_contentInputRefreshesWhenBackgroundChanges() = runScreenshotTest {
+    val style = HazeBlurStyle {
+      blurRadius(48.dp)
+      noiseFactor(0f)
+      progressive(HazeProgressive.verticalGradient())
+    }
+    val upperColor = mutableStateOf(Color.Black)
+    val lowerColor = mutableStateOf(Color.White)
+
+    setContent {
+      ScreenshotTheme {
+        Column(
+          Modifier
+            .fillMaxSize()
+            .hazeBlur(
+              input = HazeInput.Content,
+              style = style,
+              performanceMode = HazePerformanceMode.Quality,
+            ),
+        ) {
+          Box(
+            Modifier
+              .weight(1f)
+              .fillMaxSize()
+              .background(upperColor.value),
+          )
+          Box(
+            Modifier
+              .weight(1f)
+              .fillMaxSize()
+              .background(lowerColor.value),
+          )
+        }
+      }
+    }
+
+    waitForIdle()
+    captureRoot("initial")
+
+    upperColor.value = Color.Blue
+    lowerColor.value = Color.Red
+    waitForIdle()
+    captureRoot("changed")
+
+    val pixels = captureRootPixels()
+    assertThat(pixels[pixels.width / 2, pixels.height / 4].blue, "updated upper background")
+      .isGreaterThan(0.8f)
+    assertThat(pixels[pixels.width / 2, pixels.height * 3 / 4].red, "updated lower background")
+      .isGreaterThan(0.8f)
+  }
 
   @Test
   fun progressiveBlur_contentInputKeepsCoverageAtBothEndsOfTheAxis() = runScreenshotTest {
