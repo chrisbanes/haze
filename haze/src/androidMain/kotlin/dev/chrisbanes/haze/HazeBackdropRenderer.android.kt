@@ -6,6 +6,7 @@
 package dev.chrisbanes.haze
 
 import android.graphics.Rect as AndroidRect
+import android.graphics.RenderEffect
 import android.graphics.RenderNode
 import android.os.Build
 import androidx.compose.ui.geometry.Rect
@@ -16,7 +17,7 @@ import kotlin.math.floor
 
 @InternalHazeApi
 internal actual fun createHazeBackdropRenderer(): HazeBackdropRenderer? =
-  if (isAndroidBackdropSdkSupported()) {
+  if (isAndroidBackdropSdkSupported() && AndroidBackdropRenderEffectApi.isAvailable) {
     AndroidHazeBackdropRenderer()
   } else {
     null
@@ -61,7 +62,7 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
       },
     )
     node.setAlpha(alpha)
-    node.setBackdropRenderEffect(effect)
+    if (!AndroidBackdropRenderEffectApi.setBackdropRenderEffect(node, effect)) return false
 
     // A transparent SRC_OVER draw leaves the node visually empty but keeps its backdrop filter
     // composited. Recording a CLEAR operation instead suppresses the backdrop on Android 37.2.
@@ -81,6 +82,26 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
   override fun release() {
     renderNode?.discardDisplayList()
     renderNode = null
+  }
+}
+
+private object AndroidBackdropRenderEffectApi {
+  private val method = try {
+    RenderNode::class.java.getMethod("setBackdropRenderEffect", RenderEffect::class.java)
+  } catch (_: ReflectiveOperationException) {
+    null
+  }
+
+  val isAvailable: Boolean get() = method != null
+
+  fun setBackdropRenderEffect(node: RenderNode, effect: RenderEffect): Boolean {
+    val method = method ?: return false
+    return try {
+      method.invoke(node, effect)
+      true
+    } catch (_: ReflectiveOperationException) {
+      false
+    }
   }
 }
 
