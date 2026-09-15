@@ -38,9 +38,14 @@ dependencies {
 
 ## Android SDK 37.2
 
-The Android artifacts require your Android project to compile with Android SDK 37.2. Install the
-[Android 17 SDK](https://developer.android.com/about/versions/17/setup-sdk) from Android Studio's
-**Tools > SDK Manager**, then configure an Android Gradle Plugin (AGP) 9.4.0 project as follows:
+Haze is built with Android SDK 37.2. Its Android artifacts do not publish a `minCompileSdk` or
+`minCompileSdkExtension` requirement, so consuming Haze does not by itself require your project to
+compile with SDK 37.2.
+
+If your project needs to compile with Android SDK 37.2, such as when building Haze from source,
+install the [Android 17 SDK](https://developer.android.com/about/versions/17/setup-sdk) from Android
+Studio's **Tools > SDK Manager**, then configure an Android Gradle Plugin (AGP) 9.4.0 project as
+follows:
 
 ```kotlin
 android {
