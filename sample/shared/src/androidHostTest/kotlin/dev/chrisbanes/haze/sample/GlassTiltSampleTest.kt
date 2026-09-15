@@ -3,13 +3,20 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -144,19 +151,69 @@ class GlassTiltSampleTest : ContextTest() {
     onNodeWithTag("glass_tilt_unavailable").assertIsDisplayed()
   }
 
+  @Test
+  fun registrationFailure_retriesWhenTheLifecycleResumes() = runComposeUiTest {
+    val lifecycleOwner = TestLifecycleOwner().apply { lifecycleRegistry.currentState = Lifecycle.State.RESUMED }
+    val sensor = FakeGravitySensor(failuresBeforeSuccess = 1)
+    setContent {
+      CompositionLocalProvider(LocalLifecycleOwner provides lifecycleOwner) {
+        GlassTiltSample(onBack = {}, gravitySensor = sensor)
+      }
+    }
+
+    onNodeWithTag("glass_tilt_enable").performClick()
+    waitForIdle()
+    assertThat(sensor.startCount).isEqualTo(1)
+    assertThat(sensor.stopCount).isEqualTo(0)
+
+    runOnIdle {
+      lifecycleOwner.lifecycleRegistry.currentState = Lifecycle.State.CREATED
+      lifecycleOwner.lifecycleRegistry.currentState = Lifecycle.State.RESUMED
+    }
+    waitForIdle()
+    assertThat(sensor.startCount).isEqualTo(2)
+  }
+
+  @Test
+  fun embeddedSample_hidesBackNavigation() = runComposeUiTest {
+    setContent {
+      CompositionLocalProvider(LocalSampleNavigationEnabled provides false) {
+        GlassTiltSample(onBack = {}, gravitySensor = FakeGravitySensor())
+      }
+    }
+
+    onAllNodesWithText("Back").assertCountEquals(0)
+  }
+
   private class FakeGravitySensor(
     private val available: Boolean = true,
+    private var failuresBeforeSuccess: Int = 0,
   ) : GlassTiltGravitySensor {
     var startCount = 0
     var stopCount = 0
 
+    override val isAvailable: Boolean
+      get() = available
+
     override fun start(onGravity: (Offset) -> Unit): Boolean {
       startCount++
-      return available
+      return if (failuresBeforeSuccess > 0) {
+        failuresBeforeSuccess--
+        false
+      } else {
+        available
+      }
     }
 
     override fun stop() {
       stopCount++
     }
+  }
+
+  private class TestLifecycleOwner : LifecycleOwner {
+    val lifecycleRegistry = LifecycleRegistry(this)
+
+    override val lifecycle: Lifecycle
+      get() = lifecycleRegistry
   }
 }

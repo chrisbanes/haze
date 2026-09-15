@@ -15,15 +15,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAbsoluteAlignment
 import androidx.compose.ui.Modifier
@@ -39,103 +38,18 @@ import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.roundToInt
 
-internal val GLASS_TILT_FIXED_LIGHT_POSITION = Offset(0.50f, 0.50f)
-internal const val GLASS_TILT_MAX_DISPLACEMENT = 0.18f
-
-// These are deliberately conservative experiment values; device tuning remains pending.
-private const val GLASS_TILT_GAIN = 0.03f
-private const val GLASS_TILT_SMOOTHING = 0.18f
-
-public enum class GlassTiltDisplayRotation {
-  Rotation0,
-  Rotation90,
-  Rotation180,
-  Rotation270,
-}
-
-public class GlassTiltState {
-  private var tiltEnabled by mutableStateOf(false)
-  var isTiltAvailable by mutableStateOf(true)
-    private set
-  var lightPosition by mutableStateOf(GLASS_TILT_FIXED_LIGHT_POSITION)
-    private set
-
-  val isTiltEnabled: Boolean
-    get() = tiltEnabled
-
-  public fun updateTiltEnabled(enabled: Boolean) {
-    tiltEnabled = enabled && isTiltAvailable
-    restartFromFixedPosition()
-  }
-
-  public fun setTiltUnavailable() {
-    isTiltAvailable = false
-    tiltEnabled = false
-    restartFromFixedPosition()
-  }
-
-  public fun restartFromFixedPosition() {
-    lightPosition = GLASS_TILT_FIXED_LIGHT_POSITION
-  }
-
-  public fun onGravity(gravity: Offset, displayRotation: GlassTiltDisplayRotation) {
-    if (!isTiltEnabled) return
-    if (!gravity.isFinite()) {
-      restartFromFixedPosition()
-      return
-    }
-    val mappedGravity = mapGlassTiltGravity(gravity, displayRotation)
-    if (!mappedGravity.isFinite()) {
-      restartFromFixedPosition()
-      return
-    }
-
-    val target = boundedGlassTiltPosition(
-      GLASS_TILT_FIXED_LIGHT_POSITION + mappedGravity * GLASS_TILT_GAIN,
-    )
-    lightPosition = boundedGlassTiltPosition(
-      lightPosition + (target - lightPosition) * GLASS_TILT_SMOOTHING,
-    )
-  }
-}
-
-internal fun mapGlassTiltGravity(
-  gravity: Offset,
-  displayRotation: GlassTiltDisplayRotation,
-): Offset = when (displayRotation) {
-  GlassTiltDisplayRotation.Rotation0 -> gravity
-  GlassTiltDisplayRotation.Rotation90 -> Offset(-gravity.y, gravity.x)
-  GlassTiltDisplayRotation.Rotation180 -> -gravity
-  GlassTiltDisplayRotation.Rotation270 -> Offset(gravity.y, -gravity.x)
-}
-
-private fun boundedGlassTiltPosition(position: Offset): Offset = Offset(
-  x = position.x.coerceIn(
-    GLASS_TILT_FIXED_LIGHT_POSITION.x - GLASS_TILT_MAX_DISPLACEMENT,
-    GLASS_TILT_FIXED_LIGHT_POSITION.x + GLASS_TILT_MAX_DISPLACEMENT,
-  ),
-  y = position.y.coerceIn(
-    GLASS_TILT_FIXED_LIGHT_POSITION.y - GLASS_TILT_MAX_DISPLACEMENT,
-    GLASS_TILT_FIXED_LIGHT_POSITION.y + GLASS_TILT_MAX_DISPLACEMENT,
-  ),
-)
-
-internal interface GlassTiltGravitySensor {
-  fun start(onGravity: (Offset) -> Unit): Boolean
-
-  fun stop()
-}
-
 @Composable
 public fun GlassTiltSampleContent(
-  state: GlassTiltState,
+  lightPosition: Offset,
+  isTiltAvailable: Boolean,
   onFixed: () -> Unit,
   onTilt: () -> Unit,
   onBack: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val navigationEnabled = LocalSampleNavigationEnabled.current
   val hazeState = rememberHazeState()
-  val style = remember(state.lightPosition) { glassTiltStyle(state.lightPosition) }
+  val style = remember(lightPosition) { glassTiltStyle(lightPosition) }
   Box(modifier = modifier.fillMaxSize().background(Color(0xFF10131A))) {
     GalleryBackdrop(
       hazeState = hazeState,
@@ -144,25 +58,25 @@ public fun GlassTiltSampleContent(
       modifier = Modifier.fillMaxSize(),
     )
     Column(
-      modifier = Modifier.fillMaxSize().padding(24.dp),
+      modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
       Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(onClick = onBack) { Text("Back") }
+        if (navigationEnabled) Button(onClick = onBack) { Text("Back") }
         Button(onClick = onFixed, modifier = Modifier.testTag("glass_tilt_fixed")) { Text("Fixed") }
         Button(
           onClick = onTilt,
-          enabled = state.isTiltAvailable,
+          enabled = isTiltAvailable,
           modifier = Modifier.testTag("glass_tilt_enable"),
         ) { Text("Tilt") }
       }
       Text(
-        text = "Light position: ${(state.lightPosition.x * 100).roundToInt()}%, " +
-          "${(state.lightPosition.y * 100).roundToInt()}%",
+        text = "Light position: ${(lightPosition.x * 100).roundToInt()}%, " +
+          "${(lightPosition.y * 100).roundToInt()}%",
         color = Color.White,
         modifier = Modifier.testTag("glass_tilt_position"),
       )
-      if (!state.isTiltAvailable) {
+      if (!isTiltAvailable) {
         Text(
           text = "Tilt unavailable — gravity sensor not available.",
           color = Color.White,
@@ -203,5 +117,3 @@ private fun glassTiltStyle(lightPosition: Offset): GlassStyle = GlassStyle.regul
   )
   shape(RoundedCornerShape(24.dp))
 }
-
-private fun Offset.isFinite(): Boolean = x.isFinite() && y.isFinite()

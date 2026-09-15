@@ -30,9 +30,7 @@ import dev.chrisbanes.haze.sample.GlassMusicPlayerSampleContent
 import dev.chrisbanes.haze.sample.GlassPlaygroundSampleContent
 import dev.chrisbanes.haze.sample.GlassPlaygroundSurfaceId
 import dev.chrisbanes.haze.sample.GlassProductSampleContent
-import dev.chrisbanes.haze.sample.GlassTiltDisplayRotation
 import dev.chrisbanes.haze.sample.GlassTiltSampleContent
-import dev.chrisbanes.haze.sample.GlassTiltState
 import dev.chrisbanes.haze.sample.MusicPlayerTab
 import dev.chrisbanes.haze.sample.MusicTrack
 import dev.chrisbanes.haze.sample.SamplesTheme
@@ -136,13 +134,14 @@ internal fun ScreenshotUiTest.captureGlassLabStyles() {
 }
 
 internal fun ScreenshotUiTest.captureGlassTiltLight() {
-  val state = GlassTiltState()
+  var lightPosition by mutableStateOf(Offset(0.50f, 0.50f))
   setContent {
     GlassGalleryScreenshotTheme {
       GlassTiltSampleContent(
-        state = state,
-        onFixed = { state.updateTiltEnabled(false) },
-        onTilt = { state.updateTiltEnabled(true) },
+        lightPosition = lightPosition,
+        isTiltAvailable = true,
+        onFixed = { lightPosition = Offset(0.50f, 0.50f) },
+        onTilt = {},
         onBack = {},
       )
     }
@@ -150,10 +149,7 @@ internal fun ScreenshotUiTest.captureGlassTiltLight() {
 
   waitForIdle()
   captureRoot("fixed")
-  state.updateTiltEnabled(true)
-  repeat(12) {
-    state.onGravity(Offset(3f, -2f), GlassTiltDisplayRotation.Rotation0)
-  }
+  lightPosition = Offset(0.5817f, 0.4446f)
   waitForIdle()
   captureRoot("tilt")
 }
