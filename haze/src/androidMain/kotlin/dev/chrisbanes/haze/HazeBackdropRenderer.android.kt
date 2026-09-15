@@ -25,6 +25,7 @@ internal actual fun createHazeBackdropRenderer(): HazeBackdropRenderer? =
 
 private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
   private var renderNode: RenderNode? = null
+  private var configuredEffect: RenderEffect? = null
 
   override fun isSupported(canvas: Canvas): Boolean {
     if (!canvas.nativeCanvas.isHardwareAccelerated) return false
@@ -62,7 +63,10 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
       },
     )
     node.setAlpha(alpha)
-    if (!AndroidBackdropRenderEffectApi.setBackdropRenderEffect(node, effect)) return false
+    if (configuredEffect !== effect) {
+      if (!AndroidBackdropRenderEffectApi.setBackdropRenderEffect(node, effect)) return false
+      configuredEffect = effect
+    }
 
     // A transparent SRC_OVER draw leaves the node visually empty but keeps its backdrop filter
     // composited. Recording a CLEAR operation instead suppresses the backdrop on Android 37.2.
@@ -82,6 +86,7 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
   override fun release() {
     renderNode?.discardDisplayList()
     renderNode = null
+    configuredEffect = null
   }
 }
 
