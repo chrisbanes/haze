@@ -36,6 +36,33 @@ dependencies {
 }
 ```
 
+## Android SDK 37.2
+
+The Android artifacts require your Android project to compile with Android SDK 37.2. Install the
+[Android 17 SDK](https://developer.android.com/about/versions/17/setup-sdk) from Android Studio's
+**Tools > SDK Manager**, then configure an Android Gradle Plugin (AGP) 9.4.0 project as follows:
+
+```kotlin
+android {
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 2
+        }
+    }
+}
+```
+
+AGP 9.4.0 requires Gradle 9.6 or later and JDK 17 or later; see the
+[AGP 9.4.0 release notes](https://developer.android.com/build/releases/agp-9-4-0-release-notes).
+
+This uses an Android SDK *minor* version, not an [SDK Extension](https://developer.android.com/guide/sdk-extensions).
+Do not set `compileSdkExtension` for SDK 37.2. `minCompileSdk` and `minCompileSdkExtension` are
+library AAR metadata for library producers; they are not consumer application settings.
+
+`compileSdk` only controls the APIs available while building. It does not change your app's
+`minSdk` or `targetSdk`, and it does not enable Haze's experimental native Backdrop path. Native
+Backdrop still requires its [runtime opt-in and supported window](performance.md#backdrop-input).
+
 !!! info "Using Effects"
 
     Haze v2 uses a modular architecture where effects are provided as separate modules. The core `haze` module provides the infrastructure, while effects like blur are in dedicated modules (e.g., `haze-blur`). If you want to use blur effects, you need the `haze-blur` dependency. The core `haze` module alone provides just the base infrastructure for visual effects.

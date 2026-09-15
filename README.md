@@ -59,6 +59,9 @@ dependencies {
 }
 ```
 
+Android projects also need to compile with Android SDK 37.2; see the
+[Android setup guide](https://chrisbanes.github.io/haze/#android-sdk-372).
+
 ## Blur
 
 ```kotlin
