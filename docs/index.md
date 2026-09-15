@@ -60,6 +60,19 @@ kotlin {
 }
 ```
 
+For an Android application or library using `com.android.application` or
+`com.android.library`, configure the same SDK version in its `android` block:
+
+```kotlin
+android {
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 2
+        }
+    }
+}
+```
+
 AGP 9.4.0 requires Gradle 9.6 or later and JDK 17 or later; see the
 [AGP 9.4.0 release notes](https://developer.android.com/build/releases/agp-9-4-0-release-notes).
 That is the minimum for a consuming project. Building Haze from source requires JDK 21 because
