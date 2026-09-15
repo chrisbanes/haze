@@ -42,15 +42,19 @@ Haze is built with Android SDK 37.2. Its Android artifacts declare `minCompileSd
 `minCompileMinorSdk=2`, so projects that consume Haze must compile with SDK 37.2. They declare
 `minCompileSdkExtension=0`: SDK 37.2 is a minor SDK version, not an SDK Extension.
 
-To consume Haze or build it from source, install the
+To consume Haze, install the
 [Android 17 SDK](https://developer.android.com/about/versions/17/setup-sdk) from Android Studio's
-**Tools > SDK Manager**, then configure an Android Gradle Plugin (AGP) 9.4.0 project as follows:
+**Tools > SDK Manager**, then configure an Android Gradle Plugin (AGP) 9.4.0 project. For a
+Kotlin Multiplatform Android library using `com.android.kotlin.multiplatform.library`, configure
+its Android target as follows:
 
 ```kotlin
-android {
-    compileSdk {
-        version = release(37) {
-            minorApiLevel = 2
+kotlin {
+    android {
+        compileSdk {
+            version = release(37) {
+                minorApiLevel = 2
+            }
         }
     }
 }
@@ -58,6 +62,8 @@ android {
 
 AGP 9.4.0 requires Gradle 9.6 or later and JDK 17 or later; see the
 [AGP 9.4.0 release notes](https://developer.android.com/build/releases/agp-9-4-0-release-notes).
+That is the minimum for a consuming project. Building Haze from source requires JDK 21 because
+its build configuration requires a local Java 21 toolchain.
 
 This configuration uses an Android SDK *minor* version, not an
 [SDK Extension](https://developer.android.com/guide/sdk-extensions). Do not set `compileSdkExtension`
