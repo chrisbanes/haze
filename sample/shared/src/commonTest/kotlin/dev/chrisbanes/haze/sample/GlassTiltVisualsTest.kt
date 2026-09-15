@@ -43,5 +43,4 @@ class GlassTiltVisualsTest {
       observer.stop()
     }
   }
-
 }
