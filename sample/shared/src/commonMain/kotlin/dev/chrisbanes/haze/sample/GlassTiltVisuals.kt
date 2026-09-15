@@ -78,7 +78,7 @@ public fun GlassTiltSampleContent(
       )
       if (!isTiltAvailable) {
         Text(
-          text = "Tilt unavailable — gravity sensor not available.",
+          text = "Tilt unavailable.",
           color = Color.White,
           modifier = Modifier.testTag("glass_tilt_unavailable"),
         )

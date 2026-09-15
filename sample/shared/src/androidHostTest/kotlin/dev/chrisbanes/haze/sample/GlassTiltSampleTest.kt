@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.lifecycle.Lifecycle
@@ -28,7 +29,7 @@ import kotlin.test.Test
 class GlassTiltSampleTest : ContextTest() {
   @Test
   fun fixedMode_usesTheCenteredLightPosition() {
-    val state = GlassTiltState()
+    val state = AndroidGlassTiltIntegration()
 
     assertThat(state.lightPosition).isEqualTo(GLASS_TILT_FIXED_LIGHT_POSITION)
     state.updateTiltEnabled(false)
@@ -37,7 +38,7 @@ class GlassTiltSampleTest : ContextTest() {
 
   @Test
   fun gravity_updatesReachBothSidesOfCenterAndStayFiniteAndBounded() {
-    val state = GlassTiltState()
+    val state = AndroidGlassTiltIntegration()
     state.updateTiltEnabled(true)
 
     state.onGravity(Offset(-100f, -100f), GlassTiltDisplayRotation.Rotation0)
@@ -72,7 +73,7 @@ class GlassTiltSampleTest : ContextTest() {
 
   @Test
   fun invalidGravityAndUnavailableTilt_keepTheFixedPosition() {
-    val state = GlassTiltState()
+    val state = AndroidGlassTiltIntegration()
     state.updateTiltEnabled(true)
 
     state.onGravity(Offset(Float.NaN, 1f), GlassTiltDisplayRotation.Rotation0)
@@ -80,12 +81,12 @@ class GlassTiltSampleTest : ContextTest() {
 
     assertThat(state.lightPosition).isEqualTo(GLASS_TILT_FIXED_LIGHT_POSITION)
     assertThat(state.isTiltEnabled).isFalse()
-    assertThat(state.isTiltAvailable).isFalse()
+    assertThat(state.isTiltUnavailable).isTrue()
   }
 
   @Test
   fun invalidGravity_restoresTheFixedPositionAfterTilt() {
-    val state = GlassTiltState()
+    val state = AndroidGlassTiltIntegration()
     state.updateTiltEnabled(true)
 
     state.onGravity(Offset(6f, -6f), GlassTiltDisplayRotation.Rotation0)
@@ -101,7 +102,7 @@ class GlassTiltSampleTest : ContextTest() {
 
   @Test
   fun smoothing_convergesAndRestartsFromTheFixedPosition() {
-    val state = GlassTiltState()
+    val state = AndroidGlassTiltIntegration()
     state.updateTiltEnabled(true)
     repeat(80) {
       state.onGravity(Offset(6f, 0f), GlassTiltDisplayRotation.Rotation0)
@@ -165,6 +166,8 @@ class GlassTiltSampleTest : ContextTest() {
     waitForIdle()
     assertThat(sensor.startCount).isEqualTo(1)
     assertThat(sensor.stopCount).isEqualTo(0)
+    onNodeWithText("Light position: 50%, 50%").assertIsDisplayed()
+    onNodeWithTag("glass_tilt_unavailable").assertIsDisplayed()
 
     runOnIdle {
       lifecycleOwner.lifecycleRegistry.currentState = Lifecycle.State.CREATED
@@ -172,6 +175,7 @@ class GlassTiltSampleTest : ContextTest() {
     }
     waitForIdle()
     assertThat(sensor.startCount).isEqualTo(2)
+    onAllNodesWithText("Tilt unavailable.").assertCountEquals(0)
   }
 
   @Test
