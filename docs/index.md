@@ -44,19 +44,48 @@ dependencies {
 
 ## Why Haze
 
-- [Select independent captured sources](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/SourceInputContractsSample.kt) for an effect instead of relying
-  on incidental layout order. The runnable sample shows selection by source key.
-- [Capture follows transformed layouts](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/LayerTransformations.kt),
-  including scale and rotation.
-- [Choose retained-output behavior](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/SourceInputContractsSample.kt) when a source disappears or
-  is replaced. The sample shows both `KeepLastFrame` and `ClearWhenUnavailable`.
-- Capture starts only when an attached effect needs source input; see the
-  [demand-driven input contract](core-concepts.md#explicit-inputs). This is a rendering mechanism,
-  not a universal performance claim.
+Build Blur and Glass surfaces around the content that belongs behind them. Haze lets a screen keep
+that relationship as its layout changes, and make an intentional choice when the content is no
+longer there.
 
-The [sample catalogue](https://github.com/chrisbanes/haze/tree/main/sample) includes the runnable
-examples. The [screenshot-test guide](screenshot-tests.md) documents configuration coverage, and
-the [benchmark results](benchmark-results.md) preserve qualified, reproducible measurements.
+### Choose the content behind each surface
+
+For example, a translucent card can use its artwork while excluding a nearby toolbar or overlay,
+rather than depending on draw order. The [source selection and retention sample](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/SourceInputContractsSample.kt)
+lets you select the green source while excluding the purple one. The [explicit input contract](core-concepts.md#explicit-inputs)
+documents how source selection is expressed.
+
+### Keep surfaces aligned as a layout changes
+
+A moving, scaled, or rotated image should still look like it sits behind its Blur or Glass surface.
+The [Layer Transformations sample](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/LayerTransformations.kt)
+demonstrates that relationship with a scaled and rotated source and an animated effect surface.
+
+### Choose continuity or clearing when content disappears
+
+When a source is replaced during navigation or a state change, a surface can keep its last output
+for a continuous transition or clear until new content is available. The [source selection and
+retention sample](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/SourceInputContractsSample.kt)
+shows both behaviors; the [input contract](core-concepts.md#explicit-inputs) describes the options.
+
+### Avoid capture work when no effect uses it
+
+Source layers record only while an attached effect needs source input. This demand-driven capture
+avoids recording unused sources; see the [explicit input contract](core-concepts.md#explicit-inputs).
+
+## What the evidence covers
+
+The [sample catalogue](https://github.com/chrisbanes/haze/tree/main/sample) contains runnable
+examples for these screen-building choices. The [screenshot-test guide](screenshot-tests.md)
+documents the checked Blur and Glass `creditCard` matrix: two scenes across Sources and forced
+Backdrop fallback, four modes on Desktop and Android host SDKs 28, 32, and 35, plus native
+Backdrop cases on SDK 37. It is host coverage, not physical-device coverage.
+
+The [physical-device benchmark reports](benchmark-results.md) let you inspect qualified workload
+summaries: CPU frame duration and frame-overrun metrics, devices, builds, conditions, aggregation,
+and single-pass limits. The reports include reproduction runbooks, but raw results and traces are
+absent, so readers can reproduce the workloads without independently verifying every published
+table.
 
 ## Acknowledgements
 

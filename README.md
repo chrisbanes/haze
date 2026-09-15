@@ -61,20 +61,24 @@ dependencies {
 
 ## Why Haze
 
-- Select exactly the captured sources an effect consumes with `HazeInput.Sources` and
-  `HazeSourceSelection`; run the [source-selection sample](sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/SourceInputContractsSample.kt).
-- Captured input follows layout transforms, including scale and rotation; run the
-  [Layer Transformations sample](sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/LayerTransformations.kt).
-- Choose how source-backed effects behave while a source is replaced: the default
-  `KeepLastFrame` retains the last output, while `ClearWhenUnavailable` clears it. Both are shown
-  in the [retention sample](sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/SourceInputContractsSample.kt).
-- Source capture is demand-driven: source layers record only while an attached consumer needs
-  them. The [input contract](docs/core-concepts.md#explicit-inputs) explains the mechanism without
-  making a performance promise.
+Design Blur and Glass surfaces around the content that belongs behind them, without tying their
+appearance to incidental layout order.
 
-The [screenshot-test guide](docs/screenshot-tests.md) describes the checked configuration matrix.
-For qualified physical-device observations and their limits, see the
-[benchmark results](docs/benchmark-results.md).
+- **Choose the right content for each surface.** A card can use one background while excluding a
+  nearby header or overlay; the [source-selection sample](sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/SourceInputContractsSample.kt)
+  shows the choice.
+- **Keep effects aligned as layouts move.** A rotated, scaled, or animated source stays aligned
+  with the surface using it; run the [Layer Transformations sample](sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/LayerTransformations.kt).
+- **Control what happens when content disappears.** Keep a transition continuous or clear the
+  surface when a replaced source is unavailable; the [retention sample](sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/SourceInputContractsSample.kt)
+  shows both outcomes.
+- **Avoid capture work with no consumer.** Source layers record only while an attached effect
+  needs them; see the [explicit-input contract](docs/core-concepts.md#explicit-inputs).
+
+The [screenshot-test guide](docs/screenshot-tests.md) describes the checked Blur and Glass
+credit-card matrix across inputs, modes, and host configurations. The physical-device
+[benchmark results](docs/benchmark-results.md) report qualified workload summaries with their
+devices, builds, conditions, and aggregation; raw results and traces are not included.
 
 ## Blur
 
