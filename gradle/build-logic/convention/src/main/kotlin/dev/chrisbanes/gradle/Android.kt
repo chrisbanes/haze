@@ -4,7 +4,6 @@
 package dev.chrisbanes.gradle
 
 import com.android.build.api.dsl.ApplicationExtension
-import com.android.build.api.dsl.CompileSdkSpec
 import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import com.android.build.api.dsl.TestExtension
 import com.android.build.api.variant.AndroidComponentsExtension
@@ -18,7 +17,7 @@ import org.gradle.kotlin.dsl.withType
 
 fun Project.configureAndroidApplication() {
   extensions.configure<ApplicationExtension> {
-    compileSdk { configureHazeCompileSdk() }
+    compileSdk = Versions.COMPILE_SDK
 
     defaultConfig {
       minSdk = Versions.MIN_SDK
@@ -43,7 +42,7 @@ fun Project.configureKotlinMultiplatformAndroidLibrary() {
   kotlin {
     targets.configureEach {
       if (this is KotlinMultiplatformAndroidLibraryTarget) {
-        compileSdk { configureHazeCompileSdk() }
+        compileSdk = Versions.COMPILE_SDK
         minSdk = Versions.MIN_SDK
       }
     }
@@ -60,7 +59,7 @@ fun Project.configureKotlinMultiplatformAndroidLibrary() {
 
 fun Project.configureAndroidTest() {
   extensions.configure<TestExtension> {
-    compileSdk { configureHazeCompileSdk() }
+    compileSdk = Versions.COMPILE_SDK
 
     defaultConfig {
       minSdk = Versions.MIN_SDK
@@ -74,12 +73,6 @@ fun Project.configureAndroidTest() {
   }
 
   configureAndroidComponents()
-}
-
-private fun CompileSdkSpec.configureHazeCompileSdk() {
-  version = release(Versions.COMPILE_SDK) {
-    minorApiLevel = Versions.COMPILE_SDK_MINOR
-  }
 }
 
 private fun Project.configureAndroidComponents() {

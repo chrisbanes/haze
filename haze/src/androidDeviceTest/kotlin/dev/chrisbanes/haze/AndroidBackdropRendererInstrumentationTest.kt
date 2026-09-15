@@ -334,7 +334,7 @@ class AndroidBackdropRendererInstrumentationTest {
 
       root.addView(source, centered)
       root.addView(backdrop, FrameLayout.LayoutParams(centered))
-      backdrop.setBackdropRenderEffect(
+      backdrop.setBackdropRenderEffectReflectively(
         RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP),
       )
       activity.setContentView(root)
@@ -443,6 +443,12 @@ class AndroidBackdropRendererInstrumentationTest {
       return Build.VERSION.SDK_INT_FULL
     }
   }
+}
+
+private fun View.setBackdropRenderEffectReflectively(effect: RenderEffect) {
+  View::class.java
+    .getMethod("setBackdropRenderEffect", RenderEffect::class.java)
+    .invoke(this, effect)
 }
 
 private fun Modifier.prototypeBackdrop(

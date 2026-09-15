@@ -5,7 +5,6 @@ package dev.chrisbanes.gradle
 
 object Versions {
   const val COMPILE_SDK = 37
-  const val COMPILE_SDK_MINOR = 2
   const val MIN_SDK = 23
   const val TARGET_SDK = 37
 }

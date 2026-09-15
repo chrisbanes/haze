@@ -49,9 +49,9 @@ private fun isBackdropSdkSupported(): Boolean {
   } else {
     Build.VERSION.SDK_INT_FULL
   }
-  return fullSdkInt >= Build.VERSION_CODES_FULL.CINNAMON_BUN_2 ||
+  return fullSdkInt >= Build.VERSION_CODES_FULL.CINNAMON_BUN + 2 ||
     (
-      fullSdkInt == Build.VERSION_CODES_FULL.CINNAMON_BUN_1 &&
+      fullSdkInt == Build.VERSION_CODES_FULL.CINNAMON_BUN + 1 &&
         Build.VERSION.PREVIEW_SDK_INT == 3_723
       )
 }

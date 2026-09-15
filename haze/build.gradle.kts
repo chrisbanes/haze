@@ -3,6 +3,8 @@
 
 
 import dev.chrisbanes.gradle.addDefaultHazeTargets
+import java.util.Properties
+import java.util.zip.ZipFile
 plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
@@ -125,6 +127,35 @@ dependencies {
 
 tasks.withType<Test> {
   failOnNoDiscoveredTests.set(false)
+}
+
+val verifyAndroidAarCompileSdk = tasks.register("verifyAndroidAarCompileSdk") {
+  group = "verification"
+  description = "Verifies that the Android AAR supports consumers compiling with SDK 37.0."
+
+  dependsOn("bundleAndroidMainAar")
+  inputs.file(layout.buildDirectory.file("outputs/aar/haze.aar"))
+
+  doLast {
+    val metadata = Properties()
+    ZipFile(inputs.files.singleFile).use { aar ->
+      aar.getInputStream(
+        checkNotNull(aar.getEntry("META-INF/com/android/build/gradle/aar-metadata.properties")),
+      ).use(metadata::load)
+    }
+
+    check(metadata.getProperty("minCompileSdk") == "37") {
+      "Expected Android AAR minCompileSdk=37, found ${metadata.getProperty("minCompileSdk")}"
+    }
+    check(metadata.getProperty("minCompileMinorSdk") == "0") {
+      "Expected Android AAR minCompileMinorSdk=0, " +
+        "found ${metadata.getProperty("minCompileMinorSdk")}"
+    }
+  }
+}
+
+tasks.named("check") {
+  dependsOn(verifyAndroidAarCompileSdk)
 }
 
 // Compose resources plugin generates this task for withDeviceTest() even when
