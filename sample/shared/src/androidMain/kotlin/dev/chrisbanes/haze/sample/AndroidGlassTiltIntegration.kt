@@ -60,6 +60,7 @@ internal class AndroidGlassTiltIntegration {
   val isTiltUnavailable: Boolean get() = hardwareUnavailable || registrationUnavailable
 
   fun updateTiltEnabled(enabled: Boolean) {
+    if (!enabled) registrationUnavailable = false
     tiltEnabled = enabled && !hardwareUnavailable
     restartFromFixedPosition()
   }

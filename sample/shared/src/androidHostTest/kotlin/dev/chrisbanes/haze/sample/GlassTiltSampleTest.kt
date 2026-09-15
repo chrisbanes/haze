@@ -179,6 +179,36 @@ class GlassTiltSampleTest : ContextTest() {
   }
 
   @Test
+  fun registrationFailure_retriesAfterReturningToFixedModeAndResuming() = runComposeUiTest {
+    val lifecycleOwner = TestLifecycleOwner().apply { lifecycleRegistry.currentState = Lifecycle.State.RESUMED }
+    val sensor = FakeGravitySensor(failuresBeforeSuccess = 1)
+    setContent {
+      CompositionLocalProvider(LocalLifecycleOwner provides lifecycleOwner) {
+        GlassTiltSample(onBack = {}, gravitySensor = sensor)
+      }
+    }
+
+    onNodeWithTag("glass_tilt_enable").performClick()
+    waitForIdle()
+    assertThat(sensor.startCount).isEqualTo(1)
+    onNodeWithTag("glass_tilt_unavailable").assertIsDisplayed()
+
+    onNodeWithTag("glass_tilt_fixed").performClick()
+    waitForIdle()
+    onNodeWithTag("glass_tilt_enable").performClick()
+    waitForIdle()
+    assertThat(sensor.startCount).isEqualTo(2)
+
+    runOnIdle {
+      lifecycleOwner.lifecycleRegistry.currentState = Lifecycle.State.CREATED
+      lifecycleOwner.lifecycleRegistry.currentState = Lifecycle.State.RESUMED
+    }
+    waitForIdle()
+    assertThat(sensor.startCount).isEqualTo(3)
+    onAllNodesWithText("Tilt unavailable.").assertCountEquals(0)
+  }
+
+  @Test
   fun embeddedSample_hidesBackNavigation() = runComposeUiTest {
     setContent {
       CompositionLocalProvider(LocalSampleNavigationEnabled provides false) {
