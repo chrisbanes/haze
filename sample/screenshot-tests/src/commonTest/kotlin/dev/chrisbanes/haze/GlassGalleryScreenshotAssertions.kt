@@ -30,6 +30,7 @@ import dev.chrisbanes.haze.sample.GlassMusicPlayerSampleContent
 import dev.chrisbanes.haze.sample.GlassPlaygroundSampleContent
 import dev.chrisbanes.haze.sample.GlassPlaygroundSurfaceId
 import dev.chrisbanes.haze.sample.GlassProductSampleContent
+import dev.chrisbanes.haze.sample.GlassTiltSampleContent
 import dev.chrisbanes.haze.sample.MusicPlayerTab
 import dev.chrisbanes.haze.sample.MusicTrack
 import dev.chrisbanes.haze.sample.SamplesTheme
@@ -130,6 +131,27 @@ internal fun ScreenshotUiTest.captureGlassLabStyles() {
   backdrop = GlassGalleryBackdropId.Grid
   waitForIdle()
   captureRoot("clear")
+}
+
+internal fun ScreenshotUiTest.captureGlassTiltLight() {
+  var lightPosition by mutableStateOf(Offset(0.50f, 0.50f))
+  setContent {
+    GlassGalleryScreenshotTheme {
+      GlassTiltSampleContent(
+        lightPosition = lightPosition,
+        isTiltAvailable = true,
+        onFixed = { lightPosition = Offset(0.50f, 0.50f) },
+        onTilt = {},
+        onBack = {},
+      )
+    }
+  }
+
+  waitForIdle()
+  captureRoot("fixed")
+  lightPosition = Offset(0.5817f, 0.4446f)
+  waitForIdle()
+  captureRoot("tilt")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
