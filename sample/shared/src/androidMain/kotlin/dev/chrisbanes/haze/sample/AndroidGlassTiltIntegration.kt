@@ -12,6 +12,7 @@ import android.os.Build
 import android.view.Surface
 import android.view.WindowManager
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,8 +54,9 @@ internal class AndroidGlassTiltIntegration {
   private var tiltEnabled by mutableStateOf(false)
   private var hardwareUnavailable by mutableStateOf(false)
   private var registrationUnavailable by mutableStateOf(false)
-  var lightPosition by mutableStateOf(GLASS_TILT_FIXED_LIGHT_POSITION)
-    private set
+  private val mutableLightPosition = mutableStateOf(GLASS_TILT_FIXED_LIGHT_POSITION)
+  val lightPosition: Offset get() = mutableLightPosition.value
+  val lightPositionState: State<Offset> get() = mutableLightPosition
 
   val isTiltEnabled: Boolean get() = tiltEnabled
   val isTiltUnavailable: Boolean get() = hardwareUnavailable || registrationUnavailable
@@ -82,7 +84,7 @@ internal class AndroidGlassTiltIntegration {
   }
 
   fun restartFromFixedPosition() {
-    lightPosition = GLASS_TILT_FIXED_LIGHT_POSITION
+    mutableLightPosition.value = GLASS_TILT_FIXED_LIGHT_POSITION
   }
 
   fun onGravity(gravity: Offset, displayRotation: GlassTiltDisplayRotation) {
@@ -96,7 +98,9 @@ internal class AndroidGlassTiltIntegration {
       return
     }
     val target = boundedGlassTiltPosition(GLASS_TILT_FIXED_LIGHT_POSITION + mappedGravity * GLASS_TILT_GAIN)
-    lightPosition = boundedGlassTiltPosition(lightPosition + (target - lightPosition) * GLASS_TILT_SMOOTHING)
+    mutableLightPosition.value = boundedGlassTiltPosition(
+      lightPosition + (target - lightPosition) * GLASS_TILT_SMOOTHING,
+    )
   }
 }
 

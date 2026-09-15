@@ -22,13 +22,17 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.BiasAbsoluteAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
@@ -47,9 +51,28 @@ public fun GlassTiltSampleContent(
   onBack: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  GlassTiltSampleContent(
+    lightPosition = rememberUpdatedState(lightPosition),
+    isTiltAvailable = isTiltAvailable,
+    onFixed = onFixed,
+    onTilt = onTilt,
+    onBack = onBack,
+    modifier = modifier,
+  )
+}
+
+@Composable
+internal fun GlassTiltSampleContent(
+  lightPosition: State<Offset>,
+  isTiltAvailable: Boolean,
+  onFixed: () -> Unit,
+  onTilt: () -> Unit,
+  onBack: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
   val navigationEnabled = LocalSampleNavigationEnabled.current
   val hazeState = rememberHazeState()
-  val style = remember(lightPosition) { glassTiltStyle(lightPosition) }
+  val style = rememberGlassTiltStyle(lightPosition)
   Box(modifier = modifier.fillMaxSize().background(Color(0xFF10131A))) {
     GalleryBackdrop(
       hazeState = hazeState,
@@ -70,12 +93,7 @@ public fun GlassTiltSampleContent(
           modifier = Modifier.testTag("glass_tilt_enable"),
         ) { Text("Tilt") }
       }
-      Text(
-        text = "Light position: ${(lightPosition.x * 100).roundToInt()}%, " +
-          "${(lightPosition.y * 100).roundToInt()}%",
-        color = Color.White,
-        modifier = Modifier.testTag("glass_tilt_position"),
-      )
+      GlassTiltLightPositionLabel(lightPosition)
       if (!isTiltAvailable) {
         Text(
           text = "Tilt unavailable.",
@@ -108,12 +126,34 @@ private fun GlassTiltSurface(
   }
 }
 
-private fun glassTiltStyle(lightPosition: Offset): GlassStyle = GlassStyle.regular.then {
-  lightPosition(
-    BiasAbsoluteAlignment(
-      horizontalBias = lightPosition.x * 2f - 1f,
-      verticalBias = lightPosition.y * 2f - 1f,
-    ),
+@Composable
+internal fun rememberGlassTiltStyle(lightPosition: State<Offset>): GlassStyle = remember {
+  glassTiltStyle(GlassTiltLightAlignment(lightPosition))
+}
+
+@Composable
+internal fun GlassTiltLightPositionLabel(lightPosition: State<Offset>) {
+  val position = lightPosition.value
+  Text(
+    text = "Light position: ${(position.x * 100).roundToInt()}%, ${(position.y * 100).roundToInt()}%",
+    color = Color.White,
+    modifier = Modifier.testTag("glass_tilt_position"),
   )
+}
+
+internal class GlassTiltLightAlignment(
+  private val lightPosition: State<Offset>,
+) : Alignment {
+  override fun align(size: IntSize, space: IntSize, layoutDirection: LayoutDirection): IntOffset {
+    val position = lightPosition.value
+    return IntOffset(
+      x = (space.width * position.x).roundToInt(),
+      y = (space.height * position.y).roundToInt(),
+    )
+  }
+}
+
+private fun glassTiltStyle(lightPosition: Alignment): GlassStyle = GlassStyle.regular.then {
+  lightPosition(lightPosition)
   shape(RoundedCornerShape(24.dp))
 }

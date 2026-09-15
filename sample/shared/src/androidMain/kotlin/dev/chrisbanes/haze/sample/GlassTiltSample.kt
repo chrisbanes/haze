@@ -19,7 +19,7 @@ internal fun GlassTiltSample(
   val integration = rememberAndroidGlassTiltIntegration(gravitySensor, displayRotation)
 
   GlassTiltSampleContent(
-    lightPosition = integration.lightPosition,
+    lightPosition = integration.lightPositionState,
     isTiltAvailable = !integration.isTiltUnavailable,
     onFixed = { integration.updateTiltEnabled(false) },
     onTilt = { integration.updateTiltEnabled(true) },
