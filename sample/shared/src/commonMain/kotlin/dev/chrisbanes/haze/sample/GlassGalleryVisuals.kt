@@ -26,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -50,7 +49,6 @@ import dev.chrisbanes.haze.hazeSource
 internal fun GalleryBackdrop(
   hazeState: HazeState,
   artworkIndex: Int,
-  backdrop: GlassGalleryBackdropId,
   modifier: Modifier = Modifier,
   offsetProvider: () -> Float = { 0f },
   horizontalOverscanFraction: Float = 0f,
@@ -76,70 +74,39 @@ internal fun GalleryBackdrop(
           }
         },
     ) {
-      when (backdrop) {
-        GlassGalleryBackdropId.Gallery -> {
-          drawRect(Brush.linearGradient(artwork.colors))
-          repeat(12) { index ->
-            val x = size.width * index / 11f
-            drawLine(
-              color = artwork.foreground.copy(alpha = 0.16f),
-              start = Offset(x, 0f),
-              end = Offset(size.width - x, size.height),
-              strokeWidth = 1.dp.toPx(),
-            )
-          }
-          drawCircle(
-            color = artwork.accent.copy(alpha = 0.72f),
-            radius = size.minDimension * 0.18f,
-            center = Offset(size.width * 0.72f, size.height * 0.28f),
-          )
-        }
-
-        GlassGalleryBackdropId.Grid -> {
-          drawRect(Color(0xFF10131A))
-          val spacing = 24.dp.toPx()
-          var x = 0f
-          while (x <= size.width) {
-            drawLine(Color.White.copy(alpha = 0.24f), Offset(x, 0f), Offset(x, size.height), 1.dp.toPx())
-            x += spacing
-          }
-          var y = 0f
-          while (y <= size.height) {
-            drawLine(Color.White.copy(alpha = 0.24f), Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
-            y += spacing
-          }
-        }
-
-        GlassGalleryBackdropId.Typography -> drawRect(Color(0xFF0057FF))
-        GlassGalleryBackdropId.Bands -> {
-          val bandHeight = size.height / artwork.colors.size
-          artwork.colors.forEachIndexed { index, color ->
-            drawRect(color, topLeft = Offset(0f, bandHeight * index), size = Size(size.width, bandHeight))
-          }
-        }
-
-        GlassGalleryBackdropId.Uniform -> drawRect(artwork.colors.first())
+      drawRect(Brush.linearGradient(artwork.colors))
+      repeat(12) { index ->
+        val x = size.width * index / 11f
+        drawLine(
+          color = artwork.foreground.copy(alpha = 0.16f),
+          start = Offset(x, 0f),
+          end = Offset(size.width - x, size.height),
+          strokeWidth = 1.dp.toPx(),
+        )
       }
+      drawCircle(
+        color = artwork.accent.copy(alpha = 0.72f),
+        radius = size.minDimension * 0.18f,
+        center = Offset(size.width * 0.72f, size.height * 0.28f),
+      )
     }
 
-    if (backdrop == GlassGalleryBackdropId.Gallery || backdrop == GlassGalleryBackdropId.Typography) {
-      Column(
-        modifier = Modifier
-          .align(Alignment.BottomStart)
-          .padding(32.dp),
-      ) {
-        Text(
-          text = artwork.title.uppercase(),
-          color = artwork.foreground,
-          style = MaterialTheme.typography.displayMedium,
-          fontWeight = FontWeight.Black,
-        )
-        Text(
-          text = artwork.subtitle,
-          color = artwork.foreground.copy(alpha = 0.76f),
-          style = MaterialTheme.typography.titleMedium,
-        )
-      }
+    Column(
+      modifier = Modifier
+        .align(Alignment.BottomStart)
+        .padding(32.dp),
+    ) {
+      Text(
+        text = artwork.title.uppercase(),
+        color = artwork.foreground,
+        style = MaterialTheme.typography.displayMedium,
+        fontWeight = FontWeight.Black,
+      )
+      Text(
+        text = artwork.subtitle,
+        color = artwork.foreground.copy(alpha = 0.76f),
+        style = MaterialTheme.typography.titleMedium,
+      )
     }
   }
 }

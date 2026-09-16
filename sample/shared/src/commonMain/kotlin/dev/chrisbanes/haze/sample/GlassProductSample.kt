@@ -127,7 +127,6 @@ public fun GlassProductSampleContent(
         GalleryBackdrop(
           hazeState = hazeState,
           artworkIndex = page,
-          backdrop = GlassGalleryBackdropId.Gallery,
           modifier = Modifier
             .fillMaxWidth()
             .height(galleryHeight)

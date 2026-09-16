@@ -72,12 +72,16 @@ internal fun glassPlaygroundFrame(progress: Float): GlassPlaygroundFrame {
   )
 }
 
-internal fun glassPlaygroundStyle(id: GlassPlaygroundSurfaceId): GlassStyle = when (id) {
-  GlassPlaygroundSurfaceId.Lens,
-  GlassPlaygroundSurfaceId.Pill,
-  GlassPlaygroundSurfaceId.Card,
-  -> GlassStyle.regular
-  GlassPlaygroundSurfaceId.Clear -> GlassStyle.clear
+public enum class GlassPlaygroundStyle {
+  Regular,
+  Clear,
+  ;
+
+  internal val style: GlassStyle
+    get() = when (this) {
+      Regular -> GlassStyle.regular
+      Clear -> GlassStyle.clear
+    }
 }
 
 internal fun glassPlaygroundShape(id: GlassPlaygroundSurfaceId): RoundedCornerShape = when (id) {

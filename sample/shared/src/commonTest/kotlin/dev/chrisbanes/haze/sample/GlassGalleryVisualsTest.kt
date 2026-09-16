@@ -55,7 +55,6 @@ class GlassGalleryVisualsTest : ContextTest() {
         GalleryBackdrop(
           hazeState = hazeState,
           artworkIndex = 0,
-          backdrop = GlassGalleryBackdropId.Gallery,
           modifier = Modifier.fillMaxSize(),
         )
         DemoChrome(

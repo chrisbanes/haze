@@ -73,7 +73,6 @@ playback, reset, and recording controls; navigation back to the sample browser i
 | Layer Transformations | `layer-transformations` | `blur`, `glass` |
 | Glass — Product | `glass-product` | `glass` |
 | Glass — Playground | `glass-playground` | `glass` |
-| Glass — Lab | `glass-lab` | `glass` |
 
 Check a release's `sample/web/README.md` for embedding support, then pin that exact documentation
 version in the article. A query string cannot add this feature to an older release.
