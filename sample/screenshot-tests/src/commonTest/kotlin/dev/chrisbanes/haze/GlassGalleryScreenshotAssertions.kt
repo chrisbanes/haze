@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalRippleConfiguration
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -23,11 +21,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
-import dev.chrisbanes.haze.sample.GlassGalleryBackdropId
-import dev.chrisbanes.haze.sample.GlassLabScreenshotContent
-import dev.chrisbanes.haze.sample.GlassLabStyleId
 import dev.chrisbanes.haze.sample.GlassMusicPlayerSampleContent
 import dev.chrisbanes.haze.sample.GlassPlaygroundSampleContent
+import dev.chrisbanes.haze.sample.GlassPlaygroundStyle
 import dev.chrisbanes.haze.sample.GlassPlaygroundSurfaceId
 import dev.chrisbanes.haze.sample.GlassProductSampleContent
 import dev.chrisbanes.haze.sample.GlassTiltSampleContent
@@ -111,24 +107,31 @@ internal fun ScreenshotUiTest.captureGlassPlaygroundBeats() {
   captureRoot("dragged", unmatchedPixelThreshold)
 }
 
-internal fun ScreenshotUiTest.captureGlassLabStyles() {
-  var style by mutableStateOf(GlassLabStyleId.Regular)
-  var backdrop by mutableStateOf(GlassGalleryBackdropId.Gallery)
+internal fun ScreenshotUiTest.captureGlassPlaygroundStyles() {
+  var style by mutableStateOf(GlassPlaygroundStyle.Regular)
   setContent {
     GlassGalleryScreenshotTheme {
-      Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
-      ) {
-        GlassLabScreenshotContent(style = style, backdrop = backdrop)
-      }
+      GlassPlaygroundSampleContent(
+        progressProvider = { 0f },
+        dragOffsetProvider = { Offset.Zero },
+        isPlaying = false,
+        recordingMode = false,
+        selectedStyle = style,
+        onStyleSelected = { style = it },
+        onPlayPause = {},
+        onReset = {},
+        onRecordingModeChanged = {},
+        onBack = {},
+        onDragStart = {},
+        onDrag = { _, _ -> },
+        onDragEnd = {},
+      )
     }
   }
 
   waitForIdle()
   captureRoot("regular")
-  style = GlassLabStyleId.Clear
-  backdrop = GlassGalleryBackdropId.Grid
+  style = GlassPlaygroundStyle.Clear
   waitForIdle()
   captureRoot("clear")
 }

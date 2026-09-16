@@ -103,7 +103,6 @@ val CommonSamples: List<Sample> = listOf(
   Sample.LayerTransformations,
   Sample.GlassProduct,
   Sample.GlassPlayground,
-  Sample.GlassLab,
   Sample.GlassMusicPlayer,
 )
 
@@ -257,14 +256,6 @@ class Sample(
       effects = listOf(SampleEffect.Glass),
     ) { navController, _ ->
       GlassPlaygroundSample(navController = navController)
-    }
-
-    val GlassLab = Sample(
-      route = "glass-lab",
-      title = "Glass — Lab",
-      effects = listOf(SampleEffect.Glass),
-    ) { navController, _ ->
-      GlassLabSample(navController = navController)
     }
 
     val GlassMusicPlayer = Sample(

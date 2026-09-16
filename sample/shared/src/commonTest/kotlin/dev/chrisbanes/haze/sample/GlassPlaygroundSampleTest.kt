@@ -6,8 +6,10 @@ package dev.chrisbanes.haze.sample
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.IntSize
@@ -25,6 +27,38 @@ import kotlinx.coroutines.test.runTest
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
 class GlassPlaygroundSampleTest : ContextTest() {
+  @Test
+  fun styleSelector_changesStyleWithoutRestartingAutoplayAndHidesWhileRecording() = runComposeUiTest {
+    val state = GlassPlaygroundState()
+    var autoplayStartCount = 0
+    setContent {
+      GlassPlaygroundSample(
+        navController = rememberNavController(),
+        state = state,
+        runAutoplay = {
+          autoplayStartCount++
+          awaitCancellation()
+        },
+      )
+    }
+
+    onNodeWithText("Regular").assertIsSelected()
+    onNodeWithText("Clear").performClick().assertIsSelected()
+    onNodeWithText("CLEAR").assertIsDisplayed()
+    runOnIdle {
+      assertThat(state.selectedStyle).isEqualTo(GlassPlaygroundStyle.Clear)
+      assertThat(autoplayStartCount).isEqualTo(1)
+    }
+
+    onNodeWithContentDescription("Reset demo").performClick()
+    onNodeWithText("Regular").assertIsSelected()
+    onNodeWithText("REGULAR").assertIsDisplayed()
+    onNodeWithContentDescription("Enter recording mode").performClick()
+    onNodeWithText("Style").assertDoesNotExist()
+    onNodeWithText("Regular").assertDoesNotExist()
+    onNodeWithText("Clear").assertDoesNotExist()
+  }
+
   @Test
   fun draggingSurface_doesNotCancelAutoplay() = runComposeUiTest {
     val state = GlassPlaygroundState()
@@ -57,6 +91,7 @@ class GlassPlaygroundSampleTest : ContextTest() {
   fun reset_restartsAutoplayFromLoopZeroWithANewGeneration() = runTest {
     val state = GlassPlaygroundState()
     val initialGeneration = state.autoplayGeneration
+    state.selectedStyle = GlassPlaygroundStyle.Clear
 
     state.reset()
 
@@ -64,6 +99,7 @@ class GlassPlaygroundSampleTest : ContextTest() {
     assertThat(state.completedLoopCount).isEqualTo(0)
     assertThat(state.autoplayGeneration).isEqualTo(initialGeneration + 1)
     assertThat(state.isPlaying).isTrue()
+    assertThat(state.selectedStyle).isEqualTo(GlassPlaygroundStyle.Regular)
   }
 
   @Test

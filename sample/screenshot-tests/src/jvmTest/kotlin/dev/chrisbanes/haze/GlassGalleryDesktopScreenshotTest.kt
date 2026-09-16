@@ -32,7 +32,7 @@ class GlassGalleryDesktopScreenshotTest : ScreenshotTest() {
 
   @Test fun playgroundBeats() = runScreenshotTest { captureGlassPlaygroundBeats() }
 
-  @Test fun labStyles() = runScreenshotTest { captureGlassLabStyles() }
+  @Test fun playgroundStyles() = runScreenshotTest { captureGlassPlaygroundStyles() }
 
   @Test
   @OptIn(ExperimentalCoilApi::class)

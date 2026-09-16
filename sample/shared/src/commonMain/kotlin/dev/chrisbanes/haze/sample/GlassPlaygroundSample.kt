@@ -14,11 +14,17 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -76,6 +82,8 @@ internal class GlassPlaygroundState(
   private val dragOffsets = mutableStateMapOf<GlassPlaygroundSurfaceId, Offset>()
   private val frozenProgress = mutableStateMapOf<GlassPlaygroundSurfaceId, Float>()
   private val returnFractions = mutableStateMapOf<GlassPlaygroundSurfaceId, Float>()
+
+  var selectedStyle by mutableStateOf(GlassPlaygroundStyle.Regular)
 
   var isPlaying by mutableStateOf(true)
     private set
@@ -154,6 +162,7 @@ internal class GlassPlaygroundState(
     progressAnimation.snapTo(0f)
     completedLoopCount = 0
     isPlaying = true
+    selectedStyle = GlassPlaygroundStyle.Regular
     recordingMode = false
     autoplayGeneration++
   }
@@ -200,6 +209,8 @@ internal fun GlassPlaygroundSample(
     dragOffsetProvider = state::dragOffset,
     surfaceProgressProvider = state::surfaceProgress,
     returnFractionProvider = state::returnFraction,
+    selectedStyle = state.selectedStyle,
+    onStyleSelected = { state.selectedStyle = it },
     isPlaying = state.isPlaying,
     recordingMode = state.recordingMode,
     completedLoopCount = state.completedLoopCount,
@@ -237,6 +248,8 @@ public fun GlassPlaygroundSampleContent(
   onDragStart: (GlassPlaygroundSurfaceId) -> Unit,
   onDrag: (GlassPlaygroundSurfaceId, Offset) -> Unit,
   onDragEnd: (GlassPlaygroundSurfaceId) -> Unit,
+  selectedStyle: GlassPlaygroundStyle = GlassPlaygroundStyle.Regular,
+  onStyleSelected: (GlassPlaygroundStyle) -> Unit = {},
   interactionSourceProvider: (GlassPlaygroundSurfaceId) -> InteractionSource? = { null },
   surfaceProgressProvider: (GlassPlaygroundSurfaceId) -> Float = { progressProvider() },
   returnFractionProvider: (GlassPlaygroundSurfaceId) -> Float = { id ->
@@ -253,7 +266,6 @@ public fun GlassPlaygroundSampleContent(
     GalleryBackdrop(
       hazeState = hazeState,
       artworkIndex = 0,
-      backdrop = GlassGalleryBackdropId.Gallery,
       offsetProvider = { glassPlaygroundFrame(progressProvider()).backdropOffset },
       horizontalOverscanFraction = 0.08f,
       modifier = Modifier
@@ -266,6 +278,7 @@ public fun GlassPlaygroundSampleContent(
     )
 
     PlaygroundSurfaceScene(
+      selectedStyle = selectedStyle,
       hazeState = hazeState,
       progressProvider = progressProvider,
       dragOffsetProvider = dragOffsetProvider,
@@ -283,20 +296,39 @@ public fun GlassPlaygroundSampleContent(
       visible = !recordingMode,
       modifier = Modifier.align(Alignment.TopStart).padding(24.dp),
     ) {
-      DemoChrome(
-        hazeState = hazeState,
-        onBack = onBack,
-        onEnterRecordingMode = { onRecordingModeChanged(true) },
-        isPlaying = isPlaying,
-        onPlayPause = onPlayPause,
-        onReset = onReset,
-      )
+      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        DemoChrome(
+          hazeState = hazeState,
+          onBack = onBack,
+          onEnterRecordingMode = { onRecordingModeChanged(true) },
+          isPlaying = isPlaying,
+          onPlayPause = onPlayPause,
+          onReset = onReset,
+        )
+        Surface(shape = RoundedCornerShape(24.dp)) {
+          Row(
+            modifier = Modifier.padding(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+          ) {
+            Text("Style")
+            GlassPlaygroundStyle.entries.forEach { style ->
+              FilterChip(
+                selected = selectedStyle == style,
+                onClick = { onStyleSelected(style) },
+                label = { Text(style.name) },
+              )
+            }
+          }
+        }
+      }
     }
   }
 }
 
 @Composable
 private fun PlaygroundSurfaceScene(
+  selectedStyle: GlassPlaygroundStyle,
   hazeState: HazeState,
   progressProvider: () -> Float,
   dragOffsetProvider: (GlassPlaygroundSurfaceId) -> Offset,
@@ -315,6 +347,7 @@ private fun PlaygroundSurfaceScene(
       GlassPlaygroundSurfaceId.entries.forEach { id ->
         PlaygroundSurface(
           id = id,
+          selectedStyle = selectedStyle,
           hazeState = hazeState,
           progressProvider = progressProvider,
           surfaceProgressProvider = surfaceProgressProvider,
@@ -393,6 +426,7 @@ internal fun resolvePlaygroundSurfaceLightPosition(
 @Composable
 private fun PlaygroundSurface(
   id: GlassPlaygroundSurfaceId,
+  selectedStyle: GlassPlaygroundStyle,
   hazeState: HazeState,
   progressProvider: () -> Float,
   surfaceProgressProvider: (GlassPlaygroundSurfaceId) -> Float,
@@ -411,7 +445,7 @@ private fun PlaygroundSurface(
   }
   val interactionSource = interactionSourceProvider(id)
   var lightPosition by remember(id) { mutableStateOf<Alignment>(Alignment.Center) }
-  val style = glassPlaygroundStyle(id).material3().then {
+  val style = selectedStyle.style.material3().then {
     shape(glassPlaygroundShape(id))
     lightPosition(lightPosition)
   }.then(playgroundInteractionStyle())
@@ -476,7 +510,7 @@ private fun PlaygroundSurface(
   ) {
     when (id) {
       GlassPlaygroundSurfaceId.Card -> SurfaceLabel("DEPTH")
-      GlassPlaygroundSurfaceId.Clear -> SurfaceLabel("CLEAR")
+      GlassPlaygroundSurfaceId.Clear -> SurfaceLabel(selectedStyle.name.uppercase())
       GlassPlaygroundSurfaceId.Lens,
       GlassPlaygroundSurfaceId.Pill,
       -> Unit
