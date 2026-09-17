@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.util.lerp
 import dev.chrisbanes.haze.HazeProgressive
 import kotlin.math.abs
-import kotlin.math.roundToInt
 
 private const val MAX_REFRACTION_DISPLACEMENT_PX = 16_384f
 
@@ -116,6 +115,8 @@ internal data class ResolvedGlassOptics(
   val blurRadiusPx: Float,
   val progressive: HazeProgressive?,
   val refractionDetailIntensity: Float,
+  /** Negative selects Surface; zero disables Edge refraction. */
+  val edgeRefractionWidthPx: Float = -1f,
 )
 
 internal fun resolveGlassOptics(
@@ -126,6 +127,13 @@ internal fun resolveGlassOptics(
   val shortestSide = materialSizePx.shortestSideDpOrNull(density)
   val authoredBlurRadius = resolveSizeValue(optics.blurRadius, shortestSide, ::lerpDpValue)
   val resolvedBlurRadiusPx = effectiveSemanticBlurRadiusPx(with(density) { authoredBlurRadius.toPx() })
+    .coerceAtMost(
+      if (optics.progressive == null) {
+        SemanticBlurKernel.MAX_SUPPORTED_RADIUS_PX
+      } else {
+        SemanticBlurKernel.MAX_PROGRESSIVE_RADIUS_PX
+      },
+    )
   val refractionScalePx = with(density) { optics.refractionDisplacement.toPx() }
   val validShortestSidePx = materialSizePx.minDimension.takeIf { it.isFinite() && it > 0f } ?: 0f
   return ResolvedGlassOptics(
@@ -140,6 +148,12 @@ internal fun resolveGlassOptics(
     blurRadiusPx = resolvedBlurRadiusPx,
     progressive = optics.progressive,
     refractionDetailIntensity = optics.refractionDetailIntensity,
+    edgeRefractionWidthPx = when (val profile = optics.refractionProfile) {
+      RefractionProfile.Surface -> -1f
+      is RefractionProfile.Edge -> with(density) { profile.width.toPx() }
+        .coerceIn(0f, MAX_REFRACTION_DISPLACEMENT_PX)
+        .finiteOrZero()
+    },
   )
 }
 
@@ -214,6 +228,8 @@ internal data class GlassRenderParams(
   val lightPosition: Offset,
   val sampleStepPx: Float,
   val refractionDetailIntensity: Float = GLASS_REFRACTION_DETAIL_INTENSITY,
+  /** Negative selects Surface; zero disables Edge refraction. */
+  val edgeRefractionWidthPx: Float = -1f,
 )
 
 internal data class GlassBlurEffectKey(
@@ -231,18 +247,14 @@ internal fun GlassRenderParams.blurEffectKey(): GlassBlurEffectKey {
     sampleHeight = sampleSize.height.coerceAtLeast(1),
     effectiveRadiusPx = blurRadiusPx,
     sigmaPx = blurSigmaPx,
-    allowMultiscale = progressive == null,
+    allowNativeWideBlur = progressive == null,
   )
   return GlassBlurEffectKey(
     plan = plan,
     progressive = progressive,
-    maskOrigin = if (progressive != null) coordinates.materialOrigin * plan.scaleFactor else Offset.Zero,
+    maskOrigin = if (progressive != null) coordinates.materialOrigin else Offset.Zero,
     maskSize = if (progressive != null) coordinates.materialSize / coordinates.scaleFactor else Size.Zero,
-    maskCoordinateScale = if (progressive != null) {
-      1f / (coordinates.scaleFactor * plan.scaleFactor)
-    } else {
-      1f
-    },
+    maskCoordinateScale = if (progressive != null) 1f / coordinates.scaleFactor else 1f,
   )
 }
 
@@ -265,6 +277,8 @@ internal data class GlassOpticalEffectKey(
   val fresnelExponent: Float,
   val cornerRadii: CornerRadii,
   val sampleStepPx: Float,
+  /** Negative selects Surface; zero disables Edge refraction. */
+  val edgeRefractionWidthPx: Float = -1f,
 )
 
 internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
@@ -286,6 +300,7 @@ internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
   fresnelExponent = fresnelExponent,
   cornerRadii = cornerRadii,
   sampleStepPx = sampleStepPx,
+  edgeRefractionWidthPx = edgeRefractionWidthPx,
 )
 
 internal data class GlassRefractionDetailEffectKey(
@@ -303,6 +318,8 @@ internal data class GlassRefractionDetailEffectKey(
   val detailWidthPx: Float,
   val detailIntensity: Float,
   val detailVisibility: Float,
+  /** Negative selects Surface; zero disables Edge refraction. */
+  val edgeRefractionWidthPx: Float = -1f,
 )
 
 internal fun GlassRenderParams.refractionDetailEffectKey(
@@ -319,8 +336,9 @@ internal fun GlassRenderParams.refractionDetailEffectKey(
   surfaceProfile = surfaceProfile,
   edgeSoftnessPx = edgeSoftnessPx,
   cornerRadii = cornerRadii,
+  edgeRefractionWidthPx = edgeRefractionWidthPx,
   detailWidthPx = calculateRefractionDetailWidthPx(
-    refractionHeightPx = refractionHeightPx,
+    refractionHeightPx = refractionWidthPx,
     edgeSoftnessPx = edgeSoftnessPx,
     sampleStepPx = sampleStepPx,
   ),
@@ -338,6 +356,9 @@ internal fun GlassRenderParams.activeRefractionDetailEffectKey(
   key.refractionStrength > 0f && key.refractionScalePx > 0f &&
     key.detailWidthPx > 0f && key.detailIntensity * key.detailVisibility > 1f / 255f
 }
+
+private val GlassRenderParams.refractionWidthPx: Float
+  get() = if (edgeRefractionWidthPx >= 0f) edgeRefractionWidthPx else refractionHeightPx
 
 private const val GLASS_REFRACTION_DETAIL_INTENSITY = 0.76f
 
@@ -599,6 +620,11 @@ internal fun buildGlassRenderParams(
     lightPosition = style.lightPosition * scaleFactor,
     sampleStepPx = 2f * scaleFactor,
     refractionDetailIntensity = resolvedOptics.refractionDetailIntensity,
+    edgeRefractionWidthPx = if (resolvedOptics.edgeRefractionWidthPx >= 0f) {
+      resolvedOptics.edgeRefractionWidthPx * scaleFactor
+    } else {
+      -1f
+    },
   )
 }
 
@@ -622,8 +648,8 @@ internal fun buildGlassRetainedLayerPlan(
   val interactionLayersActive = interactionPatchSize.width > 0 && interactionPatchSize.height > 0
   return buildGlassRetainedLayerPlan(
     sampleSize = sampleSize,
-    blurWorkingSize = blurPlan?.workingSize,
-    blurRequiresPrefilter = blurPlan?.requiresPrefilter == true,
+    blurActive = blurPlan != null,
+    nativeBlurActive = blurPlan?.usesNativeWideBlur == true,
     depthMixActive = blurActive && params.depth < 1f,
     refractionDetailActive = params.isRefractionDetailActive(),
     rimActive = params.specularIntensity > 0f || params.edgeShadow.alpha > 0f,
@@ -639,7 +665,7 @@ internal fun buildGlassBudgetLayerPlan(
   groupCompositeSize: IntSize? = null,
   blurRadiusPx: Float,
   depth: Float,
-  allowMultiscaleBlur: Boolean,
+  allowNativeWideBlur: Boolean,
   refractionDetailActive: Boolean,
   rimActive: Boolean,
   interactionPatchSize: IntSize = sampleSize,
@@ -658,26 +684,12 @@ internal fun buildGlassBudgetLayerPlan(
     )
   }
   val blurActive = depth > 0f && blurRadiusPx > 0f
-  val blurScale = if (
-    blurActive && allowMultiscaleBlur &&
-    blurRadiusPx > SemanticBlurPlan.DOWNSAMPLE_RADIUS_THRESHOLD_PX
-  ) {
-    0.5f
-  } else {
-    1f
-  }
-  val blurWorkingSize = if (blurActive) {
-    IntSize(
-      width = (sampleSize.width * blurScale).roundToInt().coerceAtLeast(1),
-      height = (sampleSize.height * blurScale).roundToInt().coerceAtLeast(1),
-    )
-  } else {
-    null
-  }
+  val nativeBlurActive = blurActive && allowNativeWideBlur &&
+    effectiveSemanticBlurRadiusPx(blurRadiusPx) > SemanticBlurPlan.NATIVE_BLUR_RADIUS_THRESHOLD_PX
   return buildGlassRetainedLayerPlan(
     sampleSize = sampleSize,
-    blurWorkingSize = blurWorkingSize,
-    blurRequiresPrefilter = blurActive && blurScale < 1f,
+    blurActive = blurActive,
+    nativeBlurActive = nativeBlurActive,
     depthMixActive = blurActive && depth < 1f,
     refractionDetailActive = refractionDetailActive,
     rimActive = rimActive,
@@ -709,8 +721,8 @@ internal fun buildGlassBackdropLayerPlan(
 
 private fun buildGlassRetainedLayerPlan(
   sampleSize: IntSize,
-  blurWorkingSize: IntSize?,
-  blurRequiresPrefilter: Boolean,
+  blurActive: Boolean,
+  nativeBlurActive: Boolean,
   depthMixActive: Boolean,
   refractionDetailActive: Boolean,
   rimActive: Boolean,
@@ -721,12 +733,16 @@ private fun buildGlassRetainedLayerPlan(
 ): GlassRetainedLayerPlan = GlassRetainedLayerPlan(
   buildList {
     add(GlassRetainedLayer(GlassRetainedLayerKind.Source, sampleSize))
-    if (blurWorkingSize != null) {
-      if (blurRequiresPrefilter) {
-        add(GlassRetainedLayer(GlassRetainedLayerKind.BlurPrefilter, sampleSize))
+    if (blurActive) {
+      if (!nativeBlurActive) {
+        add(GlassRetainedLayer(GlassRetainedLayerKind.BlurHorizontal, sampleSize))
       }
-      add(GlassRetainedLayer(GlassRetainedLayerKind.BlurHorizontal, blurWorkingSize))
-      add(GlassRetainedLayer(GlassRetainedLayerKind.Blurred, blurWorkingSize))
+      add(
+        GlassRetainedLayer(
+          GlassRetainedLayerKind.Blurred,
+          sampleSize,
+        ),
+      )
       if (depthMixActive) {
         add(GlassRetainedLayer(GlassRetainedLayerKind.DepthMixed, sampleSize))
       }
@@ -783,7 +799,7 @@ private fun buildGlassFusedLayerPlan(
 private fun GlassRenderParams.isRefractionDetailActive(): Boolean = isGlassRefractionDetailActive(
   refractionStrength = refractionStrength,
   refractionScalePx = refractionScalePx,
-  refractionHeightPx = refractionHeightPx,
+  refractionHeightPx = refractionWidthPx,
   edgeSoftnessPx = edgeSoftnessPx,
   sampleStepPx = sampleStepPx,
   detailIntensity = refractionDetailIntensity,
@@ -921,8 +937,8 @@ internal fun buildGlassPreparedRender(
     } else {
       buildGlassRetainedLayerPlan(
         sampleSize = params.coordinates.sampleSize.roundToIntSize(),
-        blurWorkingSize = blurKey?.plan?.workingSize,
-        blurRequiresPrefilter = blurKey?.plan?.requiresPrefilter == true,
+        blurActive = blurKey != null,
+        nativeBlurActive = blurKey?.plan?.usesNativeWideBlur == true,
         depthMixActive = blurKey != null && params.depth < 1f,
         refractionDetailActive = refractionDetailKey != null,
         rimActive = rimKey != null,
@@ -962,6 +978,7 @@ private fun GlassRenderParams.hasSameOpticalEffectInputs(other: GlassRenderParam
     tint == other.tint &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
     refractionHeightPx == other.refractionHeightPx &&
+    edgeRefractionWidthPx == other.edgeRefractionWidthPx &&
     chromaticAberrationStrength == other.chromaticAberrationStrength &&
     surfaceProfile == other.surfaceProfile &&
     chromaticAberrationMode == other.chromaticAberrationMode &&
@@ -982,6 +999,7 @@ private fun GlassRenderParams.hasSameRefractionDetailEffectInputs(
     refractionStrength == other.refractionStrength &&
     refractionFoldStrength == other.refractionFoldStrength &&
     refractionHeightPx == other.refractionHeightPx &&
+    edgeRefractionWidthPx == other.edgeRefractionWidthPx &&
     refractionScalePx == other.refractionScalePx &&
     surfaceProfile == other.surfaceProfile &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
@@ -1008,8 +1026,7 @@ private fun GlassPreparedRender.hasSameRetainedLayerPlanInputs(
   groupCompositeSize: IntSize?,
 ): Boolean =
   this.params.coordinates.sampleSize == params.coordinates.sampleSize &&
-    this.blurKey?.plan?.workingSize == blurKey?.plan?.workingSize &&
-    this.blurKey?.plan?.requiresPrefilter == blurKey?.plan?.requiresPrefilter &&
+    this.blurKey?.plan?.usesNativeWideBlur == blurKey?.plan?.usesNativeWideBlur &&
     (this.blurKey != null && this.params.depth < 1f) ==
     (blurKey != null && params.depth < 1f) &&
     (this.refractionDetailKey != null) == (refractionDetailKey != null) &&

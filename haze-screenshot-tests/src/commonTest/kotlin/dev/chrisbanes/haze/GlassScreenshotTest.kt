@@ -260,7 +260,7 @@ class GlassScreenshotTest : ScreenshotTest() {
   }
 
   @Test
-  fun creditCard_blurRadiusCapIsStableAcrossDensities() = runScreenshotTest {
+  fun creditCard_blurRadiusCapIsStableWhenSourceRadiusMatchesAcrossDensities() = runScreenshotTest {
     // Android <33 uses the fallback delegate, which intentionally has no semantic blur.
     if (!isRuntimeShaderRenderEffectSupported()) return@runScreenshotTest
 
@@ -300,7 +300,7 @@ class GlassScreenshotTest : ScreenshotTest() {
     val zeroBlurPixels = captureRootPixels().snapshot()
 
     style = style.then {
-      optics(refractionStrength = 0f, depth = 1f, blurRadius = 100.dp)
+      optics(refractionStrength = 0f, depth = 1f, blurRadius = 300.dp)
     }
     waitForIdle()
     val densityOnePixels = captureRootPixels().snapshot()
@@ -311,12 +311,15 @@ class GlassScreenshotTest : ScreenshotTest() {
     ).isGreaterThan(0.01f)
 
     density = Density(3f)
+    style = style.then {
+      optics(refractionStrength = 0f, depth = 1f, blurRadius = 100.dp)
+    }
     waitForIdle()
     val densityThreePixels = captureRootPixels().snapshot()
 
     assertThat(
       densityOnePixels.changedPixelRatio(densityThreePixels),
-      "above-cap blur changed pixel ratio across densities",
+      "same above-cap source blur changed pixel ratio across densities",
     ).isLessThanOrEqualTo(0.001f)
   }
 

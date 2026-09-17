@@ -71,18 +71,12 @@ public sealed interface GlassStyle {
 
     internal val clearOptics: GlassOptics = GlassOptics(
       refractionStrength = 0.85f,
-      refractionHeightFraction = 0.22f,
-      refractionDisplacement = 18.dp,
-      depth = OpticalSizeValue.Responsive(
-        OpticalSizePoint(64.dp, 0.1f),
-        OpticalSizePoint(176.dp, 0.32f),
-        OpticalSizePoint(220.dp, 0.52f),
-      ),
-      blurRadius = OpticalSizeValue.Responsive(
-        OpticalSizePoint(64.dp, 2.dp),
-        OpticalSizePoint(176.dp, 6.dp),
-        OpticalSizePoint(220.dp, 8.dp),
-      ),
+      refractionHeightFraction = 0.35f,
+      refractionDisplacement = 56.dp,
+      refractionProfile = RefractionProfile.Edge(28.dp),
+      // Clear keeps a shallow diffusion layer at every size, without a sharp-source overlay.
+      depth = OpticalSizeValue.Fixed(1f),
+      blurRadius = OpticalSizeValue.Fixed(1.25.dp),
       refractionDetailIntensity = 0.76f,
     )
 
@@ -113,7 +107,7 @@ public sealed interface GlassStyle {
     /**
      * A built-in Glass style that prioritizes visibility of content behind the material.
      *
-     * Its blur and depth adapt to the material's shortest side while its authored refraction and
+     * Its shallow blur stays constant across material sizes while its authored refraction and
      * distinct edge and lighting response remain recognizable when a renderer simplifies advanced
      * optical effects. It writes the complete material response while preserving separately composed
      * shape, background colour, tint, alpha, light position, and interaction presentation.
@@ -128,7 +122,7 @@ public sealed interface GlassStyle {
       surfaceProfile(SurfaceProfile.Circle)
       chromaticAberrationMode(ChromaticAberrationMode.Simple)
       contrast(0.08f)
-      whitePoint(0.02f)
+      whitePoint(0.17f)
       chromaMultiplier(1.05f)
       contentNormalBlend(0.1f)
       specularExponent(16f)
@@ -254,6 +248,7 @@ public class GlassStyleScope internal constructor(
     progressive: HazeProgressive? = null,
     refractionFoldStrength: Float = 0f,
     refractionDetailIntensity: Float = 0.76f,
+    refractionProfile: RefractionProfile = RefractionProfile.Surface,
   ) {
     optics(
       GlassOptics(
@@ -265,6 +260,7 @@ public class GlassStyleScope internal constructor(
         progressive = progressive,
         refractionFoldStrength = refractionFoldStrength,
         refractionDetailIntensity = refractionDetailIntensity,
+        refractionProfile = refractionProfile,
       ),
     )
   }
@@ -358,7 +354,10 @@ public class GlassStyleScope internal constructor(
     writes += { chromaticAberrationStrength = validated }
   }
 
-  /** Sets the cross-section profile used by the refraction bezel. */
+  /**
+   * Sets the surface cross-section used for lighting and [RefractionProfile.Surface] refraction.
+   * [RefractionProfile.Edge] authors its sampling response independently.
+   */
   public fun surfaceProfile(profile: SurfaceProfile) {
     writes += { surfaceProfile = profile }
   }

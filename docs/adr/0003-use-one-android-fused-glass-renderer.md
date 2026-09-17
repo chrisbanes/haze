@@ -37,7 +37,8 @@ feeds that capture into one retained output layer backed by a composed `RenderEf
 “Fused” describes that single output renderer, not one monolithic shader or a single retained
 layer. The graph performs:
 
-1. The existing semantic horizontal and vertical blur kernels.
+1. Semantic horizontal and vertical blur kernels for small or progressive blur, and a native
+   Gaussian node for wide uniform blur (the correctness revision described below).
 2. Sharp-to-blurred depth mixing.
 3. A RuntimeShader for refraction, Simple or Full chromatic aberration, tint, tone, Fresnel
    response, and shape masking.
@@ -45,10 +46,9 @@ layer. The graph performs:
    the detail branch's geometric coverage, then the sharp detail is combined with premultiplied
    `Plus`.
 
-The blur shaders are chained directly into the output effect instead of rasterizing intermediate
-graphics layers. Large blur plans include bounded low-pass prefilters that reproduce the retained
-half-resolution response without retaining a half-resolution surface. Progressive blur uses the
-same caller mask and semantic two-pass kernels as the retained renderer. Full chromatic aberration
+The blur stage is chained directly into the output effect instead of rasterizing intermediate
+graphics layers. Progressive blur uses the same caller mask and semantic two-pass kernels as the
+retained renderer. Full chromatic aberration
 uses the same seven-position spectral reconstruction. The optical and detail branches are
 driver-managed nodes in one native effect DAG; they do not allocate additional retained
 intermediate graphics layers.
@@ -96,6 +96,13 @@ increased `QueueSubmit`, `flush commands`, and `Vulkan finish frame` time enough
 benchmark. The selected graph instead composes the existing RuntimeShader semantic kernels and a
 premultiplied-safe depth blend.
 
+The [Regular calibration in ADR-0007](0007-export-regular-and-clear-as-built-in-glass-styles.md#regular-refraction-and-wide-diffusion-calibration-2026-09-16)
+introduces a narrow correctness exception: wide uniform blur uses a native Gaussian node inside
+the same fused output graph. Host pixel tests exposed clipped sampling bounds in the custom blur
+path, leaving a sharp frame around the material. Native filtering removes that frame. Small-radius
+and progressive blur retain semantic kernels. The earlier performance result still applies to
+the measured alternative; this wide-blur change needs separate physical-device measurement.
+
 ### Lower capture resolution
 
 This reduces fragment work, but the profiled bottleneck was pass and submission count. A 0.5 input
@@ -114,8 +121,9 @@ into the fused shader recorded a 10.9 ms CPU P90 and a -1.2 ms frame-overrun P90
 
 - Android retains a source capture and one fused Glass output renderer; common code still owns
   their lifetime, retained-output behavior, and fallbacks.
-- Non-progressive and progressive blur retain the semantic two-pass kernel response. Large
-  non-progressive plans reproduce downsample low-pass energy inside the composed graph.
+- Small uniform and progressive blur retain the semantic two-pass kernel response. Wide uniform
+  blur uses a native Gaussian node in the composed graph rather than reproducing downsample
+  low-pass energy in semantic kernels.
 - Progressive blur and Full chromatic aberration increase graph or shader sampling cost. Their one-
   and nine-effect scenarios must be profiled on physical devices as the implementation evolves.
 - New Android RuntimeShader features must be implemented through this renderer. Silent partial

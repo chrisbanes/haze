@@ -172,7 +172,6 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   fun singleStandardBlur_usesFusedBaseRenderer() =
     assertFusedRenderer(retainedBlurEffect()) { delegate ->
       assertThat(delegate.layers.hasDepthMixed).isFalse()
-      assertThat(delegate.layers.hasBlurPrefiltered).isFalse()
       assertThat(delegate.layers.hasBlurHorizontal).isFalse()
       assertThat(delegate.layers.hasBlurred).isFalse()
       assertThat(delegate.blurHorizontalShader).isNull()
@@ -262,7 +261,6 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       }
       delegates.forEach { delegate ->
         assertThat(delegate.fusedShader).isNotNull()
-        assertThat(delegate.layers.blurPrefiltered).isNull()
         assertThat(delegate.layers.blurHorizontal).isNull()
         assertThat(delegate.layers.blurred).isNull()
         assertThat(delegate.layers.depthMixed).isNull()

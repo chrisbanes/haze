@@ -6,7 +6,6 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.ui.unit.IntSize
 import kotlin.math.ceil
 import kotlin.math.exp
-import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /** A bounded, positive half-kernel; every tap is sampled at both signs. */
@@ -25,7 +24,15 @@ internal data class SemanticBlurKernel(
   companion object {
     /** At most 41 samples per pass (center + 20 symmetric pairs). */
     const val MAX_TAP_PAIRS: Int = 20
-    const val MAX_SUPPORTED_RADIUS_PX: Float = 38.5f
+
+    /**
+     * Source-space bound for non-progressive blur. Radii beyond the semantic-kernel threshold
+     * use the platform Gaussian blur implementation.
+     */
+    const val MAX_SUPPORTED_RADIUS_PX: Float = 256f
+
+    /** Progressive blur has no matching source-space low-pass, so it keeps the legacy limit. */
+    const val MAX_PROGRESSIVE_RADIUS_PX: Float = 38.5f
 
     private const val SIGMA_SUPPORT: Float = 3f
     private const val MAX_INTEGRATION_SAMPLES_PER_TAP: Int = 8
@@ -94,25 +101,23 @@ internal data class SemanticBlurKernel(
 
 internal data class SemanticBlurPlan(
   val sampleSize: IntSize,
-  val workingSize: IntSize,
   val effectiveRadiusPx: Float,
   val sigmaPx: Float,
-  val scaleFactor: Float,
-  val resamplingVariancePx2: Float,
+  val usesNativeWideBlur: Boolean,
   val horizontalKernel: SemanticBlurKernel,
   val verticalKernel: SemanticBlurKernel,
 ) {
-  val isIdentity: Boolean get() = horizontalKernel.taps.isEmpty() && verticalKernel.taps.isEmpty()
-  val requiresPrefilter: Boolean get() = scaleFactor < 1f
+  val isIdentity: Boolean
+    get() = !usesNativeWideBlur && horizontalKernel.taps.isEmpty() && verticalKernel.taps.isEmpty()
 
   companion object {
-    const val DOWNSAMPLE_RADIUS_THRESHOLD_PX: Float =
-      (SemanticBlurKernel.MAX_TAP_PAIRS * 2f / 3f - 0.5f) / 0.57735f
+    // Keep the accepted shallow semantic response; larger uniform filters need native sample bounds.
+    const val NATIVE_BLUR_RADIUS_THRESHOLD_PX: Float = 4f
 
     fun create(sampleWidth: Int, sampleHeight: Int, radiusPx: Float): SemanticBlurPlan {
       val effectiveRadius = effectiveSemanticBlurRadiusPx(radiusPx)
       val sigma = if (effectiveRadius > 0f) SemanticBlurKernel.radiusToSigma(effectiveRadius) else 0f
-      return createForSigma(sampleWidth, sampleHeight, effectiveRadius, sigma)
+      return createForSigma(sampleWidth, sampleHeight, effectiveRadius, sigma, allowNativeWideBlur = true)
     }
 
     fun createForSigma(
@@ -120,49 +125,38 @@ internal data class SemanticBlurPlan(
       sampleHeight: Int,
       effectiveRadiusPx: Float,
       sigmaPx: Float,
-      allowMultiscale: Boolean = true,
+      allowNativeWideBlur: Boolean = true,
     ): SemanticBlurPlan {
       require(sampleWidth > 0 && sampleHeight > 0)
-      // The explicit source-space low-pass makes this deterministic power-of-two decimation safe.
-      val scale = if (allowMultiscale && effectiveRadiusPx > DOWNSAMPLE_RADIUS_THRESHOLD_PX) {
-        0.5f
+      val safeRadius = effectiveRadiusPx.takeIf { it.isFinite() }
+        ?.coerceIn(
+          0f,
+          if (allowNativeWideBlur) {
+            SemanticBlurKernel.MAX_SUPPORTED_RADIUS_PX
+          } else {
+            SemanticBlurKernel.MAX_PROGRESSIVE_RADIUS_PX
+          },
+        )
+        ?: 0f
+      val safeSigma = if (safeRadius == effectiveRadiusPx) {
+        sigmaPx.takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f
       } else {
-        1f
+        SemanticBlurKernel.radiusToSigma(safeRadius)
       }
-      val resamplingVariance = if (scale < 1f) SemanticBlurPrefilter.TOTAL_VARIANCE_PX2 else 0f
-      val workingSize = IntSize(
-        width = (sampleWidth * scale).roundToInt().coerceAtLeast(1),
-        height = (sampleHeight * scale).roundToInt().coerceAtLeast(1),
-      )
-      val residualSigma = sqrt(
-        (sigmaPx * sigmaPx - resamplingVariance).coerceAtLeast(0f),
-      )
-      val kernel = SemanticBlurKernel.createForSigma(residualSigma * scale)
+      val usesNativeWideBlur = allowNativeWideBlur && safeRadius > NATIVE_BLUR_RADIUS_THRESHOLD_PX
+      val kernel = if (usesNativeWideBlur) {
+        SemanticBlurKernel(1f, emptyList())
+      } else {
+        SemanticBlurKernel.createForSigma(safeSigma)
+      }
       return SemanticBlurPlan(
         sampleSize = IntSize(sampleWidth, sampleHeight),
-        workingSize = workingSize,
-        effectiveRadiusPx = effectiveRadiusPx,
-        sigmaPx = sigmaPx,
-        scaleFactor = scale,
-        resamplingVariancePx2 = resamplingVariance,
+        effectiveRadiusPx = safeRadius,
+        sigmaPx = safeSigma,
+        usesNativeWideBlur = usesNativeWideBlur,
         horizontalKernel = kernel,
         verticalKernel = kernel,
       )
     }
   }
-}
-
-internal object SemanticBlurPrefilter {
-  /** Variance per axis of the explicit [1, 2, 1] / 4 source-space kernel. */
-  const val FILTER_VARIANCE_PX2: Float = 0.5f
-
-  /** Variance per axis of the exact 2:1 bilinear center sampling that follows the prefilter. */
-  const val BILINEAR_VARIANCE_PX2: Float = 0.25f
-
-  const val TOTAL_VARIANCE_PX2: Float = FILTER_VARIANCE_PX2 + BILINEAR_VARIANCE_PX2
-
-  fun transfer(frequencyRadiansPerPx: Float): Float =
-    kotlin.math.cos(frequencyRadiansPerPx * 0.5f).let { halfFrequencyCosine ->
-      halfFrequencyCosine * halfFrequencyCosine * halfFrequencyCosine
-    }
 }

@@ -13,7 +13,6 @@ private const val GLASS_BUDGET_SEARCH_ITERATIONS: Int = 16
 
 internal enum class GlassRetainedLayerKind {
   Source,
-  BlurPrefilter,
   BlurHorizontal,
   Blurred,
   DepthMixed,
@@ -100,67 +99,53 @@ internal fun resolveGlassRenderBudget(
   val minimumScale = minOf(requestedScale, MIN_AUTOMATIC_GLASS_INPUT_SCALE)
   val minimumPlan = buildPlan(minimumScale)
 
-  val crossesBlurDownsampleThreshold =
-    !minimumPlan.hasBlurPrefilter() && resolvedRequestedPlan.hasBlurPrefilter()
-  if (!crossesBlurDownsampleThreshold) {
-    return searchSafeScaleInterval(
-      safeScale = minimumScale,
-      safePlan = minimumPlan,
-      unsafeScale = requestedScale,
-      unsafePlan = resolvedRequestedPlan,
-      buildPlan = buildPlan,
-    ) ?: minimumPlan.fallbackDecision()
+  // Uniform blur changes once, from the full semantic layer pair to a native Gaussian output.
+  // Search each side separately because layer count makes the overall budget non-monotone.
+  val decisions = if (minimumPlan.blurTopology() == resolvedRequestedPlan.blurTopology()) {
+    listOf(
+      searchSafeScaleInterval(minimumScale, minimumPlan, requestedScale, resolvedRequestedPlan, buildPlan),
+    )
+  } else {
+    val transition = findBlurTopologyTransition(
+      minimumScale,
+      minimumPlan,
+      requestedScale,
+      resolvedRequestedPlan,
+      buildPlan,
+    )
+    listOf(
+      searchSafeScaleInterval(minimumScale, minimumPlan, transition.belowScale, transition.belowPlan, buildPlan),
+      searchSafeScaleInterval(transition.aboveScale, transition.abovePlan, requestedScale, resolvedRequestedPlan, buildPlan),
+    )
   }
-
-  val transition = findBlurPrefilterTransition(
-    belowScale = minimumScale,
-    belowPlan = minimumPlan,
-    aboveScale = requestedScale,
-    abovePlan = resolvedRequestedPlan,
-    buildPlan = buildPlan,
-  )
-
-  val belowDecision = searchSafeScaleInterval(
-    safeScale = minimumScale,
-    safePlan = minimumPlan,
-    unsafeScale = transition.belowScale,
-    unsafePlan = transition.belowPlan,
-    buildPlan = buildPlan,
-  )
-  val aboveDecision = searchSafeScaleInterval(
-    safeScale = transition.aboveScale,
-    safePlan = transition.abovePlan,
-    unsafeScale = requestedScale,
-    unsafePlan = resolvedRequestedPlan,
-    buildPlan = buildPlan,
-  )
-  return listOfNotNull(belowDecision, aboveDecision)
+  return decisions.filterNotNull()
     .maxByOrNull { it.scaleFactor }
     ?: minimumPlan.fallbackDecision()
 }
 
-private data class BlurPrefilterTransition(
+private data class BlurTopologyTransition(
   val belowScale: Float,
   val belowPlan: GlassRetainedLayerPlan,
   val aboveScale: Float,
   val abovePlan: GlassRetainedLayerPlan,
 )
 
-private fun findBlurPrefilterTransition(
+private fun findBlurTopologyTransition(
   belowScale: Float,
   belowPlan: GlassRetainedLayerPlan,
   aboveScale: Float,
   abovePlan: GlassRetainedLayerPlan,
   buildPlan: (Float) -> GlassRetainedLayerPlan,
-): BlurPrefilterTransition {
+): BlurTopologyTransition {
   var lowerBits = belowScale.toBits()
   var lowerPlan = belowPlan
+  val lowerTopology = belowPlan.blurTopology()
   var upperBits = aboveScale.toBits()
   var upperPlan = abovePlan
   while (upperBits - lowerBits > 1) {
     val candidateBits = lowerBits + (upperBits - lowerBits) / 2
     val candidatePlan = buildPlan(Float.fromBits(candidateBits))
-    if (candidatePlan.hasBlurPrefilter()) {
+    if (candidatePlan.blurTopology() != lowerTopology) {
       upperBits = candidateBits
       upperPlan = candidatePlan
     } else {
@@ -168,7 +153,7 @@ private fun findBlurPrefilterTransition(
       lowerPlan = candidatePlan
     }
   }
-  return BlurPrefilterTransition(
+  return BlurTopologyTransition(
     belowScale = Float.fromBits(lowerBits),
     belowPlan = lowerPlan,
     aboveScale = Float.fromBits(upperBits),
@@ -204,8 +189,17 @@ private fun searchSafeScaleInterval(
   return GlassRenderBudgetDecision.Runtime(selectedScale, selectedPlan)
 }
 
-private fun GlassRetainedLayerPlan.hasBlurPrefilter(): Boolean =
-  layers.any { it.kind == GlassRetainedLayerKind.BlurPrefilter }
+private enum class GlassBlurTopology {
+  Full,
+  Native,
+  None,
+}
+
+private fun GlassRetainedLayerPlan.blurTopology(): GlassBlurTopology = when {
+  layers.none { it.kind == GlassRetainedLayerKind.Blurred } -> GlassBlurTopology.None
+  layers.any { it.kind == GlassRetainedLayerKind.BlurHorizontal } -> GlassBlurTopology.Full
+  else -> GlassBlurTopology.Native
+}
 
 private fun GlassRetainedLayerPlan.fallbackDecision(): GlassRenderBudgetDecision.Fallback =
   GlassRenderBudgetDecision.Fallback(

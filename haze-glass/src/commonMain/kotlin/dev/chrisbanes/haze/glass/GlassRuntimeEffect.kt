@@ -119,6 +119,7 @@ private fun ResolvedGlassStyle.hasSameBudgetParams(other: ResolvedGlassStyle): B
     resolvedOptics.refractionStrength == other.resolvedOptics.refractionStrength &&
     resolvedOptics.refractionScalePx == other.resolvedOptics.refractionScalePx &&
     resolvedOptics.refractionHeightPx == other.resolvedOptics.refractionHeightPx &&
+    resolvedOptics.edgeRefractionWidthPx == other.resolvedOptics.edgeRefractionWidthPx &&
     resolvedOptics.refractionDetailIntensity == other.resolvedOptics.refractionDetailIntensity &&
     chromaticAberrationStrength == other.chromaticAberrationStrength &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
@@ -771,7 +772,7 @@ internal class GlassRuntimeEffect() :
     val interaction = resolvePreparedInteraction(context)
     val interactionTopology = interactionTopologySnapshot
     val optics = style.resolvedOptics
-    val allowMultiscaleBlur = optics.progressive == null
+    val allowNativeWideBlur = optics.progressive == null
     val buildPlan: (Float) -> GlassRetainedLayerPlan = buildPlan@{ scaleFactor ->
       val rawCoordinates = resolveGlassCoordinates(
         layerSize = context.layerSize,
@@ -812,11 +813,15 @@ internal class GlassRuntimeEffect() :
           ),
           blurRadiusPx = optics.blurRadiusPx * scaleFactor,
           depth = optics.depth,
-          allowMultiscaleBlur = allowMultiscaleBlur,
+          allowNativeWideBlur = allowNativeWideBlur,
           refractionDetailActive = isGlassRefractionDetailActive(
             refractionStrength = optics.refractionStrength,
             refractionScalePx = optics.refractionScalePx * scaleFactor,
-            refractionHeightPx = optics.refractionHeightPx * scaleFactor,
+            refractionHeightPx = if (optics.edgeRefractionWidthPx >= 0f) {
+              optics.edgeRefractionWidthPx * scaleFactor
+            } else {
+              optics.refractionHeightPx * scaleFactor
+            },
             edgeSoftnessPx = style.edgeSoftnessPx * scaleFactor,
             sampleStepPx = 2f * scaleFactor,
             detailIntensity = optics.refractionDetailIntensity,

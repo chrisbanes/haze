@@ -18,6 +18,7 @@ internal object GlassShaders {
     uniform float ambientResponse;
     uniform float edgeSoftness;
     uniform float refractionHeight;
+    uniform float edgeRefractionWidth;
     uniform float chromaticAberrationStrength;
     uniform vec4 cornerRadii;
     uniform vec4 tintColor;
@@ -108,7 +109,7 @@ internal object GlassShaders {
       vec2 displacement = refractionDisplacement(
         localCoord,
         heightNorm,
-        opticalDistance,
+        edgeRefractionWidth >= 0.0 ? outputDistToEdge : opticalDistance,
         ${if (interactionOptics) "localizedRefractionMultiplier" else "1.0"},
         fieldWeight
       );
@@ -192,42 +193,6 @@ internal object GlassShaders {
     }
   """
 
-  fun buildDownsamplePrefilter(): String = """
-    uniform shader content;
-    uniform float2 sampleSize;
-
-    vec2 clampSample(vec2 coord) {
-      return clamp(coord, vec2(0.5), sampleSize - vec2(0.5));
-    }
-
-    vec4 main(vec2 coord) {
-      vec4 result = content.eval(clampSample(coord + vec2(-0.5, -0.5))) * 0.25;
-      result += content.eval(clampSample(coord + vec2(0.5, -0.5))) * 0.25;
-      result += content.eval(clampSample(coord + vec2(-0.5, 0.5))) * 0.25;
-      result += content.eval(clampSample(coord + vec2(0.5, 0.5))) * 0.25;
-      return result.a > 0.0 ? result : vec4(0.0);
-    }
-  """
-
-  fun buildFusedDownsamplePrefilter(): String = """
-    uniform shader content;
-    uniform float2 sampleSize;
-    uniform float strength;
-
-    vec2 clampSample(vec2 coord) {
-      return clamp(coord, vec2(0.5), sampleSize - vec2(0.5));
-    }
-
-    vec4 main(vec2 coord) {
-      vec4 source = content.eval(clampSample(coord));
-      vec4 filtered = content.eval(clampSample(coord + vec2(-0.5, -0.5))) * 0.25;
-      filtered += content.eval(clampSample(coord + vec2(0.5, -0.5))) * 0.25;
-      filtered += content.eval(clampSample(coord + vec2(-0.5, 0.5))) * 0.25;
-      filtered += content.eval(clampSample(coord + vec2(0.5, 0.5))) * 0.25;
-      return mix(source, filtered, strength);
-    }
-  """
-
   fun buildBlur(horizontal: Boolean, progressive: Boolean = false): String {
     val samples = buildString {
       repeat(SemanticBlurKernel.MAX_TAP_PAIRS) { index ->
@@ -285,6 +250,7 @@ internal object GlassShaders {
     uniform float ambientResponse;
     uniform float edgeSoftness;
     uniform float refractionHeight;
+    uniform float edgeRefractionWidth;
     uniform float chromaticAberrationStrength;
     uniform vec4 cornerRadii;
     uniform vec4 tintColor;
@@ -355,7 +321,7 @@ internal object GlassShaders {
       vec2 displacement = refractionDisplacement(
         localCoord,
         heightNorm,
-        opticalDistance,
+        edgeRefractionWidth >= 0.0 ? distToEdge : opticalDistance,
         ${if (interactive) "localizedRefractionMultiplier" else "1.0"},
         fieldWeight
       );
@@ -420,6 +386,7 @@ internal object GlassShaders {
     uniform float refractionFoldStrength;
     uniform float edgeSoftness;
     uniform float refractionHeight;
+    uniform float edgeRefractionWidth;
     uniform vec4 cornerRadii;
     // Declared as float because AGSL does not support int uniforms.
     uniform float surfaceProfile;
@@ -476,7 +443,7 @@ internal object GlassShaders {
       vec2 displacement = refractionDisplacement(
         localCoord,
         heightNorm,
-        opticalDistance,
+        edgeRefractionWidth >= 0.0 ? outputDistToEdge : opticalDistance,
         ${if (interactive) "localizedRefractionMultiplier" else "1.0"},
         fieldWeight
       );
@@ -847,7 +814,9 @@ internal object GlassShaders {
     }
 
     float refractionFoldEnvelope(float opticalDistance) {
-      float foldWidth = max(refractionHeight, sampleStep);
+      float foldWidth = max(
+        edgeRefractionWidth >= 0.0 ? edgeRefractionWidth : refractionHeight, sampleStep
+      );
       float foldT = clamp(opticalDistance / foldWidth, 0.0, 1.0);
       float foldRise = smootherstep(clamp(foldT / 0.2, 0.0, 1.0));
       float foldFall = 1.0 - smootherstep(clamp((foldT - 0.25) / 0.35, 0.0, 1.0));
@@ -859,9 +828,43 @@ internal object GlassShaders {
       float foldEnvelope = refractionFoldEnvelope(opticalDistance);
       float foldWeight = clamp(refractionFoldStrength * foldEnvelope, 0.0, 1.0);
       // Reverse the sampling derivative without reversing displacement through zero.
-      float foldDirection = surfaceProfile == 2 ? -1.0 : 1.0;
+      float foldDirection = edgeRefractionWidth < 0.0 && surfaceProfile == 2 ? -1.0 : 1.0;
       float foldTarget = foldDirection * abs(heightNorm) * 0.02;
       return mix(heightNorm, foldTarget, foldWeight);
+    }
+
+    vec2 edgeRefractionGradient(vec2 localCoord) {
+      // The cap keeps the optical corner regions disjoint, allowing one analytic arc normal.
+      vec4 radii = min(cornerRadii * 1.5, vec4(min(materialSize.x, materialSize.y) * 0.5));
+      vec2 delta = vec2(0.0);
+      bool corner = false;
+      if (localCoord.x < radii.x && localCoord.y < radii.x) {
+        delta = localCoord - vec2(radii.x);
+        corner = true;
+      } else if (localCoord.x > materialSize.x - radii.y && localCoord.y < radii.y) {
+        delta = localCoord - vec2(materialSize.x - radii.y, radii.y);
+        corner = true;
+      } else if (localCoord.x > materialSize.x - radii.z &&
+          localCoord.y > materialSize.y - radii.z) {
+        delta = localCoord - vec2(materialSize.x - radii.z, materialSize.y - radii.z);
+        corner = true;
+      } else if (localCoord.x < radii.w && localCoord.y > materialSize.y - radii.w) {
+        delta = localCoord - vec2(radii.w, materialSize.y - radii.w);
+        corner = true;
+      }
+      float blendWidth = max(sampleStep * 0.5, 0.01);
+      if (!corner) return gradSdRectangle(localCoord, materialSize, blendWidth);
+      float cornerDistance = length(delta);
+      float axisDistance = min(abs(delta.x), abs(delta.y));
+      if (axisDistance >= blendWidth) return delta / cornerDistance;
+      // Join the straight-edge field at both corner axes, including their undefined arc centre.
+      // Away from this one-sample transition the normal is the exact analytic radial direction.
+      float cornerWeight = smootherstep(clamp(axisDistance / blendWidth, 0.0, 1.0));
+      return mix(
+        gradSdRectangle(localCoord, materialSize, blendWidth),
+        delta / max(cornerDistance, 0.0001),
+        cornerWeight
+      );
     }
 
     vec2 refractionDisplacement(
@@ -873,6 +876,21 @@ internal object GlassShaders {
     ) {
       float effectiveRefractionStrength =
         clamp(refractionStrength * refractionMultiplier, 0.0, 1.0);
+      if (edgeRefractionWidth >= 0.0) {
+        if (edgeRefractionWidth <= 0.0 || opticalDistance >= edgeRefractionWidth) return vec2(0.0);
+        float t = clamp(opticalDistance / edgeRefractionWidth, 0.0, 1.0);
+        float cutoff = max(1.0 - t * t, 0.0);
+        // Empirical Clear fit: rapid boundary decay with a smooth finite-width cutoff.
+        float profile = exp(-t / 0.225) * cutoff * cutoff;
+        float magnitude = foldedRefractionHeightNorm(profile, opticalDistance) * min(
+          effectiveRefractionStrength * refractionScale,
+          min(materialSize.x, materialSize.y) * 0.5
+        );
+        vec2 gradient = edgeRefractionGradient(localCoord);
+        float gradientLength = length(gradient);
+        float centerFade = smootherstep(clamp(gradientLength / 0.5, 0.0, 1.0));
+        return -gradient / max(gradientLength, 0.0001) * centerFade * magnitude;
+      }
       float effectiveHeightNorm =
         foldedRefractionHeightNorm(heightNorm, opticalDistance);
       float displacementMagnitude =

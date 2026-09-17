@@ -250,7 +250,7 @@ private fun Color.differsFrom(other: Color): Boolean = maxOf(
   abs(green - other.green),
   abs(blue - other.blue),
   abs(alpha - other.alpha),
-) > PixelTolerance
+) > PixelTolerance + FloatingPointEpsilon
 
 internal fun measureRefractionStrengthMetrics(
   disabledDisplacementPx: Float,

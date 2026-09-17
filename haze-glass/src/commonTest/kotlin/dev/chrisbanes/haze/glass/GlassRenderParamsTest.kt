@@ -34,6 +34,34 @@ import kotlin.math.sqrt
 import kotlin.test.Test
 
 class GlassRenderParamsTest {
+  @Test
+  fun edgeWidth_resolvesIndependentlyOfMaterialSizeAndSurfaceHeight() {
+    for (size in listOf(Size(240f, 64f), Size(280f, 176f), Size.Zero)) {
+      val optics = GlassOptics(refractionProfile = RefractionProfile.Edge(28.dp))
+      assertThat(resolveGlassOptics(optics, size, Density(3f)).edgeRefractionWidthPx)
+        .isEqualTo(84f)
+      assertThat(
+        resolveGlassOptics(optics.copy(refractionHeightFraction = 0f), size, Density(3f))
+          .edgeRefractionWidthPx,
+      ).isEqualTo(84f)
+      assertThat(resolveGlassOptics(GlassOptics(), size, Density(3f)).edgeRefractionWidthPx)
+        .isEqualTo(-1f)
+      assertThat(
+        resolveGlassOptics(
+          optics.copy(refractionProfile = RefractionProfile.Edge(0.dp)),
+          size,
+          Density(3f),
+        ).edgeRefractionWidthPx,
+      ).isEqualTo(0f)
+    }
+    assertThat(
+      resolveGlassOptics(
+        GlassOptics(refractionProfile = RefractionProfile.Edge(Float.MAX_VALUE.dp)),
+        Size(200f, 100f),
+        Density(3f),
+      ).edgeRefractionWidthPx,
+    ).isEqualTo(16_384f)
+  }
 
   @Test
   fun accessibilitySettings_reduceBlurAndStrengthenMaterialSeparation() {
@@ -62,7 +90,7 @@ class GlassRenderParamsTest {
     assertThat(resolved.resolvedOptics.blurRadiusPx).isEqualTo(6.5f)
     assertThat(resolved.contrast).isEqualTo(0.16f)
     assertThat(resolved.specularIntensity).isEqualTo(0.58f)
-    assertThat(resolved.edgeSoftnessPx).isEqualTo(2f)
+    assertThat(resolved.edgeSoftnessPx).isEqualTo(1f)
     assertThat(resolved.edgeShadow.alpha).isCloseTo(0.32f, 0.002f)
   }
 
@@ -84,7 +112,7 @@ class GlassRenderParamsTest {
       layoutDirection = LayoutDirection.Ltr,
     )
 
-    assertThat(resolved.edgeSoftnessPx).isEqualTo(4f)
+    assertThat(resolved.edgeSoftnessPx).isEqualTo(2f)
     assertThat(resolved.specularIntensity).isEqualTo(0.58f)
     assertThat(resolved.edgeShadow.alpha).isCloseTo(0.32f, 0.002f)
   }
@@ -616,7 +644,6 @@ class GlassRenderParamsTest {
     assertThat(plan.layers.map { it.kind }).isEqualTo(
       listOf(
         GlassRetainedLayerKind.Source,
-        GlassRetainedLayerKind.BlurHorizontal,
         GlassRetainedLayerKind.Blurred,
         GlassRetainedLayerKind.DepthMixed,
         GlassRetainedLayerKind.Optical,
@@ -652,7 +679,7 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun retainedPlan_usesBlurWorkingSizeForHorizontalAndVerticalLayers() {
+  fun retainedPlan_usesFullSampleSizeForNativeWideBlur() {
     val params = testRenderParams(
       coordinates = GlassCoordinates(
         sampleSize = Size(1_000f, 500f),
@@ -667,13 +694,11 @@ class GlassRenderParamsTest {
       params = params,
       interaction = GlassInteractionUniforms(Offset.Zero, 0f, 0f, 1f, 0f),
     )
-    val workingSize = params.blurEffectKey().plan.workingSize
-
     assertThat(
-      plan.layers.filter {
-        it.kind == GlassRetainedLayerKind.BlurHorizontal || it.kind == GlassRetainedLayerKind.Blurred
-      }.map { it.size },
-    ).isEqualTo(listOf(workingSize, workingSize))
+      plan.layers.filter { it.kind.name.startsWith("Blur") },
+    ).isEqualTo(
+      listOf(GlassRetainedLayer(GlassRetainedLayerKind.Blurred, IntSize(1_000, 500))),
+    )
   }
 
   @Test
@@ -767,7 +792,7 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun builtInStyles_lerpBlurAndDepthByShortestSide() {
+  fun builtInStyles_resolveDistinctDiffusionAcrossSizes() {
     fun resolve(optics: GlassOptics, shortestSide: Dp): ResolvedGlassOptics =
       resolveGlassOptics(
         optics = optics,
@@ -778,22 +803,22 @@ class GlassRenderParamsTest {
     val clearSmall = resolve(GlassStyle.clearOptics, 64.dp)
     val clearMedium = resolve(GlassStyle.clearOptics, 176.dp)
     val clearLarge = resolve(GlassStyle.clearOptics, 220.dp)
-    assertThat(clearSmall.depth).isEqualTo(0.1f)
-    assertThat(clearSmall.blurRadiusPx).isEqualTo(2f)
-    assertThat(clearMedium.depth).isEqualTo(0.32f)
-    assertThat(clearMedium.blurRadiusPx).isEqualTo(6f)
-    assertThat(clearLarge.depth).isEqualTo(0.52f)
-    assertThat(clearLarge.blurRadiusPx).isEqualTo(8f)
+    assertThat(clearSmall.depth).isEqualTo(1f)
+    assertThat(clearSmall.blurRadiusPx).isEqualTo(1.25f)
+    assertThat(clearMedium.depth).isEqualTo(1f)
+    assertThat(clearMedium.blurRadiusPx).isEqualTo(1.25f)
+    assertThat(clearLarge.depth).isEqualTo(1f)
+    assertThat(clearLarge.blurRadiusPx).isEqualTo(1.25f)
 
     val regularSmall = resolve(GlassDefaults.optics, 64.dp)
     val regularMedium = resolve(GlassDefaults.optics, 176.dp)
     val regularLarge = resolve(GlassDefaults.optics, 220.dp)
-    assertThat(regularSmall.depth).isEqualTo(0f)
-    assertThat(regularSmall.blurRadiusPx).isCloseTo(4f, 0.000001f)
-    assertThat(regularMedium.depth).isEqualTo(0.4f)
-    assertThat(regularMedium.blurRadiusPx).isCloseTo(10f, 0.000001f)
-    assertThat(regularLarge.depth).isEqualTo(0.56f)
-    assertThat(regularLarge.blurRadiusPx).isCloseTo(15f, 0.000001f)
+    assertThat(regularSmall.depth).isEqualTo(0.65f)
+    assertThat(regularSmall.blurRadiusPx).isCloseTo(20f, 0.000001f)
+    assertThat(regularMedium.depth).isEqualTo(1f)
+    assertThat(regularMedium.blurRadiusPx).isCloseTo(24f, 0.000001f)
+    assertThat(regularLarge.depth).isEqualTo(1f)
+    assertThat(regularLarge.blurRadiusPx).isCloseTo(25f, 0.000001f)
   }
 
   @Test
@@ -883,14 +908,16 @@ class GlassRenderParamsTest {
     val regular = GlassDefaults.optics
     assertThat(regular.refractionStrength).isEqualTo(0.7f)
     assertThat(regular.refractionDisplacement).isEqualTo(48.dp)
-    assertThat(regular.refractionHeightFraction).isEqualTo(0.6f)
-    assertThat(regular.refractionFoldStrength).isEqualTo(0.65f)
+    assertThat(regular.refractionProfile).isEqualTo(RefractionProfile.Edge(20.dp))
+    assertThat(regular.refractionHeightFraction).isEqualTo(0.15f)
+    assertThat(regular.refractionFoldStrength).isEqualTo(0f)
     assertThat(regular.refractionDetailIntensity).isEqualTo(0f)
 
     val clear = GlassStyle.clearOptics
     assertThat(clear.refractionStrength).isEqualTo(0.85f)
-    assertThat(clear.refractionDisplacement).isEqualTo(18.dp)
-    assertThat(clear.refractionHeightFraction).isEqualTo(0.22f)
+    assertThat(clear.refractionDisplacement).isEqualTo(56.dp)
+    assertThat(clear.refractionHeightFraction).isEqualTo(0.35f)
+    assertThat(clear.refractionProfile).isEqualTo(RefractionProfile.Edge(28.dp))
     assertThat(clear.refractionFoldStrength).isEqualTo(0f)
     assertThat(clear.refractionDetailIntensity).isEqualTo(0.76f)
   }
@@ -908,19 +935,20 @@ class GlassRenderParamsTest {
     val caller = resolveGlassOptics(callerCopy, materialSize, density)
 
     assertThat(callerCopy).isEqualTo(GlassStyle.clearOptics)
-    assertThat(caller.depth).isEqualTo(0.52f)
-    assertThat(caller.blurRadiusPx).isEqualTo(8f)
-    assertThat(builtIn.depth).isEqualTo(0.52f)
-    assertThat(builtIn.blurRadiusPx).isEqualTo(8f)
+    assertThat(caller.depth).isEqualTo(1f)
+    assertThat(caller.blurRadiusPx).isEqualTo(1.25f)
+    assertThat(builtIn.depth).isEqualTo(1f)
+    assertThat(builtIn.blurRadiusPx).isEqualTo(1.25f)
   }
 
   @Test
-  fun fixedBlurRadius_usesCurrentPhysicalPixelCapAcrossDensities() {
+  fun fixedBlurRadius_preservesDensityScalingUntilTheSafetyCap() {
     val cases = listOf(
       Triple(20.dp, Density(1f), 20f),
       Triple(14.dp, Density(2.75f), 38.5f),
-      Triple(20.dp, Density(2f), 38.5f),
-      Triple(100.dp, Density(4f), 38.5f),
+      Triple(20.dp, Density(2f), 40f),
+      Triple(24.dp, Density(3f), 72f),
+      Triple(100.dp, Density(4f), 256f),
     )
 
     cases.forEach { (radius, density, expectedRadiusPx) ->
@@ -946,7 +974,7 @@ class GlassRenderParamsTest {
     val rect = Rect(0f, 0f, 200f, 100f)
 
     assertThat(effect.calculateLayerBounds(rect, Density(1f))).isEqualTo(
-      rect.inflate(32f + 15f * fixed.refractionStrength + 2f),
+      rect.inflate(32f + 15f * fixed.refractionStrength + 1f),
     )
   }
 
@@ -1016,6 +1044,7 @@ class GlassRenderParamsTest {
           GlassOptics(
             refractionHeightFraction = 0.25f,
             refractionDisplacement = 12.dp,
+            refractionProfile = RefractionProfile.Edge(28.dp),
             blurRadius = OpticalSizeValue.Fixed(10.dp),
             refractionFoldStrength = 0.4f,
           ),
@@ -1041,6 +1070,9 @@ class GlassRenderParamsTest {
 
     assertThat(params.refractionScalePx).isEqualTo(12f)
     assertThat(params.refractionHeightPx).isEqualTo(12.5f)
+    assertThat(params.edgeRefractionWidthPx).isEqualTo(28f)
+    assertThat(params.opticalEffectKey().edgeRefractionWidthPx).isEqualTo(28f)
+    assertThat(params.refractionDetailEffectKey().edgeRefractionWidthPx).isEqualTo(28f)
     assertThat(params.refractionFoldStrength).isEqualTo(0.4f)
     assertThat(params.blurRadiusPx).isEqualTo(10f)
     assertThat(params.opticalEffectKey().refractionScalePx).isEqualTo(12f)
@@ -1290,7 +1322,6 @@ class GlassRenderParamsTest {
     }
     val rect = Rect(0f, 0f, 240f, 80f)
     val density = Density(1f)
-    val effectiveBlurRadius = effectiveSemanticBlurRadiusPx(14f)
     val expectedPadding = expectedLayerPadding(effect, rect, density)
     val resolved = resolveGlassOptics(
       optics = effect.optics,
@@ -1298,7 +1329,8 @@ class GlassRenderParamsTest {
       density = density,
     )
 
-    assertThat(resolved.blurRadiusPx).isLessThan(effectiveBlurRadius)
+    assertThat(resolved.blurRadiusPx).isGreaterThan(20f)
+    assertThat(resolved.blurRadiusPx).isLessThan(24f)
     assertThat(-effect.calculateLayerBounds(rect, density).left).isEqualTo(expectedPadding)
   }
 

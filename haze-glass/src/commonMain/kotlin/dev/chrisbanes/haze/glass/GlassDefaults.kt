@@ -29,19 +29,21 @@ public object GlassDefaults {
 
   /** Default size-aware Haze optical material. */
   public val optics: GlassOptics = GlassOptics(
+    // Compact controls retain refracted detail; larger surfaces fully diffuse the backdrop.
     depth = OpticalSizeValue.Responsive(
-      OpticalSizePoint(64.dp, 0f),
-      OpticalSizePoint(176.dp, 0.4f),
-      OpticalSizePoint(220.dp, 0.56f),
+      OpticalSizePoint(64.dp, 0.65f),
+      OpticalSizePoint(176.dp, 1f),
+      OpticalSizePoint(220.dp, 1f),
     ),
     blurRadius = OpticalSizeValue.Responsive(
-      OpticalSizePoint(64.dp, 4.dp),
-      OpticalSizePoint(176.dp, 10.dp),
-      OpticalSizePoint(220.dp, 15.dp),
+      OpticalSizePoint(64.dp, 20.dp),
+      OpticalSizePoint(176.dp, 24.dp),
+      OpticalSizePoint(220.dp, 25.dp),
     ),
     refractionDisplacement = 48.dp,
-    refractionHeightFraction = 0.6f,
-    refractionFoldStrength = 0.65f,
+    refractionProfile = RefractionProfile.Edge(20.dp),
+    refractionHeightFraction = 0.15f,
+    refractionFoldStrength = 0f,
     refractionDetailIntensity = 0f,
   )
 
@@ -52,7 +54,7 @@ public object GlassDefaults {
   public val edgeShadow: Color = Color.Black.copy(alpha = 0.14f)
 
   /** Default strength of the ambient lighting response and Fresnel accent, in `0f..1f`. */
-  public const val ambientResponse: Float = 0.46f
+  public const val ambientResponse: Float = 0.15f
 
   /** Default color composited behind captured content before Glass optics are applied. */
   public val backgroundColor: Color = Color.Transparent
@@ -61,7 +63,7 @@ public object GlassDefaults {
   public val tint: Color = Color.Transparent
 
   /** Default softening distance for the glass boundary. */
-  public val edgeSoftness: Dp = 2.dp
+  public val edgeSoftness: Dp = 1.dp
 
   /** Default chromatic aberration strength, where `0f` disables dispersion. */
   public const val chromaticAberrationStrength: Float = 0f
@@ -82,10 +84,10 @@ public object GlassDefaults {
   public const val contrast: Float = 0f
 
   /** Default white-point adjustment, in the range `-1f..1f`. */
-  public const val whitePoint: Float = 0f
+  public const val whitePoint: Float = 0.55f
 
   /** Default chroma multiplier, in the range `0f..2f`. */
-  public const val chromaMultiplier: Float = 1f
+  public const val chromaMultiplier: Float = 1.5f
 
   /** Default blend between generated surface normals and captured content normals. */
   public const val contentNormalBlend: Float = 0.15f

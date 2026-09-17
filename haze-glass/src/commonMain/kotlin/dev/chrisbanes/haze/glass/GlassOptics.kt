@@ -24,7 +24,10 @@ import dev.chrisbanes.haze.HazeProgressive
 public data class GlassOptics(
   /** Finite refraction strength in the inclusive range `0f..1f`. */
   val refractionStrength: Float = 0.7f,
-  /** Finite fraction of the material's shortest side used by the refraction profile, in `0f..1f`. */
+  /**
+   * Finite fraction of the material's shortest side used by [SurfaceProfile], in `0f..1f`.
+   * With [RefractionProfile.Edge], this controls lighting only; edge width is authored separately.
+   */
   val refractionHeightFraction: Float = 0.25f,
   /** Specified, finite, non-negative maximum distance that refraction displaces content. */
   val refractionDisplacement: Dp = 15.dp,
@@ -51,6 +54,8 @@ public data class GlassOptics(
    * renderers.
    */
   val refractionDetailIntensity: Float = 0.76f,
+  /** Sampling profile. The default preserves refraction derived from [SurfaceProfile]. */
+  val refractionProfile: RefractionProfile = RefractionProfile.Surface,
 ) {
   init {
     requireFiniteInRange(

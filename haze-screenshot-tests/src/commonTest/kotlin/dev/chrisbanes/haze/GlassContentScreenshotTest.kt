@@ -40,8 +40,8 @@ class GlassContentScreenshotTest : ScreenshotTest() {
     style = GlassStyle.clear
     waitForIdle()
     val clear = captureRootPixels().snapshot()
-    // Fixed refraction amplifies Skia's platform-specific pixel variance.
-    captureRoot("clear", unmatchedPixelThreshold = 0.01f)
+    // Linux and macOS Skia differ slightly in refracted text and rim colors (2.55% unmatched).
+    captureRoot("clear", unmatchedPixelThreshold = 0.03f)
 
     assertThat(regular.changedPixelRatio(clear)).isGreaterThan(0.01f)
   }

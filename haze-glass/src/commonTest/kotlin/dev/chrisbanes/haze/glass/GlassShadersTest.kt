@@ -84,17 +84,6 @@ class GlassShadersTest {
   }
 
   @Test
-  fun prefilter_usesFourBilinearSamplesForTheNineTapLowPass() {
-    val shader = GlassShaders.buildDownsamplePrefilter()
-
-    assertThat(Regex("content\\.eval").findAll(shader).count()).isEqualTo(4)
-    assertThat(shader).contains("0.25")
-    assertThat(shader).contains("vec2(-0.5, -0.5)")
-    assertThat(shader).contains("vec2(0.5, 0.5)")
-    assertThat(shader).contains("clampSample")
-  }
-
-  @Test
   fun progressiveBlurShaders_scaleTheSameKernelWithTheMask() {
     val shader = GlassShaders.buildBlur(horizontal = true, progressive = true)
 
@@ -345,7 +334,7 @@ class GlassShadersTest {
         "if (refractionFoldStrength <= 0.0) return heightNorm;",
       )
       assertThat(shader).contains(
-        "float foldWidth = max(refractionHeight, sampleStep);",
+        "edgeRefractionWidth >= 0.0 ? edgeRefractionWidth : refractionHeight, sampleStep",
       )
       assertThat(shader).contains("float foldT = clamp(opticalDistance / foldWidth, 0.0, 1.0);")
       assertThat(shader).contains(
@@ -359,7 +348,7 @@ class GlassShadersTest {
         "float foldWeight = clamp(refractionFoldStrength * foldEnvelope, 0.0, 1.0);",
       )
       assertThat(shader).contains(
-        "float foldDirection = surfaceProfile == 2 ? -1.0 : 1.0;",
+        "float foldDirection = edgeRefractionWidth < 0.0 && surfaceProfile == 2 ? -1.0 : 1.0;",
       )
       assertThat(shader).contains(
         "float foldTarget = foldDirection * abs(heightNorm) * 0.02;",
@@ -489,10 +478,10 @@ class GlassShadersTest {
     assertThat(optical).contains("localizedRefractionMultiplier")
     assertThat(optical).contains("localizedWhitePoint")
     assertThat(optical)
-      .contains("heightNorm,\n        opticalDistance,\n        localizedRefractionMultiplier")
+      .contains("heightNorm,\n        edgeRefractionWidth >= 0.0 ? distToEdge : opticalDistance,\n        localizedRefractionMultiplier")
     assertThat(detail).contains("uniform float interactionRefractionMultiplier;")
     assertThat(detail)
-      .contains("heightNorm,\n        opticalDistance,\n        localizedRefractionMultiplier")
+      .contains("heightNorm,\n        edgeRefractionWidth >= 0.0 ? outputDistToEdge : opticalDistance,\n        localizedRefractionMultiplier")
     assertThat(detail).contains(
       "abs(refractionScale * refractionStrength) * max(1.0, localizedRefractionMultiplier),",
     )
@@ -535,7 +524,7 @@ class GlassShadersTest {
       .contains("opticalDistanceFromSignedDistance(localCoord, outputSd, fieldWeight)")
     assertThat(shader).contains("surfaceHeightNormFromOpticalDistance(opticalDistance)")
     assertThat(shader).contains("float refractionMultiplier")
-    assertThat(shader).contains("heightNorm,\n        opticalDistance,\n        1.0")
+    assertThat(shader).contains("heightNorm,\n        edgeRefractionWidth >= 0.0 ? outputDistToEdge : opticalDistance,\n        1.0")
     assertThat(shader).contains("if (surfaceProfile == 1)")
     assertThat(shader).contains("else if (surfaceProfile == 2)")
     assertThat(shader).contains("else if (surfaceProfile == 3)")
@@ -634,6 +623,7 @@ class GlassShadersTest {
         "refractionStrength" to listOf(0.5f),
         "refractionFoldStrength" to listOf(0f),
         "refractionHeight" to listOf(20f),
+        "edgeRefractionWidth" to listOf(-1f),
         "refractionScale" to listOf(18f),
         "surfaceProfile" to listOf(2f),
         "detailWidth" to listOf(8f),

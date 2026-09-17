@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added `RefractionProfile.Edge(width)` to author edge refraction independently of surface lighting.
+  The default `RefractionProfile.Surface` preserves existing custom optics.
+
+### Changed
+
+- Calibrated Clear Glass refraction against iOS 27 captures, including the inward edge falloff and
+  wider optical corners that produce curved loops. Clear also uses the accepted brighter tone.
+- Calibrated Regular Glass against native iOS 27 light appearance, with a narrower refraction band,
+  brighter tone, and wider diffusion on cards and panels. Fixed the physical-pixel blur cap that
+  prevented larger authored radii from taking effect on dense displays.
+- Clear uses a consistent shallow blur across surface sizes.
+
 ## 2.0.0-rc01 <small>2026-09-13</small> { id="2.0.0-rc01" }
 
 ### Added

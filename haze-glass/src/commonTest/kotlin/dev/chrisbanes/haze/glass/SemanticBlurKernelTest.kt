@@ -3,26 +3,24 @@
 
 package dev.chrisbanes.haze.glass
 
-import androidx.compose.ui.unit.IntSize
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isTrue
-import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.test.Test
 
 class SemanticBlurKernelTest {
-
   @Test
   fun radiusZero_isIdentity() {
-    val kernel = SemanticBlurKernel.createForSigma(0f)
+    val plan = SemanticBlurPlan.create(1080, 1920, 0f)
 
-    assertThat(kernel.centerWeight).isEqualTo(1f)
-    assertThat(kernel.taps.isEmpty()).isTrue()
+    assertThat(plan.isIdentity).isTrue()
+    assertThat(plan.horizontalKernel.centerWeight).isEqualTo(1f)
   }
 
   @Test
@@ -41,55 +39,50 @@ class SemanticBlurKernelTest {
   }
 
   @Test
-  fun scaleSelection_usesExactRoundedWorkingDimensions() {
-    assertThat(SemanticBlurPlan.create(101, 99, 11f).workingSize).isEqualTo(IntSize(101, 99))
-    assertThat(SemanticBlurPlan.create(101, 99, 22f).workingSize).isEqualTo(IntSize(101, 99))
-    assertThat(SemanticBlurPlan.create(101, 99, 38.5f).workingSize).isEqualTo(IntSize(51, 50))
+  fun wideUniformBlur_usesNativeGaussianWithoutBuildingASemanticKernel() {
+    val plan = SemanticBlurPlan.create(1_080, 1_920, 84f)
+
+    assertThat(plan.usesNativeWideBlur).isTrue()
+    assertThat(plan.isIdentity).isFalse()
+    assertThat(plan.horizontalKernel.taps.isEmpty()).isTrue()
+    assertThat(plan.verticalKernel.taps.isEmpty()).isTrue()
   }
 
   @Test
-  fun reducedScalePlan_accountsForPrefilterVariance() {
-    val plan = SemanticBlurPlan.create(1080, 1920, 38.5f)
-    val totalVariance = plan.resamplingVariancePx2 +
-      plan.horizontalKernel.variance / (plan.scaleFactor * plan.scaleFactor)
+  fun threshold_selectsNativeOnlyAboveTheBoundedSemanticKernel() {
+    val threshold = SemanticBlurPlan.NATIVE_BLUR_RADIUS_THRESHOLD_PX
 
-    assertThat(plan.requiresPrefilter).isTrue()
-    assertThat(abs(totalVariance / (plan.sigmaPx * plan.sigmaPx) - 1f))
-      .isLessThanOrEqualTo(0.03f)
+    assertThat(SemanticBlurPlan.create(1080, 1920, threshold).usesNativeWideBlur).isFalse()
+    assertThat(SemanticBlurPlan.create(1080, 1920, threshold + 0.001f).usesNativeWideBlur)
+      .isTrue()
   }
 
   @Test
-  fun prefilterRejectsNyquistStripesBeforeDecimation() {
-    assertThat(abs(SemanticBlurPrefilter.transfer(PI.toFloat()))).isLessThanOrEqualTo(1e-6f)
-    assertThat(SemanticBlurPrefilter.transfer((PI / 2.0).toFloat()))
-      .isLessThanOrEqualTo(0.51f)
+  fun progressivePlan_keepsLegacyCapAndSemanticKernel() {
+    val plan = SemanticBlurPlan.createForSigma(
+      sampleWidth = 1080,
+      sampleHeight = 1920,
+      effectiveRadiusPx = 84f,
+      sigmaPx = SemanticBlurKernel.radiusToSigma(84f),
+      allowNativeWideBlur = false,
+    )
+
+    assertThat(plan.effectiveRadiusPx).isEqualTo(SemanticBlurKernel.MAX_PROGRESSIVE_RADIUS_PX)
+    assertThat(plan.usesNativeWideBlur).isFalse()
+    assertThat(plan.horizontalKernel.taps.size).isLessThanOrEqualTo(SemanticBlurKernel.MAX_TAP_PAIRS)
   }
 
   @Test
-  fun scaleTransitionHasBoundedFrequencyResponseJump() {
-    val threshold = SemanticBlurPlan.DOWNSAMPLE_RADIUS_THRESHOLD_PX
-    val below = SemanticBlurPlan.create(1080, 1920, threshold - 0.001f)
-    val at = SemanticBlurPlan.create(1080, 1920, threshold)
-    val above = SemanticBlurPlan.create(1080, 1920, threshold + 0.001f)
+  fun smallPlan_tracksGaussianFrequencyResponse() {
+    listOf(11f, SemanticBlurPlan.NATIVE_BLUR_RADIUS_THRESHOLD_PX).forEach { radius ->
+      val sigma = SemanticBlurKernel.radiusToSigma(radius)
+      val plan = SemanticBlurPlan.createForSigma(1080, 1920, radius, sigma, allowNativeWideBlur = false)
+      listOf(0.25f, 0.5f, 1f, 2f).forEach { normalizedFrequency ->
+        val actual = plan.kernelFrequencyResponse(normalizedFrequency / sigma)
+        val reference = exp(-0.5f * normalizedFrequency * normalizedFrequency)
 
-    assertThat(below.scaleFactor).isEqualTo(1f)
-    assertThat(at.scaleFactor).isEqualTo(1f)
-    assertThat(above.scaleFactor).isEqualTo(0.5f)
-    listOf(0.1f, 0.25f, 0.5f, 1f).forEach { normalizedFrequency ->
-      val belowResponse = below.sourceFrequencyResponse(normalizedFrequency / below.sigmaPx)
-      val aboveResponse = above.sourceFrequencyResponse(normalizedFrequency / above.sigmaPx)
-      assertThat(abs(aboveResponse - belowResponse)).isLessThanOrEqualTo(0.02f)
-    }
-  }
-
-  private fun SemanticBlurPlan.sourceFrequencyResponse(frequency: Float): Float {
-    val kernelResponse = horizontalKernel.centerWeight + 2f * horizontalKernel.taps.sumOf {
-      (it.weight * cos(frequency / scaleFactor * it.offsetPx)).toDouble()
-    }.toFloat()
-    return kernelResponse * if (requiresPrefilter) {
-      SemanticBlurPrefilter.transfer(frequency)
-    } else {
-      1f
+        assertThat(abs(actual - reference)).isLessThanOrEqualTo(0.03f)
+      }
     }
   }
 
@@ -120,47 +113,6 @@ class SemanticBlurKernelTest {
   }
 
   @Test
-  fun blurPlan_preservesRadiusWithBoundedKernelAcrossLargeRadii() {
-    listOf(0f, 11f, 22f, 38.5f, SemanticBlurKernel.MAX_SUPPORTED_RADIUS_PX).forEach { radius ->
-      val plan = SemanticBlurPlan.create(
-        sampleWidth = 1080,
-        sampleHeight = 1920,
-        radiusPx = radius,
-      )
-      val expectedVariance = SemanticBlurKernel.radiusToSigma(radius).let { it * it }
-      val actualVariance = plan.horizontalKernel.variance /
-        (plan.scaleFactor * plan.scaleFactor)
-
-      if (radius == 0f) {
-        assertThat(plan.isIdentity).isTrue()
-      } else {
-        assertThat(abs(actualVariance / expectedVariance - 1f)).isLessThanOrEqualTo(0.1f)
-      }
-      assertThat(plan.horizontalKernel.taps.size).isLessThanOrEqualTo(20)
-      assertThat(plan.verticalKernel.taps.size).isLessThanOrEqualTo(20)
-    }
-  }
-
-  @Test
-  fun blurPlan_tracksHighResolutionGaussianFrequencyResponse() {
-    listOf(11f, 22f, 38.5f, SemanticBlurKernel.MAX_SUPPORTED_RADIUS_PX).forEach { radius ->
-      val sigma = SemanticBlurKernel.radiusToSigma(radius)
-      val plan = SemanticBlurPlan.create(1080, 1920, radius)
-      val kernel = plan.horizontalKernel
-      listOf(0.25f, 0.5f, 1f, 2f).forEach { normalizedFrequency ->
-        val frequency = normalizedFrequency / (sigma * plan.scaleFactor)
-        val onePass = kernel.centerWeight + 2f * kernel.taps.sumOf {
-          (it.weight * cos(frequency * it.offsetPx)).toDouble()
-        }.toFloat()
-        val actual = onePass
-        val reference = exp(-0.5f * normalizedFrequency * normalizedFrequency)
-
-        assertThat(abs(actual - reference)).isLessThanOrEqualTo(0.03f)
-      }
-    }
-  }
-
-  @Test
   fun blurPlan_capsUnsupportedRadiiDeterministically() {
     val maximum = SemanticBlurPlan.create(640, 480, SemanticBlurKernel.MAX_SUPPORTED_RADIUS_PX)
     val beyondMaximum = SemanticBlurPlan.create(640, 480, 1_000f)
@@ -179,18 +131,13 @@ class SemanticBlurKernelTest {
   }
 
   @Test
-  fun spread_approximatesConfiguredGaussianSigma() {
-    listOf(8f, 38.5f, 128f).forEach { radius ->
-      val sigma = SemanticBlurKernel.radiusToSigma(radius)
-      val relativeError = abs(SemanticBlurKernel.create(radius).variance / (sigma * sigma) - 1f)
-
-      assertThat(relativeError).isLessThanOrEqualTo(0.08f)
-    }
-  }
-
-  @Test
   fun radiusToSigma_matchesSharedSemanticConversion() {
     assertThat(abs(SemanticBlurKernel.radiusToSigma(38.5f) - 22.727975f))
       .isLessThanOrEqualTo(1e-5f)
   }
+
+  private fun SemanticBlurPlan.kernelFrequencyResponse(frequency: Float): Float =
+    horizontalKernel.centerWeight + 2f * horizontalKernel.taps.sumOf {
+      (it.weight * cos(frequency * it.offsetPx)).toDouble()
+    }.toFloat()
 }

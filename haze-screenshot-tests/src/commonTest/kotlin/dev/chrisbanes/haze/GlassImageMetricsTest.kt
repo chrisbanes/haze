@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.IntOffset
@@ -15,6 +16,19 @@ import assertk.assertions.messageContains
 import kotlin.test.Test
 
 class GlassImageMetricsTest {
+
+  @Test
+  fun changedPixelRatios_ignoreOneLevelRoundingButDetectTwoLevels() {
+    for (step in 1..2) {
+      val before = PixelSnapshot(254, 1, List(254) { Color(it, it, it) })
+      val after = PixelSnapshot(254, 1, List(254) { Color(it + step, it + step, it + step) })
+      val expected = if (step == 1) 0f else 1f
+
+      assertThat(before.changedPixelRatio(after)).isEqualTo(expected)
+      assertThat(before.changedPixelRatioOutside(after, IntRect(0, 0, 0, 0))).isEqualTo(expected)
+      assertThat(before.changedPixelRatioOutsideCircle(after, Offset.Zero, 0f)).isEqualTo(expected)
+    }
+  }
 
   @Test
   fun pairedGridDisplacement_noDisplacementCarrierReturnsZero() {

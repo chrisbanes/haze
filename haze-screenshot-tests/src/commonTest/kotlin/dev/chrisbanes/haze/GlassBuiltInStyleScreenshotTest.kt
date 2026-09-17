@@ -6,6 +6,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntRect
@@ -30,16 +32,121 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
+import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import dev.chrisbanes.haze.test.runScreenshotTest
+import haze_root.haze_screenshot_tests.generated.resources.Res
+import haze_root.haze_screenshot_tests.generated.resources.photo
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.test.Test
+import org.jetbrains.compose.resources.painterResource
 
 class GlassBuiltInStyleScreenshotTest : ScreenshotTest() {
+  @Test
+  fun regular_suppressesMediumScaleDetail() = checkMediumScaleDiffusion(HazePerformanceMode.Quality)
+
+  @Test
+  fun regular_minimumQualitySuppressesMediumScaleDetail() = checkMediumScaleDiffusion(HazePerformanceMode.Performance)
+
+  @Test
+  fun regular_suppressesMediumScaleDetailAtLowDensity() = checkMediumScaleDiffusion(HazePerformanceMode.Quality, 1f)
+
+  @Test
+  fun regular_minimumQualitySuppressesMediumScaleDetailAtLowDensity() = checkMediumScaleDiffusion(HazePerformanceMode.Performance, 1f)
+
+  private fun checkMediumScaleDiffusion(mode: HazePerformanceMode, densityScale: Float = 3f) = runScreenshotTest(size = Size(1206f, 1600f)) {
+    var blurEnabled by mutableStateOf(false)
+    setContent {
+      androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(densityScale),
+      ) {
+        val hazeState = remember { HazeState() }
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+          Canvas(Modifier.fillMaxSize().hazeSource(hazeState)) {
+            drawRect(Color(0xFF333333))
+            val period = 32.dp.toPx()
+            var x = 0f
+            while (x < size.width) {
+              drawRect(Color(0xFFCCCCCC), Offset(x, 0f), Size(period / 2f, size.height))
+              x += period
+            }
+          }
+          Box(
+            Modifier.size(280.dp, 176.dp).testTag("medium-detail").hazeGlass(
+              input = HazeInput.Sources(hazeState),
+              style = GlassStyle.regular.then {
+                optics(
+                  GlassDefaults.optics.copy(
+                    refractionStrength = 0f,
+                    blurRadius = if (blurEnabled) GlassDefaults.optics.blurRadius else OpticalSizeValue.Fixed(0.dp),
+                  ),
+                )
+              },
+              performanceMode = mode,
+            ),
+          )
+        }
+      }
+    }
+    waitForIdle()
+    val center = insetBounds("medium-detail", 40.dp, 176.dp)
+    val material = onNodeWithTag("medium-detail").fetchSemanticsNode().boundsInRoot
+    val density = material.height / 176f
+    val edge = IntRect(center.left, (material.top + 8f * density).toInt(), center.right, (material.top + 24f * density).toInt())
+    val regions = mapOf("center" to center, "edge" to edge)
+    val sharp = captureRootPixels().snapshot()
+    blurEnabled = true
+    waitForIdle()
+    if (isRuntimeShaderRenderEffectSupported()) {
+      val blurred = captureRootPixels().snapshot()
+      // The previous 38.5px source-space cap retained about a third of this 32dp pattern.
+      regions.forEach { (name, bounds) ->
+        val sharpEnergy = sharp.highFrequencyEnergy(bounds)
+        assertThat(sharpEnergy, "$name positive control").isGreaterThan(0.0001f)
+        assertThat(blurred.highFrequencyEnergy(bounds) / sharpEnergy, "Regular $name medium-scale detail retention")
+          .isLessThan(0.15f)
+      }
+    }
+  }
+
+  @Test
+  fun regular_matchesNativeReferenceGeometry() = captureNativeReference(GlassStyle.regular, HazePerformanceMode.Adaptive)
+
+  @Test
+  fun regular_referenceAtFullQuality() = captureNativeReference(GlassStyle.regular, HazePerformanceMode.Quality)
+
+  @Test
+  fun regular_referenceAtMinimumQuality() = captureNativeReference(GlassStyle.regular, HazePerformanceMode.Performance)
+
+  @Test
+  fun regular_diffusesPhotographicBackdrop() = captureNativeReference(GlassStyle.regular, HazePerformanceMode.Adaptive, photograph = true)
+
+  @Test
+  fun clear_matchesNativeReferenceGeometry() = captureNativeReference(GlassStyle.clear, HazePerformanceMode.Adaptive)
+
+  @Test
+  fun clear_referenceAtFullQuality() = captureNativeReference(GlassStyle.clear, HazePerformanceMode.Quality)
+
+  @Test
+  fun clear_referenceAtMinimumQuality() = captureNativeReference(GlassStyle.clear, HazePerformanceMode.Performance)
+
+  @Test
+  fun clear_preservesPhotographicBackdrop() = captureNativeReference(GlassStyle.clear, HazePerformanceMode.Adaptive, photograph = true)
+
+  private fun captureNativeReference(style: GlassStyle, mode: HazePerformanceMode, photograph: Boolean = false) = runScreenshotTest(size = Size(1206f, 2622f)) {
+    setContent {
+      androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(3f),
+      ) { GlassBuiltInStyleGeometrySample(style, photograph, mode) }
+    }
+    waitForIdle()
+    captureRoot()
+  }
 
   @Test
   fun builtInStyles_blurRespondsToMaterialSize() = runScreenshotTest(
@@ -55,12 +162,10 @@ class GlassBuiltInStyleScreenshotTest : ScreenshotTest() {
     style = GlassStyle.regular
     waitForIdle()
     val regular = captureRootPixels().snapshot()
-    captureRoot("regular")
 
     style = GlassStyle.clear
     waitForIdle()
     val clear = captureRootPixels().snapshot()
-    captureRoot("clear", unmatchedPixelThreshold = 0.01f)
 
     if (isRuntimeShaderRenderEffectSupported()) {
       val regularRetention = regions.mapValues { (_, bounds) ->
@@ -73,14 +178,32 @@ class GlassBuiltInStyleScreenshotTest : ScreenshotTest() {
       println("Clear high-frequency retention: $clearRetention")
 
       assertSizeProgression(regularRetention, "Regular")
-      assertSizeProgression(clearRetention, "Clear")
+      // Native Regular keeps refracted detail on compact controls while fully diffusing cards.
+      // Medium-scale detail has a separate regression so the fine grid cannot hide a blur cap.
+      assertThat(regularRetention.getValue("capsule"), "Regular capsule diffusion")
+        .isLessThan(0.35f)
+      assertThat(regularRetention.getValue("card"), "Regular card diffusion")
+        .isLessThan(0.025f)
+      assertThat(regularRetention.getValue("panel"), "Regular panel diffusion")
+        .isLessThan(0.01f)
       regions.keys.forEach { region ->
-        assertThat(regularRetention.getValue(region), "$region Regular retention")
-          .isLessThan(clearRetention.getValue(region))
+        if (region != "capsule") {
+          assertThat(regularRetention.getValue(region), "$region Regular retention")
+            .isLessThan(clearRetention.getValue(region))
+        }
+        // Clear diffuses fine detail without becoming progressively frosted at larger sizes.
+        assertThat(clearRetention.getValue(region), "$region Clear diffusion")
+          .isLessThan(0.4f)
+        assertThat(clearRetention.getValue(region), "$region Clear detail retention")
+          .isGreaterThan(0.2f)
       }
-      assertThat(clearRetention.getValue("capsule"), "Clear capsule retention")
-        .isGreaterThan(0.8f)
+      assertThat(clearRetention.values.max() - clearRetention.values.min(), "Clear size variation")
+        .isLessThan(0.1f)
     }
+    captureRoot("clear", unmatchedPixelThreshold = 0.01f)
+    style = GlassStyle.regular
+    waitForIdle()
+    captureRoot("regular")
   }
 }
 
@@ -110,38 +233,51 @@ private fun Rect.toIntRect(): IntRect = IntRect(
 private fun assertSizeProgression(retention: Map<String, Float>, label: String) {
   assertThat(retention.getValue("capsule"), "$label capsule retention")
     .isGreaterThan(retention.getValue("card"))
-  assertThat(retention.getValue("card"), "$label card retention")
+  assertThat(retention.getValue("capsule"), "$label capsule versus panel retention")
     .isGreaterThan(retention.getValue("panel"))
 }
 
 @Composable
-private fun GlassBuiltInStyleGeometrySample(style: GlassStyle?) {
+private fun GlassBuiltInStyleGeometrySample(
+  style: GlassStyle?,
+  photograph: Boolean = false,
+  performanceMode: HazePerformanceMode = HazePerformanceMode.Quality,
+) {
   val hazeState = remember { HazeState() }
 
   Box(Modifier.fillMaxSize()) {
-    Canvas(Modifier.fillMaxSize().hazeSource(hazeState)) {
-      drawRect(Color(0xFF07141A))
-      val spacing = 8.dp.toPx()
-      val strokeWidth = 1.dp.toPx()
-      var x = 0f
-      while (x < size.width) {
-        drawLine(
-          color = Color.White.copy(alpha = 0.8f),
-          start = Offset(x, 0f),
-          end = Offset(x, size.height),
-          strokeWidth = strokeWidth,
-        )
-        x += spacing
-      }
-      var y = 0f
-      while (y < size.height) {
-        drawLine(
-          color = Color.Cyan.copy(alpha = 0.65f),
-          start = Offset(0f, y),
-          end = Offset(size.width, y),
-          strokeWidth = strokeWidth,
-        )
-        y += spacing
+    if (photograph) {
+      Image(
+        painter = painterResource(Res.drawable.photo),
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier.fillMaxSize().hazeSource(hazeState),
+      )
+    } else {
+      Canvas(Modifier.fillMaxSize().hazeSource(hazeState)) {
+        drawRect(Color(0xFF07141A))
+        val spacing = 8.dp.toPx()
+        val strokeWidth = 1.dp.toPx()
+        var x = 0f
+        while (x < size.width) {
+          drawLine(
+            color = Color.White.copy(alpha = 0.8f),
+            start = Offset(x, 0f),
+            end = Offset(x, size.height),
+            strokeWidth = strokeWidth,
+          )
+          x += spacing
+        }
+        var y = 0f
+        while (y < size.height) {
+          drawLine(
+            color = Color.Cyan.copy(alpha = 0.65f),
+            start = Offset(0f, y),
+            end = Offset(size.width, y),
+            strokeWidth = strokeWidth,
+          )
+          y += spacing
+        }
       }
     }
 
@@ -157,6 +293,7 @@ private fun GlassBuiltInStyleGeometrySample(style: GlassStyle?) {
         shape = RoundedCornerShape(32.dp),
         style = style,
         hazeState = hazeState,
+        performanceMode = performanceMode,
       )
       GlassBuiltInStyleSurface(
         tag = "card",
@@ -165,6 +302,7 @@ private fun GlassBuiltInStyleGeometrySample(style: GlassStyle?) {
         shape = RoundedCornerShape(28.dp),
         style = style,
         hazeState = hazeState,
+        performanceMode = performanceMode,
       )
       GlassBuiltInStyleSurface(
         tag = "panel",
@@ -173,6 +311,7 @@ private fun GlassBuiltInStyleGeometrySample(style: GlassStyle?) {
         shape = RoundedCornerShape(32.dp),
         style = style,
         hazeState = hazeState,
+        performanceMode = performanceMode,
       )
     }
   }
@@ -186,6 +325,7 @@ private fun GlassBuiltInStyleSurface(
   shape: RoundedCornerShape,
   style: GlassStyle?,
   hazeState: HazeState,
+  performanceMode: HazePerformanceMode,
 ) {
   val modifier = Modifier
     .size(width, height)
@@ -195,7 +335,7 @@ private fun GlassBuiltInStyleSurface(
       modifier.hazeGlass(
         input = HazeInput.Sources(hazeState),
         style = style.then { shape(shape) },
-        performanceMode = HazePerformanceMode.Quality,
+        performanceMode = performanceMode,
       )
     } else {
       modifier
