@@ -28,6 +28,7 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
+import assertk.assertions.prop
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
@@ -48,6 +49,25 @@ import sun.misc.Unsafe
 
 @OptIn(ExperimentalHazeApi::class, InternalComposeUiApi::class)
 class RuntimeShaderGlassDelegateTrimMemoryTest {
+
+  @Test
+  fun nativeEffectConstructionFailure_isReportedAsRuntimeShaderConstructionFailure() {
+    val failure = IllegalArgumentException("unsupported blur radius")
+
+    assertFailure {
+      wrapGlassRuntimeEffectConstruction { throw failure }
+    }.isInstanceOf<RuntimeShaderRenderEffectException>()
+      .prop(Throwable::cause).isSameInstanceAs(failure)
+  }
+
+  @Test
+  fun runtimeEffectConstructionFailure_isNotWrappedAgain() {
+    val failure = RuntimeShaderRenderEffectException(IllegalArgumentException("unsupported effect"))
+
+    assertFailure {
+      wrapGlassRuntimeEffectConstruction { throw failure }
+    }.isSameInstanceAs(failure)
+  }
 
   @Test
   fun invalidSkikoSksl_isReportedAsRuntimeShaderConstructionFailure() {

@@ -1893,12 +1893,14 @@ internal class RuntimeShaderGlassDelegate(
     if (plan.usesNativeWideBlur) {
       return createGlassDepthInputRenderEffect(
         sharp = input,
-        blur = createBlurRenderEffect(
-          radiusX = plan.effectiveRadiusPx,
-          radiusY = plan.effectiveRadiusPx,
-          tileMode = androidx.compose.ui.graphics.TileMode.Clamp,
-          input = input,
-        ),
+        blur = wrapGlassRuntimeEffectConstruction {
+          createBlurRenderEffect(
+            radiusX = plan.effectiveRadiusPx,
+            radiusY = plan.effectiveRadiusPx,
+            tileMode = androidx.compose.ui.graphics.TileMode.Clamp,
+            input = input,
+          )
+        },
         depth = depth,
       )
     }
@@ -1959,13 +1961,15 @@ internal class RuntimeShaderGlassDelegate(
     if (key.plan.usesNativeWideBlur) {
       return GlassBlurRenderEffects(
         key = key,
-        native = checkNotNull(
-          createBlurRenderEffect(
-            radiusX = key.plan.effectiveRadiusPx,
-            radiusY = key.plan.effectiveRadiusPx,
-            tileMode = androidx.compose.ui.graphics.TileMode.Clamp,
-          ),
-        ),
+        native = wrapGlassRuntimeEffectConstruction {
+          checkNotNull(
+            createBlurRenderEffect(
+              radiusX = key.plan.effectiveRadiusPx,
+              radiusY = key.plan.effectiveRadiusPx,
+              tileMode = androidx.compose.ui.graphics.TileMode.Clamp,
+            ),
+          )
+        },
         horizontal = null,
         vertical = null,
       )
