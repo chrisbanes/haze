@@ -40,7 +40,7 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 dokka = { id = "org.jetbrains.dokka", version = "2.2.0" }
 metalava = { id = "me.tylerbwong.gradle.metalava", version.ref = "metalava" }
-poko = { id = "dev.drewhamilton.poko", version = "0.23.1" }
+poko = { id = "dev.drewhamilton.poko", version = "0.23.2" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.37.0" }
