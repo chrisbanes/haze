@@ -121,8 +121,9 @@ into the fused shader recorded a 10.9 ms CPU P90 and a -1.2 ms frame-overrun P90
 
 - Android retains a source capture and one fused Glass output renderer; common code still owns
   their lifetime, retained-output behavior, and fallbacks.
-- Non-progressive and progressive blur retain the semantic two-pass kernel response. Large
-  non-progressive plans reproduce downsample low-pass energy inside the composed graph.
+- Small uniform and progressive blur retain the semantic two-pass kernel response. Wide uniform
+  blur uses a native Gaussian node in the composed graph rather than reproducing downsample
+  low-pass energy in semantic kernels.
 - Progressive blur and Full chromatic aberration increase graph or shader sampling cost. Their one-
   and nine-effect scenarios must be profiled on physical devices as the implementation evolves.
 - New Android RuntimeShader features must be implemented through this renderer. Silent partial
