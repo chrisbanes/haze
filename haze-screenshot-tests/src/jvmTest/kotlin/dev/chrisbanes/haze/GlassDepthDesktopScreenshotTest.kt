@@ -112,8 +112,8 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
   }
 
   @Test
-  fun glass_maximumChromaKeepsSaturatedPrimariesFinite() = runScreenshotTest {
-    assertGlassChromaMultiplierFiniteInvariant()
+  fun glass_chromaBoostPreservesGamutBoundColoursAndBoostsInteriorColour() = runScreenshotTest {
+    assertGlassChromaMultiplierGamutInvariant()
   }
 
   @Test

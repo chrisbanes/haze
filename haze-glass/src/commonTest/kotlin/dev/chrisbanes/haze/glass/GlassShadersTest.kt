@@ -157,14 +157,25 @@ class GlassShadersTest {
   }
 
   @Test
-  fun opticalShaders_gammaConversionNeverRaisesNegativeLinearChannelsToFractionalPower() {
+  fun glassShaders_useColorManagedSrgbIntrinsicsForChromaGrading() {
     listOf(
+      GlassShaders.buildFused(),
       GlassShaders.buildOptical(),
-      GlassShaders.buildOptical(interactive = true),
     ).forEach { shader ->
-      assertThat(shader).contains("vec3 nonNegative = max(color, vec3(0.0));")
-      assertThat(shader).contains("pow(nonNegative, vec3(1.0 / 2.4))")
-      assertThat(shader).doesNotContain("pow(color, vec3(1.0 / 2.4))")
+      val grading = shader.substringAfter("vec3 applyColorGrading")
+
+      assertThat(grading).contains("toLinearSrgb(color)")
+      assertThat(grading).contains("fromLinearSrgb(")
+      assertThat(grading).contains("bool sourceIsInSrgbGamut")
+      assertThat(grading).contains("chromaScale = 1.0;")
+      assertThat(grading.indexOf("toLinearSrgb(color)"))
+        .isLessThan(grading.indexOf("fromLinearSrgb("))
+      assertThat(grading.indexOf("fromLinearSrgb("))
+        .isLessThan(grading.indexOf("if (appliedWhitePoint != 0.0)"))
+      assertThat(grading.indexOf("if (appliedWhitePoint != 0.0)"))
+        .isLessThan(grading.indexOf("if (contrast != 0.0)"))
+      assertThat(shader).doesNotContain("srgbToLinear")
+      assertThat(shader).doesNotContain("linearToSrgb")
     }
   }
 

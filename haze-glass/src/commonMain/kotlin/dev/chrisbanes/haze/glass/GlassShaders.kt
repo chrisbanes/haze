@@ -1012,24 +1012,28 @@ internal object GlassShaders {
       return normalize(vec3(gradient, 1.0));
     }
 
-    vec3 srgbToLinear(vec3 color) {
-      return mix(color / 12.92, pow((color + 0.055) / 1.055, vec3(2.4)), step(0.04045, color));
-    }
-
-    vec3 linearToSrgb(vec3 color) {
-      vec3 nonNegative = max(color, vec3(0.0));
-      return mix(
-        nonNegative * 12.92,
-        1.055 * pow(nonNegative, vec3(1.0 / 2.4)) - 0.055,
-        step(0.0031308, nonNegative)
-      );
-    }
-
     vec3 applyColorGrading(vec3 color, float appliedWhitePoint) {
       if (chromaMultiplier != 1.0) {
-        vec3 linearColor = srgbToLinear(color);
+        vec3 linearColor = toLinearSrgb(color);
         float luminance = dot(linearColor, vec3(0.2126, 0.7152, 0.0722));
-        color = linearToSrgb(mix(vec3(luminance), linearColor, chromaMultiplier));
+        float chromaScale = chromaMultiplier;
+        if (chromaMultiplier > 1.0) {
+          bool sourceIsInSrgbGamut =
+            min(linearColor.r, min(linearColor.g, linearColor.b)) >= 0.0 &&
+              max(linearColor.r, max(linearColor.g, linearColor.b)) <= 1.0;
+          if (sourceIsInSrgbGamut) {
+            vec3 delta = linearColor - vec3(luminance);
+            if (delta.r > 0.0) chromaScale = min(chromaScale, (1.0 - luminance) / delta.r);
+            if (delta.r < 0.0) chromaScale = min(chromaScale, -luminance / delta.r);
+            if (delta.g > 0.0) chromaScale = min(chromaScale, (1.0 - luminance) / delta.g);
+            if (delta.g < 0.0) chromaScale = min(chromaScale, -luminance / delta.g);
+            if (delta.b > 0.0) chromaScale = min(chromaScale, (1.0 - luminance) / delta.b);
+            if (delta.b < 0.0) chromaScale = min(chromaScale, -luminance / delta.b);
+          } else {
+            chromaScale = 1.0;
+          }
+        }
+        color = fromLinearSrgb(mix(vec3(luminance), linearColor, chromaScale));
       }
       if (appliedWhitePoint != 0.0) {
         vec3 target = appliedWhitePoint > 0.0 ? vec3(1.0) : vec3(0.0);
