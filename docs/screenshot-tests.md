@@ -88,5 +88,5 @@ existing baselines explicitly; do not regenerate unchanged default references.
 Robolectric SDK 37 now exercises native Backdrop visual references with an empty fallback state,
 and the host gate also requires the native pixel proof and its unsupported/disabled negative controls.
 This is host coverage only. Physical-device correctness, performance, qualified-device artifacts,
-native parity, and the full release gate remain deferred. The release script is unchanged. Do not
+native parity, and the full release gate remain deferred. Do not
 access a busy device just to run the host gate.
