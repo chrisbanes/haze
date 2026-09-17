@@ -2215,6 +2215,7 @@ internal fun RuntimeShaderUniformProvider.setGlassBlurUniforms(
   sampleHeight: Float,
 ) {
   setFloatUniform("sampleSize", sampleWidth, sampleHeight)
+  setFloatUniform("sourceIsOpaque", if (key.sourceIsOpaque) 1f else 0f)
   setFloatUniform(
     "materialOrigin",
     key.maskOrigin.x,

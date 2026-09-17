@@ -23,6 +23,8 @@ import org.jetbrains.skia.Canvas
 import org.jetbrains.skia.Paint
 
 class GlassGalleryDesktopScreenshotTest : ScreenshotTest() {
+  @Test fun scaffoldProgressiveDark() = runScreenshotTest { assertProgressiveScaffoldKeepsRegularChrome() }
+
   @Test fun productPortrait() = runScreenshotTest { captureGlassProductHero(isDark = true) }
 
   @Test

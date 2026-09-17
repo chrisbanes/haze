@@ -196,7 +196,7 @@ fun ScaffoldSample(
           tint = glassTint,
           performanceMode = performanceMode,
           optics = when (mode) {
-            ScaffoldSampleMode.Progressive -> GlassOptics(progressive = progressive)
+            ScaffoldSampleMode.Progressive -> GlassDefaults.optics.copy(progressive = progressive)
             else -> GlassDefaults.optics
           },
           title = "Glass shaped boundary".takeIf { mode == ScaffoldSampleMode.Mask },

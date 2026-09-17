@@ -238,6 +238,7 @@ internal data class GlassBlurEffectKey(
   val maskOrigin: Offset,
   val maskSize: Size,
   val maskCoordinateScale: Float,
+  val sourceIsOpaque: Boolean = false,
 )
 
 internal fun GlassRenderParams.blurEffectKey(): GlassBlurEffectKey {
@@ -255,6 +256,7 @@ internal fun GlassRenderParams.blurEffectKey(): GlassBlurEffectKey {
     maskOrigin = if (progressive != null) coordinates.materialOrigin else Offset.Zero,
     maskSize = if (progressive != null) coordinates.materialSize / coordinates.scaleFactor else Size.Zero,
     maskCoordinateScale = if (progressive != null) 1f / coordinates.scaleFactor else 1f,
+    sourceIsOpaque = backgroundColor.alpha == 1f,
   )
 }
 
@@ -968,6 +970,7 @@ private fun GlassRenderParams.hasSameBlurEffectInputs(other: GlassRenderParams):
   coordinates == other.coordinates &&
     blurRadiusPx == other.blurRadiusPx &&
     blurSigmaPx == other.blurSigmaPx &&
+    (backgroundColor.alpha == 1f) == (other.backgroundColor.alpha == 1f) &&
     progressive == other.progressive
 
 private fun GlassRenderParams.hasSameOpticalEffectInputs(other: GlassRenderParams): Boolean =

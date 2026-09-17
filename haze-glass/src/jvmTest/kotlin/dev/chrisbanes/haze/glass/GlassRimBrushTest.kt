@@ -28,6 +28,18 @@ import org.jetbrains.skia.RuntimeEffect
 
 class GlassRimBrushTest {
   @Test
+  fun directRim_coversPixelsStraddlingRoundedBoundary() {
+    val provider = checkNotNull(createGlassRimBrushProvider())
+    val brush = checkNotNull(
+      provider(rimKey().copy(specularIntensity = 0f, edgeShadow = Color.White, sampleStepPx = 2f)),
+    )
+    // Pixel (9,17) straddles the top-left circular arc with its centre just inside it.
+    val alpha = drawBrush(brush).toPixelMap()[9, 17].alpha
+    assertThat(alpha).isGreaterThan(0.1f)
+    assertThat(alpha).isLessThanOrEqualTo(0.9f)
+  }
+
+  @Test
   fun directRim_matchesImageFilterAcrossUniformChanges() {
     val provider = checkNotNull(createGlassRimBrushProvider())
     val key = rimKey()

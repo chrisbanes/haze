@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntRect
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
@@ -2044,6 +2045,7 @@ internal fun ScreenshotUiTest.assertGlassRefractionFoldInvertsIncomingContentInv
         surfaceSize = currentCase.size,
         drawGridLines = false,
         continuityCarrier = carrier,
+        effectTestTag = "refraction-fold",
       )
     }
   }
@@ -2065,7 +2067,8 @@ internal fun ScreenshotUiTest.assertGlassRefractionFoldInvertsIncomingContentInv
         effect.optics = foldInvariantOptics(1f)
         waitForIdle()
         val folded = captureInvariantSnapshot()
-        val bounds = folded.centeredSurfaceBounds(case.size)
+        // Use the measured placement: an odd root height can round a centred pill by one pixel.
+        val bounds = onNodeWithTag("refraction-fold").fetchSemanticsNode().boundsInRoot.roundToIntRect()
         val strongestReversal = listOf(1, 6).maxOf { step ->
           val unfoldedSlopes = unfolded.foldProbeSlopes(case, bounds, direction, step)
           val foldedSlopes = folded.foldProbeSlopes(case, bounds, direction, step)
