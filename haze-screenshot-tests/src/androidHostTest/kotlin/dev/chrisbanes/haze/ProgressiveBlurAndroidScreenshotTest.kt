@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -22,12 +23,14 @@ import assertk.assertThat
 import assertk.assertions.isCloseTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
+import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
+import kotlin.math.abs
 import kotlin.test.Test
 import org.robolectric.annotation.Config
 
@@ -63,6 +66,36 @@ class ProgressiveBlurAndroidScreenshotTest : ScreenshotTest() {
     assertThat(brushTintPixel.alpha, "brush tint alpha").isCloseTo(colorTintPixel.alpha, 0.01f)
     assertThat(brushTintPixel.red, "brush tint preserves red").isGreaterThan(0.9f)
   }
+
+  @Test
+  fun switchedProgressive_matchesFreshAttachment() = assertTransitionMatchesFreshAttachment(
+    initialStyle = ordinaryStyle(alpha = 1f),
+    finalStyle = layeredStyle(alpha = 1f),
+  )
+
+  @Test
+  fun switchedProgressive_withAlpha_matchesFreshAttachment() = assertTransitionMatchesFreshAttachment(
+    initialStyle = ordinaryStyle(alpha = 0.5f),
+    finalStyle = layeredStyle(alpha = 0.5f),
+  )
+
+  @Test
+  fun maskedToLayered_matchesFreshAttachment() = assertTransitionMatchesFreshAttachment(
+    initialStyle = maskedStyle(alpha = 0.5f),
+    finalStyle = layeredStyle(alpha = 0.5f),
+  )
+
+  @Test
+  fun layeredToMasked_matchesFreshAttachment() = assertTransitionMatchesFreshAttachment(
+    initialStyle = layeredStyle(alpha = 0.5f),
+    finalStyle = maskedStyle(alpha = 0.5f),
+  )
+
+  @Test
+  fun layeredToOrdinary_matchesFreshAttachment() = assertTransitionMatchesFreshAttachment(
+    initialStyle = layeredStyle(alpha = 0.5f),
+    finalStyle = ordinaryStyle(alpha = 0.5f),
+  )
 
   @Test
   fun progressiveBlur_contentInputRefreshesWhenBackgroundChanges() = runScreenshotTest {
@@ -176,6 +209,123 @@ class ProgressiveBlurAndroidScreenshotTest : ScreenshotTest() {
         assertThat(luminance, label).isLessThan(0.98f)
       }
     }
+  }
+
+  private fun assertTransitionMatchesFreshAttachment(
+    initialStyle: HazeBlurStyle,
+    finalStyle: HazeBlurStyle,
+  ) = runScreenshotTest {
+    val style = mutableStateOf(initialStyle)
+    val attachment = mutableStateOf(0)
+
+    setContent {
+      ScreenshotTheme {
+        key(attachment.value) {
+          TransitionBlurContent(style = style.value)
+        }
+      }
+    }
+
+    waitForIdle()
+    captureRootPixels()
+
+    style.value = finalStyle
+    waitForIdle()
+    val transitioned = captureRootPixels().snapshot()
+
+    attachment.value++
+    waitForIdle()
+    val fresh = captureRootPixels().snapshot()
+
+    assertVisibleBlur(fresh)
+    assertThat(
+      transitioned.maxChannelDifference(fresh),
+      "transitioned and fresh $finalStyle output",
+    ).isLessThanOrEqualTo(0.01f)
+  }
+}
+
+private fun ordinaryStyle(alpha: Float): HazeBlurStyle = HazeBlurStyle {
+  blurRadius(48.dp)
+  noiseFactor(0f)
+  alpha(alpha)
+}
+
+private fun layeredStyle(alpha: Float): HazeBlurStyle = HazeBlurStyle {
+  blurRadius(48.dp)
+  noiseFactor(0f)
+  alpha(alpha)
+  progressive(
+    HazeProgressive.verticalGradient(
+      startIntensity = 0.5f,
+      endIntensity = 0.5f,
+    ),
+  )
+}
+
+private fun maskedStyle(alpha: Float): HazeBlurStyle = HazeBlurStyle {
+  blurRadius(48.dp)
+  noiseFactor(0f)
+  alpha(alpha)
+  progressive(
+    HazeProgressive.RadialGradient(
+      centerIntensity = 0.5f,
+      radiusIntensity = 0.5f,
+    ),
+  )
+}
+
+@Composable
+private fun TransitionBlurContent(style: HazeBlurStyle) {
+  Box(
+    Modifier
+      .fillMaxSize()
+      .background(Color.Black),
+  ) {
+    Column(
+      Modifier
+        .fillMaxSize()
+        .hazeBlur(
+          input = HazeInput.Content,
+          style = style,
+          performanceMode = HazePerformanceMode.Quality,
+        ),
+    ) {
+      Box(
+        Modifier
+          .weight(1f)
+          .fillMaxSize()
+          .background(Color.Black),
+      )
+      Box(
+        Modifier
+          .weight(1f)
+          .fillMaxSize()
+          .background(Color.White),
+      )
+    }
+  }
+}
+
+private fun assertVisibleBlur(pixels: PixelSnapshot) {
+  val boundary = pixels[pixels.width / 2, pixels.height / 2 - 4].luminance()
+  assertThat(boundary, "visible blur at source boundary").isGreaterThan(0.005f)
+  assertThat(boundary, "visible blur at source boundary").isLessThan(0.98f)
+}
+
+private fun PixelSnapshot.maxChannelDifference(other: PixelSnapshot): Float {
+  require(width == other.width && height == other.height) {
+    "Cannot compare ${width}x$height to ${other.width}x${other.height}"
+  }
+  return colors.indices.maxOf { index ->
+    val first = colors[index]
+    val second = other.colors[index]
+    maxOf(
+      abs(first.red - second.red),
+      abs(first.green - second.green),
+      abs(first.blue - second.blue),
+      abs(first.alpha - second.alpha),
+    )
   }
 }
 

@@ -84,6 +84,11 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
   context: HazeEffectRuntimeDrawScope,
   inputScale: Float,
 ) = with(drawScope) {
+  // The retained capture may have been drawn through the ordinary or masked path.
+  // Record the unprocessed input so its prior effect and alpha do not compound here.
+  contentLayer.renderEffect = null
+  contentLayer.alpha = 1f
+
   val colorEffects = blurVisualEffect.colorEffects
   val noiseFactor = blurVisualEffect.noiseFactor
   val blurRadius = blurVisualEffect.blurRadius.takeOrElse { 0.dp }
