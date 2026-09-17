@@ -59,7 +59,6 @@ import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import kotlin.math.abs
-import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -1711,10 +1710,7 @@ internal fun ScreenshotUiTest.assertGlassChromaMultiplierGamutInvariant() {
     specularIntensity = 0f
     ambientResponse = 0f
     edgeSoftness = 0.dp
-    contrast = 0f
-    whitePoint = 0f
-    chromaMultiplier = 1f
-    contentNormalBlend = 0f
+    applyNeutralOpticalGrading()
     shape = RoundedCornerShape(0.dp)
   }
   setContent {
@@ -1780,7 +1776,8 @@ private fun PixelSnapshot.glassChromaPalettePixels(): List<Color> =
     this[width * (index * 2 + 1) / (GlassChromaPalette.size * 2), height / 2]
   }
 
-private data class LinearSrgb(val red: Float, val green: Float, val blue: Float) {
+@Poko
+private class LinearSrgb(val red: Float, val green: Float, val blue: Float) {
   fun luminance(): Float = red * 0.2126f + green * 0.7152f + blue * 0.0722f
 
   fun chromaDistance(): Float {
@@ -1803,14 +1800,10 @@ private data class LinearSrgb(val red: Float, val green: Float, val blue: Float)
   }
 }
 
-private fun Color.toLinearSrgb(): LinearSrgb = LinearSrgb(
-  red = red.toLinearSrgbComponent(),
-  green = green.toLinearSrgbComponent(),
-  blue = blue.toLinearSrgbComponent(),
-)
-
-private fun Float.toLinearSrgbComponent(): Float =
-  if (this <= 0.04045f) this / 12.92f else ((this + 0.055f) / 1.055f).pow(2.4f)
+private fun Color.toLinearSrgb(): LinearSrgb {
+  val linear = convert(ColorSpaces.LinearSrgb)
+  return LinearSrgb(linear.red, linear.green, linear.blue)
+}
 
 internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
   val shape = RoundedCornerShape(28.dp)
