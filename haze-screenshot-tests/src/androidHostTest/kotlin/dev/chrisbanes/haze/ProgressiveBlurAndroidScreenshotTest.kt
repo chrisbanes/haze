@@ -8,16 +8,22 @@ package dev.chrisbanes.haze
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.isCloseTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
@@ -27,6 +33,36 @@ import org.robolectric.annotation.Config
 
 @Config(sdk = [31, 32])
 class ProgressiveBlurAndroidScreenshotTest : ScreenshotTest() {
+
+  @Test
+  fun solidRedBrushTint_matchesSolidRedColorTint() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        Row(Modifier.fillMaxSize()) {
+          TintCell(
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+            colorEffect = HazeColorEffect.tint(
+              Brush.verticalGradient(0f to Color.Red, 1f to Color.Red),
+            ),
+          )
+          TintCell(
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+            colorEffect = HazeColorEffect.tint(Color.Red),
+          )
+        }
+      }
+    }
+
+    val pixels = captureRootPixels()
+    val brushTintPixel = pixels[pixels.width / 4, pixels.height / 2]
+    val colorTintPixel = pixels[pixels.width * 3 / 4, pixels.height / 2]
+
+    assertThat(brushTintPixel.red, "brush tint red").isCloseTo(colorTintPixel.red, 0.01f)
+    assertThat(brushTintPixel.green, "brush tint green").isCloseTo(colorTintPixel.green, 0.01f)
+    assertThat(brushTintPixel.blue, "brush tint blue").isCloseTo(colorTintPixel.blue, 0.01f)
+    assertThat(brushTintPixel.alpha, "brush tint alpha").isCloseTo(colorTintPixel.alpha, 0.01f)
+    assertThat(brushTintPixel.red, "brush tint preserves red").isGreaterThan(0.9f)
+  }
 
   @Test
   fun progressiveBlur_contentInputRefreshesWhenBackgroundChanges() = runScreenshotTest {
@@ -140,5 +176,31 @@ class ProgressiveBlurAndroidScreenshotTest : ScreenshotTest() {
         assertThat(luminance, label).isLessThan(0.98f)
       }
     }
+  }
+}
+
+@Composable
+private fun TintCell(
+  modifier: Modifier,
+  colorEffect: HazeColorEffect,
+) {
+  Box(
+    modifier.hazeBlur(
+      input = HazeInput.Content,
+      style = HazeBlurStyle {
+        blurRadius(0.dp)
+        noiseFactor(0f)
+        colorEffects(listOf(colorEffect))
+        progressive(
+          HazeProgressive.horizontalGradient(
+            startIntensity = 0.5f,
+            endIntensity = 0.5f,
+          ),
+        )
+      },
+      performanceMode = HazePerformanceMode.Quality,
+    ),
+  ) {
+    Box(Modifier.fillMaxSize().background(Color.White))
   }
 }
