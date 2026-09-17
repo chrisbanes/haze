@@ -53,6 +53,10 @@ internal fun ScreenshotUiTest.assertGlassRoundedEdgePixelsAreContinuous() {
     specularIntensity(0f)
     ambientResponse(0f)
     edgeSoftness(0.dp)
+    contrast(0f)
+    whitePoint(0f)
+    chromaMultiplier(1f)
+    contentNormalBlend(0f)
     this.shape(shape)
   }
   var clipPlacement by mutableStateOf(RoundedEdgeClipPlacement.InternalMaskOnly)

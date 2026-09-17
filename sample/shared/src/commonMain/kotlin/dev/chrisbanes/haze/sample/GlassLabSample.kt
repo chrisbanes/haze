@@ -460,6 +460,11 @@ private val androidx.compose.ui.unit.Dp.pointLabel: String
 private fun LabSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, onValueChange: (Float) -> Unit) {
   Column {
     Text(label, style = MaterialTheme.typography.labelLarge)
-    Slider(value = value, onValueChange = onValueChange, valueRange = range)
+    Slider(
+      value = value,
+      onValueChange = onValueChange,
+      valueRange = range,
+      modifier = Modifier.semantics { contentDescription = label },
+    )
   }
 }

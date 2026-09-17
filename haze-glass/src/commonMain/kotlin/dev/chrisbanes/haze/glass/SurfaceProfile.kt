@@ -9,7 +9,8 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
  * Describes the cross-sectional surface shape of the Glass bezel.
  *
  * The profile controls how light bends at the transition from the edge to the flat interior,
- * producing different refraction characteristics.
+ * producing different refraction characteristics with [RefractionProfile.Surface]. With
+ * [RefractionProfile.Edge], this profile controls lighting only.
  */
 @ExperimentalHazeApi
 public enum class SurfaceProfile {

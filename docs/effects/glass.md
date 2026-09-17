@@ -63,15 +63,22 @@ CompositionLocalProvider(LocalGlassStyle provides GlassStyle.Material3()) {
 ### Built-in styles
 
 `GlassStyle.regular` is the default built-in Glass style. Its blur and depth adapt to the
-surface's shortest dimension and include a restrained edge fold, where the local sampling direction
-reverses so incoming content can appear inverted near the glass boundary. This makes it a good fit
-for reusable components.
+surface's shortest dimension. A 20dp edge refraction band preserves curved loops on compact
+controls, while larger surfaces fully diffuse the backdrop. Blur radii are 20/24/25dp and depth
+is 0.65/1/1 at shortest dimensions of 64/176/220dp. Its brighter tone is calibrated against
+native iOS 27 light appearance; it does not automatically reproduce native dark appearance or
+content-dependent tint adaptation.
 
 `GlassStyle.clear` is the alternative built-in style for surfaces that should keep more of the
-background visible. Its blur and depth increase smoothly with the surface's shortest side, while
-its authored refraction and distinct edge and lighting response remain recognizable on renderers
-that simplify advanced optical effects. These are Haze styles informed by the platform distinction;
+background visible. It uses the same shallow blur across surface sizes and an edge refraction
+profile informed by iOS 27 captures. Displacement is strongest at the boundary, decays over a fixed
+28dp band, and follows wider optical corners to form the characteristic loops. Simplified renderers
+retain Clear's tone and edge treatment while omitting advanced optical effects. These are Haze styles informed by the platform distinction;
 they do not promise pixel parity with another system.
+
+Use Clear over rich imagery with bright, bold foreground content. Add dimming behind the controls
+when needed for legibility; Clear does not add that dimming automatically. Prefer Regular when the
+material needs to obscure a busy background. This follows Apple's [Clear usage guidance](https://developer.apple.com/videos/play/wwdc2025/219/).
 
 ```kotlin
 Modifier.hazeGlass(
@@ -95,10 +102,10 @@ Modifier.hazeGlass(
 - **specularIntensity**: Highlight strength `0..1` (default 0.48).
 - **edgeShadow**: Shape-following dark rim composited beneath the specular highlight (defaults to
   black at 14% opacity). Its alpha controls strength; set `Color.Transparent` to disable it.
-- **ambientResponse**: Fresnel/edge lift `0..1` (default 0.46).
-- **edgeSoftness**: Soft fade at the edges (default 2.dp). Set to 0.dp for hard edges.
+- **ambientResponse**: Fresnel/edge lift `0..1` (default 0.15).
+- **edgeSoftness**: Soft fade at the edges (default 1.dp). Set to 0.dp for hard edges.
 - **shape** (`RoundedCornerShape`): Rounded-rect boundary for refraction and masking (default 16.dp corners).
-- **surfaceProfile**: Cross-section profile for the refraction bezel. Options: `Circle` (default), `Squircle`, `Lip`, `Concave`.
+- **surfaceProfile**: Cross-section for lighting and, with `RefractionProfile.Surface`, refraction. Options: `Circle` (default), `Squircle`, `Lip`, `Concave`.
 - **lightPosition**: `Alignment` of the light within the material's measured bounds (default
   `Alignment.Center`). Logical start and end follow the node's layout direction.
 - **chromaticAberrationStrength**: Dispersion strength `0..1` (default 0). Higher values produce prismatic color splitting at edges.
@@ -237,6 +244,19 @@ val reusableOptics = GlassOptics(
 )
 val style = GlassStyle { optics(reusableOptics) }
 ```
+
+`refractionProfile` defaults to `RefractionProfile.Surface`, which derives displacement from
+`surfaceProfile` and `refractionHeightFraction`. Existing custom optics retain that behavior.
+`RefractionProfile.Edge(width = 28.dp)` separates sampling from lighting: displacement is strongest
+at the boundary and decays to zero over the specified width. Its optical corner radius is 1.5 times
+the visible radius, capped at half the shortest side. Displacement is capped at half that side too,
+so compact capsules do not refract as far as large cards. A zero width disables refraction and its
+secondary detail pass; `refractionHeightFraction` continues to control lighting.
+
+Clear uses `Edge(28.dp)`, strength `0.85`, displacement `56.dp`, and a lighting height fraction of
+`0.35`. Regular uses `Edge(20.dp)`, strength `0.7`, displacement `48.dp`, and lighting height
+fraction `0.15`. These are empirical Haze settings, not an Apple specification or a promise of
+parity across content and appearance settings.
 
 `refractionFoldStrength` controls the inverted edge-refraction fold from `0f` to `1f`. The default
 for `GlassOptics` is `0f`, which preserves the original monotonic refraction map. The fold is

@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.IntSize
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThanOrEqualTo
@@ -55,7 +56,7 @@ class GlassRenderBudgetTest {
       sampleSize = IntSize(1000, 600),
       blurRadiusPx = 0f,
       depth = 0f,
-      allowMultiscaleBlur = true,
+      allowNativeWideBlur = true,
       refractionDetailActive = true,
       rimActive = false,
       interactionPatchSize = patchSize,
@@ -98,7 +99,7 @@ class GlassRenderBudgetTest {
       groupCompositeSize = IntSize(200, 300),
       blurRadiusPx = 0f,
       depth = 0f,
-      allowMultiscaleBlur = true,
+      allowNativeWideBlur = true,
       refractionDetailActive = false,
       rimActive = false,
       interactionOpticsActive = false,
@@ -145,9 +146,8 @@ class GlassRenderBudgetTest {
     val plan = GlassRetainedLayerPlan(
       listOf(
         GlassRetainedLayer(GlassRetainedLayerKind.Source, IntSize(1000, 1000)),
-        GlassRetainedLayer(GlassRetainedLayerKind.BlurPrefilter, IntSize(1000, 1000)),
-        GlassRetainedLayer(GlassRetainedLayerKind.BlurHorizontal, IntSize(500, 500)),
-        GlassRetainedLayer(GlassRetainedLayerKind.Blurred, IntSize(500, 500)),
+        GlassRetainedLayer(GlassRetainedLayerKind.BlurHorizontal, IntSize(1000, 1000)),
+        GlassRetainedLayer(GlassRetainedLayerKind.Blurred, IntSize(1000, 1000)),
         GlassRetainedLayer(GlassRetainedLayerKind.DepthMixed, IntSize(1000, 1000)),
         GlassRetainedLayer(GlassRetainedLayerKind.Optical, IntSize(1000, 1000)),
         GlassRetainedLayer(GlassRetainedLayerKind.RefractionDetail, IntSize(1000, 1000)),
@@ -158,8 +158,28 @@ class GlassRenderBudgetTest {
       ),
     )
 
-    assertThat(plan.retainedPixelCountOrNull()).isEqualTo(9_500_000L)
+    assertThat(plan.retainedPixelCountOrNull()).isEqualTo(10_000_000L)
     assertThat(plan.fitsGlassRenderBudget()).isTrue()
+  }
+
+  @Test
+  fun wideNativeBlur_budgetsOnlyItsFullSizeOutput() {
+    val plan = buildGlassBudgetLayerPlan(
+      sampleSize = IntSize(1_080, 1_920),
+      blurRadiusPx = 84f,
+      depth = 1f,
+      allowNativeWideBlur = true,
+      refractionDetailActive = false,
+      rimActive = false,
+      interactionOpticsActive = false,
+      interactionLightingActive = false,
+    )
+
+    if (!supportsFusedGlassRenderEffect) {
+      assertThat(plan.layers.filter { it.kind.name.startsWith("Blur") }).containsExactly(
+        GlassRetainedLayer(GlassRetainedLayerKind.Blurred, IntSize(1_080, 1_920)),
+      )
+    }
   }
 
   @Test
@@ -230,9 +250,9 @@ class GlassRenderBudgetTest {
   }
 
   @Test
-  fun blurDownsampleThreshold_findsSafeIntervalAboveUnsafeAutomaticFloor() {
+  fun nativeBlurThreshold_findsSafeIntervalAboveUnsafeAutomaticFloor() {
     val result = resolveGlassRenderBudget(1f) { scale ->
-      blurThresholdPlan(scale = scale, sideAtFullScale = 7_370, blurRadiusAtFullScale = 85.49f)
+      blurThresholdPlan(scale = scale, sideAtFullScale = 7_370, blurRadiusAtFullScale = 15.384615f)
     }
     val runtime = result.assertRuntime()
 
@@ -250,7 +270,7 @@ class GlassRenderBudgetTest {
         sampleSize = IntSize(side, side),
         blurRadiusPx = 22.24324f * scale,
         depth = 1f,
-        allowMultiscaleBlur = true,
+        allowNativeWideBlur = true,
         refractionDetailActive = false,
         rimActive = false,
         interactionOpticsActive = false,
@@ -266,10 +286,9 @@ class GlassRenderBudgetTest {
         GlassRetainedLayerKind.Optical,
       )
     } else {
-      assertThat(runtime.scaleFactor).isGreaterThanOrEqualTo(0.9993f)
-      assertThat(runtime.scaleFactor).isLessThanOrEqualTo(0.9994f)
-      assertThat(runtime.plan.layers.any { it.kind == GlassRetainedLayerKind.BlurPrefilter })
-        .isTrue()
+      assertThat(runtime.scaleFactor).isEqualTo(1f)
+      assertThat(runtime.plan.layers.any { it.kind == GlassRetainedLayerKind.BlurHorizontal })
+        .isFalse()
     }
     assertThat(runtime.plan.fitsGlassRenderBudget()).isTrue()
   }
@@ -298,11 +317,12 @@ class GlassRenderBudgetTest {
     return GlassRetainedLayerPlan(
       buildList {
         add(GlassRetainedLayer(GlassRetainedLayerKind.Source, sampleSize))
-        if (blurPlan.requiresPrefilter) {
-          add(GlassRetainedLayer(GlassRetainedLayerKind.BlurPrefilter, sampleSize))
+        if (blurPlan.usesNativeWideBlur) {
+          add(GlassRetainedLayer(GlassRetainedLayerKind.Blurred, sampleSize))
+        } else {
+          add(GlassRetainedLayer(GlassRetainedLayerKind.BlurHorizontal, sampleSize))
+          add(GlassRetainedLayer(GlassRetainedLayerKind.Blurred, sampleSize))
         }
-        add(GlassRetainedLayer(GlassRetainedLayerKind.BlurHorizontal, blurPlan.workingSize))
-        add(GlassRetainedLayer(GlassRetainedLayerKind.Blurred, blurPlan.workingSize))
         add(GlassRetainedLayer(GlassRetainedLayerKind.Optical, sampleSize))
         add(GlassRetainedLayer(GlassRetainedLayerKind.Rim, sampleSize))
       },

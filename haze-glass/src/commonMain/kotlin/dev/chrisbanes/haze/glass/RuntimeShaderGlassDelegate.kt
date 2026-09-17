@@ -13,7 +13,6 @@ import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -31,6 +30,7 @@ import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.asComposeRenderEffect
 import dev.chrisbanes.haze.createBlendRenderEffect
+import dev.chrisbanes.haze.createBlurRenderEffect
 import dev.chrisbanes.haze.createMutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.createOffsetRenderEffect
 import dev.chrisbanes.haze.createRuntimeEffect
@@ -54,8 +54,6 @@ internal class RuntimeShaderGlassDelegate(
   internal var progressiveBlurHorizontalShader: MutableRuntimeShaderRenderEffect? = null
     private set
   internal var progressiveBlurVerticalShader: MutableRuntimeShaderRenderEffect? = null
-    private set
-  internal var blurPrefilterShader: MutableRuntimeShaderRenderEffect? = null
     private set
   private var opticalKey: GlassOpticalEffectKey? = null
   internal var opticalShader: MutableRuntimeShaderRenderEffect? = null
@@ -241,9 +239,8 @@ internal class RuntimeShaderGlassDelegate(
       // This keeps topology transitions from temporarily retaining both complete graphs.
       if (blurRequired) {
         val blurEffects = checkNotNull(currentRenderEffects.blur)
-        layers.updateBlurWorkingSize(blurEffects.key.plan.workingSize, currentGraphicsContext)
-        if (!blurEffects.key.plan.requiresPrefilter) {
-          layers.releaseBlurPrefiltered(currentGraphicsContext)
+        if (blurEffects.native != null) {
+          layers.releaseBlurIntermediates(currentGraphicsContext)
         }
       } else {
         layers.releaseBlurred(currentGraphicsContext)
@@ -271,11 +268,10 @@ internal class RuntimeShaderGlassDelegate(
 
       layers.ensureSource(currentGraphicsContext)
       if (blurRequired) {
-        val blurPlan = checkNotNull(currentRenderEffects.blur).key.plan
-        if (blurPlan.requiresPrefilter) {
-          layers.ensureBlurPrefiltered(currentGraphicsContext)
+        val blurEffects = checkNotNull(currentRenderEffects.blur)
+        if (blurEffects.native == null) {
+          layers.ensureBlurHorizontal(currentGraphicsContext)
         }
-        layers.ensureBlurHorizontal(currentGraphicsContext)
         layers.ensureBlurred(currentGraphicsContext)
       }
       if (depthMixRequired) {
@@ -1011,7 +1007,6 @@ internal class RuntimeShaderGlassDelegate(
       blurVerticalShader = null
       progressiveBlurHorizontalShader = null
       progressiveBlurVerticalShader = null
-      blurPrefilterShader = null
       opticalShader = null
       refractionDetailShader = null
       refractionDetailCoverageShader = null
@@ -1076,8 +1071,10 @@ internal class RuntimeShaderGlassDelegate(
     val blur = effects.blur?.takeIf { shouldBlur(params, effects) }
     return GlassStageAvailability(
       blur = blur == null ||
-        layers.hasBlurred && layers.hasBlurHorizontal &&
-        (!blur.key.plan.requiresPrefilter || layers.hasBlurPrefiltered),
+        layers.hasBlurred && (
+          blur.native != null ||
+            layers.hasBlurHorizontal
+          ),
       depth = !shouldDepthMix(params, effects) ||
         layers.hasDepthMixed,
       optical = layers.hasOptical,
@@ -1120,34 +1117,30 @@ internal class RuntimeShaderGlassDelegate(
     val plan = blur.key.plan
     source.alpha = 1f
     source.blendMode = BlendMode.SrcOver
-    val workingSize = plan.workingSize
-    val horizontalInput = if (plan.requiresPrefilter) {
-      val prefiltered = layers.blurPrefiltered?.takeUnless { it.isReleased } ?: return null
-      val prefilterEffect = blur.prefilter ?: return null
-      prefiltered.scaleX = 1f
-      prefiltered.scaleY = 1f
-      prefiltered.pivotOffset = Offset.Zero
-      prefiltered.renderEffect = prefilterEffect.asComposeRenderEffect()
-      prefiltered.record(plan.sampleSize) { drawLayer(source) }
-      prefiltered
-    } else {
-      source
+    blur.native?.let { native ->
+      return layers.blurred?.takeUnless { it.isReleased }?.also { blurred ->
+        blurred.scaleX = 1f
+        blurred.scaleY = 1f
+        blurred.pivotOffset = Offset.Zero
+        blurred.renderEffect = native.asComposeRenderEffect()
+        blurred.record(plan.sampleSize) { drawLayer(source) }
+        blurRecordCount++
+      }
     }
+    val workingSize = plan.sampleSize
 
     val horizontal = layers.blurHorizontal?.takeUnless { it.isReleased } ?: return null
     horizontal.scaleX = 1f
     horizontal.scaleY = 1f
     horizontal.pivotOffset = Offset.Zero
-    horizontal.renderEffect = blur.horizontal.asComposeRenderEffect()
-    horizontal.record(workingSize) {
-      scale(plan.scaleFactor, pivot = Offset.Zero) { drawLayer(horizontalInput) }
-    }
+    horizontal.renderEffect = checkNotNull(blur.horizontal).asComposeRenderEffect()
+    horizontal.record(workingSize) { drawLayer(source) }
 
     return layers.blurred?.takeUnless { it.isReleased }?.also { blurred ->
-      blurred.scaleX = 1f / plan.scaleFactor
-      blurred.scaleY = 1f / plan.scaleFactor
+      blurred.scaleX = 1f
+      blurred.scaleY = 1f
       blurred.pivotOffset = Offset.Zero
-      blurred.renderEffect = blur.vertical.asComposeRenderEffect()
+      blurred.renderEffect = checkNotNull(blur.vertical).asComposeRenderEffect()
       blurred.record(workingSize) { drawLayer(horizontal) }
       blurRecordCount++
     }
@@ -1897,34 +1890,23 @@ internal class RuntimeShaderGlassDelegate(
   ): PlatformRenderEffect? {
     if (depth <= 0.0001f) return input
     val plan = blur?.plan?.takeUnless { it.isIdentity } ?: return input
-    val offsetScale = 1f / plan.scaleFactor
-    val horizontalKernel = plan.horizontalKernel.copy(
-      taps = plan.horizontalKernel.taps.map { tap ->
-        tap.copy(offsetPx = tap.offsetPx * offsetScale)
-      },
-    )
-    val verticalKernel = plan.verticalKernel.copy(
-      taps = plan.verticalKernel.taps.map { tap ->
-        tap.copy(offsetPx = tap.offsetPx * offsetScale)
-      },
-    )
+    if (plan.usesNativeWideBlur) {
+      return createGlassDepthInputRenderEffect(
+        sharp = input,
+        blur = createBlurRenderEffect(
+          radiusX = plan.effectiveRadiusPx,
+          radiusY = plan.effectiveRadiusPx,
+          tileMode = androidx.compose.ui.graphics.TileMode.Clamp,
+          input = input,
+        ),
+        depth = depth,
+      )
+    }
     val progressive = blur.progressive != null
     val shaders = fusedDepthInputShaders
-      ?.takeIf {
-        it.progressive == progressive &&
-          it.prefilters.isNotEmpty() == plan.requiresPrefilter
-      }
+      ?.takeIf { it.progressive == progressive }
       ?: FusedDepthInputShaders(
         progressive = progressive,
-        prefilters = if (plan.requiresPrefilter) {
-          List(FUSED_DOWNSAMPLE_PREFILTER_PASSES + 1) {
-            traceCreateRenderEffect {
-              createFusedGlassBlurPrefilterRenderEffect(input = null)
-            }
-          }
-        } else {
-          emptyList()
-        },
         horizontal = traceCreateRenderEffect {
           createGlassBlurRenderEffectWithInput(
             horizontal = true,
@@ -1940,34 +1922,13 @@ internal class RuntimeShaderGlassDelegate(
           )
         },
       ).also { fusedDepthInputShaders = it }
-    val prefilter = if (plan.requiresPrefilter) {
-      // The retained path gets additional low-pass energy from rasterizing at half resolution
-      // and scaling back up. Reproduce that response inside the one-layer graph.
-      var result: PlatformRenderEffect? = input
-      shaders.prefilters.forEachIndexed { index, shader ->
-        result = shader.updateInputs(inputs = arrayOf(result)) {
-          setFloatUniform("sampleSize", sampleSize.width, sampleSize.height)
-          setFloatUniform(
-            "strength",
-            if (index < FUSED_DOWNSAMPLE_PREFILTER_PASSES) {
-              1f
-            } else {
-              FUSED_DOWNSAMPLE_FINAL_PREFILTER_STRENGTH
-            },
-          )
-        }
-      }
-      result
-    } else {
-      input
-    }
     val progressiveMask = blur.progressive?.toShader(blur.maskSize)
-    val horizontal = shaders.horizontal.updateInputs(inputs = arrayOf(prefilter)) {
-      setGlassBlurUniforms(blur, horizontalKernel, sampleSize.width, sampleSize.height)
+    val horizontal = shaders.horizontal.updateInputs(inputs = arrayOf(input)) {
+      setGlassBlurUniforms(blur, plan.horizontalKernel, sampleSize.width, sampleSize.height)
       progressiveMask?.let { setChildShader("mask", it) }
     }
     val vertical = shaders.vertical.updateInputs(inputs = arrayOf(horizontal)) {
-      setGlassBlurUniforms(blur, verticalKernel, sampleSize.width, sampleSize.height)
+      setGlassBlurUniforms(blur, plan.verticalKernel, sampleSize.width, sampleSize.height)
       progressiveMask?.let { setChildShader("mask", it) }
     }
     return createGlassDepthInputRenderEffect(
@@ -1995,6 +1956,20 @@ internal class RuntimeShaderGlassDelegate(
 
   private fun updateBlurRenderEffects(key: GlassBlurEffectKey): GlassBlurRenderEffects? {
     if (key.plan.isIdentity) return null
+    if (key.plan.usesNativeWideBlur) {
+      return GlassBlurRenderEffects(
+        key = key,
+        native = checkNotNull(
+          createBlurRenderEffect(
+            radiusX = key.plan.effectiveRadiusPx,
+            radiusY = key.plan.effectiveRadiusPx,
+            tileMode = androidx.compose.ui.graphics.TileMode.Clamp,
+          ),
+        ),
+        horizontal = null,
+        vertical = null,
+      )
+    }
     val progressive = key.progressive != null
     val horizontalShader = if (progressive) {
       progressiveBlurHorizontalShader ?: traceCreateRenderEffect {
@@ -2031,8 +2006,8 @@ internal class RuntimeShaderGlassDelegate(
       setGlassBlurUniforms(
         key = key,
         kernel = key.plan.horizontalKernel,
-        sampleWidth = key.plan.workingSize.width.toFloat(),
-        sampleHeight = key.plan.workingSize.height.toFloat(),
+        sampleWidth = key.plan.sampleSize.width.toFloat(),
+        sampleHeight = key.plan.sampleSize.height.toFloat(),
       )
       progressiveMask?.let { setChildShader("mask", it) }
     }
@@ -2040,28 +2015,14 @@ internal class RuntimeShaderGlassDelegate(
       setGlassBlurUniforms(
         key = key,
         kernel = key.plan.verticalKernel,
-        sampleWidth = key.plan.workingSize.width.toFloat(),
-        sampleHeight = key.plan.workingSize.height.toFloat(),
+        sampleWidth = key.plan.sampleSize.width.toFloat(),
+        sampleHeight = key.plan.sampleSize.height.toFloat(),
       )
       progressiveMask?.let { setChildShader("mask", it) }
     }
-    val prefilter = key.plan.takeIf { it.requiresPrefilter }?.let { plan ->
-      val shader = blurPrefilterShader ?: traceCreateRenderEffect {
-        createRetainedGlassBlurPrefilterRenderEffect()
-      }.also {
-        blurPrefilterShader = it
-      }
-      shader.updateUniforms {
-        setFloatUniform(
-          "sampleSize",
-          plan.sampleSize.width.toFloat(),
-          plan.sampleSize.height.toFloat(),
-        )
-      }
-    }
     return GlassBlurRenderEffects(
       key = key,
-      prefilter = prefilter,
+      native = null,
       horizontal = horizontal,
       vertical = vertical,
     )
@@ -2134,16 +2095,9 @@ private class GlassDepthInputKey(
 
 private class FusedDepthInputShaders(
   val progressive: Boolean,
-  val prefilters: List<MutableRuntimeShaderRenderEffect>,
   val horizontal: MutableRuntimeShaderRenderEffect,
   val vertical: MutableRuntimeShaderRenderEffect,
 )
-
-// RuntimeShader child sampling does not reproduce the retained graph's raster downscale/upscale
-// transfer analytically. These values are calibrated against the Android semantic-blur and
-// adversarial-downsample pixel invariants at the multiscale threshold.
-private const val FUSED_DOWNSAMPLE_PREFILTER_PASSES = 8
-private const val FUSED_DOWNSAMPLE_FINAL_PREFILTER_STRENGTH = 0.12f
 
 @OptIn(InternalHazeApi::class)
 internal data class GlassRefractionDetailRenderEffect(
@@ -2155,9 +2109,9 @@ internal data class GlassRefractionDetailRenderEffect(
 @OptIn(InternalHazeApi::class)
 internal data class GlassBlurRenderEffects(
   val key: GlassBlurEffectKey,
-  val prefilter: PlatformRenderEffect?,
-  val horizontal: PlatformRenderEffect,
-  val vertical: PlatformRenderEffect,
+  val native: PlatformRenderEffect?,
+  val horizontal: PlatformRenderEffect?,
+  val vertical: PlatformRenderEffect?,
 )
 
 internal expect fun createGlassDepthInputRenderEffect(
@@ -2204,15 +2158,6 @@ internal fun createGlassBlurRenderEffectWithInput(
   inputs = arrayOf(input),
 )
 
-internal fun createFusedGlassBlurPrefilterRenderEffect(
-  input: PlatformRenderEffect?,
-): MutableRuntimeShaderRenderEffect =
-  createMutableRuntimeShaderRenderEffect(
-    effect = GLASS_FUSED_DOWNSAMPLE_PREFILTER_EFFECT,
-    shaderNames = arrayOf("content"),
-    inputs = arrayOf(input),
-  )
-
 internal expect val supportsFusedGlassRenderEffect: Boolean
 
 internal fun createRetainedGlassBlurRenderEffect(
@@ -2223,13 +2168,6 @@ internal fun createRetainedGlassBlurRenderEffect(
   progressive = progressive,
   input = null,
 )
-
-internal fun createRetainedGlassBlurPrefilterRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createMutableRuntimeShaderRenderEffect(
-    effect = GLASS_DOWNSAMPLE_PREFILTER_EFFECT,
-    shaderNames = arrayOf("content"),
-    inputs = arrayOf(null),
-  )
 
 internal fun createRetainedGlassOpticalRenderEffect(): MutableRuntimeShaderRenderEffect =
   createMutableRuntimeShaderRenderEffect(
@@ -2304,12 +2242,6 @@ private val GLASS_NO_DETAIL_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
 private val GLASS_INTERACTION_OPTICS_NO_DETAIL_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildFused(interactionOptics = true, sharpDetail = false))
 }
-private val GLASS_DOWNSAMPLE_PREFILTER_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildDownsamplePrefilter())
-}
-private val GLASS_FUSED_DOWNSAMPLE_PREFILTER_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildFusedDownsamplePrefilter())
-}
 private val GLASS_VERTICAL_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildBlur(horizontal = false))
 }
@@ -2380,6 +2312,7 @@ internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
   setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
   setFloatUniform("ambientResponse", key.ambientResponse)
   setFloatUniform("refractionHeight", key.refractionHeightPx)
+  setFloatUniform("edgeRefractionWidth", key.edgeRefractionWidthPx)
   setFloatUniform("chromaticAberrationStrength", key.chromaticAberrationStrength)
   setFloatUniform("surfaceProfile", key.surfaceProfile)
   setFloatUniform("chromaticAberrationMode", key.chromaticAberrationMode)
@@ -2416,6 +2349,7 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
   setFloatUniform("refractionStrength", key.refractionStrength)
   setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
   setFloatUniform("refractionHeight", key.refractionHeightPx)
+  setFloatUniform("edgeRefractionWidth", key.edgeRefractionWidthPx)
   setFloatUniform("refractionScale", key.refractionScalePx)
   setFloatUniform("surfaceProfile", key.surfaceProfile)
   setFloatUniform("detailWidth", key.detailWidthPx)

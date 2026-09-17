@@ -8,15 +8,28 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeProgressive
 import kotlin.test.Test
 
 class GlassRenderEffectKeysTest {
+  @Test
+  fun edgeWidth_invalidatesOpticsAndDetailOnlyAndZeroDisablesDetail() {
+    val base = params()
+    val edge = base.copy(edgeRefractionWidthPx = 28f)
+    assertThat(base.opticalEffectKey()).isNotEqualTo(edge.opticalEffectKey())
+    assertThat(base.refractionDetailEffectKey()).isNotEqualTo(edge.refractionDetailEffectKey())
+    assertThat(base.blurEffectKey()).isEqualTo(edge.blurEffectKey())
+    assertThat(base.rimEffectKey()).isEqualTo(edge.rimEffectKey())
+    assertThat(edge.copy(edgeRefractionWidthPx = 0f).activeRefractionDetailEffectKey()).isNull()
+    assertThat(edge.copy(refractionHeightPx = 0f).activeRefractionDetailEffectKey()).isNotNull()
+  }
 
   @Test
   fun blurKey_ignoresUnrelatedOpticalDepthAndRimChanges() {
@@ -63,10 +76,22 @@ class GlassRenderEffectKeysTest {
       progressive = HazeProgressive.verticalGradient(startIntensity = 0f, endIntensity = 1f),
     ).blurEffectKey()
 
-    assertThat(uniform.plan.scaleFactor).isEqualTo(0.5f)
-    assertThat(progressive.plan.scaleFactor).isEqualTo(1f)
-    assertThat(progressive.plan.requiresPrefilter).isEqualTo(false)
+    assertThat(uniform.plan.usesNativeWideBlur).isTrue()
+    assertThat(progressive.plan.usesNativeWideBlur).isFalse()
     assertThat(progressive).isNotEqualTo(uniform)
+  }
+
+  @Test
+  fun progressiveBlur_capsAtLegacyRadiusAndRetainsSemanticKernel() {
+    val key = params().copy(
+      blurRadiusPx = 84f,
+      blurSigmaPx = SemanticBlurKernel.radiusToSigma(84f),
+      progressive = HazeProgressive.verticalGradient(startIntensity = 0f, endIntensity = 1f),
+    ).blurEffectKey()
+
+    assertThat(key.plan.effectiveRadiusPx)
+      .isEqualTo(SemanticBlurKernel.MAX_PROGRESSIVE_RADIUS_PX)
+    assertThat(key.plan.usesNativeWideBlur).isEqualTo(false)
   }
 
   @Test

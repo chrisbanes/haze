@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
@@ -32,6 +32,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
@@ -384,65 +385,76 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   }
 
   @Test
-  fun releaseBlurred_releasesAtMostThreeBlurLayersAndSize() {
+  fun releaseBlurred_releasesSemanticBlurLayers() {
     val layers = GlassLayers()
     val graphicsContext = TestGraphicsContext()
     layers.populate(graphicsContext)
     val blurLayers = listOfNotNull(
-      layers.blurPrefiltered,
       layers.blurHorizontal,
       layers.blurred,
     )
-    layers.blurWorkingSize = IntSize(540, 960)
 
     layers.releaseBlurred(graphicsContext)
 
     assertThat(graphicsContext.releasedLayers).containsExactly(*blurLayers.toTypedArray())
-    assertThat(blurLayers.size).isEqualTo(3)
-    assertThat(layers.blurWorkingSize).isEqualTo(null)
+    assertThat(blurLayers.size).isEqualTo(2)
     assertThat(layers.hasBlurHorizontal).isEqualTo(false)
-    assertThat(layers.hasBlurPrefiltered).isEqualTo(false)
     assertThat(layers.hasBlurred).isEqualTo(false)
     assertThat(layers.hasSource).isTrue()
     assertThat(layers.hasRefractionDetail).isTrue()
   }
 
   @Test
-  fun releaseBlurPrefiltered_keepsSeparableWorkingLayers() {
-    val layers = GlassLayers()
+  fun prepareDraw_wideSmallWideReusesOutputAndReleasesIntermediate() {
+    fun blurStyle(radius: Dp) = GlassStyle {
+      optics(
+        GlassOptics(
+          refractionStrength = 0f,
+          refractionDisplacement = 0.dp,
+          depth = OpticalSizeValue.Fixed(1f),
+          blurRadius = OpticalSizeValue.Fixed(radius),
+        ),
+      )
+    }
+
+    val effect = GlassRuntimeEffect(
+      GlassNodeConfiguration(
+        style = blurStyle(84.dp),
+        performanceMode = HazePerformanceMode.Quality,
+        interactionSource = null,
+      ),
+    )
+    val delegate = RuntimeShaderGlassDelegate(effect)
     val graphicsContext = TestGraphicsContext()
-    layers.populate(graphicsContext)
-    val prefiltered = checkNotNull(layers.blurPrefiltered)
-
-    layers.releaseBlurPrefiltered(graphicsContext)
-
-    assertThat(graphicsContext.releasedLayers).containsExactly(prefiltered)
-    assertThat(layers.hasBlurPrefiltered).isEqualTo(false)
-    assertThat(layers.hasBlurHorizontal).isTrue()
-    assertThat(layers.hasBlurred).isTrue()
-    assertThat(layers.hasRefractionDetail).isTrue()
-  }
-
-  @Test
-  fun updateBlurWorkingSize_recreatesBlurGraphWhenScaleSelectionChanges() {
-    val layers = GlassLayers()
-    val graphicsContext = TestGraphicsContext()
-    layers.populate(graphicsContext)
-    layers.blurWorkingSize = IntSize(540, 960)
-    val oldBlurLayers = listOfNotNull(
-      layers.blurPrefiltered,
-      layers.blurHorizontal,
-      layers.blurred,
+    val context = RecordingVisualEffectContext(
+      size = Size(120f, 120f),
+      layerSize = Size(120f, 120f),
+      graphicsContext = graphicsContext,
     )
 
-    layers.updateBlurWorkingSize(IntSize(1080, 1920), graphicsContext)
+    delegate.prepareDrawForTest(context, effect)
+    assertThat(delegate.layers.hasBlurHorizontal).isFalse()
+    assertThat(delegate.layers.hasBlurred).isTrue()
+    val nativeBlurred = checkNotNull(delegate.layers.blurred)
 
-    assertThat(graphicsContext.releasedLayers).containsExactly(*oldBlurLayers.toTypedArray())
-    assertThat(layers.blurWorkingSize).isEqualTo(IntSize(1080, 1920))
-    assertThat(layers.hasBlurPrefiltered).isEqualTo(false)
-    assertThat(layers.hasBlurHorizontal).isEqualTo(false)
-    assertThat(layers.hasBlurred).isEqualTo(false)
-    assertThat(layers.hasRefractionDetail).isTrue()
+    effect.style = blurStyle(2.dp)
+    delegate.prepareDrawForTest(context, effect)
+    val legacyHorizontal = checkNotNull(delegate.layers.blurHorizontal)
+    assertThat(delegate.layers.blurred).isSameInstanceAs(nativeBlurred)
+    assertThat(nativeBlurred in graphicsContext.releasedLayers).isFalse()
+
+    effect.style = blurStyle(84.dp)
+    delegate.prepareDrawForTest(context, effect)
+
+    assertThat(delegate.layers.hasBlurHorizontal).isFalse()
+    assertThat(delegate.layers.hasBlurred).isTrue()
+    assertThat(legacyHorizontal in graphicsContext.releasedLayers).isTrue()
+
+    val rebuiltNativeBlurred = checkNotNull(delegate.layers.blurred)
+    delegate.onTrimMemory(context, TrimMemoryLevel.UI_HIDDEN)
+
+    assertThat(rebuiltNativeBlurred in graphicsContext.releasedLayers).isTrue()
+    assertThat(delegate.layers.hasBlurred).isFalse()
   }
 
   @Test
@@ -472,13 +484,12 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.seedRetainedOutputAvailable()
     val retainedLayers = delegate.layers.allLayers()
 
-    assertThat(retainedLayers.size).isEqualTo(16)
+    assertThat(retainedLayers.size).isEqualTo(15)
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
 
     delegate.onTrimMemory(context, TrimMemoryLevel.BACKGROUND)
 
     assertThat(delegate.layers.hasSource).isTrue()
-    assertThat(delegate.layers.hasBlurPrefiltered).isTrue()
     assertThat(delegate.layers.hasBlurHorizontal).isTrue()
     assertThat(delegate.layers.hasBlurred).isTrue()
     assertThat(delegate.layers.hasDepthMixed).isTrue()
@@ -504,7 +515,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     val retainedLayers = delegate.layers.allLayers()
     delegate.setGraphicsContextForTest(context.graphicsContext)
 
-    assertThat(retainedLayers.size).isEqualTo(16)
+    assertThat(retainedLayers.size).isEqualTo(15)
 
     delegate.onTrimMemory(context, TrimMemoryLevel.UI_HIDDEN)
 
@@ -522,7 +533,6 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     val retainedLayers = delegate.layers.allLayers()
 
     assertThat(delegate.layers.hasSource).isTrue()
-    assertThat(delegate.layers.hasBlurPrefiltered).isTrue()
     assertThat(delegate.layers.hasBlurHorizontal).isTrue()
     assertThat(delegate.layers.hasBlurred).isTrue()
     assertThat(delegate.layers.hasDepthMixed).isTrue()
@@ -534,7 +544,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(delegate.layers.hasInteractionRefractionComposite).isTrue()
     assertThat(delegate.layers.hasInteractionLighting).isTrue()
     assertThat(delegate.layers.hasRim).isTrue()
-    assertThat(retainedLayers.size).isEqualTo(16)
+    assertThat(retainedLayers.size).isEqualTo(15)
 
     delegate.onTrimMemory(context, TrimMemoryLevel.MODERATE)
 
@@ -554,7 +564,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.seedRetainedOutputAvailable()
     val retainedLayers = delegate.layers.allLayers()
 
-    assertThat(retainedLayers.size).isEqualTo(16)
+    assertThat(retainedLayers.size).isEqualTo(15)
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
 
     delegate.onTrimMemory(context, TrimMemoryLevel.COMPLETE)
@@ -663,7 +673,6 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     )
 
     assertThat(layers.hasSource).isFalse()
-    assertThat(layers.hasBlurPrefiltered).isFalse()
     assertThat(layers.hasBlurHorizontal).isFalse()
     assertThat(layers.hasBlurred).isFalse()
     assertThat(layers.hasDepthMixed).isFalse()
@@ -715,7 +724,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
       val delegate = RuntimeShaderGlassDelegate(effect)
       val retainedLayers = delegate.prepareDrawWithRetainedLayers(context, effect)
 
-      assertThat(retainedLayers.size).isEqualTo(16)
+      assertThat(retainedLayers.size).isEqualTo(15)
       assertThat(context.graphicsContext.releasedLayers)
         .containsExactly(*retainedLayers.toTypedArray())
       assertThat(delegate.layers.isEmpty).isTrue()
@@ -751,7 +760,6 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
 private fun GlassLayers.populate(graphicsContext: GraphicsContext) {
   groupAlpha.prepare(required = true, graphicsContext)
   source = graphicsContext.createGraphicsLayer()
-  blurPrefiltered = graphicsContext.createGraphicsLayer()
   blurHorizontal = graphicsContext.createGraphicsLayer()
   blurred = graphicsContext.createGraphicsLayer()
   depthMixed = graphicsContext.createGraphicsLayer()
@@ -770,7 +778,6 @@ private fun GlassLayers.populate(graphicsContext: GraphicsContext) {
 private fun GlassLayers.allLayers(): List<GraphicsLayer> = listOfNotNull(
   groupAlpha.layer,
   source,
-  blurPrefiltered,
   blurHorizontal,
   blurred,
   depthMixed,

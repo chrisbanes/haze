@@ -14,14 +14,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
-import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -471,10 +468,7 @@ class GlassLabSampleTest : ContextTest() {
       .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
     assertThat(state.advancedExpanded).isTrue()
     onNodeWithText("Fold").performScrollTo().assertIsDisplayed()
-    onNode(
-      hasProgressBarRangeInfo(ProgressBarRangeInfo(0.65f, 0f..1f, 0)) and
-        hasAnySibling(hasText("Fold")),
-    ).performScrollTo().assertIsDisplayed()
+    onNodeWithContentDescription("Fold").performScrollTo().assertIsDisplayed()
   }
 
   @Test
@@ -489,32 +483,26 @@ class GlassLabSampleTest : ContextTest() {
       )
     }
 
-    onNode(
-      hasProgressBarRangeInfo(ProgressBarRangeInfo(0f, 0f..1f, 0)) and
-        hasAnySibling(hasText("Depth @ 64dp")),
-    )
+    onNodeWithContentDescription("Depth @ 64dp")
       .performScrollTo()
       .performSemanticsAction(SemanticsActions.SetProgress) { action -> action(0.2f) }
 
-    onNode(
-      hasProgressBarRangeInfo(ProgressBarRangeInfo(10f, 0f..32f, 0)) and
-        hasAnySibling(hasText("Blur @ 176dp")),
-    )
+    onNodeWithContentDescription("Blur @ 176dp")
       .performScrollTo()
       .performSemanticsAction(SemanticsActions.SetProgress) { action -> action(12f) }
 
     assertThat(state.styleValues.optics.depth).isEqualTo(
       OpticalSizeValue.Responsive(
         OpticalSizePoint(64.dp, 0.2f),
-        OpticalSizePoint(176.dp, 0.4f),
-        OpticalSizePoint(220.dp, 0.56f),
+        OpticalSizePoint(176.dp, 1f),
+        OpticalSizePoint(220.dp, 1f),
       ),
     )
     assertThat(state.styleValues.optics.blurRadius).isEqualTo(
       OpticalSizeValue.Responsive(
-        OpticalSizePoint(64.dp, 4.dp),
+        OpticalSizePoint(64.dp, 20.dp),
         OpticalSizePoint(176.dp, 12.dp),
-        OpticalSizePoint(220.dp, 15.dp),
+        OpticalSizePoint(220.dp, 25.dp),
       ),
     )
   }

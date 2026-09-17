@@ -14,6 +14,13 @@ import assertk.assertions.isNull
 import kotlin.test.Test
 
 class GlassOpticsTest {
+  @Test
+  fun edgeProfile_validatesWidthAndPreservesSurfaceDefault() {
+    assertInvalidFixedDistance("width") { RefractionProfile.Edge(it) }
+    assertThat(RefractionProfile.Edge(0.dp).width).isEqualTo(0.dp)
+    assertThat(RefractionProfile.Edge(Float.MAX_VALUE.dp).width).isEqualTo(Float.MAX_VALUE.dp)
+    assertThat(GlassOptics().refractionProfile).isEqualTo(RefractionProfile.Surface)
+  }
 
   @Test
   fun default_isSizeAwareOptics() {

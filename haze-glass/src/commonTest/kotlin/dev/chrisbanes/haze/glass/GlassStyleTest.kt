@@ -74,6 +74,7 @@ class GlassStyleTest {
         blurRadius = 20.dp,
         progressive = progressive,
         refractionFoldStrength = 0.65f,
+        refractionProfile = RefractionProfile.Edge(28.dp),
       )
     }
 
@@ -86,6 +87,7 @@ class GlassStyleTest {
         blurRadius = OpticalSizeValue.Fixed(20.dp),
         progressive = progressive,
         refractionFoldStrength = 0.65f,
+        refractionProfile = RefractionProfile.Edge(28.dp),
       ),
     )
   }
@@ -547,7 +549,8 @@ class GlassStyleTest {
     assertThat(regular.optics).isSameInstanceAs(GlassDefaults.optics)
     assertThat(clear.optics).isSameInstanceAs(GlassStyle.clearOptics)
     assertThat(clear.optics).isNotEqualTo(regular.optics)
-    assertThat(clear.edgeSoftness).isNotEqualTo(regular.edgeSoftness)
+    assertThat(clear.whitePoint).isNotEqualTo(regular.whitePoint)
+    assertThat(clear.chromaMultiplier).isNotEqualTo(regular.chromaMultiplier)
     assertThat(clear.specularIntensity).isNotEqualTo(regular.specularIntensity)
     assertThat(clear.edgeShadow).isNotEqualTo(regular.edgeShadow)
   }

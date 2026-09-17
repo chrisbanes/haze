@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
@@ -67,6 +69,37 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   private val attachedRuntimes = mutableMapOf<GlassRuntimeEffect, GlassRuntimeEffect>()
   private val rendererFactories =
     mutableMapOf<GlassRuntimeEffect, HazeEffectFactory<GlassNodeConfiguration>>()
+
+  @Test
+  fun edgeWidthChange_refreshesBothSamplingPassesAndZeroReleasesDetail() = runComposeUiTest {
+    val effect = runtimeInteractiveEffect()
+    val optics = GlassStyle.clearOptics
+    val style = mutableStateOf(effect.style.then { optics(optics) })
+    setContent { RuntimeGlassTestContent(effect, tag = "glass", style = style.value) }
+    waitForIdle()
+    onNodeWithTag("glass").performTouchInput { down(Offset(20f, 20f)) }
+    mainClock.advanceTimeBy(500)
+    waitForIdle()
+
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
+    val before = checkNotNull(runtime(effect).preparedRender)
+    val interactionRecords = delegate.interactionDetailRecordCount
+    style.value = effect.style.then { optics(optics.copy(refractionProfile = RefractionProfile.Edge(14.dp))) }
+    waitForIdle()
+    val after = checkNotNull(runtime(effect).preparedRender)
+    assertThat(after.opticalKey).isNotEqualTo(before.opticalKey)
+    assertThat(after.refractionDetailKey).isNotEqualTo(before.refractionDetailKey)
+    assertThat(after.blurKey).isEqualTo(before.blurKey)
+    assertThat(after.rimKey).isEqualTo(before.rimKey)
+    assertThat(delegate.interactionDetailRecordCount).isGreaterThan(interactionRecords)
+
+    style.value = effect.style.then { optics(optics.copy(refractionProfile = RefractionProfile.Edge(0.dp))) }
+    waitForIdle()
+    val disabled = checkNotNull(runtime(effect).preparedRender)
+    assertThat(disabled.refractionDetailKey).isNull()
+    assertThat(disabled.plan.layers.any { it.kind == GlassRetainedLayerKind.RefractionDetail }).isFalse()
+    assertThat(delegate.layers.refractionDetail).isNull()
+  }
 
   @Test
   fun firstAlphaZeroFrame_skipsRuntimeShaderAndLayerGraphPreparation() = runComposeUiTest {
@@ -596,7 +629,15 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   fun heldInteraction_sourceContentChangeUpdatesPixels() = runComposeUiTest {
     val hazeState = HazeState()
     val sourceColor = mutableStateOf(Color.Red)
-    val effect = runtimeInteractiveEffect()
+    val effect = runtimeInteractiveEffect().apply {
+      style = style.then {
+        ambientResponse(0f)
+        contrast(0f)
+        contentNormalBlend(0f)
+        whitePoint(0f)
+        chromaMultiplier(1f)
+      }
+    }
     setContent {
       Box(Modifier.size(120.dp)) {
         Box(
@@ -942,21 +983,30 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
-  fun uniformBlurAndDetailChanges_retainShadersAndReplaceRenderEffects() = runComposeUiTest {
+  fun uniformNativeBlurAndDetailChanges_cacheAndReplaceRenderEffects() = runComposeUiTest {
     val effect = retainedBlurEffect()
     val style = mutableStateOf(effect.style)
     setContent { RuntimeForegroundGlassTestContent(effect, style = style.value) }
     waitForIdle()
     val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
 
-    val horizontalShader = checkNotNull(delegate.blurHorizontalShader)
-    val verticalShader = checkNotNull(delegate.blurVerticalShader)
-    val prefilterShader = checkNotNull(delegate.blurPrefilterShader)
     val detailShader = checkNotNull(delegate.refractionDetailShader)
-    val horizontalEffect = checkNotNull(delegate.layers.blurHorizontal?.renderEffect)
-    val verticalEffect = checkNotNull(delegate.layers.blurred?.renderEffect)
-    val prefilterEffect = checkNotNull(delegate.layers.blurPrefiltered?.renderEffect)
+    val nativeBlurEffect = checkNotNull(delegate.layers.blurred?.renderEffect)
     val detailEffect = checkNotNull(delegate.layers.refractionDetail?.renderEffect)
+
+    style.value = style.value.then {
+      optics(
+        effect.optics.copy(
+          refractionDisplacement = 18.dp,
+        ),
+      )
+    }
+    waitForIdle()
+
+    assertThat(delegate.refractionDetailShader).isSameInstanceAs(detailShader)
+    assertThat(delegate.layers.blurHorizontal).isNull()
+    assertThat(delegate.layers.blurred?.renderEffect).isSameInstanceAs(nativeBlurEffect)
+    assertThat(delegate.layers.refractionDetail?.renderEffect).isNotSameInstanceAs(detailEffect)
 
     style.value = style.value.then {
       optics(
@@ -968,14 +1018,8 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     }
     waitForIdle()
 
-    assertThat(delegate.blurHorizontalShader).isSameInstanceAs(horizontalShader)
-    assertThat(delegate.blurVerticalShader).isSameInstanceAs(verticalShader)
-    assertThat(delegate.blurPrefilterShader).isSameInstanceAs(prefilterShader)
     assertThat(delegate.refractionDetailShader).isSameInstanceAs(detailShader)
-    assertThat(delegate.layers.blurHorizontal?.renderEffect).isNotSameInstanceAs(horizontalEffect)
-    assertThat(delegate.layers.blurred?.renderEffect).isNotSameInstanceAs(verticalEffect)
-    assertThat(delegate.layers.blurPrefiltered?.renderEffect).isNotSameInstanceAs(prefilterEffect)
-    assertThat(delegate.layers.refractionDetail?.renderEffect).isNotSameInstanceAs(detailEffect)
+    assertThat(delegate.layers.blurred?.renderEffect).isNotSameInstanceAs(nativeBlurEffect)
   }
 
   @Test
@@ -1013,6 +1057,99 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     assertThat(delegate.progressiveBlurVerticalShader).isSameInstanceAs(verticalShader)
     assertThat(delegate.layers.blurHorizontal?.renderEffect).isNotSameInstanceAs(horizontalEffect)
     assertThat(delegate.layers.blurred?.renderEffect).isNotSameInstanceAs(verticalEffect)
+  }
+
+  @Test
+  fun wideNativeBlur_smoothsCheckerboardAcrossCenterAndInsetEdges() = runComposeUiTest {
+    val effect = GlassRuntimeEffect()
+    fun blurStyle(radius: androidx.compose.ui.unit.Dp) = GlassStyle {
+      optics(
+        GlassOptics(
+          refractionStrength = 0f,
+          refractionDisplacement = 0.dp,
+          depth = OpticalSizeValue.Fixed(1f),
+          blurRadius = OpticalSizeValue.Fixed(radius),
+        ),
+      )
+      backgroundColor(Color.Transparent)
+      tint(Color.Transparent)
+      ambientResponse(0f)
+      contentNormalBlend(0f)
+      contrast(0f)
+      whitePoint(0f)
+      chromaMultiplier(1f)
+      shape(RoundedCornerShape(0.dp))
+      edgeSoftness(0.dp)
+      edgeShadow(Color.Transparent)
+      specularIntensity(0f)
+    }
+    val style = mutableStateOf(blurStyle(0.dp))
+    setContent {
+      val hazeState = remember { HazeState() }
+      Box(Modifier.size(480.dp)) {
+        Canvas(Modifier.fillMaxSize().hazeSource(hazeState)) {
+          var top = 0f
+          while (top < size.height) {
+            var left = 0f
+            while (left < size.width) {
+              val cellSize = when {
+                top < size.height * 0.5f && left < size.width * 0.5f -> 8f
+                top < size.height * 0.5f -> 24f
+                left < size.width * 0.5f -> 32f
+                else -> 8f
+              }
+              val evenCell = ((left / cellSize).toInt() + (top / cellSize).toInt()) % 2 == 0
+              drawRect(
+                color = if (evenCell) Color.White else Color.Black,
+                topLeft = Offset(left, top),
+                size = Size(cellSize, cellSize),
+              )
+              left += cellSize
+            }
+            top += 8f
+          }
+        }
+        Box(
+          Modifier
+            .size(120.dp)
+            .align(Alignment.Center)
+            .testTag("glass")
+            .testGlass(effect, input = HazeInput.Sources(hazeState), style = style.value),
+        )
+      }
+    }
+    waitForIdle()
+
+    fun range(pixels: PixelMap, left: IntRange, top: IntRange): Float {
+      val samples = buildList {
+        for (y in top step 4) {
+          for (x in left step 4) add(pixels[x, y].red)
+        }
+      }
+      return samples.max() - samples.min()
+    }
+    val sharp = onNodeWithTag("glass").captureToImage().toPixelMap()
+    assertThat(range(sharp, 28..48, 28..48)).isGreaterThan(0.5f)
+
+    style.value = blurStyle(84.dp)
+    waitForIdle()
+
+    val pixels = onNodeWithTag("glass").captureToImage().toPixelMap()
+
+    val runtime = runtime(effect)
+    val delegate = runtime.delegate as RuntimeShaderGlassDelegate
+    assertThat(delegate.layers.hasBlurHorizontal).isFalse()
+    assertThat(delegate.layers.blurred?.renderEffect).isNotNull()
+    val prepared = checkNotNull(runtime.preparedRender)
+    assertThat(prepared.plan.layers.any { it.kind == GlassRetainedLayerKind.BlurHorizontal }).isFalse()
+    listOf(
+      range(pixels, 28..48, 28..48), // 8px period
+      range(pixels, 76..100, 28..52), // 24px period
+      range(pixels, 28..52, 76..100), // 32px period
+      range(pixels, 4..12, 28..52), // inset edge strip, outside the antialias rim
+    ).forEach { range ->
+      assertThat(range).isLessThan(0.08f)
+    }
   }
 
   private fun activeDetailEffect() = GlassRuntimeEffect().apply {

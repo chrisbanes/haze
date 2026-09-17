@@ -14,7 +14,6 @@ internal fun shouldReleaseRetainedGlass(level: TrimMemoryLevel): Boolean =
 
 private val RetainedGlassReleaseOrder = arrayOf(
   GlassRetainedLayerKind.Source,
-  GlassRetainedLayerKind.BlurPrefilter,
   GlassRetainedLayerKind.BlurHorizontal,
   GlassRetainedLayerKind.Blurred,
   GlassRetainedLayerKind.DepthMixed,
@@ -38,10 +37,6 @@ internal class GlassLayers {
   var source: GraphicsLayer?
     get() = get(GlassRetainedLayerKind.Source)
     set(value) = set(GlassRetainedLayerKind.Source, value)
-
-  var blurPrefiltered: GraphicsLayer?
-    get() = get(GlassRetainedLayerKind.BlurPrefilter)
-    set(value) = set(GlassRetainedLayerKind.BlurPrefilter, value)
 
   var blurHorizontal: GraphicsLayer?
     get() = get(GlassRetainedLayerKind.BlurHorizontal)
@@ -96,10 +91,8 @@ internal class GlassLayers {
     set(value) = set(GlassRetainedLayerKind.Rim, value)
 
   var scaledSize: IntSize? = null
-  var blurWorkingSize: IntSize? = null
 
   val hasSource: Boolean get() = has(GlassRetainedLayerKind.Source)
-  val hasBlurPrefiltered: Boolean get() = has(GlassRetainedLayerKind.BlurPrefilter)
   val hasBlurHorizontal: Boolean get() = has(GlassRetainedLayerKind.BlurHorizontal)
   val hasBlurred: Boolean get() = has(GlassRetainedLayerKind.Blurred)
   val hasDepthMixed: Boolean get() = has(GlassRetainedLayerKind.DepthMixed)
@@ -118,8 +111,7 @@ internal class GlassLayers {
   val hasInteractionLighting: Boolean get() = has(GlassRetainedLayerKind.InteractionLighting)
   val hasRim: Boolean get() = has(GlassRetainedLayerKind.Rim)
 
-  val isEmpty: Boolean
-    get() = groupAlpha.layer == null && retained.all { it == null }
+  val isEmpty: Boolean get() = groupAlpha.layer == null && retained.all { it == null }
 
   fun ensureSource(graphicsContext: GraphicsContext): GraphicsLayer =
     ensure(GlassRetainedLayerKind.Source, graphicsContext)
@@ -130,23 +122,8 @@ internal class GlassLayers {
   fun ensureBlurHorizontal(graphicsContext: GraphicsContext): GraphicsLayer =
     ensure(GlassRetainedLayerKind.BlurHorizontal, graphicsContext)
 
-  fun ensureBlurPrefiltered(graphicsContext: GraphicsContext): GraphicsLayer =
-    ensure(GlassRetainedLayerKind.BlurPrefilter, graphicsContext)
-
-  fun releaseBlurPrefiltered(graphicsContext: GraphicsContext?) {
-    release(GlassRetainedLayerKind.BlurPrefilter, graphicsContext)
-  }
-
   fun releaseBlurIntermediates(graphicsContext: GraphicsContext?) {
-    releaseBlurPrefiltered(graphicsContext)
     release(GlassRetainedLayerKind.BlurHorizontal, graphicsContext)
-  }
-
-  fun updateBlurWorkingSize(size: IntSize, graphicsContext: GraphicsContext?): Boolean {
-    if (blurWorkingSize == size) return false
-    if (blurWorkingSize != null) releaseBlurred(graphicsContext)
-    blurWorkingSize = size
-    return true
   }
 
   fun ensureDepthMixed(graphicsContext: GraphicsContext): GraphicsLayer =
@@ -202,7 +179,6 @@ internal class GlassLayers {
   fun releaseBlurred(graphicsContext: GraphicsContext?) {
     releaseBlurIntermediates(graphicsContext)
     release(GlassRetainedLayerKind.Blurred, graphicsContext)
-    blurWorkingSize = null
   }
 
   fun releaseDepthMixed(graphicsContext: GraphicsContext?) {
@@ -252,7 +228,6 @@ internal class GlassLayers {
     }
     retained.fill(null)
     scaledSize = null
-    blurWorkingSize = null
   }
 
   private operator fun get(kind: GlassRetainedLayerKind): GraphicsLayer? = retained[kind.ordinal]

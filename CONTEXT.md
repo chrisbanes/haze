@@ -22,14 +22,19 @@ parameter values may be fixed across surface sizes or interpolated by size witho
 different semantic kinds of optics.
 _Avoid_: Fixed optics, adaptive optics
 
+**Refraction profile**:
+The sampling response that determines how captured content bends through a Glass surface. It may
+follow the surface profile or use an edge response authored independently of lighting.
+_Avoid_: Blur profile, lighting profile
+
 **Regular Glass style**:
 The default built-in Glass style whose blur and depth adapt to the surface's shortest side while its
 refraction response uses authored constants.
 _Avoid_: Default Glass style
 
 **Clear Glass style**:
-A built-in Glass style that prioritises visibility of content behind the surface. Its blur and depth
-adapt to the surface's shortest side while its refraction response remains authored specifically for
+A built-in Glass style that prioritises visibility of content behind the surface. It uses the same
+shallow blur across surface sizes while its refraction response remains authored specifically for
 Clear.
 _Avoid_: Transparent Glass, no effect
 

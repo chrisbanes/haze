@@ -160,7 +160,10 @@ internal fun GlassChromaInvariantSample() {
       specularIntensity = 0f
       ambientResponse = 0f
       edgeSoftness = 0.dp
+      contrast = 0f
+      whitePoint = 0f
       chromaMultiplier = 2f
+      contentNormalBlend = 0f
       shape = RoundedCornerShape(0.dp)
     }
   }
@@ -352,6 +355,7 @@ internal fun ScreenshotUiTest.assertGlassMedialAxesContinuous() {
     ambientResponse = 0f
     chromaticAberrationStrength = 0f
     edgeSoftness = 0.dp
+    applyNeutralOpticalGrading()
     shape = currentCase.shape
   }
   setContent {
@@ -502,6 +506,7 @@ internal fun ScreenshotUiTest.assertGlassSquircleInteriorContinuous() {
   val shape = RoundedCornerShape(28.dp)
   var surfaceSize by mutableStateOf(cases.first())
   val effect = GlassTestConfiguration().apply {
+    applyNeutralOpticalGrading()
     tint = Color.Transparent
     optics = GlassOptics(
       refractionStrength = 1f,
@@ -831,6 +836,7 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant(
     specularIntensity = 0f
     ambientResponse = 0f
     edgeSoftness = 0.dp
+    applyNeutralOpticalGrading()
   }
   setContent {
     ScreenshotTheme {
@@ -869,17 +875,20 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant(
       .isLessThanOrEqualTo(0.0004f)
 
     var previousEnergy = subpixelEnergy
+    // The wide native Gaussian removes this fine grid completely; small radii still exercise
+    // the semantic kernel's measured response and the transition must remain monotonic.
     listOf(4.dp, 8.dp, 14.dp, 14.1.dp).forEach { radius ->
       effect.updateOptics { copy(blurRadius = OpticalSizeValue.Fixed(radius)) }
       waitForIdle()
       val energy = captureInvariantSnapshot().highFrequencyEnergy(bounds)
       val (expected, tolerance) = when (radius) {
-        4.dp -> 0.001121f to 0.000012f
-        8.dp -> 0.000265f to 0.000004f
+        4.dp -> 0.001115f to 0.000012f
+        8.dp -> 0.000262f to 0.000004f
         14.dp -> largeBlurExpectedEnergy to largeBlurTolerance
         else -> largeBlurExpectedEnergy to largeBlurTolerance
       }
-      assertThat(kotlin.math.abs(energy - expected)).isLessThanOrEqualTo(tolerance)
+      assertThat(kotlin.math.abs(energy - expected), "${case.name} radius=$radius energy=$energy")
+        .isLessThanOrEqualTo(tolerance)
       assertThat(energy).isLessThan(sharp.highFrequencyEnergy(bounds) * 0.9f)
       assertThat(energy).isLessThanOrEqualTo(previousEnergy + 0.000002f)
       previousEnergy = energy
@@ -895,6 +904,7 @@ internal fun ScreenshotUiTest.assertGlassAdversarialDownsampleInvariant() {
     specularIntensity = 0f
     ambientResponse = 0f
     edgeSoftness = 0.dp
+    applyNeutralOpticalGrading()
   }
   var stripePeriodPx by mutableStateOf(1)
   var horizontalStripes by mutableStateOf(false)
@@ -916,7 +926,8 @@ internal fun ScreenshotUiTest.assertGlassAdversarialDownsampleInvariant() {
   waitForIdle()
   val initial = captureInvariantSnapshot()
   val pxPerDp = initial.width / 393f
-  val thresholdPx = (40f / 3f - 0.5f) / 0.57735f
+  // Native uniform filtering begins above four input pixels.
+  val thresholdPx = 4f
   val epsilonPx = 0.01f
   val bounds = IntRect(
     left = initial.width / 2 - 100,
@@ -989,6 +1000,7 @@ internal fun ScreenshotUiTest.assertGlassProgressiveBlurInvariant() {
             specularIntensity = 0f
             ambientResponse = 0f
             edgeSoftness = 0.dp
+            applyNeutralOpticalGrading()
           }
         }
       }
@@ -1461,6 +1473,7 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant(
     specularIntensity = 0f
     ambientResponse = 0f
     edgeSoftness = 0.dp
+    applyNeutralOpticalGrading()
     if (withInteraction) {
       pressed {
         animate(toSpec = snap(), fromSpec = snap()) {
@@ -1621,6 +1634,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
     )
     chromaticAberrationStrength = 0f
     edgeSoftness = 0.dp
+    applyNeutralOpticalGrading()
   }
   var performanceMode by mutableStateOf<HazePerformanceMode>(HazePerformanceMode.Quality)
   var matte by mutableStateOf(Color.Black)
@@ -1835,6 +1849,7 @@ internal fun ScreenshotUiTest.assertGlassRefractionFoldInvertsIncomingContentInv
     ambientResponse = 0f
     chromaticAberrationStrength = 0f
     edgeSoftness = 0.dp
+    applyNeutralOpticalGrading()
     shape = currentCase.shape
   }
   setContent {
@@ -2245,6 +2260,13 @@ private fun invariantEffect(shape: RoundedCornerShape) = GlassTestConfiguration(
   ambientResponse = 0.5f
   edgeSoftness = 8.dp
   this.shape = shape
+}
+
+private fun GlassTestConfiguration.applyNeutralOpticalGrading() {
+  contrast = 0f
+  whitePoint = 0f
+  chromaMultiplier = 1f
+  contentNormalBlend = 0f
 }
 
 private fun ScreenshotUiTest.captureInvariantSnapshot(): PixelSnapshot {

@@ -54,8 +54,8 @@ package dev.chrisbanes.haze.glass {
     property public static float whitePoint;
     field public static final dev.chrisbanes.haze.glass.GlassDefaults INSTANCE;
     field public static final float alpha = 1.0f;
-    field public static final float ambientResponse = 0.46f;
-    field public static final float chromaMultiplier = 1.0f;
+    field public static final float ambientResponse = 0.15f;
+    field public static final float chromaMultiplier = 1.5f;
     field public static final float chromaticAberrationStrength = 0.0f;
     field public static final float contentNormalBlend = 0.15f;
     field public static final float contrast = 0.0f;
@@ -63,7 +63,7 @@ package dev.chrisbanes.haze.glass {
     field public static final float interactionLightRadiusFraction = 0.7f;
     field public static final float specularExponent = 24.0f;
     field public static final float specularIntensity = 0.48f;
-    field public static final float whitePoint = 0.0f;
+    field public static final float whitePoint = 0.55f;
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi @dev.chrisbanes.haze.glass.GlassStyleDsl public sealed nonexhaustive interface GlassInteractionScope {
@@ -77,7 +77,7 @@ package dev.chrisbanes.haze.glass {
 
   @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassOptics {
     ctor public GlassOptics();
-    ctor @KotlinOnly public GlassOptics(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> depth, optional dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength, optional float refractionDetailIntensity);
+    ctor @KotlinOnly public GlassOptics(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> depth, optional dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength, optional float refractionDetailIntensity, optional dev.chrisbanes.haze.glass.RefractionProfile refractionProfile);
     method public float component1();
     method public float component2();
     method @KotlinOnly public operator androidx.compose.ui.unit.Dp component3();
@@ -86,13 +86,15 @@ package dev.chrisbanes.haze.glass {
     method public dev.chrisbanes.haze.HazeProgressive? component6();
     method public float component7();
     method public float component8();
-    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassOptics copy(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> depth, optional dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength, optional float refractionDetailIntensity);
+    method public dev.chrisbanes.haze.glass.RefractionProfile component9();
+    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassOptics copy(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> depth, optional dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength, optional float refractionDetailIntensity, optional dev.chrisbanes.haze.glass.RefractionProfile refractionProfile);
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> getBlurRadius();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> getDepth();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeProgressive? getProgressive();
     method @InaccessibleFromKotlin public float getRefractionDetailIntensity();
     method @InaccessibleFromKotlin public float getRefractionFoldStrength();
     method @InaccessibleFromKotlin public float getRefractionHeightFraction();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.RefractionProfile getRefractionProfile();
     method @InaccessibleFromKotlin public float getRefractionStrength();
     property public dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> blurRadius;
     property public dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> depth;
@@ -101,6 +103,7 @@ package dev.chrisbanes.haze.glass {
     property public androidx.compose.ui.unit.Dp refractionDisplacement;
     property public float refractionFoldStrength;
     property public float refractionHeightFraction;
+    property public dev.chrisbanes.haze.glass.RefractionProfile refractionProfile;
     property public float refractionStrength;
   }
 
@@ -150,7 +153,7 @@ package dev.chrisbanes.haze.glass {
     method public void interactionPositionAnimationSpec(androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.geometry.Offset> animationSpec);
     method public void lightPosition(androidx.compose.ui.Alignment alignment);
     method public void optics(dev.chrisbanes.haze.glass.GlassOptics optics);
-    method @KotlinOnly public void optics(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength, optional float refractionDetailIntensity);
+    method @KotlinOnly public void optics(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength, optional float refractionDetailIntensity, optional dev.chrisbanes.haze.glass.RefractionProfile refractionProfile);
     method public void pressed(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> response);
     method public void shape(androidx.compose.foundation.shape.RoundedCornerShape shape);
     method public void specularExponent(float exponent);
@@ -198,6 +201,20 @@ package dev.chrisbanes.haze.glass {
     ctor @KotlinOnly public <T> OpticalSizeValue.Responsive(java.util.Collection<dev.chrisbanes.haze.glass.OpticalSizePoint<T>> points);
     method @InaccessibleFromKotlin public java.util.List<dev.chrisbanes.haze.glass.OpticalSizePoint<T>> getPoints();
     property public java.util.List<dev.chrisbanes.haze.glass.OpticalSizePoint<T>> points;
+  }
+
+  @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public sealed exhaustive interface RefractionProfile {
+  }
+
+  @androidx.compose.runtime.Immutable public static final class RefractionProfile.Edge implements dev.chrisbanes.haze.glass.RefractionProfile {
+    ctor @KotlinOnly public RefractionProfile.Edge(androidx.compose.ui.unit.Dp width);
+    method @KotlinOnly public operator androidx.compose.ui.unit.Dp component1();
+    method @KotlinOnly public dev.chrisbanes.haze.glass.RefractionProfile.Edge copy(optional androidx.compose.ui.unit.Dp width);
+    property public androidx.compose.ui.unit.Dp width;
+  }
+
+  public static final class RefractionProfile.Surface implements dev.chrisbanes.haze.glass.RefractionProfile {
+    field public static final dev.chrisbanes.haze.glass.RefractionProfile.Surface INSTANCE;
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public enum SurfaceProfile {
