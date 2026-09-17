@@ -78,7 +78,8 @@ internal object GlassShaders {
       vec2 halfSize = materialSize * 0.5;
       vec2 centeredCoord = localCoord - halfSize;
       float outputSd = sdRoundedRect(localCoord, materialSize, cornerRadii);
-      if (outputSd > 0.0) return vec4(0.0);
+      float coverage = shapeCoverage(outputSd, sampleStep * 0.5);
+      if (coverage <= 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
       float shapeMask = edgeSoftness <= 0.0
@@ -189,7 +190,7 @@ internal object GlassShaders {
   } else {
     ""
   }}
-      return opticalColor.a > 0.0 ? opticalColor : vec4(0.0);
+      return opticalColor.a > 0.0 ? opticalColor * coverage : vec4(0.0);
     }
   """
 
@@ -221,6 +222,7 @@ internal object GlassShaders {
       uniform float2 materialOrigin;
       ${if (progressive) "uniform float maskCoordinateScale;" else ""}
       uniform float centerWeight;
+      uniform float sourceIsOpaque;
       $tapUniforms
 
       vec2 clampSample(vec2 coord) {
@@ -232,6 +234,13 @@ internal object GlassShaders {
         ${if (progressive) "if (blurScale <= 0.0001) { return content.eval(clampSample(coord)); }" else ""}
         vec4 result = content.eval(clampSample(coord)) * centerWeight;
         $samples
+        // Runtime image filters can crop the child to the requested output, even with padded
+        // captures. For an opaque source, lost alpha identifies unavailable taps. Normalize
+        // the surviving samples rather than introducing a dark band that refraction pulls inwards.
+        // This is a truncated-kernel boundary rule; it does not reconstruct missing colours.
+        if (sourceIsOpaque > 0.5 && result.a > 0.0001) {
+          return vec4(result.rgb / result.a, 1.0);
+        }
         return result.a > 0.0 ? result : vec4(0.0);
       }
     """
@@ -293,7 +302,8 @@ internal object GlassShaders {
       vec2 halfSize = materialSize * 0.5;
       vec2 centeredCoord = localCoord - halfSize;
       float sd = sdRoundedRect(localCoord, materialSize, cornerRadii);
-      if (sd > 0.0) return vec4(0.0);
+      float coverage = shapeCoverage(sd, sampleStep * 0.5);
+      if (coverage <= 0.0) return vec4(0.0);
 
       float distToEdge = max(-sd, 0.0);
       float shapeMask = edgeSoftness <= 0.0
@@ -365,11 +375,11 @@ internal object GlassShaders {
       vec3 finalStraightColor = tintedColor * ambient;
       vec4 processedColor = premultiply(finalStraightColor, refractedCenterSample.a);
       if (shapeMask >= 1.0) {
-        return processedColor.a > 0.0 ? processedColor : vec4(0.0);
+        return processedColor.a > 0.0 ? processedColor * coverage : vec4(0.0);
       }
       vec4 baseSample = content.eval(clampSample(coord));
       vec4 composedColor = mix(baseSample, processedColor, shapeMask);
-      return composedColor.a > 0.0 ? composedColor : vec4(0.0);
+      return composedColor.a > 0.0 ? composedColor * coverage : vec4(0.0);
     }
   """
 
@@ -417,7 +427,8 @@ internal object GlassShaders {
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
       float outputSd = sdRoundedRect(localCoord, materialSize, cornerRadii);
-      if (outputSd > 0.0) return vec4(0.0);
+      float coverage = shapeCoverage(outputSd, sampleStep * 0.5);
+      if (coverage <= 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
       ${if (interactive) {
@@ -465,11 +476,13 @@ internal object GlassShaders {
       if (detailAlpha <= 0.0) return vec4(0.0);
 
       ${if (coverageOnly) {
+    // DstOut removes a fraction of an optical layer that already has shape coverage.
+    // Applying coverage here too would leave excess optical colour at the boundary.
     "return vec4(vec3(detailAlpha), detailAlpha);"
   } else {
     """
       vec4 sharpSample = content.eval(refractCoord);
-      vec4 detailColor = sharpSample * detailAlpha;
+      vec4 detailColor = sharpSample * (detailAlpha * coverage);
       return detailColor.a > 0.0 ? detailColor : vec4(0.0);
       """
   }}
@@ -554,7 +567,8 @@ internal object GlassShaders {
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
       float sd = materialSdf(localCoord);
-      if (sd > 0.0) return vec4(0.0);
+      float coverage = shapeCoverage(sd, sampleStep * 0.5);
+      if (coverage <= 0.0) return vec4(0.0);
 
       float edgeWidth = max(edgeSoftness, sampleStep);
       float edge = 1.0 - smootherstep(clamp(-sd / max(edgeWidth, 0.0001), 0.0, 1.0));
@@ -569,7 +583,7 @@ internal object GlassShaders {
       float shadowAlpha = edgeShadow.a * edge;
       float alpha = specularAlpha + shadowAlpha * (1.0 - specularAlpha);
       vec3 color = vec3(specularAlpha) + edgeShadow.rgb * shadowAlpha * (1.0 - specularAlpha);
-      return alpha > 0.0 ? vec4(color, alpha) : vec4(0.0);
+      return alpha > 0.0 ? vec4(color, alpha) * coverage : vec4(0.0);
     }
   """
 
@@ -580,6 +594,13 @@ internal object GlassShaders {
   """
 
   private fun sdfShapeHelpers(): String = """
+    float shapeCoverage(float sd, float pixelWidth) {
+      // Pixel coverage is independent of the authored optical edge softness and density.
+      // sampleStep is two physical pixels expressed in the current working coordinates.
+      // Keep the transition inside the existing silhouette, including caller-applied clips.
+      return clamp(-sd / max(pixelWidth, 0.0001), 0.0, 1.0);
+    }
+
     float smootherstep(float x) {
       float t = clamp(x, 0.0, 1.0);
       return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
@@ -945,7 +966,9 @@ internal object GlassShaders {
     }
 
     vec4 premultiply(vec3 color, float alpha) {
-      return vec4(color * alpha, alpha);
+      // Ambient highlights can exceed the SDR range. Clamp before coverage/alpha is applied
+      // so partially covered pixels remain premultiplied when composited over a backdrop.
+      return vec4(clamp(color, 0.0, 1.0) * alpha, alpha);
     }
 
     float luma(vec3 color) {

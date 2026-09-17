@@ -115,15 +115,15 @@ class GlassShadersTest {
   }
 
   @Test
-  fun opticalShader_hardClipsAndClearsTransparentRgb() {
+  fun opticalShader_antialiasesBoundaryAndClearsTransparentRgb() {
     val shader = GlassShaders.buildOptical()
     val main = shader.substringAfter("vec4 main(vec2 coord)")
 
-    assertThat(shader).contains("if (sd > 0.0) return vec4(0.0);")
+    assertThat(shader).contains("float coverage = shapeCoverage(sd, sampleStep * 0.5);")
     assertThat(shader)
-      .contains("return composedColor.a > 0.0 ? composedColor : vec4(0.0);")
+      .contains("return composedColor.a > 0.0 ? composedColor * coverage : vec4(0.0);")
     assertThat(main.substringBefore("content.eval("))
-      .contains("if (sd > 0.0) return vec4(0.0);")
+      .contains("if (coverage <= 0.0) return vec4(0.0);")
   }
 
   @Test
@@ -557,8 +557,8 @@ class GlassShadersTest {
     assertThat(shader).contains(transparentRejection)
     assertThat(shader.indexOf(transparentRejection))
       .isLessThan(shader.indexOf("vec4 sharpSample = content.eval(refractCoord);"))
-    assertThat(shader).contains("vec4 detailColor = sharpSample * detailAlpha;")
-    assertThat(shader).contains("if (outputSd > 0.0) return vec4(0.0);")
+    assertThat(shader).contains("vec4 detailColor = sharpSample * (detailAlpha * coverage);")
+    assertThat(shader).contains("if (coverage <= 0.0) return vec4(0.0);")
     assertThat(shader).contains("return detailColor.a > 0.0 ? detailColor : vec4(0.0);")
     assertThat(Regex("content\\.eval").findAll(shader).count()).isEqualTo(1)
     assertThat(shader).doesNotContain("chromaticAberration")

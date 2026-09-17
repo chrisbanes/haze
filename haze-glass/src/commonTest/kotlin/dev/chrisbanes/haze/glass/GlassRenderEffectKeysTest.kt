@@ -20,6 +20,16 @@ import kotlin.test.Test
 
 class GlassRenderEffectKeysTest {
   @Test
+  fun blurKey_normalizesOnlyKnownOpaqueSources() {
+    val base = params()
+    assertThat(base.copy(backgroundColor = Color.Transparent).blurEffectKey().sourceIsOpaque).isFalse()
+    assertThat(base.copy(backgroundColor = Color.White.copy(alpha = 254f / 255f)).blurEffectKey().sourceIsOpaque).isFalse()
+    val opaque = base.copy(backgroundColor = Color.White).blurEffectKey()
+    assertThat(opaque.sourceIsOpaque).isTrue()
+    assertThat(base.copy(backgroundColor = Color.Black).blurEffectKey()).isEqualTo(opaque)
+  }
+
+  @Test
   fun edgeWidth_invalidatesOpticsAndDetailOnlyAndZeroDisablesDetail() {
     val base = params()
     val edge = base.copy(edgeRefractionWidthPx = 28f)

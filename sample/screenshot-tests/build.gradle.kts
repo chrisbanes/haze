@@ -34,6 +34,8 @@ kotlin {
     commonTest {
       dependencies {
         implementation(kotlin("test"))
+        implementation(libs.assertk)
+        implementation(libs.coil.compose)
         implementation(libs.compose.ui.test)
         implementation(projects.internal.screenshotTest)
         implementation(projects.sample.shared)
@@ -43,13 +45,11 @@ kotlin {
     getByName("androidHostTest") {
       dependencies {
         implementation(libs.roborazzi.android)
-        implementation(libs.coil.compose)
       }
     }
 
     jvmTest {
       dependencies {
-        implementation(libs.coil.compose)
         implementation(compose.desktop.currentOs)
       }
     }
