@@ -1029,6 +1029,7 @@ internal object GlassShaders {
             if (delta.g < 0.0) chromaScale = min(chromaScale, -luminance / delta.g);
             if (delta.b > 0.0) chromaScale = min(chromaScale, (1.0 - luminance) / delta.b);
             if (delta.b < 0.0) chromaScale = min(chromaScale, -luminance / delta.b);
+            chromaScale = max(1.0, chromaScale);
           } else {
             chromaScale = 1.0;
           }

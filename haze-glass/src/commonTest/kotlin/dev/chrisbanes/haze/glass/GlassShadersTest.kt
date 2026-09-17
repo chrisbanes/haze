@@ -168,6 +168,7 @@ class GlassShadersTest {
       assertThat(grading).contains("fromLinearSrgb(")
       assertThat(grading).contains("bool sourceIsInSrgbGamut")
       assertThat(grading).contains("chromaScale = 1.0;")
+      assertThat(grading).contains("chromaScale = max(1.0, chromaScale);")
       assertThat(grading.indexOf("toLinearSrgb(color)"))
         .isLessThan(grading.indexOf("fromLinearSrgb("))
       assertThat(grading.indexOf("fromLinearSrgb("))

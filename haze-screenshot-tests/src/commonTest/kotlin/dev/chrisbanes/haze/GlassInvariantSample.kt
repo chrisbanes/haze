@@ -1623,13 +1623,16 @@ internal fun ScreenshotUiTest.assertGlassChromaMultiplierGamutInvariant() {
   }
 
   val neutral = captureInvariantSnapshot().glassChromaPalettePixels()
+  effect.chromaMultiplier = 0.5f
+  waitForIdle()
+  val desaturated = captureInvariantSnapshot().glassChromaPalettePixels()
   effect.chromaMultiplier = 2f
   waitForIdle()
   val boosted = captureInvariantSnapshot().glassChromaPalettePixels()
 
-  GlassChromaPalette.zip(neutral).zip(boosted).forEach { (expectedAndNeutral, boostedPixel) ->
+  GlassChromaPalette.zip(neutral).zip(boosted).forEachIndexed { index, (expectedAndNeutral, boostedPixel) ->
     val (expected, neutralPixel) = expectedAndNeutral
-    listOf(neutralPixel, boostedPixel).forEach { pixel ->
+    listOf(neutralPixel, desaturated[index], boostedPixel).forEach { pixel ->
       listOf(pixel.red, pixel.green, pixel.blue, pixel.alpha).forEach { component ->
         assertThat(component.isFinite()).isTrue()
       }
@@ -1658,7 +1661,13 @@ internal fun ScreenshotUiTest.assertGlassChromaMultiplierGamutInvariant() {
   }
 
   val neutralInterior = neutral.last().toLinearSrgb()
+  val desaturatedInterior = desaturated.last().toLinearSrgb()
   val boostedInterior = boosted.last().toLinearSrgb()
+  assertThat(desaturatedInterior.chromaDistance())
+    .isLessThan(neutralInterior.chromaDistance() - 0.02f)
+  assertThat(abs(desaturatedInterior.luminance() - neutralInterior.luminance()))
+    .isLessThanOrEqualTo(0.01f)
+  assertThat(desaturatedInterior.chromaDirectionDot(neutralInterior)).isGreaterThanOrEqualTo(0.98f)
   assertThat(boostedInterior.chromaDistance()).isGreaterThan(neutralInterior.chromaDistance() + 0.02f)
   assertThat(abs(boostedInterior.luminance() - neutralInterior.luminance()))
     .isLessThanOrEqualTo(0.01f)
