@@ -54,7 +54,7 @@ class GlassPlaygroundSampleTest : ContextTest() {
     onNodeWithText("Regular").assertIsSelected()
     onNodeWithText("REGULAR").assertIsDisplayed()
     onNodeWithContentDescription("Enter recording mode").performClick()
-    onNodeWithText("Style").assertDoesNotExist()
+    onNodeWithContentDescription("Glass style").assertDoesNotExist()
     onNodeWithText("Regular").assertDoesNotExist()
     onNodeWithText("Clear").assertDoesNotExist()
   }

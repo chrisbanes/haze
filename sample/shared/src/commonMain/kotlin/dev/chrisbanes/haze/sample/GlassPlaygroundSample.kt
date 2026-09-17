@@ -11,6 +11,7 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.InteractionSource
@@ -19,12 +20,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Surface
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,12 +45,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.DpSize
@@ -305,19 +310,38 @@ public fun GlassPlaygroundSampleContent(
           onPlayPause = onPlayPause,
           onReset = onReset,
         )
-        Surface(shape = RoundedCornerShape(24.dp)) {
+        GlassSurface(
+          hazeState = hazeState,
+          style = GlassStyle.regular.then { tint(Color.Black.copy(alpha = 0.08f)) },
+          shape = RoundedCornerShape(28.dp),
+        ) {
           Row(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+              .semantics { contentDescription = "Glass style" }
+              .selectableGroup()
+              .padding(4.dp),
           ) {
-            Text("Style")
             GlassPlaygroundStyle.entries.forEach { style ->
-              FilterChip(
-                selected = selectedStyle == style,
-                onClick = { onStyleSelected(style) },
-                label = { Text(style.name) },
-              )
+              val selected = selectedStyle == style
+              Box(
+                modifier = Modifier
+                  .clip(RoundedCornerShape(24.dp))
+                  .background(if (selected) Color.White.copy(alpha = 0.9f) else Color.Transparent)
+                  .selectable(
+                    selected = selected,
+                    role = Role.RadioButton,
+                    onClick = { onStyleSelected(style) },
+                  )
+                  .defaultMinSize(minWidth = 96.dp, minHeight = 48.dp)
+                  .padding(horizontal = 16.dp, vertical = 12.dp),
+                contentAlignment = Alignment.Center,
+              ) {
+                Text(
+                  text = style.name,
+                  style = MaterialTheme.typography.labelLarge,
+                  color = if (selected) Color.Black else Color.White,
+                )
+              }
             }
           }
         }
