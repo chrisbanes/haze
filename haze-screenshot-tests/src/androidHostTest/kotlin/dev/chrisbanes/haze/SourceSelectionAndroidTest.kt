@@ -57,6 +57,10 @@ class SourceSelectionAndroidTest : ScreenshotTest() {
                   backgroundColor(Color.Transparent)
                   tint(Color.Transparent)
                   specularIntensity(0f)
+                  // Compare selected source colors independently of material tone.
+                  whitePoint(0f)
+                  contrast(0f)
+                  chromaMultiplier(1f)
                   optics(blurRadius = 8.dp, depth = 0.5f)
                 },
               )
