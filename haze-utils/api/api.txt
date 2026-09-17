@@ -91,6 +91,7 @@ package dev.chrisbanes.haze {
 
   @dev.chrisbanes.haze.InternalHazeApi public interface RuntimeShaderUniformProvider {
     method public void setChildShader(String name, androidx.compose.ui.graphics.Shader shader);
+    method @KotlinOnly public void setColorUniform(String name, androidx.compose.ui.graphics.Color color);
     method public void setFloatUniform(String name, float value);
     method public void setFloatUniform(String name, float value1, float value2);
     method public void setFloatUniform(String name, float value1, float value2, float value3, float value4);

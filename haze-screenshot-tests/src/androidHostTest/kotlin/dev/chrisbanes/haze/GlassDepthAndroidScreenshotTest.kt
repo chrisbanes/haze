@@ -123,6 +123,11 @@ class GlassDepthAndroidScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_colorUniformsPreserveAuthoredColorSpace() = runScreenshotTest {
+    assertGlassColorUniformsPreserveAuthoredColorSpace()
+  }
+
+  @Test
   fun glass_paddingAndScalePreserveGeometry() = runScreenshotTest {
     assertGlassPaddingAndScaleInvariants()
   }

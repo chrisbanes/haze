@@ -7,10 +7,12 @@ package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.skiaShader
 import kotlin.jvm.JvmInline
 import org.jetbrains.skia.ColorFilter
@@ -199,6 +201,17 @@ private class SkikoMutableRuntimeShaderRenderEffect(
 private value class SkikoRuntimeShaderUniformProvider(
   private val builder: RuntimeShaderBuilder,
 ) : RuntimeShaderUniformProvider {
+  override fun setColorUniform(name: String, color: Color) {
+    val extendedSrgb = color.convert(ColorSpaces.ExtendedSrgb)
+    builder.uniform(
+      name,
+      extendedSrgb.red,
+      extendedSrgb.green,
+      extendedSrgb.blue,
+      extendedSrgb.alpha,
+    )
+  }
+
   override fun setFloatUniform(name: String, value: Float) {
     builder.uniform(name, value)
   }

@@ -2326,13 +2326,7 @@ internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
   setFloatUniform("refractionScale", key.refractionScalePx)
   setFloatUniform("contentNormalBlend", key.contentNormalBlend)
   setFloatUniform("fresnelExponent", key.fresnelExponent)
-  setFloatUniform(
-    "tintColor",
-    key.tint.red,
-    key.tint.green,
-    key.tint.blue,
-    key.tint.alpha,
-  )
+  setColorUniform("tintColor", key.tint)
 }
 
 internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
@@ -2366,13 +2360,7 @@ internal fun RuntimeShaderUniformProvider.setRimUniforms(
 ) {
   setCommonUniforms(key.coordinates, key.sampleStepPx, key.edgeSoftnessPx, key.cornerRadii)
   setFloatUniform("specularIntensity", key.specularIntensity)
-  setFloatUniform(
-    "edgeShadow",
-    key.edgeShadow.red,
-    key.edgeShadow.green,
-    key.edgeShadow.blue,
-    key.edgeShadow.alpha,
-  )
+  setColorUniform("edgeShadow", key.edgeShadow)
   setFloatUniform("specularExponent", key.specularExponent)
   setFloatUniform(
     "lightPosition",

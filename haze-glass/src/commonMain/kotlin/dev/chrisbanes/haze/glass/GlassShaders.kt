@@ -21,7 +21,7 @@ internal object GlassShaders {
     uniform float edgeRefractionWidth;
     uniform float chromaticAberrationStrength;
     uniform vec4 cornerRadii;
-    uniform vec4 tintColor;
+    layout(color) uniform vec4 tintColor;
     // Declared as float because AGSL does not support int uniforms.
     uniform float surfaceProfile;
     // Declared as float because AGSL does not support int uniforms.
@@ -253,7 +253,7 @@ internal object GlassShaders {
     uniform float edgeRefractionWidth;
     uniform float chromaticAberrationStrength;
     uniform vec4 cornerRadii;
-    uniform vec4 tintColor;
+    layout(color) uniform vec4 tintColor;
     // Declared as float because AGSL does not support int uniforms.
     uniform float surfaceProfile;
     // Declared as float because AGSL does not support int uniforms.
@@ -526,7 +526,7 @@ internal object GlassShaders {
     uniform float sampleStep;
     uniform vec4 cornerRadii;
     uniform float specularIntensity;
-    uniform vec4 edgeShadow;
+    layout(color) uniform vec4 edgeShadow;
     uniform float specularExponent;
     uniform float edgeSoftness;
     uniform float2 lightPosition;

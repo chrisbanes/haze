@@ -5,9 +5,11 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeShader
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.skiaShader
 import dev.chrisbanes.haze.InternalHazeApi
@@ -41,6 +43,17 @@ internal actual fun createGlassRimBrushProvider(): GlassRimBrushProvider? {
 internal actual fun DrawScope.supportsGlassRimBrush(): Boolean = true
 
 private class GlassRimUniformProvider(private val builder: RuntimeShaderBuilder) : RuntimeShaderUniformProvider {
+  override fun setColorUniform(name: String, color: Color) {
+    val extendedSrgb = color.convert(ColorSpaces.ExtendedSrgb)
+    builder.uniform(
+      name,
+      extendedSrgb.red,
+      extendedSrgb.green,
+      extendedSrgb.blue,
+      extendedSrgb.alpha,
+    )
+  }
+
   override fun setFloatUniform(name: String, value: Float) = builder.uniform(name, value)
 
   override fun setFloatUniform(name: String, value1: Float, value2: Float) = builder.uniform(name, value1, value2)

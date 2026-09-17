@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
@@ -148,6 +149,46 @@ internal fun GlassInvariantSample(
           } else {
             Modifier
           },
+        ),
+    )
+  }
+}
+
+@Composable
+internal fun GlassColorUniformInvariantSample(color: Color) {
+  val hazeState = rememberHazeState()
+  val shape = RoundedCornerShape(0.dp)
+  val style = GlassStyle {
+    tint(color)
+    edgeShadow(color)
+    optics(
+      GlassOptics(
+        refractionStrength = 0f,
+        depth = OpticalSizeValue.Fixed(0f),
+        blurRadius = OpticalSizeValue.Fixed(0.dp),
+      ),
+    )
+    specularIntensity(0f)
+    ambientResponse(0f)
+    edgeSoftness(24.dp)
+    contrast(0f)
+    whitePoint(0f)
+    chromaMultiplier(1f)
+    contentNormalBlend(0f)
+    shape(shape)
+  }
+  Box(Modifier.fillMaxSize().background(Color.Black)) {
+    Canvas(Modifier.fillMaxSize().hazeSource(hazeState)) {
+      drawRect(Color.Black)
+    }
+    Box(
+      Modifier
+        .align(Alignment.Center)
+        .size(280.dp, 180.dp)
+        .hazeGlass(
+          input = HazeInput.Sources(hazeState),
+          style = style,
+          performanceMode = HazePerformanceMode.Quality,
         ),
     )
   }
@@ -1597,6 +1638,66 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant(
     .isLessThanOrEqualTo(1f / 255f)
   retained.assertZeroAlphaHasZeroRgb()
   retained.assertTransparentAt(geometry.outsidePoints)
+}
+
+internal fun ScreenshotUiTest.assertGlassColorUniformsPreserveAuthoredColorSpace() {
+  val authoredDisplayP3 = Color(1f, 0.5f, 0f, 1f, ColorSpaces.DisplayP3)
+  val explicitSrgb = authoredDisplayP3.convert(ColorSpaces.Srgb)
+  val rawComponentSrgb = Color(
+    red = authoredDisplayP3.red,
+    green = authoredDisplayP3.green,
+    blue = authoredDisplayP3.blue,
+    alpha = authoredDisplayP3.alpha,
+    colorSpace = ColorSpaces.Srgb,
+  )
+  var authoredColor by mutableStateOf(authoredDisplayP3)
+  setContent {
+    ScreenshotTheme {
+      GlassColorUniformInvariantSample(authoredColor)
+    }
+  }
+
+  fun capture(color: Color): PixelSnapshot {
+    authoredColor = color
+    waitForIdle()
+    return captureInvariantSnapshot()
+  }
+
+  fun assertProbeMatches(
+    actual: Color,
+    expected: Color,
+    label: String,
+  ) {
+    val tolerance = 2f / 255f
+    assertThat(abs(actual.red - expected.red), "$label red").isLessThanOrEqualTo(tolerance)
+    assertThat(abs(actual.green - expected.green), "$label green").isLessThanOrEqualTo(tolerance)
+    assertThat(abs(actual.blue - expected.blue), "$label blue").isLessThanOrEqualTo(tolerance)
+  }
+
+  fun colorDistance(first: Color, second: Color): Float = maxOf(
+    abs(first.red - second.red),
+    abs(first.green - second.green),
+    abs(first.blue - second.blue),
+  )
+
+  val semantic = capture(authoredDisplayP3)
+  val explicit = capture(explicitSrgb)
+  val raw = capture(rawComponentSrgb)
+  val bounds = semantic.centeredSurfaceBounds(DpSize(280.dp, 180.dp))
+  val tintProbe = bounds.center
+  val rimProbe = IntOffset(bounds.left + 2, bounds.center.y)
+
+  listOf(tintProbe to "optical tint", rimProbe to "rim shadow").forEach { (probe, label) ->
+    assertProbeMatches(
+      actual = semantic[probe.x, probe.y],
+      expected = explicit[probe.x, probe.y],
+      label = "$label semantic Display-P3",
+    )
+    assertThat(
+      colorDistance(semantic[probe.x, probe.y], raw[probe.x, probe.y]),
+      "$label must not reinterpret Display-P3 components as sRGB",
+    ).isGreaterThan(2f / 255f)
+  }
 }
 
 internal fun ScreenshotUiTest.assertGlassChromaMultiplierGamutInvariant() {

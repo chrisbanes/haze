@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
 
 /**
@@ -100,6 +101,11 @@ public expect fun createMutableRuntimeShaderRenderEffect(
  */
 @InternalHazeApi
 public interface RuntimeShaderUniformProvider {
+  /**
+   * Sets a color-managed uniform.
+   */
+  public fun setColorUniform(name: String, color: Color)
+
   /**
    * Sets a float uniform.
    */
