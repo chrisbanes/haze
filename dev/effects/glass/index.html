@@ -1534,14 +1534,29 @@ override either value. It also works as a subtree default:</p>
 </code></pre></div>
 <h3 id="built-in-styles">Built-in styles<a class="headerlink" href="#built-in-styles" title="Permanent link">¶</a></h3>
 <p><code>GlassStyle.regular</code> is the default built-in Glass style. Its blur and depth adapt to the
-surface's shortest dimension and include a restrained edge fold, where the local sampling direction
-reverses so incoming content can appear inverted near the glass boundary. This makes it a good fit
-for reusable components.</p>
+surface's shortest dimension. A 20dp edge refraction band preserves curved loops on compact
+controls, while larger surfaces fully diffuse the backdrop. Blur radii are 20/24/25dp and depth
+is 0.65/1/1 at shortest dimensions of 64/176/220dp. Its brighter tone is calibrated against
+native iOS 27 light appearance; it does not automatically reproduce native dark appearance or
+content-dependent tint adaptation.</p>
 <p><code>GlassStyle.clear</code> is the alternative built-in style for surfaces that should keep more of the
-background visible. Its blur and depth increase smoothly with the surface's shortest side, while
-its authored refraction and distinct edge and lighting response remain recognizable on renderers
-that simplify advanced optical effects. These are Haze styles informed by the platform distinction;
-they do not promise pixel parity with another system.</p>
+background visible. It uses the same shallow blur across surface sizes and an edge refraction
+profile informed by iOS 27 captures. Displacement is strongest at the boundary, decays over a fixed
+28dp band, and follows wider optical corners to form the characteristic loops. Simplified renderers
+retain background color, tint, and edge/rim treatments, but omit refraction, blur, and the contrast,
+white-point, and chroma adjustments that define Clear's calibrated tone. These are Haze styles
+informed by the platform distinction; they do not promise pixel parity with another system.</p>
+<p>Prefer Regular when background content could interfere with labels or controls, especially for
+surfaces containing substantial text. Use Clear for controls over photos and video where the
+underlying content should remain visible. This follows Apple's current
+<a href="https://developer.apple.com/design/human-interface-guidelines/materials">Materials guidance</a>.
+For Clear over bright content, add a dark dimming layer behind the controls when needed for
+contrast. Dark backgrounds may already provide enough contrast; Haze does not add dimming automatically.</p>
+<p>iOS 27 refines native Liquid Glass diffusion and edge definition, and adds a system appearance
+slider, as described in the <a href="https://developer.apple.com/videos/play/wwdc2026/102/">WWDC26 platform updates</a>.
+Haze's built-in styles are calibrated against the default iOS 27 appearance; they do not
+automatically inherit that slider or native content-dependent adaptation. Check foreground
+contrast with your own content and configure Haze's styles and accessibility settings accordingly.</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">clear</span><span class="p">.</span><span class="na">material3</span><span class="p">(</span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.12f</span><span class="p">)),</span>
@@ -1562,10 +1577,10 @@ they do not promise pixel parity with another system.</p>
 <li><strong>specularIntensity</strong>: Highlight strength <code>0..1</code> (default 0.48).</li>
 <li><strong>edgeShadow</strong>: Shape-following dark rim composited beneath the specular highlight (defaults to
   black at 14% opacity). Its alpha controls strength; set <code>Color.Transparent</code> to disable it.</li>
-<li><strong>ambientResponse</strong>: Fresnel/edge lift <code>0..1</code> (default 0.46).</li>
-<li><strong>edgeSoftness</strong>: Soft fade at the edges (default 2.dp). Set to 0.dp for hard edges.</li>
+<li><strong>ambientResponse</strong>: Fresnel/edge lift <code>0..1</code> (default 0.15).</li>
+<li><strong>edgeSoftness</strong>: Soft fade at the edges (default 1.dp). Set to 0.dp for hard edges.</li>
 <li><strong>shape</strong> (<code>RoundedCornerShape</code>): Rounded-rect boundary for refraction and masking (default 16.dp corners).</li>
-<li><strong>surfaceProfile</strong>: Cross-section profile for the refraction bezel. Options: <code>Circle</code> (default), <code>Squircle</code>, <code>Lip</code>, <code>Concave</code>.</li>
+<li><strong>surfaceProfile</strong>: Cross-section for lighting and, with <code>RefractionProfile.Surface</code>, refraction. Options: <code>Circle</code> (default), <code>Squircle</code>, <code>Lip</code>, <code>Concave</code>.</li>
 <li><strong>lightPosition</strong>: <code>Alignment</code> of the light within the material's measured bounds (default
   <code>Alignment.Center</code>). Logical start and end follow the node's layout direction.</li>
 <li><strong>chromaticAberrationStrength</strong>: Dispersion strength <code>0..1</code> (default 0). Higher values produce prismatic color splitting at edges.</li>
@@ -1671,6 +1686,17 @@ positive, finite, strictly increasing dimensions:</p>
 <span class="p">)</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">optics</span><span class="p">(</span><span class="n">reusableOptics</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
+<p><code>refractionProfile</code> defaults to <code>RefractionProfile.Surface</code>, which derives displacement from
+<code>surfaceProfile</code> and <code>refractionHeightFraction</code>. Existing custom optics retain that behavior.
+<code>RefractionProfile.Edge(width = 28.dp)</code> separates sampling from lighting: displacement is strongest
+at the boundary and decays to zero over the specified width. Its optical corner radius is 1.5 times
+the visible radius, capped at half the shortest side. Displacement is capped at half that side too,
+so compact capsules do not refract as far as large cards. A zero width disables refraction and its
+secondary detail pass; <code>refractionHeightFraction</code> continues to control lighting.</p>
+<p>Clear uses <code>Edge(28.dp)</code>, strength <code>0.85</code>, displacement <code>56.dp</code>, and a lighting height fraction of
+<code>0.35</code>. Regular uses <code>Edge(20.dp)</code>, strength <code>0.7</code>, displacement <code>48.dp</code>, and lighting height
+fraction <code>0.15</code>. These are empirical Haze settings, not an Apple specification or a promise of
+parity across content and appearance settings.</p>
 <p><code>refractionFoldStrength</code> controls the inverted edge-refraction fold from <code>0f</code> to <code>1f</code>. The default
 for <code>GlassOptics</code> is <code>0f</code>, which preserves the original monotonic refraction map. The fold is
 available with every <code>SurfaceProfile</code> and remains within the configured refraction displacement;

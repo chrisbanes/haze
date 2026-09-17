@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
-    <title>clear</title>
+    <title>Edge</title>
 <link href="../../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../../";</script>
     <script>document.documentElement.classList.replace("no-js", "js");</script>
     <script>const storage = localStorage.getItem("dokka-dark-mode")
@@ -89,12 +89,55 @@
         </nav>
         <div id="resizer" class="resizer" data-item-type="BAR"></div>
         <div id="main" data-item-type="SECTION" role="main">
-<div class="main-content" data-page-type="member" id="content" pageids="haze-glass::dev.chrisbanes.haze.glass/GlassStyle.Companion/clear/#/PointingToDeclaration//1575282654">
-  <div class="breadcrumbs"><a href="../../../index.html">haze-glass</a><span class="delimiter">/</span><a href="../../index.html">dev.chrisbanes.haze.glass</a><span class="delimiter">/</span><a href="../index.html">GlassStyle</a><span class="delimiter">/</span><a href="index.html">Companion</a><span class="delimiter">/</span><span class="current">clear</span></div>
+<div class="main-content" data-page-type="classlike" id="content" pageids="haze-glass::dev.chrisbanes.haze.glass/RefractionProfile.Edge///PointingToDeclaration//1575282654">
+  <div class="breadcrumbs"><a href="../../../index.html">haze-glass</a><span class="delimiter">/</span><a href="../../index.html">dev.chrisbanes.haze.glass</a><span class="delimiter">/</span><a href="../index.html">RefractionProfile</a><span class="delimiter">/</span><span class="current">Edge</span></div>
   <div class="cover ">
-    <h1 class="cover"><span><span>clear</span></span></h1>
+    <h1 class="cover"><span><span>Edge</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/Immutable.html"><span class="token annotation builtin">Immutable</span></a></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">Edge</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>width<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a></span></span><span class="token punctuation">)</span> : <a href="../index.html">RefractionProfile</a></div><p class="paragraph">Refraction is strongest at the boundary and decays to zero over <a href="../../../../haze-glass/dev.chrisbanes.haze.glass/-refraction-profile/-edge/--root--.html">width</a>.</p><p class="paragraph">Rounded corners use an optical radius 1.5 times the visible radius, capped at half the material's shortest side. Displacement is also capped at half that side. <a href="../../-surface-profile/index.html">SurfaceProfile</a> and <a href="../../-glass-optics/refraction-height-fraction.html">GlassOptics.refractionHeightFraction</a> continue to control lighting, independently of refraction.</p><p class="paragraph"><a href="../../../../haze-glass/dev.chrisbanes.haze.glass/-refraction-profile/-edge/--root--.html">width</a> must be specified, finite, and non-negative. A zero width disables refraction, including its secondary detail pass. Simplified renderers may omit refraction entirely.</p></div></div>
   </div>
-  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="clear.html">clear</a><span class="token operator">: </span><a href="../index.html">GlassStyle</a></div><p class="paragraph">A built-in Glass style that prioritizes visibility of content behind the material.</p><p class="paragraph">Its shallow blur stays constant across material sizes while its authored refraction and distinct edge and lighting response remain recognizable when a renderer simplifies advanced optical effects. It writes the complete material response while preserving separately composed shape, background colour, tint, alpha, light position, and interaction presentation.</p></div></div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="tableheader">Constructors</h2>
+        <div class="table"><a data-name="-1135972945%2FConstructors%2F1575282654" anchor-label="Edge" id="-1135972945%2FConstructors%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-edge.html"><span><span>Edge</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1135972945%2FConstructors%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">width<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="-316960447%2FProperties%2F1575282654" anchor-label="width" id="-316960447%2FProperties%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="width.html"><span><span>width</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-316960447%2FProperties%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="width.html">width</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a></div><div class="brief "><p class="paragraph">Distance from the boundary over which refraction decays to zero.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
     <div class="footer">
         <div class="footer--container">
