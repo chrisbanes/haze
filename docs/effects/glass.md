@@ -76,9 +76,18 @@ profile informed by iOS 27 captures. Displacement is strongest at the boundary, 
 retain Clear's tone and edge treatment while omitting advanced optical effects. These are Haze styles informed by the platform distinction;
 they do not promise pixel parity with another system.
 
-Use Clear over rich imagery with bright, bold foreground content. Add dimming behind the controls
-when needed for legibility; Clear does not add that dimming automatically. Prefer Regular when the
-material needs to obscure a busy background. This follows Apple's [Clear usage guidance](https://developer.apple.com/videos/play/wwdc2025/219/).
+Prefer Regular when background content could interfere with labels or controls, especially for
+surfaces containing substantial text. Use Clear for controls over photos and video where the
+underlying content should remain visible. This follows Apple's current
+[Materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials).
+For Clear over bright content, add a dark dimming layer behind the controls when needed for
+contrast. Dark backgrounds may already provide enough contrast; Haze does not add dimming automatically.
+
+iOS 27 refines native Liquid Glass diffusion and edge definition, and adds a system appearance
+slider, as described in the [WWDC26 platform updates](https://developer.apple.com/videos/play/wwdc2026/102/).
+Haze's built-in styles are calibrated against the default iOS 27 appearance; they do not
+automatically inherit that slider or native content-dependent adaptation. Check foreground
+contrast with your own content and configure Haze's styles and accessibility settings accordingly.
 
 ```kotlin
 Modifier.hazeGlass(
