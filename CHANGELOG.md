@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   brighter tone, and wider diffusion on cards and panels. Fixed the physical-pixel blur cap that
   prevented larger authored radii from taking effect on dense displays.
 - Clear uses a consistent shallow blur across surface sizes.
+- Preserved in-gamut source colour when Glass requests a chroma boost, avoiding clipped saturated
+  plateaus, and retained authored tint and edge-shadow Compose `ColorSpace` semantics in
+  colour-managed shader uniforms.
 
 ## 2.0.0-rc01 <small>2026-09-13</small> { id="2.0.0-rc01" }
 

@@ -88,3 +88,16 @@ coverage; its physical-device performance has not been measured.
 Native light and dark appearances differ substantially; the fixed Haze style targets the light
 reference and does not implement native appearance or content adaptation. The comparisons establish
 visual direction, not physical GPU performance.
+
+## Colour handling, 2026-09-17
+
+`chromaMultiplier` above `1f` is a requested chroma boost, bounded for source colours already in
+the sRGB gamut. A boost that would leave that gamut is reduced to the in-gamut limit, and an
+already out-of-gamut source is left unchanged. The purpose is source-colour preservation: clamping
+an amplified saturated colour would create a broad colour plateau that loses the original hue and
+detail.
+
+Authored `tint` and `edgeShadow` retain Compose `ColorSpace` semantics through colour-managed
+shader uniforms on supported renderers. This decision does not settle the whole colour model:
+encoded `luma()` used to construct content normals, display-space contrast, and ambient
+multiplication remain explicitly deferred questions rather than claims of scene-linear behaviour.

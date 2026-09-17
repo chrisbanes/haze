@@ -126,6 +126,18 @@ Glass validates configuration when a Style or `GlassOptics` value is created ins
 silently correcting it later. Validate or clamp values from user input and remote data before
 building the Style. The generated API reference documents the accepted range for each property.
 
+### Colour handling
+
+`chromaMultiplier` values above `1f` request a boost, not permission to clip a source colour.
+Glass bounds that boost for colours already within the sRGB gamut, and leaves an out-of-gamut source
+unchanged. This preserves the authored source colour instead of flattening saturated regions into
+display-gamut plateaus.
+
+Authored `tint` and `edgeShadow` colours retain their Compose `ColorSpace` semantics when they are
+passed to the colour-managed shader uniforms. This does not make every Glass operation a complete
+scene-linear colour model: encoded `luma()` used for content normals, display-space contrast, and
+ambient multiplication remain explicitly deferred colour-model questions.
+
 ## GlassStyle
 
 `GlassStyle` is immutable and safe to share. Build a base Style, use `then` for variations, and
