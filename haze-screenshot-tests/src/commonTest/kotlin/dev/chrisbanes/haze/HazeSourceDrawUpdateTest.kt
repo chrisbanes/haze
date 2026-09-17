@@ -54,6 +54,10 @@ class HazeSourceDrawUpdateTest : ScreenshotTest() {
                 backgroundColor(Color.Transparent)
                 tint(Color.Transparent)
                 specularIntensity(0f)
+                // Compare source colors without the built-in material's tone adjustment.
+                whitePoint(0f)
+                contrast(0f)
+                chromaMultiplier(1f)
                 optics(blurRadius = 8.dp, depth = 0.5f)
               },
             )
