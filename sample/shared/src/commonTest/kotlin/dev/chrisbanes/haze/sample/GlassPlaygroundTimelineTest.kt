@@ -70,14 +70,8 @@ class GlassPlaygroundTimelineTest {
 
   @Test
   fun surfacesUseBuiltInRegularAndClearStyles() {
-    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Lens))
-      .isSameInstanceAs(GlassStyle.regular)
-    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Pill))
-      .isSameInstanceAs(GlassStyle.regular)
-    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Card))
-      .isSameInstanceAs(GlassStyle.regular)
-    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Clear))
-      .isSameInstanceAs(GlassStyle.clear)
+    assertThat(GlassPlaygroundStyle.Regular.style).isSameInstanceAs(GlassStyle.regular)
+    assertThat(GlassPlaygroundStyle.Clear.style).isSameInstanceAs(GlassStyle.clear)
   }
 
   @Test

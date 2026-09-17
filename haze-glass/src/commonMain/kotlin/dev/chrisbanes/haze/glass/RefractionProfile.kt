@@ -23,6 +23,8 @@ public sealed interface RefractionProfile {
    *
    * [width] must be specified, finite, and non-negative. A zero width disables refraction, including
    * its secondary detail pass. Simplified renderers may omit refraction entirely.
+   *
+   * @property width Distance from the boundary over which refraction decays to zero.
    */
   @Immutable
   public data class Edge(val width: Dp) : RefractionProfile {

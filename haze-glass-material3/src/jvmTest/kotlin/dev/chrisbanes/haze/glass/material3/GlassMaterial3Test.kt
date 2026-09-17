@@ -156,7 +156,12 @@ private fun GlassMaterial3Content(
       .testTag(testTag)
       .hazeGlass(
         input = HazeInput.Content,
-        style = style,
+        // These tests isolate theme color precedence from the built-in material's tone.
+        style = style.then {
+          whitePoint(0f)
+          contrast(0f)
+          chromaMultiplier(1f)
+        },
       ),
   )
 }

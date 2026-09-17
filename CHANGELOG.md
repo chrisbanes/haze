@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Calibrated Regular Glass against native iOS 27 light appearance, with a narrower refraction band,
   brighter tone, and wider diffusion on cards and panels. Fixed the physical-pixel blur cap that
   prevented larger authored radii from taking effect on dense displays.
-- Clear uses a consistent shallow blur across surface sizes; Glass Lab reflects the built-in styles.
+- Clear uses a consistent shallow blur across surface sizes.
 
 ## 2.0.0-rc01 <small>2026-09-13</small> { id="2.0.0-rc01" }
 
