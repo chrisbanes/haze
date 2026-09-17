@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.skiaPaint
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.unit.Density
@@ -111,6 +112,26 @@ class GlassBoundaryShaderTest {
   }
 
   @Test
+  fun extendedRangeTint_preservesAboveOneComponentDuringPremultiplication() {
+    val style = GlassStyle.regular.then {
+      tint(Color(1.5f, 0.25f, 0.1f, 1f, ColorSpaces.ExtendedSrgb))
+      ambientResponse(0f)
+    }
+    for (fused in listOf(false, true)) {
+      val overBlack = render(
+        fused = fused,
+        sourceAlpha = 0.4f,
+        matte = Color.Black,
+        baseStyle = style,
+      ).toPixelMap()
+      // The composed result fits in SDR, so readback can detect clipping of the original
+      // extended-range component: 1.5 * 0.4 should remain 0.6, rather than being reduced to 0.4.
+      assertThat(abs(overBlack[96, 96].red - 0.6f), "extended red over black, fused=$fused")
+        .isLessThan(2f / 255f)
+    }
+  }
+
+  @Test
   fun translucentSource_preservesCoverageWithoutInflatingAlpha() {
     for (fused in listOf(false, true)) {
       val opaque = render(fused, customOptics = true).toPixelMap()
@@ -132,12 +153,13 @@ class GlassBoundaryShaderTest {
     progressiveBlur: Boolean = false,
     brightBackdrop: Boolean = false,
     matte: Color = Color.Transparent,
+    baseStyle: GlassStyle = GlassStyle.regular,
   ): ImageBitmap {
     val size = Size(if (pill) 336f else 168f, 168f)
     val sampleSize = Size(size.width + 24f, size.height + 24f)
     val sourceColor = (if (brightBackdrop) Color.White else Color(0xFF131116)).copy(alpha = sourceAlpha)
     val effect = GlassRuntimeEffect().apply {
-      style = GlassStyle.regular.then {
+      style = baseStyle.then {
         shape(RoundedCornerShape(50))
         if (brightBackdrop) {
           ambientResponse(1f)

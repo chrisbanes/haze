@@ -152,7 +152,7 @@ internal object GlassShaders {
       );
       gradedColor = clamp(gradedColor, 0.0, 1.0);
       vec3 tintedColor = mix(gradedColor, tintColor.rgb, tintColor.a);
-      vec4 opticalColor = premultiply(tintedColor * ambient, refractedCenter.a);
+      vec4 opticalColor = premultiply(applyAmbient(tintedColor, ambient), refractedCenter.a);
       if (shapeMask < 1.0) {
         opticalColor = mix(sampleDepth(coord), opticalColor, shapeMask);
       }
@@ -372,7 +372,7 @@ internal object GlassShaders {
       );
       gradedColor = clamp(gradedColor, 0.0, 1.0);
       vec3 tintedColor = mix(gradedColor, tintColor.rgb, tintColor.a);
-      vec3 finalStraightColor = tintedColor * ambient;
+      vec3 finalStraightColor = applyAmbient(tintedColor, ambient);
       vec4 processedColor = premultiply(finalStraightColor, refractedCenterSample.a);
       if (shapeMask >= 1.0) {
         return processedColor.a > 0.0 ? processedColor * coverage : vec4(0.0);
@@ -965,10 +965,17 @@ internal object GlassShaders {
       return color.a > 0.0001 ? color.rgb / color.a : vec3(0.0);
     }
 
+    vec3 applyAmbient(vec3 color, float ambient) {
+      // Bound generated SDR highlights before coverage/alpha, while preserving the existing
+      // response of colour-managed tints with legitimate extended-range components.
+      bool inputIsSdr = min(color.r, min(color.g, color.b)) >= 0.0 &&
+        max(color.r, max(color.g, color.b)) <= 1.0;
+      vec3 litColor = color * ambient;
+      return inputIsSdr ? clamp(litColor, 0.0, 1.0) : litColor;
+    }
+
     vec4 premultiply(vec3 color, float alpha) {
-      // Ambient highlights can exceed the SDR range. Clamp before coverage/alpha is applied
-      // so partially covered pixels remain premultiplied when composited over a backdrop.
-      return vec4(clamp(color, 0.0, 1.0) * alpha, alpha);
+      return vec4(color * alpha, alpha);
     }
 
     float luma(vec3 color) {
