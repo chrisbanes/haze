@@ -73,8 +73,9 @@ content-dependent tint adaptation.
 background visible. It uses the same shallow blur across surface sizes and an edge refraction
 profile informed by iOS 27 captures. Displacement is strongest at the boundary, decays over a fixed
 28dp band, and follows wider optical corners to form the characteristic loops. Simplified renderers
-retain Clear's tone and edge treatment while omitting advanced optical effects. These are Haze styles informed by the platform distinction;
-they do not promise pixel parity with another system.
+retain background color, tint, and edge/rim treatments, but omit refraction, blur, and the contrast,
+white-point, and chroma adjustments that define Clear's calibrated tone. These are Haze styles
+informed by the platform distinction; they do not promise pixel parity with another system.
 
 Prefer Regular when background content could interfere with labels or controls, especially for
 surfaces containing substantial text. Use Clear for controls over photos and video where the
