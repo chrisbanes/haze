@@ -204,7 +204,7 @@ private fun PlatformRenderEffect.withBrushTint(
     createColorFilterRenderEffect(
       colorFilter = createBlendColorFilter(
         color = Color.Black.copy(alpha = alphaModulate).toArgb(),
-        blendMode = BlendMode.SrcIn,
+        blendMode = BlendMode.DstIn,
       ),
       input = createShaderRenderEffect(tintBrush),
     )
