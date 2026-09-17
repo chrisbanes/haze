@@ -390,7 +390,11 @@ public class GlassStyleScope internal constructor(
     writes += { this.whitePoint = validated }
   }
 
-  /** Sets the finite chroma multiplier in the inclusive range `0f..2f`. */
+  /**
+   * Sets the finite chroma multiplier in the inclusive range `0f..2f`.
+   *
+   * Values above `1f` request a chroma boost, bounded to preserve colours already within sRGB gamut.
+   */
   public fun chromaMultiplier(multiplier: Float) {
     val validated = requireFiniteInRange("chromaMultiplier", multiplier, 0f..2f, DOUBLE_INTERVAL_DOMAIN)
     writes += { chromaMultiplier = validated }

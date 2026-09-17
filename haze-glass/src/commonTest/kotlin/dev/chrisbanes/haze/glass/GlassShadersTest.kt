@@ -5,6 +5,7 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
 import assertk.assertThat
 import assertk.assertions.contains
@@ -157,14 +158,26 @@ class GlassShadersTest {
   }
 
   @Test
-  fun opticalShaders_gammaConversionNeverRaisesNegativeLinearChannelsToFractionalPower() {
+  fun glassShaders_useColorManagedSrgbIntrinsicsForChromaGrading() {
     listOf(
+      GlassShaders.buildFused(),
       GlassShaders.buildOptical(),
-      GlassShaders.buildOptical(interactive = true),
     ).forEach { shader ->
-      assertThat(shader).contains("vec3 nonNegative = max(color, vec3(0.0));")
-      assertThat(shader).contains("pow(nonNegative, vec3(1.0 / 2.4))")
-      assertThat(shader).doesNotContain("pow(color, vec3(1.0 / 2.4))")
+      val grading = shader.substringAfter("vec3 applyColorGrading")
+
+      assertThat(grading).contains("toLinearSrgb(color)")
+      assertThat(grading).contains("fromLinearSrgb(")
+      assertThat(grading).contains("bool sourceIsInSrgbGamut")
+      assertThat(grading).contains("chromaScale = 1.0;")
+      assertThat(grading).contains("chromaScale = max(1.0, chromaScale);")
+      assertThat(grading.indexOf("toLinearSrgb(color)"))
+        .isLessThan(grading.indexOf("fromLinearSrgb("))
+      assertThat(grading.indexOf("fromLinearSrgb("))
+        .isLessThan(grading.indexOf("if (appliedWhitePoint != 0.0)"))
+      assertThat(grading.indexOf("if (appliedWhitePoint != 0.0)"))
+        .isLessThan(grading.indexOf("if (contrast != 0.0)"))
+      assertThat(shader).doesNotContain("srgbToLinear")
+      assertThat(shader).doesNotContain("linearToSrgb")
     }
   }
 
@@ -732,11 +745,22 @@ class GlassShadersTest {
     assertThat(shader).doesNotContain("vec2 gradSdRoundedRect(")
   }
 
+  @Test
+  fun colorUniforms_declareColorManagedTintAndEdgeShadow() {
+    assertThat(GlassShaders.buildFused()).contains("layout(color) uniform vec4 tintColor;")
+    assertThat(GlassShaders.buildOptical()).contains("layout(color) uniform vec4 tintColor;")
+    assertThat(GlassShaders.buildRim()).contains("layout(color) uniform vec4 edgeShadow;")
+  }
+
   private class RecordingUniformProvider : RuntimeShaderUniformProvider {
     val values = mutableMapOf<String, List<Float>>()
 
     override fun setFloatUniform(name: String, value: Float) {
       values[name] = listOf(value)
+    }
+
+    override fun setColorUniform(name: String, color: Color) {
+      values[name] = listOf(color.red, color.green, color.blue, color.alpha)
     }
 
     override fun setFloatUniform(name: String, value1: Float, value2: Float) {

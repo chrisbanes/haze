@@ -118,8 +118,13 @@ class GlassDepthAndroidScreenshotTest : ScreenshotTest() {
   }
 
   @Test
-  fun glass_maximumChromaKeepsSaturatedPrimariesFinite() = runScreenshotTest {
-    assertGlassChromaMultiplierFiniteInvariant()
+  fun glass_chromaBoostPreservesGamutBoundColoursAndBoostsInteriorColour() = runScreenshotTest {
+    assertGlassChromaMultiplierGamutInvariant()
+  }
+
+  @Test
+  fun glass_colorUniformsPreserveAuthoredColorSpace() = runScreenshotTest {
+    assertGlassColorUniformsPreserveAuthoredColorSpace()
   }
 
   @Test

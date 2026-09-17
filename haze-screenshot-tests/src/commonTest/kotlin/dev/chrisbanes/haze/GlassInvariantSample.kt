@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isTrue
@@ -58,6 +60,7 @@ import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 private const val InvariantRootWidth = 1080
 private val InvariantRootHeightRange = 1919..1920
@@ -151,29 +154,63 @@ internal fun GlassInvariantSample(
 }
 
 @Composable
-internal fun GlassChromaInvariantSample() {
+internal fun GlassColorUniformInvariantSample(color: Color) {
   val hazeState = rememberHazeState()
-  val effect = remember {
-    GlassTestConfiguration().apply {
-      tint = Color.Transparent
-      optics = GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp))
-      specularIntensity = 0f
-      ambientResponse = 0f
-      edgeSoftness = 0.dp
-      contrast = 0f
-      whitePoint = 0f
-      chromaMultiplier = 2f
-      contentNormalBlend = 0f
-      shape = RoundedCornerShape(0.dp)
-    }
+  val shape = RoundedCornerShape(0.dp)
+  val style = GlassStyle {
+    tint(color)
+    edgeShadow(color)
+    optics(
+      GlassOptics(
+        refractionStrength = 0f,
+        depth = OpticalSizeValue.Fixed(0f),
+        blurRadius = OpticalSizeValue.Fixed(0.dp),
+      ),
+    )
+    specularIntensity(0f)
+    ambientResponse(0f)
+    edgeSoftness(24.dp)
+    contrast(0f)
+    whitePoint(0f)
+    chromaMultiplier(1f)
+    contentNormalBlend(0f)
+    shape(shape)
   }
+  Box(Modifier.fillMaxSize().background(Color.Black)) {
+    Canvas(Modifier.fillMaxSize().hazeSource(hazeState)) {
+      drawRect(Color.Black)
+    }
+    Box(
+      Modifier
+        .align(Alignment.Center)
+        .size(280.dp, 180.dp)
+        .hazeGlass(
+          input = HazeInput.Sources(hazeState),
+          style = style,
+          performanceMode = HazePerformanceMode.Quality,
+        ),
+    )
+  }
+}
+
+private val GlassChromaPalette = listOf(
+  Color(0xFF4B1FFF),
+  Color(0xFFFF3D9A),
+  Color(0xFFFFB44A),
+  Color(0xFF72F5FF),
+  Color(0xFF5C7180),
+)
+
+@Composable
+internal fun GlassChromaInvariantSample(effect: GlassTestConfiguration) {
+  val hazeState = rememberHazeState()
   Box(Modifier.fillMaxSize()) {
     Canvas(Modifier.fillMaxSize().hazeSource(hazeState)) {
-      listOf(Color.Red, Color.Green, Color.Blue).forEachIndexed { index, color ->
+      GlassChromaPalette.forEachIndexed { index, color ->
         drawRect(
           color = color,
-          topLeft = Offset(size.width * index / 3f, 0f),
-          size = Size(size.width / 3f, size.height),
+          topLeft = Offset(size.width * index / GlassChromaPalette.size, 0f),
+          size = Size(size.width / GlassChromaPalette.size, size.height),
         )
       }
     }
@@ -1602,24 +1639,170 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant(
   retained.assertTransparentAt(geometry.outsidePoints)
 }
 
-internal fun ScreenshotUiTest.assertGlassChromaMultiplierFiniteInvariant() {
+internal fun ScreenshotUiTest.assertGlassColorUniformsPreserveAuthoredColorSpace() {
+  val authoredDisplayP3 = Color(1f, 0.5f, 0f, 1f, ColorSpaces.DisplayP3)
+  val explicitSrgb = authoredDisplayP3.convert(ColorSpaces.Srgb)
+  val rawComponentSrgb = Color(
+    red = authoredDisplayP3.red,
+    green = authoredDisplayP3.green,
+    blue = authoredDisplayP3.blue,
+    alpha = authoredDisplayP3.alpha,
+    colorSpace = ColorSpaces.Srgb,
+  )
+  var authoredColor by mutableStateOf(authoredDisplayP3)
   setContent {
     ScreenshotTheme {
-      GlassChromaInvariantSample()
+      GlassColorUniformInvariantSample(authoredColor)
     }
   }
 
-  val snapshot = captureInvariantSnapshot()
-  listOf(Color.Red, Color.Green, Color.Blue).forEachIndexed { index, expected ->
-    val pixel = snapshot[snapshot.width * (index * 2 + 1) / 6, snapshot.height / 2]
-    listOf(pixel.red, pixel.green, pixel.blue, pixel.alpha).forEach { component ->
-      assertThat(component.isFinite()).isTrue()
-    }
-    assertThat(kotlin.math.abs(pixel.red - expected.red)).isLessThanOrEqualTo(1f / 255f)
-    assertThat(kotlin.math.abs(pixel.green - expected.green)).isLessThanOrEqualTo(1f / 255f)
-    assertThat(kotlin.math.abs(pixel.blue - expected.blue)).isLessThanOrEqualTo(1f / 255f)
-    assertThat(kotlin.math.abs(pixel.alpha - expected.alpha)).isLessThanOrEqualTo(1f / 255f)
+  fun capture(color: Color): PixelSnapshot {
+    authoredColor = color
+    waitForIdle()
+    return captureInvariantSnapshot()
   }
+
+  fun assertProbeMatches(
+    actual: Color,
+    expected: Color,
+    label: String,
+  ) {
+    val tolerance = 2f / 255f
+    assertThat(abs(actual.red - expected.red), "$label red").isLessThanOrEqualTo(tolerance)
+    assertThat(abs(actual.green - expected.green), "$label green").isLessThanOrEqualTo(tolerance)
+    assertThat(abs(actual.blue - expected.blue), "$label blue").isLessThanOrEqualTo(tolerance)
+  }
+
+  fun colorDistance(first: Color, second: Color): Float = maxOf(
+    abs(first.red - second.red),
+    abs(first.green - second.green),
+    abs(first.blue - second.blue),
+  )
+
+  val semantic = capture(authoredDisplayP3)
+  val explicit = capture(explicitSrgb)
+  val raw = capture(rawComponentSrgb)
+  val bounds = semantic.centeredSurfaceBounds(DpSize(280.dp, 180.dp))
+  val tintProbe = bounds.center
+  val rimProbe = IntOffset(bounds.left + 2, bounds.center.y)
+
+  listOf(tintProbe to "optical tint", rimProbe to "rim shadow").forEach { (probe, label) ->
+    assertProbeMatches(
+      actual = semantic[probe.x, probe.y],
+      expected = explicit[probe.x, probe.y],
+      label = "$label semantic Display-P3",
+    )
+    assertThat(
+      colorDistance(semantic[probe.x, probe.y], raw[probe.x, probe.y]),
+      "$label must not reinterpret Display-P3 components as sRGB",
+    ).isGreaterThan(2f / 255f)
+  }
+}
+
+internal fun ScreenshotUiTest.assertGlassChromaMultiplierGamutInvariant() {
+  val effect = GlassTestConfiguration().apply {
+    tint = Color.Transparent
+    optics = GlassOptics(
+      refractionStrength = 0f,
+      depth = OpticalSizeValue.Fixed(0f),
+      blurRadius = OpticalSizeValue.Fixed(0.dp),
+    )
+    specularIntensity = 0f
+    ambientResponse = 0f
+    edgeSoftness = 0.dp
+    applyNeutralOpticalGrading()
+    shape = RoundedCornerShape(0.dp)
+  }
+  setContent {
+    ScreenshotTheme {
+      GlassChromaInvariantSample(effect)
+    }
+  }
+
+  val neutral = captureInvariantSnapshot().glassChromaPalettePixels()
+  effect.chromaMultiplier = 0.5f
+  waitForIdle()
+  val desaturated = captureInvariantSnapshot().glassChromaPalettePixels()
+  effect.chromaMultiplier = 2f
+  waitForIdle()
+  val boosted = captureInvariantSnapshot().glassChromaPalettePixels()
+
+  GlassChromaPalette.zip(neutral).zip(boosted).forEachIndexed { index, (expectedAndNeutral, boostedPixel) ->
+    val (expected, neutralPixel) = expectedAndNeutral
+    listOf(neutralPixel, desaturated[index], boostedPixel).forEach { pixel ->
+      listOf(pixel.red, pixel.green, pixel.blue, pixel.alpha).forEach { component ->
+        assertThat(component.isFinite()).isTrue()
+      }
+    }
+    assertThat(abs(neutralPixel.red - expected.red)).isLessThanOrEqualTo(2f / 255f)
+    assertThat(abs(neutralPixel.green - expected.green)).isLessThanOrEqualTo(2f / 255f)
+    assertThat(abs(neutralPixel.blue - expected.blue)).isLessThanOrEqualTo(2f / 255f)
+    assertThat(abs(neutralPixel.alpha - expected.alpha)).isLessThanOrEqualTo(2f / 255f)
+  }
+
+  GlassChromaPalette.dropLast(1).zip(neutral).zip(boosted).forEach { (expectedAndNeutral, boostedPixel) ->
+    val (_, neutralPixel) = expectedAndNeutral
+    assertThat(abs(boostedPixel.red - neutralPixel.red)).isLessThanOrEqualTo(2f / 255f)
+    assertThat(abs(boostedPixel.green - neutralPixel.green)).isLessThanOrEqualTo(2f / 255f)
+    assertThat(abs(boostedPixel.blue - neutralPixel.blue)).isLessThanOrEqualTo(2f / 255f)
+  }
+
+  boosted.take(GlassChromaPalette.size - 1).zipWithNext().forEach { (left, right) ->
+    assertThat(
+      maxOf(
+        abs(left.red - right.red),
+        abs(left.green - right.green),
+        abs(left.blue - right.blue),
+      ),
+    ).isGreaterThan(0.1f)
+  }
+
+  val neutralInterior = neutral.last().toLinearSrgb()
+  val desaturatedInterior = desaturated.last().toLinearSrgb()
+  val boostedInterior = boosted.last().toLinearSrgb()
+  assertThat(desaturatedInterior.chromaDistance())
+    .isLessThan(neutralInterior.chromaDistance() - 0.02f)
+  assertThat(abs(desaturatedInterior.luminance() - neutralInterior.luminance()))
+    .isLessThanOrEqualTo(0.01f)
+  assertThat(desaturatedInterior.chromaDirectionDot(neutralInterior)).isGreaterThanOrEqualTo(0.98f)
+  assertThat(boostedInterior.chromaDistance()).isGreaterThan(neutralInterior.chromaDistance() + 0.02f)
+  assertThat(abs(boostedInterior.luminance() - neutralInterior.luminance()))
+    .isLessThanOrEqualTo(0.01f)
+  assertThat(boostedInterior.chromaDirectionDot(neutralInterior)).isGreaterThanOrEqualTo(0.98f)
+}
+
+private fun PixelSnapshot.glassChromaPalettePixels(): List<Color> =
+  GlassChromaPalette.indices.map { index ->
+    this[width * (index * 2 + 1) / (GlassChromaPalette.size * 2), height / 2]
+  }
+
+@Poko
+private class LinearSrgb(val red: Float, val green: Float, val blue: Float) {
+  fun luminance(): Float = red * 0.2126f + green * 0.7152f + blue * 0.0722f
+
+  fun chromaDistance(): Float {
+    val luminance = luminance()
+    return sqrt(
+      (red - luminance) * (red - luminance) +
+        (green - luminance) * (green - luminance) +
+        (blue - luminance) * (blue - luminance),
+    )
+  }
+
+  fun chromaDirectionDot(other: LinearSrgb): Float {
+    val luminance = luminance()
+    val otherLuminance = other.luminance()
+    val dot =
+      (red - luminance) * (other.red - otherLuminance) +
+        (green - luminance) * (other.green - otherLuminance) +
+        (blue - luminance) * (other.blue - otherLuminance)
+    return dot / (chromaDistance() * other.chromaDistance())
+  }
+}
+
+private fun Color.toLinearSrgb(): LinearSrgb {
+  val linear = convert(ColorSpaces.LinearSrgb)
+  return LinearSrgb(linear.red, linear.green, linear.blue)
 }
 
 internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {

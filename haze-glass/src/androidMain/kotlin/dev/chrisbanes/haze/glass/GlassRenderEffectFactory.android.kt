@@ -12,10 +12,12 @@ import android.graphics.RenderEffect
 import android.graphics.RuntimeShader
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toAndroidColorSpace
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
@@ -71,6 +73,19 @@ internal actual fun createGlassRimBrushProvider(): GlassRimBrushProvider? {
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 private class GlassRimUniformProvider(private val shader: RuntimeShader) : RuntimeShaderUniformProvider {
+  override fun setColorUniform(name: String, color: Color) {
+    shader.setColorUniform(
+      name,
+      android.graphics.Color.valueOf(
+        color.red,
+        color.green,
+        color.blue,
+        color.alpha,
+        color.colorSpace.toAndroidColorSpace(),
+      ),
+    )
+  }
+
   override fun setFloatUniform(name: String, value: Float) = shader.setFloatUniform(name, value)
 
   override fun setFloatUniform(name: String, value1: Float, value2: Float) =
