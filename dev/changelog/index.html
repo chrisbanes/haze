@@ -8563,6 +8563,9 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   brighter tone, and wider diffusion on cards and panels. Fixed the physical-pixel blur cap that
   prevented larger authored radii from taking effect on dense displays.</li>
 <li>Clear uses a consistent shallow blur across surface sizes.</li>
+<li>Preserved in-gamut source colour when Glass requests a chroma boost, avoiding clipped saturated
+  plateaus, and retained authored tint and edge-shadow Compose <code>ColorSpace</code> semantics in
+  colour-managed shader uniforms.</li>
 </ul>
 <h2 id="2.0.0-rc01">2.0.0-rc01 <small>2026-09-13</small><a class="headerlink" href="#2.0.0-rc01" title="Permanent link">¶</a></h2>
 <h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">¶</a></h3>

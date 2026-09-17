@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
-    <title>chromaMultiplier</title>
+    <title>setColorUniform</title>
 <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
     <script>document.documentElement.classList.replace("no-js", "js");</script>
     <script>const storage = localStorage.getItem("dokka-dark-mode")
@@ -42,7 +42,7 @@
         </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
-                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":haze-glass/commonMain">common</button>
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":haze-utils/commonMain">common</button>
             <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
                 <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
                 <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
@@ -53,7 +53,7 @@
                     </div>
                         <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
                             <label class="checkbox">
-                                <input type="checkbox" class="checkbox--input" id=":haze-glass/commonMain" data-filter=":haze-glass/commonMain">
+                                <input type="checkbox" class="checkbox--input" id=":haze-utils/commonMain" data-filter=":haze-utils/commonMain">
                                 <span class="checkbox--icon"></span>
                                 common
                             </label>
@@ -89,12 +89,12 @@
         </nav>
         <div id="resizer" class="resizer" data-item-type="BAR"></div>
         <div id="main" data-item-type="SECTION" role="main">
-<div class="main-content" data-page-type="member" id="content" pageids="haze-glass::dev.chrisbanes.haze.glass/GlassStyleScope/chromaMultiplier/#kotlin.Float/PointingToDeclaration//1575282654">
-  <div class="breadcrumbs"><a href="../../index.html">haze-glass</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze.glass</a><span class="delimiter">/</span><a href="index.html">GlassStyleScope</a><span class="delimiter">/</span><span class="current">chromaMultiplier</span></div>
+<div class="main-content" data-page-type="member" id="content" pageids="haze-utils::dev.chrisbanes.haze/RuntimeShaderUniformProvider/setColorUniform/#kotlin.String#androidx.compose.ui.graphics.Color/PointingToDeclaration//-1085491821">
+  <div class="breadcrumbs"><a href="../../index.html">haze-utils</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze</a><span class="delimiter">/</span><a href="index.html">RuntimeShaderUniformProvider</a><span class="delimiter">/</span><span class="current">setColorUniform</span></div>
   <div class="cover ">
-    <h1 class="cover"><span>chroma</span><wbr><span><span>Multiplier</span></span></h1>
+    <h1 class="cover"><span>set</span><wbr><span>Color</span><wbr><span><span>Uniform</span></span></h1>
   </div>
-  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="chroma-multiplier.html"><span class="token function">chromaMultiplier</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">multiplier<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></span></span><span class="token punctuation">)</span></div><p class="paragraph">Sets the finite chroma multiplier in the inclusive range <code class="lang-kotlin">0f..2f</code>.</p><p class="paragraph">Values above <code class="lang-kotlin">1f</code> request a chroma boost, bounded to preserve colours already within sRGB gamut.</p></div></div>
+  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="set-color-uniform.html"><span class="token function">setColorUniform</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">color<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/Color.html">Color</a></span></span><span class="token punctuation">)</span></div><p class="paragraph">Sets a color-managed uniform.</p></div></div>
 </div>
     <div class="footer">
         <div class="footer--container">

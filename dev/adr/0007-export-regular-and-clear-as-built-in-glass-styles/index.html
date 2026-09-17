@@ -1074,6 +1074,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#colour-handling-2026-09-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Colour handling, 2026-09-17
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1166,7 +1177,17 @@ the selected backend path. This wide-blur correctness exception to ADR-0003 has 
 coverage; its physical-device performance has not been measured.</p>
 <p>Native light and dark appearances differ substantially; the fixed Haze style targets the light
 reference and does not implement native appearance or content adaptation. The comparisons establish
-visual direction, not physical GPU performance.</p></div>
+visual direction, not physical GPU performance.</p>
+<h2 id="colour-handling-2026-09-17">Colour handling, 2026-09-17<a class="headerlink" href="#colour-handling-2026-09-17" title="Permanent link">¶</a></h2>
+<p><code>chromaMultiplier</code> above <code>1f</code> is a requested chroma boost, bounded for source colours already in
+the sRGB gamut. A boost that would leave that gamut is reduced to the in-gamut limit, and an
+already out-of-gamut source is left unchanged. The purpose is source-colour preservation: clamping
+an amplified saturated colour would create a broad colour plateau that loses the original hue and
+detail.</p>
+<p>Authored <code>tint</code> and <code>edgeShadow</code> retain Compose <code>ColorSpace</code> semantics through colour-managed
+shader uniforms on supported renderers. This decision does not settle the whole colour model:
+encoded <code>luma()</code> used to construct content normals, display-space contrast, and ambient
+multiplication remain explicitly deferred questions rather than claims of scene-linear behaviour.</p></div>
 
 
 

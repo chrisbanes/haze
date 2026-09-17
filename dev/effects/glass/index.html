@@ -708,6 +708,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Parameters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#colour-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Colour handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1325,6 +1342,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Parameters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#colour-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Colour handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1590,6 +1624,15 @@ contrast with your own content and configure Haze's styles and accessibility set
 <p>Glass validates configuration when a Style or <code>GlassOptics</code> value is created instead of
 silently correcting it later. Validate or clamp values from user input and remote data before
 building the Style. The generated API reference documents the accepted range for each property.</p>
+<h3 id="colour-handling">Colour handling<a class="headerlink" href="#colour-handling" title="Permanent link">¶</a></h3>
+<p><code>chromaMultiplier</code> values above <code>1f</code> request a boost, not permission to clip a source colour.
+Glass bounds that boost for colours already within the sRGB gamut, and leaves an out-of-gamut source
+unchanged. This preserves the authored source colour instead of flattening saturated regions into
+display-gamut plateaus.</p>
+<p>Authored <code>tint</code> and <code>edgeShadow</code> colours retain their Compose <code>ColorSpace</code> semantics when they are
+passed to the colour-managed shader uniforms. This does not make every Glass operation a complete
+scene-linear colour model: encoded <code>luma()</code> used for content normals, display-space contrast, and
+ambient multiplication remain explicitly deferred colour-model questions.</p>
 <h2 id="glassstyle">GlassStyle<a class="headerlink" href="#glassstyle" title="Permanent link">¶</a></h2>
 <p><code>GlassStyle</code> is immutable and safe to share. Build a base Style, use <code>then</code> for variations, and
 provide a replacement Style through recomposition when the appearance changes. Values omitted by
