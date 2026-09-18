@@ -90,10 +90,11 @@ reduction in rendering time.
 
     In a two-pass Pixel 8a test at 60 Hz with a changing background, Glass `Balanced` left about
     **8.1 ms** of frame-deadline headroom at P90, compared with **7.0 ms** for `Quality`. Glass
-    `Performance` used roughly **9% less median peak GPU memory** than `Quality` in both stable
-    and changing-background tests. Each method ran eight iterations in both forward and reverse
-    order. These are useful reference points, not guaranteed savings on another screen. See the
-    [full mode comparison](benchmark-results.md#performance-mode-calibration).
+    `Performance` used roughly **9% less peak GPU memory** than `Quality` in both stable and
+    changing-background tests, comparing the mean of the two pass-level medians for each mode
+    and workload. Each method ran eight iterations in both forward and reverse order. These are
+    useful reference points, not guaranteed savings on another screen. See the [full mode
+    comparison](benchmark-results.md#performance-mode-calibration).
 
 Keep a fixed override only when repeated measurements and visual checks show a useful benefit.
 A lower quality setting does not guarantee a lower CPU frame time in every workload.

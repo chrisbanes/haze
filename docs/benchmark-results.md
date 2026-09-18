@@ -45,7 +45,9 @@ sample.
 
 All configurations had spare time at P90. For changing-input Glass, `Balanced` left about
 8.1 ms of deadline margin, compared with 7.0 ms for `Quality`. `Performance` used roughly
-9% less median peak GPU memory than `Quality` in both workloads.
+9% less peak GPU memory than `Quality` in both workloads. For each workload and mode, this
+compares the mean of the two pass-level `memoryGpuMaxKb` medians: 100,148 KB versus 110,226 KB
+for the stable source, and 100,467 KB versus 110,223 KB for the changing source.
 
 !!! warning "These results are not a universal mode ranking"
 
