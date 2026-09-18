@@ -24,53 +24,59 @@ This comparison measures `Adaptive`, `Quality`, `Balanced`, and `Performance` wi
 and continuously changing source input. It used a Pixel 8a running Android 17 (full SDK 37.2)
 at 60 Hz, with fixed-performance mode enabled and normal Android CPU scheduling.
 
-Values are **P90 CPU frame duration / P90 frame overrun**, in milliseconds, from one pass with
-eight iterations per method. Other style choices stay fixed within each sample.
+Values are **P90 CPU frame duration / P90 frame overrun**, in milliseconds. Each value is the
+arithmetic mean of two per-pass P90s, calculated before rounding, not the P90 of pooled frames.
+Each method ran eight measured iterations per pass. Other style choices stay fixed within each
+sample.
 
 ### Blur
 
 | Workload | Adaptive | Quality | Balanced | Performance |
 | --- | ---: | ---: | ---: | ---: |
-| Stable source | 5.16 / -7.27 | 4.38 / -7.64 | 5.41 / -7.40 | 3.20 / -8.52 |
-| Continuously changing source | 4.66 / -6.15 | 4.72 / -4.98 | 4.49 / -6.07 | 5.03 / -6.28 |
+| Stable source | 4.90 / -6.90 | 4.60 / -6.85 | 4.67 / -6.93 | 4.58 / -7.02 |
+| Continuously changing source | 5.88 / -5.21 | 5.49 / -4.91 | 5.35 / -5.50 | 5.47 / -5.70 |
 
 ### Glass
 
 | Workload | Adaptive | Quality | Balanced | Performance |
 | --- | ---: | ---: | ---: | ---: |
-| Stable source | 3.99 / -10.41 | 3.45 / -10.74 | 3.27 / -10.78 | 3.90 / -10.37 |
-| Continuously changing source | 4.21 / -8.76 | 3.51 / -1.68 | 4.90 / -4.98 | 4.59 / -8.62 |
+| Stable source | 4.07 / -9.88 | 4.53 / -9.80 | 4.10 / -10.13 | 3.93 / -10.07 |
+| Continuously changing source | 4.67 / -8.91 | 4.45 / -6.95 | 4.27 / -8.08 | 4.08 / -8.99 |
 
 All configurations had spare time at P90. For changing-input Glass, `Balanced` left about
-5 ms of deadline margin, compared with 1.7 ms for `Quality`. `Performance` used roughly
-9% less median peak GPU memory than `Quality`.
+8.1 ms of deadline margin, compared with 7.0 ms for `Quality`. `Performance` used roughly
+9% less median peak GPU memory than `Quality` in both workloads.
 
-!!! warning "A single pass is not a mode ranking"
+!!! warning "These results are not a universal mode ranking"
 
-    Changing-input CPU timings did not produce a consistent ranking. Glass `Quality` had
-    the lowest CPU P90 but the least deadline margin; the CPU metric alone cannot explain
-    GPU cost. This forward-order pass does not control order effects or CPU placement.
-    Compare appearance and repeat measurements on your screen before choosing an override.
+    Reversing the run order moved some per-pass CPU P90s by more than 2 ms. Averaging the two
+    passes reduces order bias, but normal Android scheduling still allowed CPU-placement and
+    background-load variation. CPU frame duration also does not measure GPU shader cost. Compare
+    appearance and repeat measurements on your screen before choosing an override.
 
 ??? info "Measurement details"
 
-    The `benchmarkRelease` build used commit `d1d12494`; the Android build was
+    The `benchmarkRelease` build used commit `b4688410`; the Android build was
     `CP41.260814.003.B1`. The device was on AC power at 100% charge and reported thermal
-    status 0 before and after the matrix. Brightness was unchanged and not recorded.
-    Glass kept the other `GlassDefaults` values unchanged.
+    status 0 before both passes. The first pass started at a battery temperature of 28.1°C;
+    after cooling, the reverse pass started at 28.6°C. Automatic brightness remained enabled
+    with the setting value unchanged at 10. Glass kept the other `GlassDefaults` values unchanged.
 
-    The 16 methods produced 128 measured iterations and 128 Perfetto traces. Order was
-    Blur stable, Blur changing, Glass stable, then Glass changing; each group ran
-    Adaptive, Quality, Balanced, then Performance.
+    The 16 methods ran in both orders, producing 256 measured iterations and 256 Perfetto traces.
+    The first pass ran Blur stable, Blur changing, Glass stable, then Glass changing; each group
+    ran Adaptive, Quality, Balanced, then Performance. The second pass reversed the complete
+    method order.
 
-    A combined method selector executed only the first method. Its clean eight-iteration
-    result was retained; all remaining methods were invoked and verified individually.
-    An earlier attempt affected by a stale Google-app Chromium trace producer was stopped
-    and replaced. The Google app was restored after measurement.
+    Every method was dry-run and measured through its own selector. JSON method identity, XML
+    success, iteration count, and trace count were verified before continuing. The first reverse
+    attempt failed before measurement because the secure keyguard prevented activity-launch
+    confirmation. Its failed XML was preserved and excluded; the exact retry passed after the
+    device was unlocked. The Google app was temporarily disabled to avoid its known Chromium
+    trace-producer delay, then restored after measurement.
 
     Blur rows did not all record GPU memory. Raw JSON, benchmark messages, and traces are
-    retained locally under
-    `internal/benchmark/build/benchmark-results/performance-levels-latest/`.
+    retained locally under `internal/benchmark/build/benchmark-results/` in
+    `performance-levels-20260918-forward/` and `performance-levels-20260918-reverse/`.
 
     See [ADR-0004][blur-adr] and [ADR-0005][glass-adr] for adaptive-policy decisions, and
     [ADR-0006][performance-mode-adr] for the public terminology.
