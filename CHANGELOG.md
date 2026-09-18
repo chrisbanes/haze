@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 2.0.0-rc02 <small>2026-09-18</small> { id="2.0.0-rc02" }
+
 ### Added
 
 - Added `RefractionProfile.Edge(width)` to author edge refraction independently of surface lighting.
