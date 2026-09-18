@@ -1289,8 +1289,10 @@ Each section records its aggregation method and measurement conditions.</p>
 <p>This comparison measures <code>Adaptive</code>, <code>Quality</code>, <code>Balanced</code>, and <code>Performance</code> with stable
 and continuously changing source input. It used a Pixel 8a running Android 17 (full SDK 37.2)
 at 60 Hz, with fixed-performance mode enabled and normal Android CPU scheduling.</p>
-<p>Values are <strong>P90 CPU frame duration / P90 frame overrun</strong>, in milliseconds, from one pass with
-eight iterations per method. Other style choices stay fixed within each sample.</p>
+<p>Values are <strong>P90 CPU frame duration / P90 frame overrun</strong>, in milliseconds. Each value is the
+arithmetic mean of two per-pass P90s, calculated before rounding, not the P90 of pooled frames.
+Each method ran eight measured iterations per pass. Other style choices stay fixed within each
+sample.</p>
 <h3 id="blur">Blur<a class="headerlink" href="#blur" title="Permanent link">¶</a></h3>
 <table>
 <thead>
@@ -1305,17 +1307,17 @@ eight iterations per method. Other style choices stay fixed within each sample.<
 <tbody>
 <tr>
 <td>Stable source</td>
-<td style="text-align: right;">5.16 / -7.27</td>
-<td style="text-align: right;">4.38 / -7.64</td>
-<td style="text-align: right;">5.41 / -7.40</td>
-<td style="text-align: right;">3.20 / -8.52</td>
+<td style="text-align: right;">4.90 / -6.90</td>
+<td style="text-align: right;">4.60 / -6.85</td>
+<td style="text-align: right;">4.67 / -6.93</td>
+<td style="text-align: right;">4.58 / -7.02</td>
 </tr>
 <tr>
 <td>Continuously changing source</td>
-<td style="text-align: right;">4.66 / -6.15</td>
-<td style="text-align: right;">4.72 / -4.98</td>
-<td style="text-align: right;">4.49 / -6.07</td>
-<td style="text-align: right;">5.03 / -6.28</td>
+<td style="text-align: right;">5.88 / -5.21</td>
+<td style="text-align: right;">5.49 / -4.91</td>
+<td style="text-align: right;">5.35 / -5.50</td>
+<td style="text-align: right;">5.47 / -5.70</td>
 </tr>
 </tbody>
 </table>
@@ -1333,46 +1335,52 @@ eight iterations per method. Other style choices stay fixed within each sample.<
 <tbody>
 <tr>
 <td>Stable source</td>
-<td style="text-align: right;">3.99 / -10.41</td>
-<td style="text-align: right;">3.45 / -10.74</td>
-<td style="text-align: right;">3.27 / -10.78</td>
-<td style="text-align: right;">3.90 / -10.37</td>
+<td style="text-align: right;">4.07 / -9.88</td>
+<td style="text-align: right;">4.53 / -9.80</td>
+<td style="text-align: right;">4.10 / -10.13</td>
+<td style="text-align: right;">3.93 / -10.07</td>
 </tr>
 <tr>
 <td>Continuously changing source</td>
-<td style="text-align: right;">4.21 / -8.76</td>
-<td style="text-align: right;">3.51 / -1.68</td>
-<td style="text-align: right;">4.90 / -4.98</td>
-<td style="text-align: right;">4.59 / -8.62</td>
+<td style="text-align: right;">4.67 / -8.91</td>
+<td style="text-align: right;">4.45 / -6.95</td>
+<td style="text-align: right;">4.27 / -8.08</td>
+<td style="text-align: right;">4.08 / -8.99</td>
 </tr>
 </tbody>
 </table>
 <p>All configurations had spare time at P90. For changing-input Glass, <code>Balanced</code> left about
-5 ms of deadline margin, compared with 1.7 ms for <code>Quality</code>. <code>Performance</code> used roughly
-9% less median peak GPU memory than <code>Quality</code>.</p>
+8.1 ms of deadline margin, compared with 7.0 ms for <code>Quality</code>. <code>Performance</code> used roughly
+9% less peak GPU memory than <code>Quality</code> in both workloads. For each workload and mode, this
+compares the mean of the two pass-level <code>memoryGpuMaxKb</code> medians: 100,148 KB versus 110,226 KB
+for the stable source, and 100,467 KB versus 110,223 KB for the changing source.</p>
 <div class="admonition warning">
-<p class="admonition-title">A single pass is not a mode ranking</p>
-<p>Changing-input CPU timings did not produce a consistent ranking. Glass <code>Quality</code> had
-the lowest CPU P90 but the least deadline margin; the CPU metric alone cannot explain
-GPU cost. This forward-order pass does not control order effects or CPU placement.
-Compare appearance and repeat measurements on your screen before choosing an override.</p>
+<p class="admonition-title">These results are not a universal mode ranking</p>
+<p>Reversing the run order moved some per-pass CPU P90s by more than 2 ms. Averaging the two
+passes reduces order bias, but normal Android scheduling still allowed CPU-placement and
+background-load variation. CPU frame duration also does not measure GPU shader cost. Compare
+appearance and repeat measurements on your screen before choosing an override.</p>
 </div>
 <details class="info">
 <summary>Measurement details</summary>
-<p>The <code>benchmarkRelease</code> build used commit <code>d1d12494</code>; the Android build was
+<p>The <code>benchmarkRelease</code> build used commit <code>b4688410</code>; the Android build was
 <code>CP41.260814.003.B1</code>. The device was on AC power at 100% charge and reported thermal
-status 0 before and after the matrix. Brightness was unchanged and not recorded.
-Glass kept the other <code>GlassDefaults</code> values unchanged.</p>
-<p>The 16 methods produced 128 measured iterations and 128 Perfetto traces. Order was
-Blur stable, Blur changing, Glass stable, then Glass changing; each group ran
-Adaptive, Quality, Balanced, then Performance.</p>
-<p>A combined method selector executed only the first method. Its clean eight-iteration
-result was retained; all remaining methods were invoked and verified individually.
-An earlier attempt affected by a stale Google-app Chromium trace producer was stopped
-and replaced. The Google app was restored after measurement.</p>
+status 0 before both passes. The first pass started at a battery temperature of 28.1°C;
+after cooling, the reverse pass started at 28.6°C. Automatic brightness remained enabled
+with the setting value unchanged at 10. Glass kept the other <code>GlassDefaults</code> values unchanged.</p>
+<p>The 16 methods ran in both orders, producing 256 measured iterations and 256 Perfetto traces.
+The first pass ran Blur stable, Blur changing, Glass stable, then Glass changing; each group
+ran Adaptive, Quality, Balanced, then Performance. The second pass reversed the complete
+method order.</p>
+<p>Every method was dry-run and measured through its own selector. JSON method identity, XML
+success, iteration count, and trace count were verified before continuing. The first reverse
+attempt failed before measurement because the secure keyguard prevented activity-launch
+confirmation. Its failed XML was preserved and excluded; the exact retry passed after the
+device was unlocked. The Google app was temporarily disabled to avoid its known Chromium
+trace-producer delay, then restored after measurement.</p>
 <p>Blur rows did not all record GPU memory. Raw JSON, benchmark messages, and traces are
-retained locally under
-<code>internal/benchmark/build/benchmark-results/performance-levels-latest/</code>.</p>
+retained locally under <code>internal/benchmark/build/benchmark-results/</code> in
+<code>performance-levels-20260918-forward/</code> and <code>performance-levels-20260918-reverse/</code>.</p>
 <p>See <a href="../adr/0004-use-quality-gated-adaptive-input-scaling-for-blur/">ADR-0004</a> and <a href="../adr/0005-use-cadence-weighted-adaptive-input-scaling-for-glass/">ADR-0005</a> for adaptive-policy decisions, and
 <a href="../adr/0006-reconcile-built-in-performance-mode-terminology/">ADR-0006</a> for the public terminology.</p>
 </details>

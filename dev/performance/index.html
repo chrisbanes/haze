@@ -1348,12 +1348,13 @@ quality setting instead of adapting it. <code>Performance</code>, <code>Balanced
 reduction in rendering time.</p>
 <div class="admonition note">
 <p class="admonition-title">Measured quality trade-offs</p>
-<p>In a Pixel 8a test at 60 Hz with a changing background, Glass <code>Balanced</code> left about <strong>5 ms</strong>
-of frame-deadline headroom at P90, compared with <strong>1.7 ms</strong> for <code>Quality</code>. Glass
-<code>Performance</code> used roughly <strong>9% less median peak GPU memory</strong> than <code>Quality</code> in both stable
-and changing-background tests. These observations come from one pass with eight iterations
-per case; they are useful reference points, not guaranteed savings on another screen.
-See the <a href="../benchmark-results/#performance-mode-calibration">full mode comparison</a>.</p>
+<p>In a two-pass Pixel 8a test at 60 Hz with a changing background, Glass <code>Balanced</code> left about
+<strong>8.1 ms</strong> of frame-deadline headroom at P90, compared with <strong>7.0 ms</strong> for <code>Quality</code>. Glass
+<code>Performance</code> used roughly <strong>9% less peak GPU memory</strong> than <code>Quality</code> in both stable and
+changing-background tests, comparing the mean of the two pass-level medians for each mode
+and workload. Each method ran eight iterations in both forward and reverse order. These are
+useful reference points, not guaranteed savings on another screen. See the <a href="../benchmark-results/#performance-mode-calibration">full mode
+comparison</a>.</p>
 </div>
 <p>Keep a fixed override only when repeated measurements and visual checks show a useful benefit.
 A lower quality setting does not guarantee a lower CPU frame time in every workload.</p>
