@@ -10,19 +10,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added `RefractionProfile.Edge(width)` to author edge refraction independently of surface lighting.
-  The default `RefractionProfile.Surface` preserves existing custom optics.
+  The default `RefractionProfile.Surface` preserves existing custom optics
+  ([#1332](https://github.com/chrisbanes/haze/pull/1332)).
+- Added an Android tilt-aware Glass sample with fixed and gravity-driven lighting modes
+  ([#1319](https://github.com/chrisbanes/haze/pull/1319)).
 
 ### Changed
 
 - Calibrated Clear Glass refraction against iOS 27 captures, including the inward edge falloff and
-  wider optical corners that produce curved loops. Clear also uses the accepted brighter tone.
+  wider optical corners that produce curved loops. Clear also uses the accepted brighter tone
+  ([#1332](https://github.com/chrisbanes/haze/pull/1332)).
 - Calibrated Regular Glass against native iOS 27 light appearance, with a narrower refraction band,
   brighter tone, and wider diffusion on cards and panels. Fixed the physical-pixel blur cap that
-  prevented larger authored radii from taking effect on dense displays.
-- Clear uses a consistent shallow blur across surface sizes.
+  prevented larger authored radii from taking effect on dense displays
+  ([#1332](https://github.com/chrisbanes/haze/pull/1332)).
+- Clear uses a consistent shallow blur across surface sizes
+  ([#1332](https://github.com/chrisbanes/haze/pull/1332)).
 - Preserved in-gamut source colour when Glass requests a chroma boost, avoiding clipped saturated
   plateaus, and retained authored tint and edge-shadow Compose `ColorSpace` semantics in
-  colour-managed shader uniforms.
+  colour-managed shader uniforms
+  ([#1334](https://github.com/chrisbanes/haze/pull/1334)).
+- Lowered the Android compile SDK requirement from the 37.2 preview SDK to the standard Android 37
+  SDK while preserving the experimental native Backdrop runtime gates and fallback
+  ([#1323](https://github.com/chrisbanes/haze/pull/1323)).
+- Consolidated Glass Lab into Glass Playground, with a compact selector for comparing the Regular
+  and Clear built-in styles
+  ([#1324](https://github.com/chrisbanes/haze/pull/1324),
+  [#1326](https://github.com/chrisbanes/haze/pull/1326)).
+
+### Fixed
+
+- Preserved brush RGB while progressive tint alpha is modulated on Android 12 and 12L
+  ([#1331](https://github.com/chrisbanes/haze/pull/1331)).
+- Reset retained capture-layer effects before Android's layered progressive blur path records a new
+  frame, preventing stale alpha and render effects across transitions
+  ([#1333](https://github.com/chrisbanes/haze/pull/1333)).
+- Removed hard one-pixel boundaries from rounded Glass controls and dark bevel bands from
+  progressive Glass over opaque captures
+  ([#1336](https://github.com/chrisbanes/haze/pull/1336)).
 
 ## 2.0.0-rc01 <small>2026-09-13</small> { id="2.0.0-rc01" }
 
