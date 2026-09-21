@@ -72,6 +72,10 @@ internal class RuntimeShaderGlassDelegate(
   internal var outputCoverageShader: MutableRuntimeShaderRenderEffect? = null
     private set
   private var outputCoverageEffect: RenderEffect? = null
+  private var contentFringeKey: GlassContentFringeGeometry? = null
+  internal var contentFringeShader: MutableRuntimeShaderRenderEffect? = null
+    private set
+  private var contentFringeEffect: RenderEffect? = null
   private var rimKey: GlassRimEffectKey? = null
   internal var rimShader: MutableRuntimeShaderRenderEffect? = null
     private set
@@ -290,7 +294,11 @@ internal class RuntimeShaderGlassDelegate(
       } else {
         layers.releaseBaseCoverage(currentGraphicsContext)
       }
-
+      if (currentPreparedRender.contentFringeGeometry != null) {
+        layers.ensureContentFringe(currentGraphicsContext)
+      } else {
+        layers.releaseContentFringe(currentGraphicsContext)
+      }
       layers.ensureSource(currentGraphicsContext)
       if (blurRequired) {
         val blurEffects = checkNotNull(currentRenderEffects.blur)
@@ -331,6 +339,7 @@ internal class RuntimeShaderGlassDelegate(
     preparedInteractionPatch = interactionPatch
     preparedInteractionLightingPatch = interactionLightingPatch
     preparedOutputCoverageEffect = getOutputCoverageEffect(currentPreparedRender.outputCoverageKey)
+    getContentFringeEffect(currentPreparedRender.contentFringeGeometry)
   }
 
   internal fun DrawScope.prepareBackdrop(
@@ -968,6 +977,7 @@ internal class RuntimeShaderGlassDelegate(
     val interactionLightingRequired = interactionLightingPatchAvailable &&
       interactionUniforms?.hasLighting == true
     return retainedOutputAvailable && layers.hasOptical &&
+      (preparedRender?.contentFringeGeometry == null || layers.hasContentFringe) &&
       (preparedRender?.baseCoverageGeometry == null || layers.hasBaseCoverage) &&
       (
         preparedRender?.groupCompositeSize == null ||
@@ -1085,6 +1095,8 @@ internal class RuntimeShaderGlassDelegate(
     refractionDetailCoverageEffect = null
     outputCoverageKey = null
     outputCoverageEffect = null
+    contentFringeKey = null
+    contentFringeEffect = null
     rimKey = null
     rimEffect = null
     fusedEffectKey = null
@@ -1098,6 +1110,7 @@ internal class RuntimeShaderGlassDelegate(
       refractionDetailShader = null
       refractionDetailCoverageShader = null
       outputCoverageShader = null
+      contentFringeShader = null
       rimShader = null
       rimBrushProvider = null
       rimBrushProviderInitialized = false
@@ -1183,6 +1196,37 @@ internal class RuntimeShaderGlassDelegate(
       return layers.source
         ?.takeUnless { it.isReleased }
         ?.takeIf { retainedOutputAvailable }
+    }
+
+    val fringe = preparedRender?.contentFringeGeometry
+    if (fringe != null) {
+      val staging = layers.contentFringe?.takeUnless { it.isReleased } ?: return null
+      val source = layers.source?.takeUnless { it.isReleased } ?: return null
+      val offset = fringe.contentOffset
+      staging.alpha = 1f
+      staging.blendMode = BlendMode.SrcOver
+      staging.compositingStrategy = CompositingStrategy.Offscreen
+      staging.renderEffect = contentFringeEffect
+      staging.record(size = fringe.size) {
+        translate(offset) {
+          if (params.backgroundColor.alpha > 0f) {
+            drawRect(params.backgroundColor, size = context.layerSize)
+          }
+          with(context) { this@record.drawInput() }
+        }
+      }
+
+      source.alpha = 1f
+      source.blendMode = BlendMode.SrcOver
+      source.compositingStrategy = CompositingStrategy.Auto
+      source.renderEffect = null
+      source.record(size = params.coordinates.sampleSize.roundToIntSize()) {
+        scale(scale = params.coordinates.scaleFactor, pivot = Offset.Zero) {
+          translate(-offset) { drawLayer(staging) }
+        }
+      }
+      sourceRecordCount++
+      return source
     }
 
     return createScaledContentLayer(
@@ -1875,6 +1919,26 @@ internal class RuntimeShaderGlassDelegate(
     return outputCoverageEffect
   }
 
+  private fun getContentFringeEffect(key: GlassContentFringeGeometry?): RenderEffect? {
+    if (key == null) {
+      contentFringeKey = null
+      contentFringeEffect = null
+      return null
+    }
+    if (key != contentFringeKey || contentFringeEffect == null) {
+      val shader = contentFringeShader ?: traceCreateRenderEffect {
+        createGlassContentFringeRenderEffect()
+      }.also {
+        contentFringeShader = it
+      }
+      contentFringeEffect = shader.updateUniforms {
+        setContentFringeUniforms(key)
+      }.asComposeRenderEffect()
+      contentFringeKey = key
+    }
+    return contentFringeEffect
+  }
+
   private fun getRenderEffects(render: GlassPreparedRender): GlassRenderEffects {
     // Android mutations update a shared, live RuntimeShader, whereas Skiko snapshots uniforms
     // into each ImageFilter. Every effect mutated here must be reassigned before its retained
@@ -2362,6 +2426,13 @@ internal fun createGlassOutputCoverageRenderEffect(): MutableRuntimeShaderRender
     inputs = arrayOf(null),
   )
 
+internal fun createGlassContentFringeRenderEffect(): MutableRuntimeShaderRenderEffect =
+  createMutableRuntimeShaderRenderEffect(
+    effect = GLASS_CONTENT_FRINGE_EFFECT,
+    shaderNames = arrayOf("content"),
+    inputs = arrayOf(null),
+  )
+
 internal fun createRetainedRefractionDetailRenderEffect(): MutableRuntimeShaderRenderEffect =
   createRefractionDetailRenderEffect(interactive = false, coverageOnly = false)
 
@@ -2443,6 +2514,9 @@ private val GLASS_OPTICAL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
 }
 private val GLASS_OUTPUT_COVERAGE_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildOutputCoverage())
+}
+private val GLASS_CONTENT_FRINGE_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
+  createRuntimeEffect(GlassShaders.buildContentFringe())
 }
 private val GLASS_INTERACTION_OPTICAL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildOptical(interactive = true))
@@ -2562,7 +2636,6 @@ internal fun RuntimeShaderUniformProvider.setOutputCoverageUniforms(
 ) {
   setFloatUniform("materialOrigin", key.materialOrigin.x, key.materialOrigin.y)
   setFloatUniform("materialSize", key.materialSize.width, key.materialSize.height)
-  setFloatUniform("contentInset", key.contentInsetPx)
   setFloatUniform("sampleStep", key.sampleStepPx)
   setFloatUniform(
     "cornerRadii",
@@ -2571,6 +2644,20 @@ internal fun RuntimeShaderUniformProvider.setOutputCoverageUniforms(
     key.cornerRadii.bottomRight,
     key.cornerRadii.bottomLeft,
   )
+}
+
+internal fun RuntimeShaderUniformProvider.setContentFringeUniforms(
+  geometry: GlassContentFringeGeometry,
+) {
+  val sourceSize = IntSize(
+    width = geometry.size.width - geometry.contentOffset.x.toInt() * 2,
+    height = geometry.size.height - geometry.contentOffset.y.toInt() * 2,
+  )
+  setFloatUniform("sourceSize", sourceSize.width.toFloat(), sourceSize.height.toFloat())
+  setFloatUniform("contentOffset", geometry.contentOffset.x, geometry.contentOffset.y)
+  setFloatUniform("materialOrigin", geometry.materialOrigin.x, geometry.materialOrigin.y)
+  setFloatUniform("materialSize", geometry.materialSize.width, geometry.materialSize.height)
+  setFloatUniform("contentInset", geometry.contentInsetPx)
 }
 
 internal fun RuntimeShaderUniformProvider.setInteractionOpticalUniforms(

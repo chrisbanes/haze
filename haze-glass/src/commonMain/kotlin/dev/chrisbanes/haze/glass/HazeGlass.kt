@@ -85,6 +85,7 @@ internal fun Modifier.hazeGlass(
   style = GlassNodeConfiguration(
     style = style,
     performanceMode = performanceMode,
+    inputHasBoundedMaterialSupport = input === HazeInput.Content,
     interactionSource = interactionSource,
     interactionTransformTarget = interactionTransformTarget,
     interactionTransformPivot = interactionTransformPivot,
@@ -97,6 +98,7 @@ internal fun Modifier.hazeGlass(
 internal class GlassNodeConfiguration(
   val style: GlassStyle,
   val performanceMode: HazePerformanceMode? = null,
+  val inputHasBoundedMaterialSupport: Boolean = false,
   val interactionSource: InteractionSource?,
   val interactionTransformTarget: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
   val interactionTransformPivot: GlassTransformPivot = GlassTransformPivot.Pointer,

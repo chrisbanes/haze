@@ -127,6 +127,11 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_nonuniformContentAndSourcesEdgesRemainSampleable() = runScreenshotTest {
+    assertGlassNonuniformEdgeContentIsPreserved()
+  }
+
+  @Test
   fun glass_transparentOutputIsPremultiplied() = runScreenshotTest {
     assertGlassTransparentOutputInvariant()
   }

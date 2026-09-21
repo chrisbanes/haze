@@ -622,6 +622,54 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun preparedRender_reusedPlanMatchesFreshPlanAcrossFullResolutionBoundary() {
+    val fullResolution = testRenderParams(
+      coordinates = GlassCoordinates(
+        sampleSize = Size(100f, 100f),
+        materialOrigin = Offset.Zero,
+        materialSize = Size(100f, 100f),
+        scaleFactor = 1f,
+        outputSampleSize = Size(100f, 100f),
+      ),
+    )
+    val nearlyFullResolution = fullResolution.copy(
+      coordinates = GlassCoordinates(
+        // Runtime preparation rounds the reduced sample allocation before plan reuse.
+        sampleSize = Size(100f, 100f),
+        materialOrigin = Offset.Zero,
+        materialSize = Size(99.99f, 99.99f),
+        scaleFactor = 0.9999f,
+        outputSampleSize = Size(100f, 100f),
+      ),
+    )
+
+    fun prepare(params: GlassRenderParams, previous: GlassPreparedRender? = null) =
+      buildGlassPreparedRender(
+        params = params,
+        interactionUniforms = GlassInteractionUniforms(
+          position = Offset.Zero,
+          radiusPx = 0f,
+          lightingIntensity = 0f,
+          refractionMultiplier = 1f,
+          whitePointDelta = 0f,
+        ),
+        alpha = 1f,
+        outputSize = IntSize(100, 100),
+        previous = previous,
+      )
+
+    listOf(fullResolution to nearlyFullResolution, nearlyFullResolution to fullResolution)
+      .forEach { (before, after) ->
+        val reused = prepare(after, previous = prepare(before))
+        val fresh = prepare(after)
+
+        assertThat(reused.plan).isEqualTo(fresh.plan)
+        assertThat(reused.plan.layers.filter { it.kind == GlassRetainedLayerKind.BaseCoverage })
+          .isEqualTo(fresh.plan.layers.filter { it.kind == GlassRetainedLayerKind.BaseCoverage })
+      }
+  }
+
+  @Test
   fun retainedPlan_depthZeroOmitsBlurAndDepthLayers() {
     val plan = buildGlassRetainedLayerPlan(
       params = testRenderParams(depth = 0f, blurRadiusPx = 0f),

@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
@@ -37,6 +38,7 @@ import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
@@ -238,6 +240,38 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
       prepared.params.coordinates.sampleSize.roundToIntSize(),
     )
     assertThat(delegate.layers.allLayers().all { !it.isReleased }).isTrue()
+  }
+
+  @Test
+  fun prepareRenderBudget_inputSupportChangeRebuildsContentFringePlan() {
+    fun configuration(inputHasBoundedMaterialSupport: Boolean) = GlassNodeConfiguration(
+      style = GlassStyle {},
+      performanceMode = HazePerformanceMode.Performance,
+      inputHasBoundedMaterialSupport = inputHasBoundedMaterialSupport,
+      interactionSource = null,
+    )
+
+    val context = RecordingVisualEffectContext(
+      size = Size(100f, 100f),
+      layerSize = Size(100f, 100f),
+    )
+    val effect = GlassRuntimeEffect(configuration(inputHasBoundedMaterialSupport = false))
+    effect.attach(context)
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+    val unboundedPlan = (effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).plan
+
+    effect.update(
+      scope = context,
+      style = configuration(inputHasBoundedMaterialSupport = true),
+      sampling = HazeSampling.Default,
+    )
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+    val boundedPlan = (effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).plan
+
+    assertThat(unboundedPlan.layers.any { it.kind == GlassRetainedLayerKind.ContentFringe }).isFalse()
+    assertThat(boundedPlan.layers.single { it.kind == GlassRetainedLayerKind.ContentFringe }.size)
+      .isEqualTo(IntSize(104, 104))
+    effect.detach()
   }
 
   @Test
@@ -988,7 +1022,12 @@ private class RecordingVisualEffectContext(
     if (failIfBuildRenderParamsReached) {
       error("buildRenderParams reached for invalid raw sample size")
     }
-    return LayoutDirection.Ltr as T
+    return when (local) {
+      LocalGlassStyle -> GlassStyle
+      LocalGlassAccessibilitySettings -> GlassAccessibilitySettings()
+      LocalHazePerformanceMode -> HazePerformanceMode.Default
+      else -> LayoutDirection.Ltr
+    } as T
   }
   override fun requireGraphicsContext(): GraphicsContext = graphicsContext
 

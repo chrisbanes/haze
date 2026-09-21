@@ -55,6 +55,7 @@ private class GlassPreparedRenderCacheKey(
   val coordinates: GlassCoordinates,
   val interaction: ResolvedGlassInteraction,
   val interactionTopology: GlassInteractionTopology,
+  val inputHasBoundedMaterialSupport: Boolean,
   val backdrop: Boolean,
 )
 
@@ -65,6 +66,7 @@ private class GlassRenderBudgetCacheKey(
   val materialSize: Size,
   val interactionTopology: GlassInteractionTopology,
   val interactionRadiusFraction: Float,
+  val inputHasBoundedMaterialSupport: Boolean,
   val backdrop: Boolean,
 )
 
@@ -161,6 +163,7 @@ internal class GlassRuntimeEffect() :
   ) {
     style = configuration.style
     this.performanceMode = performanceMode
+    inputHasBoundedMaterialSupport = configuration.inputHasBoundedMaterialSupport
     interactionSource = configuration.interactionSource
     interactionTransformTarget = configuration.interactionTransformTarget
     interactionTransformPivot = configuration.interactionTransformPivot
@@ -231,6 +234,14 @@ internal class GlassRuntimeEffect() :
 
   internal val performanceModeForTest: HazePerformanceMode
     get() = performanceMode
+
+  private var inputHasBoundedMaterialSupport: Boolean = false
+    set(value) {
+      if (field != value) {
+        field = value
+        markDirty(GlassDirtyFields.InputSampling)
+      }
+    }
 
   private var preparedDrawCacheKey: GlassPreparedDrawCacheKey? = null
 
@@ -788,7 +799,11 @@ internal class GlassRuntimeEffect() :
         return@buildPlan GlassRetainedLayerPlan(emptyList())
       }
       val outputSize = context.modifierSize.roundToIntSize()
-      val params = buildGlassRenderParams(style, coordinates)
+      val params = buildGlassRenderParams(
+        style,
+        coordinates,
+        inputHasBoundedMaterialSupport = inputHasBoundedMaterialSupport,
+      )
       val foregroundParams = params.atOutputResolution()
       val interactionOpticsPatchSize = calculateGlassInteractionPatchSize(
         params,
@@ -840,6 +855,7 @@ internal class GlassRuntimeEffect() :
           interactionLightingPatchSize = interactionLightingPatchSize,
           interactionOpticsActive = interactionTopology.hasOptics,
           interactionLightingActive = interactionTopology.hasLighting,
+          contentFringeSize = params.contentFringeGeometry()?.size,
           baseCoverageSize = params.baseCoverageGeometry()?.size,
         )
       }
@@ -877,6 +893,7 @@ internal class GlassRuntimeEffect() :
       budgetKey.materialSize == context.modifierSize &&
       budgetKey.interactionTopology === interactionTopology &&
       budgetKey.interactionRadiusFraction == interaction.radiusFraction &&
+      budgetKey.inputHasBoundedMaterialSupport == inputHasBoundedMaterialSupport &&
       budgetKey.backdrop == backdrop
     ) {
       checkNotNull(budgetCacheDecision)
@@ -907,6 +924,7 @@ internal class GlassRuntimeEffect() :
           materialSize = context.modifierSize,
           interactionTopology = interactionTopology,
           interactionRadiusFraction = interaction.radiusFraction,
+          inputHasBoundedMaterialSupport = inputHasBoundedMaterialSupport,
           backdrop = backdrop,
         )
         budgetCacheDecision = it
@@ -932,6 +950,7 @@ internal class GlassRuntimeEffect() :
       coordinates === preparedCacheKey.coordinates &&
       interaction === preparedCacheKey.interaction &&
       interactionTopology === preparedCacheKey.interactionTopology &&
+      preparedCacheKey.inputHasBoundedMaterialSupport == inputHasBoundedMaterialSupport &&
       preparedCacheKey.backdrop == backdrop
     ) {
       return updateRenderPreparation(decision, checkNotNull(preparedRenderCache))
@@ -943,11 +962,16 @@ internal class GlassRuntimeEffect() :
     val params = if (
       previousStyle != null && previousCoordinates != null && previousPrepared != null &&
       coordinates === previousCoordinates &&
+      preparedCacheKey.inputHasBoundedMaterialSupport == inputHasBoundedMaterialSupport &&
       style.hasSameRenderParams(previousStyle)
     ) {
       previousPrepared.params
     } else {
-      buildGlassRenderParams(style, coordinates)
+      buildGlassRenderParams(
+        style,
+        coordinates,
+        inputHasBoundedMaterialSupport = inputHasBoundedMaterialSupport,
+      )
     }
     val interactionUniforms = if (
       previousCoordinates != null && previousInteraction != null && previousPrepared != null &&
@@ -1004,6 +1028,7 @@ internal class GlassRuntimeEffect() :
       coordinates = coordinates,
       interaction = interaction,
       interactionTopology = interactionTopology,
+      inputHasBoundedMaterialSupport = inputHasBoundedMaterialSupport,
       backdrop = backdrop,
     )
     preparedRenderCache = prepared

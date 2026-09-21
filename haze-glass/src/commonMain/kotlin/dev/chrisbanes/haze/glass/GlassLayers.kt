@@ -27,6 +27,7 @@ private val RetainedGlassReleaseOrder = arrayOf(
   GlassRetainedLayerKind.InteractionComposite,
   GlassRetainedLayerKind.InteractionLighting,
   GlassRetainedLayerKind.Rim,
+  GlassRetainedLayerKind.ContentFringe,
   GlassRetainedLayerKind.BaseCoverage,
 )
 
@@ -95,6 +96,10 @@ internal class GlassLayers {
     get() = get(GlassRetainedLayerKind.BaseCoverage)
     set(value) = set(GlassRetainedLayerKind.BaseCoverage, value)
 
+  var contentFringe: GraphicsLayer?
+    get() = get(GlassRetainedLayerKind.ContentFringe)
+    set(value) = set(GlassRetainedLayerKind.ContentFringe, value)
+
   var scaledSize: IntSize? = null
 
   val hasSource: Boolean get() = has(GlassRetainedLayerKind.Source)
@@ -116,6 +121,7 @@ internal class GlassLayers {
   val hasInteractionLighting: Boolean get() = has(GlassRetainedLayerKind.InteractionLighting)
   val hasRim: Boolean get() = has(GlassRetainedLayerKind.Rim)
   val hasBaseCoverage: Boolean get() = has(GlassRetainedLayerKind.BaseCoverage)
+  val hasContentFringe: Boolean get() = has(GlassRetainedLayerKind.ContentFringe)
 
   val isEmpty: Boolean get() = groupAlpha.layer == null && retained.all { it == null }
 
@@ -160,8 +166,15 @@ internal class GlassLayers {
   fun ensureBaseCoverage(graphicsContext: GraphicsContext): GraphicsLayer =
     ensure(GlassRetainedLayerKind.BaseCoverage, graphicsContext)
 
+  fun ensureContentFringe(graphicsContext: GraphicsContext): GraphicsLayer =
+    ensure(GlassRetainedLayerKind.ContentFringe, graphicsContext)
+
   fun releaseBaseCoverage(graphicsContext: GraphicsContext?) {
     release(GlassRetainedLayerKind.BaseCoverage, graphicsContext)
+  }
+
+  fun releaseContentFringe(graphicsContext: GraphicsContext?) {
+    release(GlassRetainedLayerKind.ContentFringe, graphicsContext)
   }
 
   fun prepareInteraction(
@@ -224,6 +237,7 @@ internal class GlassLayers {
     releaseBlurred(graphicsContext)
     releaseDepthMixed(graphicsContext)
     release(GlassRetainedLayerKind.Optical, graphicsContext)
+    releaseContentFringe(graphicsContext)
     releaseBaseCoverage(graphicsContext)
     releaseRefractionDetail(graphicsContext)
     prepareInteraction(

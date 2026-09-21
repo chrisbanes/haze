@@ -145,11 +145,19 @@ class GlassShadersTest {
     val shader = GlassShaders.buildOutputCoverage()
 
     assertThat(shader).contains("uniform shader content;")
-    assertThat(shader).contains("uniform float contentInset;")
-    assertThat(shader).contains("min(vec2(contentInset), materialSize * 0.5)")
-    assertThat(shader).contains("vec4 color = content.eval(contentCoord);")
+    assertThat(shader).contains("vec4 color = content.eval(coord);")
     assertThat(shader).contains("float coverage = shapeCoverage(sd, sampleStep * 0.5);")
     assertThat(shader).contains("return color.a > 0.0 ? color * coverage : vec4(0.0);")
+  }
+
+  @Test
+  fun contentFringeShader_extendsOnlyOutsideMaterialBounds() {
+    val shader = GlassShaders.buildContentFringe()
+
+    assertThat(shader).contains("bool outsideMaterial =")
+    assertThat(shader).contains("vec2 contentCoord = outsideMaterial")
+    assertThat(shader).contains(": coord;")
+    assertThat(shader).contains("materialOrigin + resolvedContentInset")
   }
 
   @Test

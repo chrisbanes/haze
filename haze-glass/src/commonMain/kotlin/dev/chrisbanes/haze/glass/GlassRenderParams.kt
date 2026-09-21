@@ -23,7 +23,7 @@ import kotlin.math.abs
 
 private const val MAX_REFRACTION_DISPLACEMENT_PX = 16_384f
 internal const val GLASS_OUTPUT_COVERAGE_GUARD_PX = 0
-private const val GLASS_OUTPUT_COLOR_DILATION_PX = 2f
+private const val GLASS_CONTENT_FRINGE_PX = 2
 
 internal data class GlassCoordinates(
   val sampleSize: Size,
@@ -235,6 +235,8 @@ internal data class GlassRenderParams(
   val refractionDetailIntensity: Float = GLASS_REFRACTION_DETAIL_INTENSITY,
   /** Negative selects Surface; zero disables Edge refraction. */
   val edgeRefractionWidthPx: Float = -1f,
+  /** Whether samples beyond the material bounds are unavailable rather than valid source pixels. */
+  val inputHasBoundedMaterialSupport: Boolean = false,
 )
 
 internal data class GlassBlurEffectKey(
@@ -292,7 +294,6 @@ internal data class GlassOpticalEffectKey(
 internal data class GlassOutputCoverageEffectKey(
   val materialOrigin: Offset,
   val materialSize: Size,
-  val contentInsetPx: Float,
   val cornerRadii: CornerRadii,
   val sampleStepPx: Float,
 )
@@ -308,9 +309,6 @@ internal fun GlassRenderParams.outputCoverageEffectKey(): GlassOutputCoverageEff
   return GlassOutputCoverageEffectKey(
     materialOrigin = guard + coordinates.materialOrigin * outputScale,
     materialSize = coordinates.materialSize * outputScale,
-    // The reduced colour layer includes transparent pixels beyond Content input bounds. Clamp
-    // beyond its resampling and raster-AA footprints before the one authoritative output SDF.
-    contentInsetPx = GLASS_OUTPUT_COLOR_DILATION_PX * outputScale,
     cornerRadii = cornerRadii * outputScale,
     sampleStepPx = sampleStepPx * outputScale,
   )
@@ -320,6 +318,29 @@ internal data class GlassBaseCoverageGeometry(
   val size: IntSize,
   val presentationOffset: Offset,
 )
+
+internal data class GlassContentFringeGeometry(
+  val size: IntSize,
+  val contentOffset: Offset,
+  val materialOrigin: Offset,
+  val materialSize: Size,
+  val contentInsetPx: Float,
+)
+
+internal fun GlassRenderParams.contentFringeGeometry(): GlassContentFringeGeometry? {
+  if (coordinates.scaleFactor >= 1f || !inputHasBoundedMaterialSupport) return null
+  val guard = GLASS_CONTENT_FRINGE_PX
+  val contentOffset = Offset(guard.toFloat(), guard.toFloat())
+  val outputSize = coordinates.outputSampleSize.roundToIntSize()
+  val outputScale = 1f / coordinates.scaleFactor
+  return GlassContentFringeGeometry(
+    size = IntSize(outputSize.width + guard * 2, outputSize.height + guard * 2),
+    contentOffset = contentOffset,
+    materialOrigin = coordinates.materialOrigin * outputScale + contentOffset,
+    materialSize = coordinates.materialSize * outputScale,
+    contentInsetPx = guard.toFloat(),
+  )
+}
 
 internal fun GlassRenderParams.baseCoverageGeometry(): GlassBaseCoverageGeometry? {
   if (coordinates.scaleFactor >= 1f) return null
@@ -644,6 +665,7 @@ private fun resolveBiasPosition(
 internal fun buildGlassRenderParams(
   style: ResolvedGlassStyle,
   coordinates: GlassCoordinates,
+  inputHasBoundedMaterialSupport: Boolean = false,
 ): GlassRenderParams {
   val scaleFactor = coordinates.scaleFactor
   val resolvedOptics = style.resolvedOptics
@@ -682,6 +704,7 @@ internal fun buildGlassRenderParams(
     } else {
       -1f
     },
+    inputHasBoundedMaterialSupport = inputHasBoundedMaterialSupport,
   )
 }
 
@@ -760,6 +783,7 @@ internal fun buildGlassRetainedLayerPlan(
     interactionLightingPatchSize = interactionLightingPatchSize,
     interactionOpticsActive = interactionTopology.hasOptics,
     interactionLightingActive = interactionTopology.hasLighting,
+    contentFringeSize = params.contentFringeGeometry()?.size,
     baseCoverageSize = params.baseCoverageGeometry()?.size,
     groupCompositeSize = null,
   )
@@ -779,6 +803,7 @@ internal fun buildGlassBudgetLayerPlan(
   interactionLightingPatchSize: IntSize = interactionPatchSize,
   interactionOpticsActive: Boolean,
   interactionLightingActive: Boolean,
+  contentFringeSize: IntSize? = null,
   baseCoverageSize: IntSize? = null,
 ): GlassRetainedLayerPlan {
   val interactionOpticsLayersActive =
@@ -791,6 +816,7 @@ internal fun buildGlassBudgetLayerPlan(
       rimSize = rimSize,
       interactionLightingPatchSize = interactionLightingPatchSize,
       interactionLightingActive = interactionLightingLayerActive && interactionLightingActive,
+      contentFringeSize = contentFringeSize,
       baseCoverageSize = baseCoverageSize,
       groupCompositeSize = groupCompositeSize,
     )
@@ -809,6 +835,7 @@ internal fun buildGlassBudgetLayerPlan(
     interactionLightingPatchSize = interactionLightingPatchSize,
     interactionOpticsActive = interactionOpticsLayersActive && interactionOpticsActive,
     interactionLightingActive = interactionLightingLayerActive && interactionLightingActive,
+    contentFringeSize = contentFringeSize,
     baseCoverageSize = baseCoverageSize,
     groupCompositeSize = groupCompositeSize,
   )
@@ -844,6 +871,7 @@ private fun buildGlassRetainedLayerPlan(
   interactionLightingPatchSize: IntSize,
   interactionOpticsActive: Boolean,
   interactionLightingActive: Boolean,
+  contentFringeSize: IntSize?,
   baseCoverageSize: IntSize?,
   groupCompositeSize: IntSize?,
 ): GlassRetainedLayerPlan = GlassRetainedLayerPlan(
@@ -896,6 +924,9 @@ private fun buildGlassRetainedLayerPlan(
         ),
       )
     }
+    if (contentFringeSize != null) {
+      add(GlassRetainedLayer(GlassRetainedLayerKind.ContentFringe, contentFringeSize))
+    }
     if (baseCoverageSize != null) {
       add(GlassRetainedLayer(GlassRetainedLayerKind.BaseCoverage, baseCoverageSize))
     }
@@ -910,6 +941,7 @@ private fun buildGlassFusedLayerPlan(
   rimSize: IntSize?,
   interactionLightingPatchSize: IntSize = IntSize.Zero,
   interactionLightingActive: Boolean = false,
+  contentFringeSize: IntSize?,
   baseCoverageSize: IntSize?,
   groupCompositeSize: IntSize?,
 ): GlassRetainedLayerPlan = GlassRetainedLayerPlan(
@@ -924,6 +956,9 @@ private fun buildGlassFusedLayerPlan(
           interactionLightingPatchSize,
         ),
       )
+    }
+    if (contentFringeSize != null) {
+      add(GlassRetainedLayer(GlassRetainedLayerKind.ContentFringe, contentFringeSize))
     }
     if (baseCoverageSize != null) {
       add(GlassRetainedLayer(GlassRetainedLayerKind.BaseCoverage, baseCoverageSize))
@@ -976,6 +1011,7 @@ internal data class GlassPreparedRender(
   val plan: GlassRetainedLayerPlan,
   val alpha: Float,
   val groupCompositeSize: IntSize?,
+  val contentFringeGeometry: GlassContentFringeGeometry?,
   val baseCoverageGeometry: GlassBaseCoverageGeometry?,
   val outputCoverageKey: GlassOutputCoverageEffectKey?,
   val blurKey: GlassBlurEffectKey?,
@@ -1039,6 +1075,7 @@ internal fun buildGlassPreparedRender(
     interactionLayersActive = interactionLayersActive,
     interactionTopology = interactionTopology,
   )
+  val contentFringeGeometry = params.contentFringeGeometry()
   val baseCoverageGeometry = params.baseCoverageGeometry()
   val blurKey = if (params.depth > 0f && params.blurRadiusPx > 0f) {
     if (previous != null && previous.params.hasSameBlurEffectInputs(params)) {
@@ -1079,6 +1116,8 @@ internal fun buildGlassPreparedRender(
       blurKey = blurKey,
       refractionDetailKey = refractionDetailKey,
       rimKey = rimKey,
+      contentFringeSize = contentFringeGeometry?.size,
+      baseCoverageSize = baseCoverageGeometry?.size,
       groupCompositeSize = groupCompositeSize,
     )
   ) {
@@ -1090,6 +1129,7 @@ internal fun buildGlassPreparedRender(
         rimSize = foregroundParams.coordinates.sampleSize.roundToIntSize().takeIf { rimKey != null },
         interactionLightingPatchSize = interactionLightingPatchSize,
         interactionLightingActive = interactionTopology.hasLighting,
+        contentFringeSize = contentFringeGeometry?.size,
         baseCoverageSize = baseCoverageGeometry?.size,
         groupCompositeSize = groupCompositeSize,
       )
@@ -1106,6 +1146,7 @@ internal fun buildGlassPreparedRender(
         interactionOpticsActive = interactionLayersActive && interactionTopology.hasOptics,
         interactionLightingActive = interactionLightingPatchSize.width > 0 &&
           interactionLightingPatchSize.height > 0 && interactionTopology.hasLighting,
+        contentFringeSize = contentFringeGeometry?.size,
         baseCoverageSize = baseCoverageGeometry?.size,
         groupCompositeSize = groupCompositeSize,
       )
@@ -1122,6 +1163,7 @@ internal fun buildGlassPreparedRender(
     plan = plan,
     alpha = alpha,
     groupCompositeSize = groupCompositeSize,
+    contentFringeGeometry = contentFringeGeometry,
     baseCoverageGeometry = baseCoverageGeometry,
     outputCoverageKey = params.outputCoverageEffectKey(),
     blurKey = blurKey,
@@ -1158,6 +1200,7 @@ private fun GlassRenderParams.hasSameOpticalEffectInputs(other: GlassRenderParam
     fresnelExponent == other.fresnelExponent &&
     cornerRadii == other.cornerRadii &&
     sampleStepPx == other.sampleStepPx &&
+    inputHasBoundedMaterialSupport == other.inputHasBoundedMaterialSupport &&
     (coordinates.scaleFactor >= 1f) == (other.coordinates.scaleFactor >= 1f)
 
 private fun GlassRenderParams.hasSameRefractionDetailEffectInputs(
@@ -1194,6 +1237,8 @@ private fun GlassPreparedRender.hasSameRetainedLayerPlanInputs(
   blurKey: GlassBlurEffectKey?,
   refractionDetailKey: GlassRefractionDetailEffectKey?,
   rimKey: GlassRimEffectKey?,
+  contentFringeSize: IntSize?,
+  baseCoverageSize: IntSize?,
   groupCompositeSize: IntSize?,
 ): Boolean =
   this.params.coordinates.sampleSize == params.coordinates.sampleSize &&
@@ -1207,4 +1252,6 @@ private fun GlassPreparedRender.hasSameRetainedLayerPlanInputs(
     this.interactionTopology == interactionTopology &&
     this.interactionPatchSize == interactionPatchSize &&
     this.interactionLightingPatchSize == interactionLightingPatchSize &&
+    this.contentFringeGeometry?.size == contentFringeSize &&
+    this.baseCoverageGeometry?.size == baseCoverageSize &&
     this.groupCompositeSize == groupCompositeSize

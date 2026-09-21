@@ -168,7 +168,17 @@ class GlassRenderEffectKeysTest {
     assertThat(firstKey).isNotEqualTo(second.outputCoverageEffectKey())
     assertThat(firstKey).isNotNull()
     assertThat(firstKey?.materialOrigin).isEqualTo(Offset(8f, 4f))
-    assertThat(firstKey?.contentInsetPx).isEqualTo(4f)
+    assertThat(first.contentFringeGeometry()).isNull()
+    assertThat(first.copy(inputHasBoundedMaterialSupport = true).contentFringeGeometry())
+      .isEqualTo(
+        GlassContentFringeGeometry(
+          size = IntSize(644, 484),
+          contentOffset = Offset(2f, 2f),
+          materialOrigin = Offset(10f, 6f),
+          materialSize = Size(320.2f, 240.2f),
+          contentInsetPx = 2f,
+        ),
+      )
     assertThat(first.baseCoverageGeometry()).isEqualTo(
       GlassBaseCoverageGeometry(
         size = IntSize(640, 480),

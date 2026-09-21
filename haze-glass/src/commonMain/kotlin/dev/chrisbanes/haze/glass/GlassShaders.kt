@@ -502,7 +502,6 @@ internal object GlassShaders {
     uniform shader content;
     uniform float2 materialOrigin;
     uniform float2 materialSize;
-    uniform float contentInset;
     uniform float sampleStep;
     uniform vec4 cornerRadii;
 
@@ -512,14 +511,33 @@ internal object GlassShaders {
       float sd = sdRoundedRect(coord - materialOrigin, materialSize, cornerRadii);
       float coverage = shapeCoverage(sd, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
-      vec2 resolvedContentInset = min(vec2(contentInset), materialSize * 0.5);
-      vec2 contentCoord = clamp(
-        coord,
-        materialOrigin + resolvedContentInset,
-        materialOrigin + materialSize - resolvedContentInset
-      );
-      vec4 color = content.eval(contentCoord);
+      vec4 color = content.eval(coord);
       return color.a > 0.0 ? color * coverage : vec4(0.0);
+    }
+  """
+
+  fun buildContentFringe(): String = """
+    uniform shader content;
+    uniform float2 sourceSize;
+    uniform float2 contentOffset;
+    uniform float2 materialOrigin;
+    uniform float2 materialSize;
+    uniform float contentInset;
+
+    vec4 main(vec2 coord) {
+      vec2 materialEnd = materialOrigin + materialSize;
+      bool outsideMaterial = coord.x < materialOrigin.x || coord.y < materialOrigin.y ||
+        coord.x > materialEnd.x || coord.y > materialEnd.y;
+      vec2 resolvedContentInset = min(vec2(contentInset), materialSize * 0.5);
+      vec2 contentCoord = outsideMaterial
+        ? clamp(
+          coord,
+          materialOrigin + resolvedContentInset,
+          materialEnd - resolvedContentInset
+        )
+        : coord;
+      vec2 sourceEnd = contentOffset + sourceSize;
+      return content.eval(clamp(contentCoord, contentOffset + vec2(0.5), sourceEnd - vec2(0.5)));
     }
   """
 

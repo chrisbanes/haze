@@ -822,13 +822,16 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
       val render = checkNotNull(runtime(effect).preparedRender)
       val delegate = checkNotNull(runtime(effect).delegate as? RuntimeShaderGlassDelegate)
+      val baseCoverage = checkNotNull(delegate.layers.baseCoverage)
       val group = checkNotNull(delegate.layers.groupAlpha.layer)
       val lighting = checkNotNull(delegate.layers.interactionLighting)
       val rim = checkNotNull(delegate.layers.rim)
 
       assertThat(render.params.coordinates.scaleFactor).isLessThan(1f)
+      assertThat(baseCoverage.size).isEqualTo(checkNotNull(render.baseCoverageGeometry).size)
+      assertThat(baseCoverage.renderEffect).isNotNull()
       assertThat(group.size).isEqualTo(checkNotNull(render.groupCompositeSize))
-      assertThat(group.renderEffect).isNotNull()
+      assertThat(group.renderEffect).isNull()
       assertThat(group.alpha).isEqualTo(0.5f)
       assertThat(delegate.outputCoverageShader).isNotNull()
       assertThat(lighting.size).isEqualTo(render.interactionLightingPatchSize)

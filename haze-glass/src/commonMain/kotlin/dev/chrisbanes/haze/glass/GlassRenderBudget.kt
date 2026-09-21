@@ -26,6 +26,7 @@ internal enum class GlassRetainedLayerKind {
   InteractionDetailCoverage,
   InteractionComposite,
   InteractionLighting,
+  ContentFringe,
   BaseCoverage,
   GroupComposite,
 }
