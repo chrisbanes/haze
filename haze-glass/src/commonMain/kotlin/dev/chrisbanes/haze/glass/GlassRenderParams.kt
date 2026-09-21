@@ -28,6 +28,8 @@ internal data class GlassCoordinates(
   val materialOrigin: Offset,
   val materialSize: Size,
   val scaleFactor: Float,
+  /** Unrounded full-resolution size of the expanded effect layer. */
+  val outputSampleSize: Size = sampleSize / scaleFactor,
 )
 
 internal fun Size.isDrawable(): Boolean =
@@ -53,6 +55,7 @@ internal fun resolveGlassCoordinates(
   materialOrigin = layerOffset * scaleFactor,
   materialSize = materialSize * scaleFactor,
   scaleFactor = scaleFactor,
+  outputSampleSize = layerSize,
 )
 
 internal fun calculateGlassSamplePaddingPx(
@@ -658,10 +661,11 @@ internal fun GlassRenderParams.atOutputResolution(): GlassRenderParams {
   val outputScale = 1f / scaleFactor
   return copy(
     coordinates = GlassCoordinates(
-      sampleSize = coordinates.sampleSize * outputScale,
+      sampleSize = coordinates.outputSampleSize,
       materialOrigin = coordinates.materialOrigin * outputScale,
       materialSize = coordinates.materialSize * outputScale,
       scaleFactor = 1f,
+      outputSampleSize = coordinates.outputSampleSize,
     ),
     edgeSoftnessPx = edgeSoftnessPx * outputScale,
     blurRadiusPx = blurRadiusPx * outputScale,

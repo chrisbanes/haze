@@ -36,10 +36,10 @@ import kotlinx.coroutines.runBlocking
 
 private const val ALPHA_CODE_VALUE = 1f / 255f
 
-// Calibrated from the unchanged Quality path against the same-backend Compose clip. Skiko's two
-// independent SDF rasterizers differ by 11 alpha code values; Android agrees exactly. Reduced modes
-// may differ by at most one additional code value.
-internal const val DESKTOP_QUALITY_COMPOSE_ALPHA_TOLERANCE = 11f / 255f + 1e-6f
+// Calibrated from the unchanged Quality path against the same-backend Compose clip with translucent
+// source pixels present throughout the boundary. Skiko's two independent SDF rasterizers differ by
+// 26 alpha code values; Android agrees exactly. Reduced modes may differ by one additional value.
+internal const val DESKTOP_QUALITY_COMPOSE_ALPHA_TOLERANCE = 26f / 255f + 1e-6f
 internal const val ANDROID_QUALITY_COMPOSE_ALPHA_TOLERANCE = 0f
 
 /**
@@ -47,8 +47,9 @@ internal const val ANDROID_QUALITY_COMPOSE_ALPHA_TOLERANCE = 0f
  *
  * The scene deliberately combines fractional geometry, asymmetric radii, a transparent root,
  * non-zero softness, group alpha, sharp detail, an active interaction-optics/lighting patch, and
- * caller content below the procedural foreground. Assertions use individual alpha/support pixels;
- * whole-frame averages would hide the one-pixel corner regression this protects.
+ * non-zero source alpha throughout the material boundary. Assertions use independent Quality and
+ * Compose-clip controls plus individual alpha/support pixels; whole-frame averages would hide the
+ * one-pixel corner regression this protects.
  */
 internal fun ScreenshotUiTest.assertGlassOutputCoverageMatchesComposeClip(
   performanceMode: HazePerformanceMode,
@@ -105,8 +106,9 @@ internal fun ScreenshotUiTest.assertGlassOutputCoverageMatchesComposeClip(
       )
       Box(glass) {
         Canvas(Modifier.fillMaxSize()) {
+          drawRect(color = Color(0xCC20B8D8))
           drawRect(
-            color = Color(0xFF20B8D8),
+            color = Color(0xFFF7C843),
             topLeft = Offset(size.width * 0.32f, size.height * 0.38f),
             size = Size(size.width * 0.36f, size.height * 0.24f),
           )
@@ -133,29 +135,62 @@ internal fun ScreenshotUiTest.assertGlassOutputCoverageMatchesComposeClip(
   composeClip = false
   waitForIdle()
   val candidate = captureRootPixels().snapshot()
-  composeClip = true
-  waitForIdle()
-  val candidateComposeClip = captureRootPixels().snapshot()
 
-  val qualityDifference = quality.maximumAlphaDifference(qualityComposeClip)
-  val candidateDifference = candidate.maximumAlphaDifference(candidateComposeClip)
-  val candidateOutsideAlpha = candidate.maximumAlphaOutsideSupportOf(candidateComposeClip)
-  val candidateSupportWithinOnePixel = candidate.hasSupportOnlyWithinOnePixelOf(
-    candidateComposeClip,
+  assertGlassOutputCoverageMatchesControls(
+    performanceMode = performanceMode,
+    candidate = candidate,
+    quality = quality,
+    composeClip = qualityComposeClip,
+    qualityControlTolerance = qualityControlTolerance,
   )
+}
+
+internal fun assertGlassOutputCoverageMatchesControls(
+  performanceMode: HazePerformanceMode,
+  candidate: PixelSnapshot,
+  quality: PixelSnapshot,
+  composeClip: PixelSnapshot,
+  qualityControlTolerance: Float,
+) {
+  val acceptedDifference = qualityControlTolerance + ALPHA_CODE_VALUE
+  val qualityComposeDifference = quality.maximumAlphaDifference(composeClip)
+  val candidateQualityDifference = candidate.maximumAlphaDifference(quality)
+  val candidateComposeDifference = candidate.maximumAlphaDifference(composeClip)
+  val candidateOutsideQuality = candidate.maximumAlphaOutsideSupportOf(quality)
+  val qualityOutsideCandidate = quality.maximumAlphaOutsideSupportOf(candidate)
+  val candidateOutsideCompose = candidate.maximumAlphaOutsideSupportOf(composeClip)
+  val composeOutsideCandidate = composeClip.maximumAlphaOutsideSupportOf(candidate)
+  val candidateMatchesQualitySupport = candidate.hasSupportOnlyWithinOnePixelOf(quality) &&
+    quality.hasSupportOnlyWithinOnePixelOf(candidate)
+  val candidateMatchesComposeSupport = candidate.hasSupportOnlyWithinOnePixelOf(composeClip) &&
+    composeClip.hasSupportOnlyWithinOnePixelOf(candidate)
   println(
     "Glass output-coverage probes for $performanceMode: " +
-      "qualityControl=$qualityDifference, candidateControl=$candidateDifference, " +
-      "outsideAlpha=$candidateOutsideAlpha, supportWithinOnePixel=$candidateSupportWithinOnePixel",
+      "qualityCompose=$qualityComposeDifference, candidateQuality=$candidateQualityDifference, " +
+      "candidateCompose=$candidateComposeDifference, " +
+      "outsideQuality=($candidateOutsideQuality,$qualityOutsideCandidate), " +
+      "outsideCompose=($candidateOutsideCompose,$composeOutsideCandidate), " +
+      "support=(quality=$candidateMatchesQualitySupport,compose=$candidateMatchesComposeSupport)",
   )
 
-  assertThat(qualityDifference, "Quality-to-Compose alpha control")
+  assertThat(qualityComposeDifference, "Quality-to-Compose alpha control")
     .isLessThanOrEqualTo(qualityControlTolerance)
-  assertThat(candidateDifference, "$performanceMode-to-Compose alpha difference")
-    .isLessThanOrEqualTo(qualityControlTolerance + ALPHA_CODE_VALUE)
-  assertThat(candidateOutsideAlpha, "$performanceMode alpha outside Compose support")
-    .isLessThanOrEqualTo(ALPHA_CODE_VALUE)
-  assertThat(candidateSupportWithinOnePixel, "$performanceMode support displacement").isTrue()
+  assertThat(candidateQualityDifference, "$performanceMode-to-Quality alpha difference")
+    .isLessThanOrEqualTo(acceptedDifference)
+  assertThat(candidateComposeDifference, "$performanceMode-to-Compose alpha difference")
+    .isLessThanOrEqualTo(acceptedDifference)
+  assertThat(candidateOutsideQuality, "$performanceMode alpha outside Quality support")
+    .isLessThanOrEqualTo(acceptedDifference)
+  assertThat(qualityOutsideCandidate, "Quality alpha outside $performanceMode support")
+    .isLessThanOrEqualTo(acceptedDifference)
+  assertThat(candidateOutsideCompose, "$performanceMode alpha outside Compose support")
+    .isLessThanOrEqualTo(acceptedDifference)
+  assertThat(composeOutsideCandidate, "Compose alpha outside $performanceMode support")
+    .isLessThanOrEqualTo(acceptedDifference)
+  assertThat(candidateMatchesQualitySupport, "$performanceMode-to-Quality support displacement")
+    .isTrue()
+  assertThat(candidateMatchesComposeSupport, "$performanceMode-to-Compose support displacement")
+    .isTrue()
 }
 
 private fun PixelSnapshot.maximumAlphaDifference(other: PixelSnapshot): Float {

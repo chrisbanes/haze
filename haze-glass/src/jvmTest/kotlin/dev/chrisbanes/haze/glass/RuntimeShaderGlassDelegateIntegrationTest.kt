@@ -31,6 +31,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertThat
@@ -973,6 +974,52 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
     assertThat(groupLayer.size).isEqualTo(outputSize)
     assertThat(groupPlan.size).isEqualTo(outputSize)
+  }
+
+  @Test
+  fun reducedInputScale_resizeWithinOneSamplePixel_recordsFullOutputRim() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply {
+      style = style.then {
+        optics(
+          GlassOptics(
+            refractionStrength = 0f,
+            refractionDisplacement = 0.dp,
+            depth = OpticalSizeValue.Fixed(0f),
+            blurRadius = OpticalSizeValue.Fixed(0.dp),
+          ),
+        )
+        specularIntensity(1f)
+        edgeShadow(Color.Transparent)
+        edgeSoftness(0.dp)
+      }
+    }
+    val hazeState = HazeState()
+    val size = mutableStateOf(102.dp)
+    setContent {
+      Box(Modifier.size(size.value)) {
+        Box(Modifier.fillMaxSize().background(Color.Blue).hazeSource(hazeState))
+        Box(
+          Modifier
+            .fillMaxSize()
+            .testGlass(
+              effect = effect,
+              input = HazeInput.Sources(hazeState),
+              performanceMode = HazePerformanceMode.Balanced,
+            ),
+        )
+      }
+    }
+    waitForIdle()
+
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
+    assertThat(checkNotNull(delegate.layers.rim).size).isEqualTo(IntSize(102, 102))
+    assertThat(delegate.layers.rim?.renderEffect).isNull()
+
+    size.value = 103.dp
+    waitForIdle()
+
+    assertThat(checkNotNull(delegate.layers.rim).size).isEqualTo(IntSize(103, 103))
+    assertThat(delegate.layers.rim?.renderEffect).isNull()
   }
 
   @Test

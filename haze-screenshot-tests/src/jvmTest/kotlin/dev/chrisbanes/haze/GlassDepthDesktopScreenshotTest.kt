@@ -118,6 +118,11 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_sourcesCallerContentStaysBetweenBaseAndForeground() = runScreenshotTest {
+    assertGlassSourcesCallerContentOrdering()
+  }
+
+  @Test
   fun glass_transparentOutputIsPremultiplied() = runScreenshotTest {
     assertGlassTransparentOutputInvariant()
   }
