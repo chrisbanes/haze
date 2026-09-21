@@ -814,7 +814,6 @@ internal class GlassRuntimeEffect() :
           sampleSize = coordinates.sampleSize.roundToIntSize(),
           groupCompositeSize = resolveGlassGroupCompositeSize(
             outputSize = outputSize,
-            scaleFactor = scaleFactor,
             alpha = style.alpha,
             interactionLayersActive = interactionOpticsLayersActive,
             interactionTopology = interactionTopology,
@@ -841,6 +840,7 @@ internal class GlassRuntimeEffect() :
           interactionLightingPatchSize = interactionLightingPatchSize,
           interactionOpticsActive = interactionTopology.hasOptics,
           interactionLightingActive = interactionTopology.hasLighting,
+          baseCoverageSize = params.baseCoverageGeometry()?.size,
         )
       }
     }

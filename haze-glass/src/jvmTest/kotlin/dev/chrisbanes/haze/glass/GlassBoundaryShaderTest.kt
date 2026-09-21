@@ -84,7 +84,9 @@ class GlassBoundaryShaderTest {
   fun outputCoverageEffect_hasFractionalAsymmetricBoundaryCoverage() {
     val size = Size(168f, 136f)
     val key = GlassOutputCoverageEffectKey(
+      materialOrigin = Offset.Zero,
       materialSize = size,
+      contentInsetPx = 0f,
       cornerRadii = CornerRadii(56f, 32f, 18f, 44f),
       sampleStepPx = 2f,
     )
@@ -121,7 +123,9 @@ class GlassBoundaryShaderTest {
     ) {
       setOutputCoverageUniforms(
         GlassOutputCoverageEffectKey(
+          materialOrigin = Offset.Zero,
           materialSize = size,
+          contentInsetPx = 0f,
           cornerRadii = productionRadii,
           sampleStepPx = 2f,
         ),

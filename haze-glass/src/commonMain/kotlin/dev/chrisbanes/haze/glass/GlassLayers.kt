@@ -27,6 +27,7 @@ private val RetainedGlassReleaseOrder = arrayOf(
   GlassRetainedLayerKind.InteractionComposite,
   GlassRetainedLayerKind.InteractionLighting,
   GlassRetainedLayerKind.Rim,
+  GlassRetainedLayerKind.BaseCoverage,
 )
 
 internal class GlassLayers {
@@ -90,6 +91,10 @@ internal class GlassLayers {
     get() = get(GlassRetainedLayerKind.Rim)
     set(value) = set(GlassRetainedLayerKind.Rim, value)
 
+  var baseCoverage: GraphicsLayer?
+    get() = get(GlassRetainedLayerKind.BaseCoverage)
+    set(value) = set(GlassRetainedLayerKind.BaseCoverage, value)
+
   var scaledSize: IntSize? = null
 
   val hasSource: Boolean get() = has(GlassRetainedLayerKind.Source)
@@ -110,6 +115,7 @@ internal class GlassLayers {
     get() = has(GlassRetainedLayerKind.InteractionComposite)
   val hasInteractionLighting: Boolean get() = has(GlassRetainedLayerKind.InteractionLighting)
   val hasRim: Boolean get() = has(GlassRetainedLayerKind.Rim)
+  val hasBaseCoverage: Boolean get() = has(GlassRetainedLayerKind.BaseCoverage)
 
   val isEmpty: Boolean get() = groupAlpha.layer == null && retained.all { it == null }
 
@@ -150,6 +156,13 @@ internal class GlassLayers {
 
   fun ensureRim(graphicsContext: GraphicsContext): GraphicsLayer =
     ensure(GlassRetainedLayerKind.Rim, graphicsContext)
+
+  fun ensureBaseCoverage(graphicsContext: GraphicsContext): GraphicsLayer =
+    ensure(GlassRetainedLayerKind.BaseCoverage, graphicsContext)
+
+  fun releaseBaseCoverage(graphicsContext: GraphicsContext?) {
+    release(GlassRetainedLayerKind.BaseCoverage, graphicsContext)
+  }
 
   fun prepareInteraction(
     optics: Boolean,
@@ -211,6 +224,7 @@ internal class GlassLayers {
     releaseBlurred(graphicsContext)
     releaseDepthMixed(graphicsContext)
     release(GlassRetainedLayerKind.Optical, graphicsContext)
+    releaseBaseCoverage(graphicsContext)
     releaseRefractionDetail(graphicsContext)
     prepareInteraction(
       optics = false,

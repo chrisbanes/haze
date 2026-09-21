@@ -500,17 +500,25 @@ internal object GlassShaders {
 
   fun buildOutputCoverage(): String = """
     uniform shader content;
+    uniform float2 materialOrigin;
     uniform float2 materialSize;
+    uniform float contentInset;
     uniform float sampleStep;
     uniform vec4 cornerRadii;
 
     ${sdfShapeHelpers()}
 
     vec4 main(vec2 coord) {
-      float sd = sdRoundedRect(coord, materialSize, cornerRadii);
+      float sd = sdRoundedRect(coord - materialOrigin, materialSize, cornerRadii);
       float coverage = shapeCoverage(sd, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
-      vec4 color = content.eval(coord);
+      vec2 resolvedContentInset = min(vec2(contentInset), materialSize * 0.5);
+      vec2 contentCoord = clamp(
+        coord,
+        materialOrigin + resolvedContentInset,
+        materialOrigin + materialSize - resolvedContentInset
+      );
+      vec4 color = content.eval(contentCoord);
       return color.a > 0.0 ? color * coverage : vec4(0.0);
     }
   """

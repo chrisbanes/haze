@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -163,8 +164,17 @@ class GlassRenderEffectKeysTest {
 
     assertThat(first.coordinates.materialSize.roundToIntSize())
       .isEqualTo(second.coordinates.materialSize.roundToIntSize())
-    assertThat(first.outputCoverageEffectKey()).isNotEqualTo(second.outputCoverageEffectKey())
-    assertThat(first.outputCoverageEffectKey()).isNotNull()
+    val firstKey = first.outputCoverageEffectKey()
+    assertThat(firstKey).isNotEqualTo(second.outputCoverageEffectKey())
+    assertThat(firstKey).isNotNull()
+    assertThat(firstKey?.materialOrigin).isEqualTo(Offset(8f, 4f))
+    assertThat(firstKey?.contentInsetPx).isEqualTo(4f)
+    assertThat(first.baseCoverageGeometry()).isEqualTo(
+      GlassBaseCoverageGeometry(
+        size = IntSize(640, 480),
+        presentationOffset = Offset(-8f, -4f),
+      ),
+    )
     assertThat(first.copy(coordinates = first.coordinates.copy(scaleFactor = 1f)).outputCoverageEffectKey())
       .isNull()
   }

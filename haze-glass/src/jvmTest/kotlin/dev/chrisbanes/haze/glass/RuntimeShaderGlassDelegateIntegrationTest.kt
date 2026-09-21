@@ -1023,7 +1023,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
-  fun reducedInputScale_appliesCoverageOnTheSingleOutputComposite() = runComposeUiTest {
+  fun reducedInputScale_appliesCoverageOnTheFullResolutionBaseLayer() = runComposeUiTest {
     val effect = activeDetailEffect()
 
     setContent {
@@ -1037,13 +1037,15 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
     val render = checkNotNull(runtime(effect).preparedRender)
     val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
-    val outputComposite = checkNotNull(delegate.layers.groupAlpha.layer)
+    val baseCoverage = checkNotNull(delegate.layers.baseCoverage)
 
     assertThat(render.outputCoverageKey).isNotNull()
-    assertThat(outputComposite.renderEffect).isNotNull()
-    assertThat(outputComposite.alpha).isEqualTo(1f)
-    assertThat(render.plan.layers.count { it.kind == GlassRetainedLayerKind.GroupComposite })
+    assertThat(baseCoverage.renderEffect).isNotNull()
+    assertThat(baseCoverage.alpha).isEqualTo(1f)
+    assertThat(render.plan.layers.count { it.kind == GlassRetainedLayerKind.BaseCoverage })
       .isEqualTo(1)
+    assertThat(render.plan.layers.count { it.kind == GlassRetainedLayerKind.GroupComposite })
+      .isEqualTo(0)
   }
 
   @Test

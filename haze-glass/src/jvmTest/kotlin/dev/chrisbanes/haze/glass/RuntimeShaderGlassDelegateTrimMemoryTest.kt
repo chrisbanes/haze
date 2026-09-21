@@ -9,6 +9,7 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -123,7 +124,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   }
 
   @Test
-  fun reducedInputScale_reusesOutputCompositeAndTrimReleasesIt() {
+  fun reducedInputScale_reusesBaseCoverageAndTrimReleasesIt() {
     val effect = GlassRuntimeEffect(
       GlassNodeConfiguration(
         style = GlassStyle.regular,
@@ -138,16 +139,16 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     )
 
     delegate.prepareDrawForTest(context, effect)
-    val first = checkNotNull(delegate.layers.groupAlpha.layer)
+    val first = checkNotNull(delegate.layers.baseCoverage)
     val coverageShader = checkNotNull(delegate.outputCoverageShader)
     delegate.prepareDrawForTest(context, effect)
 
-    assertThat(delegate.layers.groupAlpha.layer).isSameInstanceAs(first)
+    assertThat(delegate.layers.baseCoverage).isSameInstanceAs(first)
     assertThat(delegate.outputCoverageShader).isSameInstanceAs(coverageShader)
 
     delegate.onTrimMemory(context, TrimMemoryLevel.MODERATE)
 
-    assertThat(delegate.layers.groupAlpha.layer).isNull()
+    assertThat(delegate.layers.baseCoverage).isNull()
     assertThat(delegate.outputCoverageShader).isNull()
     assertThat(first in context.graphicsContext.releasedLayers).isTrue()
   }
@@ -200,6 +201,9 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   fun prepareDraw_budgetScaleReductionReleasesAndRebuildsRuntimeLayers() {
     val effect = GlassRuntimeEffect().apply {
       style = style.then {
+        alpha(1f)
+        edgeShadow(Color.Transparent)
+        specularIntensity(0f)
         optics(
           GlassOptics(
             refractionStrength = 0f,
@@ -540,7 +544,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.seedRetainedOutputAvailable()
     val retainedLayers = delegate.layers.allLayers()
 
-    assertThat(retainedLayers.size).isEqualTo(15)
+    assertThat(retainedLayers.size).isEqualTo(16)
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
 
     delegate.onTrimMemory(context, TrimMemoryLevel.BACKGROUND)
@@ -571,7 +575,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     val retainedLayers = delegate.layers.allLayers()
     delegate.setGraphicsContextForTest(context.graphicsContext)
 
-    assertThat(retainedLayers.size).isEqualTo(15)
+    assertThat(retainedLayers.size).isEqualTo(16)
 
     delegate.onTrimMemory(context, TrimMemoryLevel.UI_HIDDEN)
 
@@ -600,7 +604,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(delegate.layers.hasInteractionRefractionComposite).isTrue()
     assertThat(delegate.layers.hasInteractionLighting).isTrue()
     assertThat(delegate.layers.hasRim).isTrue()
-    assertThat(retainedLayers.size).isEqualTo(15)
+    assertThat(retainedLayers.size).isEqualTo(16)
 
     delegate.onTrimMemory(context, TrimMemoryLevel.MODERATE)
 
@@ -620,7 +624,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.seedRetainedOutputAvailable()
     val retainedLayers = delegate.layers.allLayers()
 
-    assertThat(retainedLayers.size).isEqualTo(15)
+    assertThat(retainedLayers.size).isEqualTo(16)
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
 
     delegate.onTrimMemory(context, TrimMemoryLevel.COMPLETE)
@@ -780,7 +784,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
       val delegate = RuntimeShaderGlassDelegate(effect)
       val retainedLayers = delegate.prepareDrawWithRetainedLayers(context, effect)
 
-      assertThat(retainedLayers.size).isEqualTo(15)
+      assertThat(retainedLayers.size).isEqualTo(16)
       assertThat(context.graphicsContext.releasedLayers)
         .containsExactly(*retainedLayers.toTypedArray())
       assertThat(delegate.layers.isEmpty).isTrue()
@@ -829,6 +833,7 @@ private fun GlassLayers.populate(graphicsContext: GraphicsContext) {
   interactionRefractionComposite = graphicsContext.createGraphicsLayer()
   interactionLighting = graphicsContext.createGraphicsLayer()
   rim = graphicsContext.createGraphicsLayer()
+  baseCoverage = graphicsContext.createGraphicsLayer()
 }
 
 private fun GlassLayers.allLayers(): List<GraphicsLayer> = listOfNotNull(
@@ -847,6 +852,7 @@ private fun GlassLayers.allLayers(): List<GraphicsLayer> = listOfNotNull(
   interactionRefractionComposite,
   interactionLighting,
   rim,
+  baseCoverage,
 )
 
 private fun RuntimeShaderGlassDelegate.prepareDrawWithRetainedLayers(

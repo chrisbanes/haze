@@ -17,6 +17,7 @@ internal object GlassTraceSection {
   const val Blur = "HazeGlass.blur"
   const val Depth = "HazeGlass.depth"
   const val Optical = "HazeGlass.optical"
+  const val BaseCoverage = "HazeGlass.baseCoverage"
   const val Detail = "HazeGlass.detail"
   const val Rim = "HazeGlass.rim"
   const val InteractionOptical = "HazeGlass.interactionOptical"
@@ -40,6 +41,7 @@ internal object GlassTraceSection {
     Blur,
     Depth,
     Optical,
+    BaseCoverage,
     Detail,
     Rim,
     InteractionOptical,

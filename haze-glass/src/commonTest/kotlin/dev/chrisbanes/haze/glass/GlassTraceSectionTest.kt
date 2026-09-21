@@ -25,6 +25,7 @@ class GlassTraceSectionTest {
         "HazeGlass.blur",
         "HazeGlass.depth",
         "HazeGlass.optical",
+        "HazeGlass.baseCoverage",
         "HazeGlass.detail",
         "HazeGlass.rim",
         "HazeGlass.interactionOptical",

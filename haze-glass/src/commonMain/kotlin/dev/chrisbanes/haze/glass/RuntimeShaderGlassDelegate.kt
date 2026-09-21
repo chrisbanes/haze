@@ -13,6 +13,8 @@ import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -283,6 +285,11 @@ internal class RuntimeShaderGlassDelegate(
         required = currentPreparedRender.groupCompositeSize != null,
         graphicsContext = currentGraphicsContext,
       )
+      if (currentPreparedRender.baseCoverageGeometry != null) {
+        layers.ensureBaseCoverage(currentGraphicsContext)
+      } else {
+        layers.releaseBaseCoverage(currentGraphicsContext)
+      }
 
       layers.ensureSource(currentGraphicsContext)
       if (blurRequired) {
@@ -593,9 +600,28 @@ internal class RuntimeShaderGlassDelegate(
               ::clearRetainedOutput,
             ) ?: return
           }
+          val completedBase = if (render.baseCoverageGeometry != null) {
+            requireRetainedStage(
+              trace(GlassTraceSection.BaseCoverage) {
+                recordBaseCoverage(
+                  optical = completedOptical,
+                  interactionOutput = null,
+                  interactionPatch = null,
+                  render = render,
+                )
+              },
+              ::clearRetainedOutput,
+            ) ?: return
+          } else {
+            completedOptical
+          }
           if (render.groupCompositeSize == null) {
             trace(GlassTraceSection.Compose) {
-              drawCompletedLayer(completedOptical, context, params, alpha = 1f)
+              if (render.baseCoverageGeometry != null) {
+                drawBaseCoverage(completedBase, render, alpha = render.alpha)
+              } else {
+                drawCompletedLayer(completedBase, context, params, alpha = render.alpha)
+              }
             }
           } else {
             val groupAlpha = requireRetainedStage(
@@ -611,10 +637,13 @@ internal class RuntimeShaderGlassDelegate(
                 layer = groupAlpha,
                 alpha = render.alpha,
                 size = groupCompositeSize,
-                renderEffect = preparedOutputCoverageEffect,
               ) {
                 trace(GlassTraceSection.Compose) {
-                  drawCompletedLayer(completedOptical, context, params, alpha = 1f)
+                  if (render.baseCoverageGeometry != null) {
+                    drawBaseCoverage(completedBase, render, alpha = 1f)
+                  } else {
+                    drawCompletedLayer(completedBase, context, params, alpha = 1f)
+                  }
                 }
               }
             }
@@ -820,15 +849,34 @@ internal class RuntimeShaderGlassDelegate(
             ::clearRetainedOutput,
           ) ?: return
         }
+        val completedBase = if (render.baseCoverageGeometry != null) {
+          requireRetainedStage(
+            trace(GlassTraceSection.BaseCoverage) {
+              recordBaseCoverage(
+                optical = completedOptical,
+                interactionOutput = completedInteractionOutput,
+                interactionPatch = interactionPatch,
+                render = render,
+              )
+            },
+            ::clearRetainedOutput,
+          ) ?: return
+        } else {
+          completedOptical
+        }
         if (render.groupCompositeSize == null) {
           trace(GlassTraceSection.Compose) {
-            drawCompletedOutput(
-              optical = completedOptical,
-              interactionOutput = completedInteractionOutput,
-              interactionPatch = interactionPatch,
-              context = context,
-              params = params,
-            )
+            if (render.baseCoverageGeometry != null) {
+              drawBaseCoverage(completedBase, render, alpha = render.alpha)
+            } else {
+              drawCompletedOutput(
+                optical = completedBase,
+                interactionOutput = completedInteractionOutput,
+                interactionPatch = interactionPatch,
+                context = context,
+                params = params,
+              )
+            }
           }
         } else {
           val groupAlpha = requireRetainedStage(
@@ -844,16 +892,19 @@ internal class RuntimeShaderGlassDelegate(
               layer = groupAlpha,
               alpha = render.alpha,
               size = groupCompositeSize,
-              renderEffect = preparedOutputCoverageEffect,
             ) {
               trace(GlassTraceSection.Compose) {
-                drawCompletedOutput(
-                  optical = completedOptical,
-                  interactionOutput = completedInteractionOutput,
-                  interactionPatch = interactionPatch,
-                  context = context,
-                  params = params,
-                )
+                if (render.baseCoverageGeometry != null) {
+                  drawBaseCoverage(completedBase, render, alpha = 1f)
+                } else {
+                  drawCompletedOutput(
+                    optical = completedBase,
+                    interactionOutput = completedInteractionOutput,
+                    interactionPatch = interactionPatch,
+                    context = context,
+                    params = params,
+                  )
+                }
               }
             }
           }
@@ -917,6 +968,7 @@ internal class RuntimeShaderGlassDelegate(
     val interactionLightingRequired = interactionLightingPatchAvailable &&
       interactionUniforms?.hasLighting == true
     return retainedOutputAvailable && layers.hasOptical &&
+      (preparedRender?.baseCoverageGeometry == null || layers.hasBaseCoverage) &&
       (
         preparedRender?.groupCompositeSize == null ||
           layers.groupAlpha.isAvailable
@@ -1695,6 +1747,71 @@ internal class RuntimeShaderGlassDelegate(
     }
   }
 
+  private fun DrawScope.recordBaseCoverage(
+    optical: GraphicsLayer,
+    interactionOutput: GraphicsLayer?,
+    interactionPatch: GlassInteractionPatch?,
+    render: GlassPreparedRender,
+  ): GraphicsLayer? {
+    val geometry = render.baseCoverageGeometry ?: return optical
+    val layer = layers.baseCoverage?.takeUnless { it.isReleased } ?: return null
+    val scale = 1f / render.params.coordinates.scaleFactor
+    val guard = GLASS_OUTPUT_COVERAGE_GUARD_PX.toFloat()
+    layer.alpha = 1f
+    layer.blendMode = BlendMode.SrcOver
+    layer.compositingStrategy = CompositingStrategy.Offscreen
+    layer.renderEffect = preparedOutputCoverageEffect
+    layer.record(size = geometry.size) {
+      translate(Offset(guard, guard)) {
+        scale(scale = scale, pivot = Offset.Zero) {
+          optical.alpha = 1f
+          optical.blendMode = BlendMode.SrcOver
+          drawLayer(optical)
+          if (interactionOutput != null && interactionPatch != null) {
+            val compositeBounds = interactionPatch.compositeBounds.translate(
+              translateX = -interactionPatch.bounds.left,
+              translateY = -interactionPatch.bounds.top,
+            )
+            interactionOutput.alpha = 1f
+            interactionOutput.blendMode = BlendMode.SrcAtop
+            translate(
+              Offset(
+                interactionPatch.bounds.left.toFloat(),
+                interactionPatch.bounds.top.toFloat(),
+              ),
+            ) {
+              clipRect(
+                left = compositeBounds.left.toFloat(),
+                top = compositeBounds.top.toFloat(),
+                right = compositeBounds.right.toFloat(),
+                bottom = compositeBounds.bottom.toFloat(),
+              ) {
+                drawLayer(interactionOutput)
+              }
+            }
+          }
+        }
+      }
+    }
+    return layer
+  }
+
+  private fun DrawScope.drawBaseCoverage(
+    layer: GraphicsLayer,
+    render: GlassPreparedRender,
+    alpha: Float,
+  ) {
+    val geometry = render.baseCoverageGeometry
+    if (geometry == null) {
+      error("Base coverage presentation requires reduced rendering")
+    }
+    layer.clip = effect.shouldClipToNodeBounds()
+    layer.alpha = alpha
+    withTransform({ if (effect.shouldClipToNodeBounds()) clipRect() }) {
+      translate(geometry.presentationOffset) { drawLayer(layer) }
+    }
+  }
+
   private fun DrawScope.drawCompletedPatch(
     layer: GraphicsLayer,
     patch: GlassInteractionPatch,
@@ -2443,7 +2560,9 @@ internal fun RuntimeShaderUniformProvider.setRimUniforms(
 internal fun RuntimeShaderUniformProvider.setOutputCoverageUniforms(
   key: GlassOutputCoverageEffectKey,
 ) {
+  setFloatUniform("materialOrigin", key.materialOrigin.x, key.materialOrigin.y)
   setFloatUniform("materialSize", key.materialSize.width, key.materialSize.height)
+  setFloatUniform("contentInset", key.contentInsetPx)
   setFloatUniform("sampleStep", key.sampleStepPx)
   setFloatUniform(
     "cornerRadii",

@@ -82,7 +82,6 @@ class GlassRenderBudgetTest {
     val outputSize = IntSize(1000, 600)
     val result = resolveGlassGroupCompositeSize(
       outputSize = outputSize,
-      scaleFactor = 1f,
       alpha = 1f,
       interactionLayersActive = true,
       interactionTopology = GlassInteractionTopology(
@@ -100,23 +99,12 @@ class GlassRenderBudgetTest {
   }
 
   @Test
-  fun reducedSources_addOneOutputSizedFinalizerToBudget() {
+  fun reducedSources_coverageStageDoesNotRequireGroupComposite() {
     val outputSize = IntSize(1000, 600)
 
     assertThat(
       resolveGlassGroupCompositeSize(
         outputSize = outputSize,
-        scaleFactor = 0.5f,
-        alpha = 1f,
-        interactionLayersActive = false,
-        interactionTopology = GlassInteractionTopology(false, false, 1f),
-      ),
-    ).isEqualTo(outputSize)
-
-    assertThat(
-      resolveGlassGroupCompositeSize(
-        outputSize = outputSize,
-        scaleFactor = 1f,
         alpha = 1f,
         interactionLayersActive = false,
         interactionTopology = GlassInteractionTopology(false, false, 1f),
@@ -129,6 +117,7 @@ class GlassRenderBudgetTest {
     val plan = buildGlassBudgetLayerPlan(
       sampleSize = IntSize(500, 300),
       groupCompositeSize = IntSize(1000, 600),
+      baseCoverageSize = IntSize(1200, 800),
       blurRadiusPx = 0f,
       depth = 0f,
       allowNativeWideBlur = true,
@@ -145,6 +134,10 @@ class GlassRenderBudgetTest {
     assertThat(plan.layers.filter { it.kind == GlassRetainedLayerKind.InteractionLighting })
       .containsExactly(
         GlassRetainedLayer(GlassRetainedLayerKind.InteractionLighting, IntSize(240, 240)),
+      )
+    assertThat(plan.layers.filter { it.kind == GlassRetainedLayerKind.BaseCoverage })
+      .containsExactly(
+        GlassRetainedLayer(GlassRetainedLayerKind.BaseCoverage, IntSize(1200, 800)),
       )
     assertThat(plan.layers.filter { it.kind == GlassRetainedLayerKind.GroupComposite })
       .containsExactly(
