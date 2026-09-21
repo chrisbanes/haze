@@ -20,13 +20,30 @@ import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
+import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
 import kotlin.math.abs
+import kotlin.math.sqrt
 import kotlin.test.Test
 import org.jetbrains.skia.RuntimeEffect
 
 class GlassBoundaryShaderTest {
+  @Test
+  fun qualityBoundaryReference_matchesWorkedStraightAndCornerAnchors() {
+    val size = Size(8f, 6f)
+    val radii = TestCornerRadii(2f, 2f, 2f, 2f)
+
+    assertThat(abs(qualityBoundaryAlpha(Offset(0.5f, 3f), size, radii) - 0.5f))
+      .isLessThan(0.000001f)
+    assertThat(abs(qualityBoundaryAlpha(Offset(1.5f, 3f), size, radii) - 1f))
+      .isLessThan(0.000001f)
+    assertThat(qualityBoundaryAlpha(Offset(0.5f, 0.5f), size, radii))
+      .isLessThan(0.000001f)
+    assertThat(abs(qualityBoundaryAlpha(Offset(1.5f, 0.5f), size, radii) - 0.4188612f))
+      .isLessThan(0.000001f)
+  }
+
   @Test
   fun progressiveBlur_preservesFlatBackdrop() {
     val plain = render(false).toPixelMap()
@@ -90,6 +107,58 @@ class GlassBoundaryShaderTest {
 
     assertThat(fractional).isGreaterThan(80)
     assertThat(pixels[0, 0].alpha).isLessThan(1f / 255f)
+  }
+
+  @Test
+  fun outputCoverageEffect_matchesIndependentQualityBoundary() {
+    val size = Size(168f, 136f)
+    val productionRadii = CornerRadii(56f, 32f, 18f, 44f)
+    val referenceRadii = TestCornerRadii(56f, 32f, 18f, 44f)
+    val effect = createRuntimeShaderRenderEffect(
+      RuntimeEffect.makeForShader(GlassShaders.buildOutputCoverage()),
+      arrayOf("content"),
+      arrayOf(null),
+    ) {
+      setOutputCoverageUniforms(
+        GlassOutputCoverageEffectKey(
+          materialSize = size,
+          cornerRadii = productionRadii,
+          sampleStepPx = 2f,
+        ),
+      )
+    }
+    val image = ImageBitmap(size.width.toInt(), size.height.toInt())
+    with(Canvas(image)) {
+      val bounds = Rect(Offset.Zero, size)
+      saveLayer(bounds, Paint().apply { skiaPaint.imageFilter = effect })
+      drawRect(bounds, Paint().apply { color = Color.White })
+      restore()
+    }
+
+    val pixels = image.toPixelMap()
+    var maximumDifference = 0f
+    var maximumX = 0
+    var maximumY = 0
+    for (y in 0 until pixels.height) {
+      for (x in 0 until pixels.width) {
+        val expected = qualityBoundaryAlpha(
+          point = Offset(x + 0.5f, y + 0.5f),
+          size = size,
+          radii = referenceRadii,
+        )
+        val difference = abs(pixels[x, y].alpha - expected)
+        if (difference > maximumDifference) {
+          maximumDifference = difference
+          maximumX = x
+          maximumY = y
+        }
+      }
+    }
+    println(
+      "Output coverage mathematical probe: maxDifference=$maximumDifference " +
+        "at ($maximumX,$maximumY)",
+    )
+    assertThat(maximumDifference).isLessThanOrEqualTo(1f / 255f + 0.000001f)
   }
 
   private fun assertFractionalBoundaryCoverage(pill: Boolean) {
@@ -277,4 +346,52 @@ class GlassBoundaryShaderTest {
       }
     }
   }
+}
+
+private class TestCornerRadii(
+  val topLeft: Float,
+  val topRight: Float,
+  val bottomRight: Float,
+  val bottomLeft: Float,
+)
+
+/** Test-only specification of Quality's inward one-physical-pixel rounded SDF ramp. */
+private fun qualityBoundaryAlpha(
+  point: Offset,
+  size: Size,
+  radii: TestCornerRadii,
+): Float {
+  val halfWidth = size.width * 0.5f
+  val halfHeight = size.height * 0.5f
+  val edgeX = abs(point.x - halfWidth) - halfWidth
+  val edgeY = abs(point.y - halfHeight) - halfHeight
+  val outside = sqrt(maxOf(edgeX, 0f) * maxOf(edgeX, 0f) + maxOf(edgeY, 0f) * maxOf(edgeY, 0f))
+  var signedDistance = outside + minOf(maxOf(edgeX, edgeY), 0f)
+
+  fun includeCorner(centerX: Float, centerY: Float, radius: Float) {
+    val dx = point.x - centerX
+    val dy = point.y - centerY
+    signedDistance = maxOf(signedDistance, sqrt(dx * dx + dy * dy) - radius)
+  }
+
+  if (point.x < radii.topLeft && point.y < radii.topLeft) {
+    includeCorner(radii.topLeft, radii.topLeft, radii.topLeft)
+  }
+  if (point.x > size.width - radii.topRight && point.y < radii.topRight) {
+    includeCorner(size.width - radii.topRight, radii.topRight, radii.topRight)
+  }
+  if (
+    point.x > size.width - radii.bottomRight &&
+    point.y > size.height - radii.bottomRight
+  ) {
+    includeCorner(
+      size.width - radii.bottomRight,
+      size.height - radii.bottomRight,
+      radii.bottomRight,
+    )
+  }
+  if (point.x < radii.bottomLeft && point.y > size.height - radii.bottomLeft) {
+    includeCorner(radii.bottomLeft, size.height - radii.bottomLeft, radii.bottomLeft)
+  }
+  return (-signedDistance).coerceIn(0f, 1f)
 }

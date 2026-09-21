@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.ui.geometry.Size
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.test.Test
@@ -94,28 +95,31 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
   }
 
   @Test
-  fun glass_qualityOutputCoverageMatchesComposeClip() = runScreenshotTest {
-    assertGlassOutputCoverageMatchesComposeClip(
-      HazePerformanceMode.Quality,
-      DESKTOP_QUALITY_COMPOSE_ALPHA_TOLERANCE,
-    )
-  }
+  fun glass_qualityOutputCoverageMatchesQualityBoundary() =
+    runScreenshotTest(size = Size(800f, 600f)) {
+      assertGlassOutputCoverageMatchesQualityBoundary(
+        HazePerformanceMode.Quality,
+        DESKTOP_FROZEN_QUALITY_BOUNDARY,
+      )
+    }
 
   @Test
-  fun glass_balancedOutputCoverageMatchesComposeClip() = runScreenshotTest {
-    assertGlassOutputCoverageMatchesComposeClip(
-      HazePerformanceMode.Balanced,
-      DESKTOP_QUALITY_COMPOSE_ALPHA_TOLERANCE,
-    )
-  }
+  fun glass_balancedOutputCoverageMatchesQualityBoundary() =
+    runScreenshotTest(size = Size(800f, 600f)) {
+      assertGlassOutputCoverageMatchesQualityBoundary(
+        HazePerformanceMode.Balanced,
+        DESKTOP_FROZEN_QUALITY_BOUNDARY,
+      )
+    }
 
   @Test
-  fun glass_performanceOutputCoverageMatchesComposeClip() = runScreenshotTest {
-    assertGlassOutputCoverageMatchesComposeClip(
-      HazePerformanceMode.Performance,
-      DESKTOP_QUALITY_COMPOSE_ALPHA_TOLERANCE,
-    )
-  }
+  fun glass_performanceOutputCoverageMatchesQualityBoundary() =
+    runScreenshotTest(size = Size(800f, 600f)) {
+      assertGlassOutputCoverageMatchesQualityBoundary(
+        HazePerformanceMode.Performance,
+        DESKTOP_FROZEN_QUALITY_BOUNDARY,
+      )
+    }
 
   @Test
   fun glass_sourcesCallerContentStaysBetweenBaseAndForeground() = runScreenshotTest {
