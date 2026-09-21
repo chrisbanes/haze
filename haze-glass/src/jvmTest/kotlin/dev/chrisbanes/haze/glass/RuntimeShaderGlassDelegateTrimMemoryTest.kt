@@ -27,6 +27,7 @@ import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
@@ -272,6 +273,68 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(boundedPlan.layers.single { it.kind == GlassRetainedLayerKind.ContentFringe }.size)
       .isEqualTo(IntSize(104, 104))
     effect.detach()
+  }
+
+  @Test
+  fun lifecycleFixture_tracksContentFringe() {
+    val layers = GlassLayers()
+    val graphicsContext = TestGraphicsContext()
+
+    layers.populate(graphicsContext)
+
+    assertThat(layers.contentFringe).isNotNull()
+    assertThat(layers.allLayers().size).isEqualTo(17)
+  }
+
+  @Test
+  fun reducedContent_contentFringeFollowsInputTrimAndDetachLifecycle() {
+    fun configuration(contentInput: Boolean) = GlassNodeConfiguration(
+      style = GlassStyle {},
+      performanceMode = HazePerformanceMode.Fixed(0.5f),
+      inputHasBoundedMaterialSupport = contentInput,
+      interactionSource = null,
+    )
+
+    val context = RecordingVisualEffectContext(
+      size = Size(100f, 100f),
+      layerSize = Size(100f, 100f),
+    )
+    val effect = GlassRuntimeEffect(configuration(contentInput = true))
+    val delegate = RuntimeShaderGlassDelegate(effect)
+
+    delegate.prepareDrawForTest(context, effect)
+    val contentFringe = checkNotNull(delegate.layers.contentFringe)
+
+    effect.update(
+      scope = context,
+      style = configuration(contentInput = false),
+      sampling = HazeSampling.Default,
+    )
+    delegate.prepareDrawForTest(context, effect)
+
+    assertThat(delegate.layers.contentFringe).isNull()
+    assertThat(contentFringe in context.graphicsContext.releasedLayers).isTrue()
+
+    effect.update(
+      scope = context,
+      style = configuration(contentInput = true),
+      sampling = HazeSampling.Default,
+    )
+    delegate.prepareDrawForTest(context, effect)
+    val beforeTrim = checkNotNull(delegate.layers.contentFringe)
+
+    delegate.onTrimMemory(context, TrimMemoryLevel.MODERATE)
+
+    assertThat(delegate.layers.contentFringe).isNull()
+    assertThat(beforeTrim in context.graphicsContext.releasedLayers).isTrue()
+
+    delegate.prepareDrawForTest(context, effect)
+    val beforeDetach = checkNotNull(delegate.layers.contentFringe)
+
+    delegate.detach()
+
+    assertThat(delegate.layers.contentFringe).isNull()
+    assertThat(beforeDetach in context.graphicsContext.releasedLayers).isTrue()
   }
 
   @Test
@@ -578,7 +641,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.seedRetainedOutputAvailable()
     val retainedLayers = delegate.layers.allLayers()
 
-    assertThat(retainedLayers.size).isEqualTo(16)
+    assertThat(retainedLayers.size).isEqualTo(17)
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
 
     delegate.onTrimMemory(context, TrimMemoryLevel.BACKGROUND)
@@ -609,7 +672,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     val retainedLayers = delegate.layers.allLayers()
     delegate.setGraphicsContextForTest(context.graphicsContext)
 
-    assertThat(retainedLayers.size).isEqualTo(16)
+    assertThat(retainedLayers.size).isEqualTo(17)
 
     delegate.onTrimMemory(context, TrimMemoryLevel.UI_HIDDEN)
 
@@ -638,7 +701,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(delegate.layers.hasInteractionRefractionComposite).isTrue()
     assertThat(delegate.layers.hasInteractionLighting).isTrue()
     assertThat(delegate.layers.hasRim).isTrue()
-    assertThat(retainedLayers.size).isEqualTo(16)
+    assertThat(retainedLayers.size).isEqualTo(17)
 
     delegate.onTrimMemory(context, TrimMemoryLevel.MODERATE)
 
@@ -658,7 +721,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.seedRetainedOutputAvailable()
     val retainedLayers = delegate.layers.allLayers()
 
-    assertThat(retainedLayers.size).isEqualTo(16)
+    assertThat(retainedLayers.size).isEqualTo(17)
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
 
     delegate.onTrimMemory(context, TrimMemoryLevel.COMPLETE)
@@ -818,7 +881,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
       val delegate = RuntimeShaderGlassDelegate(effect)
       val retainedLayers = delegate.prepareDrawWithRetainedLayers(context, effect)
 
-      assertThat(retainedLayers.size).isEqualTo(16)
+      assertThat(retainedLayers.size).isEqualTo(17)
       assertThat(context.graphicsContext.releasedLayers)
         .containsExactly(*retainedLayers.toTypedArray())
       assertThat(delegate.layers.isEmpty).isTrue()
@@ -867,6 +930,7 @@ private fun GlassLayers.populate(graphicsContext: GraphicsContext) {
   interactionRefractionComposite = graphicsContext.createGraphicsLayer()
   interactionLighting = graphicsContext.createGraphicsLayer()
   rim = graphicsContext.createGraphicsLayer()
+  contentFringe = graphicsContext.createGraphicsLayer()
   baseCoverage = graphicsContext.createGraphicsLayer()
 }
 
@@ -886,6 +950,7 @@ private fun GlassLayers.allLayers(): List<GraphicsLayer> = listOfNotNull(
   interactionRefractionComposite,
   interactionLighting,
   rim,
+  contentFringe,
   baseCoverage,
 )
 

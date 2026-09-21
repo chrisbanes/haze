@@ -141,6 +141,11 @@ class GlassDepthAndroidScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_isolatedTranslucentEdgeAlphaRemainsSampleable() = runScreenshotTest {
+    assertGlassIsolatedTranslucentEdgeAlphaPreserved()
+  }
+
+  @Test
   fun glass_transparentOutputIsPremultiplied() = runScreenshotTest {
     assertGlassTransparentOutputInvariant()
   }
