@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -146,6 +147,29 @@ class GlassRenderEffectKeysTest {
   }
 
   @Test
+  fun outputCoverageKey_tracksUnscaledGeometryWhenReducedSampleSizeIsStable() {
+    val first = params().copy(
+      coordinates = GlassCoordinates(
+        sampleSize = Size(320f, 240f),
+        materialOrigin = Offset(4f, 2f),
+        materialSize = Size(160.1f, 120.1f),
+        scaleFactor = 0.5f,
+      ),
+      cornerRadii = CornerRadii(12f, 10f, 8f, 6f),
+    )
+    val second = first.copy(
+      coordinates = first.coordinates.copy(materialSize = Size(160.2f, 120.2f)),
+    )
+
+    assertThat(first.coordinates.materialSize.roundToIntSize())
+      .isEqualTo(second.coordinates.materialSize.roundToIntSize())
+    assertThat(first.outputCoverageEffectKey()).isNotEqualTo(second.outputCoverageEffectKey())
+    assertThat(first.outputCoverageEffectKey()).isNotNull()
+    assertThat(first.copy(coordinates = first.coordinates.copy(scaleFactor = 1f)).outputCoverageEffectKey())
+      .isNull()
+  }
+
+  @Test
   fun interactionValues_doNotChangeBaseStageKeys() {
     val params = params()
     val idle = params.interactionUniforms(
@@ -215,14 +239,18 @@ class GlassRenderEffectKeysTest {
   }
 
   @Test
-  fun refractionDetailKey_ignoresCoordinateScaleFactor() {
+  fun refractionDetailKey_tracksCoverageOwnershipAcrossCoordinateScaleFactor() {
     val base = params()
-
-    assertThat(base.refractionDetailEffectKey()).isEqualTo(
+    val fullResolution = checkNotNull(base.refractionDetailEffectKey())
+    val reduced = checkNotNull(
       base.copy(
         coordinates = base.coordinates.copy(scaleFactor = 0.5f),
       ).refractionDetailEffectKey(),
     )
+
+    assertThat(fullResolution.applyShapeCoverage).isTrue()
+    assertThat(reduced.applyShapeCoverage).isFalse()
+    assertThat(reduced).isEqualTo(fullResolution.copy(applyShapeCoverage = false))
   }
 
   @Test

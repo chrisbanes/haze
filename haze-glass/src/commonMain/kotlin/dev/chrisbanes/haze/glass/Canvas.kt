@@ -9,6 +9,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
@@ -137,12 +138,13 @@ internal inline fun DrawScope.recordAndDrawGlassGroupAlpha(
   layer: GraphicsLayer,
   alpha: Float,
   size: IntSize,
+  renderEffect: RenderEffect? = null,
   crossinline block: DrawScope.() -> Unit,
 ) {
   layer.alpha = alpha
   layer.blendMode = BlendMode.SrcOver
   layer.compositingStrategy = CompositingStrategy.Offscreen
-  layer.renderEffect = null
+  layer.renderEffect = renderEffect
   layer.record(size = size) { block() }
   drawLayer(layer)
 }

@@ -512,6 +512,12 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       isAccessible = true
       set(delegate, null)
     }
+    RuntimeShaderGlassDelegate::class.java.getDeclaredField(
+      "preparedInteractionLightingPatch",
+    ).apply {
+      isAccessible = true
+      set(delegate, null)
+    }
     delegate.layers.interactionOptical = null
     delegate.layers.interactionRefractionDetail = null
     delegate.layers.interactionLighting = null
@@ -967,6 +973,30 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
     assertThat(groupLayer.size).isEqualTo(outputSize)
     assertThat(groupPlan.size).isEqualTo(outputSize)
+  }
+
+  @Test
+  fun reducedInputScale_appliesCoverageOnTheSingleOutputComposite() = runComposeUiTest {
+    val effect = activeDetailEffect()
+
+    setContent {
+      RuntimeGlassTestContent(
+        effect = effect,
+        tag = "glass",
+        performanceMode = HazePerformanceMode.Fixed(0.5f),
+      )
+    }
+    waitForIdle()
+
+    val render = checkNotNull(runtime(effect).preparedRender)
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
+    val outputComposite = checkNotNull(delegate.layers.groupAlpha.layer)
+
+    assertThat(render.outputCoverageKey).isNotNull()
+    assertThat(outputComposite.renderEffect).isNotNull()
+    assertThat(outputComposite.alpha).isEqualTo(1f)
+    assertThat(render.plan.layers.count { it.kind == GlassRetainedLayerKind.GroupComposite })
+      .isEqualTo(1)
   }
 
   @Test

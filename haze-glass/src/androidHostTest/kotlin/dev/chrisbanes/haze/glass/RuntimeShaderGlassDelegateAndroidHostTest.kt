@@ -42,12 +42,14 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runAndroidComposeUiTest
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isLessThan
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
@@ -802,6 +804,40 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     }
 
   @Test
+  fun reducedInputScale_usesSingleOutputCoverageCompositeAndFullSizeForeground() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = interactiveEffect().apply { style = style.then { alpha(0.5f) } }
+      setContent {
+        RuntimeGlassTestContent(
+          effect = effect,
+          performanceMode = HazePerformanceMode.Fixed(0.5f),
+        )
+      }
+      waitForIdle()
+      drawFrame()
+
+      runtime(effect).setPressedForTest(Offset(60f, 60f))
+      waitForIdle()
+      drawFrame()
+
+      val render = checkNotNull(runtime(effect).preparedRender)
+      val delegate = checkNotNull(runtime(effect).delegate as? RuntimeShaderGlassDelegate)
+      val group = checkNotNull(delegate.layers.groupAlpha.layer)
+      val lighting = checkNotNull(delegate.layers.interactionLighting)
+      val rim = checkNotNull(delegate.layers.rim)
+
+      assertThat(render.params.coordinates.scaleFactor).isLessThan(1f)
+      assertThat(group.size).isEqualTo(checkNotNull(render.groupCompositeSize))
+      assertThat(group.renderEffect).isNotNull()
+      assertThat(group.alpha).isEqualTo(0.5f)
+      assertThat(delegate.outputCoverageShader).isNotNull()
+      assertThat(lighting.size).isEqualTo(render.interactionLightingPatchSize)
+      assertThat(rim.size).isEqualTo(render.foregroundParams.coordinates.sampleSize.roundToIntSize())
+      assertThat(delegate.layers.optical?.size)
+        .isEqualTo(render.params.coordinates.sampleSize.roundToIntSize())
+    }
+
+  @Test
   fun activeInteractionFrames_retainFusedShaderAndBaseLayer() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = interactiveEffect()
@@ -1099,13 +1135,14 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     attachEffect: Boolean = true,
     size: Dp = 120.dp,
     style: GlassStyle = effect.style,
+    performanceMode: HazePerformanceMode = HazePerformanceMode.Quality,
   ) {
     Box(
       Modifier
         .size(size)
         .then(
           if (attachEffect) {
-            Modifier.testGlassRuntime(effect, HazeInput.Content, style)
+            Modifier.testGlassRuntime(effect, HazeInput.Content, style, performanceMode)
           } else {
             Modifier
           },
@@ -1221,13 +1258,14 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     effect: GlassRuntimeEffect,
     input: HazeInput,
     style: GlassStyle = effect.style,
+    performanceMode: HazePerformanceMode = HazePerformanceMode.Quality,
   ): Modifier {
     val factory = remember(effect) { FixedGlassRuntimeFactory(effect) }
     return hazeGlass(
       factory = factory,
       input = input,
       style = style,
-      performanceMode = HazePerformanceMode.Quality,
+      performanceMode = performanceMode,
       expandLayerBounds = true,
       interactionSource = effect.interactionSource,
       interactionTransformTarget = effect.interactionTransformTarget,

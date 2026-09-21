@@ -119,11 +119,43 @@ class GlassShadersTest {
     val shader = GlassShaders.buildOptical()
     val main = shader.substringAfter("vec4 main(vec2 coord)")
 
-    assertThat(shader).contains("float coverage = shapeCoverage(sd, sampleStep * 0.5);")
+    assertThat(shader).contains("? shapeCoverage(sd, sampleStep * 0.5)")
     assertThat(shader)
       .contains("return composedColor.a > 0.0 ? composedColor * coverage : vec4(0.0);")
     assertThat(main.substringBefore("content.eval("))
-      .contains("if (coverage <= 0.0) return vec4(0.0);")
+      .contains("if (applyShapeCoverage > 0.5 && coverage <= 0.0) return vec4(0.0);")
+  }
+
+  @Test
+  fun reducedBaseShaders_deferShapeCoverageWithoutSkippingFringeColour() {
+    listOf(
+      GlassShaders.buildFused(),
+      GlassShaders.buildOptical(),
+      GlassShaders.buildRefractionDetail(),
+      GlassShaders.buildRefractionDetail(coverageOnly = true),
+    ).forEach { shader ->
+      val main = shader.substringAfter("vec4 main(vec2 coord)")
+      assertThat(shader).contains("uniform float applyShapeCoverage;")
+      assertThat(main).contains("applyShapeCoverage > 0.5")
+    }
+  }
+
+  @Test
+  fun outputCoverageShader_appliesOnePremultipliedRoundedBoundary() {
+    val shader = GlassShaders.buildOutputCoverage()
+
+    assertThat(shader).contains("uniform shader content;")
+    assertThat(shader).contains("float coverage = shapeCoverage(sd, sampleStep * 0.5);")
+    assertThat(shader).contains("return color.a > 0.0 ? color * coverage : vec4(0.0);")
+  }
+
+  @Test
+  fun interactionLightingShader_antialiasesTheOutputBoundary() {
+    val shader = GlassShaders.buildInteractionLighting()
+
+    assertThat(shader).contains("uniform float sampleStep;")
+    assertThat(shader).contains("float coverage = shapeCoverage(sd, sampleStep * 0.5);")
+    assertThat(shader).doesNotContain("if (sd > 0.0) return vec4(0.0);")
   }
 
   @Test
@@ -558,7 +590,8 @@ class GlassShadersTest {
     assertThat(shader.indexOf(transparentRejection))
       .isLessThan(shader.indexOf("vec4 sharpSample = content.eval(refractCoord);"))
     assertThat(shader).contains("vec4 detailColor = sharpSample * (detailAlpha * coverage);")
-    assertThat(shader).contains("if (coverage <= 0.0) return vec4(0.0);")
+    assertThat(shader)
+      .contains("if (applyShapeCoverage > 0.5 && coverage <= 0.0) return vec4(0.0);")
     assertThat(shader).contains("return detailColor.a > 0.0 ? detailColor : vec4(0.0);")
     assertThat(Regex("content\\.eval").findAll(shader).count()).isEqualTo(1)
     assertThat(shader).doesNotContain("chromaticAberration")
@@ -631,6 +664,7 @@ class GlassShadersTest {
         "materialOrigin" to listOf(8f, 4f),
         "materialSize" to listOf(320f, 240f),
         "sampleStep" to listOf(2f),
+        "applyShapeCoverage" to listOf(1f),
         "edgeSoftness" to listOf(4f),
         "cornerRadii" to listOf(1f, 2f, 3f, 4f),
         "refractionStrength" to listOf(0.5f),

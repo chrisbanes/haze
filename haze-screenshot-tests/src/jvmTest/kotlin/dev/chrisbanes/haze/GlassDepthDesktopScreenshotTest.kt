@@ -94,6 +94,30 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_qualityOutputCoverageMatchesComposeClip() = runScreenshotTest {
+    assertGlassOutputCoverageMatchesComposeClip(
+      HazePerformanceMode.Quality,
+      DESKTOP_QUALITY_COMPOSE_ALPHA_TOLERANCE,
+    )
+  }
+
+  @Test
+  fun glass_balancedOutputCoverageMatchesComposeClip() = runScreenshotTest {
+    assertGlassOutputCoverageMatchesComposeClip(
+      HazePerformanceMode.Balanced,
+      DESKTOP_QUALITY_COMPOSE_ALPHA_TOLERANCE,
+    )
+  }
+
+  @Test
+  fun glass_performanceOutputCoverageMatchesComposeClip() = runScreenshotTest {
+    assertGlassOutputCoverageMatchesComposeClip(
+      HazePerformanceMode.Performance,
+      DESKTOP_QUALITY_COMPOSE_ALPHA_TOLERANCE,
+    )
+  }
+
+  @Test
   fun glass_transparentOutputIsPremultiplied() = runScreenshotTest {
     assertGlassTransparentOutputInvariant()
   }

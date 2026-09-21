@@ -13,6 +13,7 @@ internal object GlassShaders {
     uniform float2 materialOrigin;
     uniform float2 materialSize;
     uniform float sampleStep;
+    uniform float applyShapeCoverage;
     uniform float refractionStrength;
     uniform float refractionFoldStrength;
     uniform float ambientResponse;
@@ -78,8 +79,10 @@ internal object GlassShaders {
       vec2 halfSize = materialSize * 0.5;
       vec2 centeredCoord = localCoord - halfSize;
       float outputSd = sdRoundedRect(localCoord, materialSize, cornerRadii);
-      float coverage = shapeCoverage(outputSd, sampleStep * 0.5);
-      if (coverage <= 0.0) return vec4(0.0);
+      float coverage = applyShapeCoverage > 0.5
+        ? shapeCoverage(outputSd, sampleStep * 0.5)
+        : 1.0;
+      if (applyShapeCoverage > 0.5 && coverage <= 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
       float shapeMask = edgeSoftness <= 0.0
@@ -254,6 +257,7 @@ internal object GlassShaders {
     uniform float2 materialOrigin;
     uniform float2 materialSize;
     uniform float sampleStep;
+    uniform float applyShapeCoverage;
     uniform float refractionStrength;
     uniform float refractionFoldStrength;
     uniform float ambientResponse;
@@ -302,8 +306,10 @@ internal object GlassShaders {
       vec2 halfSize = materialSize * 0.5;
       vec2 centeredCoord = localCoord - halfSize;
       float sd = sdRoundedRect(localCoord, materialSize, cornerRadii);
-      float coverage = shapeCoverage(sd, sampleStep * 0.5);
-      if (coverage <= 0.0) return vec4(0.0);
+      float coverage = applyShapeCoverage > 0.5
+        ? shapeCoverage(sd, sampleStep * 0.5)
+        : 1.0;
+      if (applyShapeCoverage > 0.5 && coverage <= 0.0) return vec4(0.0);
 
       float distToEdge = max(-sd, 0.0);
       float shapeMask = edgeSoftness <= 0.0
@@ -392,6 +398,7 @@ internal object GlassShaders {
     uniform float2 materialOrigin;
     uniform float2 materialSize;
     uniform float sampleStep;
+    uniform float applyShapeCoverage;
     uniform float refractionStrength;
     uniform float refractionFoldStrength;
     uniform float edgeSoftness;
@@ -427,8 +434,10 @@ internal object GlassShaders {
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
       float outputSd = sdRoundedRect(localCoord, materialSize, cornerRadii);
-      float coverage = shapeCoverage(outputSd, sampleStep * 0.5);
-      if (coverage <= 0.0) return vec4(0.0);
+      float coverage = applyShapeCoverage > 0.5
+        ? shapeCoverage(outputSd, sampleStep * 0.5)
+        : 1.0;
+      if (applyShapeCoverage > 0.5 && coverage <= 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
       ${if (interactive) {
@@ -489,12 +498,30 @@ internal object GlassShaders {
     }
   """
 
+  fun buildOutputCoverage(): String = """
+    uniform shader content;
+    uniform float2 materialSize;
+    uniform float sampleStep;
+    uniform vec4 cornerRadii;
+
+    ${sdfShapeHelpers()}
+
+    vec4 main(vec2 coord) {
+      float sd = sdRoundedRect(coord, materialSize, cornerRadii);
+      float coverage = shapeCoverage(sd, sampleStep * 0.5);
+      if (coverage <= 0.0) return vec4(0.0);
+      vec4 color = content.eval(coord);
+      return color.a > 0.0 ? color * coverage : vec4(0.0);
+    }
+  """
+
   fun buildInteractionLighting(): String = """
     uniform shader content;
     uniform float2 materialOrigin;
     uniform float2 materialSize;
     uniform vec4 cornerRadii;
     uniform float edgeSoftness;
+    uniform float sampleStep;
     ${interactionUniforms(includeRefraction = false, includeWhitePoint = false, includeLighting = true)}
 
     ${sdfHelpers()}
@@ -504,13 +531,14 @@ internal object GlassShaders {
     vec4 main(vec2 coord) {
       vec2 localCoord = coord - materialOrigin;
       float sd = sdRoundedRect(localCoord, materialSize, cornerRadii);
-      if (sd > 0.0) return vec4(0.0);
+      float coverage = shapeCoverage(sd, sampleStep * 0.5);
+      if (coverage <= 0.0) return vec4(0.0);
       float shapeMask = edgeSoftness <= 0.0
         ? 1.0
         : smootherstep(clamp(max(-sd, 0.0) / max(edgeSoftness, 0.0001), 0.0, 1.0));
       float light = interactionFalloff(coord) * interactionLightingIntensity * shapeMask;
       float contentAlpha = content.eval(coord).a;
-      float alpha = light * 0.32 * contentAlpha;
+      float alpha = light * 0.32 * contentAlpha * coverage;
       return vec4(vec3(alpha), alpha);
     }
   """

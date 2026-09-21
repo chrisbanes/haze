@@ -51,24 +51,30 @@ class GlassRenderBudgetTest {
 
   @Test
   fun configuredInteractionBudget_usesLocalPatchSize() {
-    val patchSize = IntSize(240, 240)
+    val opticsPatchSize = IntSize(120, 120)
+    val lightingPatchSize = IntSize(240, 240)
     val plan = buildGlassBudgetLayerPlan(
       sampleSize = IntSize(1000, 600),
       blurRadiusPx = 0f,
       depth = 0f,
       allowNativeWideBlur = true,
       refractionDetailActive = true,
-      rimActive = false,
-      interactionPatchSize = patchSize,
+      rimSize = null,
+      interactionOpticsPatchSize = opticsPatchSize,
+      interactionLightingPatchSize = lightingPatchSize,
       interactionOpticsActive = true,
       interactionLightingActive = true,
     )
 
-    assertThat(
-      plan.layers.filter { it.kind.name.startsWith("Interaction") }.map { it.size },
-    ).containsExactly(
-      *List(if (supportsFusedGlassRenderEffect) 1 else 5) { patchSize }.toTypedArray(),
-    )
+    val interactionLayers = plan.layers.filter { it.kind.name.startsWith("Interaction") }
+    if (supportsFusedGlassRenderEffect) {
+      assertThat(interactionLayers.map { it.size }).containsExactly(lightingPatchSize)
+    } else {
+      assertThat(interactionLayers.map { it.size }).containsExactly(
+        *List(4) { opticsPatchSize }.toTypedArray(),
+        lightingPatchSize,
+      )
+    }
   }
 
   @Test
@@ -76,6 +82,7 @@ class GlassRenderBudgetTest {
     val outputSize = IntSize(1000, 600)
     val result = resolveGlassGroupCompositeSize(
       outputSize = outputSize,
+      scaleFactor = 1f,
       alpha = 1f,
       interactionLayersActive = true,
       interactionTopology = GlassInteractionTopology(
@@ -93,6 +100,59 @@ class GlassRenderBudgetTest {
   }
 
   @Test
+  fun reducedSources_addOneOutputSizedFinalizerToBudget() {
+    val outputSize = IntSize(1000, 600)
+
+    assertThat(
+      resolveGlassGroupCompositeSize(
+        outputSize = outputSize,
+        scaleFactor = 0.5f,
+        alpha = 1f,
+        interactionLayersActive = false,
+        interactionTopology = GlassInteractionTopology(false, false, 1f),
+      ),
+    ).isEqualTo(outputSize)
+
+    assertThat(
+      resolveGlassGroupCompositeSize(
+        outputSize = outputSize,
+        scaleFactor = 1f,
+        alpha = 1f,
+        interactionLayersActive = false,
+        interactionTopology = GlassInteractionTopology(false, false, 1f),
+      ),
+    ).isNull()
+  }
+
+  @Test
+  fun reducedSources_budgetFullResolutionForegroundSeparatelyFromOptics() {
+    val plan = buildGlassBudgetLayerPlan(
+      sampleSize = IntSize(500, 300),
+      groupCompositeSize = IntSize(1000, 600),
+      blurRadiusPx = 0f,
+      depth = 0f,
+      allowNativeWideBlur = true,
+      refractionDetailActive = false,
+      rimSize = IntSize(1200, 800),
+      interactionOpticsPatchSize = IntSize(120, 120),
+      interactionLightingPatchSize = IntSize(240, 240),
+      interactionOpticsActive = true,
+      interactionLightingActive = true,
+    )
+
+    assertThat(plan.layers.filter { it.kind == GlassRetainedLayerKind.Rim })
+      .containsExactly(GlassRetainedLayer(GlassRetainedLayerKind.Rim, IntSize(1200, 800)))
+    assertThat(plan.layers.filter { it.kind == GlassRetainedLayerKind.InteractionLighting })
+      .containsExactly(
+        GlassRetainedLayer(GlassRetainedLayerKind.InteractionLighting, IntSize(240, 240)),
+      )
+    assertThat(plan.layers.filter { it.kind == GlassRetainedLayerKind.GroupComposite })
+      .containsExactly(
+        GlassRetainedLayer(GlassRetainedLayerKind.GroupComposite, IntSize(1000, 600)),
+      )
+  }
+
+  @Test
   fun fractionalAlpha_addsMaterialSizedGroupCompositeToBudget() {
     val plan = buildGlassBudgetLayerPlan(
       sampleSize = IntSize(100, 100),
@@ -101,7 +161,7 @@ class GlassRenderBudgetTest {
       depth = 0f,
       allowNativeWideBlur = true,
       refractionDetailActive = false,
-      rimActive = false,
+      rimSize = null,
       interactionOpticsActive = false,
       interactionLightingActive = false,
     )

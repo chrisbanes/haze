@@ -63,6 +63,35 @@ class GlassBoundaryShaderTest {
     assertFractionalBoundaryCoverage(pill = true)
   }
 
+  @Test
+  fun outputCoverageEffect_hasFractionalAsymmetricBoundaryCoverage() {
+    val size = Size(168f, 136f)
+    val key = GlassOutputCoverageEffectKey(
+      materialSize = size,
+      cornerRadii = CornerRadii(56f, 32f, 18f, 44f),
+      sampleStepPx = 2f,
+    )
+    val effect = createRuntimeShaderRenderEffect(
+      RuntimeEffect.makeForShader(GlassShaders.buildOutputCoverage()),
+      arrayOf("content"),
+      arrayOf(null),
+    ) { setOutputCoverageUniforms(key) }
+    val image = ImageBitmap(size.width.toInt(), size.height.toInt())
+    with(Canvas(image)) {
+      val bounds = Rect(Offset.Zero, size)
+      saveLayer(bounds, Paint().apply { skiaPaint.imageFilter = effect })
+      drawRect(bounds, Paint().apply { color = Color.White })
+      restore()
+    }
+    val pixels = image.toPixelMap()
+    val fractional = (0 until pixels.height).sumOf { y ->
+      (0 until pixels.width).count { x -> pixels[x, y].alpha in 0.01f..0.99f }
+    }
+
+    assertThat(fractional).isGreaterThan(80)
+    assertThat(pixels[0, 0].alpha).isLessThan(1f / 255f)
+  }
+
   private fun assertFractionalBoundaryCoverage(pill: Boolean) {
     for (fused in listOf(false, true)) {
       val pixels = render(fused, pill = pill).toPixelMap()

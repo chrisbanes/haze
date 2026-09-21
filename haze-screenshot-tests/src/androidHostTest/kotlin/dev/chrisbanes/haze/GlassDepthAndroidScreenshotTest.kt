@@ -103,6 +103,30 @@ class GlassDepthAndroidScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_qualityOutputCoverageMatchesComposeClip() = runScreenshotTest {
+    assertGlassOutputCoverageMatchesComposeClip(
+      HazePerformanceMode.Quality,
+      ANDROID_QUALITY_COMPOSE_ALPHA_TOLERANCE,
+    )
+  }
+
+  @Test
+  fun glass_balancedOutputCoverageMatchesComposeClip() = runScreenshotTest {
+    assertGlassOutputCoverageMatchesComposeClip(
+      HazePerformanceMode.Balanced,
+      ANDROID_QUALITY_COMPOSE_ALPHA_TOLERANCE,
+    )
+  }
+
+  @Test
+  fun glass_performanceOutputCoverageMatchesComposeClip() = runScreenshotTest {
+    assertGlassOutputCoverageMatchesComposeClip(
+      HazePerformanceMode.Performance,
+      ANDROID_QUALITY_COMPOSE_ALPHA_TOLERANCE,
+    )
+  }
+
+  @Test
   fun glass_transparentOutputIsPremultiplied() = runScreenshotTest {
     assertGlassTransparentOutputInvariant()
   }

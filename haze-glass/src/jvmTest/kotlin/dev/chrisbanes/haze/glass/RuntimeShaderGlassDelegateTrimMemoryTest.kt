@@ -97,7 +97,13 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
 
   @Test
   fun fractionalAlpha_reusesGroupLayerAndZeroReleasesIt() {
-    val effect = GlassRuntimeEffect().apply { style = style.then { alpha(0.5f) } }
+    val effect = GlassRuntimeEffect(
+      GlassNodeConfiguration(
+        style = GlassStyle { alpha(0.5f) },
+        performanceMode = HazePerformanceMode.Quality,
+        interactionSource = null,
+      ),
+    )
     val delegate = RuntimeShaderGlassDelegate(effect)
     val context = RecordingVisualEffectContext(
       size = Size(100f, 100f),
@@ -113,6 +119,36 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.prepareDrawForTest(context, effect)
 
     assertThat(delegate.layers.groupAlpha.layer).isNull()
+    assertThat(first in context.graphicsContext.releasedLayers).isTrue()
+  }
+
+  @Test
+  fun reducedInputScale_reusesOutputCompositeAndTrimReleasesIt() {
+    val effect = GlassRuntimeEffect(
+      GlassNodeConfiguration(
+        style = GlassStyle.regular,
+        performanceMode = HazePerformanceMode.Fixed(0.5f),
+        interactionSource = null,
+      ),
+    )
+    val delegate = RuntimeShaderGlassDelegate(effect)
+    val context = RecordingVisualEffectContext(
+      size = Size(100f, 100f),
+      layerSize = Size(120f, 120f),
+    )
+
+    delegate.prepareDrawForTest(context, effect)
+    val first = checkNotNull(delegate.layers.groupAlpha.layer)
+    val coverageShader = checkNotNull(delegate.outputCoverageShader)
+    delegate.prepareDrawForTest(context, effect)
+
+    assertThat(delegate.layers.groupAlpha.layer).isSameInstanceAs(first)
+    assertThat(delegate.outputCoverageShader).isSameInstanceAs(coverageShader)
+
+    delegate.onTrimMemory(context, TrimMemoryLevel.MODERATE)
+
+    assertThat(delegate.layers.groupAlpha.layer).isNull()
+    assertThat(delegate.outputCoverageShader).isNull()
     assertThat(first in context.graphicsContext.releasedLayers).isTrue()
   }
 
@@ -185,7 +221,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
 
     val oversizedContext = RecordingVisualEffectContext(
       size = Size(100f, 100f),
-      layerSize = Size(5_000f, 5_000f),
+      layerSize = Size(3_500f, 3_500f),
       graphicsContext = graphicsContext,
     )
     delegate.prepareDrawForTest(oversizedContext, effect)

@@ -788,18 +788,25 @@ internal class GlassRuntimeEffect() :
         return@buildPlan GlassRetainedLayerPlan(emptyList())
       }
       val outputSize = context.modifierSize.roundToIntSize()
-      val interactionPatchSize = calculateGlassInteractionPatchSize(
-        buildGlassRenderParams(style, coordinates),
+      val params = buildGlassRenderParams(style, coordinates)
+      val foregroundParams = params.atOutputResolution()
+      val interactionOpticsPatchSize = calculateGlassInteractionPatchSize(
+        params,
         radiusFraction = interaction.radiusFraction,
-        topology = interactionTopology,
+        topology = interactionTopology.copy(hasLighting = false),
       )
-      val interactionLayersActive =
-        interactionPatchSize.width > 0 && interactionPatchSize.height > 0
+      val interactionLightingPatchSize = calculateGlassInteractionPatchSize(
+        foregroundParams,
+        radiusFraction = interaction.radiusFraction,
+        topology = interactionTopology.copy(hasOptics = false),
+      )
+      val interactionOpticsLayersActive =
+        interactionOpticsPatchSize.width > 0 && interactionOpticsPatchSize.height > 0
       if (backdrop) {
         buildGlassBackdropLayerPlan(
-          sampleSize = coordinates.sampleSize.roundToIntSize(),
+          sampleSize = foregroundParams.coordinates.sampleSize.roundToIntSize(),
           rimActive = style.specularIntensity > 0f || style.edgeShadow.alpha > 0f,
-          interactionPatchSize = interactionPatchSize,
+          interactionPatchSize = interactionLightingPatchSize,
           interactionLightingActive = interactionTopology.hasLighting,
         )
       } else {
@@ -807,8 +814,9 @@ internal class GlassRuntimeEffect() :
           sampleSize = coordinates.sampleSize.roundToIntSize(),
           groupCompositeSize = resolveGlassGroupCompositeSize(
             outputSize = outputSize,
+            scaleFactor = scaleFactor,
             alpha = style.alpha,
-            interactionLayersActive = interactionLayersActive,
+            interactionLayersActive = interactionOpticsLayersActive,
             interactionTopology = interactionTopology,
           ),
           blurRadiusPx = optics.blurRadiusPx * scaleFactor,
@@ -826,8 +834,11 @@ internal class GlassRuntimeEffect() :
             sampleStepPx = 2f * scaleFactor,
             detailIntensity = optics.refractionDetailIntensity,
           ),
-          rimActive = style.specularIntensity > 0f || style.edgeShadow.alpha > 0f,
-          interactionPatchSize = interactionPatchSize,
+          rimSize = foregroundParams.coordinates.sampleSize.roundToIntSize().takeIf {
+            style.specularIntensity > 0f || style.edgeShadow.alpha > 0f
+          },
+          interactionOpticsPatchSize = interactionOpticsPatchSize,
+          interactionLightingPatchSize = interactionLightingPatchSize,
           interactionOpticsActive = interactionTopology.hasOptics,
           interactionLightingActive = interactionTopology.hasLighting,
         )
@@ -961,7 +972,7 @@ internal class GlassRuntimeEffect() :
         plan = buildGlassBackdropLayerPlan(
           sampleSize = params.coordinates.sampleSize.roundToIntSize(),
           rimActive = sourcePrepared.rimKey != null,
-          interactionPatchSize = sourcePrepared.interactionPatchSize,
+          interactionPatchSize = sourcePrepared.interactionLightingPatchSize,
           interactionLightingActive = sourcePrepared.interactionTopology.hasLighting,
         ),
         groupCompositeSize = null,
