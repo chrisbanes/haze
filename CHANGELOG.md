@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 2.0.0 <small>2026-09-22</small> { id="2.0.0" }
+
 Haze 2.0 rebuilds the library around typed, modular visual effects. Blur moves into its own
 artifact, Glass joins as an experimental multiplatform effect, and each modifier now declares its
 input, shareable Style, performance policy, and rendering behavior explicitly.
