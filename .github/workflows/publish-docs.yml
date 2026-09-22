@@ -181,10 +181,11 @@ jobs:
         env:
           DOCS_ALIASES: ${{ steps.docs.outputs.aliases }}
           HAZE_VERSION: ${{ steps.docs.outputs.version }}
-        run: mike deploy -u --push "$HAZE_VERSION" $DOCS_ALIASES
+        run: mike deploy -u "$HAZE_VERSION" $DOCS_ALIASES
 
       - name: Delete old doc versions
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.delete_old_versions }}
-        run: |
-          git fetch origin gh-pages --depth=1
-          scripts/delete_old_version_docs.sh
+        run: scripts/delete_old_version_docs.sh
+
+      - name: Push docs deployment
+        run: git push origin gh-pages

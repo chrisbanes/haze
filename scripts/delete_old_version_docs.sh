@@ -55,5 +55,5 @@ done
 
 for v in "${to_delete[@]}"; do
   echo "Deleting $v"
-  mike delete "$v" --push
+  mike delete "$v"
 done
