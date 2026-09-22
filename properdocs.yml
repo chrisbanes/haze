@@ -36,6 +36,7 @@ nav:
     - "Benchmark results": benchmark-results.md
   - "Scenarios":
     - "Camera": scenarios/camera.md
+    - "UIKit interop on iOS": scenarios/uikit-interop.md
   - "Recipes": recipes.md
   - "Migrating to Haze 2.0": migrating-2.0.md
   - "Changelog": changelog.md

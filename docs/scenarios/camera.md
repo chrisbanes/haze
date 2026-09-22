@@ -136,3 +136,7 @@ shared Haze layout:
 The same constraint applies to video players and other platform views. Choose a rendering path that
 draws into the Compose layer—for example, ExoPlayer's `TextureView` mode—before marking it with
 `hazeSource`.
+
+For the iOS equivalent, see [UIKit interop on iOS](uikit-interop.md). UIKit interop placement can
+either leave a cut-out in the Compose Metal canvas or place UIKit above it; neither mode makes
+UIKit pixels available to Haze.
