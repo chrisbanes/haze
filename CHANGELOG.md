@@ -59,7 +59,7 @@ input, shareable Style, performance policy, and rendering behavior explicitly.
   create colour effects through `HazeColorEffect.tint` or `colorFilter`, and use `then` for
   variations.
 
-See the [Haze 2.0 migration guide](https://chrisbanes.github.io/haze/migrating-2.0/) for dependency,
+See the [Haze 2.0 migration guide](https://chrisbanes.github.io/haze/2.0.0/migrating-2.0/) for dependency,
 import, API, input-policy, and performance-mode changes.
 
 **Full Changelog**: https://github.com/chrisbanes/haze/compare/1.7.2...2.0.0
