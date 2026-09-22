@@ -11,7 +11,10 @@ in `sample/`; library screenshots in `haze-screenshot-tests`, sample screenshots
   work makes them worthwhile; keep validation proportional to the change.
 - Use Java 21. Agent-invoked Gradle commands must use `--no-scan` unless a Build Scan is explicitly
   authorized. Preserve the repository's configured CI Build Scan behaviour.
-  Prefer targeted module tasks; run `./gradlew check --no-scan` before opening a PR.
+  Validate the affected behavior before opening a PR. Prefer targeted module tasks for code changes;
+  run `./gradlew check --no-scan` when the scope or integration risk warrants repository-wide checks.
+  For documentation-only changes, run the strict docs build and check affected links and navigation;
+  Gradle checks are unnecessary unless executable code or build behavior is also affected.
 - Follow `.editorconfig`: two-space Kotlin indentation, ktlint `intellij_idea`, and trailing commas.
   Apply Spotless to changed modules before committing.
 - Keep public packages under `dev.chrisbanes.haze.*`; use PascalCase for composables, camelCase
