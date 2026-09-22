@@ -18,7 +18,7 @@
         <link rel="prev" href="../../benchmark-results/">
       
       
-        <link rel="next" href="../../recipes/">
+        <link rel="next" href="../uikit-interop/">
       
       
         
@@ -921,6 +921,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../uikit-interop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UIKit interop on iOS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1310,7 +1338,10 @@ shared Haze layout:</p>
 </table>
 <p>The same constraint applies to video players and other platform views. Choose a rendering path that
 draws into the Compose layer—for example, ExoPlayer's <code>TextureView</code> mode—before marking it with
-<code>hazeSource</code>.</p></div>
+<code>hazeSource</code>.</p>
+<p>For the iOS equivalent, see <a href="../uikit-interop/">UIKit interop on iOS</a>. UIKit interop placement can
+either leave a cut-out in the Compose Metal canvas or place UIKit above it; neither mode makes
+UIKit pixels available to Haze.</p></div>
 
 
 

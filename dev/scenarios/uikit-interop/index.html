@@ -12,25 +12,31 @@
         <meta name="author" content="Chris Banes">
       
       
+        <link rel="canonical" href="https://chrisbanes.github.io/haze/dev/scenarios/uikit-interop/">
       
+      
+        <link rel="prev" href="../camera/">
+      
+      
+        <link rel="next" href="../../recipes/">
       
       
         
       
       
-      <link rel="icon" href="/haze/dev/media/logo.webp">
+      <link rel="icon" href="../../media/logo.webp">
       <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.7">
     
     
       
-        <title>Haze</title>
+        <title>UIKit interop on iOS - Haze</title>
       
     
     
-      <link rel="stylesheet" href="/haze/dev/assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="/haze/dev/assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -49,13 +55,26 @@
       
     
     
-    <script>__md_scope=new URL("/haze/dev",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
     
     
-  </head>
+  
+<meta property="og:type" content="website" />
+<meta property="og:title" content="UIKit interop on iOS - Haze" />
+<meta property="og:description" content="Visual effects (blur and more) for Compose Multiplatform" />
+<meta property="og:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/scenarios/uikit-interop.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="https://chrisbanes.github.io/haze/dev/scenarios/uikit-interop/" />
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:title" content="UIKit interop on iOS - Haze" />
+<meta property="twitter:description" content="Visual effects (blur and more) for Compose Multiplatform" />
+<meta property="twitter:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/scenarios/uikit-interop.png" />
+</head>
   
   
     
@@ -70,6 +89,11 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
+      
+        
+        <a href="#uikit-interop-on-ios" class="md-skip">
+          Skip to content
+        </a>
       
     </div>
     <div data-md-component="announce">
@@ -87,9 +111,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/haze/dev/." title="Haze" class="md-header__button md-logo" aria-label="Haze" data-md-component="logo">
+    <a href="../.." title="Haze" class="md-header__button md-logo" aria-label="Haze" data-md-component="logo">
       
-  <img src="/haze/dev/media/logo.webp" alt="logo">
+  <img src="../../media/logo.webp" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -106,7 +130,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              UIKit interop on iOS
             
           </span>
         </div>
@@ -196,9 +220,9 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/haze/dev/." title="Haze" class="md-nav__button md-logo" aria-label="Haze" data-md-component="logo">
+    <a href="../.." title="Haze" class="md-nav__button md-logo" aria-label="Haze" data-md-component="logo">
       
-  <img src="/haze/dev/media/logo.webp" alt="logo">
+  <img src="../../media/logo.webp" alt="logo">
 
     </a>
     Haze
@@ -225,7 +249,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -252,7 +276,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/architecture/" class="md-nav__link">
+      <a href="../../architecture/" class="md-nav__link">
         
   
   
@@ -279,7 +303,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/core-concepts/" class="md-nav__link">
+      <a href="../../core-concepts/" class="md-nav__link">
         
   
   
@@ -353,7 +377,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/blur/" class="md-nav__link">
+      <a href="../../blur/" class="md-nav__link">
         
   
   
@@ -381,7 +405,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/blur/usage/" class="md-nav__link">
+      <a href="../../blur/usage/" class="md-nav__link">
         
   
   
@@ -409,7 +433,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/blur/materials/" class="md-nav__link">
+      <a href="../../blur/materials/" class="md-nav__link">
         
   
   
@@ -437,7 +461,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/blur/material3/" class="md-nav__link">
+      <a href="../../blur/material3/" class="md-nav__link">
         
   
   
@@ -465,7 +489,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/blur/faq/" class="md-nav__link">
+      <a href="../../blur/faq/" class="md-nav__link">
         
   
   
@@ -493,7 +517,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/blur/platforms/" class="md-nav__link">
+      <a href="../../blur/platforms/" class="md-nav__link">
         
   
   
@@ -575,7 +599,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/effects/glass/" class="md-nav__link">
+      <a href="../../effects/glass/" class="md-nav__link">
         
   
   
@@ -610,7 +634,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/custom-effects/" class="md-nav__link">
+      <a href="../../custom-effects/" class="md-nav__link">
         
   
   
@@ -684,7 +708,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/performance/" class="md-nav__link">
+      <a href="../../performance/" class="md-nav__link">
         
   
   
@@ -712,7 +736,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/benchmark-results/" class="md-nav__link">
+      <a href="../../benchmark-results/" class="md-nav__link">
         
   
   
@@ -744,18 +768,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
         
           
           <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
@@ -776,7 +802,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
@@ -794,7 +820,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/scenarios/camera/" class="md-nav__link">
+      <a href="../camera/" class="md-nav__link">
         
   
   
@@ -819,10 +845,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/haze/dev/scenarios/uikit-interop/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UIKit interop on iOS
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -838,6 +891,48 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overlay-placement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overlay placement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Support
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -857,7 +952,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/recipes/" class="md-nav__link">
+      <a href="../../recipes/" class="md-nav__link">
         
   
   
@@ -884,7 +979,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/migrating-2.0/" class="md-nav__link">
+      <a href="../../migrating-2.0/" class="md-nav__link">
         
   
   
@@ -911,7 +1006,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/changelog/" class="md-nav__link">
+      <a href="../../changelog/" class="md-nav__link">
         
   
   
@@ -938,7 +1033,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/api/" class="md-nav__link">
+      <a href="../../api/" class="md-nav__link">
         
   
   
@@ -992,7 +1087,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/haze/dev/sample/wasm/" class="md-nav__link">
+      <a href="../../sample/wasm/" class="md-nav__link">
         
   
   
@@ -1029,6 +1124,38 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overlay-placement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overlay placement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Support
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -1041,8 +1168,89 @@
               
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<div><h1 id="uikit-interop-on-ios">UIKit interop on iOS<a class="headerlink" href="#uikit-interop-on-ios" title="Permanent link">¶</a></h1>
+<p>Haze captures pixels that Compose draws into its graphics layer. Content hosted by
+<code>UIKitView</code> or <code>UIKitViewController</code> is rendered by UIKit, so it is not part of that
+captured Compose layer by default.</p>
+<h2 id="overlay-placement">Overlay placement<a class="headerlink" href="#overlay-placement" title="Permanent link">¶</a></h2>
+<p><code>UIKitInteropProperties.placedAsOverlay</code> changes where UIKit is composited relative to
+Compose's Metal canvas; it does not make UIKit pixels available to Haze.</p>
+<table>
+<thead>
+<tr>
+<th><code>placedAsOverlay</code></th>
+<th>Placement</th>
+<th>Effect on Haze</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>false</code> (default)</td>
+<td>UIKit stays below the Compose Metal canvas. Compose draws a transparent cut-out where the UIKit view appears.</td>
+<td>The UIKit pixels are outside Haze's captured source.</td>
+</tr>
+<tr>
+<td><code>true</code></td>
+<td>UIKit is placed above the Compose Metal canvas.</td>
+<td>The UIKit view covers any overlapping Compose or Haze content; its pixels are still outside Haze's captured source.</td>
+</tr>
+</tbody>
+</table>
+<p>This follows Compose Multiplatform's <a href="https://kotlinlang.org/docs/multiplatform/whats-new-compose-110.html#overlay-placement-for-interop-views">overlay placement guidance</a>
+and the <a href="https://github.com/JetBrains/compose-multiplatform-core/blob/v1.12.1/compose/ui/ui/src/iosMain/kotlin/androidx/compose/ui/viewinterop/UIKitInteropProperties.ios.kt"><code>UIKitInteropProperties</code> API source</a>.</p>
+<p><code>interactionMode</code> controls touch handling and <code>isNativeAccessibilityEnabled</code> controls
+native accessibility exposure. Both are independent of pixel capture and do not change
+whether Haze can use UIKit content as a source.</p>
+<h2 id="support">Support<a class="headerlink" href="#support" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>UIKit content</th>
+<th>Can Haze capture it?</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>WKWebView</code> in <code>UIKitView</code></td>
+<td>No</td>
+<td>Use a renderer that draws the visual content into the Compose layer before Haze captures it.</td>
+</tr>
+<tr>
+<td><code>AVPlayerLayer</code> hosted by <code>UIKitView</code></td>
+<td>No</td>
+<td>Use a video rendering path that draws into the Compose layer before Haze captures it.</td>
+</tr>
+<tr>
+<td>Other <code>UIKitView</code> or <code>UIKitViewController</code> content</td>
+<td>No</td>
+<td>Visual content must render into the Compose layer before it can be captured by Haze.</td>
+</tr>
+</tbody>
+</table>
+<p>Use an iOS UIKit interop view when native composition or interaction is the goal. To blur
+or glass its visual content with Haze, choose a rendering path whose pixels are drawn into
+the same Compose layer as <code>hazeSource</code>.</p></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -1081,12 +1289,12 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "/haze/dev", "features": ["content.tabs.link", "content.code.copy"], "search": "/haze/dev/assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.tabs.link", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
     
     
-      <script src="/haze/dev/assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
-        <script src="/haze/dev/javascripts/snapshot-version.js"></script>
+        <script src="../../javascripts/snapshot-version.js"></script>
       
     
   </body>
