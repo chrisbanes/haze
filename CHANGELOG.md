@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+Haze 2.0 rebuilds the library around typed, modular visual effects. Blur moves into its own
+artifact, Glass joins as an experimental multiplatform effect, and each modifier now declares its
+input, shareable Style, performance policy, and rendering behavior explicitly.
+
+### Added
+
+- Added the `haze-blur` artifact and typed `Modifier.hazeBlur` API, with replayable
+  `HazeBlurStyle` programs that can be shared and extended with `then`.
+- Added the experimental `haze-glass` artifact, including Regular and Clear built-in styles,
+  refraction, depth blur, tint, lighting, accessibility settings, progressive effects, and
+  hover, focus, and press responses.
+- Added `HazeInput.Content`, `HazeInput.Sources`, and `HazeInput.Backdrop` so effects can explicitly
+  select their input. Backdrop includes a portable captured-source fallback and an experimental,
+  opt-in native backend on supported Android versions.
+- Added `HazeEffectFactory` and `HazeEffectRenderer` for custom typed effects, plus optional
+  `haze-blur-material3` and `haze-glass-material3` integrations.
+- Added shared `HazePerformanceMode` controls for built-in Blur and Glass, including adaptive,
+  quality, balanced, performance, and fixed-quality profiles.
+
+### Changed
+
+- Replaced the mutable `Modifier.hazeEffect` Blur DSL with typed `Modifier.hazeBlur` and
+  `Modifier.hazeGlass` APIs. Styles are immutable, replayable configurations; rendering resources
+  are owned by their modifier nodes.
+- Moved Blur APIs to `dev.chrisbanes.haze.blur` and moved `HazeProgressive` to the core
+  `dev.chrisbanes.haze` package. Blur applications now depend on both `haze` and `haze-blur`.
+- Reworked source selection, retained-output policy, cross-window positioning, and default
+  workload-aware sampling around explicit input and performance contracts.
+- Updated Kotlin to 2.4.20, Compose Multiplatform to 1.12.0, and Jetpack Compose to 1.12.1.
+  `macosArm64` remains supported; the upstream-removed `iosX64` and `macosX64` targets are no
+  longer published.
+
+### Fixed
+
+- Corrected source sampling through scaled and rotated graphics layers, nested Haze states,
+  sticky headers, and multiple Compose roots or windows.
+- Improved retained-layer lifecycle, invalidation, caching, and teardown behavior across Android,
+  Desktop, iOS, and Web, including RenderScript crash and resource-leak fixes.
+- Fixed progressive Blur coverage and tint behavior on Android 12 and 12L, and refined Glass
+  rendering, colour handling, rounded edges, fallback behavior, and animation performance.
+
+### Removed
+
+- Removed the Haze 1 Blur surface and the temporary Haze 2 prerelease adapters, including
+  `Modifier.hazeEffect` Blur overloads, legacy `HazeStyle`/`HazeTint` aliases, mutable effect
+  scopes, and public renderer internals.
+- Removed readable/copyable Blur and Glass Style internals. Build styles with their factory DSLs,
+  create colour effects through `HazeColorEffect.tint` or `colorFilter`, and use `then` for
+  variations.
+
+See the [Haze 2.0 migration guide](https://chrisbanes.github.io/haze/migrating-2.0/) for dependency,
+import, API, input-policy, and performance-mode changes.
+
+**Full Changelog**: https://github.com/chrisbanes/haze/compare/1.7.2...2.0.0
+
+<details>
+<summary>Prerelease history</summary>
+
 ## 2.0.0-rc02 <small>2026-09-18</small> { id="2.0.0-rc02" }
 
 ### Added
@@ -527,6 +585,8 @@ New `positionStrategy` parameter on `rememberHazeState()` to control how effect 
 For detailed migration instructions, see the [Migration Guide](https://chrisbanes.github.io/haze/migrating-2.0/).
 
 **Full Changelog**: https://github.com/chrisbanes/haze/compare/1.7.2...2.0.0-alpha01
+
+</details>
 
 ## 1.7.2 <small>2026-02-10</small> { id="1.7.2" }
 
