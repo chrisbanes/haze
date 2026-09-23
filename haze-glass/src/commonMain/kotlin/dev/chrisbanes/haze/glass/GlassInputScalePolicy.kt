@@ -8,7 +8,7 @@ import dev.chrisbanes.haze.HazePerformanceMode
 import kotlin.math.sqrt
 import kotlin.time.TimeSource
 
-/** Resolves Glass's input scale from a normalized quality fraction. */
+/** Resolves the deterministic retained-workload fallback and Fixed quality scales for Glass. */
 internal class GlassInputScalePolicy(
   timeSource: TimeSource = TimeSource.Monotonic,
 ) {
