@@ -89,7 +89,17 @@ private class GlassAdaptiveUpdateKey(
   val layerSize: Size,
   val layerOffset: Offset,
   val interactionState: GlassInteractionRenderState,
-)
+) {
+  fun withInputSnapshot(value: HazeEffectInputSnapshot?): GlassAdaptiveUpdateKey =
+    GlassAdaptiveUpdateKey(
+      inputSnapshot = value,
+      dirtyTrackerVersion = dirtyTrackerVersion,
+      materialSize = materialSize,
+      layerSize = layerSize,
+      layerOffset = layerOffset,
+      interactionState = interactionState,
+    )
+}
 
 private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): Boolean =
   resolvedOptics == other.resolvedOptics &&
@@ -175,6 +185,28 @@ internal class GlassRuntimeEffect() :
   private var observedHostDecisionVersion = 0
   private var observedInputSnapshot: HazeEffectInputSnapshot? = null
   private var timingInputScale: Float? = null
+  private var lastAdaptiveUpdateKey: GlassAdaptiveUpdateKey? = null
+  private var lastBalancedPlan: GlassRetainedLayerPlan? = null
+
+  override val observesSelectedSourceRecords: Boolean
+    get() = performanceMode === HazePerformanceMode.Adaptive
+
+  override fun onSelectedSourceRecorded(
+    scope: HazeEffectLifecycleScope,
+    inputSnapshot: HazeEffectInputSnapshot?,
+  ): Boolean {
+    if (!isAttached || performanceMode !== HazePerformanceMode.Adaptive) return false
+    adaptiveHostBinding.renewDemandLease(scope)
+    val previousKey = lastAdaptiveUpdateKey ?: return false
+    if (inputSnapshot != null) {
+      val key = previousKey.withInputSnapshot(inputSnapshot)
+      inputScalePolicy.observeUpdate(key)
+      lastAdaptiveUpdateKey = key
+    }
+    val requestedScale = adaptiveHostBinding.host?.decision?.timingTier?.scale
+      ?: inputScalePolicy.resolve(HazePerformanceMode.Adaptive, lastBalancedPlan)
+    return preparedRender != null && requestedScale != resolvedInputScale
+  }
 
   internal val adaptiveHostForTest: GlassAdaptiveHost?
     get() = adaptiveHostBinding.host
@@ -236,6 +268,8 @@ internal class GlassRuntimeEffect() :
         HazeLogger.d(TAG) { "performanceMode changed. Current: $field. New: $value" }
         field = value
         inputScalePolicy.reset()
+        lastAdaptiveUpdateKey = null
+        lastBalancedPlan = null
         markDirty(GlassDirtyFields.PerformanceMode)
       }
     }
@@ -354,6 +388,8 @@ internal class GlassRuntimeEffect() :
     observedHostDecisionVersion = 0
     observedInputSnapshot = null
     timingInputScale = null
+    lastAdaptiveUpdateKey = null
+    lastBalancedPlan = null
     resolvedInputScale = GlassInputScalePolicy.FULL_RESOLUTION_SCALE
     preparedRender = null
     clearPreparedRenderCache()
@@ -419,16 +455,17 @@ internal class GlassRuntimeEffect() :
     trace(GlassTraceSection.Prepare) {
       val hostDecisionChanged = observeAdaptiveHostDraw(context)
       val workloadWeightChanged = if (performanceMode === HazePerformanceMode.Adaptive) {
-        inputScalePolicy.observeUpdate(
-          GlassAdaptiveUpdateKey(
-            inputSnapshot = context.inputSnapshot,
-            dirtyTrackerVersion = dirtyTrackerVersion,
-            materialSize = context.modifierSize,
-            layerSize = context.layerSize,
-            layerOffset = context.layerOffset,
-            interactionState = interactionRenderState(context.modifierSize),
-          ),
-        )
+        GlassAdaptiveUpdateKey(
+          inputSnapshot = context.inputSnapshot,
+          dirtyTrackerVersion = dirtyTrackerVersion,
+          materialSize = context.modifierSize,
+          layerSize = context.layerSize,
+          layerOffset = context.layerOffset,
+          interactionState = interactionRenderState(context.modifierSize),
+        ).let { key ->
+          lastAdaptiveUpdateKey = key
+          inputScalePolicy.observeUpdate(key)
+        }
       } else {
         false
       }
@@ -886,6 +923,7 @@ internal class GlassRuntimeEffect() :
     } else {
       null
     }
+    lastBalancedPlan = balancedPlan
     val requestedScale = requestedScaleOverride ?: timingInputScale?.takeIf {
       performanceMode === HazePerformanceMode.Adaptive
     } ?: inputScalePolicy.resolve(

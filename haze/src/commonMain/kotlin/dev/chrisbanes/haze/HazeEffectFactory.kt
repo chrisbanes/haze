@@ -115,6 +115,15 @@ public interface HazeEffectRendererLifecycle<Style> {
     sampling: HazeSampling,
   ): Unit = Unit
 
+  /** Whether this built-in renderer needs records from its currently selected sources. */
+  public val observesSelectedSourceRecords: Boolean get() = false
+
+  /** Called after a selected source records, outside effect preparation. Returns whether to redraw. */
+  public fun onSelectedSourceRecorded(
+    scope: HazeEffectLifecycleScope,
+    inputSnapshot: HazeEffectInputSnapshot?,
+  ): Boolean = false
+
   /** Releases resources that are valid only while the node is attached. */
   public fun detach(): Unit = Unit
 }

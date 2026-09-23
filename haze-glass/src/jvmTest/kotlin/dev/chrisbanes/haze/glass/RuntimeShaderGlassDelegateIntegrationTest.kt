@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -70,6 +71,167 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   private val attachedRuntimes = mutableMapOf<GlassRuntimeEffect, GlassRuntimeEffect>()
   private val rendererFactories =
     mutableMapOf<GlassRuntimeEffect, HazeEffectFactory<GlassNodeConfiguration>>()
+
+  @Test
+  fun sourceOnlyRecordRenewsAdaptiveDemandWithoutRepreparingUnchangedTier() = runComposeUiTest {
+    val hazeState = HazeState()
+    val color = mutableStateOf(Color.Red)
+    val effect = activeDetailEffect()
+    setContent {
+      GlassAdaptiveHost {
+        Box(Modifier.size(120.dp)) {
+          Box(Modifier.fillMaxSize().hazeSource(hazeState).drawBehind { drawRect(color.value) })
+          Box(
+            Modifier.fillMaxSize().testTag("glass").testGlass(
+              effect,
+              input = HazeInput.Sources(hazeState),
+              performanceMode = HazePerformanceMode.Adaptive,
+            ),
+          )
+        }
+      }
+    }
+    waitForIdle()
+    val runtime = runtime(effect)
+    val host = checkNotNull(runtime.adaptiveHostForTest)
+    val prepared = checkNotNull(runtime.preparedRender)
+    waitUntil(timeoutMillis = 5_000) { !host.hasActiveDemand }
+
+    color.value = Color.Blue
+    waitUntil(timeoutMillis = 5_000) { host.hasActiveDemand }
+    waitForIdle()
+
+    assertThat(runtime.preparedRender).isSameInstanceAs(prepared)
+  }
+
+  @Test
+  fun sourceOnlyRecordAppliesChangedUsableTierOnceWithoutSourceFeedback() = runComposeUiTest {
+    val hazeState = HazeState()
+    val color = mutableStateOf(Color.Red)
+    var sourceDraws = 0
+    val effect = activeDetailEffect()
+    setContent {
+      GlassAdaptiveHost {
+        Box(Modifier.size(120.dp)) {
+          Box(
+            Modifier.fillMaxSize().hazeSource(hazeState).drawBehind {
+              sourceDraws++
+              drawRect(color.value)
+            },
+          )
+          Box(
+            Modifier.fillMaxSize().testTag("glass").testGlass(
+              effect,
+              input = HazeInput.Sources(hazeState),
+              performanceMode = HazePerformanceMode.Adaptive,
+            ),
+          )
+        }
+      }
+    }
+    waitForIdle()
+    val runtime = runtime(effect)
+    val host = checkNotNull(runtime.adaptiveHostForTest)
+    val prepared = checkNotNull(runtime.preparedRender)
+    val drawsBefore = sourceDraws
+    color.value = Color.Blue
+    waitUntil(timeoutMillis = 5_000) { host.hasActiveDemand }
+    host.recordSustainedMisses()
+    color.value = Color.Green
+    waitForIdle()
+
+    assertThat(sourceDraws).isEqualTo(drawsBefore + 2)
+    assertThat((runtime.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+      .isEqualTo(GlassInputScalePolicy.AGGRESSIVE_SCALE)
+    assertThat(runtime.preparedRender).isNotSameInstanceAs(prepared)
+  }
+
+  @Test
+  fun sourceOnlyRecordsRenewOnlySelectedAdaptiveConsumersAcrossHosts() = runComposeUiTest {
+    val firstState = HazeState()
+    val secondState = HazeState()
+    val firstColor = mutableStateOf(Color.Red)
+    val secondColor = mutableStateOf(Color.Blue)
+    val showSibling = mutableStateOf(true)
+    val first = activeDetailEffect()
+    val sibling = activeDetailEffect()
+    val other = activeDetailEffect()
+    val fixed = activeDetailEffect()
+
+    setContent {
+      GlassAdaptiveHost {
+        Box(Modifier.size(120.dp)) {
+          Box(
+            Modifier.fillMaxSize().hazeSource(firstState).drawBehind {
+              drawRect(firstColor.value)
+            },
+          )
+          Box(
+            Modifier.fillMaxSize().testGlass(
+              first,
+              HazeInput.Sources(firstState),
+              HazePerformanceMode.Adaptive,
+            ),
+          )
+          if (showSibling.value) {
+            Box(
+              Modifier.fillMaxSize().testGlass(
+                sibling,
+                HazeInput.Sources(firstState),
+                HazePerformanceMode.Adaptive,
+              ),
+            )
+          }
+          Box(
+            Modifier.fillMaxSize().testGlass(
+              fixed,
+              HazeInput.Sources(firstState),
+              HazePerformanceMode.Fixed(1f),
+            ),
+          )
+        }
+      }
+      GlassAdaptiveHost {
+        Box(Modifier.size(120.dp)) {
+          Box(
+            Modifier.fillMaxSize().hazeSource(secondState).drawBehind {
+              drawRect(secondColor.value)
+            },
+          )
+          Box(
+            Modifier.fillMaxSize().testGlass(
+              other,
+              HazeInput.Sources(secondState),
+              HazePerformanceMode.Adaptive,
+            ),
+          )
+        }
+      }
+    }
+    waitForIdle()
+    val firstHost = checkNotNull(runtime(first).adaptiveHostForTest)
+    val otherHost = checkNotNull(runtime(other).adaptiveHostForTest)
+    assertThat(runtime(sibling).adaptiveHostForTest).isSameInstanceAs(firstHost)
+    assertThat(otherHost === firstHost).isFalse()
+    assertThat(runtime(fixed).adaptiveHostForTest).isNull()
+    waitUntil(timeoutMillis = 5_000) { !firstHost.hasActiveDemand && !otherHost.hasActiveDemand }
+
+    firstColor.value = Color.Green
+    waitUntil(timeoutMillis = 5_000) { firstHost.activeDemandCount == 2 }
+    assertThat(otherHost.hasActiveDemand).isFalse()
+    assertThat(runtime(fixed).performanceModeForTest).isEqualTo(HazePerformanceMode.Fixed(1f))
+
+    showSibling.value = false
+    waitForIdle()
+    assertThat(firstHost.subscriberCount).isEqualTo(1)
+    waitUntil(timeoutMillis = 5_000) { !firstHost.hasActiveDemand }
+    firstColor.value = Color.Yellow
+    waitUntil(timeoutMillis = 5_000) { firstHost.activeDemandCount == 1 }
+
+    secondColor.value = Color.Red
+    waitUntil(timeoutMillis = 5_000) { otherHost.hasActiveDemand }
+    assertThat(firstHost.subscriberCount).isEqualTo(1)
+  }
 
   @Test
   fun backgroundOpacityChange_updatesRetainedBlurNormalization() = runComposeUiTest {
@@ -497,7 +659,10 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
     runOnIdle { secondSourceColor.value = Color.Blue }
     waitForIdle()
-    runOnIdle { checkNotNull(second.attachedContextForTest).invalidateDraw() }
+    runOnIdle {
+      host.recordSustainedMisses()
+      checkNotNull(second.attachedContextForTest).invalidateDraw()
+    }
     waitForIdle()
     assertThat(second.observedInputSnapshotForTest).isNotEqualTo(secondInputSnapshot)
     assertThat((second.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)

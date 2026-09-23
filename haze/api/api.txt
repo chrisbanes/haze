@@ -101,7 +101,10 @@ package dev.chrisbanes.haze {
   @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectRendererLifecycle<Style> {
     method public default void attach(dev.chrisbanes.haze.HazeEffectLifecycleScope scope);
     method public default void detach();
+    method @InaccessibleFromKotlin public default boolean getObservesSelectedSourceRecords();
+    method public default boolean onSelectedSourceRecorded(dev.chrisbanes.haze.HazeEffectLifecycleScope scope, dev.chrisbanes.haze.HazeEffectInputSnapshot? inputSnapshot);
     method public default void update(dev.chrisbanes.haze.HazeEffectLifecycleScope scope, Style style, dev.chrisbanes.haze.HazeSampling sampling);
+    property public default boolean observesSelectedSourceRecords;
   }
 
   @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectRendererRetainedOutput {

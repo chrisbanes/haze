@@ -36,6 +36,105 @@ import kotlin.test.Test
 class HazeSourceCaptureDemandTest {
 
   @Test
+  fun selectedSourceRecordNotifiesOnlyItsInterestedEffect() = runComposeUiTest {
+    val state = HazeState()
+    val firstColor = mutableStateOf(Color.Red)
+    val secondColor = mutableStateOf(Color.Blue)
+    val factory = DemandRecordingFactory()
+    val selection = HazeSourceSelection.All.where { it.key == "first" }
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Box(
+          Modifier.fillMaxSize().hazeSource(state, key = "first").drawBehind {
+            drawRect(firstColor.value)
+          },
+        )
+        Box(
+          Modifier.fillMaxSize().hazeSource(state, key = "second").drawBehind {
+            drawRect(secondColor.value)
+          },
+        )
+        Box(
+          Modifier.fillMaxSize().hazeEffect(
+            factory = factory,
+            input = HazeInput.Sources(state, selection),
+            style = Unit,
+          ),
+        )
+      }
+    }
+    waitForIdle()
+    val renderer = factory.renderer
+    val initialRecords = renderer.selectedSourceRecords
+
+    secondColor.value = Color.Green
+    waitForIdle()
+    assertThat(renderer.selectedSourceRecords).isEqualTo(initialRecords)
+
+    firstColor.value = Color.Yellow
+    waitForIdle()
+    assertThat(renderer.selectedSourceRecords).isEqualTo(initialRecords + 1)
+  }
+
+  @Test
+  fun selectedSourceRecordSubscriptionRebindsAndStopsOnDetach() = runComposeUiTest {
+    val firstState = HazeState()
+    val secondState = HazeState()
+    val firstColor = mutableStateOf(Color.Red)
+    val secondColor = mutableStateOf(Color.Blue)
+    val selectedState = mutableStateOf(firstState)
+    val showEffect = mutableStateOf(true)
+    val showSecondSource = mutableStateOf(true)
+    val factory = DemandRecordingFactory()
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Box(
+          Modifier.fillMaxSize().hazeSource(firstState).drawBehind {
+            drawRect(firstColor.value)
+          },
+        )
+        if (showSecondSource.value) {
+          Box(
+            Modifier.fillMaxSize().hazeSource(secondState).drawBehind {
+              drawRect(secondColor.value)
+            },
+          )
+        }
+        if (showEffect.value) Effect(selectedState.value, factory)
+      }
+    }
+    waitForIdle()
+    val renderer = factory.renderer
+    selectedState.value = secondState
+    waitForIdle()
+    val afterRebind = renderer.selectedSourceRecords
+
+    firstColor.value = Color.Green
+    waitForIdle()
+    assertThat(renderer.selectedSourceRecords).isEqualTo(afterRebind)
+
+    secondColor.value = Color.Yellow
+    waitForIdle()
+    assertThat(renderer.selectedSourceRecords).isEqualTo(afterRebind + 1)
+
+    showSecondSource.value = false
+    waitForIdle()
+    val beforeRestart = renderer.selectedSourceRecords
+    showSecondSource.value = true
+    waitForIdle()
+    assertThat(renderer.selectedSourceRecords).isGreaterThan(beforeRestart)
+
+    showEffect.value = false
+    waitForIdle()
+    val afterDetach = renderer.selectedSourceRecords
+    secondColor.value = Color.Red
+    waitForIdle()
+    assertThat(renderer.selectedSourceRecords).isEqualTo(afterDetach)
+  }
+
+  @Test
   fun reusedSource_rebuildsReleasedCapture() = runComposeUiTest {
     val state = HazeState()
     val reuseKey = mutableIntStateOf(0)
@@ -302,8 +401,20 @@ private class DemandRecordingFactory : HazeEffectFactory<Unit> {
 }
 
 @OptIn(InternalHazeApi::class)
-private class DemandRecordingRenderer : HazeEffectRenderer<Unit> {
+private class DemandRecordingRenderer : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
   val snapshots = mutableListOf<HazeEffectInputSnapshot?>()
+  var selectedSourceRecords = 0
+    private set
+
+  override val observesSelectedSourceRecords: Boolean get() = true
+
+  override fun onSelectedSourceRecorded(
+    scope: HazeEffectLifecycleScope,
+    inputSnapshot: HazeEffectInputSnapshot?,
+  ): Boolean {
+    selectedSourceRecords++
+    return false
+  }
 
   override fun HazeEffectDrawScope.draw(style: Unit) {
     snapshots += (this as HazeEffectRuntimeDrawScope).inputSnapshot

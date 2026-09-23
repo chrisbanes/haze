@@ -45,6 +45,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlinx.coroutines.DisposableHandle
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 
@@ -96,6 +97,58 @@ internal class HazeEffectNode(
   private var backdropRenderer: HazeBackdropRenderer? = null
   private val captureConsumer = Any()
   private var captureDemandAreas: List<HazeArea> = emptyList()
+  private var selectedRecordAreas: List<HazeArea> = emptyList()
+  private var sourceRecordGeneration = 0
+  private var sourceRecordJob: Job? = null
+  private val sourceRecordListener: (HazeArea) -> Unit = ::onSelectedSourceRecord
+
+  private fun syncSelectedSourceRecordListeners() {
+    val renderer = typedEffectRenderer as? HazeEffectRendererLifecycle<Any?>
+    val desired = if (
+      isAttached && resolvedSourcesInput() != null &&
+      renderer?.observesSelectedSourceRecords == true
+    ) {
+      _areas
+    } else {
+      emptyList()
+    }
+    if (desired == selectedRecordAreas) return
+    clearSelectedSourceRecordListeners()
+    for (area in desired) area.sourceRecordListeners += sourceRecordListener
+    selectedRecordAreas = desired
+  }
+
+  private fun clearSelectedSourceRecordListeners() {
+    sourceRecordGeneration++
+    sourceRecordJob?.cancel()
+    sourceRecordJob = null
+    for (area in selectedRecordAreas) area.sourceRecordListeners -= sourceRecordListener
+    selectedRecordAreas = emptyList()
+  }
+
+  private fun onSelectedSourceRecord(area: HazeArea) {
+    if (!isAttached || area !in selectedRecordAreas ||
+      area !in resolvedSourcesInput()?.state?.areas.orEmpty()
+    ) {
+      return
+    }
+    val renderer = typedEffectRenderer as? HazeEffectRendererLifecycle<Any?> ?: return
+    if (!renderer.observesSelectedSourceRecords ||
+      !renderer.onSelectedSourceRecorded(typedLifecycleScope, inputSnapshot()) ||
+      sourceRecordJob?.isActive == true
+    ) {
+      return
+    }
+    val generation = sourceRecordGeneration
+    sourceRecordJob = coroutineScope.launch {
+      yield()
+      sourceRecordJob = null
+      if (!isAttached || generation != sourceRecordGeneration || selectedRecordAreas.isEmpty()) {
+        return@launch
+      }
+      invalidateVisualEffectDraw()
+    }
+  }
 
   private fun resolvedSourcesInput(): HazeInput.Sources? = when (val input = explicitInput) {
     is HazeInput.Sources -> input
@@ -110,6 +163,7 @@ internal class HazeEffectNode(
   }
 
   private fun refreshResolvedSourcesInput(previous: HazeInput.Sources?) {
+    clearSelectedSourceRecordListeners()
     val current = resolvedSourcesInput()
     if (previous == null || current == null || previous.state !== current.state) {
       clearRetainedOutput()
@@ -265,6 +319,7 @@ internal class HazeEffectNode(
         }
         field = value
         syncCaptureDemand()
+        syncSelectedSourceRecordListeners()
       }
     }
 
@@ -362,10 +417,12 @@ internal class HazeEffectNode(
       style = typedEffectStyle,
       sampling = typedEffectSampling,
     )
+    syncSelectedSourceRecordListeners()
   }
 
   @OptIn(InternalHazeApi::class)
   private fun disposeTypedRenderer() {
+    clearSelectedSourceRecordListeners()
     val renderer = typedEffectRenderer ?: return
     val wasAttached = typedRendererAttached
     typedEffectRenderer = null
@@ -441,6 +498,7 @@ internal class HazeEffectNode(
   }
 
   override fun onDetach() {
+    clearSelectedSourceRecordListeners()
     unregisterSourceDemand()
     stopSourceSelectionSnapshotObserver()
     trimMemoryCallbackDisposable?.dispose()

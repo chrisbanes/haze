@@ -147,6 +147,7 @@ internal class HazeArea {
     internal set
 
   internal val preDrawListeners = mutableStateSetOf<OnPreDrawListener>()
+  internal val sourceRecordListeners = mutableSetOf<(HazeArea) -> Unit>()
 
   private val captureConsumers = mutableStateSetOf<Any>()
 
@@ -224,6 +225,10 @@ internal fun HazeArea.notifyPreDrawListeners(
       listener(invalidateInputCapture)
     }
   }
+}
+
+internal fun HazeArea.notifySourceRecorded() {
+  sourceRecordListeners.forEach { it(this) }
 }
 
 /**

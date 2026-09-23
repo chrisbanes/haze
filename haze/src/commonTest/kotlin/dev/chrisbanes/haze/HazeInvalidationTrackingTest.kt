@@ -8,16 +8,56 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEmpty
+import assertk.assertions.isEqualTo
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class, InternalHazeApi::class)
 class HazeInvalidationTrackingTest : ContextTest() {
+
+  @Test
+  fun simultaneousSelectedSourceRecordsCoalesceOneEffectInvalidation() = runComposeUiTest {
+    val hazeState = HazeState()
+    val sourceColor = mutableStateOf(Color.Red)
+    val factory = SourceRecordInvalidatingRendererFactory()
+    var sourceDraws = 0
+
+    withHazeInvalidationTracking {
+      setContent {
+        Box(Modifier.size(100.dp)) {
+          repeat(2) {
+            Box(
+              Modifier.size(100.dp).hazeSource(hazeState).drawBehind {
+                sourceDraws++
+                drawRect(sourceColor.value)
+              },
+            )
+          }
+          Spacer(
+            Modifier.hazeInvalidationTag("effect")
+              .hazeEffect(factory, HazeInput.Sources(hazeState, HazeSourceSelection.All), Unit)
+              .size(100.dp),
+          )
+        }
+      }
+      waitForIdle()
+      val before = sourceDraws
+      clearHazeInvalidations()
+
+      sourceColor.value = Color.Blue
+      waitForIdle()
+
+      assertThat(sourceDraws).isEqualTo(before + 2)
+      assertHazeInvalidations("effect") { drawInvalidationsExactly(1) }
+    }
+  }
 
   @Test
   fun rendererRequestedInvalidateDraw_recordsTaggedEffectDrawInvalidation() = runComposeUiTest {
@@ -146,6 +186,24 @@ class HazeInvalidationTrackingTest : ContextTest() {
 
 private class InvalidatingRendererFactory : HazeEffectFactory<Boolean> {
   override fun createRenderer(): HazeEffectRenderer<Boolean> = InvalidatingRenderer()
+}
+
+private class SourceRecordInvalidatingRendererFactory : HazeEffectFactory<Unit> {
+  override fun createRenderer(): HazeEffectRenderer<Unit> = SourceRecordInvalidatingRenderer()
+}
+
+@OptIn(InternalHazeApi::class)
+private class SourceRecordInvalidatingRenderer :
+  HazeEffectRenderer<Unit>,
+  HazeEffectRendererLifecycle<Unit> {
+  override val observesSelectedSourceRecords: Boolean get() = true
+
+  override fun onSelectedSourceRecorded(
+    scope: HazeEffectLifecycleScope,
+    inputSnapshot: HazeEffectInputSnapshot?,
+  ): Boolean = true
+
+  override fun HazeEffectDrawScope.draw(style: Unit) = Unit
 }
 
 @OptIn(InternalHazeApi::class)

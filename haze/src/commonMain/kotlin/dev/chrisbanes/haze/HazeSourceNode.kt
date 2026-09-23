@@ -315,6 +315,7 @@ internal class HazeSourceNode(
           }
         }
         area.contentVersion++
+        area.notifySourceRecorded()
 
         // Now we draw `content` into the window canvas
         drawLayer(contentLayer)
