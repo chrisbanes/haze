@@ -147,12 +147,14 @@ ambient multiplication remain explicitly deferred colour-model questions.
 
 ## GlassStyle
 
-`GlassStyle` is immutable and safe to share. Build a base Style, use `then` for variations, and
-provide a replacement Style through recomposition when the appearance changes. Values omitted by
-the replacement fall back to `LocalGlassStyle` and then the individual `GlassDefaults` values.
+`GlassStyle` is immutable and safe to share. Build a base Style and use `then` for variations.
+Regular and Clear select their material response from the host's current system appearance on each
+attached node, without replacing the Style. A Style captures caller-supplied values when it is
+constructed, so changes to those values require a replacement Style through recomposition.
 
-A Style captures its inputs when it is constructed. Changing captured state does not update an
-existing Style; construct and provide a replacement instead.
+Each node starts with the appearance-specific Regular response, then applies `LocalGlassStyle` and
+its explicit Style. An omitted value inherits a local write when present; otherwise material
+response values come from Regular and presentation values from `GlassDefaults`.
 
 ### Accessibility preferences
 
