@@ -61,7 +61,9 @@ private fun createScreenshotUiTest(rule: AndroidComposeTestRule<*, *>) =
     override val supportsRuntimeBlur: Boolean = Build.VERSION.SDK_INT >= 31
 
     override fun setContent(content: @Composable () -> Unit) {
-      rule.setContent(content)
+      rule.setContent {
+        WithDefaultScreenshotSystemAppearance(content)
+      }
       rule.waitForIdle()
     }
 

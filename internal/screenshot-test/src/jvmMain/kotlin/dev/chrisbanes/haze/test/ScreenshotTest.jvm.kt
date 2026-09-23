@@ -46,7 +46,9 @@ private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiT
   override val supportsRuntimeBlur: Boolean = true
 
   override fun setContent(content: @Composable () -> Unit) {
-    this@createScreenshotUiTest.setContent(content)
+    this@createScreenshotUiTest.setContent {
+      WithDefaultScreenshotSystemAppearance(content)
+    }
   }
 
   override fun captureRoot(
