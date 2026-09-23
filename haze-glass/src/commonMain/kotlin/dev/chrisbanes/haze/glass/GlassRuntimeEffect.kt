@@ -170,6 +170,7 @@ internal class GlassRuntimeEffect() :
   private var isAttached: Boolean = false
 
   private var attachedContext: HazeEffectLifecycleScope? = null
+  private val adaptiveHostBinding = GlassAdaptiveHostBinding()
 
   private fun onRuntimeConfigurationChanged(fields: Int) {
     markDirty(fields)
@@ -302,6 +303,7 @@ internal class GlassRuntimeEffect() :
     if (!isAttached) {
       isAttached = true
       attachedContext = context
+      adaptiveHostBinding.update(context, performanceMode === HazePerformanceMode.Adaptive)
       val observerGeneration = ++geometryObserverGeneration
       geometrySnapshotObserver = SnapshotStateObserver { command ->
         context.coroutineScope.launch {
@@ -330,6 +332,7 @@ internal class GlassRuntimeEffect() :
       geometryInvalidationJob = null
       geometrySnapshotObserver?.stop()
       geometrySnapshotObserver = null
+      adaptiveHostBinding.detach()
       attachedContext = null
       isAttached = false
       delegate.release()
@@ -368,6 +371,7 @@ internal class GlassRuntimeEffect() :
   ) {
     val context = scope
     applyConfiguration(style, style.performanceMode ?: scope.currentValueOf(LocalHazePerformanceMode))
+    adaptiveHostBinding.update(context, performanceMode === HazePerformanceMode.Adaptive)
     dirtyTrackerVersion
     compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
     accessibilitySettings = context.currentValueOf(LocalGlassAccessibilitySettings)

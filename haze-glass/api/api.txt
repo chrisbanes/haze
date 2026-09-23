@@ -26,6 +26,10 @@ package dev.chrisbanes.haze.glass {
     property public boolean showBorders;
   }
 
+  public final class GlassAdaptiveHostKt {
+    method @KotlinOnly @androidx.compose.runtime.Composable @dev.chrisbanes.haze.ExperimentalHazeApi public static void GlassAdaptiveHost(kotlin.jvm.functions.Function0<kotlin.Unit> content);
+  }
+
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassDefaults {
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.ChromaticAberrationMode getChromaticAberrationMode();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassOptics getOptics();
