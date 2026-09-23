@@ -2,10 +2,39 @@
 
 ## Verdict
 
-Plan r2 slice 5 did not clear the default-release gate. Keep the initial thresholds and the
-deterministic fallback. The Android benchmark measured only one Glass runtime draw per iteration,
-and the visible fast DPR-2 browser run did not demonstrate a stable higher tier. The remaining
-comparisons need a valid active workload before calibration.
+Plan r2 has not cleared the default-release gate. Keep the initial thresholds and the deterministic
+fallback. The original Android and browser attempts below are historical diagnostics. The integrated
+source-notification and benchmark revisions now pass the focused validity checks described next,
+but no paired physical mode comparison has been run on that integrated revision.
+
+## Integrated r2 validity check
+
+- Code integration: `ec6df06d` (source-only runtime repair `32601172` followed by Richard's
+  benchmark repair `1d50a429`, cherry-picked without conflicts). This record update changes no
+  runtime or benchmark behavior.
+- Source-only production path: on the Pixel 8a, the Android device test passed 1/1 after the
+  Adaptive demand lease expired. A source-only orange-to-navy change renewed demand and changed
+  retained Glass pixels. JVM tests also cover selected and unrelated sources, multiple consumers
+  and hosts, detach/rebind, stop/restart, exact Fixed behavior, retained reuse at unchanged tier,
+  a tier change on a real source update, and one coalesced invalidation without source feedback.
+- Forced-draw benchmark path: one release-like `sourceUpdateAdaptiveDiagnostic` iteration passed on
+  the same physical Pixel 8a (Android 17, 60 Hz, battery 90%, thermal status 0; fixed-performance
+  mode was disabled afterward). Its archived result has 180 source records, 181 Glass runtime draws,
+  181 Glass prepares, 180 frame samples, and one nonempty Perfetto trace. The diagnostic's paired
+  screenshots changed 9,840/9,840 sampled interior pixels. This is a validity fixture with
+  screenshot overhead, **not** a performance-mode ranking or calibrated timing result.
+- `archive_result.py` accepted that one-iteration diagnostic and rejected sparse runs in its unit
+  tests (13 passed). The ignored local archive is
+  `internal/benchmark/build/benchmark-results/cb10-r2-integrated-ec6df06d-diagnostic/`; its
+  trace and raw JSON are not committed. The runbook now requires this validity gate before a
+  paired matrix.
+- Combined JVM and Android host/sample tests, macOS and iOS simulator Glass tests, JS/Wasm
+  compilation, and the web sample bundle passed. The Haze Apple test tasks compiled but were
+  skipped by their target configuration.
+
+The runtime source-only test and the forced-draw benchmark diagnostic establish different paths.
+Neither supplies the eight-iteration, order-reversed Adaptive/Fixed comparison, GPU completion,
+matched corner quality, or live native window/view lifecycle needed for release validation.
 
 ## Physical Android attempt
 
@@ -74,16 +103,17 @@ remain exact; no threshold or renderer-topology change was made in this slice.
 
 ## Required next evidence
 
-1. Diagnose why the physical changing-source benchmark records only one Glass draw. Then run
-   Adaptive and matching Fixed controls in both orders with eight complete metric runs each,
+1. With the one-iteration workload gate now passing, run Adaptive and matching Fixed controls in
+   both orders with eight complete metric runs each,
    active tier logs, retained traces, frame distributions, allocation counts, GPU peaks, and
    synchronized still/active corner captures.
-2. On a visible fast and a genuinely constrained web host at DPR 1/2, collect tier transitions,
-   rendered-frame or GPU timing where available, and matched Fixed/still/active corner captures.
-   Investigate the fast-host low-tier transition before changing thresholds.
+2. Preserve the repaired-cadence visible fast/full and constrained/low DPR 1/2 captures as
+   qualitative evidence. Collect rendered-frame or GPU timing where available and repeat matched
+   corner captures on the frozen integrated revision; browser GPU completion and retained memory
+   remain unavailable in the current evidence.
 3. Exercise a real desktop window and iOS view/window lifecycle, including disposal/rebind.
    Retain fallback wherever a supported host identity or timing source cannot be verified.
 
-The invalid Android workload and unmet fast DPR-2 outcome are plan r2 re-plan signals. Any
-material render invalidation or timing-design repair needs Churchill's next assignment before
+The original invalid Android workload and fast DPR-2 outcome prompted bounded repairs within plan
+r2. Any further material render invalidation or timing-design change needs a revised plan before
 implementation.
