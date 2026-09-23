@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.runtime.MonotonicFrameClock
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import kotlin.test.Test
@@ -13,6 +14,45 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 class SkikoGlassCadenceTest {
+
+  @Test
+  fun jitteredSixtyHertzCadence_neverDowngradesAndProbesFullResolution() {
+    val trace = AdaptiveCadenceTrace()
+    val intervals = longArrayOf(
+      16_000_000L, 16_800_000L, 16_700_000L, 17_000_000L,
+      16_700_000L, 16_900_000L, 16_600_000L, 18_100_000L,
+    )
+
+    repeat(450) { index -> trace.frame(intervals[index % intervals.size]) }
+
+    assertThat(trace.lowTierSeen).isFalse()
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
+  }
+
+  @Test
+  fun repeatedSkippedCallbacks_downgradeThroughTheHostController() {
+    val trace = AdaptiveCadenceTrace()
+    repeat(40) { trace.frame(16_666_667L) }
+    repeat(90) { trace.frame(33_333_334L) }
+
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.AGGRESSIVE)
+  }
+
+  @Test
+  fun staleCadenceGap_usesFallbackUntilFreshSamplesArrive() {
+    val trace = AdaptiveCadenceTrace()
+    repeat(40) { trace.frame(16_666_667L) }
+    assertThat(trace.host.decision.timingTier).isEqualTo(GlassAdaptiveTier.BALANCED)
+
+    Thread.sleep(300)
+    assertThat(trace.host.decision.timingTier).isNull()
+    trace.frame(2_000_000_000L)
+    repeat(8) { trace.frame(16_666_667L) }
+    assertThat(trace.host.decision.timingTier).isNull()
+
+    trace.frame(16_666_667L)
+    assertThat(trace.host.decision.timingTier).isEqualTo(GlassAdaptiveTier.BALANCED)
+  }
 
   @Test
   fun stableActiveCadence_emitsAfterBudgetWarmup() {
@@ -26,7 +66,7 @@ class SkikoGlassCadenceTest {
     val sample = cadence.record(now)
     assertThat(sample).isNotNull()
     assertThat(sample?.durationNanos).isEqualTo(16_666_667L)
-    assertThat(sample?.budgetNanos).isEqualTo(16_666_667L)
+    assertThat(sample?.budgetNanos).isEqualTo(25_000_000L)
   }
 
   @Test
@@ -67,7 +107,7 @@ class SkikoGlassCadenceTest {
       assertThat(cadence.record(now)).isNull()
     }
     now += 8_333_333L
-    assertThat(cadence.record(now)?.budgetNanos).isEqualTo(8_333_333L)
+    assertThat(cadence.record(now)?.budgetNanos).isEqualTo(12_499_999L)
   }
 
   @Test
@@ -80,6 +120,25 @@ class SkikoGlassCadenceTest {
     source.stop()
     assertThat(clock.cancellations).isEqualTo(1)
     assertThat(clock.requests).isEqualTo(1)
+  }
+}
+
+private class AdaptiveCadenceTrace {
+  val host = GlassAdaptiveHost(Any())
+  val controller: GlassAdaptiveTierController get() = host.controller
+  private val cadence = SkikoGlassCadence()
+  private var nowNanos = 0L
+  var lowTierSeen = false
+    private set
+
+  init {
+    cadence.record(nowNanos)
+  }
+
+  fun frame(intervalNanos: Long) {
+    nowNanos += intervalNanos
+    cadence.record(nowNanos)?.let { host.recordSample(it, nowNanos) }
+    if (controller.tier == GlassAdaptiveTier.AGGRESSIVE) lowTierSeen = true
   }
 }
 

@@ -94,7 +94,9 @@ internal class SkikoGlassCadence {
       sequence = ++sequence,
       timestampNanos = nowNanos,
       durationNanos = interval,
-      budgetNanos = budget,
+      // Callback delivery jitters around the cadence. Only a gap approaching a skipped
+      // frame slot is evidence of a miss; this is not a rendered-frame deadline.
+      budgetNanos = budget * 3 / 2,
     )
   }
 
