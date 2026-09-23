@@ -85,8 +85,7 @@ and Android-window tests pass. Apple simulator and macOS tests compile and pass,
 exercise real window lifecycle and timing.
 
 The CB-10 physical and visible-browser attempts, including benchmark workload and tier
-behaviour, are recorded in
-[the calibration report](../../internal/benchmark/CB10_ADAPTIVE_VALIDATION.md). They do not
+behaviour, are recorded in `internal/benchmark/CB10_ADAPTIVE_VALIDATION.md`. They do not
 justify threshold changes. The r3 Skiko experiment has deterministic cadence and lifecycle
 tests, visible fast and throttled browser traces, and selected tier-backed Full-versus-Quality
 corner pairs at DPR 1/2. Those pairs support a narrow visual comparison; source-phase shifts and
