@@ -176,6 +176,29 @@ class ArchiveResultTest(unittest.TestCase):
                 self.outputs, self.destination, "Example#sourceUpdateAdaptiveDiagnostic", 1, evidence
             )
 
+    def test_diagnostic_rejects_balanced_after_full_resolution(self):
+        self.prepare_diagnostic()
+        evidence = self.write_tier_evidence()
+        data = json.loads(evidence.read_text())
+        data["tierEvents"][0]["atNanos"] = 4_500_000_000
+        data["tierEvents"][0]["sampleCount"] = 250
+        evidence.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "promotion tier evidence"):
+            archive_result(
+                self.outputs, self.destination, "Example#sourceUpdateAdaptiveDiagnostic", 1, evidence
+            )
+
+    def test_diagnostic_rejects_decreasing_report_sequence(self):
+        self.prepare_diagnostic()
+        evidence = self.write_tier_evidence()
+        data = json.loads(evidence.read_text())
+        data["tierEvents"][0]["sampleCount"] = 250
+        evidence.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "promotion tier evidence"):
+            archive_result(
+                self.outputs, self.destination, "Example#sourceUpdateAdaptiveDiagnostic", 1, evidence
+            )
+
     def test_diagnostic_rejects_tier_evidence_for_another_trace(self):
         self.prepare_diagnostic()
         evidence = self.write_tier_evidence()

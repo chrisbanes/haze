@@ -184,8 +184,9 @@ animation. The archiver requires at least 120 source records, Glass draws, Glass
 frames, plus a `CB10DiagnosticActive` trace metric of at least four seconds. Four seconds covers the
 30-sample warm-up and three-second promotion window with margin. It also requires observed
 BALANCED and later FULL_RESOLUTION tier events, with promotion at least 3.5 seconds into the
-active window. The screenshots are saved under `Pictures/CB10` on the device, with their names
-logged as `CB10BenchmarkDiagnostic`.
+active window. The accepted BALANCED event must precede the promotion in both timestamp and
+reported sequence when present. The screenshots are saved under `Pictures/CB10` on the device,
+with their names logged as `CB10BenchmarkDiagnostic`.
 
 Supply a reviewed `tier-evidence.json` with `traceSha256`, `activeStartNanos`, `activeEndNanos`,
 and `tierEvents` entries containing `tier`, `atNanos`, and `sampleCount`. Read the internal

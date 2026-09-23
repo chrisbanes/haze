@@ -107,13 +107,17 @@ def archive_result(
             raise ValueError("Glass diagnostic active window disagrees with the trace metric")
         events = evidence["tierEvents"]
         if not any(
-            event["tier"] == "BALANCED" and start <= event["atNanos"] <= end
-            for event in events
-        ) or not any(
-            event["tier"] == "FULL_RESOLUTION"
-            and start + 3_500_000_000 <= event["atNanos"] <= end
-            and event["sampleCount"] >= 30
-            for event in events
+            balanced["tier"] == "BALANCED"
+            and start <= balanced["atNanos"] < promoted["atNanos"]
+            and promoted["tier"] == "FULL_RESOLUTION"
+            and start + 3_500_000_000 <= promoted["atNanos"] <= end
+            and promoted["sampleCount"] >= 30
+            and (
+                "sampleCount" not in balanced
+                or balanced["sampleCount"] < promoted["sampleCount"]
+            )
+            for balanced in events
+            for promoted in events
         ):
             raise ValueError("Glass diagnostic requires post-warm-up promotion tier evidence")
         shutil.copyfile(diagnostic_evidence, destination / "diagnostic-tier-evidence.json")
