@@ -229,7 +229,7 @@ calls outside that trace. `CB10AppJavaAllocDelta` counts all target-process Java
 window and is also present in the no-Glass control. The control lacks Glass source recording, so
 subtracting its process count does not isolate Glass. These counters exclude native and GPU
 allocations, and the probe itself adds some Java/trace overhead. `CB10GlassAppliedScalePermille`
-records the actual scale at each runtime draw; correlate it and `HazeGlass.tier.*` slices with
+records the applied scale only after a completed CPU runtime draw (not GPU completion); correlate it and `HazeGlass.tier.*` slices with
 `CB10DiagnosticActive` before labelling an active capture. A single pair validates the measurement
 seam, not mode ranking or release corner quality.
 

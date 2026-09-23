@@ -76,6 +76,7 @@ import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowTrace
 
 @OptIn(
   ExperimentalTestApi::class,
@@ -85,6 +86,48 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [35])
 class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
+  @Test
+  fun diagnosticScaleMarker_isAbsentWhenDrawReturnsBeforeCompletion() {
+    val delegate = RuntimeShaderGlassDelegate(GlassRuntimeEffect())
+    val context = java.lang.reflect.Proxy.newProxyInstance(
+      HazeEffectRuntimeDrawScope::class.java.classLoader,
+      arrayOf(HazeEffectRuntimeDrawScope::class.java),
+    ) { _, method, _ -> error("Unexpected ${method.name} on early return") } as HazeEffectRuntimeDrawScope
+    System.setProperty("dev.chrisbanes.haze.cb10AllocationDiagnostic", "true")
+    try {
+      ShadowTrace.reset()
+      with(CanvasDrawScope()) { with(delegate) { draw(context) } }
+
+      assertThat(ShadowTrace.getPreviousSections().contains("HazeGlass.runtimeDraw")).isTrue()
+      assertThat(glassAppliedScaleMarkers()).containsExactly()
+    } finally {
+      System.clearProperty("dev.chrisbanes.haze.cb10AllocationDiagnostic")
+    }
+  }
+
+  @Test
+  fun diagnosticScaleMarker_isRecordedOncePerCompletedDraw() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = retainedBlurEffect()
+      System.setProperty("dev.chrisbanes.haze.cb10AllocationDiagnostic", "true")
+      try {
+        setContent { RuntimeGlassTestContent(effect) }
+        waitForIdle()
+        ShadowTrace.reset()
+        drawFrame()
+
+        assertThat(ShadowTrace.getPreviousSections().contains("HazeGlass.runtimeDraw")).isTrue()
+        val drawCount = ShadowTrace.getPreviousSections().count { it == "HazeGlass.runtimeDraw" }
+        assertThat(glassAppliedScaleMarkers()).containsExactly(*List(drawCount) { 1_000L }.toTypedArray())
+      } finally {
+        System.clearProperty("dev.chrisbanes.haze.cb10AllocationDiagnostic")
+      }
+    }
+
+  private fun glassAppliedScaleMarkers(): List<Long> = ShadowTrace.getCounters()
+    .filter { it.name == "CB10GlassAppliedScalePermille" }
+    .map { it.value }
+
   @Test
   fun destinationCanvasChanges_refreshRetainedRimWithoutChangingStyle() =
     runAndroidComposeUiTest<ComponentActivity> {
