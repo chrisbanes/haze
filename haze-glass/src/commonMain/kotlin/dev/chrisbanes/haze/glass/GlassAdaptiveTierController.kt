@@ -142,6 +142,13 @@ internal class GlassAdaptiveTierController {
     failedProbes = 0
   }
 
+  /** Forget timing across idle or background gaps without changing the visible tier. */
+  fun suspendEvidence() {
+    resetEvidence(Phase.WARMING_UP)
+    previousSequence = null
+    previousTimestampNanos = null
+  }
+
   private fun changeTier(
     newTier: GlassAdaptiveTier,
     timestampNanos: Long,

@@ -37,6 +37,11 @@ internal val LocalGlassAdaptiveHostToken = staticCompositionLocalOf<GlassAdaptiv
 
 internal expect fun platformGlassAdaptiveHost(scope: HazeEffectLifecycleScope): Any?
 
+internal expect fun platformGlassAdaptiveTimingSource(
+  scope: HazeEffectLifecycleScope,
+  hostKey: Any,
+): GlassAdaptiveTimingSource?
+
 internal class GlassAdaptiveHostBinding(
   private val registry: GlassAdaptiveHostRegistry = glassAdaptiveHostRegistry,
 ) {
@@ -79,10 +84,15 @@ internal class GlassAdaptiveHostBinding(
       existing.rebind(key)
       existing.bindLifecycle(lifecycle)
     }
+    registration?.bindTimingSource(platformGlassAdaptiveTimingSource(scope, key))
   }
 
   fun detach() {
     registration?.release()
     registration = null
+  }
+
+  fun renewDemandLease(scope: HazeEffectLifecycleScope) {
+    registration?.renewDemandLease(scope.coroutineScope)
   }
 }

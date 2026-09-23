@@ -12,6 +12,8 @@ import assertk.assertions.isFalse
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import kotlin.test.Test
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.runTest
 
 class GlassAdaptiveHostRegistryTest {
 
@@ -105,6 +107,156 @@ class GlassAdaptiveHostRegistryTest {
     assertThat(first.host.hasActiveDemand).isFalse()
     assertThat(first.isReleased).isTrue()
     assertThat(second.isReleased).isTrue()
+  }
+
+  @Test
+  fun timingObserver_isSharedAndStopsAtIdleOrBackground() {
+    val registry = GlassAdaptiveHostRegistry()
+    val owner = HostTestLifecycleOwner()
+    owner.handle(Lifecycle.Event.ON_CREATE)
+    owner.handle(Lifecycle.Event.ON_START)
+    val first = registry.register(Any())
+    val second = registry.register(first.host.key)
+    val source = FakeGlassTimingSource()
+    first.bindLifecycle(owner.lifecycle)
+    second.bindLifecycle(owner.lifecycle)
+    first.bindTimingSource(source)
+    second.bindTimingSource(source)
+
+    first.setActiveDemand(true)
+    second.setActiveDemand(true)
+    assertThat(source.startCount).isEqualTo(1)
+    first.release()
+    assertThat(source.stopCount).isEqualTo(0)
+    owner.handle(Lifecycle.Event.ON_STOP)
+    assertThat(source.stopCount).isEqualTo(1)
+    owner.handle(Lifecycle.Event.ON_START)
+    assertThat(source.startCount).isEqualTo(2)
+    second.setActiveDemand(false)
+    assertThat(source.stopCount).isEqualTo(2)
+    second.release()
+  }
+
+  @Test
+  fun timingObserver_movesToRemainingActiveSubscriberSource() {
+    val registry = GlassAdaptiveHostRegistry()
+    val first = registry.register(Any())
+    val second = registry.register(first.host.key)
+    val firstSource = FakeGlassTimingSource()
+    val secondSource = FakeGlassTimingSource()
+    first.bindTimingSource(firstSource)
+    second.bindTimingSource(secondSource)
+    first.setActiveDemand(true)
+    second.setActiveDemand(true)
+
+    first.setActiveDemand(false)
+
+    assertThat(firstSource.stopCount).isEqualTo(1)
+    assertThat(secondSource.startCount).isEqualTo(1)
+    second.release()
+    first.release()
+  }
+
+  @Test
+  fun stoppedSourceCannotFeedHostAfterRebind() {
+    val registry = GlassAdaptiveHostRegistry()
+    val registration = registry.register(Any())
+    val source = FakeGlassTimingSource()
+    registration.bindTimingSource(source)
+    registration.setActiveDemand(true)
+    val oldCallback = source.callback
+
+    registration.rebind(Any())
+    assertThat(source.stopCount).isEqualTo(1)
+    oldCallback?.invoke(GlassFrameHealthSample(1, 1, 1, 1), 1)
+    assertThat(registration.host.hasTimingEvidence).isFalse()
+    registration.release()
+  }
+
+  @Test
+  fun staleSampleDoesNotBecomeTimingEvidence() {
+    val registration = GlassAdaptiveHostRegistry().register(Any())
+    val source = FakeGlassTimingSource()
+    registration.bindTimingSource(source)
+    registration.setActiveDemand(true)
+
+    source.callback?.invoke(GlassFrameHealthSample(1, 100L, 16L, 17L), 300_000_101L)
+    assertThat(registration.host.hasTimingEvidence).isFalse()
+    source.callback?.invoke(GlassFrameHealthSample(2, 300_000_102L, 16L, 17L), 300_000_102L)
+    assertThat(registration.host.hasTimingEvidence).isTrue()
+
+    registration.setActiveDemand(false)
+    assertThat(registration.host.hasTimingEvidence).isFalse()
+    registration.release()
+  }
+
+  @Test
+  fun demandLease_expiresAfterLastUpdateAndStopsObservation() = runTest {
+    val registration = GlassAdaptiveHostRegistry().register(Any())
+    val source = FakeGlassTimingSource()
+    registration.bindTimingSource(source)
+
+    registration.renewDemandLease(this)
+    assertThat(source.startCount).isEqualTo(1)
+    delay(200)
+    registration.renewDemandLease(this)
+    delay(200)
+    assertThat(source.stopCount).isEqualTo(0)
+    delay(200)
+    assertThat(source.stopCount).isEqualTo(1)
+    registration.release()
+  }
+
+  @Test
+  fun leasedDemand_doesNotTransferToAnotherHostOnRebind() = runTest {
+    val registration = GlassAdaptiveHostRegistry().register(Any())
+    val source = FakeGlassTimingSource()
+    registration.bindTimingSource(source)
+    registration.renewDemandLease(this)
+
+    registration.rebind(Any())
+
+    assertThat(source.stopCount).isEqualTo(1)
+    assertThat(registration.host.hasActiveDemand).isFalse()
+    registration.release()
+  }
+
+  @Test
+  fun leasedDemand_stopsOnBackgroundAndNeedsFreshUpdateOnResume() = runTest {
+    val owner = HostTestLifecycleOwner()
+    owner.handle(Lifecycle.Event.ON_CREATE)
+    owner.handle(Lifecycle.Event.ON_START)
+    val registration = GlassAdaptiveHostRegistry().register(Any())
+    val source = FakeGlassTimingSource()
+    registration.bindLifecycle(owner.lifecycle)
+    registration.bindTimingSource(source)
+    registration.renewDemandLease(this)
+
+    owner.handle(Lifecycle.Event.ON_STOP)
+    owner.handle(Lifecycle.Event.ON_START)
+
+    assertThat(source.stopCount).isEqualTo(1)
+    assertThat(source.startCount).isEqualTo(1)
+    assertThat(registration.host.hasActiveDemand).isFalse()
+    registration.release()
+  }
+}
+
+private class FakeGlassTimingSource : GlassAdaptiveTimingSource {
+  override val identity: Any = Any()
+  var startCount = 0
+  var stopCount = 0
+  var callback: ((GlassFrameHealthSample, Long) -> Unit)? = null
+
+  override fun start(onSample: (GlassFrameHealthSample, Long) -> Unit): Boolean {
+    startCount++
+    callback = onSample
+    return true
+  }
+
+  override fun stop() {
+    stopCount++
+    callback = null
   }
 }
 
