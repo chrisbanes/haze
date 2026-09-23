@@ -464,6 +464,7 @@ internal class RuntimeShaderGlassDelegate(
     trace(GlassTraceSection.RuntimeDraw) {
       val render = preparedRender ?: return
       val params = preparedParams ?: return
+      recordGlassDiagnosticAppliedScale(params.coordinates.scaleFactor)
       val effects = preparedRenderEffects ?: return
       val interactionUniforms = preparedInteractionUniforms ?: return
       val interactionPatch = preparedInteractionPatch

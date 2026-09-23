@@ -229,6 +229,57 @@ internal fun UiDevice.runGlassProfilingScenarioDiagnostic(scenarioId: String): G
   return GlassDiagnosticPixels(changed, sampled)
 }
 
+/** Lossless captures at the same source versions for the opt-in corner fixture. */
+internal fun UiDevice.runGlassCornerDiagnostic(
+  scenarioId: String,
+  glassEnabled: Boolean,
+): GlassDiagnosticPixels {
+  val bounds = if (glassEnabled) {
+    waitForObject(By.res("glass_profiling_surface_0")).visibleBounds
+  } else {
+    waitForObject(By.res("glass_profiling_selected_$scenarioId")).visibleBounds
+    android.graphics.Rect(0, 0, displayWidth, displayHeight)
+  }
+  waitForObject(By.res("glass_profiling_source_version_0"))
+  val still = checkNotNull(takeScreenshot()) { "Still Glass screenshot unavailable" }
+  val startButton = waitForObject(By.res("glass_profiling_start"))
+  val start = SystemClock.uptimeMillis()
+  startButton.click()
+  waitForObject(By.res("glass_profiling_source_version_1"))
+  SystemClock.sleep(250)
+  val active = checkNotNull(takeScreenshot()) { "Active Glass screenshot unavailable" }
+  val activeMillis = SystemClock.uptimeMillis() - start
+  val prefix = "cb10-$scenarioId-$start"
+  val savedStill = saveGlassDiagnosticScreenshot(still, "$prefix-still-v0.png")
+  val savedActive = saveGlassDiagnosticScreenshot(active, "$prefix-active-v1.png")
+
+  var sampled = 0
+  var changed = 0
+  for (y in bounds.top + bounds.height() / 6 until bounds.bottom - bounds.height() / 6 step 4) {
+    for (x in bounds.left + bounds.width() / 6 until bounds.right - bounds.width() / 6 step 4) {
+      sampled++
+      if (
+        kotlin.math.abs(android.graphics.Color.red(still.getPixel(x, y)) - android.graphics.Color.red(active.getPixel(x, y))) > 2 ||
+        kotlin.math.abs(android.graphics.Color.green(still.getPixel(x, y)) - android.graphics.Color.green(active.getPixel(x, y))) > 2 ||
+        kotlin.math.abs(android.graphics.Color.blue(still.getPixel(x, y)) - android.graphics.Color.blue(active.getPixel(x, y))) > 2
+      ) {
+        changed++
+      }
+    }
+  }
+  Log.i(
+    "CB10CornerDiagnostic",
+    "scenario=$scenarioId stillVersion=0 activeVersion=1 activeMs=$activeMillis " +
+      "changedPixels=$changed sampledPixels=$sampled bounds=$bounds " +
+      "still=$savedStill active=$savedActive",
+  )
+  SystemClock.sleep(
+    (GLASS_PROFILING_DIAGNOSTIC_MEASURE_MILLIS - (SystemClock.uptimeMillis() - start))
+      .coerceAtLeast(0),
+  )
+  return GlassDiagnosticPixels(changed, sampled)
+}
+
 private fun saveGlassDiagnosticScreenshot(bitmap: Bitmap, name: String): String {
   val resolver = InstrumentationRegistry.getInstrumentation().context.contentResolver
   val values = ContentValues().apply {

@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.sample.android
 
 import android.os.Bundle
+import android.os.Debug
 import android.os.Process
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,7 +22,14 @@ private const val BENCHMARK_SCENARIO_EXTRA =
   "dev.chrisbanes.haze.sample.android.BENCHMARK_SCENARIO"
 
 class MainActivity : ComponentActivity() {
+  @Suppress("DEPRECATION") // Only the opt-in benchmark fixture enables the ART object counters.
   override fun onCreate(savedInstanceState: Bundle?) {
+    if (intent.getStringExtra(BENCHMARK_SCENARIO_EXTRA)?.endsWith("_corner_diagnostic") == true) {
+      System.setProperty("dev.chrisbanes.haze.cb10AllocationDiagnostic", "true")
+      Debug.startAllocCounting()
+    } else if (System.clearProperty("dev.chrisbanes.haze.cb10AllocationDiagnostic") == "true") {
+      Debug.stopAllocCounting()
+    }
     intent.getStringExtra("dev.chrisbanes.haze.sample.android.BENCHMARK_CPU_AFFINITY")?.let { mask ->
       require(mask.matches(Regex("[0-9a-fA-F]+")))
       // Apply before rendering starts; new threads inherit their creator's affinity.

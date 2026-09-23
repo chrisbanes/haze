@@ -85,6 +85,24 @@ class GlassProfilingBenchmark {
   )
 
   @Test
+  fun sourceUpdateAdaptiveCornerDiagnostic() = measureCornerDiagnostic("source_update_adaptive_corner_diagnostic")
+
+  @Test
+  fun sourceUpdateQualityCornerDiagnostic() = measureCornerDiagnostic("source_update_quality_corner_diagnostic")
+
+  @Test
+  fun sourceUpdateBalancedCornerDiagnostic() = measureCornerDiagnostic("source_update_balanced_corner_diagnostic")
+
+  @Test
+  fun sourceUpdatePerformanceCornerDiagnostic() = measureCornerDiagnostic("source_update_performance_corner_diagnostic")
+
+  @Test
+  fun sourceUpdateNoGlassCornerDiagnostic() = measureCornerDiagnostic(
+    "source_update_no_glass_corner_diagnostic",
+    glassEnabled = false,
+  )
+
+  @Test
   fun sourceUpdateQuality() = measureBackdropComparisonScenario("source_update_quality")
 
   @Test
@@ -229,6 +247,18 @@ class GlassProfilingBenchmark {
     )
   }
 
+  private fun measureCornerDiagnostic(scenarioId: String, glassEnabled: Boolean = true) {
+    measureScenario(
+      scenarioId = scenarioId,
+      includeMemory = true,
+      requireRuntimeMarker = glassEnabled,
+      includeSourceAndPrepareCounts = glassEnabled,
+      cornerDiagnostic = true,
+      cornerGlassEnabled = glassEnabled,
+      iterations = 1,
+    )
+  }
+
   private fun measureScenario(
     scenarioId: String,
     continuouslyAnimating: Boolean = true,
@@ -239,6 +269,8 @@ class GlassProfilingBenchmark {
     includeSourceAndPrepareCounts: Boolean = false,
     requireBackdropDraw: Boolean = false,
     diagnosticScreenshots: Boolean = false,
+    cornerDiagnostic: Boolean = false,
+    cornerGlassEnabled: Boolean = true,
     iterations: Int = GLASS_BENCHMARK_ITERATIONS,
   ) {
     // Stable-source scenarios still animate draw progress throughout the measured window.
@@ -252,7 +284,7 @@ class GlassProfilingBenchmark {
           includePreparationMetrics = includePreparationMetrics,
           includeBackdropComparisonMetrics = includeBackdropComparisonMetrics,
           includeSourceAndPrepareCounts = includeSourceAndPrepareCounts,
-          includeDiagnosticActiveDuration = diagnosticScreenshots,
+          includeDiagnosticActiveDuration = diagnosticScreenshots || cornerDiagnostic,
           requireBackdropDraw = requireBackdropDraw,
         ),
         compilationMode = CompilationMode.Full(),
@@ -272,7 +304,9 @@ class GlassProfilingBenchmark {
           device.waitForGlassProfilingScenario(scenarioId)
         },
       ) {
-        if (diagnosticScreenshots) {
+        if (cornerDiagnostic) {
+          diagnosticPixels = device.runGlassCornerDiagnostic(scenarioId, cornerGlassEnabled)
+        } else if (diagnosticScreenshots) {
           diagnosticPixels = device.runGlassProfilingScenarioDiagnostic(scenarioId)
         } else {
           device.runGlassProfilingScenario(scenarioId)

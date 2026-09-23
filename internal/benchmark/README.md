@@ -210,6 +210,29 @@ python3 internal/benchmark/archive_result.py \
   --destination internal/benchmark/build/benchmark-results/source-update-diagnostic
 ```
 
+## Verify the corner and allocation diagnostic
+
+The opt-in `sourceUpdate{Adaptive,Quality,Balanced,Performance}CornerDiagnostic` methods and
+`sourceUpdateNoGlassCornerDiagnostic` are one-iteration **diagnostics**, not comparable timing
+rows. Run each selected method separately and archive with `--iterations 1`. Each six-second
+fixture uses the same checkerboard crossing the Glass corners and holds source version 0 at the
+ready screenshot, then version 1 during the active screenshot. The PNGs are saved losslessly under
+`Pictures/CB10` and named in `CB10CornerDiagnostic` logcat lines. Pull both files for every mode;
+check that their source-reference pixels and surface bounds match before comparing corner crops.
+The benchmark APK opts into the probe only for these scenario IDs; ordinary samples and comparison
+rows keep their existing rendering.
+
+The target-process trace exposes `CB10GlassPrepareJavaObjectsPerCall` and
+`CB10GlassDrawJavaObjectsPerCall` as **same-thread Java object counts** inside each named Glass
+trace scope. Sum samples in the measured trace; each value belongs to one call and excludes warm-up
+calls outside that trace. `CB10AppJavaAllocDelta` counts all target-process Java objects during the active
+window and is also present in the no-Glass control. The control lacks Glass source recording, so
+subtracting its process count does not isolate Glass. These counters exclude native and GPU
+allocations, and the probe itself adds some Java/trace overhead. `CB10GlassAppliedScalePermille`
+records the actual scale at each runtime draw; correlate it and `HazeGlass.tier.*` slices with
+`CB10DiagnosticActive` before labelling an active capture. A single pair validates the measurement
+seam, not mode ranking or release corner quality.
+
 ## Run the fixed-quality sweep
 
 Run each Glass fixed-quality method explicitly and verify its result label. A combined selector

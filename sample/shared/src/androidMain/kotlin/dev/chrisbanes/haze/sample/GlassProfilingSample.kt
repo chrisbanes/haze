@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze.sample
 
+import android.os.Debug
 import android.os.Trace
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -110,6 +111,7 @@ private fun GlassProfilingScenarioPicker(
 }
 
 @Composable
+@Suppress("DEPRECATION")
 private fun GlassProfilingScene(
   state: GlassProfilingState,
   scenario: GlassProfilingScenario,
@@ -127,6 +129,10 @@ private fun GlassProfilingScene(
   }
 
   val hazeState = rememberHazeState()
+  val sourceVersion = glassProfilingSourceVersion(scenario, state.progress)
+  LaunchedEffect(scenario, sourceVersion) {
+    if (scenario.cornerDiagnostic) Trace.setCounter("CB10SourceVersion", sourceVersion.toLong())
+  }
   val interactionSource = remember { MutableInteractionSource() }
   val density = LocalDensity.current
   val surfaceSizePx = with(density) {
@@ -182,7 +188,9 @@ private fun GlassProfilingScene(
         delay(GLASS_PROFILING_DURATION_MILLIS.toLong() / 2)
       }
       else -> {
-        val diagnostic = scenario == GlassProfilingScenario.SourceUpdateAdaptiveDiagnostic
+        val diagnostic = scenario.cornerDiagnostic ||
+          scenario == GlassProfilingScenario.SourceUpdateAdaptiveDiagnostic
+        val allocationStart = if (scenario.cornerDiagnostic) Debug.getGlobalAllocCount() else null
         if (diagnostic) Trace.beginAsyncSection("CB10DiagnosticActive", 1)
         try {
           Animatable(0f).animateTo(
@@ -197,6 +205,12 @@ private fun GlassProfilingScene(
           }
         } finally {
           if (diagnostic) Trace.endAsyncSection("CB10DiagnosticActive", 1)
+          if (allocationStart != null) {
+            Trace.setCounter(
+              "CB10AppJavaAllocDelta",
+              (Debug.getGlobalAllocCount() - allocationStart).toLong(),
+            )
+          }
         }
       }
     }
@@ -237,6 +251,21 @@ private fun GlassProfilingScene(
           end = Offset(size.width - x, size.height),
           strokeWidth = 4f,
         )
+      }
+      if (scenario.cornerDiagnostic) {
+        val tile = 100.dp.toPx()
+        val left = (size.width - surfaceSizePx.width) / 2f
+        val top = (size.height - surfaceSizePx.height) / 2f
+        val shift = if (sourceVersion == 0) 0f else tile / 2f
+        for (row in -1..((surfaceSizePx.height / tile).toInt() + 1)) {
+          for (column in -1..((surfaceSizePx.width / tile).toInt() + 1)) {
+            drawRect(
+              color = if ((row + column) % 2 == 0) Color.White else Color.Black,
+              topLeft = Offset(left + column * tile + shift, top + row * tile),
+              size = Size(tile, tile),
+            )
+          }
+        }
       }
     }
 
@@ -295,6 +324,12 @@ private fun GlassProfilingScene(
         text = scenario.id,
         modifier = Modifier.testTag("glass_profiling_phase_${state.phase.id}"),
       )
+      if (scenario.cornerDiagnostic) {
+        Text(
+          text = "source version $sourceVersion",
+          modifier = Modifier.testTag("glass_profiling_source_version_$sourceVersion"),
+        )
+      }
       if (state.phase == GlassProfilingPhase.Ready) {
         Button(
           onClick = { state.start() },
@@ -415,6 +450,11 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.InteractionUpdate9,
     GlassProfilingScenario.SourceUpdateAdaptive,
     GlassProfilingScenario.SourceUpdateAdaptiveDiagnostic,
+    GlassProfilingScenario.SourceUpdateAdaptiveCornerDiagnostic,
+    GlassProfilingScenario.SourceUpdateQualityCornerDiagnostic,
+    GlassProfilingScenario.SourceUpdateBalancedCornerDiagnostic,
+    GlassProfilingScenario.SourceUpdatePerformanceCornerDiagnostic,
+    GlassProfilingScenario.SourceUpdateNoGlassCornerDiagnostic,
     GlassProfilingScenario.SourceUpdateQuality,
     GlassProfilingScenario.BackdropSourceUpdateQuality,
     GlassProfilingScenario.SourceUpdateBalanced,

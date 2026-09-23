@@ -177,6 +177,11 @@ class GlassProfilingScenarioTest {
         "blur_update",
         "source_update_adaptive",
         "source_update_adaptive_diagnostic",
+        "source_update_adaptive_corner_diagnostic",
+        "source_update_quality_corner_diagnostic",
+        "source_update_balanced_corner_diagnostic",
+        "source_update_performance_corner_diagnostic",
+        "source_update_no_glass_corner_diagnostic",
         "source_update_quality",
         "backdrop_source_update_quality",
         "source_update_balanced",
@@ -234,6 +239,7 @@ class GlassProfilingScenarioTest {
         name = scenario.id,
       ).isEqualTo(
         scenario == GlassProfilingScenario.SourceUpdateNoGlass ||
+          scenario == GlassProfilingScenario.SourceUpdateNoGlassCornerDiagnostic ||
           scenario == GlassProfilingScenario.SteadyNoGlass,
       )
     }
@@ -249,6 +255,11 @@ class GlassProfilingScenarioTest {
         GlassProfilingScenario.BlurUpdate -> setOf("blurRadius")
         GlassProfilingScenario.SourceUpdateAdaptive,
         GlassProfilingScenario.SourceUpdateAdaptiveDiagnostic,
+        GlassProfilingScenario.SourceUpdateAdaptiveCornerDiagnostic,
+        GlassProfilingScenario.SourceUpdateQualityCornerDiagnostic,
+        GlassProfilingScenario.SourceUpdateBalancedCornerDiagnostic,
+        GlassProfilingScenario.SourceUpdatePerformanceCornerDiagnostic,
+        GlassProfilingScenario.SourceUpdateNoGlassCornerDiagnostic,
         GlassProfilingScenario.SourceUpdateQuality,
         GlassProfilingScenario.BackdropSourceUpdateQuality,
         GlassProfilingScenario.SourceUpdateBalanced,
@@ -337,6 +348,11 @@ class GlassProfilingScenarioTest {
       }
       val updatesSource = scenario == GlassProfilingScenario.SourceUpdateAdaptive ||
         scenario == GlassProfilingScenario.SourceUpdateAdaptiveDiagnostic ||
+        scenario == GlassProfilingScenario.SourceUpdateAdaptiveCornerDiagnostic ||
+        scenario == GlassProfilingScenario.SourceUpdateQualityCornerDiagnostic ||
+        scenario == GlassProfilingScenario.SourceUpdateBalancedCornerDiagnostic ||
+        scenario == GlassProfilingScenario.SourceUpdatePerformanceCornerDiagnostic ||
+        scenario == GlassProfilingScenario.SourceUpdateNoGlassCornerDiagnostic ||
         scenario == GlassProfilingScenario.SourceUpdateQuality ||
         scenario == GlassProfilingScenario.BackdropSourceUpdateQuality ||
         scenario == GlassProfilingScenario.SourceUpdateBalanced ||
@@ -354,6 +370,26 @@ class GlassProfilingScenarioTest {
       assertThat(readCount, name = scenario.id).isEqualTo(if (updatesSource) 1 else 0)
       assertThat(resolved, name = scenario.id).isEqualTo(if (updatesSource) 0.75f else 0f)
     }
+  }
+
+  @Test
+  fun cornerDiagnostic_hasSharedSourceVersionAndPhaseForEveryMode() {
+    val scenarios = listOf(
+      GlassProfilingScenario.SourceUpdateAdaptiveCornerDiagnostic,
+      GlassProfilingScenario.SourceUpdateQualityCornerDiagnostic,
+      GlassProfilingScenario.SourceUpdateBalancedCornerDiagnostic,
+      GlassProfilingScenario.SourceUpdatePerformanceCornerDiagnostic,
+      GlassProfilingScenario.SourceUpdateNoGlassCornerDiagnostic,
+    )
+    scenarios.forEach { scenario ->
+      assertThat(scenario.cornerDiagnostic).isTrue()
+      assertThat(scenario.durationMillis).isEqualTo(6_000)
+      assertThat(glassProfilingSourceVersion(scenario, 0.24f)).isEqualTo(0)
+      assertThat(glassProfilingSourceVersion(scenario, 0.25f)).isEqualTo(1)
+      assertThat(glassProfilingSourceProgress(scenario) { 0.24f }).isEqualTo(0f)
+      assertThat(glassProfilingSourceProgress(scenario) { 0.25f }).isEqualTo(0.75f)
+    }
+    assertThat(GlassProfilingScenario.SourceUpdateNoGlassCornerDiagnostic.glassEnabled).isFalse()
   }
 
   @Test

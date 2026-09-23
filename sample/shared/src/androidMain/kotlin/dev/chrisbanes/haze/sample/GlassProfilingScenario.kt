@@ -46,6 +46,7 @@ internal enum class GlassProfilingScenario(
   val fullChroma: Boolean = false,
   val usesBackdrop: Boolean = false,
   val durationMillis: Int = GLASS_PROFILING_DURATION_MILLIS,
+  val cornerDiagnostic: Boolean = false,
 ) {
   EffectAttach(
     id = "effect_attach",
@@ -218,6 +219,36 @@ internal enum class GlassProfilingScenario(
     performanceMode = HazePerformanceMode.Adaptive,
     durationMillis = 6_000,
   ),
+  SourceUpdateAdaptiveCornerDiagnostic(
+    id = "source_update_adaptive_corner_diagnostic",
+    performanceMode = HazePerformanceMode.Adaptive,
+    durationMillis = 6_000,
+    cornerDiagnostic = true,
+  ),
+  SourceUpdateQualityCornerDiagnostic(
+    id = "source_update_quality_corner_diagnostic",
+    performanceMode = HazePerformanceMode.Quality,
+    durationMillis = 6_000,
+    cornerDiagnostic = true,
+  ),
+  SourceUpdateBalancedCornerDiagnostic(
+    id = "source_update_balanced_corner_diagnostic",
+    performanceMode = HazePerformanceMode.Balanced,
+    durationMillis = 6_000,
+    cornerDiagnostic = true,
+  ),
+  SourceUpdatePerformanceCornerDiagnostic(
+    id = "source_update_performance_corner_diagnostic",
+    performanceMode = HazePerformanceMode.Performance,
+    durationMillis = 6_000,
+    cornerDiagnostic = true,
+  ),
+  SourceUpdateNoGlassCornerDiagnostic(
+    id = "source_update_no_glass_corner_diagnostic",
+    glassEnabled = false,
+    durationMillis = 6_000,
+    cornerDiagnostic = true,
+  ),
   SourceUpdateQuality(
     id = "source_update_quality",
     performanceMode = HazePerformanceMode.Quality,
@@ -339,6 +370,11 @@ internal fun glassProfilingFrame(
     )
     GlassProfilingScenario.SourceUpdateAdaptive,
     GlassProfilingScenario.SourceUpdateAdaptiveDiagnostic,
+    GlassProfilingScenario.SourceUpdateAdaptiveCornerDiagnostic,
+    GlassProfilingScenario.SourceUpdateQualityCornerDiagnostic,
+    GlassProfilingScenario.SourceUpdateBalancedCornerDiagnostic,
+    GlassProfilingScenario.SourceUpdatePerformanceCornerDiagnostic,
+    GlassProfilingScenario.SourceUpdateNoGlassCornerDiagnostic,
     GlassProfilingScenario.SourceUpdateQuality,
     GlassProfilingScenario.BackdropSourceUpdateQuality,
     GlassProfilingScenario.SourceUpdateBalanced,
@@ -360,6 +396,11 @@ internal val GlassProfilingScenario.updatesSource: Boolean
   get() = when (this) {
     GlassProfilingScenario.SourceUpdateAdaptive,
     GlassProfilingScenario.SourceUpdateAdaptiveDiagnostic,
+    GlassProfilingScenario.SourceUpdateAdaptiveCornerDiagnostic,
+    GlassProfilingScenario.SourceUpdateQualityCornerDiagnostic,
+    GlassProfilingScenario.SourceUpdateBalancedCornerDiagnostic,
+    GlassProfilingScenario.SourceUpdatePerformanceCornerDiagnostic,
+    GlassProfilingScenario.SourceUpdateNoGlassCornerDiagnostic,
     GlassProfilingScenario.SourceUpdateQuality,
     GlassProfilingScenario.BackdropSourceUpdateQuality,
     GlassProfilingScenario.SourceUpdateBalanced,
@@ -380,7 +421,14 @@ internal val GlassProfilingScenario.updatesSource: Boolean
 internal inline fun glassProfilingSourceProgress(
   scenario: GlassProfilingScenario,
   progress: () -> Float,
-): Float = if (scenario.updatesSource) progress() else 0f
+): Float = when {
+  scenario.cornerDiagnostic -> if (progress() >= 0.25f) 0.75f else 0f
+  scenario.updatesSource -> progress()
+  else -> 0f
+}
+
+internal fun glassProfilingSourceVersion(scenario: GlassProfilingScenario, progress: Float): Int =
+  if (scenario.cornerDiagnostic && progress >= 0.25f) 1 else 0
 
 internal fun shouldAttachProfilingGlass(
   scenario: GlassProfilingScenario,
