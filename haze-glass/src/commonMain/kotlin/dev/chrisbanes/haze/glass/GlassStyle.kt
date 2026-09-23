@@ -26,9 +26,9 @@ import dev.chrisbanes.haze.Poko
 /**
  * A [ProvidableCompositionLocal] which provides inherited Glass appearance.
  *
- * A Glass node starts with [GlassDefaults], then replays this Style and its explicit [GlassStyle]
- * in that order. Each node uses a fresh accumulator, so a Style may be shared safely by concurrent
- * nodes.
+ * A Glass node starts with the Regular response for its current system appearance, then replays
+ * this Style and its explicit [GlassStyle] in that order. Each node uses a fresh accumulator, so a
+ * Style may be shared safely by concurrent nodes.
  */
 @ExperimentalHazeApi
 public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
@@ -42,8 +42,10 @@ public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
  * values and never invokes caller code. Combine Styles with [then]. Writes run in order and the
  * last write to a property wins. The companion object is the empty Style and performs no writes.
  *
- * Mutating an input captured by a previously constructed Style has no effect. To update a node,
- * construct and supply a replacement Style through recomposition.
+ * Mutating an input captured by a previously constructed Style has no effect. To change caller
+ * writes, construct and supply a replacement Style through recomposition. The built-in Regular
+ * and Clear responses are selected from the attached node's current system appearance during
+ * replay, so a system appearance change does not require a replacement Style.
  *
  * A Style contains no renderer or mutable runtime state. [GlassStyleScope.hovered],
  * [GlassStyleScope.focused], [GlassStyleScope.pressed],
@@ -52,7 +54,7 @@ public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
  * each `hazeGlass` node replays it into a fresh node-owned snapshot and owns its signals,
  * geometry, animations, pointer observation, and renderer resources.
  *
- * The same final Style is replayed unchanged into whichever private renderer Haze selects. Full
+ * The same Style sequence is replayed into whichever private renderer Haze selects. Full
  * renderers consume every supported authored channel. Limited renderers preserve supported
  * channels, approximate supported lighting, and omit unsupported base and interaction optics.
  * Selection is automatic; callers do not need a capability check or a second fallback Style.
@@ -87,22 +89,7 @@ public sealed interface GlassStyle {
      * response while preserving separately composed shape, background colour, tint, alpha, light
      * position, and interaction presentation.
      */
-    public val regular: GlassStyle = GlassStyle {
-      optics(GlassDefaults.optics)
-      specularIntensity(GlassDefaults.specularIntensity)
-      edgeShadow(GlassDefaults.edgeShadow)
-      ambientResponse(GlassDefaults.ambientResponse)
-      edgeSoftness(GlassDefaults.edgeSoftness)
-      chromaticAberrationStrength(GlassDefaults.chromaticAberrationStrength)
-      surfaceProfile(GlassDefaults.surfaceProfile)
-      chromaticAberrationMode(GlassDefaults.chromaticAberrationMode)
-      contrast(GlassDefaults.contrast)
-      whitePoint(GlassDefaults.whitePoint)
-      chromaMultiplier(GlassDefaults.chromaMultiplier)
-      contentNormalBlend(GlassDefaults.contentNormalBlend)
-      specularExponent(GlassDefaults.specularExponent)
-      fresnelExponent(GlassDefaults.fresnelExponent)
-    }
+    public val regular: GlassStyle = RecordedGlassStyle(listOf { applyBuiltInResponse(BuiltInGlassStyle.Regular) })
 
     /**
      * A built-in Glass style that prioritizes visibility of content behind the material.
@@ -112,22 +99,7 @@ public sealed interface GlassStyle {
      * optical effects. It writes the complete material response while preserving separately composed
      * shape, background colour, tint, alpha, light position, and interaction presentation.
      */
-    public val clear: GlassStyle = GlassStyle {
-      optics(clearOptics)
-      specularIntensity(0.55f)
-      edgeShadow(Color.Black.copy(alpha = 0.1f))
-      ambientResponse(0.42f)
-      edgeSoftness(1.dp)
-      chromaticAberrationStrength(0.04f)
-      surfaceProfile(SurfaceProfile.Circle)
-      chromaticAberrationMode(ChromaticAberrationMode.Simple)
-      contrast(0.08f)
-      whitePoint(0.17f)
-      chromaMultiplier(1.05f)
-      contentNormalBlend(0.1f)
-      specularExponent(16f)
-      fresnelExponent(2.5f)
-    }
+    public val clear: GlassStyle = RecordedGlassStyle(listOf { applyBuiltInResponse(BuiltInGlassStyle.Clear) })
   }
 }
 
@@ -438,6 +410,7 @@ private fun recordGlassStyleWrites(
 
 @Poko
 internal class GlassStyleValues(
+  internal val appearance: GlassSystemAppearance = GlassSystemAppearance.Light,
   var shape: RoundedCornerShape = GlassDefaults.shape,
   var optics: GlassOptics = GlassDefaults.optics,
   var specularIntensity: Float = GlassDefaults.specularIntensity,
@@ -468,9 +441,52 @@ internal class GlassStyleValues(
 internal fun resolveGlassStyleValues(
   localStyle: GlassStyle,
   explicitStyle: GlassStyle,
-): GlassStyleValues = GlassStyleValues().also { values ->
+  appearance: GlassSystemAppearance = GlassSystemAppearance.Light,
+): GlassStyleValues = GlassStyleValues(appearance).also { values ->
+  values.applyBuiltInResponse(BuiltInGlassStyle.Regular)
   localStyle.replay(values)
   explicitStyle.replay(values)
+}
+
+internal enum class GlassSystemAppearance { Light, Dark }
+
+private enum class BuiltInGlassStyle { Regular, Clear }
+
+private fun GlassStyleValues.applyBuiltInResponse(style: BuiltInGlassStyle) {
+  when (style) {
+    BuiltInGlassStyle.Regular -> {
+      optics = GlassDefaults.optics
+      specularIntensity = if (appearance == GlassSystemAppearance.Dark) 0.38f else GlassDefaults.specularIntensity
+      edgeShadow = if (appearance == GlassSystemAppearance.Dark) Color.Black.copy(alpha = 0.32f) else GlassDefaults.edgeShadow
+      ambientResponse = if (appearance == GlassSystemAppearance.Dark) 0.08f else GlassDefaults.ambientResponse
+      edgeSoftness = GlassDefaults.edgeSoftness
+      chromaticAberrationStrength = GlassDefaults.chromaticAberrationStrength
+      surfaceProfile = GlassDefaults.surfaceProfile
+      chromaticAberrationMode = GlassDefaults.chromaticAberrationMode
+      contrast = if (appearance == GlassSystemAppearance.Dark) 0.08f else GlassDefaults.contrast
+      whitePoint = if (appearance == GlassSystemAppearance.Dark) -0.22f else GlassDefaults.whitePoint
+      chromaMultiplier = if (appearance == GlassSystemAppearance.Dark) 1.1f else GlassDefaults.chromaMultiplier
+      contentNormalBlend = GlassDefaults.contentNormalBlend
+      specularExponent = GlassDefaults.specularExponent
+      fresnelExponent = GlassDefaults.fresnelExponent
+    }
+    BuiltInGlassStyle.Clear -> {
+      optics = GlassStyle.clearOptics
+      specularIntensity = if (appearance == GlassSystemAppearance.Dark) 0.42f else 0.55f
+      edgeShadow = Color.Black.copy(alpha = if (appearance == GlassSystemAppearance.Dark) 0.25f else 0.1f)
+      ambientResponse = if (appearance == GlassSystemAppearance.Dark) 0.22f else 0.42f
+      edgeSoftness = 1.dp
+      chromaticAberrationStrength = 0.04f
+      surfaceProfile = SurfaceProfile.Circle
+      chromaticAberrationMode = ChromaticAberrationMode.Simple
+      contrast = if (appearance == GlassSystemAppearance.Dark) 0.12f else 0.08f
+      whitePoint = if (appearance == GlassSystemAppearance.Dark) -0.18f else 0.17f
+      chromaMultiplier = if (appearance == GlassSystemAppearance.Dark) 1f else 1.05f
+      contentNormalBlend = 0.1f
+      specularExponent = 16f
+      fresnelExponent = 2.5f
+    }
+  }
 }
 
 private fun GlassStyle.replay(values: GlassStyleValues) {

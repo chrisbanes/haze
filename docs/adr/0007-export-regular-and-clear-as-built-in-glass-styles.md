@@ -85,9 +85,36 @@ and progressive blur retains its previous radius bound. Layer budgets and lifecy
 the selected backend path. This wide-blur correctness exception to ADR-0003 has host pixel
 coverage; its physical-device performance has not been measured.
 
-Native light and dark appearances differ substantially; the fixed Haze style targets the light
-reference and does not implement native appearance or content adaptation. The comparisons establish
-visual direction, not physical GPU performance.
+Native light and dark appearances differ substantially. The original fixed Haze response targeted
+the light reference; subsequent system appearance support selects separate light and dark responses
+at node resolution. The comparisons establish visual direction, not physical GPU performance or
+native content adaptation.
+
+## System appearance response, 2026-09-23
+
+Regular and Clear remain shared, immutable Style values. A built-in records an appearance-dependent
+write in its ordered replay sequence, and the attached Glass node reads the Compose host's system
+appearance. This also applies to the implicit Regular response when `style` is omitted. A live host
+appearance change replays the sequence and invalidates affected rendering without reconstructing
+caller Styles. Later writes retain precedence, and a later built-in resets its owned channels while
+preserving shape, background, tint, alpha, light position, and interactions.
+
+The light response retains the 2026-09-16 calibration. The dark response lowers white point and
+ambient lift and changes edge and highlight balance while retaining Regular's size-dependent
+diffusion and Clear's shallow, more transparent optics. These are Haze approximations, not iOS
+pixel matches or Apple coefficients. Material 3 remains a separate optional builder for app-theme
+surface color and tint. The host may override device appearance; an unknown Skiko theme uses the
+light response. The pinned Skiko theme local is internal and deprecated, so Compose upgrades must
+recheck that adapter.
+
+The new dark references use a 64/176/220dp capsule/card/panel fixture at 1dp per pixel, with a
+structured dark grid for Regular and a bright photograph for Clear. Desktop captures use a
+420×800px Skiko host; Android host captures use the Pixel 5 Robolectric profile at SDK 28, 32,
+and 35. Each style also passes a light→dark→light capture on the same attached node: more than
+1% of pixels change, and the restored image differs from the initial image by less than one
+8-bit color step on average. The Android SDK 28 path exercises fallback rendering. These checks
+establish Haze output and reversibility under controlled host appearance; they do not establish
+physical-device behavior, a manual OS switch, or a side-by-side native dark match.
 
 ## Colour handling, 2026-09-17
 

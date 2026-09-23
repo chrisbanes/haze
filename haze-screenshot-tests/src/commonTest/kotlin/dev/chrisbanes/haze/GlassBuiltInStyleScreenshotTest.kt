@@ -138,11 +138,68 @@ class GlassBuiltInStyleScreenshotTest : ScreenshotTest() {
   @Test
   fun clear_preservesPhotographicBackdrop() = captureNativeReference(GlassStyle.clear, HazePerformanceMode.Adaptive, photograph = true)
 
-  private fun captureNativeReference(style: GlassStyle, mode: HazePerformanceMode, photograph: Boolean = false) = runScreenshotTest(size = Size(1206f, 2622f)) {
+  @Test
+  fun regular_darkAppearanceOverStructuredBackdrop() = captureNativeReference(
+    GlassStyle.regular,
+    HazePerformanceMode.Adaptive,
+    appearance = GlassTestSystemAppearance.Dark,
+    size = Size(420f, 800f),
+    densityScale = 1f,
+  )
+
+  @Test
+  fun clear_darkAppearanceOverPhotographicBackdrop() = captureNativeReference(
+    GlassStyle.clear,
+    HazePerformanceMode.Adaptive,
+    photograph = true,
+    appearance = GlassTestSystemAppearance.Dark,
+    size = Size(420f, 800f),
+    densityScale = 1f,
+  )
+
+  @Test
+  fun regular_attachedAppearanceSwitchUpdatesAndRestoresPixels() =
+    checkAttachedAppearanceSwitch(GlassStyle.regular)
+
+  @Test
+  fun clear_attachedAppearanceSwitchUpdatesAndRestoresPixels() =
+    checkAttachedAppearanceSwitch(GlassStyle.clear)
+
+  private fun checkAttachedAppearanceSwitch(style: GlassStyle) = runScreenshotTest(size = Size(420f, 800f)) {
+    var appearance by mutableStateOf(GlassTestSystemAppearance.Light)
     setContent {
-      androidx.compose.runtime.CompositionLocalProvider(
-        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(3f),
-      ) { GlassBuiltInStyleGeometrySample(style, photograph, mode) }
+      WithGlassTestSystemAppearance(appearance) {
+        androidx.compose.runtime.CompositionLocalProvider(
+          androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(1f),
+        ) { GlassBuiltInStyleGeometrySample(style) }
+      }
+    }
+    waitForIdle()
+    val light = captureRootPixels().snapshot()
+    appearance = GlassTestSystemAppearance.Dark
+    waitForIdle()
+    val dark = captureRootPixels().snapshot()
+    assertThat(dark.changedPixelRatio(light)).isGreaterThan(0.01f)
+    appearance = GlassTestSystemAppearance.Light
+    waitForIdle()
+    val restored = captureRootPixels().snapshot()
+    assertThat(restored.meanAbsoluteDifference(light)).isLessThan(1f / 255f)
+  }
+
+  private fun captureNativeReference(
+    style: GlassStyle,
+    mode: HazePerformanceMode,
+    photograph: Boolean = false,
+    appearance: GlassTestSystemAppearance = GlassTestSystemAppearance.Light,
+    size: Size = Size(1206f, 2622f),
+    densityScale: Float = 3f,
+  ) = runScreenshotTest(size = size) {
+    setContent {
+      WithGlassTestSystemAppearance(appearance) {
+        androidx.compose.runtime.CompositionLocalProvider(
+          androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(densityScale),
+        ) { GlassBuiltInStyleGeometrySample(style, photograph, mode) }
+      }
     }
     waitForIdle()
     captureRoot()

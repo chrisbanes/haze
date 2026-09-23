@@ -578,6 +578,64 @@ class GlassStyleTest {
   }
 
   @Test
+  fun builtInStyles_selectSystemAppearanceAtReplayWithoutReplacingTheStyle() {
+    val regular = GlassStyle.regular
+    val clear = GlassStyle.clear
+    val lightRegular = resolveGlassStyleValues(GlassStyle, regular, GlassSystemAppearance.Light)
+    val darkRegular = resolveGlassStyleValues(GlassStyle, regular, GlassSystemAppearance.Dark)
+    val lightClear = resolveGlassStyleValues(GlassStyle, clear, GlassSystemAppearance.Light)
+    val darkClear = resolveGlassStyleValues(GlassStyle, clear, GlassSystemAppearance.Dark)
+
+    assertThat(darkRegular.whitePoint).isNotEqualTo(lightRegular.whitePoint)
+    assertThat(darkClear.whitePoint).isNotEqualTo(lightClear.whitePoint)
+    assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle, GlassSystemAppearance.Dark).whitePoint)
+      .isEqualTo(darkRegular.whitePoint)
+    assertThat(resolveGlassStyleValues(GlassStyle, regular, GlassSystemAppearance.Light).whitePoint)
+      .isEqualTo(lightRegular.whitePoint)
+    assertThat(darkRegular.optics).isEqualTo(lightRegular.optics)
+    assertThat(darkClear.optics).isEqualTo(lightClear.optics)
+  }
+
+  @Test
+  fun builtInStyles_preserveOrderedWritesAndPresentationInDarkAppearance() {
+    val local = GlassStyle {
+      whitePoint(0.3f)
+      shape(RoundedCornerShape(28.dp))
+      backgroundColor(Color.Red)
+      tint(Color.Blue)
+      alpha(0.4f)
+      lightPosition(Alignment.TopEnd)
+      pressed { lightingIntensity(0.8f) }
+    }
+    val laterWrite = resolveGlassStyleValues(
+      local,
+      GlassStyle.regular.then { whitePoint(0.2f) },
+      GlassSystemAppearance.Dark,
+    )
+    val laterBuiltIn = resolveGlassStyleValues(
+      local,
+      GlassStyle { whitePoint(0.2f) }.then(GlassStyle.regular),
+      GlassSystemAppearance.Dark,
+    )
+    val darkRegular = resolveGlassStyleValues(GlassStyle, GlassStyle.regular, GlassSystemAppearance.Dark)
+
+    assertThat(laterWrite.whitePoint).isEqualTo(0.2f)
+    assertThat(laterBuiltIn.whitePoint).isEqualTo(darkRegular.whitePoint)
+    assertThat(resolveGlassStyleValues(GlassStyle.clear, GlassStyle.regular, GlassSystemAppearance.Dark).whitePoint)
+      .isEqualTo(darkRegular.whitePoint)
+    assertThat(resolveGlassStyleValues(GlassStyle.regular, GlassStyle.clear, GlassSystemAppearance.Dark).whitePoint)
+      .isEqualTo(resolveGlassStyleValues(GlassStyle, GlassStyle.clear, GlassSystemAppearance.Dark).whitePoint)
+    listOf(laterWrite, laterBuiltIn).forEach { resolved ->
+      assertThat(resolved.shape).isEqualTo(RoundedCornerShape(28.dp))
+      assertThat(resolved.backgroundColor).isEqualTo(Color.Red)
+      assertThat(resolved.tint).isEqualTo(Color.Blue)
+      assertThat(resolved.alpha).isEqualTo(0.4f)
+      assertThat(resolved.lightPosition).isEqualTo(Alignment.TopEnd)
+      assertThat(resolved.pressedInteraction?.lightingIntensity?.value).isEqualTo(0.8f)
+    }
+  }
+
+  @Test
   fun builtInStyles_replaceEveryMaterialResponseWithoutReplacingPresentation() {
     val inheritedInteraction = GlassStyle { pressed { lightingIntensity(0.8f) } }
     val local = GlassStyle {
