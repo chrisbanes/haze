@@ -1103,6 +1103,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#system-appearance-response-2026-09-23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System appearance response, 2026-09-23
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#colour-handling-2026-09-17" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1203,9 +1214,32 @@ filter and its blurred layer. Small-radius and progressive blur keep their seman
 and progressive blur retains its previous radius bound. Layer budgets and lifecycle follow
 the selected backend path. This wide-blur correctness exception to ADR-0003 has host pixel
 coverage; its physical-device performance has not been measured.</p>
-<p>Native light and dark appearances differ substantially; the fixed Haze style targets the light
-reference and does not implement native appearance or content adaptation. The comparisons establish
-visual direction, not physical GPU performance.</p>
+<p>Native light and dark appearances differ substantially. The original fixed Haze response targeted
+the light reference; subsequent system appearance support selects separate light and dark responses
+at node resolution. The comparisons establish visual direction, not physical GPU performance or
+native content adaptation.</p>
+<h2 id="system-appearance-response-2026-09-23">System appearance response, 2026-09-23<a class="headerlink" href="#system-appearance-response-2026-09-23" title="Permanent link">¶</a></h2>
+<p>Regular and Clear remain shared, immutable Style values. A built-in records an appearance-dependent
+write in its ordered replay sequence, and the attached Glass node reads the Compose host's system
+appearance. This also applies to the implicit Regular response when <code>style</code> is omitted. A live host
+appearance change replays the sequence and invalidates affected rendering without reconstructing
+caller Styles. Later writes retain precedence, and a later built-in resets its owned channels while
+preserving shape, background, tint, alpha, light position, and interactions.</p>
+<p>The light response retains the 2026-09-16 calibration. The dark response lowers white point and
+ambient lift and changes edge and highlight balance while retaining Regular's size-dependent
+diffusion and Clear's shallow, more transparent optics. These are Haze approximations, not iOS
+pixel matches or Apple coefficients. Material 3 remains a separate optional builder for app-theme
+surface color and tint. The host may override device appearance; an unknown Skiko theme uses the
+light response. The pinned Skiko theme local is internal and deprecated, so Compose upgrades must
+recheck that adapter.</p>
+<p>The new dark references use a 64/176/220dp capsule/card/panel fixture at 1dp per pixel, with a
+structured dark grid for Regular and a bright photograph for Clear. Desktop captures use a
+420×800px Skiko host; Android host captures use the Pixel 5 Robolectric profile at SDK 28, 32,
+and 35. Each style also passes a light→dark→light capture on the same attached node: more than
+1% of pixels change, and the restored image differs from the initial image by less than one
+8-bit color step on average. The Android SDK 28 path exercises fallback rendering. These checks
+establish Haze output and reversibility under controlled host appearance; they do not establish
+physical-device behavior, a manual OS switch, or a side-by-side native dark match.</p>
 <h2 id="colour-handling-2026-09-17">Colour handling, 2026-09-17<a class="headerlink" href="#colour-handling-2026-09-17" title="Permanent link">¶</a></h2>
 <p><code>chromaMultiplier</code> above <code>1f</code> is a requested chroma boost, bounded for source colours already in
 the sRGB gamut. A boost that would leave that gamut is reduced to the in-gamut limit, and an
