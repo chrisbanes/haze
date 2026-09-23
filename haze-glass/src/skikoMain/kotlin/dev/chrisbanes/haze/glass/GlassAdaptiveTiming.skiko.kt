@@ -99,6 +99,7 @@ internal class SkikoGlassCadence {
       budgetNanos = minOf(budget, 16_666_667L) * 3 / 2,
       // Callback cadence alone cannot distinguish a native 60 Hz target from half-rate 120 Hz.
       allowsUpwardProbe = false,
+      allowsRelativeProbe = true,
     )
   }
 

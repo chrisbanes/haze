@@ -923,6 +923,9 @@ internal class GlassRuntimeEffect() :
     } else {
       null
     }
+    if (balancedPlan != lastBalancedPlan) {
+      adaptiveHostBinding.host?.invalidateWorkloadComparison()
+    }
     lastBalancedPlan = balancedPlan
     val requestedScale = requestedScaleOverride ?: timingInputScale?.takeIf {
       performanceMode === HazePerformanceMode.Adaptive

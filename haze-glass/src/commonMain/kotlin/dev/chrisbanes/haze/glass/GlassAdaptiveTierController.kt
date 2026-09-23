@@ -13,6 +13,7 @@ internal data class GlassFrameHealthSample(
   val budgetNanos: Long,
   val isValid: Boolean = true,
   val allowsUpwardProbe: Boolean = true,
+  val allowsRelativeProbe: Boolean = false,
 )
 
 /** The three renderer scales shared by timing-driven and workload-driven Adaptive policies. */
@@ -36,6 +37,12 @@ internal class GlassAdaptiveTierController {
   private var previousTimestampNanos: Long? = null
   private var retryAfterNanos = 0L
   private var failedProbes = 0
+  private var durationSumNanos = 0L
+  private var shortestDurationNanos = Long.MAX_VALUE
+  private var longestDurationNanos = 0L
+  private var relativeBaselineNanos: Long? = null
+  private var relativeProbeOriginalTier: GlassAdaptiveTier? = null
+  private var relativePromotedFromTier: GlassAdaptiveTier? = null
 
   fun observe(sample: GlassFrameHealthSample, nowNanos: Long): GlassAdaptiveTier {
     val priorTimestamp = previousTimestampNanos
@@ -53,6 +60,7 @@ internal class GlassAdaptiveTierController {
       outOfOrder || sequenceLost || stale || suspended || !sample.isValid ||
       sample.durationNanos <= 0L || sample.budgetNanos <= 0L
     ) {
+      cancelRelativeProbe()
       resetEvidence(Phase.WARMING_UP)
       return tier
     }
@@ -89,6 +97,9 @@ internal class GlassAdaptiveTierController {
 
     phaseSamples++
     if (sample.durationNanos > sample.budgetNanos) missedFrames++
+    durationSumNanos += sample.durationNanos
+    shortestDurationNanos = minOf(shortestDurationNanos, sample.durationNanos)
+    longestDurationNanos = maxOf(longestDurationNanos, sample.durationNanos)
     val elapsed = sample.timestampNanos - (phaseStartedAtNanos ?: sample.timestampNanos)
     val missRatio = missedFrames.toFloat() / phaseSamples
 
@@ -96,6 +107,16 @@ internal class GlassAdaptiveTierController {
       Phase.WARMING_UP, Phase.SETTLING -> Unit
       Phase.MONITORING -> {
         if (
+          relativePromotedFromTier != null &&
+          phaseSamples >= PROBE_VALIDATION_MIN_SAMPLES && elapsed >= PROBE_WINDOW_NANOS
+        ) {
+          if (cadenceRegressed() || missRatio >= BAD_FRAME_RATIO) {
+            rollBackRelativeProbe(sample.timestampNanos)
+          } else {
+            resetEvidence(Phase.MONITORING)
+            phaseStartedAtNanos = sample.timestampNanos
+          }
+        } else if (
           phaseSamples >= DOWNGRADE_MIN_SAMPLES && elapsed >= DOWNGRADE_WINDOW_NANOS &&
           missRatio >= BAD_FRAME_RATIO
         ) {
@@ -103,23 +124,32 @@ internal class GlassAdaptiveTierController {
         } else if (
           tier != GlassAdaptiveTier.FULL_RESOLUTION && phaseSamples >= PROBE_MIN_SAMPLES &&
           elapsed >= PROBE_STABLE_WINDOW_NANOS && missRatio <= HEALTHY_FRAME_RATIO &&
-          sample.timestampNanos >= retryAfterNanos && sample.allowsUpwardProbe
+          sample.timestampNanos >= retryAfterNanos &&
+          (sample.allowsUpwardProbe || sample.allowsRelativeProbe && hasStableCadence())
         ) {
+          if (!sample.allowsUpwardProbe) {
+            relativeBaselineNanos = durationSumNanos / phaseSamples
+            relativeProbeOriginalTier = tier
+          }
           changeTier(tier.oneStepUp(), sample.timestampNanos, Phase.PROBING)
         }
       }
       Phase.PROBING -> {
         if (phaseSamples >= PROBE_VALIDATION_MIN_SAMPLES && elapsed >= PROBE_WINDOW_NANOS) {
-          if (missRatio >= BAD_FRAME_RATIO) {
-            changeTier(tier.oneStepDown(), sample.timestampNanos)
-            failedProbes++
-            val backoffMultiplier = 1L shl (failedProbes - 1).coerceAtMost(MAX_BACKOFF_SHIFT)
-            retryAfterNanos = sample.timestampNanos + (PROBE_RETRY_NANOS * backoffMultiplier)
+          if (missRatio >= BAD_FRAME_RATIO || cadenceRegressed()) {
+            if (relativeProbeOriginalTier != null) {
+              rollBackRelativeProbe(sample.timestampNanos)
+            } else {
+              changeTier(tier.oneStepDown(), sample.timestampNanos)
+              backOff(sample.timestampNanos)
+            }
           } else {
             failedProbes = 0
+            relativePromotedFromTier = relativeProbeOriginalTier
             resetEvidence(Phase.MONITORING)
             phaseStartedAtNanos = sample.timestampNanos
           }
+          relativeProbeOriginalTier = null
         }
       }
     }
@@ -128,6 +158,7 @@ internal class GlassAdaptiveTierController {
       // rates, 300 samples can arrive before the three-second upward-probe window completes.
       phaseSamples /= 2
       missedFrames /= 2
+      durationSumNanos /= 2
     }
     return tier
   }
@@ -143,13 +174,48 @@ internal class GlassAdaptiveTierController {
     previousTimestampNanos = null
     retryAfterNanos = 0L
     failedProbes = 0
+    relativeBaselineNanos = null
+    relativeProbeOriginalTier = null
+    relativePromotedFromTier = null
   }
 
   /** Forget timing across idle or background gaps without changing the visible tier. */
   fun suspendEvidence() {
+    cancelRelativeProbe()
     resetEvidence(Phase.WARMING_UP)
     previousSequence = null
     previousTimestampNanos = null
+  }
+
+  private fun cancelRelativeProbe() {
+    (relativeProbeOriginalTier ?: relativePromotedFromTier)?.let { tier = it }
+    relativeProbeOriginalTier = null
+    relativePromotedFromTier = null
+    relativeBaselineNanos = null
+    phaseAfterSettling = Phase.MONITORING
+  }
+
+  private fun hasStableCadence(): Boolean =
+    shortestDurationNanos != Long.MAX_VALUE &&
+      longestDurationNanos <= shortestDurationNanos * STABLE_CADENCE_PERCENT / 100
+
+  private fun cadenceRegressed(): Boolean = relativeBaselineNanos?.let { baseline ->
+    phaseSamples > 0 && durationSumNanos / phaseSamples > baseline * RELATIVE_REGRESSION_PERCENT / 100
+  } == true
+
+  private fun rollBackRelativeProbe(timestampNanos: Long) {
+    val originalTier = relativeProbeOriginalTier ?: relativePromotedFromTier ?: return
+    changeTier(originalTier, timestampNanos)
+    relativeProbeOriginalTier = null
+    relativePromotedFromTier = null
+    relativeBaselineNanos = null
+    backOff(timestampNanos)
+  }
+
+  private fun backOff(timestampNanos: Long) {
+    failedProbes++
+    val multiplier = 1L shl (failedProbes - 1).coerceAtMost(MAX_BACKOFF_SHIFT)
+    retryAfterNanos = timestampNanos + PROBE_RETRY_NANOS * multiplier
   }
 
   private fun changeTier(
@@ -170,6 +236,9 @@ internal class GlassAdaptiveTierController {
     phaseStartedAtNanos = null
     phaseSamples = 0
     missedFrames = 0
+    durationSumNanos = 0L
+    shortestDurationNanos = Long.MAX_VALUE
+    longestDurationNanos = 0L
   }
 
   private fun GlassAdaptiveTier.oneStepDown(): GlassAdaptiveTier = when (this) {
@@ -190,6 +259,8 @@ internal class GlassAdaptiveTierController {
     // Starting policy values; calibrate against paired platform benchmarks before changing them.
     const val BAD_FRAME_RATIO = 0.2f
     const val HEALTHY_FRAME_RATIO = 0.05f
+    const val STABLE_CADENCE_PERCENT = 125L
+    const val RELATIVE_REGRESSION_PERCENT = 120L
     const val WARM_UP_MIN_SAMPLES = 30
     const val WARM_UP_NANOS = 500_000_000L
     const val SETTLING_NANOS = 500_000_000L

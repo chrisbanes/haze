@@ -3,7 +3,8 @@
 ## Status
 
 Accepted workload fallback. The host-feedback amendment is approved for implementation under
-CB-10 plan r2, but its default-release validation is open.
+CB-10 plan r2, with a reversible Skiko probe experiment approved under r3. Default-release
+validation is open.
 
 ## Date
 
@@ -28,7 +29,10 @@ be interpreted as spare capacity.
 to the same verified rendering host share one demand-driven controller and one timing observer.
 The controller starts at linear input scale `sqrt(0.5)`, can step down to `0.5` after sustained
 misses, and can probe upward to `1.0` after a longer healthy interval when its timing source has
-an independent refresh budget. A tier change is consumed
+an independent refresh budget. Skiko may make one bounded relative probe during sustained,
+stable source demand. It compares callback cadence before and after the tier change, rolls back
+and backs off if cadence regresses, and discards the comparison when demand, retained workload,
+visibility, or timing continuity changes. A tier change is consumed
 on each node's next natural draw; it does not wake an idle node. Demand expires after 350 ms
 without a natural update. Host stop, idle, stale samples, missing reports, and refresh changes
 reset timing evidence. A failed upward probe backs off before another attempt.
@@ -47,9 +51,14 @@ An unmatched, detached, or unsupported window gets no timing tier. Desktop uses 
 and iOS uses `LocalUIView` when available. Web and native macOS use a composition-root
 `GlassAdaptiveHost` token because no automatic host identity was established there. Skiko targets
 use demand-driven callback cadence with lower confidence. When the display refresh target is
-unknown, callback cadence can support a downgrade but cannot justify an upward probe; a stable
-half-rate stream could otherwise appear healthy. Cadence slower than 60 Hz is treated
-conservatively. A missing identity, lifecycle, timing
+unknown, a stable cadence can initiate the bounded relative probe after the normal three-second
+healthy window. The pre-probe cadence must stay within 125% of its shortest interval. At least
+20 callbacks over 500 ms after promotion establish the comparison; a mean interval over 120%
+of baseline or the existing miss threshold rolls back and starts exponential retry backoff.
+Accepted probes remain under comparison while demand continues. A stable 16.7 ms stream can
+represent healthy 60 Hz or an unrelated half-rate 120 Hz stream; a learned 60 Hz cap is not
+independent refresh evidence, and unchanged cadence does not prove GPU headroom. Cadence slower
+than 60 Hz is treated conservatively. A missing identity, lifecycle, timing
 source, or recent valid sample selects the deterministic workload fallback; hosts are never
 merged under a global unknown key.
 
@@ -75,19 +84,21 @@ host-feedback thresholds or cross-platform behavior. Deterministic controller, h
 and Android-window tests pass. Apple simulator and macOS tests compile and pass, but they do not
 exercise real window lifecycle and timing.
 
-The CB-10 physical and visible-browser attempt, including its invalid benchmark workload and
-unresolved tier behavior, is recorded in
+The CB-10 physical and visible-browser attempt, including its benchmark workload and tier
+behavior, is recorded in
 [the calibration report](../../internal/benchmark/CB10_ADAPTIVE_VALIDATION.md). It does not
-justify threshold changes. The paired physical Android comparison, active browser quality and
-corner comparison, allocation churn, GPU memory parity, and real desktop/iOS lifecycle checks
-remain open. **Do not release host-feedback Adaptive as the default based on this evidence.**
+justify threshold changes. The r3 Skiko experiment has deterministic cadence and lifecycle
+tests plus visible fast and throttled browser traces at DPR 1/2. These establish tier behavior,
+not GPU completion or matched corner quality. The paired physical Android comparison, allocation
+churn, GPU memory parity, and real desktop/iOS lifecycle checks remain open. **Do not release
+host-feedback Adaptive as the default based on this evidence.**
 
 ## Consequences
 
 - A host can coordinate active Glass nodes while preserving separate decisions across windows.
 - Verified Android timing can respond to whole-window pressure. Skiko cadence is a weaker signal;
-  without an independent refresh target it cannot promote quality, and a healthy interval is not
-  proof of GPU headroom.
+  its relative probe is reversible, and an unchanged callback interval is not proof of GPU
+  headroom or of the display's true refresh target.
 - A missing or expired timing source returns to the bounded workload policy without changing
   Fixed-mode output.
 - Threshold changes need a valid active Glass workload, paired physical measurements, frame and

@@ -105,7 +105,14 @@ internal class GlassAdaptiveHost(
 
   internal fun changeActiveDemand(delta: Int) {
     activeDemandCount += delta
+    invalidateWorkloadComparison()
     syncTiming()
+  }
+
+  internal fun invalidateWorkloadComparison() {
+    controller.suspendEvidence()
+    lastValidSample = null
+    refreshDecision()
   }
 
   internal fun syncTiming() {

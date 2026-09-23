@@ -138,6 +138,43 @@ class GlassAdaptiveHostRegistryTest {
   }
 
   @Test
+  fun foregroundStop_cancelsRelativeProbeAndRequiresNewDemand() = runTest {
+    val owner = HostTestLifecycleOwner()
+    owner.handle(Lifecycle.Event.ON_CREATE)
+    owner.handle(Lifecycle.Event.ON_START)
+    val registration = GlassAdaptiveHostRegistry().register(Any())
+    val source = FakeGlassTimingSource()
+    registration.bindLifecycle(owner.lifecycle)
+    registration.bindTimingSource(source)
+    registration.renewDemandLease(backgroundScope)
+    var nowNanos = 0L
+    repeat(250) { index ->
+      nowNanos += 16_666_667L
+      source.callback?.invoke(
+        GlassFrameHealthSample(
+          sequence = index.toLong(),
+          timestampNanos = nowNanos,
+          durationNanos = 16_666_667L,
+          budgetNanos = 25_000_000L,
+          allowsUpwardProbe = false,
+          allowsRelativeProbe = true,
+        ),
+        nowNanos,
+      )
+    }
+    assertThat(registration.host.controller.tier).isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
+
+    owner.handle(Lifecycle.Event.ON_STOP)
+    assertThat(registration.host.controller.tier).isEqualTo(GlassAdaptiveTier.BALANCED)
+    assertThat(source.stopCount).isEqualTo(1)
+    owner.handle(Lifecycle.Event.ON_START)
+    assertThat(source.startCount).isEqualTo(1)
+    registration.renewDemandLease(backgroundScope)
+    assertThat(source.startCount).isEqualTo(2)
+    registration.release()
+  }
+
+  @Test
   fun timingObserver_movesToRemainingActiveSubscriberSource() {
     val registry = GlassAdaptiveHostRegistry()
     val first = registry.register(Any())

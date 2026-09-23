@@ -16,7 +16,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 class SkikoGlassCadenceTest {
 
   @Test
-  fun jitteredSixtyHertzCadence_neverDowngradesOrProbesWithoutKnownRefreshTarget() {
+  fun jitteredSixtyHertzCadence_probesFullResolutionWithoutFalseDowngrade() {
     val trace = AdaptiveCadenceTrace()
     val intervals = longArrayOf(
       16_000_000L,
@@ -32,11 +32,11 @@ class SkikoGlassCadenceTest {
     repeat(450) { index -> trace.frame(intervals[index % intervals.size]) }
 
     assertThat(trace.lowTierSeen).isFalse()
-    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.BALANCED)
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
   }
 
   @Test
-  fun steadyHalfRateCadence_neverProbesAndThirtyFpsDowngrades() {
+  fun steadyHalfRateCadence_downgradesThirtyFpsButCannotIdentifyUnrelatedHalfRate() {
     val sixtyHertzAtHalfRate = AdaptiveCadenceTrace()
     repeat(300) { sixtyHertzAtHalfRate.frame(33_333_334L) }
     assertThat(sixtyHertzAtHalfRate.controller.tier).isEqualTo(GlassAdaptiveTier.AGGRESSIVE)
@@ -44,7 +44,58 @@ class SkikoGlassCadenceTest {
     val unknownOneTwentyHertzAtHalfRate = AdaptiveCadenceTrace()
     repeat(500) { unknownOneTwentyHertzAtHalfRate.frame(16_666_667L) }
     assertThat(unknownOneTwentyHertzAtHalfRate.controller.tier)
-      .isEqualTo(GlassAdaptiveTier.BALANCED)
+      .isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
+  }
+
+  @Test
+  fun glassLimitedCadence_rollsBackProbeAndWaitsBeforeRetry() {
+    val trace = AdaptiveCadenceTrace()
+    repeat(300) { trace.frame(16_666_667L) }
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
+
+    // This is below the Skiko 25 ms absolute miss budget, so only comparison catches it.
+    repeat(35) { trace.frame(20_500_000L) }
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.BALANCED)
+    repeat(180) { trace.frame(16_666_667L) }
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.BALANCED)
+    repeat(180) { trace.frame(16_666_667L) }
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
+  }
+
+  @Test
+  fun acceptedProbe_rollsBackOnSparseSkippedCallbacks() {
+    val trace = AdaptiveCadenceTrace()
+    repeat(300) { trace.frame(16_666_667L) }
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
+
+    repeat(35) { index ->
+      trace.frame(if (index % 4 == 0) 25_500_000L else 16_666_667L)
+    }
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.BALANCED)
+  }
+
+  @Test
+  fun workloadChange_cancelsUnvalidatedProbeAndStartsFreshComparison() {
+    val trace = AdaptiveCadenceTrace()
+    repeat(250) { trace.frame(16_666_667L) }
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
+
+    trace.host.invalidateWorkloadComparison()
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.BALANCED)
+    repeat(90) { trace.frame(16_666_667L) }
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.BALANCED)
+  }
+
+  @Test
+  fun jitteredCallbackBurst_doesNotValidateRegressedProbe() {
+    val trace = AdaptiveCadenceTrace()
+    val baseline = longArrayOf(16_000_000L, 16_800_000L, 17_100_000L, 16_700_000L)
+    repeat(300) { trace.frame(baseline[it % baseline.size]) }
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
+
+    val regressed = longArrayOf(20_200_000L, 21_000_000L, 20_500_000L, 21_200_000L)
+    repeat(40) { trace.frame(regressed[it % regressed.size]) }
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.BALANCED)
   }
 
   @Test
