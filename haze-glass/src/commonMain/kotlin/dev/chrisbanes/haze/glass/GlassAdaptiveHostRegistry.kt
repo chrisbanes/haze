@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.glass
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import dev.chrisbanes.haze.Poko
+import dev.chrisbanes.haze.trace
 import kotlin.coroutines.ContinuationInterceptor
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
@@ -150,7 +151,15 @@ internal class GlassAdaptiveHost(
       lastValidSample = null
     }
     controller.observe(sample, nowNanos)
+    val previousDecisionVersion = currentDecision.version
     refreshDecision()
+    if (currentDecision.version != previousDecisionVersion) {
+      // Platform tracing is unavailable in plain Android host tests; observation cannot affect
+      // a tier decision or prevent a frame from rendering.
+      runCatching {
+        trace("HazeGlass.tier.${currentDecision.timingTier}.sample${sample.sequence}") { }
+      }
+    }
   }
 
   private fun stopTiming() {

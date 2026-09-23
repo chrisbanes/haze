@@ -188,14 +188,15 @@ active window. The screenshots are saved under `Pictures/CB10` on the device, wi
 logged as `CB10BenchmarkDiagnostic`.
 
 Supply a reviewed `tier-evidence.json` with `traceSha256`, `activeStartNanos`, `activeEndNanos`,
-and `tierEvents` entries containing `tier`, `atNanos`, and `sampleCount`. Derive these from a
-trace-synchronized temporary diagnostic of the host decision and source activity, recording the
-SHA-256 digest of the JSON report's referenced Perfetto trace. Use that trace's monotonic
-nanosecond clock for all timestamps. The archiver checks the digest, timing, event structure,
-and window against the measured trace duration, then retains the evidence file. It cannot
-independently prove manually transcribed tier values because the
-production trace does not currently label tiers. Inspect the raw trace and tier diagnostic before
-accepting the gate. Do not run the paired matrix if pixels, trace, tier evidence, or archive
+and `tierEvents` entries containing `tier`, `atNanos`, and `sampleCount`. Read the internal
+`HazeGlass.tier.<TIER>.sample<SEQUENCE>` decision-change slices and `CB10DiagnosticActive` slice
+from the same Perfetto trace, and record the SHA-256 digest of the JSON report's referenced trace.
+Use the trace's monotonic nanosecond clock for all timestamps. The archiver checks the digest,
+timing, event structure, and window against the measured trace duration, then retains the evidence
+file. It does **not** parse the tier slices or authenticate a manually transcribed tier record;
+inspect the raw trace and compare every recorded event before accepting the gate. The sequence in
+the marker counts Android frame reports, including invalid or dropped reports; verify recent valid
+timing separately. Do not run the paired matrix if pixels, trace, tier evidence, or archive
 verification fails.
 
 ```shell

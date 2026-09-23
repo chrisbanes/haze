@@ -36,6 +36,35 @@ The runtime source-only test and the forced-draw benchmark diagnostic establish 
 Neither supplies the eight-iteration, order-reversed Adaptive/Fixed comparison, GPU completion,
 matched corner quality, or live native window/view lifecycle needed for release validation.
 
+## Combined pre-matrix diagnostic
+
+Richard's benchmark gate `9edff463` was cherry-picked after the policy repair `8889fb3d`; the
+combined benchmark commit is `706379d8`. An internal host decision-change trace marker was added
+to observe tiers on the same Perfetto timeline as the six-second diagnostic window. It does not
+alter the controller decision, renderer scale, or public API.
+
+On the physical Pixel 8a (Android 17, fixed 60 Hz, battery 90%, thermal status 0), one
+release-like `sourceUpdateAdaptiveDiagnostic` iteration passed. The measured trace contains
+`CB10DiagnosticActive` for 6,020.713 ms, 359 source records, 360 Glass draws and prepares, and
+360 frame-duration samples. Paired Glass captures changed 9,840/9,840 sampled interior pixels.
+The trace processor showed the following slices within that same active interval:
+
+| Slice | Offset from active start | Android report sequence |
+| --- | ---: | ---: |
+| `HazeGlass.tier.BALANCED.sample1` | 0.056 s | 1 |
+| `HazeGlass.tier.FULL_RESOLUTION.sample212` | 3.581 s | 212 |
+
+The one-iteration archiver accepted a tier record transcribed from those slices and bound by trace
+SHA-256 `56a719a1fb21eb32a52ae35049cf6c9f299f495d88de60d96d6c818031f2fc4e`. The raw JSON,
+trace, XML, and tier record are in the ignored local
+`internal/benchmark/build/benchmark-results/cb10-r2-combined-tier-gate-20260923/` directory and
+are not committed. The archiver checks counts, duration, event shape, and trace digest, but does
+not independently parse tier slices; this manual-observation limit remains. Android report sequence
+is not proof that every report was valid. Fixed-performance mode was disabled after the run.
+
+This passes the narrow pre-matrix active-workload gate. It is one screenshot-bearing diagnostic,
+not a calibrated performance comparison or evidence that the Adaptive default is release-ready.
+
 ## Physical Android attempt
 
 - Revision: `2456665498b74a9b7b4535b358a1ff6b29fd748b` (before this documentation commit).
