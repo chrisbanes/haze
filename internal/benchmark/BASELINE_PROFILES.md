@@ -66,11 +66,11 @@ python3 internal/benchmark/verify_baseline_profile.py \
   --apk sample/android/build/outputs/apk/nonMinifiedRelease/android-nonMinifiedRelease.apk
 ```
 
-For the retained final profile, the verifier reports 2,285 rules (215 class and 2,070 method), zero
-missing ordinary AAR members, and zero missing consumer-Dex members. Its ordinary counts are `469`
-(`haze`), `341` (`haze-blur`), `1,101` (`haze-glass`), `36` (`haze-utils`), `7`
-(`haze-materials`), and `3` (`haze-glass-material3`). The expected generated counts are 295
-external-synthetic entries, 16 lambda bridges, 16 `$-CC` interface companions, and one
+For the retained final profile, the verifier reports 2,267 rules (223 class and 2,044 method), zero
+missing ordinary AAR members, and zero missing consumer-Dex members. Its ordinary counts are `476`
+(`haze`), `339` (`haze-blur`), `1,088` (`haze-glass`), `34` (`haze-utils`), `7`
+(`haze-materials`), and `3` (`haze-glass-material3`). The expected generated counts are 290
+external-synthetic entries, 13 lambda bridges, 16 `$-CC` interface companions, and one
 namespaced `R$drawable` class. Generated entries still require exact consumer-Dex definitions;
 `$-CC` entries also require an interface owner with the interface access flag in an AAR, and
 `R$drawable` requires the matching AAR manifest namespace.

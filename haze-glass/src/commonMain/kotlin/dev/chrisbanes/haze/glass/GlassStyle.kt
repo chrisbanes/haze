@@ -35,7 +35,7 @@ public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
   compositionLocalOf { GlassStyle }
 
 /**
- * An opaque, immutable sequence of recorded Glass appearance writes.
+ * An opaque, immutable sequence of Glass appearance writes.
  *
  * The builder passed to [GlassStyle] executes once during construction. Each property is
  * validated and captured as an immutable write; resolving a Style only replays those captured
@@ -115,11 +115,7 @@ public sealed interface GlassStyle {
      * response while preserving separately composed shape, background colour, tint, alpha, light
      * position, and interaction presentation.
      */
-    public val regular: GlassStyle = RecordedGlassStyle(
-      listOf {
-        (if (appearance == GlassSystemAppearance.Dark) regularDark else regularLight).replay(this)
-      },
-    )
+    public val regular: GlassStyle = BuiltInGlassStyle.Regular
 
     internal val clearLight: GlassStyle = GlassStyle {
       optics(clearOptics)
@@ -155,11 +151,7 @@ public sealed interface GlassStyle {
      * optical effects. It writes the complete material response while preserving separately composed
      * shape, background colour, tint, alpha, light position, and interaction presentation.
      */
-    public val clear: GlassStyle = RecordedGlassStyle(
-      listOf {
-        (if (appearance == GlassSystemAppearance.Dark) clearDark else clearLight).replay(this)
-      },
-    )
+    public val clear: GlassStyle = BuiltInGlassStyle.Clear
   }
 }
 
@@ -188,15 +180,43 @@ private class RecordedGlassStyle(
     RecordedGlassStyle(writes + other.writes)
 }
 
+@Immutable
+private enum class BuiltInGlassStyle : GlassStyle {
+  Regular,
+  Clear,
+  ;
+
+  fun replay(values: GlassStyleValues, appearance: GlassSystemAppearance) {
+    val selected = when (this) {
+      Regular -> if (appearance == GlassSystemAppearance.Dark) GlassStyle.regularDark else GlassStyle.regularLight
+      Clear -> if (appearance == GlassSystemAppearance.Dark) GlassStyle.clearDark else GlassStyle.clearLight
+    }
+    selected.replay(values, appearance)
+  }
+}
+
+@Immutable
+private class CombinedGlassStyle(
+  val styles: List<GlassStyle>,
+) : GlassStyle {
+  fun replay(values: GlassStyleValues, appearance: GlassSystemAppearance) {
+    for (style in styles) {
+      style.replay(values, appearance)
+    }
+  }
+}
+
 private fun combineGlassStyles(
   first: GlassStyle,
   second: GlassStyle,
-): GlassStyle = when (first) {
-  GlassStyle -> second
-  is RecordedGlassStyle -> when (second) {
-    GlassStyle -> first
-    is RecordedGlassStyle -> first.then(second)
-  }
+): GlassStyle {
+  if (first === GlassStyle) return second
+  if (second === GlassStyle) return first
+  if (first is RecordedGlassStyle && second is RecordedGlassStyle) return first.then(second)
+
+  val firstStyles = if (first is CombinedGlassStyle) first.styles else listOf(first)
+  val secondStyles = if (second is CombinedGlassStyle) second.styles else listOf(second)
+  return CombinedGlassStyle(firstStyles + secondStyles)
 }
 
 /** Marks the nested receiver scopes used while constructing a [GlassStyle]. */
@@ -470,7 +490,6 @@ private fun recordGlassStyleWrites(
 
 @Poko
 internal class GlassStyleValues(
-  internal val appearance: GlassSystemAppearance = GlassSystemAppearance.Light,
   var shape: RoundedCornerShape = GlassDefaults.shape,
   var optics: GlassOptics = GlassDefaults.optics,
   var specularIntensity: Float = GlassDefaults.specularIntensity,
@@ -502,17 +521,19 @@ internal fun resolveGlassStyleValues(
   localStyle: GlassStyle,
   explicitStyle: GlassStyle,
   appearance: GlassSystemAppearance = GlassSystemAppearance.Light,
-): GlassStyleValues = GlassStyleValues(appearance).also { values ->
-  GlassStyle.regular.replay(values)
-  localStyle.replay(values)
-  explicitStyle.replay(values)
+): GlassStyleValues = GlassStyleValues().also { values ->
+  GlassStyle.regular.replay(values, appearance)
+  localStyle.replay(values, appearance)
+  explicitStyle.replay(values, appearance)
 }
 
 internal enum class GlassSystemAppearance { Light, Dark }
 
-private fun GlassStyle.replay(values: GlassStyleValues) {
+private fun GlassStyle.replay(values: GlassStyleValues, appearance: GlassSystemAppearance) {
   when (this) {
     GlassStyle -> Unit
     is RecordedGlassStyle -> replay(values)
+    is BuiltInGlassStyle -> replay(values, appearance)
+    is CombinedGlassStyle -> replay(values, appearance)
   }
 }

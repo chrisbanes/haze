@@ -625,10 +625,20 @@ class GlassStyleTest {
       GlassStyle { whitePoint(0.2f) }.then(GlassStyle.regular),
       GlassSystemAppearance.Dark,
     )
+    val alternating = resolveGlassStyleValues(
+      GlassStyle,
+      GlassStyle.regular.then { whitePoint(0.2f) }
+        .then(GlassStyle.clear)
+        .then { contrast(0.3f) },
+      GlassSystemAppearance.Dark,
+    )
     val darkRegular = resolveGlassStyleValues(GlassStyle, GlassStyle.regular, GlassSystemAppearance.Dark)
+    val darkClear = resolveGlassStyleValues(GlassStyle, GlassStyle.clear, GlassSystemAppearance.Dark)
 
     assertThat(laterWrite.whitePoint).isEqualTo(0.2f)
     assertThat(laterBuiltIn.whitePoint).isEqualTo(darkRegular.whitePoint)
+    assertThat(alternating.whitePoint).isEqualTo(darkClear.whitePoint)
+    assertThat(alternating.contrast).isEqualTo(0.3f)
     assertThat(resolveGlassStyleValues(GlassStyle.clear, GlassStyle.regular, GlassSystemAppearance.Dark).whitePoint)
       .isEqualTo(darkRegular.whitePoint)
     assertThat(resolveGlassStyleValues(GlassStyle.regular, GlassStyle.clear, GlassSystemAppearance.Dark).whitePoint)
