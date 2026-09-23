@@ -177,20 +177,47 @@ internal fun ScreenshotUiTest.captureGlassMusicPlayer(
   setContent {
     contentWrapper {
       SamplesTheme(useDarkColors = isDark) {
-        ScreenshotTheme {
-          // Native ripples run outside the Compose test clock on Android.
-          CompositionLocalProvider(LocalRippleConfiguration provides null) {
-            GlassMusicPlayerSampleContent(
-              tracks = listOf(track, MusicTrack("Loud Places", "Jamie xx", "In Colour", 283_000, "https://example.invalid/colour.jpg", "https://music.apple.com/us/album/in-colour/1525506447"), MusicTrack("Look at the Sky", "Porter Robinson", "Nurture", 310_000, "https://example.invalid/nurture.jpg", "https://music.apple.com/us/album/nurture/1894533111")),
-              currentTrackIndex = 0,
-              positionMillis = position.toLong(),
-              isPlaying = false,
-              shuffleEnabled = shuffle,
-              tab = selectedTab,
-              onTabSelected = { selectedTab = it }, onPlayPause = {}, onPrevious = {}, onNext = {},
-              onShuffleChanged = { shuffle = it }, onSeekStarted = {}, onSeek = { position = it.toFloat() }, onSeekFinished = {},
-              onTrackSelected = {}, onBack = {},
-            )
+        WithSampleScreenshotSystemAppearance(SampleScreenshotSystemAppearance.Light) {
+          ScreenshotTheme {
+            // Native ripples run outside the Compose test clock on Android.
+            CompositionLocalProvider(LocalRippleConfiguration provides null) {
+              GlassMusicPlayerSampleContent(
+                tracks = listOf(
+                  track,
+                  MusicTrack(
+                    "Loud Places",
+                    "Jamie xx",
+                    "In Colour",
+                    283_000,
+                    "https://example.invalid/colour.jpg",
+                    "https://music.apple.com/us/album/in-colour/1525506447",
+                  ),
+                  MusicTrack(
+                    "Look at the Sky",
+                    "Porter Robinson",
+                    "Nurture",
+                    310_000,
+                    "https://example.invalid/nurture.jpg",
+                    "https://music.apple.com/us/album/nurture/1894533111",
+                  ),
+                ),
+                currentTrackIndex = 0,
+                positionMillis = position.toLong(),
+                isPlaying = false,
+                shuffleEnabled = shuffle,
+                tab = selectedTab,
+                onTabSelected = { selectedTab = it },
+                onPlayPause = {},
+                onPrevious = {},
+                onNext = {},
+                onShuffleChanged = { shuffle = it },
+                onSeekStarted = {},
+                onSeek = { position = it.toFloat() },
+                onSeekFinished = {},
+                onTrackSelected = {},
+                onBack = {},
+              )
+            }
           }
         }
       }
@@ -219,8 +246,13 @@ internal fun ScreenshotUiTest.captureGlassMusicPlayer(
 }
 
 @Composable
-private fun GlassGalleryScreenshotTheme(content: @Composable () -> Unit) {
-  SamplesTheme(useDarkColors = true) {
-    ScreenshotTheme(content)
+private fun GlassGalleryScreenshotTheme(
+  systemAppearance: SampleScreenshotSystemAppearance = SampleScreenshotSystemAppearance.Light,
+  content: @Composable () -> Unit,
+) {
+  WithSampleScreenshotSystemAppearance(systemAppearance) {
+    SamplesTheme(useDarkColors = true) {
+      ScreenshotTheme(content)
+    }
   }
 }

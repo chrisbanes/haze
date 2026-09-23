@@ -47,11 +47,13 @@ class GlassGalleryDesktopScreenshotTest : ScreenshotTest() {
         LocalInspectionMode provides true,
         LocalAsyncImagePreviewHandler provides previewHandler,
       ) {
-        SamplesTheme(useDarkColors = false) {
-          ScaffoldSample(
-            navController = rememberNavController(),
-            effect = SampleEffect.Glass,
-          )
+        WithSampleScreenshotSystemAppearance(SampleScreenshotSystemAppearance.Light) {
+          SamplesTheme(useDarkColors = false) {
+            ScaffoldSample(
+              navController = rememberNavController(),
+              effect = SampleEffect.Glass,
+            )
+          }
         }
       }
     }

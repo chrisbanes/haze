@@ -33,9 +33,11 @@ internal fun ScreenshotUiTest.assertProgressiveScaffoldKeepsRegularChrome() {
       LocalInspectionMode provides true,
       LocalAsyncImagePreviewHandler provides preview,
     ) {
-      SamplesTheme(useDarkColors = true) {
-        key(mode) {
-          ScaffoldSample(rememberNavController(), SampleEffect.Glass, mode = mode)
+      WithSampleScreenshotSystemAppearance(SampleScreenshotSystemAppearance.Light) {
+        SamplesTheme(useDarkColors = true) {
+          key(mode) {
+            ScaffoldSample(rememberNavController(), SampleEffect.Glass, mode = mode)
+          }
         }
       }
     }
