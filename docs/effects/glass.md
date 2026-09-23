@@ -154,7 +154,8 @@ constructed, so changes to those values require a replacement Style through reco
 
 Each node starts with the appearance-specific Regular response, then applies `LocalGlassStyle` and
 its explicit Style. An omitted value inherits a local write when present; otherwise material
-response values come from Regular and presentation values from `GlassDefaults`.
+response values come from Regular. Presentation values use their accumulator defaults: mostly
+`GlassDefaults`, with `lightPosition` centered and interaction responses unset.
 
 ### Accessibility preferences
 
@@ -218,7 +219,8 @@ val movingLighting = GlassStyle {
 
 `GlassStyle.regular` is the default built-in material response, including when the modifier omits
 `style`. Both built-ins are immutable Style values whose response is selected at each attached node
-when system appearance changes. Individual omitted presentation values fall back to `GlassDefaults`.
+when system appearance changes. Omitted presentation values use the accumulator defaults described
+above.
 Use `LocalGlassStyle` to set a default for a subtree, and pass an explicit Style
 when one element needs to differ.
 

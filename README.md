@@ -50,12 +50,14 @@ dependencies {
 }
 ```
 
-For Glass, add the core module and the experimental Glass artifact:
+For the Glass example below, add the core and experimental Glass artifacts plus the optional
+Material 3 integration:
 
 ```kotlin
 dependencies {
     implementation("dev.chrisbanes.haze:haze:<version>")
     implementation("dev.chrisbanes.haze:haze-glass:<version>")
+    implementation("dev.chrisbanes.haze:haze-glass-material3:<version>")
 }
 ```
 
