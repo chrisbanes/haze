@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +38,7 @@ import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
+import dev.chrisbanes.haze.glass.material3.material3
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -164,6 +167,36 @@ class GlassBuiltInStyleScreenshotTest : ScreenshotTest() {
   @Test
   fun clear_attachedAppearanceSwitchUpdatesAndRestoresPixels() =
     checkAttachedAppearanceSwitch(GlassStyle.clear)
+
+  @Test
+  fun material3_regularKeepsThemeWhileBuiltInResponseFollowsSystemAppearance() =
+    runScreenshotTest(size = Size(420f, 800f)) {
+      var appearance by mutableStateOf(GlassTestSystemAppearance.Light)
+      val surface = Color(0x22223344)
+      val tint = Color(0x22557799)
+      setContent {
+        WithGlassTestSystemAppearance(appearance) {
+          MaterialTheme(colorScheme = lightColorScheme(surface = surface)) {
+            androidx.compose.runtime.CompositionLocalProvider(
+              androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(1f),
+            ) {
+              GlassBuiltInStyleGeometrySample(GlassStyle.regular.material3(tint = tint))
+            }
+          }
+        }
+      }
+
+      waitForIdle()
+      val light = captureRootPixels().snapshot()
+      appearance = GlassTestSystemAppearance.Dark
+      waitForIdle()
+      val dark = captureRootPixels().snapshot()
+      assertThat(dark.changedPixelRatio(light)).isGreaterThan(0.01f)
+
+      appearance = GlassTestSystemAppearance.Light
+      waitForIdle()
+      assertThat(captureRootPixels().snapshot().meanAbsoluteDifference(light)).isLessThan(1f / 255f)
+    }
 
   private fun checkAttachedAppearanceSwitch(style: GlassStyle) = runScreenshotTest(size = Size(420f, 800f)) {
     var appearance by mutableStateOf(GlassTestSystemAppearance.Light)

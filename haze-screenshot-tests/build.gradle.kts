@@ -57,6 +57,7 @@ kotlin {
 
         implementation(projects.internal.contextTest)
         implementation(projects.internal.screenshotTest)
+        implementation(projects.hazeGlassMaterial3)
       }
     }
 

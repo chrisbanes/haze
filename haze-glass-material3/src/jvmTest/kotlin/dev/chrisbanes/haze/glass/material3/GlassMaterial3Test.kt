@@ -90,6 +90,43 @@ class GlassMaterial3Test {
   }
 
   @Test
+  fun material3_keepsSurfaceAndTintWithChangingSystemAppearance() = runComposeUiTest {
+    val appearance = mutableStateOf(SystemTheme.Light)
+    val surface = Color.Red
+    val tint = Color.Blue
+
+    setContent {
+      CompositionLocalProvider(LocalSystemTheme provides appearance.value) {
+        MaterialTheme(colorScheme = lightColorScheme(surface = surface)) {
+          Column {
+            GlassMaterial3Content(GlassStyle.regular.material3(), "surface-control")
+            GlassMaterial3Content(GlassStyle.regular.material3(tint = tint), "tint-control")
+          }
+        }
+      }
+    }
+
+    val surfaceControl = onNodeWithTag("surface-control").captureToImage().toPixelMap()[20, 20]
+    val tintControl = onNodeWithTag("tint-control").captureToImage().toPixelMap()[20, 20]
+    assertThat(surfaceControl).isEqualTo(surface)
+    assertThat(tintControl).isEqualTo(tint)
+
+    appearance.value = SystemTheme.Dark
+    waitForIdle()
+    assertThat(onNodeWithTag("surface-control").captureToImage().toPixelMap()[20, 20])
+      .isEqualTo(surfaceControl)
+    assertThat(onNodeWithTag("tint-control").captureToImage().toPixelMap()[20, 20])
+      .isEqualTo(tintControl)
+
+    appearance.value = SystemTheme.Light
+    waitForIdle()
+    assertThat(onNodeWithTag("surface-control").captureToImage().toPixelMap()[20, 20])
+      .isEqualTo(surfaceControl)
+    assertThat(onNodeWithTag("tint-control").captureToImage().toPixelMap()[20, 20])
+      .isEqualTo(tintControl)
+  }
+
+  @Test
   fun material3_withoutBlockReusesStyleAcrossUnrelatedRecompositions() = runComposeUiTest {
     val recomposed = mutableStateOf(false)
     lateinit var initialStyle: GlassStyle
