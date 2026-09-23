@@ -62,6 +62,8 @@ internal class SkikoGlassCadence {
   private var warmupIntervals = 0
   private var budgetNanos: Long? = null
   private var sequence = 0L
+  private var shortIntervalNanos = 0L
+  private var consecutiveShortIntervals = 0
 
   fun record(nowNanos: Long): GlassFrameHealthSample? {
     val previous = previousNanos
@@ -87,9 +89,22 @@ internal class SkikoGlassCadence {
       return null
     }
     if (interval < budget * 3 / 4) {
-      resetEvidence()
+      // One early callback can be scheduler jitter. Require a stable faster cadence before
+      // discarding the current target; withheld callbacks must not count as healthy samples.
+      if (shortIntervalNanos == 0L ||
+        interval > shortIntervalNanos * 5 / 4 ||
+        shortIntervalNanos > interval * 5 / 4
+      ) {
+        shortIntervalNanos = interval
+        consecutiveShortIntervals = 1
+      } else {
+        consecutiveShortIntervals++
+        if (consecutiveShortIntervals == 3) resetEvidence()
+      }
       return null
     }
+    shortIntervalNanos = 0L
+    consecutiveShortIntervals = 0
     return GlassFrameHealthSample(
       sequence = ++sequence,
       timestampNanos = nowNanos,
@@ -109,5 +124,7 @@ internal class SkikoGlassCadence {
     warmupIntervals = 0
     budgetNanos = null
     sequence = 0L
+    shortIntervalNanos = 0L
+    consecutiveShortIntervals = 0
   }
 }

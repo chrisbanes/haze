@@ -36,6 +36,19 @@ class SkikoGlassCadenceTest {
   }
 
   @Test
+  fun isolatedShortCallback_keepsFullResolutionEvidence() {
+    val trace = AdaptiveCadenceTrace()
+    repeat(300) { trace.frame(16_666_667L) }
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
+
+    trace.frame(6_100_000L)
+    repeat(20) { trace.frame(16_666_667L) }
+
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
+    assertThat(trace.host.decision.timingTier).isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
+  }
+
+  @Test
   fun oldOutlierExpiresFromTheStableCadenceWindow() {
     val trace = AdaptiveCadenceTrace()
     repeat(40) { trace.frame(16_666_667L) }
@@ -192,7 +205,7 @@ class SkikoGlassCadenceTest {
 
     now += 8_333_333L
     assertThat(cadence.record(now)).isNull()
-    repeat(8) {
+    repeat(10) {
       now += 8_333_333L
       assertThat(cadence.record(now)).isNull()
     }
