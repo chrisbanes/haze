@@ -50,14 +50,12 @@ dependencies {
 }
 ```
 
-For the Glass example below, add the core and experimental Glass artifacts plus the optional
-Material 3 integration:
+For Glass, add the core module and the experimental Glass artifact:
 
 ```kotlin
 dependencies {
     implementation("dev.chrisbanes.haze:haze:<version>")
     implementation("dev.chrisbanes.haze:haze-glass:<version>")
-    implementation("dev.chrisbanes.haze:haze-glass-material3:<version>")
 }
 ```
 
@@ -94,7 +92,7 @@ The optional [Blur material presets](https://chrisbanes.github.io/haze/blur/mate
 ```kotlin
 Modifier.hazeGlass(
     input = HazeInput.Sources(hazeState),
-    style = GlassStyle.regular.material3().then {
+    style = GlassStyle.regular.then {
         tint(Color.White.copy(alpha = 0.16f))
         shape(RoundedCornerShape(20.dp))
     },
@@ -105,8 +103,8 @@ Start with `GlassStyle.regular`, or use `GlassStyle.clear` when the background s
 visible. Consult the [Glass guide](https://chrisbanes.github.io/haze/effects/glass/) for custom
 optics, interaction, retention, and platform fallback behavior. Add `haze-glass-material3` to use
 `GlassStyle.Material3()` or `material3()` with your current Material 3 surface color. Regular and
-Clear follow the system appearance without Material 3; the builder separately supplies the app
-theme's surface color and optional tint.
+Clear follow the system appearance without Material 3. The optional integration supplies the app
+theme's surface color and can add a tint.
 
 ## Performance
 
