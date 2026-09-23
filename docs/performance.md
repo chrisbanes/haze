@@ -86,6 +86,20 @@ quality setting instead of adapting it. `Performance`, `Balanced`, and `Quality`
 `Fixed(0f)`, `Fixed(0.5f)`, and `Fixed(1f)`. The fraction describes quality, not a percentage
 reduction in rendering time.
 
+For Glass, Adaptive can share a quality decision across active effects in one rendering host.
+It uses Android window frame timing only when the effect's attached view matches its Activity
+or Compose Dialog window on API 24 or later. Other supported targets can use frame cadence,
+which reports callback timing rather than GPU completion. When a host, lifecycle, timing source,
+or recent valid timing sample is unavailable, Adaptive falls back to its retained-workload
+policy. It does not infer that an idle screen has spare rendering capacity. Use a Fixed mode
+when you need a predictable input resolution while comparing platforms.
+
+Web and native macOS apps that use Adaptive Glass should wrap each composition root in
+`GlassAdaptiveHost { ... }` so effects in that root share an identity and are released together.
+Keep separate windows under separate roots. Desktop and iOS use their platform window or view
+identity when it is available; missing identity uses the fallback. The wrapper is an
+experimental Glass API and supplies host lifetime, not a quality setting.
+
 !!! note "Measured quality trade-offs"
 
     In a two-pass Pixel 8a test at 60 Hz with a changing background, Glass `Balanced` left about

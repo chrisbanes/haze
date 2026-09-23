@@ -2,80 +2,92 @@
 
 ## Status
 
-Accepted
+Accepted workload fallback. The host-feedback amendment is approved for implementation under
+CB-10 plan r2, but its default-release validation is open.
 
 ## Date
 
-2026-08-03
+2026-08-03; amended 2026-09-23
 
 ## Context
 
-Glass retains several platform-specific rendering layers. Their cost depends on both the pixels in
-the active layer graph and how often that graph consumes new input. Raw material area is therefore
-insufficient: a large retained result can be cheap when reused, while a smaller result updated on
-every animation frame can remain fill-rate bound.
+Glass retains platform-specific rendering layers. Their cost depends on both the pixels in the
+active layer graph and how often that graph consumes new input. Raw material area alone cannot
+distinguish a reused result from a frequently updated one. The original deterministic workload
+policy addressed this without a platform timing source, but it cannot probe full resolution when
+a fast host has headroom or respond to measured sustained frame pressure shared by several nodes.
 
-Glass also exposes optical detail more readily than Blur, so automatic scaling must keep a
-high-quality tier for light or stable work. Frame-time feedback and a scheduler spanning multiple
-Glass nodes remain out of scope.
+Frame evidence has different meanings across targets. Android `FrameMetrics` reports whole-window
+rendering duration; Skiko frame-clock intervals report callback cadence, not GPU completion. Neither
+source isolates the cost of Glass from other work in that host. Missing or stale evidence must not
+be interpreted as spare capacity.
 
 ## Decision
 
-`HazeSampling.Default` points to `HazeSampling.Adaptive`, which selects only pixel fractions `0.5`
-or `0.25` (linear scales `sqrt(0.5)`, approximately `0.707`, or `0.5`) from a deterministic
-workload score:
+`HazeSampling.Default` points to `HazeSampling.Adaptive`. Active Adaptive Glass nodes registered
+to the same verified rendering host share one demand-driven controller and one timing observer.
+The controller starts at linear input scale `sqrt(0.5)`, can step down to `0.5` after sustained
+misses, and can probe upward to `1.0` after a longer healthy interval. A tier change is consumed
+on each node's next natural draw; it does not wake an idle node. Demand expires after 350 ms
+without a natural update. Host stop, idle, stale samples, missing reports, and refresh changes
+reset timing evidence. A failed upward probe backs off before another attempt.
 
-- The runtime builds the real platform-specific retained-layer plan at `sqrt(0.5)`. The plan
-  includes expanded sample dimensions and every active blur, depth, refraction-detail, rim,
-  interaction, and group-composite layer.
-- A distinct input capture, style/runtime dirty version, material or layer geometry, or interaction
-  state counts as an update. Repeated draws of the same retained input do not.
-- Updates no more than 100ms apart form a burst. The retained pixel count is multiplied by up to
-  three updates, producing a retained pixel-update score. A quiet interval resets the multiplier.
-- Scores at or above 1,500,000 select the `0.25` pixel-fraction tier; lower scores select `0.5`.
-  This means the aggressive tier can be entered by 1.5M pixels once, 750k pixels twice, or 500k
-  pixels three times.
-- Once selected, the `0.25` tier is retained until the score falls below 1,312,500, a 12.5% exit
-  margin. This absorbs small geometry and cadence changes without repeatedly reallocating layers.
+The implementation's initial policy uses at least 30 samples and 500 ms to warm up, at least
+30 samples over 1 s with a 20% miss ratio to step down, and at least 90 samples over 3 s with a
+5% or lower miss ratio to probe up. A new tier settles for 500 ms; probes require at least
+20 samples over 500 ms to validate. The initial retry delay is 2 s and grows after failed
+probes. These are **uncalibrated starting values**, retained until valid paired measurements
+justify a change.
 
-`FullResolution` remains exactly `1.0`, and `Fixed(pixelFraction)` remains authoritative. Selecting
-any non-adaptive policy resets adaptive history. Blur uses the same adaptive default mode and
-cadence mechanism with its own radius-and-area workload ladder.
+Android uses `FrameMetrics.TOTAL_DURATION` only when an attached view can be matched to its
+actual Activity or Compose Dialog `Window` on API 24+. API 31+ uses the reported deadline;
+API 24–30 estimates the budget from display refresh. First-draw and dropped reports are invalid.
+An unmatched, detached, or unsupported window gets no timing tier. Desktop uses `LocalAwtWindow`
+and iOS uses `LocalUIView` when available. Web and native macOS use a composition-root
+`GlassAdaptiveHost` token because no automatic host identity was established there. Skiko targets
+use demand-driven callback cadence with lower confidence. A missing identity, lifecycle, timing
+source, or recent valid sample selects the deterministic workload fallback; hosts are never
+merged under a global unknown key.
 
-## Validation
+The fallback builds the actual retained-layer plan at `sqrt(0.5)`, including expanded samples
+and active blur, depth, refraction, rim, interaction, and group-composite layers. Distinct input
+updates no more than 100 ms apart multiply retained pixels by up to three. A score of at least
+1,500,000 selects `0.5`; it stays there until the score falls below 1,312,500. Otherwise it uses
+`sqrt(0.5)`. This fallback has no full-resolution tier.
 
-On the retained-shader implementation, an eight-iteration release Pixel 6 Macrobenchmark of the
-same 280dp by 180dp Glass profiling surface measured linear scale `0.75` at 5.9ms CPU P50 / 8.2ms
-P90 and linear scale `0.5` at 5.4ms P50 / 7.9ms P90. Both measurements were comfortably within the
-frame budget for this isolated, stable-sized workload, and they bracket the selected balanced
-linear scale of approximately `0.707`.
+`FullResolution` remains exactly `1.0`. `Fixed(qualityFraction)` remains authoritative at
+`sqrt(0.25 + 0.75 * qualityFraction)`, so public fixed `Balanced` is `sqrt(0.625)`, distinct from
+Adaptive's middle tier. Fixed modes do not register timing demand. Retained-layer resource guards,
+rendering topology, and Blur policy are unchanged.
 
-The matched animated Glass Playground workload made the cadence cost visible. At `0.75`, CPU frame
-time measured 22.9ms P50 / 30.1ms P90 and frame overrun measured 14.4ms P50 / 29.2ms P90. At `0.5`,
-CPU frame time fell to 13.8ms P50 / 19.5ms P90, while frame overrun fell to 1.6ms P50 / 8.2ms P90.
-That is a 39.7% P50 and 35.2% P90 CPU-frame reduction. Median peak GPU memory also fell from
-133,346KB to 92,468KB (30.7%). These measurements compared linear scales `0.75` and `0.5` under the
-same eight-iteration benchmark and device conditions; Macrobenchmark JSON and all sixteen Perfetto
-traces were captured locally. The public total-pixel scenarios now use `Fixed(0.5)` for the
-balanced tier and `Fixed(0.25)` for the aggressive tier.
+## Validation and release gate
 
-Deterministic policy tests cover the tier boundary, rapid-update accumulation, quiet-period reset,
-hysteresis, and explicit-policy reset. Runtime integration tests cover small and large retained
-plans through `GlassRuntimeEffect`. Android and Skiko screenshot checks cover rounded clipping,
-progressive blur, refraction detail, both explicit tiers, and the transition back to the balanced
-tier.
+The earlier Pixel 6 eight-iteration fixed-scale comparison measured a stable 280dp by 180dp
+surface at linear `0.75` and `0.5`: CPU frame P50 / P90 was 5.9 / 8.2 ms and
+5.4 / 7.9 ms respectively. In its animated Glass Playground workload, CPU frame P50 / P90
+was 22.9 / 30.1 ms at `0.75` and 13.8 / 19.5 ms at `0.5`; median peak GPU memory fell from
+133,346 to 92,468 KiB. This supports the cost of lower input resolution, not the new
+host-feedback thresholds or cross-platform behavior. Deterministic controller, host, render,
+and Android-window tests pass. Apple simulator and macOS tests compile and pass, but they do not
+exercise real window lifecycle and timing.
+
+The CB-10 physical and visible-browser attempt, including its invalid benchmark workload and
+unresolved tier behavior, is recorded in
+[the calibration report](../../internal/benchmark/CB10_ADAPTIVE_VALIDATION.md). It does not
+justify threshold changes. The paired physical Android comparison, active browser quality and
+corner comparison, allocation churn, GPU memory parity, and real desktop/iOS lifecycle checks
+remain open. **Do not release host-feedback Adaptive as the default based on this evidence.**
 
 ## Consequences
 
-- A continuously changing Glass surface can move to the `0.25` pixel-fraction tier after at most
-  three observed updates.
-- Stable retained output remains at the `0.5` pixel-fraction tier unless a single plan is large
-  enough to cross the score boundary.
-- The first update after a quiet interval may return to the `0.5` tier; a new rapid burst can
-  promote it again without oscillating on every frame.
-- Backend topology participates naturally: fused Android and multi-stage Skiko plans can select
-  different tiers when their actual retained work differs.
-- Threshold changes require paired physical-device benchmarks and representative visual review.
+- A host can coordinate active Glass nodes while preserving separate decisions across windows.
+- Verified Android timing can respond to whole-window pressure. Skiko cadence is a weaker signal;
+  a healthy interval is not proof of GPU headroom.
+- A missing or expired timing source returns to the bounded workload policy without changing
+  Fixed-mode output.
+- Threshold changes need a valid active Glass workload, paired physical measurements, frame and
+  memory traces, and representative corner captures. An unsafe host binding or harmful churn
+  requires revisiting plan r2 before a material design change.
 
 ## References
 
