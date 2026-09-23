@@ -15,28 +15,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.ComposeViewport
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.glass.GlassAdaptiveHost
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalHazeApi::class)
 fun main() {
   val request = resolveSampleLaunch(sampleEmbedQuery(), Samples)
   ComposeViewport(viewportContainerId = "Sample") {
-    PageLoadNotify()
-    when (request) {
-      SampleLaunchRequest.Normal -> Samples("Haze Samples")
-      is SampleLaunchRequest.Selected -> if (request.embedded) {
-        EmbeddedSample(request)
-      } else {
-        Samples(
-          appTitle = "Haze Samples",
-          initialSelection = request,
-          useDarkColors = when (request.theme) {
-            SampleEmbedTheme.System -> isSystemInDarkTheme()
-            SampleEmbedTheme.Light -> false
-            SampleEmbedTheme.Dark -> true
-          },
-        )
+    GlassAdaptiveHost {
+      PageLoadNotify()
+      when (request) {
+        SampleLaunchRequest.Normal -> Samples("Haze Samples")
+        is SampleLaunchRequest.Selected -> if (request.embedded) {
+          EmbeddedSample(request)
+        } else {
+          Samples(
+            appTitle = "Haze Samples",
+            initialSelection = request,
+            useDarkColors = when (request.theme) {
+              SampleEmbedTheme.System -> isSystemInDarkTheme()
+              SampleEmbedTheme.Light -> false
+              SampleEmbedTheme.Dark -> true
+            },
+          )
+        }
+        is SampleLaunchRequest.Invalid -> InvalidSampleEmbed()
       }
-      is SampleLaunchRequest.Invalid -> InvalidSampleEmbed()
     }
   }
 }

@@ -171,6 +171,16 @@ internal class GlassRuntimeEffect() :
 
   private var attachedContext: HazeEffectLifecycleScope? = null
   private val adaptiveHostBinding = GlassAdaptiveHostBinding()
+  private var observedAdaptiveHost: GlassAdaptiveHost? = null
+  private var observedHostDecisionVersion = 0
+  private var observedInputSnapshot: HazeEffectInputSnapshot? = null
+  private var timingInputScale: Float? = null
+
+  internal val adaptiveHostForTest: GlassAdaptiveHost?
+    get() = adaptiveHostBinding.host
+
+  internal val observedInputSnapshotForTest: HazeEffectInputSnapshot?
+    get() = observedInputSnapshot
 
   private fun onRuntimeConfigurationChanged(fields: Int) {
     markDirty(fields)
@@ -340,6 +350,10 @@ internal class GlassRuntimeEffect() :
     runtimeShaderIncompatible = false
     needsDelegateSelection = true
     inputScalePolicy.reset()
+    observedAdaptiveHost = null
+    observedHostDecisionVersion = 0
+    observedInputSnapshot = null
+    timingInputScale = null
     resolvedInputScale = GlassInputScalePolicy.FULL_RESOLUTION_SCALE
     preparedRender = null
     clearPreparedRenderCache()
@@ -403,6 +417,7 @@ internal class GlassRuntimeEffect() :
   override fun HazeEffectRuntimeDrawScope.prepareDraw(style: GlassNodeConfiguration) {
     val context = this
     trace(GlassTraceSection.Prepare) {
+      val hostDecisionChanged = observeAdaptiveHostDraw(context)
       val workloadWeightChanged = if (performanceMode === HazePerformanceMode.Adaptive) {
         inputScalePolicy.observeUpdate(
           GlassAdaptiveUpdateKey(
@@ -417,7 +432,7 @@ internal class GlassRuntimeEffect() :
       } else {
         false
       }
-      if (!workloadWeightChanged && canReusePreparedDraw(context)) return@trace
+      if (!hostDecisionChanged && !workloadWeightChanged && canReusePreparedDraw(context)) return@trace
       val previousBudget = preparedRenderBudget
       trace(GlassTraceSection.PrepareBudget) {
         prepareRenderBudget(context, runtimeShaderSupported = isRuntimeShaderGlassSupported())
@@ -439,6 +454,33 @@ internal class GlassRuntimeEffect() :
       }
       cachePreparedDrawInputs(context)
     }
+  }
+
+  private fun observeAdaptiveHostDraw(context: HazeEffectRuntimeDrawScope): Boolean {
+    val host = if (performanceMode === HazePerformanceMode.Adaptive) {
+      adaptiveHostBinding.host
+    } else {
+      null
+    }
+    val hostChanged = host !== observedAdaptiveHost
+    if (hostChanged) observedInputSnapshot = null
+    val decision = host?.decision
+    val snapshot = context.inputSnapshot.takeIf { context.hasDrawableInput }
+    if (host != null && snapshot != null && snapshot != observedInputSnapshot) {
+      attachedContext?.let(adaptiveHostBinding::renewDemandLease)
+    }
+    observedInputSnapshot = snapshot
+
+    val decisionChanged = hostChanged ||
+      (decision?.version ?: 0) != observedHostDecisionVersion
+    observedAdaptiveHost = host
+    observedHostDecisionVersion = decision?.version ?: 0
+    timingInputScale = decision?.timingTier?.scale
+    if (decisionChanged) {
+      preparedDrawCacheKey = null
+      clearPreparedRenderCache()
+    }
+    return decisionChanged
   }
 
   override fun HazeEffectRuntimeDrawScope.backdropEffect(
@@ -844,7 +886,9 @@ internal class GlassRuntimeEffect() :
     } else {
       null
     }
-    val requestedScale = requestedScaleOverride ?: inputScalePolicy.resolve(
+    val requestedScale = requestedScaleOverride ?: timingInputScale?.takeIf {
+      performanceMode === HazePerformanceMode.Adaptive
+    } ?: inputScalePolicy.resolve(
       performanceMode = performanceMode,
       balancedPlan = balancedPlan,
     )

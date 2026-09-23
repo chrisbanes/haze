@@ -191,6 +191,44 @@ class GlassAdaptiveHostRegistryTest {
   }
 
   @Test
+  fun sharedHostDecisionVersionChangesForTierAndEvidenceWhileOtherHostStaysIndependent() {
+    val registry = GlassAdaptiveHostRegistry()
+    val first = registry.register(Any())
+    val sibling = registry.register(first.host.key)
+    val separate = registry.register(Any())
+    val source = FakeGlassTimingSource()
+    first.bindTimingSource(source)
+    first.setActiveDemand(true)
+
+    val initialVersion = first.host.decision.version
+    assertThat(sibling.host).isSameInstanceAs(first.host)
+    assertThat(first.host.decision.timingTier).isEqualTo(null)
+    assertThat(separate.host.decision.version).isEqualTo(0)
+
+    repeat(30) { index ->
+      val timestamp = (index + 1) * 20_000_000L
+      source.callback?.invoke(GlassFrameHealthSample(index.toLong(), timestamp, 16_000_000L, 17_000_000L), timestamp)
+    }
+    assertThat(first.host.decision.version).isEqualTo(initialVersion + 1)
+    assertThat(first.host.decision.timingTier).isEqualTo(GlassAdaptiveTier.BALANCED)
+
+    repeat(31) { index ->
+      val timestamp = 620_000_000L + index * 34_000_000L
+      source.callback?.invoke(GlassFrameHealthSample((index + 30).toLong(), timestamp, 20_000_000L, 17_000_000L), timestamp)
+    }
+    assertThat(sibling.host.decision.timingTier).isEqualTo(GlassAdaptiveTier.AGGRESSIVE)
+    assertThat(sibling.host.decision.version).isEqualTo(initialVersion + 2)
+    assertThat(separate.host.decision.version).isEqualTo(0)
+
+    first.setActiveDemand(false)
+    assertThat(first.host.decision.timingTier).isEqualTo(null)
+    assertThat(first.host.decision.version).isEqualTo(initialVersion + 3)
+    first.release()
+    sibling.release()
+    separate.release()
+  }
+
+  @Test
   fun demandLease_expiresAfterLastUpdateAndStopsObservation() = runTest {
     val registration = GlassAdaptiveHostRegistry().register(Any())
     val source = FakeGlassTimingSource()

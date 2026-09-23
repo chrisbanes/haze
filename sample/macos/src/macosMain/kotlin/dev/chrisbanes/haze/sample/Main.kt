@@ -4,11 +4,14 @@
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.ui.window.Window
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.glass.GlassAdaptiveHost
 import platform.AppKit.NSApplication
 import platform.AppKit.NSApplicationActivationPolicy
 import platform.AppKit.NSApplicationDelegateProtocol
 import platform.darwin.NSObject
 
+@OptIn(ExperimentalHazeApi::class)
 fun main() {
   val nsApplication = NSApplication.sharedApplication()
   nsApplication.setActivationPolicy(NSApplicationActivationPolicy.NSApplicationActivationPolicyRegular)
@@ -20,7 +23,7 @@ fun main() {
   Window(
     title = "Haze Sample",
   ) {
-    Samples("Haze Samples")
+    GlassAdaptiveHost { Samples("Haze Samples") }
   }
   nsApplication.run()
 }

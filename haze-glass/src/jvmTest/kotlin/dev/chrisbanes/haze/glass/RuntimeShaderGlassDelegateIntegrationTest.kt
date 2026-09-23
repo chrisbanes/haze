@@ -58,6 +58,7 @@ import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
+import kotlin.math.sqrt
 import kotlin.test.Test
 
 @OptIn(
@@ -439,6 +440,100 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     assertThat(
       (runtime(largeEffect).preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor,
     ).isEqualTo(0.5f)
+  }
+
+  @Test
+  fun adaptiveHostTierIsConsumedOnNextDrawWithoutWakingSiblingOrChangingFixedScale() = runComposeUiTest {
+    val firstEffect = activeDetailEffect()
+    val secondEffect = activeDetailEffect()
+    val fixedEffect = activeDetailEffect()
+    val secondSourceColor = mutableStateOf(Color.Red)
+    setContent {
+      GlassAdaptiveHost {
+        RuntimeGlassTestContent(firstEffect, tag = "first", performanceMode = HazePerformanceMode.Adaptive)
+        RuntimeGlassTestContent(
+          secondEffect,
+          tag = "second",
+          performanceMode = HazePerformanceMode.Adaptive,
+          sourceColor = secondSourceColor.value,
+        )
+        RuntimeGlassTestContent(
+          fixedEffect,
+          tag = "fixed",
+          performanceMode = HazePerformanceMode.Fixed(0.5f),
+        )
+      }
+    }
+    waitForIdle()
+
+    val first = runtime(firstEffect)
+    val second = runtime(secondEffect)
+    val fixed = runtime(fixedEffect)
+    val host = checkNotNull(first.adaptiveHostForTest)
+    assertThat(second.adaptiveHostForTest).isSameInstanceAs(host)
+    assertThat(fixed.adaptiveHostForTest).isNull()
+    val secondPrepared = checkNotNull(second.preparedRender)
+    val secondInputSnapshot = checkNotNull(second.observedInputSnapshotForTest)
+    val firstPrepared = checkNotNull(first.preparedRender)
+    val fixedScale = sqrt(0.625f)
+    assertThat((fixed.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+      .isEqualTo(fixedScale)
+
+    runOnIdle {
+      host.recordSustainedMisses()
+      checkNotNull(first.attachedContextForTest).invalidateDraw()
+    }
+    waitForIdle()
+
+    assertThat(host.decision.timingTier).isEqualTo(GlassAdaptiveTier.AGGRESSIVE)
+    assertThat((first.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+      .isEqualTo(GlassInputScalePolicy.AGGRESSIVE_SCALE)
+    assertThat(checkNotNull(first.preparedRender)).isNotSameInstanceAs(firstPrepared)
+    assertThat(second.preparedRender).isSameInstanceAs(secondPrepared)
+    assertThat((second.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+      .isEqualTo(GlassInputScalePolicy.BALANCED_SCALE)
+    assertThat((fixed.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+      .isEqualTo(fixedScale)
+
+    runOnIdle { secondSourceColor.value = Color.Blue }
+    waitForIdle()
+    runOnIdle { checkNotNull(second.attachedContextForTest).invalidateDraw() }
+    waitForIdle()
+    assertThat(second.observedInputSnapshotForTest).isNotEqualTo(secondInputSnapshot)
+    assertThat((second.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+      .isEqualTo(GlassInputScalePolicy.AGGRESSIVE_SCALE)
+
+    runOnIdle {
+      host.recordSample(GlassFrameHealthSample(100, 1L, 1L, 17_000_000L), 300_000_002L)
+      checkNotNull(first.attachedContextForTest).invalidateDraw()
+    }
+    waitForIdle()
+    assertThat((first.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+      .isEqualTo(GlassInputScalePolicy.BALANCED_SCALE)
+    assertThat((fixed.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+      .isEqualTo(fixedScale)
+  }
+
+  @Test
+  fun fixedRenderModesKeepExactEndpointAndMidpointScalesUnderAdaptiveHostWrapper() = runComposeUiTest {
+    val minimum = activeDetailEffect()
+    val midpoint = activeDetailEffect()
+    val maximum = activeDetailEffect()
+    setContent {
+      GlassAdaptiveHost {
+        RuntimeGlassTestContent(minimum, "minimum", HazePerformanceMode.Fixed(0f))
+        RuntimeGlassTestContent(midpoint, "midpoint", HazePerformanceMode.Fixed(0.5f))
+        RuntimeGlassTestContent(maximum, "maximum", HazePerformanceMode.Fixed(1f))
+      }
+    }
+    waitForIdle()
+
+    assertThat((runtime(minimum).preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+      .isEqualTo(0.5f)
+    assertThat((runtime(midpoint).preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+      .isEqualTo(sqrt(0.625f))
+    assertThat((runtime(maximum).preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+      .isEqualTo(1f)
   }
 
   @Test
@@ -1309,10 +1404,11 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     tag: String,
     performanceMode: HazePerformanceMode = HazePerformanceMode.Quality,
     style: GlassStyle = effect.style,
+    sourceColor: Color = Color.Red,
   ) {
     val hazeState = remember { HazeState() }
     Box(Modifier.size(120.dp)) {
-      Box(Modifier.fillMaxSize().background(Color.Red).hazeSource(hazeState))
+      Box(Modifier.fillMaxSize().hazeSource(hazeState).background(sourceColor))
       Box(
         Modifier
           .fillMaxSize()
@@ -1360,5 +1456,23 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
           ),
       )
     }
+  }
+}
+
+private fun GlassAdaptiveHost.recordSustainedMisses() {
+  controller.reset()
+  repeat(30) { index ->
+    val timestamp = (index + 1) * 20_000_000L
+    recordSample(
+      GlassFrameHealthSample(index.toLong(), timestamp, 16_000_000L, 17_000_000L),
+      timestamp,
+    )
+  }
+  repeat(31) { index ->
+    val timestamp = 620_000_000L + index * 34_000_000L
+    recordSample(
+      GlassFrameHealthSample((index + 30).toLong(), timestamp, 20_000_000L, 17_000_000L),
+      timestamp,
+    )
   }
 }

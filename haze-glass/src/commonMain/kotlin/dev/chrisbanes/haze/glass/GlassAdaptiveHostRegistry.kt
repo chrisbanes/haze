@@ -5,6 +5,7 @@ package dev.chrisbanes.haze.glass
 
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import dev.chrisbanes.haze.Poko
 import kotlin.coroutines.ContinuationInterceptor
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
@@ -21,6 +22,12 @@ internal interface GlassAdaptiveTimingSource {
   fun start(onSample: (GlassFrameHealthSample, Long) -> Unit): Boolean
   fun stop()
 }
+
+@Poko
+internal class GlassAdaptiveHostDecision(
+  val version: Int,
+  val timingTier: GlassAdaptiveTier?,
+)
 
 internal class GlassAdaptiveHostRegistry {
   private val hosts = mutableListOf<GlassAdaptiveHost>()
@@ -73,8 +80,23 @@ internal class GlassAdaptiveHost(
   val controller = GlassAdaptiveTierController()
   private var lastValidSample: TimeMark? = null
   private var lastBudgetNanos: Long? = null
+  private var currentDecision = GlassAdaptiveHostDecision(0, null)
   val hasTimingEvidence: Boolean
     get() = lastValidSample?.elapsedNow()?.let { it <= 250.milliseconds } == true
+
+  /** A null tier means the renderer must use its deterministic workload policy. */
+  val decision: GlassAdaptiveHostDecision
+    get() {
+      refreshDecision()
+      return currentDecision
+    }
+
+  private fun refreshDecision() {
+    val tier = controller.tier.takeIf { hasTimingEvidence }
+    if (tier != currentDecision.timingTier) {
+      currentDecision = GlassAdaptiveHostDecision(currentDecision.version + 1, tier)
+    }
+  }
 
   private var source: GlassAdaptiveTimingSource? = null
   private var observing = false
@@ -99,23 +121,7 @@ internal class GlassAdaptiveHost(
       observing = true
       if (!activeSource.start { sample, nowNanos ->
           if (observing && generation == currentGeneration && hasActiveDemand) {
-            val previousBudget = lastBudgetNanos
-            if (
-              sample.isValid && previousBudget != null &&
-              abs(sample.budgetNanos - previousBudget) > previousBudget / 20
-            ) {
-              controller.suspendEvidence()
-            }
-            if (sample.isValid) lastBudgetNanos = sample.budgetNanos
-            if (
-              sample.isValid && sample.timestampNanos <= nowNanos &&
-              nowNanos - sample.timestampNanos <= 250_000_000L
-            ) {
-              lastValidSample = TimeSource.Monotonic.markNow()
-            } else {
-              lastValidSample = null
-            }
-            controller.observe(sample, nowNanos)
+            recordSample(sample, nowNanos)
           }
         }
       ) {
@@ -124,6 +130,27 @@ internal class GlassAdaptiveHost(
     } else if (!hasActiveDemand) {
       stopTiming()
     }
+  }
+
+  internal fun recordSample(sample: GlassFrameHealthSample, nowNanos: Long) {
+    val previousBudget = lastBudgetNanos
+    if (
+      sample.isValid && previousBudget != null &&
+      abs(sample.budgetNanos - previousBudget) > previousBudget / 20
+    ) {
+      controller.suspendEvidence()
+    }
+    if (sample.isValid) lastBudgetNanos = sample.budgetNanos
+    if (
+      sample.isValid && sample.timestampNanos <= nowNanos &&
+      nowNanos - sample.timestampNanos <= 250_000_000L
+    ) {
+      lastValidSample = TimeSource.Monotonic.markNow()
+    } else {
+      lastValidSample = null
+    }
+    controller.observe(sample, nowNanos)
+    refreshDecision()
   }
 
   private fun stopTiming() {
@@ -135,6 +162,7 @@ internal class GlassAdaptiveHost(
     lastValidSample = null
     lastBudgetNanos = null
     controller.suspendEvidence()
+    refreshDecision()
   }
 }
 
