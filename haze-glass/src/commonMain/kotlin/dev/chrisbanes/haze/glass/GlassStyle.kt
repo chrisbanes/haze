@@ -26,24 +26,26 @@ import dev.chrisbanes.haze.Poko
 /**
  * A [ProvidableCompositionLocal] which provides inherited Glass appearance.
  *
- * A Glass node starts with [GlassDefaults], then replays this Style and its explicit [GlassStyle]
- * in that order. Each node uses a fresh accumulator, so a Style may be shared safely by concurrent
- * nodes.
+ * A Glass node starts with the Regular response for its current system appearance, then replays
+ * this Style and its explicit [GlassStyle] in that order. Each node uses a fresh accumulator, so a
+ * Style may be shared safely by concurrent nodes.
  */
 @ExperimentalHazeApi
 public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
   compositionLocalOf { GlassStyle }
 
 /**
- * An opaque, immutable sequence of recorded Glass appearance writes.
+ * An opaque, immutable sequence of Glass appearance writes.
  *
  * The builder passed to [GlassStyle] executes once during construction. Each property is
  * validated and captured as an immutable write; resolving a Style only replays those captured
  * values and never invokes caller code. Combine Styles with [then]. Writes run in order and the
  * last write to a property wins. The companion object is the empty Style and performs no writes.
  *
- * Mutating an input captured by a previously constructed Style has no effect. To update a node,
- * construct and supply a replacement Style through recomposition.
+ * Mutating an input captured by a previously constructed Style has no effect. To change caller
+ * writes, construct and supply a replacement Style through recomposition. The built-in Regular
+ * and Clear responses are selected from the attached node's current system appearance during
+ * replay, so a system appearance change does not require a replacement Style.
  *
  * A Style contains no renderer or mutable runtime state. [GlassStyleScope.hovered],
  * [GlassStyleScope.focused], [GlassStyleScope.pressed],
@@ -52,7 +54,7 @@ public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
  * each `hazeGlass` node replays it into a fresh node-owned snapshot and owns its signals,
  * geometry, animations, pointer observation, and renderer resources.
  *
- * The same final Style is replayed unchanged into whichever private renderer Haze selects. Full
+ * The same Style sequence is replayed into whichever private renderer Haze selects. Full
  * renderers consume every supported authored channel. Limited renderers preserve supported
  * channels, approximate supported lighting, and omit unsupported base and interaction optics.
  * Selection is automatic; callers do not need a capability check or a second fallback Style.
@@ -80,14 +82,7 @@ public sealed interface GlassStyle {
       refractionDetailIntensity = 0.76f,
     )
 
-    /**
-     * The default built-in Glass style.
-     *
-     * Its blur and depth adapt to each material's shortest dimension. It writes the complete material
-     * response while preserving separately composed shape, background colour, tint, alpha, light
-     * position, and interaction presentation.
-     */
-    public val regular: GlassStyle = GlassStyle {
+    internal val regularLight: GlassStyle = GlassStyle {
       optics(GlassDefaults.optics)
       specularIntensity(GlassDefaults.specularIntensity)
       edgeShadow(GlassDefaults.edgeShadow)
@@ -104,15 +99,25 @@ public sealed interface GlassStyle {
       fresnelExponent(GlassDefaults.fresnelExponent)
     }
 
+    internal val regularDark: GlassStyle = regularLight.then {
+      specularIntensity(0.38f)
+      edgeShadow(Color.Black.copy(alpha = 0.32f))
+      ambientResponse(0.08f)
+      contrast(0.08f)
+      whitePoint(-0.22f)
+      chromaMultiplier(1.1f)
+    }
+
     /**
-     * A built-in Glass style that prioritizes visibility of content behind the material.
+     * The default built-in Glass style.
      *
-     * Its shallow blur stays constant across material sizes while its authored refraction and
-     * distinct edge and lighting response remain recognizable when a renderer simplifies advanced
-     * optical effects. It writes the complete material response while preserving separately composed
-     * shape, background colour, tint, alpha, light position, and interaction presentation.
+     * Its blur and depth adapt to each material's shortest dimension. It writes the complete material
+     * response while preserving separately composed shape, background colour, tint, alpha, light
+     * position, and interaction presentation.
      */
-    public val clear: GlassStyle = GlassStyle {
+    public val regular: GlassStyle = BuiltInGlassStyle.Regular
+
+    internal val clearLight: GlassStyle = GlassStyle {
       optics(clearOptics)
       specularIntensity(0.55f)
       edgeShadow(Color.Black.copy(alpha = 0.1f))
@@ -128,6 +133,25 @@ public sealed interface GlassStyle {
       specularExponent(16f)
       fresnelExponent(2.5f)
     }
+
+    internal val clearDark: GlassStyle = clearLight.then {
+      specularIntensity(0.42f)
+      edgeShadow(Color.Black.copy(alpha = 0.25f))
+      ambientResponse(0.22f)
+      contrast(0.12f)
+      whitePoint(-0.18f)
+      chromaMultiplier(1f)
+    }
+
+    /**
+     * A built-in Glass style that prioritizes visibility of content behind the material.
+     *
+     * Its shallow blur stays constant across material sizes while its authored refraction and
+     * distinct edge and lighting response remain recognizable when a renderer simplifies advanced
+     * optical effects. It writes the complete material response while preserving separately composed
+     * shape, background colour, tint, alpha, light position, and interaction presentation.
+     */
+    public val clear: GlassStyle = BuiltInGlassStyle.Clear
   }
 }
 
@@ -156,15 +180,43 @@ private class RecordedGlassStyle(
     RecordedGlassStyle(writes + other.writes)
 }
 
+@Immutable
+private enum class BuiltInGlassStyle : GlassStyle {
+  Regular,
+  Clear,
+  ;
+
+  fun replay(values: GlassStyleValues, appearance: GlassSystemAppearance) {
+    val selected = when (this) {
+      Regular -> if (appearance == GlassSystemAppearance.Dark) GlassStyle.regularDark else GlassStyle.regularLight
+      Clear -> if (appearance == GlassSystemAppearance.Dark) GlassStyle.clearDark else GlassStyle.clearLight
+    }
+    selected.replay(values, appearance)
+  }
+}
+
+@Immutable
+private class CombinedGlassStyle(
+  val styles: List<GlassStyle>,
+) : GlassStyle {
+  fun replay(values: GlassStyleValues, appearance: GlassSystemAppearance) {
+    for (style in styles) {
+      style.replay(values, appearance)
+    }
+  }
+}
+
 private fun combineGlassStyles(
   first: GlassStyle,
   second: GlassStyle,
-): GlassStyle = when (first) {
-  GlassStyle -> second
-  is RecordedGlassStyle -> when (second) {
-    GlassStyle -> first
-    is RecordedGlassStyle -> first.then(second)
-  }
+): GlassStyle {
+  if (first === GlassStyle) return second
+  if (second === GlassStyle) return first
+  if (first is RecordedGlassStyle && second is RecordedGlassStyle) return first.then(second)
+
+  val firstStyles = if (first is CombinedGlassStyle) first.styles else listOf(first)
+  val secondStyles = if (second is CombinedGlassStyle) second.styles else listOf(second)
+  return CombinedGlassStyle(firstStyles + secondStyles)
 }
 
 /** Marks the nested receiver scopes used while constructing a [GlassStyle]. */
@@ -468,14 +520,20 @@ internal class GlassStyleValues(
 internal fun resolveGlassStyleValues(
   localStyle: GlassStyle,
   explicitStyle: GlassStyle,
+  appearance: GlassSystemAppearance = GlassSystemAppearance.Light,
 ): GlassStyleValues = GlassStyleValues().also { values ->
-  localStyle.replay(values)
-  explicitStyle.replay(values)
+  GlassStyle.regular.replay(values, appearance)
+  localStyle.replay(values, appearance)
+  explicitStyle.replay(values, appearance)
 }
 
-private fun GlassStyle.replay(values: GlassStyleValues) {
+internal enum class GlassSystemAppearance { Light, Dark }
+
+private fun GlassStyle.replay(values: GlassStyleValues, appearance: GlassSystemAppearance) {
   when (this) {
     GlassStyle -> Unit
     is RecordedGlassStyle -> replay(values)
+    is BuiltInGlassStyle -> replay(values, appearance)
+    is CombinedGlassStyle -> replay(values, appearance)
   }
 }

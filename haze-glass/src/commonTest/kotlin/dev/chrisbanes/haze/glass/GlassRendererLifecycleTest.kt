@@ -44,7 +44,7 @@ class GlassRendererLifecycleTest {
 
   @Test
   fun update_resolvesDefaultsThenLocalThenExplicitStyle() {
-    val renderer = GlassRuntimeEffect()
+    val renderer = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
     val scope = TrackingLifecycleScope(
       localStyle = GlassStyle { tint(Color.Red) },
     )
@@ -70,7 +70,7 @@ class GlassRendererLifecycleTest {
 
   @Test
   fun styleReplacement_omittedValuesFallBackWithoutReplacingRenderer() {
-    val renderer = GlassRuntimeEffect()
+    val renderer = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
     val scope = TrackingLifecycleScope(
       localStyle = GlassStyle { tint(Color.Red) },
     )

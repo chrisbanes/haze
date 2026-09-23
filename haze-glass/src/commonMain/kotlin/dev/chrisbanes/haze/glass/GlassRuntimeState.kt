@@ -197,6 +197,14 @@ internal abstract class GlassRuntimeState {
       }
     }
 
+  internal var systemAppearance: GlassSystemAppearance = GlassSystemAppearance.Light
+    set(value) {
+      if (field != value) {
+        field = value
+        updateInheritedStyleValues()
+      }
+    }
+
   internal var compositionLocalStyle: GlassStyle = GlassStyle
     set(value) {
       if (field !== value) {
@@ -216,10 +224,10 @@ internal abstract class GlassRuntimeState {
     }
 
   private var inheritedStyleValues: GlassStyleValues =
-    resolveGlassStyleValues(compositionLocalStyle, style)
+    resolveGlassStyleValues(compositionLocalStyle, style, systemAppearance)
 
   private fun updateInheritedStyleValues() {
-    val resolved = resolveGlassStyleValues(compositionLocalStyle, style)
+    val resolved = resolveGlassStyleValues(compositionLocalStyle, style, systemAppearance)
     val previous = inheritedStyleValues
     inheritedStyleValues = resolved
     onStyleChanged(old = previous, new = resolved)

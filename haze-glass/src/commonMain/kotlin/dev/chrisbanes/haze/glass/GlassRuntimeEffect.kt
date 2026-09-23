@@ -169,6 +169,9 @@ internal class GlassRuntimeEffect() :
 
   private var isAttached: Boolean = false
 
+  internal var appearanceReader: (HazeEffectLifecycleScope) -> GlassSystemAppearance =
+    ::readPlatformGlassSystemAppearance
+
   private var attachedContext: HazeEffectLifecycleScope? = null
 
   private fun onRuntimeConfigurationChanged(fields: Int) {
@@ -369,6 +372,7 @@ internal class GlassRuntimeEffect() :
     val context = scope
     applyConfiguration(style, style.performanceMode ?: scope.currentValueOf(LocalHazePerformanceMode))
     dirtyTrackerVersion
+    systemAppearance = appearanceReader(context)
     compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
     accessibilitySettings = context.currentValueOf(LocalGlassAccessibilitySettings)
     updateStyleInteractionSlots()

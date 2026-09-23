@@ -93,7 +93,6 @@ The optional [Blur material presets](https://chrisbanes.github.io/haze/blur/mate
 Modifier.hazeGlass(
     input = HazeInput.Sources(hazeState),
     style = GlassStyle.regular.then {
-        backgroundColor(MaterialTheme.colorScheme.surface)
         tint(Color.White.copy(alpha = 0.16f))
         shape(RoundedCornerShape(20.dp))
     },
@@ -103,7 +102,9 @@ Modifier.hazeGlass(
 Start with `GlassStyle.regular`, or use `GlassStyle.clear` when the background should remain more
 visible. Consult the [Glass guide](https://chrisbanes.github.io/haze/effects/glass/) for custom
 optics, interaction, retention, and platform fallback behavior. Add `haze-glass-material3` to use
-`GlassStyle.Material3()` with your current Material 3 surface color.
+`GlassStyle.Material3()` or `material3()` with your current Material 3 surface color. Regular and
+Clear follow the system appearance without Material 3. The optional integration supplies the app
+theme's surface color and can add a tint.
 
 ## Performance
 

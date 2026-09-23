@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 
-/** Default values used by `hazeGlass` and [GlassStyle] resolution. */
+/** Light-calibrated default values used by `hazeGlass` and [GlassStyle] resolution. */
 @ExperimentalHazeApi
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 public object GlassDefaults {
