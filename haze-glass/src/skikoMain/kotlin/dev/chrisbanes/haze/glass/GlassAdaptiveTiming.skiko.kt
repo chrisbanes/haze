@@ -94,9 +94,11 @@ internal class SkikoGlassCadence {
       sequence = ++sequence,
       timestampNanos = nowNanos,
       durationNanos = interval,
-      // Callback delivery jitters around the cadence. Only a gap approaching a skipped
-      // frame slot is evidence of a miss; this is not a rendered-frame deadline.
-      budgetNanos = budget * 3 / 2,
+      // Allow callback jitter, but never learn a slower-than-60 Hz stream as a healthy target.
+      // This remains callback cadence, not a rendered-frame deadline.
+      budgetNanos = minOf(budget, 16_666_667L) * 3 / 2,
+      // Callback cadence alone cannot distinguish a native 60 Hz target from half-rate 120 Hz.
+      allowsUpwardProbe = false,
     )
   }
 

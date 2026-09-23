@@ -27,7 +27,8 @@ be interpreted as spare capacity.
 `HazeSampling.Default` points to `HazeSampling.Adaptive`. Active Adaptive Glass nodes registered
 to the same verified rendering host share one demand-driven controller and one timing observer.
 The controller starts at linear input scale `sqrt(0.5)`, can step down to `0.5` after sustained
-misses, and can probe upward to `1.0` after a longer healthy interval. A tier change is consumed
+misses, and can probe upward to `1.0` after a longer healthy interval when its timing source has
+an independent refresh budget. A tier change is consumed
 on each node's next natural draw; it does not wake an idle node. Demand expires after 350 ms
 without a natural update. Host stop, idle, stale samples, missing reports, and refresh changes
 reset timing evidence. A failed upward probe backs off before another attempt.
@@ -45,7 +46,10 @@ API 24–30 estimates the budget from display refresh. First-draw and dropped re
 An unmatched, detached, or unsupported window gets no timing tier. Desktop uses `LocalAwtWindow`
 and iOS uses `LocalUIView` when available. Web and native macOS use a composition-root
 `GlassAdaptiveHost` token because no automatic host identity was established there. Skiko targets
-use demand-driven callback cadence with lower confidence. A missing identity, lifecycle, timing
+use demand-driven callback cadence with lower confidence. When the display refresh target is
+unknown, callback cadence can support a downgrade but cannot justify an upward probe; a stable
+half-rate stream could otherwise appear healthy. Cadence slower than 60 Hz is treated
+conservatively. A missing identity, lifecycle, timing
 source, or recent valid sample selects the deterministic workload fallback; hosts are never
 merged under a global unknown key.
 
@@ -82,7 +86,8 @@ remain open. **Do not release host-feedback Adaptive as the default based on thi
 
 - A host can coordinate active Glass nodes while preserving separate decisions across windows.
 - Verified Android timing can respond to whole-window pressure. Skiko cadence is a weaker signal;
-  a healthy interval is not proof of GPU headroom.
+  without an independent refresh target it cannot promote quality, and a healthy interval is not
+  proof of GPU headroom.
 - A missing or expired timing source returns to the bounded workload policy without changing
   Fixed-mode output.
 - Threshold changes need a valid active Glass workload, paired physical measurements, frame and

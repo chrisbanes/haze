@@ -91,7 +91,9 @@ It uses Android window frame timing only when the effect's attached view matches
 or Compose Dialog window on API 24 or later. Other supported targets can use frame cadence,
 which reports callback timing rather than GPU completion. When a host, lifecycle, timing source,
 or recent valid timing sample is unavailable, Adaptive falls back to its retained-workload
-policy. It does not infer that an idle screen has spare rendering capacity. Use a Fixed mode
+policy. Skiko cadence cannot promote quality when the actual refresh target is unknown; it can
+still identify sustained slow or skipped callbacks. It does not infer that an idle screen has spare
+rendering capacity. Use a Fixed mode
 when you need a predictable input resolution while comparing platforms.
 
 Web and native macOS apps that use Adaptive Glass should wrap each composition root in

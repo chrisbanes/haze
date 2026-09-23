@@ -37,6 +37,19 @@ class GlassAdaptiveTierControllerTest {
   }
 
   @Test
+  fun healthyHighRefreshFrames_recoverThroughBothTiersAt120And144Hertz() {
+    for (refreshRate in intArrayOf(120, 144)) {
+      val trace = Trace()
+      trace.downgradeToAggressive()
+      val intervalNanos = 1_000_000_000L / refreshRate
+
+      repeat(refreshRate * 8) { trace.frame(missed = false, intervalNanos = intervalNanos) }
+
+      assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
+    }
+  }
+
+  @Test
   fun failedProbes_rollBackAndIncreaseRetryBackoff() {
     val trace = Trace()
     trace.downgradeToAggressive()
@@ -99,7 +112,8 @@ class GlassAdaptiveTierControllerTest {
     fun frame(
       missed: Boolean,
       sequence: Long = nextSequence,
-      timestampNanos: Long = this.timestampNanos + FRAME_INTERVAL_NANOS,
+      intervalNanos: Long = FRAME_INTERVAL_NANOS,
+      timestampNanos: Long = this.timestampNanos + intervalNanos,
       nowNanos: Long = timestampNanos,
     ) {
       this.nextSequence = sequence + 1

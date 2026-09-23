@@ -107,10 +107,10 @@ remain exact; no threshold or renderer-topology change was made in this slice.
    both orders with eight complete metric runs each,
    active tier logs, retained traces, frame distributions, allocation counts, GPU peaks, and
    synchronized still/active corner captures.
-2. Preserve the repaired-cadence visible fast/full and constrained/low DPR 1/2 captures as
-   qualitative evidence. Collect rendered-frame or GPU timing where available and repeat matched
-   corner captures on the frozen integrated revision; browser GPU completion and retained memory
-   remain unavailable in the current evidence.
+2. Preserve the earlier fast/full and constrained/low DPR 1/2 captures as historical qualitative
+   evidence. The conservative unknown-refresh policy now withholds Skiko upward probes, so repeat
+   visible tier and matched-corner checks on this revision before drawing a quality conclusion.
+   Browser GPU completion and retained memory remain unavailable in the current evidence.
 3. Exercise a real desktop window and iOS view/window lifecycle, including disposal/rebind.
    Retain fallback wherever a supported host identity or timing source cannot be verified.
 

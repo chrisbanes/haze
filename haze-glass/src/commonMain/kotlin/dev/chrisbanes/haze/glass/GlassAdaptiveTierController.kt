@@ -12,6 +12,7 @@ internal data class GlassFrameHealthSample(
   val durationNanos: Long,
   val budgetNanos: Long,
   val isValid: Boolean = true,
+  val allowsUpwardProbe: Boolean = true,
 )
 
 /** The three renderer scales shared by timing-driven and workload-driven Adaptive policies. */
@@ -102,7 +103,7 @@ internal class GlassAdaptiveTierController {
         } else if (
           tier != GlassAdaptiveTier.FULL_RESOLUTION && phaseSamples >= PROBE_MIN_SAMPLES &&
           elapsed >= PROBE_STABLE_WINDOW_NANOS && missRatio <= HEALTHY_FRAME_RATIO &&
-          sample.timestampNanos >= retryAfterNanos
+          sample.timestampNanos >= retryAfterNanos && sample.allowsUpwardProbe
         ) {
           changeTier(tier.oneStepUp(), sample.timestampNanos, Phase.PROBING)
         }
@@ -123,8 +124,10 @@ internal class GlassAdaptiveTierController {
       }
     }
     if (phase == Phase.MONITORING && phaseSamples >= MAX_EVIDENCE_SAMPLES) {
-      resetEvidence(Phase.MONITORING)
-      phaseStartedAtNanos = sample.timestampNanos
+      // Bound the ratio's history without losing the stable-duration clock. At high refresh
+      // rates, 300 samples can arrive before the three-second upward-probe window completes.
+      phaseSamples /= 2
+      missedFrames /= 2
     }
     return tier
   }

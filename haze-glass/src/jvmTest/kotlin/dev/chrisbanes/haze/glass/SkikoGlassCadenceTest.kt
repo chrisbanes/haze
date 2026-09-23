@@ -16,17 +16,46 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 class SkikoGlassCadenceTest {
 
   @Test
-  fun jitteredSixtyHertzCadence_neverDowngradesAndProbesFullResolution() {
+  fun jitteredSixtyHertzCadence_neverDowngradesOrProbesWithoutKnownRefreshTarget() {
     val trace = AdaptiveCadenceTrace()
     val intervals = longArrayOf(
-      16_000_000L, 16_800_000L, 16_700_000L, 17_000_000L,
-      16_700_000L, 16_900_000L, 16_600_000L, 18_100_000L,
+      16_000_000L,
+      16_800_000L,
+      16_700_000L,
+      17_000_000L,
+      16_700_000L,
+      16_900_000L,
+      16_600_000L,
+      18_100_000L,
     )
 
     repeat(450) { index -> trace.frame(intervals[index % intervals.size]) }
 
     assertThat(trace.lowTierSeen).isFalse()
-    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.BALANCED)
+  }
+
+  @Test
+  fun steadyHalfRateCadence_neverProbesAndThirtyFpsDowngrades() {
+    val sixtyHertzAtHalfRate = AdaptiveCadenceTrace()
+    repeat(300) { sixtyHertzAtHalfRate.frame(33_333_334L) }
+    assertThat(sixtyHertzAtHalfRate.controller.tier).isEqualTo(GlassAdaptiveTier.AGGRESSIVE)
+
+    val unknownOneTwentyHertzAtHalfRate = AdaptiveCadenceTrace()
+    repeat(500) { unknownOneTwentyHertzAtHalfRate.frame(16_666_667L) }
+    assertThat(unknownOneTwentyHertzAtHalfRate.controller.tier)
+      .isEqualTo(GlassAdaptiveTier.BALANCED)
+  }
+
+  @Test
+  fun observedHighRefreshThenSteadyHalfRate_downgrades() {
+    for (intervalNanos in longArrayOf(8_333_333L, 6_944_444L)) {
+      val trace = AdaptiveCadenceTrace()
+      repeat(40) { trace.frame(intervalNanos) }
+      repeat(180) { trace.frame(intervalNanos * 2) }
+
+      assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.AGGRESSIVE)
+    }
   }
 
   @Test
