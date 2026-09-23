@@ -10,12 +10,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEmpty
-import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
@@ -27,15 +30,15 @@ class HazeInvalidationTrackingTest : ContextTest() {
     val hazeState = HazeState()
     val sourceColor = mutableStateOf(Color.Red)
     val factory = SourceRecordInvalidatingRendererFactory()
-    var sourceDraws = 0
+    val sourceDraws = IntArray(2)
 
     withHazeInvalidationTracking {
       setContent {
-        Box(Modifier.size(100.dp)) {
-          repeat(2) {
+        Box(Modifier.size(100.dp).testTag("root")) {
+          repeat(2) { sourceIndex ->
             Box(
               Modifier.size(100.dp).hazeSource(hazeState).drawBehind {
-                sourceDraws++
+                sourceDraws[sourceIndex]++
                 drawRect(sourceColor.value)
               },
             )
@@ -48,13 +51,17 @@ class HazeInvalidationTrackingTest : ContextTest() {
         }
       }
       waitForIdle()
-      val before = sourceDraws
+      onNodeWithTag("root").captureToImage()
+      val before = sourceDraws.copyOf()
       clearHazeInvalidations()
 
       sourceColor.value = Color.Blue
       waitForIdle()
+      onNodeWithTag("root").captureToImage()
 
-      assertThat(sourceDraws).isEqualTo(before + 2)
+      repeat(2) { sourceIndex ->
+        assertThat(sourceDraws[sourceIndex]).isGreaterThan(before[sourceIndex])
+      }
       assertHazeInvalidations("effect") { drawInvalidationsExactly(1) }
     }
   }

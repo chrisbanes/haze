@@ -18,6 +18,11 @@ No paired physical mode comparison has been run on the final integrated revision
   isolated-callback test failed before the repair and passed afterward. Glass JVM tests, Android,
   iOS simulator, macOS, JS and Wasm Glass compilation, Glass Spotless, and the production web
   webpack task passed at `52c824f7`.
+- Final verification exposed an Android host invalidation test that counted source draws without
+  first driving a rendered frame. Its test-only fixture now captures the root before and after
+  the source colour change, confirms that both source nodes redraw, and retains the assertion
+  that the effect receives one coalesced invalidation. The focused Android host test passes;
+  the production source-notification path is unchanged.
 - A 16-second fast, DPR-1 Glass Playground run at `52c824f7` with diagnostics off had 950 RAF
   intervals (median 16.7 ms, P95 16.8 ms, one over 20 ms) and no page exceptions. It did not
   record applied tiers. The raw trace and screenshot are attached to CB-10 comment
