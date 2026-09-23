@@ -36,6 +36,16 @@ class SkikoGlassCadenceTest {
   }
 
   @Test
+  fun oldOutlierExpiresFromTheStableCadenceWindow() {
+    val trace = AdaptiveCadenceTrace()
+    repeat(40) { trace.frame(16_666_667L) }
+    trace.frame(30_000_000L)
+    repeat(500) { trace.frame(16_666_667L) }
+
+    assertThat(trace.controller.tier).isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
+  }
+
+  @Test
   fun steadyHalfRateCadence_downgradesThirtyFpsButCannotIdentifyUnrelatedHalfRate() {
     val sixtyHertzAtHalfRate = AdaptiveCadenceTrace()
     repeat(300) { sixtyHertzAtHalfRate.frame(33_333_334L) }

@@ -40,6 +40,8 @@ internal class GlassAdaptiveTierController {
   private var durationSumNanos = 0L
   private var shortestDurationNanos = Long.MAX_VALUE
   private var longestDurationNanos = 0L
+  private var retainedHalfShortestDurationNanos = Long.MAX_VALUE
+  private var retainedHalfLongestDurationNanos = 0L
   private var relativeBaselineNanos: Long? = null
   private var relativeProbeOriginalTier: GlassAdaptiveTier? = null
   private var relativePromotedFromTier: GlassAdaptiveTier? = null
@@ -100,6 +102,10 @@ internal class GlassAdaptiveTierController {
     durationSumNanos += sample.durationNanos
     shortestDurationNanos = minOf(shortestDurationNanos, sample.durationNanos)
     longestDurationNanos = maxOf(longestDurationNanos, sample.durationNanos)
+    if (phaseSamples > MAX_EVIDENCE_SAMPLES / 2) {
+      retainedHalfShortestDurationNanos = minOf(retainedHalfShortestDurationNanos, sample.durationNanos)
+      retainedHalfLongestDurationNanos = maxOf(retainedHalfLongestDurationNanos, sample.durationNanos)
+    }
     val elapsed = sample.timestampNanos - (phaseStartedAtNanos ?: sample.timestampNanos)
     val missRatio = missedFrames.toFloat() / phaseSamples
 
@@ -159,6 +165,10 @@ internal class GlassAdaptiveTierController {
       phaseSamples /= 2
       missedFrames /= 2
       durationSumNanos /= 2
+      shortestDurationNanos = retainedHalfShortestDurationNanos
+      longestDurationNanos = retainedHalfLongestDurationNanos
+      retainedHalfShortestDurationNanos = Long.MAX_VALUE
+      retainedHalfLongestDurationNanos = 0L
     }
     return tier
   }
@@ -239,6 +249,8 @@ internal class GlassAdaptiveTierController {
     durationSumNanos = 0L
     shortestDurationNanos = Long.MAX_VALUE
     longestDurationNanos = 0L
+    retainedHalfShortestDurationNanos = Long.MAX_VALUE
+    retainedHalfLongestDurationNanos = 0L
   }
 
   private fun GlassAdaptiveTier.oneStepDown(): GlassAdaptiveTier = when (this) {

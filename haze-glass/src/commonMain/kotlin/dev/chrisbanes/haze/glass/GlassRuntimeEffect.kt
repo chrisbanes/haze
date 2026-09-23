@@ -924,7 +924,12 @@ internal class GlassRuntimeEffect() :
       null
     }
     if (balancedPlan != lastBalancedPlan) {
-      adaptiveHostBinding.host?.invalidateWorkloadComparison()
+      adaptiveHostBinding.host?.let { host ->
+        host.invalidateWorkloadComparison()
+        val refreshedDecision = host.decision
+        observedHostDecisionVersion = refreshedDecision.version
+        timingInputScale = refreshedDecision.timingTier?.scale
+      }
     }
     lastBalancedPlan = balancedPlan
     val requestedScale = requestedScaleOverride ?: timingInputScale?.takeIf {

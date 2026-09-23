@@ -17,6 +17,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.containsExactly
@@ -36,6 +40,7 @@ import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
@@ -49,6 +54,57 @@ import sun.misc.Unsafe
 
 @OptIn(ExperimentalHazeApi::class, InternalComposeUiApi::class)
 class RuntimeShaderGlassDelegateTrimMemoryTest {
+
+  @Test
+  fun firstChangedRetainedPlanDraw_usesInvalidatedHostDecision() {
+    val owner = TestGlassLifecycleOwner()
+    val context = RecordingVisualEffectContext(
+      size = Size(100f, 100f),
+      layerSize = Size(100f, 100f),
+      hostToken = GlassAdaptiveHostToken(),
+      lifecycleOwner = owner,
+    )
+    val effect = GlassRuntimeEffect()
+    effect.attach(context)
+    effect.update(
+      context,
+      GlassNodeConfiguration(
+        style = GlassStyle,
+        performanceMode = HazePerformanceMode.Adaptive,
+        interactionSource = null,
+      ),
+      HazeSampling.Adaptive,
+    )
+    effect.prepareDrawForTest(context)
+    val host = checkNotNull(effect.adaptiveHostForTest)
+    var nowNanos = 0L
+    repeat(250) { index ->
+      nowNanos += 16_666_667L
+      host.recordSample(
+        GlassFrameHealthSample(
+          sequence = index.toLong(),
+          timestampNanos = nowNanos,
+          durationNanos = 16_666_667L,
+          budgetNanos = 25_000_000L,
+          allowsUpwardProbe = false,
+          allowsRelativeProbe = true,
+        ),
+        nowNanos,
+      )
+    }
+    assertThat(host.decision.timingTier).isEqualTo(GlassAdaptiveTier.FULL_RESOLUTION)
+    effect.prepareDrawForTest(context)
+    assertThat((effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+      .isEqualTo(1f)
+
+    context.layerSize = Size(140f, 100f)
+    effect.prepareDrawForTest(context)
+
+    assertThat(host.decision.timingTier).isNull()
+    assertThat((effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+      .isEqualTo(GlassInputScalePolicy.BALANCED_SCALE)
+    effect.detach()
+  }
 
   @Test
   fun nativeEffectConstructionFailure_isReportedAsRuntimeShaderConstructionFailure() {
@@ -919,8 +975,10 @@ private fun RuntimeShaderGlassDelegate.seedRetainedOutputAvailable() {
 @OptIn(InternalComposeUiApi::class, InternalHazeApi::class)
 private class RecordingVisualEffectContext(
   override val size: Size = Size.Zero,
-  override val layerSize: Size = Size.Zero,
+  override var layerSize: Size = Size.Zero,
   private val failIfBuildRenderParamsReached: Boolean = false,
+  private val hostToken: GlassAdaptiveHostToken? = null,
+  private val lifecycleOwner: LifecycleOwner? = null,
   val graphicsContext: TestGraphicsContext = TestGraphicsContext(),
 ) : HazeEffectRuntimeDrawScope,
   HazeEffectLifecycleScope,
@@ -946,7 +1004,14 @@ private class RecordingVisualEffectContext(
     if (failIfBuildRenderParamsReached) {
       error("buildRenderParams reached for invalid raw sample size")
     }
-    return LayoutDirection.Ltr as T
+    return when (local) {
+      LocalGlassAdaptiveHostToken -> hostToken
+      LocalLifecycleOwner -> lifecycleOwner ?: error("No lifecycle owner")
+      LocalHazePerformanceMode -> HazePerformanceMode.Adaptive
+      LocalGlassStyle -> GlassStyle
+      LocalGlassAccessibilitySettings -> GlassAccessibilitySettings()
+      else -> LayoutDirection.Ltr
+    } as T
   }
   override fun requireGraphicsContext(): GraphicsContext = graphicsContext
 
@@ -959,6 +1024,14 @@ private class RecordingVisualEffectContext(
   }
 
   override fun invalidateLayerBounds() = Unit
+}
+
+private class TestGlassLifecycleOwner : LifecycleOwner {
+  private val registry = LifecycleRegistry.createUnsafe(this).apply {
+    handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+    handleLifecycleEvent(Lifecycle.Event.ON_START)
+  }
+  override val lifecycle: Lifecycle get() = registry
 }
 
 @OptIn(InternalHazeApi::class)
