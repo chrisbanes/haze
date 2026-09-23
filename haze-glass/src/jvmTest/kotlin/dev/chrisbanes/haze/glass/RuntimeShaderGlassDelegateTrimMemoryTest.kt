@@ -6,6 +6,8 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocal
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.LocalSystemTheme
+import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -999,7 +1001,7 @@ private class RecordingVisualEffectContext(
   override fun requirePlatformContext(): PlatformContext = error("Unused in trim-memory tests")
   override fun requireDensity(): Density = Density(1f)
 
-  @Suppress("UNCHECKED_CAST")
+  @Suppress("UNCHECKED_CAST", "DEPRECATION")
   override fun <T> currentValueOf(local: CompositionLocal<T>): T {
     if (failIfBuildRenderParamsReached) {
       error("buildRenderParams reached for invalid raw sample size")
@@ -1010,6 +1012,7 @@ private class RecordingVisualEffectContext(
       LocalHazePerformanceMode -> HazePerformanceMode.Adaptive
       LocalGlassStyle -> GlassStyle
       LocalGlassAccessibilitySettings -> GlassAccessibilitySettings()
+      LocalSystemTheme -> SystemTheme.Light
       else -> LayoutDirection.Ltr
     } as T
   }

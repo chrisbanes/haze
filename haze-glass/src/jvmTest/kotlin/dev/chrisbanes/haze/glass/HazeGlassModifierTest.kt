@@ -523,7 +523,7 @@ class HazeGlassModifierTest : ContextTest() {
     val completeFinalOptics = GlassOptics(refractionStrength = 0.4f)
     val completeFinalStyle = explicitStyle.then { optics(completeFinalOptics) }
     val directFinalStyle = completeFinalStyle.then { optics(depth = 0.9f) }
-    val factory = RecordingGlassFactory()
+    val factory = RecordingGlassFactory { it.appearanceReader = { GlassSystemAppearance.Light } }
 
     setContent {
       CompositionLocalProvider(LocalGlassStyle provides localStyle) {
