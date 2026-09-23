@@ -3,5 +3,9 @@
 
 package dev.chrisbanes.haze.glass
 
-/** Emits only when the Android CB-10 diagnostic fixture opts in. */
-internal expect fun recordGlassDiagnosticAppliedScale(scale: Float)
+/** Emits only when a CB-10 platform diagnostic explicitly opts in. */
+internal expect fun recordGlassDiagnosticAppliedScale(
+  scale: Float,
+  materialWidthPx: Float,
+  materialHeightPx: Float,
+)

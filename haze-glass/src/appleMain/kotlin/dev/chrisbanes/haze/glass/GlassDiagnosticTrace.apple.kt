@@ -3,4 +3,8 @@
 
 package dev.chrisbanes.haze.glass
 
-internal actual fun recordGlassDiagnosticAppliedScale(scale: Float) = Unit
+internal actual fun recordGlassDiagnosticAppliedScale(
+  scale: Float,
+  materialWidthPx: Float,
+  materialHeightPx: Float,
+) = Unit

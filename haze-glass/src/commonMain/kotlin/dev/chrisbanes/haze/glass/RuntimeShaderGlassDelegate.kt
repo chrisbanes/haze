@@ -835,7 +835,11 @@ internal class RuntimeShaderGlassDelegate(
         completed = true
       } finally {
         if (completed) {
-          recordGlassDiagnosticAppliedScale(params.coordinates.scaleFactor)
+          recordGlassDiagnosticAppliedScale(
+            scale = params.coordinates.scaleFactor,
+            materialWidthPx = params.coordinates.materialSize.width,
+            materialHeightPx = params.coordinates.materialSize.height,
+          )
         } else {
           clearRetainedOutput()
         }

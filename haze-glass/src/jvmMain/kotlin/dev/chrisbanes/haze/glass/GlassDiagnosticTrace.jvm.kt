@@ -3,14 +3,8 @@
 
 package dev.chrisbanes.haze.glass
 
-import android.os.Trace
-import kotlin.math.roundToLong
-
 internal actual fun recordGlassDiagnosticAppliedScale(
   scale: Float,
   materialWidthPx: Float,
   materialHeightPx: Float,
-) {
-  if (System.getProperty("dev.chrisbanes.haze.cb10AllocationDiagnostic") != "true") return
-  Trace.setCounter("CB10GlassAppliedScalePermille", (scale * 1_000).roundToLong())
-}
+) = Unit
