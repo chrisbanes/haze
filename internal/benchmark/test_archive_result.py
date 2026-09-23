@@ -1,6 +1,7 @@
 """Run with: python3 -m unittest discover -s internal/benchmark -p 'test_archive_result.py'."""
 
 import json
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -72,23 +73,119 @@ class ArchiveResultTest(unittest.TestCase):
             self.archive()
 
     def test_diagnostic_requires_repeated_markers(self):
+        self.prepare_diagnostic()
+        self.benchmark["metrics"]["hazeGlassRuntimeDrawCount"]["runs"] = [2]
+        self.write_report()
+        with self.assertRaisesRegex(ValueError, "active hazeGlassRuntimeDrawCount window"):
+            archive_result(self.outputs, self.destination, "Example#sourceUpdateAdaptiveDiagnostic", 1)
+
+    def prepare_diagnostic(self):
         self.benchmark["name"] = "sourceUpdateAdaptiveDiagnostic"
         self.benchmark["repeatIterations"] = 1
         self.benchmark["metrics"] = {
-            "hazeSourceRecordCount": {"runs": [180]},
-            "hazeGlassRuntimeDrawCount": {"runs": [1]},
-            "hazeGlassPrepareCount": {"runs": [181]},
+            "hazeSourceRecordCount": {"runs": [240]},
+            "hazeGlassRuntimeDrawCount": {"runs": [240]},
+            "hazeGlassPrepareCount": {"runs": [240]},
+            "frameCount": {"runs": [240]},
+            "cb10DiagnosticActiveSumMs": {"runs": [5_000]},
         }
-        self.benchmark["sampledMetrics"]["frameDurationCpuMs"]["runs"] = [[2.0]]
+        self.benchmark["sampledMetrics"]["frameDurationCpuMs"]["runs"] = [[2.0] * 240]
         self.benchmark["profilerOutputs"] = self.benchmark["profilerOutputs"][:1]
         self.xml.write_text(
             '<testsuite><testcase classname="Example" name="sourceUpdateAdaptiveDiagnostic" /></testsuite>'
         )
-        (self.additional / "sample-benchmarkData.json").write_text(
-            json.dumps({"benchmarks": [self.benchmark]})
+        self.write_report()
+
+    def write_report(self):
+        (self.additional / "sample-benchmarkData.json").write_text(json.dumps({"benchmarks": [self.benchmark]}))
+
+    def write_tier_evidence(self, active_end=5_000_000_000, promoted=True):
+        trace = self.additional / "iter0.perfetto-trace"
+        evidence = {
+            "traceSha256": hashlib.sha256(trace.read_bytes()).hexdigest(),
+            "activeStartNanos": 0,
+            "activeEndNanos": active_end,
+            "tierEvents": [
+                {"tier": "BALANCED", "atNanos": 500_000_000, "sampleCount": 30},
+                {
+                    "tier": "FULL_RESOLUTION" if promoted else "BALANCED",
+                    "atNanos": 4_000_000_000,
+                    "sampleCount": 240,
+                },
+            ],
+        }
+        path = self.root / "tier-evidence.json"
+        path.write_text(json.dumps(evidence))
+        return path
+
+    def test_diagnostic_accepts_active_window_and_tier_evidence(self):
+        self.prepare_diagnostic()
+        evidence = self.write_tier_evidence()
+        archive_result(
+            self.outputs, self.destination, "Example#sourceUpdateAdaptiveDiagnostic", 1, evidence
         )
-        with self.assertRaisesRegex(ValueError, "repeated hazeGlassRuntimeDrawCount"):
+        self.assertTrue((self.destination / "diagnostic-tier-evidence.json").is_file())
+
+    def test_diagnostic_rejects_sparse_frame_run(self):
+        self.prepare_diagnostic()
+        self.benchmark["metrics"]["frameCount"]["runs"] = [2]
+        self.write_report()
+        with self.assertRaisesRegex(ValueError, "120 frame samples"):
             archive_result(self.outputs, self.destination, "Example#sourceUpdateAdaptiveDiagnostic", 1)
+
+    def test_diagnostic_rejects_sparse_sampled_frame_run(self):
+        self.prepare_diagnostic()
+        self.benchmark["sampledMetrics"]["frameDurationCpuMs"]["runs"] = [[2.0] * 2]
+        self.write_report()
+        with self.assertRaisesRegex(ValueError, "120 sampled frame durations"):
+            archive_result(self.outputs, self.destination, "Example#sourceUpdateAdaptiveDiagnostic", 1)
+
+    def test_diagnostic_rejects_short_active_window(self):
+        self.prepare_diagnostic()
+        evidence = self.write_tier_evidence(active_end=3_000_000_000)
+        with self.assertRaisesRegex(ValueError, "at least four seconds"):
+            archive_result(
+                self.outputs, self.destination, "Example#sourceUpdateAdaptiveDiagnostic", 1, evidence
+            )
+
+    def test_diagnostic_rejects_short_trace_activity(self):
+        self.prepare_diagnostic()
+        self.benchmark["metrics"]["cb10DiagnosticActiveSumMs"]["runs"] = [3_000]
+        self.write_report()
+        with self.assertRaisesRegex(ValueError, "trace must show four seconds"):
+            archive_result(self.outputs, self.destination, "Example#sourceUpdateAdaptiveDiagnostic", 1)
+
+    def test_diagnostic_rejects_window_disagreeing_with_trace(self):
+        self.prepare_diagnostic()
+        evidence = self.write_tier_evidence(active_end=6_000_000_000)
+        with self.assertRaisesRegex(ValueError, "disagrees with the trace metric"):
+            archive_result(
+                self.outputs, self.destination, "Example#sourceUpdateAdaptiveDiagnostic", 1, evidence
+            )
+
+    def test_diagnostic_rejects_missing_tier_evidence(self):
+        self.prepare_diagnostic()
+        with self.assertRaisesRegex(ValueError, "trace-bound tier evidence"):
+            archive_result(self.outputs, self.destination, "Example#sourceUpdateAdaptiveDiagnostic", 1)
+
+    def test_diagnostic_rejects_missing_promotion(self):
+        self.prepare_diagnostic()
+        evidence = self.write_tier_evidence(promoted=False)
+        with self.assertRaisesRegex(ValueError, "promotion tier evidence"):
+            archive_result(
+                self.outputs, self.destination, "Example#sourceUpdateAdaptiveDiagnostic", 1, evidence
+            )
+
+    def test_diagnostic_rejects_tier_evidence_for_another_trace(self):
+        self.prepare_diagnostic()
+        evidence = self.write_tier_evidence()
+        data = json.loads(evidence.read_text())
+        data["traceSha256"] = "0" * 64
+        evidence.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "does not match its trace"):
+            archive_result(
+                self.outputs, self.destination, "Example#sourceUpdateAdaptiveDiagnostic", 1, evidence
+            )
 
     def test_rejects_missing_trace(self):
         (self.additional / "iter0.perfetto-trace").unlink()

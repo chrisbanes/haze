@@ -178,10 +178,25 @@ done
 ## Verify the Glass source diagnostic
 
 Before a physical comparison, run the single-iteration Glass source diagnostic and archive it.
-The test requires visibly changed Glass pixels between two screenshots of the same animation;
-the archiver requires repeated source records, Glass draws, and Glass prepares in the measured
-trace. The screenshots are saved under `Pictures/CB10` on the device, with their names logged as
-`CB10BenchmarkDiagnostic`. Do not run the paired matrix if either command fails.
+This diagnostic alone animates for six seconds; comparison scenarios retain their three-second
+window. The test requires visibly changed Glass pixels between two screenshots of the same
+animation. The archiver requires at least 120 source records, Glass draws, Glass prepares, and
+frames, plus a `CB10DiagnosticActive` trace metric of at least four seconds. Four seconds covers the
+30-sample warm-up and three-second promotion window with margin. It also requires observed
+BALANCED and later FULL_RESOLUTION tier events, with promotion at least 3.5 seconds into the
+active window. The screenshots are saved under `Pictures/CB10` on the device, with their names
+logged as `CB10BenchmarkDiagnostic`.
+
+Supply a reviewed `tier-evidence.json` with `traceSha256`, `activeStartNanos`, `activeEndNanos`,
+and `tierEvents` entries containing `tier`, `atNanos`, and `sampleCount`. Derive these from a
+trace-synchronized temporary diagnostic of the host decision and source activity, recording the
+SHA-256 digest of the JSON report's referenced Perfetto trace. Use that trace's monotonic
+nanosecond clock for all timestamps. The archiver checks the digest, timing, event structure,
+and window against the measured trace duration, then retains the evidence file. It cannot
+independently prove manually transcribed tier values because the
+production trace does not currently label tiers. Inspect the raw trace and tier diagnostic before
+accepting the gate. Do not run the paired matrix if pixels, trace, tier evidence, or archive
+verification fails.
 
 ```shell
 ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
@@ -189,6 +204,7 @@ trace. The screenshots are saved under `Pictures/CB10` on the device, with their
 python3 internal/benchmark/archive_result.py \
   --method dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateAdaptiveDiagnostic \
   --iterations 1 \
+  --diagnostic-evidence tier-evidence.json \
   --destination internal/benchmark/build/benchmark-results/source-update-diagnostic
 ```
 

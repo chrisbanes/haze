@@ -77,7 +77,7 @@ class GlassProfilingBenchmark {
   /** One physical validity pass; screenshots intentionally make this unsuitable for ranking. */
   @Test
   fun sourceUpdateAdaptiveDiagnostic() = measureScenario(
-    scenarioId = "source_update_adaptive",
+    scenarioId = "source_update_adaptive_diagnostic",
     includeMemory = true,
     includeSourceAndPrepareCounts = true,
     diagnosticScreenshots = true,
@@ -252,6 +252,7 @@ class GlassProfilingBenchmark {
           includePreparationMetrics = includePreparationMetrics,
           includeBackdropComparisonMetrics = includeBackdropComparisonMetrics,
           includeSourceAndPrepareCounts = includeSourceAndPrepareCounts,
+          includeDiagnosticActiveDuration = diagnosticScreenshots,
           requireBackdropDraw = requireBackdropDraw,
         ),
         compilationMode = CompilationMode.Full(),

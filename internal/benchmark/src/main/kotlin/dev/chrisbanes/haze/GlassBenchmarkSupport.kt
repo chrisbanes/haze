@@ -88,6 +88,7 @@ internal fun glassMetrics(
   includePreparationMetrics: Boolean = false,
   includeBackdropComparisonMetrics: Boolean = false,
   includeSourceAndPrepareCounts: Boolean = false,
+  includeDiagnosticActiveDuration: Boolean = false,
   requireBackdropDraw: Boolean = false,
 ): List<Metric> = buildList {
   add(FrameTimingMetric())
@@ -130,6 +131,15 @@ internal fun glassMetrics(
         sectionName = GLASS_PREPARE_SECTION,
         mode = TraceSectionMetric.Mode.Count,
         label = "hazeGlassPrepare",
+      ),
+    )
+  }
+  if (includeDiagnosticActiveDuration) {
+    add(
+      TraceSectionMetric(
+        sectionName = "CB10DiagnosticActive",
+        mode = TraceSectionMetric.Mode.Sum,
+        label = "cb10DiagnosticActive",
       ),
     )
   }

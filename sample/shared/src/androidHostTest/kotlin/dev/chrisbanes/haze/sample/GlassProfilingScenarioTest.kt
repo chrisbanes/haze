@@ -65,6 +65,12 @@ class GlassProfilingScenarioTest {
   }
 
   @Test
+  fun diagnosticWindow_isLongerThanComparisonScenarios() {
+    assertThat(GlassProfilingScenario.SourceUpdateAdaptiveDiagnostic.durationMillis).isEqualTo(6_000)
+    assertThat(GlassProfilingScenario.SourceUpdateAdaptive.durationMillis).isEqualTo(3_000)
+  }
+
+  @Test
   fun fixedQualitySweep_exposesSixInputLevelsForStableAndSourceChangingWorkloads() {
     val sweep = listOf(
       GlassProfilingScenario.StableFixed0,
@@ -170,6 +176,7 @@ class GlassProfilingScenarioTest {
         "depth_update",
         "blur_update",
         "source_update_adaptive",
+        "source_update_adaptive_diagnostic",
         "source_update_quality",
         "backdrop_source_update_quality",
         "source_update_balanced",
@@ -241,6 +248,7 @@ class GlassProfilingScenarioTest {
         GlassProfilingScenario.DepthUpdate -> setOf("depth")
         GlassProfilingScenario.BlurUpdate -> setOf("blurRadius")
         GlassProfilingScenario.SourceUpdateAdaptive,
+        GlassProfilingScenario.SourceUpdateAdaptiveDiagnostic,
         GlassProfilingScenario.SourceUpdateQuality,
         GlassProfilingScenario.BackdropSourceUpdateQuality,
         GlassProfilingScenario.SourceUpdateBalanced,
@@ -328,6 +336,7 @@ class GlassProfilingScenarioTest {
         0.75f
       }
       val updatesSource = scenario == GlassProfilingScenario.SourceUpdateAdaptive ||
+        scenario == GlassProfilingScenario.SourceUpdateAdaptiveDiagnostic ||
         scenario == GlassProfilingScenario.SourceUpdateQuality ||
         scenario == GlassProfilingScenario.BackdropSourceUpdateQuality ||
         scenario == GlassProfilingScenario.SourceUpdateBalanced ||

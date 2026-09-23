@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze.sample
 
+import android.os.Trace
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -181,15 +182,21 @@ private fun GlassProfilingScene(
         delay(GLASS_PROFILING_DURATION_MILLIS.toLong() / 2)
       }
       else -> {
-        Animatable(0f).animateTo(
-          targetValue = 1f,
-          animationSpec = tween(
-            durationMillis = GLASS_PROFILING_DURATION_MILLIS,
-            easing = LinearEasing,
-          ),
-        ) {
-          state.updateProgress(value)
-          effectFrame = glassProfilingFrame(scenario, value)
+        val diagnostic = scenario == GlassProfilingScenario.SourceUpdateAdaptiveDiagnostic
+        if (diagnostic) Trace.beginAsyncSection("CB10DiagnosticActive", 1)
+        try {
+          Animatable(0f).animateTo(
+            targetValue = 1f,
+            animationSpec = tween(
+              durationMillis = scenario.durationMillis,
+              easing = LinearEasing,
+            ),
+          ) {
+            state.updateProgress(value)
+            effectFrame = glassProfilingFrame(scenario, value)
+          }
+        } finally {
+          if (diagnostic) Trace.endAsyncSection("CB10DiagnosticActive", 1)
         }
       }
     }
@@ -407,6 +414,7 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.InteractionUpdate,
     GlassProfilingScenario.InteractionUpdate9,
     GlassProfilingScenario.SourceUpdateAdaptive,
+    GlassProfilingScenario.SourceUpdateAdaptiveDiagnostic,
     GlassProfilingScenario.SourceUpdateQuality,
     GlassProfilingScenario.BackdropSourceUpdateQuality,
     GlassProfilingScenario.SourceUpdateBalanced,

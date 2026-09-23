@@ -192,7 +192,7 @@ internal fun UiDevice.runGlassProfilingScenarioDiagnostic(scenarioId: String): G
   SystemClock.sleep(600)
   val early = checkNotNull(takeScreenshot()) { "Early Glass screenshot unavailable" }
   val earlyMillis = SystemClock.uptimeMillis() - start
-  SystemClock.sleep((2_200 - (SystemClock.uptimeMillis() - start)).coerceAtLeast(0))
+  SystemClock.sleep((4_200 - (SystemClock.uptimeMillis() - start)).coerceAtLeast(0))
   val late = checkNotNull(takeScreenshot()) { "Late Glass screenshot unavailable" }
   val lateMillis = SystemClock.uptimeMillis() - start
 
@@ -223,7 +223,7 @@ internal fun UiDevice.runGlassProfilingScenarioDiagnostic(scenarioId: String): G
       "early=$savedEarly late=$savedLate",
   )
   SystemClock.sleep(
-    (GLASS_PROFILING_MEASURE_MILLIS - (SystemClock.uptimeMillis() - start))
+    (GLASS_PROFILING_DIAGNOSTIC_MEASURE_MILLIS - (SystemClock.uptimeMillis() - start))
       .coerceAtLeast(0),
   )
   return GlassDiagnosticPixels(changed, sampled)
@@ -261,6 +261,7 @@ private fun UiDevice.waitForProfilingObject(
 
 // Scenarios run for 3 seconds; the buffer absorbs completion scheduling jitter.
 private const val GLASS_PROFILING_MEASURE_MILLIS = 3_250L
+private const val GLASS_PROFILING_DIAGNOSTIC_MEASURE_MILLIS = 6_250L
 private const val BLUR_PROFILING_MEASURE_MILLIS = 3_250L
 
 private fun UiDevice.findBlurSampleListItem(selector: BySelector): UiObject2 =

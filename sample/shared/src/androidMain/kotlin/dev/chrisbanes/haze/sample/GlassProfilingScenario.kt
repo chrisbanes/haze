@@ -45,6 +45,7 @@ internal enum class GlassProfilingScenario(
   val opticsOverride: GlassOptics? = null,
   val fullChroma: Boolean = false,
   val usesBackdrop: Boolean = false,
+  val durationMillis: Int = GLASS_PROFILING_DURATION_MILLIS,
 ) {
   EffectAttach(
     id = "effect_attach",
@@ -212,6 +213,11 @@ internal enum class GlassProfilingScenario(
     id = "source_update_adaptive",
     performanceMode = HazePerformanceMode.Adaptive,
   ),
+  SourceUpdateAdaptiveDiagnostic(
+    id = "source_update_adaptive_diagnostic",
+    performanceMode = HazePerformanceMode.Adaptive,
+    durationMillis = 6_000,
+  ),
   SourceUpdateQuality(
     id = "source_update_quality",
     performanceMode = HazePerformanceMode.Quality,
@@ -332,6 +338,7 @@ internal fun glassProfilingFrame(
       blurRadius = lerp(4f, 28f, progress).dp,
     )
     GlassProfilingScenario.SourceUpdateAdaptive,
+    GlassProfilingScenario.SourceUpdateAdaptiveDiagnostic,
     GlassProfilingScenario.SourceUpdateQuality,
     GlassProfilingScenario.BackdropSourceUpdateQuality,
     GlassProfilingScenario.SourceUpdateBalanced,
@@ -352,6 +359,7 @@ internal fun glassProfilingFrame(
 internal val GlassProfilingScenario.updatesSource: Boolean
   get() = when (this) {
     GlassProfilingScenario.SourceUpdateAdaptive,
+    GlassProfilingScenario.SourceUpdateAdaptiveDiagnostic,
     GlassProfilingScenario.SourceUpdateQuality,
     GlassProfilingScenario.BackdropSourceUpdateQuality,
     GlassProfilingScenario.SourceUpdateBalanced,
