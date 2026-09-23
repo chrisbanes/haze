@@ -84,13 +84,15 @@ host-feedback thresholds or cross-platform behavior. Deterministic controller, h
 and Android-window tests pass. Apple simulator and macOS tests compile and pass, but they do not
 exercise real window lifecycle and timing.
 
-The CB-10 physical and visible-browser attempt, including its benchmark workload and tier
-behavior, is recorded in
-[the calibration report](../../internal/benchmark/CB10_ADAPTIVE_VALIDATION.md). It does not
+The CB-10 physical and visible-browser attempts, including benchmark workload and tier
+behaviour, are recorded in
+[the calibration report](../../internal/benchmark/CB10_ADAPTIVE_VALIDATION.md). They do not
 justify threshold changes. The r3 Skiko experiment has deterministic cadence and lifecycle
-tests plus visible fast and throttled browser traces at DPR 1/2. These establish tier behavior,
-not GPU completion or matched corner quality. The paired physical Android comparison, allocation
-churn, GPU memory parity, and real desktop/iOS lifecycle checks remain open. **Do not release
+tests, visible fast and throttled browser traces, and selected tier-backed Full-versus-Quality
+corner pairs at DPR 1/2. Those pairs support a narrow visual comparison; source-phase shifts and
+one selected pair per DPR limit the claim. Callback and completed-draw markers do not establish
+GPU completion. The paired physical Android comparison on the final revision, allocation churn,
+GPU memory parity, and real desktop/iOS lifecycle checks remain open. **Do not release
 host-feedback Adaptive as the default based on this evidence.**
 
 ## Consequences

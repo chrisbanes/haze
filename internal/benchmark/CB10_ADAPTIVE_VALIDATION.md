@@ -2,10 +2,50 @@
 
 ## Verdict
 
-Plan r2 has not cleared the default-release gate. Keep the initial thresholds and the deterministic
-fallback. The original Android and browser attempts below are historical diagnostics. The integrated
-source-notification and benchmark revisions now pass the focused validity checks described next,
-but no paired physical mode comparison has been run on that integrated revision.
+Plan r2 and the approved r3 Skiko probe have not cleared the default-release gate. Keep the
+initial thresholds and deterministic fallback. The original Android and browser attempts below
+are historical diagnostics; the newer integrated and matched-corner evidence is qualified here.
+No paired physical mode comparison has been run on the final integrated revision.
+
+## Integrated r3 candidate and matched corners
+
+- Candidate lineage: r3 host-policy and Skiko probe, the opt-in completed-draw scale diagnostic,
+  and the short-callback repair `52c824f7` share base `bb6f2607`. The diagnostic is off by
+  default. The last repair changes only Skiko cadence and its JVM tests: after a 6.1 ms callback
+  in a healthy 60 Hz trace, the controller retains Full rather than resetting to Balanced.
+  Three consecutive, similarly short callbacks still relearn a genuinely faster cadence;
+  skipped callbacks and stale gaps retain their existing downgrade/fallback behaviour. The
+  isolated-callback test failed before the repair and passed afterward. Glass JVM tests, Android,
+  iOS simulator, macOS, JS and Wasm Glass compilation, Glass Spotless, and the production web
+  webpack task passed at `52c824f7`.
+- A 16-second fast, DPR-1 Glass Playground run at `52c824f7` with diagnostics off had 950 RAF
+  intervals (median 16.7 ms, P95 16.8 ms, one over 20 ms) and no page exceptions. It did not
+  record applied tiers. The raw trace and screenshot are attached to CB-10 comment
+  `01a0cf88-c846-706d-84cc-6510fa602c30`.
+- Richard's earlier fast Chrome 153 captures at `c90b2c59` used a 900 × 700 CSS Playground
+  area on macOS arm64. At DPR 1 and 2, Adaptive and Fixed Quality each had six immediately
+  preceding completed-draw markers at scale 1.0; every marker during the selected screenshot
+  was also 1.0 (Adaptive/Quality: 48/42 markers at DPR 1, 54/54 at DPR 2). The selected
+  uncovered-source strips differed by a mean 0.095 and 0.049 RGB levels on a 0–255 scale.
+  Source landmarks shifted by up to 2 CSS px at DPR 1 and 1.5 CSS px at DPR 2. One selected
+  lossless Glass corner pair per DPR showed no obvious extra stair-step at Adaptive Full.
+  The 900 × 900 attempt that never reached Full in 45 seconds was excluded. The raw captures,
+  controls, markers, and conditions are in CB-10 attachment
+  `01a0cf88-165d-707f-8d2c-667492d2a0c4` (SHA-256
+  `d1d2877f06e877d1bc4037482df0fe3171fb4c23d514ab063766d7cc2bd68c46`).
+- A separate Pixel 8a equal-tier fixture at earlier r2 head `eb10e56c` alternated three
+  Adaptive and three Fixed Quality launches. Its three matched late-active pairs were RGB
+  pixel-identical across the whole Glass rectangle and four corner crops, after the recorded
+  Balanced → Full transition and a completed draw at scale 1.0. This is forced-draw fixture
+  evidence for that build, not a paired frame-timing or allocation comparison of the final head.
+
+The web pairs cover one selected source phase per DPR; their screenshots span 114–208 ms and
+source version is unavailable. The small landmark shifts prevent pixel-equivalence or a
+release-wide corner-quality claim. Completed-draw markers and RAF intervals do not measure GPU
+completion. Neither browser retained-memory data nor final-head physical allocation/GPU-memory
+parity is available. Moving the Playground lens also changes seven retained layer heights by
+one pixel at a time, legitimately resetting stable-workload comparisons. These limits keep the
+Adaptive default unvalidated for release.
 
 ## Integrated r2 validity check
 
@@ -137,9 +177,9 @@ remain exact; no threshold or renderer-topology change was made in this slice.
    active tier logs, retained traces, frame distributions, allocation counts, GPU peaks, and
    synchronized still/active corner captures.
 2. Preserve the earlier fast/full and constrained/low DPR 1/2 captures as historical qualitative
-   evidence. The conservative unknown-refresh policy now withholds Skiko upward probes, so repeat
-   visible tier and matched-corner checks on this revision before drawing a quality conclusion.
-   Browser GPU completion and retained memory remain unavailable in the current evidence.
+   evidence. Repeat tier-backed, source-synchronised Full/Fixed corner captures on the final r3
+   head across scenes and DPRs; the selected pairs above do not settle temporal quality. Browser
+   GPU completion and retained memory remain unavailable in the current evidence.
 3. Exercise a real desktop window and iOS view/window lifecycle, including disposal/rebind.
    Retain fallback wherever a supported host identity or timing source cannot be verified.
 
