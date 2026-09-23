@@ -24,6 +24,8 @@ class ArchiveResultTest(unittest.TestCase):
             "className": "Example",
             "name": "sample",
             "repeatIterations": 8,
+            "metrics": {"frameCount": {"runs": [180] * 8}},
+            "sampledMetrics": {"frameDurationCpuMs": {"runs": [[2.0]] * 8}},
             "profilerOutputs": [
                 {"type": "PerfettoTrace", "filename": f"iter{i}.perfetto-trace"}
                 for i in range(8)
@@ -58,6 +60,35 @@ class ArchiveResultTest(unittest.TestCase):
         self.benchmark["repeatIterations"] = 3
         with self.assertRaisesRegex(ValueError, "measured iterations"):
             self.archive()
+
+    def test_rejects_missing_scalar_run(self):
+        self.benchmark["metrics"]["frameCount"]["runs"].pop()
+        with self.assertRaisesRegex(ValueError, "8 runs for metrics.frameCount, found 7"):
+            self.archive()
+
+    def test_rejects_missing_sampled_run(self):
+        self.benchmark["sampledMetrics"]["frameDurationCpuMs"]["runs"].pop()
+        with self.assertRaisesRegex(ValueError, "8 runs for sampledMetrics.frameDurationCpuMs, found 7"):
+            self.archive()
+
+    def test_diagnostic_requires_repeated_markers(self):
+        self.benchmark["name"] = "sourceUpdateAdaptiveDiagnostic"
+        self.benchmark["repeatIterations"] = 1
+        self.benchmark["metrics"] = {
+            "hazeSourceRecordCount": {"runs": [180]},
+            "hazeGlassRuntimeDrawCount": {"runs": [1]},
+            "hazeGlassPrepareCount": {"runs": [181]},
+        }
+        self.benchmark["sampledMetrics"]["frameDurationCpuMs"]["runs"] = [[2.0]]
+        self.benchmark["profilerOutputs"] = self.benchmark["profilerOutputs"][:1]
+        self.xml.write_text(
+            '<testsuite><testcase classname="Example" name="sourceUpdateAdaptiveDiagnostic" /></testsuite>'
+        )
+        (self.additional / "sample-benchmarkData.json").write_text(
+            json.dumps({"benchmarks": [self.benchmark]})
+        )
+        with self.assertRaisesRegex(ValueError, "repeated hazeGlassRuntimeDrawCount"):
+            archive_result(self.outputs, self.destination, "Example#sourceUpdateAdaptiveDiagnostic", 1)
 
     def test_rejects_missing_trace(self):
         (self.additional / "iter0.perfetto-trace").unlink()

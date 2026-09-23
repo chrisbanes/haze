@@ -16,6 +16,7 @@ import org.junit.Assume.assumeTrue
 internal const val GLASS_TARGET_PACKAGE = "dev.chrisbanes.haze.sample.android"
 internal const val GLASS_BENCHMARK_ITERATIONS = 8
 internal const val GLASS_RUNTIME_DRAW_SECTION = "HazeGlass.runtimeDraw"
+internal const val GLASS_PREPARE_SECTION = "HazeGlass.prepare"
 internal const val GLASS_CREATE_RENDER_EFFECT_SECTION = "HazeGlass.createRenderEffect"
 internal const val GLASS_PREPARE_EFFECTS_SECTION = "HazeGlass.prepareEffects"
 internal const val GLASS_PREPARE_LAYERS_SECTION = "HazeGlass.prepareLayers"
@@ -86,6 +87,7 @@ internal fun glassMetrics(
   requireRuntimeMarker: Boolean = true,
   includePreparationMetrics: Boolean = false,
   includeBackdropComparisonMetrics: Boolean = false,
+  includeSourceAndPrepareCounts: Boolean = false,
   requireBackdropDraw: Boolean = false,
 ): List<Metric> = buildList {
   add(FrameTimingMetric())
@@ -99,10 +101,37 @@ internal fun glassMetrics(
     )
   }
   if (includeMemory) {
-    add(MemoryUsageMetric(MemoryUsageMetric.Mode.Max))
+    // ART heap counters are absent in some otherwise complete Pixel 8a traces. A missing
+    // single-value key makes AndroidX discard every scalar metric for that iteration.
+    add(
+      MemoryUsageMetric(
+        mode = MemoryUsageMetric.Mode.Max,
+        subMetrics = listOf(
+          MemoryUsageMetric.SubMetric.RssAnon,
+          MemoryUsageMetric.SubMetric.RssFile,
+          MemoryUsageMetric.SubMetric.Gpu,
+        ),
+      ),
+    )
   }
   if (includeBackdropComparisonMetrics) {
     addAll(backdropTraceMetrics(requireBackdropDraw))
+  }
+  if (includeSourceAndPrepareCounts) {
+    add(
+      TraceSectionMetric(
+        sectionName = HAZE_SOURCE_RECORD_SECTION,
+        mode = TraceSectionMetric.Mode.Count,
+        label = "hazeSourceRecord",
+      ),
+    )
+    add(
+      TraceSectionMetric(
+        sectionName = GLASS_PREPARE_SECTION,
+        mode = TraceSectionMetric.Mode.Count,
+        label = "hazeGlassPrepare",
+      ),
+    )
   }
   if (includePreparationMetrics) {
     add(

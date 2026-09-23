@@ -32,6 +32,24 @@ def archive_result(outputs: Path, destination: Path, method: str, iterations: in
         raise ValueError(f"JSON result does not match {method}")
     if benchmark["repeatIterations"] != iterations:
         raise ValueError(f"Expected {iterations} measured iterations")
+    for group in ("metrics", "sampledMetrics"):
+        for name, metric in benchmark.get(group, {}).items():
+            actual = len(metric["runs"])
+            if actual != iterations:
+                raise ValueError(
+                    f"Expected {iterations} runs for {group}.{name}, found {actual}"
+                )
+    if method_name == "sourceUpdateAdaptiveDiagnostic":
+        if iterations != 1:
+            raise ValueError("Glass diagnostic requires one measured iteration")
+        for name in (
+            "hazeSourceRecordCount",
+            "hazeGlassRuntimeDrawCount",
+            "hazeGlassPrepareCount",
+        ):
+            count = benchmark["metrics"][name]["runs"][0]
+            if count < 2:
+                raise ValueError(f"Glass diagnostic requires repeated {name}: {count}")
 
     cases = [
         case

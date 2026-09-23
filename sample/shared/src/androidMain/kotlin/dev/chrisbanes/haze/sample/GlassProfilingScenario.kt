@@ -349,27 +349,30 @@ internal fun glassProfilingFrame(
   }
 }
 
+internal val GlassProfilingScenario.updatesSource: Boolean
+  get() = when (this) {
+    GlassProfilingScenario.SourceUpdateAdaptive,
+    GlassProfilingScenario.SourceUpdateQuality,
+    GlassProfilingScenario.BackdropSourceUpdateQuality,
+    GlassProfilingScenario.SourceUpdateBalanced,
+    GlassProfilingScenario.SourceUpdatePerformance,
+    GlassProfilingScenario.SourceUpdateFixed0,
+    GlassProfilingScenario.SourceUpdateFixed25,
+    GlassProfilingScenario.SourceUpdateFixed33,
+    GlassProfilingScenario.SourceUpdateFixed50,
+    GlassProfilingScenario.SourceUpdateFixed75,
+    GlassProfilingScenario.SourceUpdateFixed100,
+    GlassProfilingScenario.SourceUpdate9,
+    GlassProfilingScenario.BackdropSourceUpdate9,
+    GlassProfilingScenario.SourceUpdateNoGlass,
+    -> true
+    else -> false
+  }
+
 internal inline fun glassProfilingSourceProgress(
   scenario: GlassProfilingScenario,
   progress: () -> Float,
-): Float = when (scenario) {
-  GlassProfilingScenario.SourceUpdateAdaptive,
-  GlassProfilingScenario.SourceUpdateQuality,
-  GlassProfilingScenario.BackdropSourceUpdateQuality,
-  GlassProfilingScenario.SourceUpdateBalanced,
-  GlassProfilingScenario.SourceUpdatePerformance,
-  GlassProfilingScenario.SourceUpdateFixed0,
-  GlassProfilingScenario.SourceUpdateFixed25,
-  GlassProfilingScenario.SourceUpdateFixed33,
-  GlassProfilingScenario.SourceUpdateFixed50,
-  GlassProfilingScenario.SourceUpdateFixed75,
-  GlassProfilingScenario.SourceUpdateFixed100,
-  GlassProfilingScenario.SourceUpdate9,
-  GlassProfilingScenario.BackdropSourceUpdate9,
-  GlassProfilingScenario.SourceUpdateNoGlass,
-  -> progress()
-  else -> 0f
-}
+): Float = if (scenario.updatesSource) progress() else 0f
 
 internal fun shouldAttachProfilingGlass(
   scenario: GlassProfilingScenario,

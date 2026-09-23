@@ -74,6 +74,16 @@ class GlassProfilingBenchmark {
   @Test
   fun sourceUpdateAdaptive() = measureCalibrationScenario("source_update_adaptive")
 
+  /** One physical validity pass; screenshots intentionally make this unsuitable for ranking. */
+  @Test
+  fun sourceUpdateAdaptiveDiagnostic() = measureScenario(
+    scenarioId = "source_update_adaptive",
+    includeMemory = true,
+    includeSourceAndPrepareCounts = true,
+    diagnosticScreenshots = true,
+    iterations = 1,
+  )
+
   @Test
   fun sourceUpdateQuality() = measureBackdropComparisonScenario("source_update_quality")
 
@@ -226,9 +236,13 @@ class GlassProfilingBenchmark {
     requireRuntimeMarker: Boolean = true,
     includePreparationMetrics: Boolean = false,
     includeBackdropComparisonMetrics: Boolean = false,
+    includeSourceAndPrepareCounts: Boolean = false,
     requireBackdropDraw: Boolean = false,
+    diagnosticScreenshots: Boolean = false,
+    iterations: Int = GLASS_BENCHMARK_ITERATIONS,
   ) {
     // Stable-source scenarios still animate draw progress throughout the measured window.
+    var diagnosticPixels: GlassDiagnosticPixels? = null
     withoutUiAutomatorIdleWait(enabled = continuouslyAnimating) {
       benchmarkRule.measureRepeated(
         packageName = GLASS_TARGET_PACKAGE,
@@ -237,11 +251,12 @@ class GlassProfilingBenchmark {
           requireRuntimeMarker = requireRuntimeMarker,
           includePreparationMetrics = includePreparationMetrics,
           includeBackdropComparisonMetrics = includeBackdropComparisonMetrics,
+          includeSourceAndPrepareCounts = includeSourceAndPrepareCounts,
           requireBackdropDraw = requireBackdropDraw,
         ),
         compilationMode = CompilationMode.Full(),
         startupMode = StartupMode.WARM,
-        iterations = GLASS_BENCHMARK_ITERATIONS,
+        iterations = iterations,
         setupBlock = {
           startActivityAndWait { intent ->
             intent.selectBenchmarkSample(
@@ -256,7 +271,17 @@ class GlassProfilingBenchmark {
           device.waitForGlassProfilingScenario(scenarioId)
         },
       ) {
-        device.runGlassProfilingScenario(scenarioId)
+        if (diagnosticScreenshots) {
+          diagnosticPixels = device.runGlassProfilingScenarioDiagnostic(scenarioId)
+        } else {
+          device.runGlassProfilingScenario(scenarioId)
+        }
+      }
+    }
+    diagnosticPixels?.let { pixels ->
+      check(pixels.changed >= pixels.sampled / 100) {
+        "Glass pixels did not change enough during source animation: " +
+          "${pixels.changed}/${pixels.sampled}"
       }
     }
   }

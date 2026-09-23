@@ -175,6 +175,23 @@ done
 )
 ```
 
+## Verify the Glass source diagnostic
+
+Before a physical comparison, run the single-iteration Glass source diagnostic and archive it.
+The test requires visibly changed Glass pixels between two screenshots of the same animation;
+the archiver requires repeated source records, Glass draws, and Glass prepares in the measured
+trace. The screenshots are saved under `Pictures/CB10` on the device, with their names logged as
+`CB10BenchmarkDiagnostic`. Do not run the paired matrix if either command fails.
+
+```shell
+./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateAdaptiveDiagnostic
+python3 internal/benchmark/archive_result.py \
+  --method dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateAdaptiveDiagnostic \
+  --iterations 1 \
+  --destination internal/benchmark/build/benchmark-results/source-update-diagnostic
+```
+
 ## Run the fixed-quality sweep
 
 Run each Glass fixed-quality method explicitly and verify its result label. A combined selector

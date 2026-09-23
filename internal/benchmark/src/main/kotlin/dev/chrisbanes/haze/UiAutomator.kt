@@ -3,9 +3,14 @@
 
 package dev.chrisbanes.haze
 
+import android.content.ContentValues
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.Point
 import android.os.SystemClock
+import android.provider.MediaStore
+import android.util.Log
+import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.Configurator
@@ -166,6 +171,76 @@ internal fun UiDevice.runGlassProfilingScenario(scenarioId: String) {
     selector = By.res("glass_profiling_start"),
   ).click()
   SystemClock.sleep(GLASS_PROFILING_MEASURE_MILLIS)
+}
+
+/** Captures two known points in the same animation and checks pixels inside the Glass surface. */
+internal data class GlassDiagnosticPixels(val changed: Int, val sampled: Int)
+
+internal fun UiDevice.runGlassProfilingScenarioDiagnostic(scenarioId: String): GlassDiagnosticPixels {
+  val surface = waitForObject(By.res("glass_profiling_surface_0"))
+  val bounds = surface.visibleBounds
+  val insetX = bounds.width() / 6
+  val insetY = bounds.height() / 6
+  val left = bounds.left + insetX
+  val top = bounds.top + insetY
+  val right = bounds.right - insetX
+  val bottom = bounds.bottom - insetY
+  require(right > left && bottom > top)
+
+  waitForObject(By.res("glass_profiling_start")).click()
+  val start = SystemClock.uptimeMillis()
+  SystemClock.sleep(600)
+  val early = checkNotNull(takeScreenshot()) { "Early Glass screenshot unavailable" }
+  val earlyMillis = SystemClock.uptimeMillis() - start
+  SystemClock.sleep((2_200 - (SystemClock.uptimeMillis() - start)).coerceAtLeast(0))
+  val late = checkNotNull(takeScreenshot()) { "Late Glass screenshot unavailable" }
+  val lateMillis = SystemClock.uptimeMillis() - start
+
+  val prefix = "cb10-$scenarioId-$start"
+  val savedEarly = saveGlassDiagnosticScreenshot(early, "$prefix-early.png")
+  val savedLate = saveGlassDiagnosticScreenshot(late, "$prefix-late.png")
+
+  var sampled = 0
+  var changed = 0
+  for (y in top until bottom step 4) {
+    for (x in left until right step 4) {
+      val before = early.getPixel(x, y)
+      val after = late.getPixel(x, y)
+      sampled++
+      if (
+        kotlin.math.abs(android.graphics.Color.red(before) - android.graphics.Color.red(after)) > 16 ||
+        kotlin.math.abs(android.graphics.Color.green(before) - android.graphics.Color.green(after)) > 16 ||
+        kotlin.math.abs(android.graphics.Color.blue(before) - android.graphics.Color.blue(after)) > 16
+      ) {
+        changed++
+      }
+    }
+  }
+  Log.i(
+    "CB10BenchmarkDiagnostic",
+    "scenario=$scenarioId earlyMs=$earlyMillis lateMs=$lateMillis " +
+      "changedPixels=$changed sampledPixels=$sampled bounds=$bounds " +
+      "early=$savedEarly late=$savedLate",
+  )
+  SystemClock.sleep(
+    (GLASS_PROFILING_MEASURE_MILLIS - (SystemClock.uptimeMillis() - start))
+      .coerceAtLeast(0),
+  )
+  return GlassDiagnosticPixels(changed, sampled)
+}
+
+private fun saveGlassDiagnosticScreenshot(bitmap: Bitmap, name: String): String {
+  val resolver = InstrumentationRegistry.getInstrumentation().context.contentResolver
+  val values = ContentValues().apply {
+    put(MediaStore.Images.Media.DISPLAY_NAME, name)
+    put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CB10")
+  }
+  val uri = checkNotNull(resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values))
+  checkNotNull(resolver.openOutputStream(uri)).use { output ->
+    check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output))
+  }
+  return uri.toString()
 }
 
 private fun UiDevice.waitForProfilingObject(

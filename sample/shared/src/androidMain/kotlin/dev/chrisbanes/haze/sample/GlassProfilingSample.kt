@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -133,17 +132,15 @@ private fun GlassProfilingScene(
     Size(ProfilingSurfaceSize.width.toPx(), ProfilingSurfaceSize.height.toPx())
   }
   val effectSurfaceSizePx = profilingEffectSize(surfaceSizePx, scenario.effectCount)
-  val backgroundColor = MaterialTheme.colorScheme.surface
   var effectFrame by remember(scenario) {
     mutableStateOf(glassProfilingFrame(scenario, progress = 0f))
   }
   val styleFrame = if (profilingStyleUsesFrame(scenario)) effectFrame else null
-  val styles = remember(scenario, styleFrame, effectSurfaceSizePx, backgroundColor) {
+  val styles = remember(scenario, styleFrame, effectSurfaceSizePx) {
     List(scenario.effectCount) {
       profilingGlassStyle(
         scenario,
         styleFrame ?: glassProfilingFrame(scenario, progress = 0f),
-        backgroundColor,
       )
     }
   }
@@ -216,7 +213,15 @@ private fun GlassProfilingScene(
         progress = glassProfilingSourceProgress(scenario) { state.progress },
       )
       val translatedX = size.width * frame.sourceOffset
-      drawRect(Color(0xFF172554))
+      // Large contrast survives the regular Glass style's deep blur in source-update rows.
+      // The animated line geometry remains the same in every scenario.
+      drawRect(
+        if (scenario.updatesSource && frame.sourceOffset >= 0f) {
+          Color(0xFFF97316)
+        } else {
+          Color(0xFF172554)
+        },
+      )
       repeat(12) { index ->
         val x = translatedX + size.width * index / 11f
         drawLine(
@@ -235,7 +240,7 @@ private fun GlassProfilingScene(
         styles = styles,
         performanceMode = scenario.performanceMode,
         interactionSource = interactionSource,
-        drawProgress = if (scenario.steadyDraw) {
+        drawProgress = if (scenario.steadyDraw || scenario.updatesSource) {
           { state.progress }
         } else {
           null
@@ -342,9 +347,7 @@ private fun GlassProfilingEffectGrid(
 internal fun profilingGlassStyle(
   scenario: GlassProfilingScenario,
   frame: GlassProfilingFrame,
-  backgroundColor: Color,
 ): GlassStyle = GlassStyle.regular.then {
-  backgroundColor(backgroundColor)
   scenario.opticsOverride?.let(::optics)
   if (scenario.fullChroma) {
     chromaticAberrationMode(ChromaticAberrationMode.Full)
