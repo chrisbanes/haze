@@ -1,11 +1,72 @@
-# CB-10 Adaptive Glass validation attempt — 2026-09-23
+# CB-10 Adaptive Glass validation attempt — 2026-09-24
 
 ## Verdict
 
 Plan r2 and the approved r3 Skiko probe have not cleared the default-release gate. Keep the
 initial thresholds and deterministic fallback. The original Android and browser attempts below
 are historical diagnostics; the newer integrated and matched-corner evidence is qualified here.
-No paired physical mode comparison has been run on the final integrated revision.
+The 2026-09-24 final-head source diagnostic and allocation profiles below narrow two physical
+device gaps, but do not establish the remaining release gates.
+
+## Final-head physical allocation investigation — 2026-09-24
+
+At PR head `648a74cc`, a release-like one-iteration `sourceUpdateAdaptiveDiagnostic` run on a
+plugged-in Pixel 8a (Android 17, 60 Hz, thermal status 0) passed the source-workload gate. Its
+6,020.086 ms active interval contains 359 source records, 360 Glass prepares and draws, and 360
+frame samples. The source-change fixture changed 9,840/9,840 sampled pixels. The Perfetto trace
+records Balanced at sample 1 and Full at sample 211, 3.565 seconds after active start. The
+one-iteration archiver accepted the trace-bound tier record. The ignored local archive is
+`internal/benchmark/build/benchmark-results/cb10-pr1350-648a74c-diagnostic-20260924/`; the tier
+record's trace SHA-256 is `0100033085b3f347b17650a68f3b79bf898df4628bb5f9770e774aedef0b5a73`.
+Fixed-performance mode was disabled after the diagnostic.
+
+Three alternating Adaptive / matching Fixed `1/3` source-update pairs were then captured with
+the optional Glass allocation diagnostic **off**. Each release-like sample ran from a fresh app
+launch under the same Android ART allocation sampler and Glass ATrace markers. Perfetto's
+`com.android.art` heap sampler used a 64-byte sampling interval. The table divides weighted
+sampled allocations under `GlassRuntimeEffect.prepareDraw` by the corresponding
+`HazeGlass.prepare` slice count; it is a profiled-path estimate, not an uninstrumented allocation
+count or whole-app memory measurement.
+
+| Pair | Adaptive objects / prepares | Fixed objects / prepares | Adaptive estimated objects/call | Fixed estimated objects/call |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 861 / 147 | 556 / 158 | 5.86 | 3.52 |
+| 2 | 876 / 141 | 554 / 155 | 6.21 | 3.57 |
+| 3 | 792 / 144 | 547 / 158 | 5.50 | 3.46 |
+
+The repeatable difference is about 1.9–2.6 weighted sampled objects per prepare. The capture
+changes draw cadence and cannot isolate exact object types. The Adaptive update key and cadence
+time mark are plausible sources from code inspection, not measured attribution. The six raw traces
+are in the ignored local directory
+`internal/benchmark/build/benchmark-results/cb10-pr1350-648a74c-art-allocation-20260924/`
+as `haze-art-{adaptive-a2,fixed-f1,adaptive-a3,fixed-f2,adaptive-a4,fixed-f3}.perfetto-trace`
+with SHA-256 values respectively `44bb793a1708eea559820e64273b74c1492349463692f5454241515a99308298`,
+`b4537539216300521216d605867b44e4fefb0c9fffadaef95e9830e371ec7f3c`,
+`a99b0614a46fcde13300fcd3811bf85a5b6b55b2d9e02ca000d6fdc6a8aedad1`,
+`5cdfeb522955ff167fb269714a959114e1ee90c0c811280e64cdd7b9fd3e5696`,
+`a54829c0ce305db0e320b44df8065251c9fb85ecc8fe8781835fa625b57fbce2`, and
+`1202a376d36e03118791eada6a5d5d4d9990d078a03d27c8b6231de6f559bc64`.
+No allocation-parity claim is supported; the repeatable excess remains a release blocker.
+
+## Final-head browser and macOS smoke checks — 2026-09-24
+
+`./gradlew :sample:web:wasmJsBrowserDistribution --no-scan` and
+`./gradlew :sample:macos:linkDebugExecutableMacosArm64 --no-scan` passed at `648a74cc`.
+The Wasm Glass Playground rendered in Chrome 153 on macOS arm64, including its animated source
+and Glass surfaces. The native macOS sample launched with Metal, navigated to the same Playground,
+and rendered it after an app switch and demo reset. This is a visual foreground-resume smoke check,
+not a trace of a new selected-source notification or retained-layer rebuild.
+
+A 10-second Metal System Trace attached to Chrome's GPU helper during the animated Playground
+recorded 14,720 command-buffer completion rows. Its 334 `MTLDevice.currentAllocatedSize` rows
+ranged from 775,241,728 to 794,148,864 bytes (739.3–757.4 MiB). Chrome's GPU helper is shared
+with other open tabs and the exported tables have no Playground surface identity. These values
+therefore establish that GPU work completed in the process, **not** that this Glass sample's
+draws completed or that its retained textures have a measured footprint. The local ignored
+exports are in
+`internal/benchmark/build/benchmark-results/cb10-pr1350-648a74c-browser-metal-20260924/`;
+the full local trace is `/tmp/haze-pr1350-chrome-gpu.trace`. Browser GPU completion attribution,
+retained texture memory, and traced macOS post-resume source capture remain open.
 
 ## Integrated r3 candidate and matched corners
 
@@ -177,15 +238,18 @@ remain exact; no threshold or renderer-topology change was made in this slice.
 
 ## Required next evidence
 
-1. With the one-iteration workload gate now passing, run Adaptive and matching Fixed controls in
-   both orders with eight complete metric runs each,
-   active tier logs, retained traces, frame distributions, allocation counts, GPU peaks, and
-   synchronized still/active corner captures.
+1. Run Adaptive and matching Fixed controls in both orders with eight complete metric runs each,
+   active tier logs, retained traces, frame distributions, GPU peaks, and synchronized still/active
+   corner captures. Investigate the repeated diagnostic-off allocation excess on the final head;
+   the ART sampling pairs above cannot identify exact object types or prove an acceptable
+   uninstrumented cost.
 2. Preserve the earlier fast/full and constrained/low DPR 1/2 captures as historical qualitative
    evidence. Repeat tier-backed, source-synchronised Full/Fixed corner captures on the final r3
-   head across scenes and DPRs; the selected pairs above do not settle temporal quality. Browser
-   GPU completion and retained memory remain unavailable in the current evidence.
-3. Exercise a real desktop window and iOS view/window lifecycle, including disposal/rebind.
+   head across scenes and DPRs; the selected pairs above do not settle temporal quality. Attribute
+   browser GPU completion and retained texture memory to the Glass surface, rather than Chrome's
+   shared GPU process.
+3. Trace a new selected-source capture after foreground resume in the live macOS window. Exercise
+   a real desktop window and iOS view/window lifecycle, including disposal/rebind.
    Retain fallback wherever a supported host identity or timing source cannot be verified.
 
 The original invalid Android workload and fast DPR-2 outcome prompted bounded repairs within plan
