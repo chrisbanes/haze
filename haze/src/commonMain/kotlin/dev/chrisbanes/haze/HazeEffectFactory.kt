@@ -100,8 +100,9 @@ public interface HazeEffectLayoutScope : Density {
 /**
  * Built-in renderer lifecycle hook.
  *
- * This is intentionally separate from the supported custom-renderer surface. It exposes only
- * node-owned resources and invalidation, never live source records or modifier nodes.
+ * This is intentionally separate from the supported custom-renderer surface. It exposes
+ * node-owned resources, invalidation, and selected-source record notifications, but not modifier
+ * nodes.
  */
 @InternalHazeApi
 public interface HazeEffectRendererLifecycle<Style> {
