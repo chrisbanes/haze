@@ -170,9 +170,10 @@ native draw. No performance result is implied; physical Android 37.2 acceptance 
 Later releases may enable the default, retain a temporary `false` escape hatch, and then remove
 the flag.
 
-`HazePerformanceMode.Default` points to `Adaptive` for built-in Blur and Glass. Use `Adaptive` to pin that policy,
-`Quality`, `Balanced`, or `Performance` for its named profiles, or `Fixed(qualityFraction)` for an
-explicit quality level from `0f` (lowest) to `1f` (highest). `Quality` replaces the previous
+`HazePerformanceMode.Default` selects the fixed `Balanced` profile for built-in Blur and Glass.
+`Adaptive` remains deprecated for binary compatibility and behaves the same as `Default`; replace
+it with `Default`. Use `Quality` or `Performance` for their named profiles, or
+`Fixed(qualityFraction)` for an explicit quality level from `0f` (lowest) to `1f` (highest). `Quality` replaces the previous
 built-in full-resolution choice. Previous fixed input-pixel fractions are not equivalent to the
 same `qualityFraction` value; compare appearance and performance before choosing a replacement.
 `HazeSampling` remains the generic policy used by custom effects.
@@ -255,7 +256,7 @@ val glassStyle = GlassStyle {
 Modifier.hazeGlass(
   input = HazeInput.Backdrop(hazeState),
   style = glassStyle,
-  performanceMode = HazePerformanceMode.Adaptive,
+  performanceMode = HazePerformanceMode.Default,
   expandLayerBounds = true,
   interactionSource = interactionSource,
   interactionTransformTarget = GlassTransformTarget.MaterialOnly,
@@ -300,7 +301,7 @@ and `then`.
 | `HazeEffectScope.fallbackTint` | `HazeBlurStyle { fallbackColorEffect(...) }` | Pass `null` to explicitly clear an inherited fallback. |
 | `HazeEffectScope.alpha` | `HazeBlurStyle { alpha(...) }` | Values are clamped to `0f..1f`. |
 | `HazeEffectScope.blurEnabled` | `HazeBlurStyle { blurEnabled(...) }` | State-level Blur enablement is removed. |
-| `HazeEffectScope.inputScale` | `Modifier.hazeBlur(performanceMode = ...)` | Map `Default` to `Default`, `Auto` to `Adaptive`, `None` to `Quality`, and choose `Balanced`, `Performance`, or `Fixed(qualityFraction)` for an explicit Blur profile. |
+| `HazeEffectScope.inputScale` | `Modifier.hazeBlur(performanceMode = ...)` | Map `Default` and `Auto` to `Default`, `None` to `Quality`, or choose `Balanced`, `Performance`, or `Fixed(qualityFraction)` for an explicit Blur profile. |
 | `HazeEffectScope.drawContentBehind` | Removed | Custom renderers control their own draw order inside `HazeEffectRenderer.draw`. |
 | `HazeEffectScope.clipToAreasBounds` | Removed | Source geometry is internal. Return required modifier-relative bounds from `calculateLayerBounds`. |
 | `HazeEffectScope.expandLayerBounds` | `Modifier.hazeBlur(expandLayerBounds = ...)` | Non-null and `true` by default. |
@@ -316,7 +317,7 @@ and `then`.
 | `VisualEffectContext.positionOnScreen` | `HazeEffectDrawScope.modifierBounds` | Custom renderers receive only modifier-relative semantic bounds. |
 | `VisualEffectContext.rootBoundsOnScreen` | Removed | Root and window geometry are internal. |
 | `VisualEffectContext.visualEffect` | Removed | Custom effects read their own properties directly. |
-| `VisualEffect.calculateInputScaleFactor()` | `HazePerformanceMode` for built-in Blur and Glass, `HazeSampling` for custom effects | Built-in effects choose default, adaptive, named, or fixed performance profiles; generic effects retain sampling. |
+| `VisualEffect.calculateInputScaleFactor()` | `HazePerformanceMode` for built-in Blur and Glass, `HazeSampling` for custom effects | Built-in effects choose default, named, or fixed performance profiles; generic effects retain sampling. |
 | `VisualEffect.requireInvalidation()` | Snapshot state read by `draw` or `calculateLayerBounds` | Haze observes reads in their rendering phase. |
 | `VisualEffect`, `VisualEffectContext`, `InteractiveVisualEffect`, `RetainedOutputVisualEffect`, `VisualEffectRendererFactory`, `VisualEffectTransform` | `HazeEffectFactory` and `HazeEffectRenderer` | Renderer lifecycle and input are opaque and node-owned. |
 | `HazeState.positionStrategy`, `rememberHazeState(positionStrategy)` | Removed | Cross-window position strategy is internal. |
@@ -325,7 +326,7 @@ and `then`.
 | `HazeStyle` | `HazeBlurStyle` | Renamed, moved, and changed to a replayable Style. |
 | `HazeTint` | `HazeColorEffect` | Renamed and moved to `dev.chrisbanes.haze.blur`. |
 | `dev.chrisbanes.haze.blur.HazeProgressive` | `dev.chrisbanes.haze.HazeProgressive` | The old Blur-package typealias is removed. |
-| `HazeProgressive.LinearGradient(..., preferPerformance = ...)` | `Modifier.hazeBlur(performanceMode = ...)` | Choose `Quality` for full resolution or a downsampled `Balanced`/`Performance` tier; `Adaptive` follows Haze's workload policy. |
+| `HazeProgressive.LinearGradient(..., preferPerformance = ...)` | `Modifier.hazeBlur(performanceMode = ...)` | Choose `Quality` for full resolution or a downsampled `Balanced`/`Performance` profile. |
 | `HazeColorEffect.Unspecified` or a concrete `HazeColorEffect` constructor | `HazeColorEffect.tint(...)` or `HazeColorEffect.colorFilter(...)` | Effects are factory-only; use `fallbackColorEffect(null)` to clear a fallback. |
 | `HazeBlurDefaults.blurEnabled()` | `HazeBlurDefaults.isBlurEnabledByDefault()` | This remains the platform-aware default-enable query. |
 | `Poko` | Removed | This implementation annotation is not part of Haze's supported API. |
@@ -347,8 +348,8 @@ and `then`.
    exact captured-source semantics, or `HazeInput.Content` for own-content Blur.
 5. Move Blur properties into `HazeBlurStyle { ... }`, changing property assignments into Style
    functions. Use `then` instead of `copy` when customizing a preset.
-6. Move built-in Blur input-scale choices to `HazePerformanceMode`: map the previous default to
-   `Default`, automatic selection to `Adaptive`, and full resolution to `Quality`. Remeasure old
+6. Move built-in Blur input-scale choices to `HazePerformanceMode`: map the previous default and
+   automatic selection to `Default`, and full resolution to `Quality`. Remeasure old
    fixed input-pixel fractions before choosing `Fixed(qualityFraction)`. Move retention, source
    selection, and layer expansion to `HazeSourceRetention`, `HazeSourceSelection`, and
    `expandLayerBounds`.

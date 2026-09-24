@@ -108,7 +108,7 @@ theme's surface color and can add a tint.
 
 ## Performance
 
-Built-in Blur and Glass use `HazePerformanceMode.Default`, which is adaptive. Begin with that setting and measure a release-like build on representative devices before selecting `Quality`, `Balanced`, `Performance`, or `Fixed(...)`. Custom effects keep the separate `HazeSampling` policy. See the [performance guide](https://chrisbanes.github.io/haze/performance/) for the decision framework and effect-specific guidance.
+Built-in Blur and Glass use `HazePerformanceMode.Default`, which selects the fixed `Balanced` profile. Begin with that setting and measure a release-like build on representative devices before selecting `Quality`, `Performance`, or `Fixed(...)`. `Adaptive` remains as a deprecated compatibility alias for `Default`. Custom effects keep the separate `HazeSampling` policy. See the [performance guide](https://chrisbanes.github.io/haze/performance/) for the decision framework and effect-specific guidance.
 
 ## Camera and platform views
 

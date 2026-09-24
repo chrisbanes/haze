@@ -60,20 +60,21 @@ class GlassInputScaleScreenshotTest : ScreenshotTest() {
     captureRoot("aggressive")
     reference.assertRepresentativeGlassQuality(aggressive, "aggressive tier", maximumDifference = 0.05f)
 
-    performanceMode = HazePerformanceMode.Adaptive
+    performanceMode = HazePerformanceMode.Default
     waitForIdle()
-    val adaptive = captureRootPixels().snapshot()
-    captureRoot("adaptive")
-    reference.assertRepresentativeGlassQuality(adaptive, "adaptive tier", maximumDifference = 0.05f)
+    val defaultProfile = captureRootPixels().snapshot()
+    captureRoot("default")
+    assertThat(
+      balanced.meanAbsoluteDifference(defaultProfile),
+      "Default to Balanced mean absolute difference",
+    ).isLessThanOrEqualTo(1f / 255f)
 
     performanceMode = HazePerformanceMode.Balanced
     waitForIdle()
     val returned = captureRootPixels().snapshot()
     captureRoot("returned")
-    assertThat(
-      balanced.meanAbsoluteDifference(returned),
-      "return transition mean absolute difference",
-    ).isLessThanOrEqualTo(1f / 255f)
+    assertThat(balanced.meanAbsoluteDifference(returned), "return transition mean absolute difference")
+      .isLessThanOrEqualTo(1f / 255f)
   }
 }
 

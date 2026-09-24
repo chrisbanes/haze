@@ -31,9 +31,6 @@ class BenchmarkTest {
   }
 
   @Test
-  fun blurStableAdaptive() = measureBlurProfilingScenario("stable_adaptive")
-
-  @Test
   fun blurStableQuality() = measureBlurProfilingScenario(
     scenarioId = "stable_quality",
     includeBackdropComparisonMetrics = true,
@@ -60,9 +57,6 @@ class BenchmarkTest {
 
   @Test
   fun blurProgressiveBalanced() = measureBlurProfilingScenario("progressive_balanced")
-
-  @Test
-  fun blurSourceUpdateAdaptive() = measureBlurProfilingScenario("source_update_adaptive")
 
   @Test
   fun scaffoldEquivalentStyleChurn() {

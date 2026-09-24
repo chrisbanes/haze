@@ -20,7 +20,12 @@ Each section records its aggregation method and measurement conditions.
 
 ## Performance modes
 
-This comparison measures `Adaptive`, `Quality`, `Balanced`, and `Performance` with stable
+These measurements are historical. The `Adaptive` column records the built-in implementation at
+the time of the 2.0 calibration; `Adaptive` is now deprecated and behaves like the fixed
+`Balanced` profile. Do not use this column to predict current `Default` behavior. The active
+benchmark scenarios cover fixed modes only.
+
+This comparison measured `Adaptive`, `Quality`, `Balanced`, and `Performance` with stable
 and continuously changing source input. It used a Pixel 8a running Android 17 (full SDK 37.2)
 at 60 Hz, with fixed-performance mode enabled and normal Android CPU scheduling.
 

@@ -7,8 +7,8 @@ looks right and feels smooth.
 ## Start with the defaults
 
 Use `HazePerformanceMode.Default` for built-in Blur and Glass, and start Glass with
-`GlassStyle.regular`. The default performance mode adjusts quality automatically. Custom effects
-use `HazeSampling.Default`.
+`GlassStyle.regular`. `Default` selects the fixed `Balanced` profile. Custom effects use
+`HazeSampling.Default`.
 
 Build the complete screen before choosing overrides. The area covered by effects, their number,
 and the content moving behind them all affect the cost.
@@ -66,7 +66,7 @@ based on the problem you can see:
 
 | What you need | What to try |
 | --- | --- |
-| A starting point for most screens | `Default` or `Adaptive`, which adjusts quality automatically. |
+| A starting point for most screens | `Default` (`Balanced`). |
 | Lower rendering cost | `Performance`; check for softer or more pixelated detail. |
 | A consistent middle quality setting | `Balanced`. |
 | Sharper detail | `Quality`; check scrolling and transitions for missed deadlines. |
@@ -81,8 +81,8 @@ Modifier.hazeBlur(
 )
 ```
 
-The same `performanceMode` parameter is available on `hazeGlass`. Fixed modes keep the chosen
-quality setting instead of adapting it. `Performance`, `Balanced`, and `Quality` correspond to
+The same `performanceMode` parameter is available on `hazeGlass`. Profiles keep the chosen quality
+setting fixed. `Performance`, `Balanced`, and `Quality` correspond to
 `Fixed(0f)`, `Fixed(0.5f)`, and `Fixed(1f)`. The fraction describes quality, not a percentage
 reduction in rendering time.
 

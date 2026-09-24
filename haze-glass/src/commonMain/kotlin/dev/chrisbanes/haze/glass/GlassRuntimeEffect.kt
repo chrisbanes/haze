@@ -27,7 +27,6 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectBackdrop
 import dev.chrisbanes.haze.HazeEffectContentTransform
 import dev.chrisbanes.haze.HazeEffectDrawScope
-import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectLayoutScope
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRenderer
@@ -42,7 +41,6 @@ import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.LocalHazePerformanceMode
-import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.trace
@@ -79,16 +77,6 @@ private class GlassPreparedDrawCacheKey(
   val style: ResolvedGlassStyle?,
   val interactionState: GlassInteractionRenderState,
   val interactionTopology: GlassInteractionTopology,
-)
-
-@Poko
-private class GlassAdaptiveUpdateKey(
-  val inputSnapshot: HazeEffectInputSnapshot?,
-  val dirtyTrackerVersion: Int,
-  val materialSize: Size,
-  val layerSize: Size,
-  val layerOffset: Offset,
-  val interactionState: GlassInteractionRenderState,
 )
 
 private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): Boolean =
@@ -227,7 +215,6 @@ internal class GlassRuntimeEffect() :
       if (field != value) {
         HazeLogger.d(TAG) { "performanceMode changed. Current: $field. New: $value" }
         field = value
-        inputScalePolicy.reset()
         markDirty(GlassDirtyFields.PerformanceMode)
       }
     }
@@ -339,7 +326,6 @@ internal class GlassRuntimeEffect() :
     }
     runtimeShaderIncompatible = false
     needsDelegateSelection = true
-    inputScalePolicy.reset()
     resolvedInputScale = GlassInputScalePolicy.FULL_RESOLUTION_SCALE
     preparedRender = null
     clearPreparedRenderCache()
@@ -403,21 +389,7 @@ internal class GlassRuntimeEffect() :
   override fun HazeEffectRuntimeDrawScope.prepareDraw(style: GlassNodeConfiguration) {
     val context = this
     trace(GlassTraceSection.Prepare) {
-      val workloadWeightChanged = if (performanceMode === HazePerformanceMode.Adaptive) {
-        inputScalePolicy.observeUpdate(
-          GlassAdaptiveUpdateKey(
-            inputSnapshot = context.inputSnapshot,
-            dirtyTrackerVersion = dirtyTrackerVersion,
-            materialSize = context.modifierSize,
-            layerSize = context.layerSize,
-            layerOffset = context.layerOffset,
-            interactionState = interactionRenderState(context.modifierSize),
-          ),
-        )
-      } else {
-        false
-      }
-      if (!workloadWeightChanged && canReusePreparedDraw(context)) return@trace
+      if (canReusePreparedDraw(context)) return@trace
       val previousBudget = preparedRenderBudget
       trace(GlassTraceSection.PrepareBudget) {
         prepareRenderBudget(context, runtimeShaderSupported = isRuntimeShaderGlassSupported())
@@ -837,16 +809,8 @@ internal class GlassRuntimeEffect() :
         )
       }
     }
-    val balancedPlan = if (
-      requestedScaleOverride == null && performanceMode === HazePerformanceMode.Adaptive
-    ) {
-      buildPlan(GlassInputScalePolicy.BALANCED_SCALE)
-    } else {
-      null
-    }
     val requestedScale = requestedScaleOverride ?: inputScalePolicy.resolve(
       performanceMode = performanceMode,
-      balancedPlan = balancedPlan,
     )
     if (requestedScale != resolvedInputScale) {
       HazeLogger.d(TAG) {
@@ -886,9 +850,6 @@ internal class GlassRuntimeEffect() :
       } else {
         resolveGlassRenderBudget(
           requestedScale = requestedScale,
-          requestedPlan = balancedPlan.takeIf {
-            requestedScale == GlassInputScalePolicy.BALANCED_SCALE
-          },
           buildPlan = buildPlan,
         )
       }

@@ -36,9 +36,6 @@ class GlassProfilingBenchmark {
   fun effectReattach() = measureColdInitializationScenario("effect_reattach")
 
   @Test
-  fun stableAdaptive() = measureCalibrationScenario("stable_adaptive")
-
-  @Test
   fun stableQuality() = measureBackdropComparisonScenario("stable_quality")
 
   @Test
@@ -70,9 +67,6 @@ class GlassProfilingBenchmark {
 
   @Test
   fun stableFixed100() = measureCalibrationScenario("stable_fixed_100")
-
-  @Test
-  fun sourceUpdateAdaptive() = measureCalibrationScenario("source_update_adaptive")
 
   @Test
   fun sourceUpdateQuality() = measureBackdropComparisonScenario("source_update_quality")

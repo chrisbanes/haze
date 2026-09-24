@@ -46,18 +46,18 @@ class BlurRendererLifecycleTest {
     val renderer = BlurVisualEffect()
     val inherited = BlurConfiguration(HazeBlurStyle, null)
     renderer.update(scope, inherited, HazeSampling.Default)
-    assertThat(renderer.performanceMode).isEqualTo(HazePerformanceMode.Adaptive)
+    assertThat(renderer.performanceMode).isEqualTo(HazePerformanceMode.Default)
     assertThat(renderer.dirtyTracker).isEqualTo(Bitmask())
     drawInvalidations = 0
     localMode = HazePerformanceMode.Quality
     renderer.update(scope, inherited, HazeSampling.Default)
     assertThat(renderer.performanceMode).isEqualTo(HazePerformanceMode.Quality)
     assertThat(drawInvalidations).isEqualTo(1)
-    renderer.update(scope, BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Adaptive), HazeSampling.Default)
-    assertThat(renderer.performanceMode).isEqualTo(HazePerformanceMode.Adaptive)
+    renderer.update(scope, BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Balanced), HazeSampling.Default)
+    assertThat(renderer.performanceMode).isEqualTo(HazePerformanceMode.Balanced)
     assertThat(drawInvalidations).isEqualTo(2)
     localMode = HazePerformanceMode.Performance
-    renderer.update(scope, BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Adaptive), HazeSampling.Default)
+    renderer.update(scope, BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Balanced), HazeSampling.Default)
     assertThat(drawInvalidations).isEqualTo(2)
   }
 
@@ -86,7 +86,7 @@ class BlurRendererLifecycleTest {
     val renderer = HazeBlurFactory.createRenderer() as BlurVisualEffect
     renderer.update(
       BlurTestLifecycleScope,
-      BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Adaptive),
+      BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Default),
       HazeSampling.Default,
     )
 

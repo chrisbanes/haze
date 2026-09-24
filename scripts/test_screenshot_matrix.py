@@ -35,7 +35,7 @@ class ScreenshotMatrixReportTest(unittest.TestCase):
         expected_native = {
             f"capture[{scene}-backdrop-native-{mode}]"
             for scene in ["blur-credit-card", "glass-credit-card"]
-            for mode in ["quality", "balanced", "performance", "adaptive"]
+            for mode in ["quality", "balanced", "performance"]
         }
 
         self.assertEqual(expected_cases("android-native"), expected_native)

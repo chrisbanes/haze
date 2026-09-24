@@ -18,10 +18,10 @@ import kotlin.test.Test
 
 class SamplePerformanceSettingsTest : ContextTest() {
   @Test
-  fun newSettings_startAdaptiveWithMetricsDisabled() {
+  fun newSettings_startBalancedWithMetricsDisabled() {
     val settings = SamplePerformanceSettingsState()
 
-    assertThat(settings.performanceMode).isEqualTo(HazePerformanceMode.Adaptive)
+    assertThat(settings.performanceMode).isEqualTo(HazePerformanceMode.Balanced)
     assertThat(settings.metricsEnabled).isEqualTo(false)
   }
 
@@ -78,10 +78,10 @@ class SamplePerformanceSettingsTest : ContextTest() {
 
   @OptIn(ExperimentalTestApi::class)
   @Test
-  fun freshShell_exposesAdaptivePreset() = runComposeUiTest {
+  fun freshShell_exposesBalancedPreset() = runComposeUiTest {
     setContent { Samples(appTitle = "Haze Samples", samples = listOf(Sample.CreditCard)) }
 
     onNodeWithTag("sample_performance_settings").performClick()
-    onNodeWithTag("sample_performance_adaptive").assertIsSelected()
+    onNodeWithTag("sample_performance_balanced").assertIsSelected()
   }
 }

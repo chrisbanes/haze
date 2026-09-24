@@ -10,28 +10,35 @@ import kotlin.jvm.JvmInline
 /**
  * Rendering-fidelity policies used by built-in Haze effects.
  *
- * [Default] is [Adaptive]. [Quality] replaces the previous built-in full-resolution choice.
- * [Fixed] lets you choose a quality level instead of adjusting quality automatically.
+ * [Default] uses [Balanced]. [Quality] requests full-resolution input, while [Fixed] lets you
+ * choose a quality level between the [Performance] and [Quality] profiles.
  */
 public sealed interface HazePerformanceMode {
   /** Library-defined performance defaults. */
   public companion object {
-    /** Points to the library's current adaptive performance policy. */
-    public val Default: HazePerformanceMode = Adaptive
+    /** Offers a middle ground between visual detail and rendering cost. */
+    public val Balanced: HazePerformanceMode = Fixed(0.5f)
+
+    /** Points to the library's current default performance profile. */
+    public val Default: HazePerformanceMode = Balanced
 
     /** Requests the highest rendering fidelity. */
     public val Quality: HazePerformanceMode = Fixed(1f)
-
-    /** Offers a middle ground between visual detail and rendering cost. */
-    public val Balanced: HazePerformanceMode = Fixed(0.5f)
 
     /** Requests the lowest supported rendering fidelity. */
     public val Performance: HazePerformanceMode = Fixed(0f)
   }
 
   /**
-   * Requests the built-in effect's adaptive performance policy.
+   * Compatibility alias for the fixed [Balanced] profile.
+   *
+   * This object remains available so compiled callers continue to link. Built-in effects render it
+   * the same as [Default].
    */
+  @Deprecated(
+    message = "Adaptive performance selection is no longer supported. Use HazePerformanceMode.Default.",
+    replaceWith = ReplaceWith("HazePerformanceMode.Default"),
+  )
   public data object Adaptive : HazePerformanceMode
 
   /**

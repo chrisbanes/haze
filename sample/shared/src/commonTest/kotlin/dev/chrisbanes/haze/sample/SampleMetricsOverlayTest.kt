@@ -15,17 +15,17 @@ import kotlin.time.Duration.Companion.nanoseconds
 @OptIn(ExperimentalTestApi::class)
 class SampleMetricsOverlayTest : ContextTest() {
   @Test
-  fun overlay_labelsCadenceFallback() = runComposeUiTest {
+  fun overlay_labelsBalancedCadenceFallback() = runComposeUiTest {
     val metrics = SampleFrameMetrics(SampleFrameMetricsSource.FrameCadence)
 
     setContent {
       SampleMetricsOverlay(
-        performanceMode = HazePerformanceMode.Adaptive,
+        performanceMode = HazePerformanceMode.Default,
         metrics = metrics,
       )
     }
 
-    onNodeWithText("Frame cadence · Adaptive").assertIsDisplayed()
+    onNodeWithText("Frame cadence · Balanced").assertIsDisplayed()
   }
 
   @Test
@@ -56,7 +56,7 @@ class SampleMetricsOverlayTest : ContextTest() {
 
     setContent {
       SampleMetricsOverlay(
-        performanceMode = HazePerformanceMode.Adaptive,
+        performanceMode = HazePerformanceMode.Default,
         metrics = metrics,
       )
     }

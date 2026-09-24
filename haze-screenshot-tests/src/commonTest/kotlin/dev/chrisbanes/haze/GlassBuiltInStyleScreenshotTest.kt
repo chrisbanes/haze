@@ -118,7 +118,7 @@ class GlassBuiltInStyleScreenshotTest : ScreenshotTest() {
   }
 
   @Test
-  fun regular_matchesNativeReferenceGeometry() = captureNativeReference(GlassStyle.regular, HazePerformanceMode.Adaptive)
+  fun regular_matchesNativeReferenceGeometry() = captureNativeReference(GlassStyle.regular, HazePerformanceMode.Default)
 
   @Test
   fun regular_referenceAtFullQuality() = captureNativeReference(GlassStyle.regular, HazePerformanceMode.Quality)
@@ -127,10 +127,10 @@ class GlassBuiltInStyleScreenshotTest : ScreenshotTest() {
   fun regular_referenceAtMinimumQuality() = captureNativeReference(GlassStyle.regular, HazePerformanceMode.Performance)
 
   @Test
-  fun regular_diffusesPhotographicBackdrop() = captureNativeReference(GlassStyle.regular, HazePerformanceMode.Adaptive, photograph = true)
+  fun regular_diffusesPhotographicBackdrop() = captureNativeReference(GlassStyle.regular, HazePerformanceMode.Default, photograph = true)
 
   @Test
-  fun clear_matchesNativeReferenceGeometry() = captureNativeReference(GlassStyle.clear, HazePerformanceMode.Adaptive)
+  fun clear_matchesNativeReferenceGeometry() = captureNativeReference(GlassStyle.clear, HazePerformanceMode.Default)
 
   @Test
   fun clear_referenceAtFullQuality() = captureNativeReference(GlassStyle.clear, HazePerformanceMode.Quality)
@@ -139,12 +139,12 @@ class GlassBuiltInStyleScreenshotTest : ScreenshotTest() {
   fun clear_referenceAtMinimumQuality() = captureNativeReference(GlassStyle.clear, HazePerformanceMode.Performance)
 
   @Test
-  fun clear_preservesPhotographicBackdrop() = captureNativeReference(GlassStyle.clear, HazePerformanceMode.Adaptive, photograph = true)
+  fun clear_preservesPhotographicBackdrop() = captureNativeReference(GlassStyle.clear, HazePerformanceMode.Default, photograph = true)
 
   @Test
   fun regular_darkAppearanceOverStructuredBackdrop() = captureNativeReference(
     GlassStyle.regular,
-    HazePerformanceMode.Adaptive,
+    HazePerformanceMode.Default,
     appearance = GlassTestSystemAppearance.Dark,
     size = Size(420f, 800f),
     densityScale = 1f,
@@ -153,7 +153,7 @@ class GlassBuiltInStyleScreenshotTest : ScreenshotTest() {
   @Test
   fun clear_darkAppearanceOverPhotographicBackdrop() = captureNativeReference(
     GlassStyle.clear,
-    HazePerformanceMode.Adaptive,
+    HazePerformanceMode.Default,
     photograph = true,
     appearance = GlassTestSystemAppearance.Dark,
     size = Size(420f, 800f),

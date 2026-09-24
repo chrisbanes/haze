@@ -9,9 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -20,7 +18,6 @@ import androidx.compose.ui.unit.Dp
 import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.HazeEffectBackdrop
 import dev.chrisbanes.haze.HazeEffectDrawScope
-import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectLayoutScope
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRenderer
@@ -36,17 +33,7 @@ import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.PlatformRenderEffect
-import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
-
-@Poko
-private class BlurAdaptiveUpdateKey(
-  val inputSnapshot: HazeEffectInputSnapshot?,
-  val style: ResolvedHazeBlurStyle,
-  val materialSize: Size,
-  val layerSize: Size,
-  val layerOffset: Offset,
-)
 
 /** Node-owned Blur renderer configured by [BlurConfiguration]. */
 @Stable
@@ -81,7 +68,6 @@ internal class BlurVisualEffect :
           field.detach()
         }
         field = value
-        inputScalePolicy.reset()
       }
     }
 
@@ -98,7 +84,6 @@ internal class BlurVisualEffect :
       isAttached = false
       delegate.detach()
       clearRenderEffectCache()
-      inputScalePolicy.reset()
       lifecycleScope = null
     }
   }
@@ -127,19 +112,6 @@ internal class BlurVisualEffect :
   }
 
   override fun HazeEffectRuntimeDrawScope.prepareDraw(style: BlurConfiguration) {
-    if (performanceMode === HazePerformanceMode.Adaptive) {
-      inputScalePolicy.observeUpdate(
-        BlurAdaptiveUpdateKey(
-          inputSnapshot = inputSnapshot,
-          style = resolvedStyle,
-          materialSize = modifierSize,
-          layerSize = layerSize,
-          layerOffset = layerOffset,
-        ),
-      )
-    } else {
-      inputScalePolicy.reset()
-    }
     with(this as DrawScope) {
       selectDelegateForDraw(this@prepareDraw)
     }
@@ -234,15 +206,7 @@ internal class BlurVisualEffect :
   internal val blurredEdgeTreatment: BlurredEdgeTreatment
     get() = resolvedStyle.blurredEdgeTreatment
 
-  internal fun resolveInputScaleFactor(context: HazeEffectRuntimeDrawScope): Float {
-    val blurRadiusPx = with(context) { blurRadius.toPx() }
-    return inputScalePolicy.resolve(
-      performanceMode = performanceMode,
-      blurRadiusPx = blurRadiusPx,
-      layerSize = context.layerSize,
-      progressive = progressive != null,
-    )
-  }
+  internal fun resolveInputScaleFactor(): Float = inputScalePolicy.resolve(performanceMode)
 
   private var compositionLocalStyle: HazeBlurStyle = HazeBlurStyle
     set(value) {
@@ -267,7 +231,6 @@ internal class BlurVisualEffect :
       if (field != value) {
         HazeLogger.d(TAG) { "performanceMode changed. Current: $field. New: $value" }
         field = value
-        inputScalePolicy.reset()
       }
     }
 

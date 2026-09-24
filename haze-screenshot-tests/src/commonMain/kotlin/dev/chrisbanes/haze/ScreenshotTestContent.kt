@@ -290,7 +290,7 @@ internal fun StickyHeaderListSample(
           .hazeBlur(
             input = HazeInput.Sources(hazeState),
             style = visualEffect,
-            performanceMode = HazePerformanceMode.Adaptive,
+            performanceMode = HazePerformanceMode.Default,
           ),
       ) {
         Text(

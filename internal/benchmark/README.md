@@ -65,10 +65,10 @@ The controlled Blur and Glass calibration suites measure every built-in
 
 | Workload | Modes |
 | --- | --- |
-| Stable input | `Adaptive`, `Quality`, `Balanced`, `Performance` |
-| Continuously changing source input | `Adaptive`, `Quality`, `Balanced`, `Performance` |
+| Stable input | `Quality`, `Balanced`, `Performance` |
+| Continuously changing source input | `Quality`, `Balanced`, `Performance` |
 
-`BenchmarkTest` owns the eight Blur rows and `GlassProfilingBenchmark` owns the eight Glass rows.
+`BenchmarkTest` owns the six Blur rows and `GlassProfilingBenchmark` owns the six Glass rows.
 Each test selects a tagged scenario, waits for it to settle, then starts its fixed-duration run;
 the UI navigation is part of the measurement contract. Glass calibration rows record frame timing,
 frame overrun, and peak memory; Blur rows record frame timing and frame overrun.
@@ -77,8 +77,8 @@ frame overrun, and peak memory; Blur rows record frame timing and frame overrun.
 
 Controlled Glass calibration scenarios start from `GlassStyle.regular` with unmodified presentation
 defaults.
-`stable_adaptive`, `stable_quality`, `stable_balanced`, and `stable_performance` therefore differ
-only in `HazePerformanceMode`; they use the regular size-responsive optics, default shape, and all default
+`stable_quality`, `stable_balanced`, and `stable_performance` therefore differ only in
+`HazePerformanceMode`; they use the regular size-responsive optics, default shape, and all default
 lighting, color, and rendering values. `steady_full_3` and `steady_full_9` retain the historical
 controls at three and nine effects.
 
@@ -90,8 +90,8 @@ set Full chromatic aberration with a non-zero `0.3` strength. Other style groups
 defaults.
 
 The progressive, Full chroma, interaction-update, and source-update scenarios each have one- and
-nine-effect variants. `source_update_adaptive`, `source_update_quality`,
-`source_update_balanced`, and `source_update_performance` are the controlled changing-input
+nine-effect variants. `source_update_quality`, `source_update_balanced`, and
+`source_update_performance` are the controlled changing-input
 calibration rows. The default steady scenario additionally has a three-effect variant.
 
 ### Fixed-quality sweep
@@ -116,7 +116,7 @@ method. Do not use a combined method selector as an automation check.
 ```shell
 ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true \
-  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurStableAdaptive
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurStableBalanced
 ```
 
 ## Run comparable performance-mode measurements
@@ -126,7 +126,7 @@ They disable fixed-performance mode on exit, including command failure, Ctrl-C, 
 A killed shell or disconnected device can prevent cleanup; reconnect and disable the mode manually
 in that case. These examples assume it was off before the run.
 
-Run the sixteen controlled calibration methods individually after a successful dry run. A combined
+Run the twelve controlled calibration methods individually after a successful dry run. A combined
 comma-separated method selector can silently execute only the first method on some runner/tooling
 combinations, even though Gradle exits successfully. Verify each XML result, JSON method label,
 `repeatIterations`, and trace count, then preserve its output before starting the next method.
@@ -148,19 +148,15 @@ mkdir -p internal/benchmark/build/benchmark-results
 results_dir=$(mktemp -d internal/benchmark/build/benchmark-results/modes.XXXXXX)
 echo "Results: $results_dir"
 methods=(
-  "BenchmarkTest#blurStableAdaptive"
   "BenchmarkTest#blurStableQuality"
   "BenchmarkTest#blurStableBalanced"
   "BenchmarkTest#blurStablePerformance"
-  "BenchmarkTest#blurSourceUpdateAdaptive"
   "BenchmarkTest#blurSourceUpdateQuality"
   "BenchmarkTest#blurSourceUpdateBalanced"
   "BenchmarkTest#blurSourceUpdatePerformance"
-  "GlassProfilingBenchmark#stableAdaptive"
   "GlassProfilingBenchmark#stableQuality"
   "GlassProfilingBenchmark#stableBalanced"
   "GlassProfilingBenchmark#stablePerformance"
-  "GlassProfilingBenchmark#sourceUpdateAdaptive"
   "GlassProfilingBenchmark#sourceUpdateQuality"
   "GlassProfilingBenchmark#sourceUpdateBalanced"
   "GlassProfilingBenchmark#sourceUpdatePerformance"
@@ -245,7 +241,7 @@ trap 'exit 143' TERM
 adb shell cmd power set-fixed-performance-mode-enabled true
 ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.fullTracing.enable=true \
-  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateAdaptive
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateBalanced
 )
 ```
 

@@ -163,15 +163,6 @@ package dev.chrisbanes.haze {
     property public dev.chrisbanes.haze.HazeState state;
   }
 
-  @dev.chrisbanes.haze.InternalHazeApi public final class HazeInputUpdateCadence {
-    ctor public HazeInputUpdateCadence();
-    ctor public HazeInputUpdateCadence(optional kotlin.time.TimeSource timeSource);
-    method @InaccessibleFromKotlin public int getMultiplier();
-    method public boolean observeUpdate(Object? updateKey);
-    method public void reset();
-    property public int multiplier;
-  }
-
   public final class HazeKt {
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeSource(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
     method @KotlinOnly @androidx.compose.runtime.Composable public static dev.chrisbanes.haze.HazeState rememberHazeState();
@@ -190,8 +181,8 @@ package dev.chrisbanes.haze {
     field public static final dev.chrisbanes.haze.HazePerformanceMode.Companion Companion;
   }
 
-  public static final class HazePerformanceMode.Adaptive implements dev.chrisbanes.haze.HazePerformanceMode {
-    field public static final dev.chrisbanes.haze.HazePerformanceMode.Adaptive INSTANCE;
+  @Deprecated public static final class HazePerformanceMode.Adaptive implements dev.chrisbanes.haze.HazePerformanceMode {
+    field @Deprecated public static final dev.chrisbanes.haze.HazePerformanceMode.Adaptive INSTANCE;
   }
 
   public static final class HazePerformanceMode.Companion {

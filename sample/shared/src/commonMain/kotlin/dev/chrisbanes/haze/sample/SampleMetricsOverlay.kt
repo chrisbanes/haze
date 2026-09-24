@@ -102,6 +102,7 @@ internal fun SampleMetricsOverlay(
   }
 }
 
+@Suppress("DEPRECATION")
 private fun HazePerformanceMode.customFractionLabel(): String = when (this) {
   is HazePerformanceMode.Fixed -> " (${qualityFraction.formatFraction()})"
   HazePerformanceMode.Adaptive -> ""

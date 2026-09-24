@@ -31,7 +31,6 @@ internal object ScreenshotMatrix {
     ScreenshotMatrixMode.Quality,
     ScreenshotMatrixMode.Balanced,
     ScreenshotMatrixMode.Performance,
-    ScreenshotMatrixMode.Adaptive,
   )
 
   val androidSdkProfiles = listOf(
@@ -116,7 +115,6 @@ internal enum class ScreenshotMatrixMode(
   Quality("quality", HazePerformanceMode.Quality),
   Balanced("balanced", HazePerformanceMode.Balanced),
   Performance("performance", HazePerformanceMode.Performance),
-  Adaptive("adaptive", HazePerformanceMode.Adaptive),
 }
 
 internal sealed class ScreenshotMatrixProfile(val id: String) {

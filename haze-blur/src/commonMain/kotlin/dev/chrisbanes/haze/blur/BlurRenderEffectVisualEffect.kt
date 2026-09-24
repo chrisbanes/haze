@@ -42,7 +42,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
     if (blurVisualEffect.alpha == 0f) return
 
     // Calculate scaled layer size to detect size changes (needs re-allocation)
-    val scaleFactor = blurVisualEffect.resolveInputScaleFactor(context)
+    val scaleFactor = blurVisualEffect.resolveInputScaleFactor()
     val currentScaledSize = (context.layerSize * scaleFactor).roundToIntSize().let {
       Size(it.width.toFloat(), it.height.toFloat())
     }

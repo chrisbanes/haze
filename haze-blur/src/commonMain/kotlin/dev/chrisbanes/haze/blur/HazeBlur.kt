@@ -18,7 +18,7 @@ import dev.chrisbanes.haze.hazeEffect
  *
  * [style] is an opaque, shareable program. Resolution starts from [HazeBlurDefaults.style], then
  * replays [LocalHazeBlurStyle], then [style]. Later writes win. Each modifier node owns its Blur
- * runtime, delegate, retained output, adaptive-performance history, cache, and lifecycle resources.
+ * runtime, delegate, retained output, performance-mode configuration, cache, and lifecycle resources.
  *
  * @param input Source-backed content or this modifier's own content.
  * @param style Explicit Blur Style replayed after [LocalHazeBlurStyle].

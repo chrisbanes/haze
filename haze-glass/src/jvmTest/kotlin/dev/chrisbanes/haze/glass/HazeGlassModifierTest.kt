@@ -118,7 +118,7 @@ class HazeGlassModifierTest : ContextTest() {
     setContent {
       CompositionLocalProvider(LocalHazePerformanceMode provides localMode.value) {
         Box {
-          listOf(null, HazePerformanceMode.Adaptive).forEach { mode ->
+          listOf(null, HazePerformanceMode.Default).forEach { mode ->
             Spacer(
               Modifier.size(10.dp).hazeGlass(
                 factory = factory,
@@ -135,12 +135,12 @@ class HazeGlassModifierTest : ContextTest() {
     }
     waitForIdle()
     assertThat(factory.effects[0].performanceMode).isEqualTo(HazePerformanceMode.Performance)
-    assertThat(factory.effects[1].performanceMode).isEqualTo(HazePerformanceMode.Adaptive)
+    assertThat(factory.effects[1].performanceMode).isEqualTo(HazePerformanceMode.Default)
     runOnIdle { localMode.value = HazePerformanceMode.Quality }
     waitForIdle()
     assertThat(factory.effects).hasSize(2)
     assertThat(factory.effects[0].performanceMode).isEqualTo(HazePerformanceMode.Quality)
-    assertThat(factory.effects[1].performanceMode).isEqualTo(HazePerformanceMode.Adaptive)
+    assertThat(factory.effects[1].performanceMode).isEqualTo(HazePerformanceMode.Default)
   }
 
   @Test
@@ -566,7 +566,9 @@ class HazeGlassModifierTest : ContextTest() {
     val completeFinalOptics = GlassOptics(refractionStrength = 0.4f)
     val completeFinalStyle = explicitStyle.then { optics(completeFinalOptics) }
     val directFinalStyle = completeFinalStyle.then { optics(depth = 0.9f) }
-    val factory = RecordingGlassFactory()
+    val factory = RecordingGlassFactory { effect ->
+      effect.appearanceReader = { GlassSystemAppearance.Light }
+    }
 
     setContent {
       CompositionLocalProvider(LocalGlassStyle provides localStyle) {

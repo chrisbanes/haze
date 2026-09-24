@@ -17,14 +17,12 @@ class BlurProfilingScenarioTest {
   fun matrix_exposesEachNamedModeForStableAndSourceChangingWorkloads() {
     assertThat(BlurProfilingScenario.entries.map(BlurProfilingScenario::id)).isEqualTo(
       listOf(
-        "stable_adaptive",
         "stable_quality",
         "backdrop_stable_quality",
         "stable_balanced",
         "stable_performance",
         "progressive_quality",
         "progressive_balanced",
-        "source_update_adaptive",
         "source_update_quality",
         "backdrop_source_update_quality",
         "source_update_balanced",
@@ -38,7 +36,6 @@ class BlurProfilingScenarioTest {
     ).isEqualTo(
       mapOf(
         false to listOf(
-          HazePerformanceMode.Adaptive,
           HazePerformanceMode.Quality,
           HazePerformanceMode.Quality,
           HazePerformanceMode.Balanced,
@@ -47,7 +44,6 @@ class BlurProfilingScenarioTest {
           HazePerformanceMode.Balanced,
         ),
         true to listOf(
-          HazePerformanceMode.Adaptive,
           HazePerformanceMode.Quality,
           HazePerformanceMode.Quality,
           HazePerformanceMode.Balanced,

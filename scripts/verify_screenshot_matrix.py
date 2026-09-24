@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 SCENES = ["blur-credit-card", "glass-credit-card"]
-MODES = ["quality", "balanced", "performance", "adaptive"]
+MODES = ["quality", "balanced", "performance"]
 NATIVE_BACKDROP_PROOF = {
     "blurBackdrop_blursEarlierPixelsWithoutFallbackSources",
     "blurBackdrop_disabledFlag_leavesEarlierPixelsSharpWithoutFallbackSources",

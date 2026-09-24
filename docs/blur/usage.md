@@ -200,7 +200,7 @@ Performance mode and layer expansion are structural modifier policies, not Style
 Modifier.hazeBlur(
   input = HazeInput.Sources(hazeState),
   style = style,
-  performanceMode = HazePerformanceMode.Adaptive,
+  performanceMode = HazePerformanceMode.Default,
   expandLayerBounds = true,
 )
 ```

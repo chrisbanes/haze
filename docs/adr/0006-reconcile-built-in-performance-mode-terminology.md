@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted. The fixed-mode mapping is amended below on 2026-09-11.
+Accepted. The fixed-mode mapping was amended on 2026-09-11. The original adaptive-default decision
+was superseded by the amendment dated 2026-09-24.
 
 ## Date
 
@@ -19,7 +20,7 @@ The historical measurements remain useful evidence for the separate Blur and Gla
 policies. Rewriting their tables would silently alter a record of the conditions, API, and metrics
 that were accepted at the time.
 
-## Decision
+## Original decision (superseded 2026-09-24)
 
 Built-in Blur and Glass use `HazePerformanceMode`; custom effects retain `HazeSampling` as their
 generic input-sampling contract.
@@ -35,11 +36,11 @@ generic input-sampling contract.
   ADR-0005 remain unchanged. Changing them requires fresh paired physical-device evidence and
   representative visual review.
 
-The controlled Android Macrobenchmark suite runs every named built-in performance mode for both
-effects under stable and rapidly changing input workloads. It records frame-duration CPU and
-frame-overrun metrics; changing Glass workloads also record peak memory. Release documentation
-summarizes the device, build, refresh rate, iteration count, scenarios, and accepted metrics rather
-than committing raw traces or JSON reports.
+At adoption, the controlled Android Macrobenchmark suite ran every named built-in performance mode
+for both effects under stable and rapidly changing input workloads. It recorded frame-duration CPU
+and frame-overrun metrics; changing Glass workloads also recorded peak memory. Release
+documentation summarized the device, build, refresh rate, iteration count, scenarios, and accepted
+metrics rather than committing raw traces or JSON reports.
 
 ## Validation
 
@@ -58,7 +59,7 @@ performance guidance; raw Macrobenchmark artifacts remain local build outputs.
 - ADR-0004 and ADR-0005 retain their historical evidence and implementation-policy decisions, but
   their built-in public-API terminology is superseded by this ADR.
 
-## Amendment: continuous fixed quality (2026-09-11)
+## Amendment: continuous fixed quality (2026-09-11; superseded for built-in defaults below)
 
 `Fixed(qualityFraction)` now interpolates the total input pixel fraction between the supported
 minimum and full resolution, replacing the three-bucket fixed selector above. The minimum is an
@@ -76,6 +77,21 @@ The implementation preserves the existing minimum fixed resolution. It is not a 
 quality threshold. Fresh paired visual and performance testing remains necessary before changing
 Adaptive's default behavior. Earlier benchmark tables describe the old fixed profiles and must
 not be interpreted as measurements of this new mapping.
+
+## Amendment: fixed built-in defaults (2026-09-24)
+
+Built-in Blur and Glass now use the fixed `Balanced` profile through `HazePerformanceMode.Default`.
+`HazePerformanceMode.Adaptive` remains deprecated for binary compatibility and resolves exactly
+like `Default`. The cadence, workload thresholds, hysteresis, and adaptive tiers described above
+have been removed from built-in production rendering. `HazeInputUpdateCadence` has also been
+removed. `HazeSampling.Adaptive` remains unchanged for custom effects.
+
+The prior built-in adaptive policy could not be supported as a technically reliable cross-effect
+contract. The public compatibility object therefore no longer promises adaptation. ADR-0004 and
+ADR-0005 remain the historical rationale and evidence for the removed policies. Their captured
+measurements and the earlier benchmark tables are preserved as history; active benchmark scenarios
+and current guidance cover fixed modes only. This change does not add new physical-device
+benchmark evidence.
 
 ## References
 
