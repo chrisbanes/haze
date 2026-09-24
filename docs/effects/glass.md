@@ -35,6 +35,11 @@ Pass `containerColor` to use a different color. Supply a replacement Style throu
 when the theme changes. It deliberately leaves the tint unset unless you pass one, so it never
 derives a tint from `LocalContentColor`.
 
+Regular and Clear select their light or dark material response from the system appearance reported
+by the Compose host. Material 3 supplies the app theme's surface color and optional explicit tint;
+changing only `MaterialTheme` does not select a different built-in material response. Material 3 is
+not required for system appearance changes.
+
 Apply Material 3 to a built-in or custom Style with `material3()`:
 
 ```kotlin
@@ -65,9 +70,9 @@ CompositionLocalProvider(LocalGlassStyle provides GlassStyle.Material3()) {
 `GlassStyle.regular` is the default built-in Glass style. Its blur and depth adapt to the
 surface's shortest dimension. A 20dp edge refraction band preserves curved loops on compact
 controls, while larger surfaces fully diffuse the backdrop. Blur radii are 20/24/25dp and depth
-is 0.65/1/1 at shortest dimensions of 64/176/220dp. Its brighter tone is calibrated against
-native iOS 27 light appearance; it does not automatically reproduce native dark appearance or
-content-dependent tint adaptation.
+is 0.65/1/1 at shortest dimensions of 64/176/220dp. Its light tone was calibrated against
+native iOS 27 light appearance. In dark appearance, Regular selects a darker tone, edge,
+and lighting response while retaining its size-dependent diffusion.
 
 `GlassStyle.clear` is the alternative built-in style for surfaces that should keep more of the
 background visible. It uses the same shallow blur across surface sizes and an edge refraction
@@ -86,8 +91,10 @@ contrast. Dark backgrounds may already provide enough contrast; Haze does not ad
 
 iOS 27 refines native Liquid Glass diffusion and edge definition, and adds a system appearance
 slider, as described in the [WWDC26 platform updates](https://developer.apple.com/videos/play/wwdc2026/102/).
-Haze's built-in styles are calibrated against the default iOS 27 appearance; they do not
-automatically inherit that slider or native content-dependent adaptation. Check foreground
+Haze's built-in styles respond to the system appearance supplied by the Compose host, which may
+reflect an app or window override rather than the device's raw preference. An unknown host theme
+uses the light response. They do not inherit the iOS appearance slider or native content-dependent
+adaptation, and Haze does not promise iOS pixel parity. Check foreground
 contrast with your own content and configure Haze's styles and accessibility settings accordingly.
 
 ```kotlin
@@ -140,12 +147,15 @@ ambient multiplication remain explicitly deferred colour-model questions.
 
 ## GlassStyle
 
-`GlassStyle` is immutable and safe to share. Build a base Style, use `then` for variations, and
-provide a replacement Style through recomposition when the appearance changes. Values omitted by
-the replacement fall back to `LocalGlassStyle` and then the individual `GlassDefaults` values.
+`GlassStyle` is immutable and safe to share. Build a base Style and use `then` for variations.
+Regular and Clear select their material response from the host's current system appearance on each
+attached node, without replacing the Style. A Style captures caller-supplied values when it is
+constructed, so changes to those values require a replacement Style through recomposition.
 
-A Style captures its inputs when it is constructed. Changing captured state does not update an
-existing Style; construct and provide a replacement instead.
+Each node starts with the appearance-specific Regular response, then applies `LocalGlassStyle` and
+its explicit Style. An omitted value inherits a local write when present; otherwise material
+response values come from Regular. Presentation values use their accumulator defaults: mostly
+`GlassDefaults`, with `lightPosition` centered and interaction responses unset.
 
 ### Accessibility preferences
 
@@ -207,8 +217,11 @@ val movingLighting = GlassStyle {
 
 ## Style defaults
 
-`GlassStyle.regular` is the default built-in material response. Individual omitted values fall back
-to `GlassDefaults`. Use `LocalGlassStyle` to set a default for a subtree, and pass an explicit Style
+`GlassStyle.regular` is the default built-in material response, including when the modifier omits
+`style`. Both built-ins are immutable Style values whose response is selected at each attached node
+when system appearance changes. Omitted presentation values use the accumulator defaults described
+above.
+Use `LocalGlassStyle` to set a default for a subtree, and pass an explicit Style
 when one element needs to differ.
 
 ```kotlin

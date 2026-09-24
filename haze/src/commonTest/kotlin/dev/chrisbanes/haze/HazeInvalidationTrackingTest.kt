@@ -5,7 +5,9 @@ package dev.chrisbanes.haze
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -15,6 +17,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEmpty
@@ -157,6 +160,37 @@ class HazeInvalidationTrackingTest : ContextTest() {
       waitForIdle()
       assertHazeInvalidations("effect") {
         drawInvalidationsAtMost(1)
+      }
+    }
+  }
+
+  @Test
+  fun translatingSourceAndEffectTogether_doesNotInvalidateEffectDraw() = runComposeUiTest {
+    val hazeState = HazeState()
+    val offsetX = mutableIntStateOf(0)
+
+    withHazeInvalidationTracking {
+      setContent {
+        Box(Modifier.size(200.dp)) {
+          Box(Modifier.offset { IntOffset(offsetX.intValue, 0) }.size(100.dp)) {
+            Spacer(Modifier.hazeSource(hazeState).size(100.dp))
+            Spacer(
+              Modifier
+                .hazeInvalidationTag("effect")
+                .testHazeEffect(hazeState)
+                .size(50.dp),
+            )
+          }
+        }
+      }
+      waitForIdle()
+
+      clearHazeInvalidations()
+      offsetX.intValue = 20
+      waitForIdle()
+
+      assertHazeInvalidations("effect") {
+        drawInvalidationsExactly(0)
       }
     }
   }

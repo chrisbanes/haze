@@ -49,7 +49,7 @@ mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.37.0" }
 androidx-benchmark-macro = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark" }
 androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "androidx-camera" }
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "androidx-camera" }
-androidx-core = "androidx.core:core-ktx:1.19.0"
+androidx-core = "androidx.core:core-ktx:1.19.1"
 androidx-activity = { module = "androidx.activity:activity", version.ref = "androidx-activity" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
 androidx-collection = { module = "androidx.collection:collection", version.ref = "androidx-collection" }
@@ -71,7 +71,7 @@ androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-mani
 
 androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation-compose" }
 
-androidx-tracing = "androidx.tracing:tracing-ktx:2.0.2"
+androidx-tracing = "androidx.tracing:tracing-ktx:2.0.3"
 
 compose-material-icons = "org.jetbrains.compose.material:material-icons-core:1.7.3"
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose-multiplatform" }

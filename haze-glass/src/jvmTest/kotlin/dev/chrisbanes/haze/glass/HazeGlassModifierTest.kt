@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
@@ -67,6 +68,48 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
 class HazeGlassModifierTest : ContextTest() {
+
+  @Test
+  fun builtInStyles_followAppearanceOnAttachedNodesWithoutStyleReplacement() = runComposeUiTest {
+    val appearance = mutableStateOf(GlassSystemAppearance.Light)
+    val factory = RecordingGlassFactory { effect ->
+      effect.appearanceReader = { appearance.value }
+    }
+    val styles = listOf(GlassStyle, GlassStyle.regular, GlassStyle.clear)
+
+    setContent {
+      Column {
+        styles.forEach { style ->
+          Spacer(
+            Modifier.size(40.dp).hazeGlass(
+              factory = factory,
+              input = HazeInput.Content,
+              style = style,
+              performanceMode = null,
+              expandLayerBounds = true,
+              interactionSource = null,
+            ),
+          )
+        }
+      }
+    }
+    waitForIdle()
+    val effects = factory.effects.map { it.delegate }
+    assertThat(effects).hasSize(3)
+    val light = effects.map { it.whitePoint }
+
+    appearance.value = GlassSystemAppearance.Dark
+    waitForIdle()
+    assertThat(factory.effects.map { it.delegate }).isEqualTo(effects)
+    val dark = effects.map { it.whitePoint }
+    assertThat(dark[0]).isEqualTo(dark[1])
+    assertThat(dark[0]).isNotEqualTo(light[0])
+    assertThat(dark[2]).isNotEqualTo(light[2])
+
+    appearance.value = GlassSystemAppearance.Light
+    waitForIdle()
+    assertThat(effects.map { it.whitePoint }).isEqualTo(light)
+  }
 
   @Test
   fun performanceMode_inheritsLocalUpdatesAndPreservesExplicitOverride() = runComposeUiTest {

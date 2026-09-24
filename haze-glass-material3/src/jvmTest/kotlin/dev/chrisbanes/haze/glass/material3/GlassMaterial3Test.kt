@@ -1,6 +1,9 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(androidx.compose.ui.InternalComposeUiApi::class)
+@file:Suppress("DEPRECATION")
+
 package dev.chrisbanes.haze.glass.material3
 
 import androidx.compose.foundation.layout.Box
@@ -13,7 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
@@ -65,12 +70,14 @@ class GlassMaterial3Test {
   }
 
   @Test
-  fun material3_capturesThemeSurfaceAndRecomposesWithReplacementStyle() = runComposeUiTest {
+  fun material3_updatesThemeSurfaceWithConstantSystemAppearance() = runComposeUiTest {
     val colorScheme = mutableStateOf(lightColorScheme(surface = Color.Red))
 
     setContent {
-      MaterialTheme(colorScheme = colorScheme.value) {
-        GlassMaterial3Content(GlassStyle.Material3())
+      CompositionLocalProvider(LocalSystemTheme provides SystemTheme.Light) {
+        MaterialTheme(colorScheme = colorScheme.value) {
+          GlassMaterial3Content(GlassStyle.regular.material3())
+        }
       }
     }
 
@@ -80,6 +87,43 @@ class GlassMaterial3Test {
     waitForIdle()
 
     assertThat(onNodeWithTag("material").captureToImage().toPixelMap()[20, 20]).isEqualTo(Color.Blue)
+  }
+
+  @Test
+  fun material3_keepsSurfaceAndTintWithChangingSystemAppearance() = runComposeUiTest {
+    val appearance = mutableStateOf(SystemTheme.Light)
+    val surface = Color.Red
+    val tint = Color.Blue
+
+    setContent {
+      CompositionLocalProvider(LocalSystemTheme provides appearance.value) {
+        MaterialTheme(colorScheme = lightColorScheme(surface = surface)) {
+          Column {
+            GlassMaterial3Content(GlassStyle.regular.material3(), "surface-control")
+            GlassMaterial3Content(GlassStyle.regular.material3(tint = tint), "tint-control")
+          }
+        }
+      }
+    }
+
+    val surfaceControl = onNodeWithTag("surface-control").captureToImage().toPixelMap()[20, 20]
+    val tintControl = onNodeWithTag("tint-control").captureToImage().toPixelMap()[20, 20]
+    assertThat(surfaceControl).isEqualTo(surface)
+    assertThat(tintControl).isEqualTo(tint)
+
+    appearance.value = SystemTheme.Dark
+    waitForIdle()
+    assertThat(onNodeWithTag("surface-control").captureToImage().toPixelMap()[20, 20])
+      .isEqualTo(surfaceControl)
+    assertThat(onNodeWithTag("tint-control").captureToImage().toPixelMap()[20, 20])
+      .isEqualTo(tintControl)
+
+    appearance.value = SystemTheme.Light
+    waitForIdle()
+    assertThat(onNodeWithTag("surface-control").captureToImage().toPixelMap()[20, 20])
+      .isEqualTo(surfaceControl)
+    assertThat(onNodeWithTag("tint-control").captureToImage().toPixelMap()[20, 20])
+      .isEqualTo(tintControl)
   }
 
   @Test
