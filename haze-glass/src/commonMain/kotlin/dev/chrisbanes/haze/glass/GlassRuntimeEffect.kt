@@ -453,8 +453,7 @@ internal class GlassRuntimeEffect() :
   override fun HazeEffectRuntimeDrawScope.prepareDraw(style: GlassNodeConfiguration) {
     val context = this
     trace(GlassTraceSection.Prepare) {
-      val hostDecisionChanged = observeAdaptiveHostDraw(context)
-      val workloadWeightChanged = if (performanceMode === HazePerformanceMode.Adaptive) {
+      val updateKey = if (performanceMode === HazePerformanceMode.Adaptive) {
         GlassAdaptiveUpdateKey(
           inputSnapshot = context.inputSnapshot,
           dirtyTrackerVersion = dirtyTrackerVersion,
@@ -462,13 +461,18 @@ internal class GlassRuntimeEffect() :
           layerSize = context.layerSize,
           layerOffset = context.layerOffset,
           interactionState = interactionRenderState(context.modifierSize),
-        ).let { key ->
-          lastAdaptiveUpdateKey = key
-          inputScalePolicy.observeUpdate(key)
-        }
+        )
       } else {
-        false
+        null
       }
+      val hostDecisionChanged = observeAdaptiveHostDraw(
+        context,
+        naturalUpdate = updateKey != null && updateKey != lastAdaptiveUpdateKey,
+      )
+      val workloadWeightChanged = updateKey?.let { key ->
+        lastAdaptiveUpdateKey = key
+        inputScalePolicy.observeUpdate(key)
+      } ?: false
       if (!hostDecisionChanged && !workloadWeightChanged && canReusePreparedDraw(context)) return@trace
       val previousBudget = preparedRenderBudget
       trace(GlassTraceSection.PrepareBudget) {
@@ -493,7 +497,10 @@ internal class GlassRuntimeEffect() :
     }
   }
 
-  private fun observeAdaptiveHostDraw(context: HazeEffectRuntimeDrawScope): Boolean {
+  private fun observeAdaptiveHostDraw(
+    context: HazeEffectRuntimeDrawScope,
+    naturalUpdate: Boolean,
+  ): Boolean {
     val host = if (performanceMode === HazePerformanceMode.Adaptive) {
       adaptiveHostBinding.host
     } else {
@@ -503,7 +510,7 @@ internal class GlassRuntimeEffect() :
     if (hostChanged) observedInputSnapshot = null
     val decision = host?.decision
     val snapshot = context.inputSnapshot.takeIf { context.hasDrawableInput }
-    if (host != null && snapshot != null && snapshot != observedInputSnapshot) {
+    if (host != null && snapshot != null && (hostChanged || naturalUpdate)) {
       attachedContext?.let(adaptiveHostBinding::renewDemandLease)
     }
     observedInputSnapshot = snapshot

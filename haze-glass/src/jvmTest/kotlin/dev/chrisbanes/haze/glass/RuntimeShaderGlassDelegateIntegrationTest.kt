@@ -105,6 +105,32 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun interactionOnlyDrawRenewsAdaptiveDemandWithoutNewSource() = runComposeUiTest {
+    val effect = runtimeInteractiveEffect()
+    setContent {
+      GlassAdaptiveHost {
+        RuntimeGlassTestContent(
+          effect,
+          tag = "glass",
+          performanceMode = HazePerformanceMode.Adaptive,
+        )
+      }
+    }
+    waitForIdle()
+    val runtime = runtime(effect)
+    val host = checkNotNull(runtime.adaptiveHostForTest)
+    val inputSnapshot = checkNotNull(runtime.observedInputSnapshotForTest)
+    waitUntil(timeoutMillis = 5_000) { !host.hasActiveDemand }
+
+    runOnIdle { runtime.setPressedForTest(Offset(60f, 60f)) }
+    waitUntil(timeoutMillis = 5_000) { host.hasActiveDemand }
+    waitForIdle()
+
+    assertThat(runtime.observedInputSnapshotForTest).isEqualTo(inputSnapshot)
+    assertThat(runtime.currentInteractionSignals.pressed).isTrue()
+  }
+
+  @Test
   fun sourceOnlyRecordAppliesChangedUsableTierOnceWithoutSourceFeedback() = runComposeUiTest {
     val hazeState = HazeState()
     val color = mutableStateOf(Color.Red)
