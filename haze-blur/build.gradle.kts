@@ -43,6 +43,10 @@ kotlin {
   explicitApi()
 
   sourceSets {
+    val javaTest = create("javaTest") {
+      dependsOn(commonTest.get())
+    }
+
     commonMain {
       dependencies {
         api(projects.haze)
@@ -76,6 +80,7 @@ kotlin {
     }
 
     named("androidHostTest") {
+      dependsOn(javaTest)
       dependencies {
         implementation(libs.androidx.activity)
         implementation(libs.androidx.compose.ui.test.junit4)
@@ -97,6 +102,7 @@ kotlin {
     }
 
     jvmTest {
+      dependsOn(javaTest)
       dependencies {
         implementation(compose.desktop.currentOs)
       }
