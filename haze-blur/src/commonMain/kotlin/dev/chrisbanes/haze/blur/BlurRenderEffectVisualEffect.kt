@@ -79,11 +79,17 @@ internal class RenderEffectBlurVisualEffectDelegate(
       backgroundColor = blurVisualEffect.backgroundColor,
     )
 
-    // Allocate the scaled content layer when its capture geometry changes.
-    if (scaledContentLayer == null || scaledContentLayer!!.isReleased || lastScaledLayerSize != currentScaledSize) {
+    // The capture layer is allocated once and kept: a new capture geometry re-records the same
+    // layer at its new size rather than replacing it. Replacing it showed an effect that samples
+    // this one -- a glass panel whose content is this blur -- an empty input for a frame, and the
+    // geometry changes on every frame this effect moves against a source outside it.
+    if (scaledContentLayer == null || scaledContentLayer!!.isReleased) {
       graphicsContext = context.requireGraphicsContext()
-      scaledContentLayer?.let { graphicsContext!!.releaseGraphicsLayer(it) }
       scaledContentLayer = graphicsContext!!.createGraphicsLayer()
+      lastScaledLayerSize = currentScaledSize
+      retainedOutputAvailable = false
+      inputCaptureKey = null
+    } else if (lastScaledLayerSize != currentScaledSize) {
       lastScaledLayerSize = currentScaledSize
       retainedOutputAvailable = false
       inputCaptureKey = null
@@ -145,7 +151,10 @@ internal class RenderEffectBlurVisualEffectDelegate(
   }
 
   override fun clearRetainedOutput() {
-    releaseRetainedResources()
+    // Invalidates the output without releasing the layer it is recorded in, which is kept for the
+    // reason given where it is allocated. Releasing is for detach and memory pressure.
+    retainedOutputAvailable = false
+    inputCaptureKey = null
   }
 
   override fun detach() {

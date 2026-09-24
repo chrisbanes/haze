@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.unit.Density
@@ -32,6 +33,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotSameInstanceAs
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
@@ -230,19 +232,36 @@ class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
   }
 
   @Test
-  fun clearRetainedOutput_releasesLayerMetadataAndAvailability() {
+  fun clearRetainedOutput_invalidatesOutputButKeepsTheCaptureLayer() {
     val delegate = RenderEffectBlurVisualEffectDelegate(
       HazeBlurFactory.createRenderer() as BlurVisualEffect,
     )
-    delegate.setPrivateField("retainedOutputAvailable", true)
-    delegate.setPrivateField("lastScaledLayerSize", Size(10f, 10f))
+    val context = RecordingDrawContext()
+    context.render { with(delegate) { draw(context) } }
+    val layer = delegate.getPrivateField<GraphicsLayer?>("scaledContentLayer")
 
     delegate.clearRetainedOutput()
 
-    assertThat(delegate.getPrivateField<Boolean>("retainedOutputAvailable")).isFalse()
-    assertThat(delegate.getPrivateField<Size?>("lastScaledLayerSize")).isEqualTo(null)
-    assertThat(delegate.getPrivateField<Any?>("scaledContentLayer")).isEqualTo(null)
-    assertThat(delegate.getPrivateField<Any?>("graphicsContext")).isEqualTo(null)
+    assertThat(delegate.canDrawRetainedOutput()).isFalse()
+    assertThat(delegate.getPrivateField<GraphicsLayer?>("scaledContentLayer")).isSameInstanceAs(layer)
+    assertThat(layer!!.isReleased).isFalse()
+  }
+
+  @Test
+  fun captureSizeChange_recordsIntoTheSameLayer() {
+    val delegate = RenderEffectBlurVisualEffectDelegate(
+      HazeBlurFactory.createRenderer() as BlurVisualEffect,
+    )
+    val context = RecordingDrawContext()
+    context.render { with(delegate) { draw(context) } }
+    val layer = delegate.getPrivateField<GraphicsLayer?>("scaledContentLayer")
+
+    context.layerSize = Size(11f, 10f)
+    context.render { with(delegate) { draw(context) } }
+
+    assertThat(context.inputCaptureCount).isEqualTo(2)
+    assertThat(delegate.getPrivateField<GraphicsLayer?>("scaledContentLayer")).isSameInstanceAs(layer)
+    assertThat(layer!!.isReleased).isFalse()
   }
 
   @Test
