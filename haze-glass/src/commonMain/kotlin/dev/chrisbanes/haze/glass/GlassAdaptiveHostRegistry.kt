@@ -15,8 +15,9 @@ import kotlin.time.TimeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 internal interface GlassAdaptiveTimingSource {
   val identity: Any
@@ -195,6 +196,8 @@ internal class GlassAdaptiveHostRegistration(
   private var foreground = true
   internal val isDemanding: Boolean get() = activeDemand && foreground
   private var demandLeaseJob: Job? = null
+  internal val demandLeaseJobForTest: Job? get() = demandLeaseJob
+  private var demandLeaseRenewals: Channel<Unit>? = null
   internal var timingSource: GlassAdaptiveTimingSource? = null
     private set
   private var lifecycle: Lifecycle? = null
@@ -213,8 +216,7 @@ internal class GlassAdaptiveHostRegistration(
   private fun updateForeground(value: Boolean) {
     if (foreground == value) return
     if (!value && demandLeaseJob != null) {
-      demandLeaseJob?.cancel()
-      demandLeaseJob = null
+      cancelDemandLease()
       setActiveDemand(false)
     }
     foreground = value
@@ -225,18 +227,25 @@ internal class GlassAdaptiveHostRegistration(
   fun renewDemandLease(nodeScope: CoroutineScope) {
     if (released || !foreground) return
     val dispatcher = nodeScope.coroutineContext[ContinuationInterceptor] ?: return
-    demandLeaseJob?.cancel()
-    val owner = SupervisorJob()
-    demandLeaseJob = owner
-    setActiveDemand(true)
-    CoroutineScope(owner + dispatcher).launch {
-      delay(350)
-      if (demandLeaseJob === owner) {
-        demandLeaseJob = null
-        setActiveDemand(false)
-        owner.cancel()
+    if (demandLeaseJob == null) {
+      val owner = SupervisorJob()
+      val renewals = Channel<Unit>(Channel.CONFLATED)
+      demandLeaseJob = owner
+      demandLeaseRenewals = renewals
+      setActiveDemand(true)
+      CoroutineScope(owner + dispatcher).launch {
+        while (withTimeoutOrNull(350) { renewals.receive() } != null) {
+          // Each renewal restarts the one active expiry timer.
+        }
+        if (demandLeaseJob === owner) {
+          demandLeaseJob = null
+          demandLeaseRenewals = null
+          setActiveDemand(false)
+          owner.cancel()
+        }
       }
     }
+    demandLeaseRenewals?.trySend(Unit)
   }
 
   fun bindTimingSource(value: GlassAdaptiveTimingSource?) {
@@ -257,8 +266,7 @@ internal class GlassAdaptiveHostRegistration(
   fun setActiveDemand(active: Boolean) {
     if (released || activeDemand == active) return
     if (!active) {
-      demandLeaseJob?.cancel()
-      demandLeaseJob = null
+      cancelDemandLease()
     }
     activeDemand = active
     if (foreground) host.changeActiveDemand(if (active) 1 else -1)
@@ -266,14 +274,19 @@ internal class GlassAdaptiveHostRegistration(
 
   fun release() {
     if (released) return
-    demandLeaseJob?.cancel()
-    demandLeaseJob = null
+    cancelDemandLease()
     setActiveDemand(false)
     lifecycle?.removeObserver(lifecycleObserver)
     lifecycle = null
     timingSource = null
     released = true
     registry.release(this)
+  }
+
+  private fun cancelDemandLease() {
+    demandLeaseJob?.cancel()
+    demandLeaseJob = null
+    demandLeaseRenewals = null
   }
 }
 

@@ -18,6 +18,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEmpty
+import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
@@ -53,6 +54,7 @@ class HazeInvalidationTrackingTest : ContextTest() {
       waitForIdle()
       onNodeWithTag("root").captureToImage()
       val before = sourceDraws.copyOf()
+      val recordsBefore = factory.renderer.selectedSourceRecords
       clearHazeInvalidations()
 
       sourceColor.value = Color.Blue
@@ -62,6 +64,7 @@ class HazeInvalidationTrackingTest : ContextTest() {
       repeat(2) { sourceIndex ->
         assertThat(sourceDraws[sourceIndex]).isGreaterThan(before[sourceIndex])
       }
+      assertThat(factory.renderer.selectedSourceRecords).isEqualTo(recordsBefore + 1)
       assertHazeInvalidations("effect") { drawInvalidationsExactly(1) }
     }
   }
@@ -196,19 +199,27 @@ private class InvalidatingRendererFactory : HazeEffectFactory<Boolean> {
 }
 
 private class SourceRecordInvalidatingRendererFactory : HazeEffectFactory<Unit> {
-  override fun createRenderer(): HazeEffectRenderer<Unit> = SourceRecordInvalidatingRenderer()
+  val renderer = SourceRecordInvalidatingRenderer()
+
+  override fun createRenderer(): HazeEffectRenderer<Unit> = renderer
 }
 
 @OptIn(InternalHazeApi::class)
 private class SourceRecordInvalidatingRenderer :
   HazeEffectRenderer<Unit>,
   HazeEffectRendererLifecycle<Unit> {
+  var selectedSourceRecords: Int = 0
+    private set
+
   override val observesSelectedSourceRecords: Boolean get() = true
 
   override fun onSelectedSourceRecorded(
     scope: HazeEffectLifecycleScope,
     inputSnapshot: HazeEffectInputSnapshot?,
-  ): Boolean = true
+  ): Boolean {
+    selectedSourceRecords++
+    return true
+  }
 
   override fun HazeEffectDrawScope.draw(style: Unit) = Unit
 }

@@ -283,6 +283,24 @@ class GlassAdaptiveHostRegistryTest {
   }
 
   @Test
+  fun demandLease_reusesJobAcrossSourceAndDrawUpdates() = runTest {
+    val registration = GlassAdaptiveHostRegistry().register(Any())
+    registration.renewDemandLease(this)
+    val leaseJob = checkNotNull(registration.demandLeaseJobForTest)
+
+    delay(100)
+    repeat(20) {
+      registration.renewDemandLease(this)
+      assertThat(registration.demandLeaseJobForTest).isSameInstanceAs(leaseJob)
+    }
+    delay(300)
+    assertThat(registration.host.hasActiveDemand).isTrue()
+    delay(51)
+    assertThat(registration.host.hasActiveDemand).isFalse()
+    registration.release()
+  }
+
+  @Test
   fun leasedDemand_doesNotTransferToAnotherHostOnRebind() = runTest {
     val registration = GlassAdaptiveHostRegistry().register(Any())
     val source = FakeGlassTimingSource()

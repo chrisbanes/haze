@@ -107,7 +107,10 @@ class HazeSourceCaptureDemandTest {
     }
     waitForIdle()
     val renderer = factory.renderer
+    val beforeRebind = renderer.selectedSourceRecords
     selectedState.value = secondState
+    waitForIdle()
+    waitUntil(timeoutMillis = 5_000) { renderer.selectedSourceRecords > beforeRebind }
     waitForIdle()
     val afterRebind = renderer.selectedSourceRecords
 

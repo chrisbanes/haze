@@ -133,10 +133,7 @@ internal class HazeEffectNode(
       return
     }
     val renderer = typedEffectRenderer as? HazeEffectRendererLifecycle<Any?> ?: return
-    if (!renderer.observesSelectedSourceRecords ||
-      !renderer.onSelectedSourceRecorded(typedLifecycleScope, inputSnapshot()) ||
-      sourceRecordJob?.isActive == true
-    ) {
+    if (!renderer.observesSelectedSourceRecords || sourceRecordJob?.isActive == true) {
       return
     }
     val generation = sourceRecordGeneration
@@ -146,7 +143,9 @@ internal class HazeEffectNode(
       if (!isAttached || generation != sourceRecordGeneration || selectedRecordAreas.isEmpty()) {
         return@launch
       }
-      invalidateVisualEffectDraw()
+      if (renderer.onSelectedSourceRecorded(typedLifecycleScope, inputSnapshot())) {
+        invalidateVisualEffectDraw()
+      }
     }
   }
 
