@@ -79,6 +79,11 @@ Share application infrastructure, fixtures, or abstractions that are themselves 
 
 Read the relevant guide before starting that work:
 
+- Whenever editing `CHANGELOG.md`, write every pull request reference as an explicit Markdown link,
+  such as [#1332](https://github.com/chrisbanes/haze/pull/1332); do not rely on GitHub auto-linking.
+  For pull requests by non-maintainers, include the contributor's name or username linked to their
+  GitHub profile, and verify the author and maintainer status before attributing them.
+
 | Task | Guidance |
 | --- | --- |
 | Android physical-device benchmarks | [Runbook](internal/benchmark/README.md) |
