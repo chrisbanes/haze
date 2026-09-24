@@ -110,6 +110,29 @@ class GlassAdaptiveHostRegistryTest {
   }
 
   @Test
+  fun wrapperDisposalReleasesEveryVerifiedTimingHostAndFallback() {
+    val registry = GlassAdaptiveHostRegistry()
+    val wrapper = GlassAdaptiveHostToken()
+    val firstWindow = Any()
+    val first = registry.register(GlassAdaptiveHostKey(wrapper, firstWindow))
+    val sibling = registry.register(GlassAdaptiveHostKey(wrapper, firstWindow))
+    val dialog = registry.register(GlassAdaptiveHostKey(wrapper, Any()))
+    val fallback = registry.register(wrapper)
+
+    assertThat(sibling.host).isSameInstanceAs(first.host)
+    assertThat(registry.hostCount).isEqualTo(3)
+    first.setActiveDemand(true)
+    registry.disposeHost(wrapper)
+
+    assertThat(registry.hostCount).isEqualTo(0)
+    assertThat(first.isReleased).isTrue()
+    assertThat(sibling.isReleased).isTrue()
+    assertThat(dialog.isReleased).isTrue()
+    assertThat(fallback.isReleased).isTrue()
+    assertThat(first.host.hasActiveDemand).isFalse()
+  }
+
+  @Test
   fun timingObserver_isSharedAndStopsAtIdleOrBackground() {
     val registry = GlassAdaptiveHostRegistry()
     val owner = HostTestLifecycleOwner()

@@ -62,11 +62,6 @@ internal class GlassAdaptiveHostBinding(
       null
     }
     val platformKey = platformGlassAdaptiveHost(scope)
-    val key = when {
-      token?.isDisposed == true -> null
-      token != null -> token
-      else -> platformKey
-    }
     val lifecycle = try {
       scope.currentValueOf(LocalLifecycleOwner).lifecycle
     } catch (_: IllegalStateException) {
@@ -74,9 +69,23 @@ internal class GlassAdaptiveHostBinding(
     } catch (_: ClassCastException) {
       null
     }
-    if (key == null || lifecycle == null) {
+    if (token?.isDisposed == true || lifecycle == null) {
       detach()
       return
+    }
+    val timingHostKey = platformKey ?: token
+    if (timingHostKey == null) {
+      detach()
+      return
+    }
+    val timingSource = platformGlassAdaptiveTimingSource(scope, timingHostKey)
+    val key = if (token != null && timingSource != null) {
+      val currentKey = registration?.host?.key as? GlassAdaptiveHostKey
+      currentKey?.takeIf {
+        it.wrapper === token && it.timingIdentity === timingSource.identity
+      } ?: GlassAdaptiveHostKey(token, timingSource.identity)
+    } else {
+      token ?: timingHostKey
     }
     val existing = registration
     if (existing == null || existing.isReleased) {
@@ -85,7 +94,7 @@ internal class GlassAdaptiveHostBinding(
       existing.rebind(key)
       existing.bindLifecycle(lifecycle)
     }
-    registration?.bindTimingSource(platformGlassAdaptiveTimingSource(scope, platformKey ?: key))
+    registration?.bindTimingSource(timingSource)
   }
 
   fun detach() {

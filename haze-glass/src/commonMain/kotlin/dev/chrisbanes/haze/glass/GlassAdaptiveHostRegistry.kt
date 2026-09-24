@@ -42,7 +42,7 @@ internal class GlassAdaptiveHostRegistry {
   }
 
   private fun hostFor(key: Any): GlassAdaptiveHost =
-    hosts.firstOrNull { it.key === key }
+    hosts.firstOrNull { sameHostKey(it.key, key) }
       ?: GlassAdaptiveHost(key).also(hosts::add)
 
   internal fun rebind(registration: GlassAdaptiveHostRegistration, key: Any) {
@@ -63,9 +63,23 @@ internal class GlassAdaptiveHostRegistry {
   }
 
   fun disposeHost(key: Any) {
-    hosts.firstOrNull { it.key === key }?.registrations?.toList()?.forEach { it.release() }
+    hosts.filter { host ->
+      sameHostKey(host.key, key) ||
+        key is GlassAdaptiveHostToken && (host.key as? GlassAdaptiveHostKey)?.wrapper === key
+    }.flatMap { it.registrations.toList() }.forEach { it.release() }
   }
 }
+
+/** Keeps a wrapper's independently timed rendering hosts separate without retaining dead windows. */
+internal class GlassAdaptiveHostKey(
+  val wrapper: GlassAdaptiveHostToken,
+  val timingIdentity: Any,
+)
+
+private fun sameHostKey(first: Any, second: Any): Boolean =
+  first === second ||
+    first is GlassAdaptiveHostKey && second is GlassAdaptiveHostKey &&
+    first.wrapper === second.wrapper && first.timingIdentity === second.timingIdentity
 
 internal class GlassAdaptiveHost(
   val key: Any,
@@ -255,7 +269,7 @@ internal class GlassAdaptiveHostRegistration(
   }
 
   fun rebind(key: Any) {
-    if (released || host.key === key) return
+    if (released || sameHostKey(host.key, key)) return
     val wasActive = activeDemand
     val wasLeased = demandLeaseJob != null
     setActiveDemand(false)

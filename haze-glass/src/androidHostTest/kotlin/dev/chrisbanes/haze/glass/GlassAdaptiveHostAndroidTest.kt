@@ -21,6 +21,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
@@ -72,32 +73,56 @@ class GlassAdaptiveHostAndroidTest {
     runAndroidComposeUiTest<ComponentActivity> {
       lateinit var activityView: View
       lateinit var dialogView: View
+      lateinit var activityToken: GlassAdaptiveHostToken
+      lateinit var dialogToken: GlassAdaptiveHostToken
       setContent {
-        val root = LocalView.current
-        SideEffect { activityView = root }
-        Dialog(onDismissRequest = {}) {
-          val dialogRoot = LocalView.current
-          SideEffect { dialogView = dialogRoot }
+        GlassAdaptiveHost {
+          val root = LocalView.current
+          val token = checkNotNull(LocalGlassAdaptiveHostToken.current)
+          SideEffect {
+            activityView = root
+            activityToken = token
+          }
+          Dialog(onDismissRequest = {}) {
+            val dialogRoot = LocalView.current
+            val nestedToken = checkNotNull(LocalGlassAdaptiveHostToken.current)
+            SideEffect {
+              dialogView = dialogRoot
+              dialogToken = nestedToken
+            }
+          }
         }
       }
       waitForIdle()
 
       val registry = GlassAdaptiveHostRegistry()
       val activityBinding = GlassAdaptiveHostBinding(registry)
+      val activitySibling = GlassAdaptiveHostBinding(registry)
       val dialogBinding = GlassAdaptiveHostBinding(registry)
-      val activityToken = GlassAdaptiveHostToken()
-      val dialogToken = GlassAdaptiveHostToken()
+      assertThat(dialogToken).isSameInstanceAs(activityToken)
       activityBinding.update(AndroidHostScope(activityView, activityToken, activity), adaptive = true)
-      dialogBinding.update(AndroidHostScope(dialogView, dialogToken, activity), adaptive = true)
+      activitySibling.update(AndroidHostScope(activityView, activityToken, activity), adaptive = true)
+      dialogBinding.update(AndroidHostScope(dialogView, activityToken, activity), adaptive = true)
 
-      assertThat(activityBinding.host?.key).isSameInstanceAs(activityToken)
-      assertThat(dialogBinding.host?.key).isSameInstanceAs(dialogToken)
-      assertThat(activityBinding.host?.registrations?.single()?.timingSource?.identity)
+      val activityHost = checkNotNull(activityBinding.host)
+      val dialogHost = checkNotNull(dialogBinding.host)
+      assertThat(activitySibling.host).isSameInstanceAs(activityHost)
+      assertThat(dialogHost).isNotSameInstanceAs(activityHost)
+      assertThat(registry.hostCount).isEqualTo(2)
+      assertThat(activityHost.registrations.first().timingSource?.identity)
         .isSameInstanceAs(verifiedGlassWindow(activityView))
-      assertThat(dialogBinding.host?.registrations?.single()?.timingSource?.identity)
+      assertThat(dialogHost.registrations.single().timingSource?.identity)
         .isSameInstanceAs(verifiedGlassWindow(dialogView))
+      activityHost.recordSample(GlassFrameHealthSample(1L, 100L, 16L, 17L), 100L)
+      assertThat(activityHost.decision.version).isGreaterThan(0)
+      assertThat(dialogHost.decision.version).isEqualTo(0)
+
+      activitySibling.update(AndroidHostScope(dialogView, activityToken, activity), adaptive = true)
+      assertThat(activitySibling.host).isSameInstanceAs(dialogHost)
+      assertThat(activityHost.subscriberCount).isEqualTo(1)
 
       activityBinding.detach()
+      activitySibling.detach()
       dialogBinding.detach()
       assertThat(registry.hostCount).isEqualTo(0)
     }
