@@ -3,10 +3,12 @@
 
 package dev.chrisbanes.haze.glass
 
+import dev.chrisbanes.haze.Poko
 import kotlin.math.sqrt
 
 /** A host-level frame sample. The controller does not interpret missing reports as missed frames. */
-internal data class GlassFrameHealthSample(
+@Poko
+internal class GlassFrameHealthSample(
   val sequence: Long,
   val timestampNanos: Long,
   val durationNanos: Long,

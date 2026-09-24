@@ -17,6 +17,8 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runAndroidComposeUiTest
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
@@ -62,6 +64,42 @@ class GlassAdaptiveHostAndroidTest {
       assertThat(platformGlassAdaptiveTimingSource(AndroidHostScope(activityView), activityView.windowToken)).isNotNull()
       assertThat(platformGlassAdaptiveTimingSource(AndroidHostScope(dialogView), dialogView.windowToken)).isNotNull()
       assertThat(platformGlassAdaptiveTimingSource(AndroidHostScope(dialogView), activityView.windowToken)).isNull()
+    }
+
+  @OptIn(ExperimentalTestApi::class)
+  @Test
+  fun explicitHost_usesVerifiedWindowForActivityAndDialogTiming() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      lateinit var activityView: View
+      lateinit var dialogView: View
+      setContent {
+        val root = LocalView.current
+        SideEffect { activityView = root }
+        Dialog(onDismissRequest = {}) {
+          val dialogRoot = LocalView.current
+          SideEffect { dialogView = dialogRoot }
+        }
+      }
+      waitForIdle()
+
+      val registry = GlassAdaptiveHostRegistry()
+      val activityBinding = GlassAdaptiveHostBinding(registry)
+      val dialogBinding = GlassAdaptiveHostBinding(registry)
+      val activityToken = GlassAdaptiveHostToken()
+      val dialogToken = GlassAdaptiveHostToken()
+      activityBinding.update(AndroidHostScope(activityView, activityToken, activity), adaptive = true)
+      dialogBinding.update(AndroidHostScope(dialogView, dialogToken, activity), adaptive = true)
+
+      assertThat(activityBinding.host?.key).isSameInstanceAs(activityToken)
+      assertThat(dialogBinding.host?.key).isSameInstanceAs(dialogToken)
+      assertThat(activityBinding.host?.registrations?.single()?.timingSource?.identity)
+        .isSameInstanceAs(verifiedGlassWindow(activityView))
+      assertThat(dialogBinding.host?.registrations?.single()?.timingSource?.identity)
+        .isSameInstanceAs(verifiedGlassWindow(dialogView))
+
+      activityBinding.detach()
+      dialogBinding.detach()
+      assertThat(registry.hostCount).isEqualTo(0)
     }
 
   @Test
@@ -160,6 +198,8 @@ class GlassAdaptiveHostAndroidTest {
 
 private class AndroidHostScope(
   var view: View,
+  private val token: GlassAdaptiveHostToken? = null,
+  private val owner: LifecycleOwner? = null,
 ) : HazeEffectLifecycleScope {
   override val modifierSize: Size = Size(10f, 10f)
   override val coroutineScope: CoroutineScope = CoroutineScope(EmptyCoroutineContext)
@@ -170,6 +210,8 @@ private class AndroidHostScope(
   @Suppress("UNCHECKED_CAST")
   override fun <T> currentValueOf(local: CompositionLocal<T>): T = when (local) {
     LocalView -> view
+    LocalGlassAdaptiveHostToken -> token
+    LocalLifecycleOwner -> owner
     else -> error("Unexpected local")
   } as T
 

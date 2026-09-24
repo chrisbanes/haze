@@ -61,10 +61,11 @@ internal class GlassAdaptiveHostBinding(
     } catch (_: ClassCastException) {
       null
     }
+    val platformKey = platformGlassAdaptiveHost(scope)
     val key = when {
       token?.isDisposed == true -> null
       token != null -> token
-      else -> platformGlassAdaptiveHost(scope)
+      else -> platformKey
     }
     val lifecycle = try {
       scope.currentValueOf(LocalLifecycleOwner).lifecycle
@@ -84,7 +85,7 @@ internal class GlassAdaptiveHostBinding(
       existing.rebind(key)
       existing.bindLifecycle(lifecycle)
     }
-    registration?.bindTimingSource(platformGlassAdaptiveTimingSource(scope, key))
+    registration?.bindTimingSource(platformGlassAdaptiveTimingSource(scope, platformKey ?: key))
   }
 
   fun detach() {
