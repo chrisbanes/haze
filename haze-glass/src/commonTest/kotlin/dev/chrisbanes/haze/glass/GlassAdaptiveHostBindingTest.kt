@@ -98,12 +98,8 @@ class GlassAdaptiveHostBindingTest {
     val owner = BindingLifecycleOwner()
     owner.start()
     val scope = BindingScope(GlassAdaptiveHostToken(), owner)
-    val first = GlassRuntimeEffect().apply {
-      appearanceReader = { GlassSystemAppearance.Light }
-    }
-    val second = GlassRuntimeEffect().apply {
-      appearanceReader = { GlassSystemAppearance.Light }
-    }
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
 
     first.attach(scope)
     second.attach(scope)

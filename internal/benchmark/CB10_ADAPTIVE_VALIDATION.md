@@ -3,12 +3,13 @@
 ## Verdict
 
 Plan r2 and the approved r3 Skiko probe have not cleared the default-release gate. Keep the
-initial thresholds and deterministic fallback. The original Android and browser attempts below
-are historical diagnostics; the newer integrated and matched-corner evidence is qualified here.
-The 2026-09-24 final-head source diagnostic and allocation profiles below narrow two physical
-device gaps, but do not establish the remaining release gates.
+initial thresholds. The fallback now uses a fixed middle tier. The original Android and browser
+attempts below are historical diagnostics; the newer integrated and matched-corner evidence is
+qualified here. The 2026-09-24 source diagnostic and allocation profiles at the prior PR head
+narrowed two physical-device gaps, but do not validate the changed fallback or establish the
+remaining release gates.
 
-## Final-head physical allocation investigation — 2026-09-24
+## Prior-head physical allocation investigation — 2026-09-24
 
 At PR head `648a74cc`, a release-like one-iteration `sourceUpdateAdaptiveDiagnostic` run on a
 plugged-in Pixel 8a (Android 17, 60 Hz, thermal status 0) passed the source-workload gate. Its
@@ -48,7 +49,7 @@ with SHA-256 values respectively `44bb793a1708eea559820e64273b74c1492349463692f5
 `1202a376d36e03118791eada6a5d5d4d9990d078a03d27c8b6231de6f559bc64`.
 No allocation-parity claim is supported; the repeatable excess remains a release blocker.
 
-## Final-head browser and macOS smoke checks — 2026-09-24
+## Prior-head browser and macOS smoke checks — 2026-09-24
 
 `./gradlew :sample:web:wasmJsBrowserDistribution --no-scan` and
 `./gradlew :sample:macos:linkDebugExecutableMacosArm64 --no-scan` passed at `648a74cc`.
@@ -108,7 +109,7 @@ retained texture memory, and traced macOS post-resume source capture remain open
 The web pairs cover one selected source phase per DPR; their screenshots span 114–208 ms and
 source version is unavailable. The small landmark shifts prevent pixel-equivalence or a
 release-wide corner-quality claim. Completed-draw markers and RAF intervals do not measure GPU
-completion. Neither browser retained-memory data nor final-head physical allocation/GPU-memory
+completion. Neither browser retained-memory data nor current-head physical allocation/GPU-memory
 parity is available. Moving the Playground lens also changes seven retained layer heights by
 one pixel at a time, legitimately resetting stable-workload comparisons. These limits keep the
 Adaptive default unvalidated for release.
@@ -231,7 +232,7 @@ window close/reopen. Desktop's `LocalAwtWindow`, iOS's `LocalUIView`, and the we
 sample-root wrapper are present, but real desktop/iOS lifecycle behavior remains unobserved.
 
 When no host identity, lifecycle, verified Android `Window`, supported timing source, or recent
-valid sample is available, Adaptive uses the existing retained-workload fallback. Android does
+valid sample is available, Adaptive uses the fixed middle-tier fallback. Android does
 not substitute Skiko cadence for missing `FrameMetrics`. Skiko cadence on desktop, iOS, web,
 and native macOS is lower-confidence callback timing, not rendered-frame completion. Fixed modes
 remain exact; no threshold or renderer-topology change was made in this slice.

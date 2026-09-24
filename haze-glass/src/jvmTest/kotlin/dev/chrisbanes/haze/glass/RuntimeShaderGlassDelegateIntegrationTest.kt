@@ -601,7 +601,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
-  fun adaptiveSampling_selectsTierFromPreparedRetainedWorkload() = runComposeUiTest {
+  fun adaptiveSampling_usesMiddleTierAcrossDifferentLayerSizesWithoutHostTiming() = runComposeUiTest {
     val smallEffect = activeDetailEffect()
     setContent {
       RuntimeGlassTestContent(
@@ -627,7 +627,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
     assertThat(
       (runtime(largeEffect).preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor,
-    ).isEqualTo(0.5f)
+    ).isEqualTo(GlassInputScalePolicy.BALANCED_SCALE)
   }
 
   @Test

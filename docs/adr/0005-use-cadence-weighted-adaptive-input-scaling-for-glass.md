@@ -1,22 +1,22 @@
-# ADR-0005: Use cadence-weighted adaptive input scaling for Glass
+# ADR-0005: Use host feedback for adaptive input scaling in Glass
 
 ## Status
 
-Accepted workload fallback. The host-feedback amendment is approved for implementation under
+Accepted fixed middle-tier fallback. The host-feedback amendment is approved for implementation under
 CB-10 plan r2, with a reversible Skiko probe experiment approved under r3. Default-release
 validation is open.
 
 ## Date
 
-2026-08-03; amended 2026-09-23
+2026-08-03; amended 2026-09-24
 
 ## Context
 
-Glass retains platform-specific rendering layers. Their cost depends on both the pixels in the
-active layer graph and how often that graph consumes new input. Raw material area alone cannot
-distinguish a reused result from a frequently updated one. The original deterministic workload
-policy addressed this without a platform timing source, but it cannot probe full resolution when
-a fast host has headroom or respond to measured sustained frame pressure shared by several nodes.
+Glass retains platform-specific rendering layers. Their cost depends on the active layer graph,
+input updates, and platform execution. The original retained-pixel and update-cadence score
+estimated that cost without host timing, but it was not a reliable measure of frame pressure.
+It could neither probe full resolution when a fast host has headroom nor respond to measured
+sustained frame pressure shared by several nodes.
 
 Frame evidence has different meanings across targets. Android `FrameMetrics` reports whole-window
 rendering duration; Skiko frame-clock intervals report callback cadence, not GPU completion. Neither
@@ -25,7 +25,7 @@ be interpreted as spare capacity.
 
 ## Decision
 
-`HazeSampling.Default` points to `HazeSampling.Adaptive`. Active Adaptive Glass nodes registered
+`HazePerformanceMode.Default` points to `HazePerformanceMode.Adaptive`. Active Adaptive Glass nodes registered
 to the same verified rendering host share one demand-driven controller and one timing observer.
 The controller starts at linear input scale `sqrt(0.5)`, can step down to `0.5` after sustained
 misses, and can probe upward to `1.0` after a longer healthy interval when its timing source has
@@ -59,14 +59,12 @@ Accepted probes remain under comparison while demand continues. A stable 16.7 ms
 represent healthy 60 Hz or an unrelated half-rate 120 Hz stream; a learned 60 Hz cap is not
 independent refresh evidence, and unchanged cadence does not prove GPU headroom. Cadence slower
 than 60 Hz is treated conservatively. A missing identity, lifecycle, timing
-source, or recent valid sample selects the deterministic workload fallback; hosts are never
+source, or recent valid sample selects the fixed middle-tier fallback; hosts are never
 merged under a global unknown key.
 
-The fallback builds the actual retained-layer plan at `sqrt(0.5)`, including expanded samples
-and active blur, depth, refraction, rim, interaction, and group-composite layers. Distinct input
-updates no more than 100 ms apart multiply retained pixels by up to three. A score of at least
-1,500,000 selects `0.5`; it stays there until the score falls below 1,312,500. Otherwise it uses
-`sqrt(0.5)`. This fallback has no full-resolution tier.
+The fallback always requests linear input scale `sqrt(0.5)` (half the input pixels). It does not
+estimate load from retained pixels or update cadence. Retained-layer plans still enforce hard
+resource limits and invalidate a Skiko relative probe when the layer graph changes.
 
 `FullResolution` remains exactly `1.0`. `Fixed(qualityFraction)` remains authoritative at
 `sqrt(0.25 + 0.75 * qualityFraction)`, so public fixed `Balanced` is `sqrt(0.625)`, distinct from
@@ -100,7 +98,7 @@ host-feedback Adaptive as the default based on this evidence.**
 - Verified Android timing can respond to whole-window pressure. Skiko cadence is a weaker signal;
   its relative probe is reversible, and an unchanged callback interval is not proof of GPU
   headroom or of the display's true refresh target.
-- A missing or expired timing source returns to the bounded workload policy without changing
+- A missing or expired timing source returns to the fixed middle tier without changing
   Fixed-mode output.
 - Threshold changes need a valid active Glass workload, paired physical measurements, frame and
   memory traces, and representative corner captures. An unsafe host binding or harmful churn

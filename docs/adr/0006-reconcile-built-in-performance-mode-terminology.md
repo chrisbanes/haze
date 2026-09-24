@@ -69,8 +69,11 @@ whole-pixel rounding still apply.
 
 `Quality = Fixed(1f)` and `Performance = Fixed(0f)` retain their previous scales.
 `Balanced = Fixed(0.5f)` requests the midpoint between minimum and full-resolution pixel counts.
-Adaptive retains its previous scales, workload thresholds, cadence handling, and hysteresis;
-its tiers are resolved independently from fixed quality.
+At the time of this amendment, Adaptive retained its previous scales, workload thresholds,
+cadence handling, and hysteresis; its tiers were resolved independently from fixed quality.
+
+The 2026-09-24 amendment to ADR-0005 removes the retained-pixel workload thresholds and uses a
+fixed middle tier whenever host timing is unavailable. The fixed quality mapping above is unchanged.
 
 The implementation preserves the existing minimum fixed resolution. It is not a newly measured visual
 quality threshold. Fresh paired visual and performance testing remains necessary before changing
@@ -81,4 +84,4 @@ not be interpreted as measurements of this new mapping.
 
 - [Issue #1206: Calibrate performance modes](https://github.com/chrisbanes/haze/issues/1206)
 - [ADR-0004: Use quality-gated adaptive input scaling for blur](0004-use-quality-gated-adaptive-input-scaling-for-blur.md)
-- [ADR-0005: Use cadence-weighted adaptive input scaling for Glass](0005-use-cadence-weighted-adaptive-input-scaling-for-glass.md)
+- [ADR-0005: Use host feedback for adaptive input scaling in Glass](0005-use-cadence-weighted-adaptive-input-scaling-for-glass.md)

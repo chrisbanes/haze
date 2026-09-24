@@ -199,12 +199,10 @@ internal class GlassRuntimeEffect() :
     adaptiveHostBinding.renewDemandLease(scope)
     val previousKey = lastAdaptiveUpdateKey ?: return false
     if (inputSnapshot != null) {
-      val key = previousKey.withInputSnapshot(inputSnapshot)
-      inputScalePolicy.observeUpdate(key)
-      lastAdaptiveUpdateKey = key
+      lastAdaptiveUpdateKey = previousKey.withInputSnapshot(inputSnapshot)
     }
     val requestedScale = adaptiveHostBinding.host?.decision?.timingTier?.scale
-      ?: inputScalePolicy.resolve(HazePerformanceMode.Adaptive, lastBalancedPlan)
+      ?: inputScalePolicy.resolve(HazePerformanceMode.Adaptive)
     return preparedRender != null && requestedScale != resolvedInputScale
   }
 
@@ -267,7 +265,6 @@ internal class GlassRuntimeEffect() :
       if (field != value) {
         HazeLogger.d(TAG) { "performanceMode changed. Current: $field. New: $value" }
         field = value
-        inputScalePolicy.reset()
         lastAdaptiveUpdateKey = null
         lastBalancedPlan = null
         markDirty(GlassDirtyFields.PerformanceMode)
@@ -383,7 +380,6 @@ internal class GlassRuntimeEffect() :
     }
     runtimeShaderIncompatible = false
     needsDelegateSelection = true
-    inputScalePolicy.reset()
     observedAdaptiveHost = null
     observedHostDecisionVersion = 0
     observedInputSnapshot = null
@@ -469,11 +465,8 @@ internal class GlassRuntimeEffect() :
         context,
         naturalUpdate = updateKey != null && updateKey != lastAdaptiveUpdateKey,
       )
-      val workloadWeightChanged = updateKey?.let { key ->
-        lastAdaptiveUpdateKey = key
-        inputScalePolicy.observeUpdate(key)
-      } ?: false
-      if (!hostDecisionChanged && !workloadWeightChanged && canReusePreparedDraw(context)) return@trace
+      lastAdaptiveUpdateKey = updateKey
+      if (!hostDecisionChanged && canReusePreparedDraw(context)) return@trace
       val previousBudget = preparedRenderBudget
       trace(GlassTraceSection.PrepareBudget) {
         prepareRenderBudget(context, runtimeShaderSupported = isRuntimeShaderGlassSupported())
@@ -941,10 +934,7 @@ internal class GlassRuntimeEffect() :
     lastBalancedPlan = balancedPlan
     val requestedScale = requestedScaleOverride ?: timingInputScale?.takeIf {
       performanceMode === HazePerformanceMode.Adaptive
-    } ?: inputScalePolicy.resolve(
-      performanceMode = performanceMode,
-      balancedPlan = balancedPlan,
-    )
+    } ?: inputScalePolicy.resolve(performanceMode)
     if (requestedScale != resolvedInputScale) {
       HazeLogger.d(TAG) {
         "Glass input scale changed from $resolvedInputScale to $requestedScale"
