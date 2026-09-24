@@ -20,13 +20,8 @@ Each section records its aggregation method and measurement conditions.
 
 ## Performance modes
 
-These measurements are historical. The `Adaptive` column records the built-in implementation at
-the time of the 2.0 calibration; `Adaptive` is now deprecated and behaves like the fixed
-`Balanced` profile. Do not use this column to predict current `Default` behavior. The active
-benchmark scenarios cover fixed modes only.
-
-This comparison measured `Adaptive`, `Quality`, `Balanced`, and `Performance` with stable
-and continuously changing source input. It used a Pixel 8a running Android 17 (full SDK 37.2)
+This page reports the fixed-mode results for `Quality`, `Balanced`, and `Performance` with
+stable and continuously changing source input. It used a Pixel 8a running Android 17 (full SDK 37.2)
 at 60 Hz, with fixed-performance mode enabled and normal Android CPU scheduling.
 
 Values are **P90 CPU frame duration / P90 frame overrun**, in milliseconds. Each value is the
@@ -36,17 +31,17 @@ sample.
 
 ### Blur
 
-| Workload | Adaptive | Quality | Balanced | Performance |
-| --- | ---: | ---: | ---: | ---: |
-| Stable source | 4.90 / -6.90 | 4.60 / -6.85 | 4.67 / -6.93 | 4.58 / -7.02 |
-| Continuously changing source | 5.88 / -5.21 | 5.49 / -4.91 | 5.35 / -5.50 | 5.47 / -5.70 |
+| Workload | Quality | Balanced | Performance |
+| --- | ---: | ---: | ---: |
+| Stable source | 4.60 / -6.85 | 4.67 / -6.93 | 4.58 / -7.02 |
+| Continuously changing source | 5.49 / -4.91 | 5.35 / -5.50 | 5.47 / -5.70 |
 
 ### Glass
 
-| Workload | Adaptive | Quality | Balanced | Performance |
-| --- | ---: | ---: | ---: | ---: |
-| Stable source | 4.07 / -9.88 | 4.53 / -9.80 | 4.10 / -10.13 | 3.93 / -10.07 |
-| Continuously changing source | 4.67 / -8.91 | 4.45 / -6.95 | 4.27 / -8.08 | 4.08 / -8.99 |
+| Workload | Quality | Balanced | Performance |
+| --- | ---: | ---: | ---: |
+| Stable source | 4.53 / -9.80 | 4.10 / -10.13 | 3.93 / -10.07 |
+| Continuously changing source | 4.45 / -6.95 | 4.27 / -8.08 | 4.08 / -8.99 |
 
 All configurations had spare time at P90. For changing-input Glass, `Balanced` left about
 8.1 ms of deadline margin, compared with 7.0 ms for `Quality`. `Performance` used roughly
@@ -69,10 +64,11 @@ for the stable source, and 100,467 KB versus 110,223 KB for the changing source.
     after cooling, the reverse pass started at 28.6°C. Automatic brightness remained enabled
     with the setting value unchanged at 10. Glass kept the other `GlassDefaults` values unchanged.
 
-    The 16 methods ran in both orders, producing 256 measured iterations and 256 Perfetto traces.
-    The first pass ran Blur stable, Blur changing, Glass stable, then Glass changing; each group
-    ran Adaptive, Quality, Balanced, then Performance. The second pass reversed the complete
-    method order.
+    The original calibration ran 16 methods in both orders, producing 256 measured iterations
+    and 256 Perfetto traces. The first pass ran Blur stable, Blur changing, Glass stable, then
+    Glass changing; each group ran the then-configured adaptive input-scale policy, Quality,
+    Balanced, then Performance. This page retains the fixed-mode results only. The second pass
+    reversed the complete method order.
 
     Every method was dry-run and measured through its own selector. JSON method identity, XML
     success, iteration count, and trace count were verified before continuing. The first reverse

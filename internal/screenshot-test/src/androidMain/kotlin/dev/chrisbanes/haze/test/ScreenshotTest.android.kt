@@ -3,13 +3,16 @@
 
 package dev.chrisbanes.haze.test
 
+import android.content.res.Configuration
 import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -61,7 +64,14 @@ private fun createScreenshotUiTest(rule: AndroidComposeTestRule<*, *>) =
     override val supportsRuntimeBlur: Boolean = Build.VERSION.SDK_INT >= 31
 
     override fun setContent(content: @Composable () -> Unit) {
-      rule.setContent(content)
+      rule.setContent {
+        // Keep Glass snapshots independent from the host OS appearance. Nested providers still win.
+        val configuration = Configuration(LocalConfiguration.current).apply {
+          uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
+            Configuration.UI_MODE_NIGHT_NO
+        }
+        CompositionLocalProvider(LocalConfiguration provides configuration, content = content)
+      }
       rule.waitForIdle()
     }
 
