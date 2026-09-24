@@ -967,25 +967,25 @@ internal class HazeEffectNode(
 
     if (dirtyTracker.any(LayerBoundsDirtyFields)) {
       if (state != null && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
+        var left = Float.POSITIVE_INFINITY
+        var top = Float.POSITIVE_INFINITY
+        var right = Float.NEGATIVE_INFINITY
+        var bottom = Float.NEGATIVE_INFINITY
+        for (area in areas) {
+          val bounds = areaBoundsInEffect(area) ?: continue
+          left = min(left, bounds.left)
+          top = min(top, bounds.top)
+          right = max(right, bounds.right)
+          bottom = max(bottom, bounds.bottom)
+        }
         val clippedLayerBounds = Rect(Offset.Zero, size)
           .letIf(shouldExpandLayer()) {
             calculateEffectLayerBounds(it, requireDensity())
           }
           .letIf(shouldClipToAreaBounds()) { rect ->
-            var left = Float.POSITIVE_INFINITY
-            var top = Float.POSITIVE_INFINITY
-            var right = Float.NEGATIVE_INFINITY
-            var bottom = Float.NEGATIVE_INFINITY
-            for (area in areas) {
-              val bounds = areaBoundsInEffect(area) ?: continue
-              left = min(left, bounds.left)
-              top = min(top, bounds.top)
-              right = max(right, bounds.right)
-              bottom = max(bottom, bounds.bottom)
-            }
             rect.intersect(left, top, right, bottom)
           }
-          .intersect(rootBoundsInEffect())
+          .intersect(rootBoundsInEffect().extendedToAreas(left, top, right, bottom))
 
         _layerSize = Size(
           width = clippedLayerBounds.width.coerceAtLeast(0f),
@@ -1465,6 +1465,22 @@ private class HazeEffectInputSnapshotEntry(
 
 private fun Matrix.hasSameValues(other: Matrix): Boolean = values.contentEquals(other.values)
 
+/**
+ * Returns these root bounds with each side that the source bounds reach or cross moved out to the
+ * source edge, and each side the sources stop short of left open. This clips like the root bounds
+ * while the sources fill the root, but stays unchanged while an effect and its sources move
+ * together across the root edge.
+ */
+private fun Rect.extendedToAreas(left: Float, top: Float, right: Float, bottom: Float): Rect {
+  if (left > right || top > bottom) return this
+  return Rect(
+    left = if (left <= this.left) left else Float.NEGATIVE_INFINITY,
+    top = if (top <= this.top) top else Float.NEGATIVE_INFINITY,
+    right = if (right >= this.right) right else Float.POSITIVE_INFINITY,
+    bottom = if (bottom >= this.bottom) bottom else Float.POSITIVE_INFINITY,
+  )
+}
+
 private val HazeArea.observedLayoutCoordinates: LayoutCoordinates?
   get() {
     // Observe callbacks whose origin and size are unchanged but whose local transform changed.
@@ -1516,7 +1532,6 @@ internal object DirtyFields {
 
   const val InvalidateFlags: Int =
     Size or
-      Position or
       AreaTransforms or
       LayerSize or
       LayerOffset or
