@@ -156,8 +156,8 @@ internal class HazeEffectNode(
         }
       }
     }.also {
-      it.start()
       sourceSelectionSnapshotObserver = it
+      it.start()
     }
   }
 
