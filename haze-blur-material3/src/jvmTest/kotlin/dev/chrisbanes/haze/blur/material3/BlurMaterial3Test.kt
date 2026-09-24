@@ -129,4 +129,5 @@ private fun assertColorChannelsCloseTo(actual: Color, expected: Color) {
   assertThat(actual.red).isCloseTo(expected.red, 0.01f)
   assertThat(actual.green).isCloseTo(expected.green, 0.01f)
   assertThat(actual.blue).isCloseTo(expected.blue, 0.01f)
+  assertThat(actual.alpha).isCloseTo(expected.alpha, 0.05f)
 }
