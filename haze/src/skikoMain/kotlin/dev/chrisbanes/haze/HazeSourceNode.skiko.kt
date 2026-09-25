@@ -4,3 +4,5 @@
 package dev.chrisbanes.haze
 
 internal actual fun HazeSourceNode.clearHazeAreaLayerOnStop() = Unit
+
+internal actual fun shouldRefreshHazeSourceLayerOnPlacement(): Boolean = false
