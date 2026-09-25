@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +47,7 @@ class RenderScriptScrollInstrumentationTest {
   @SdkSuppress(minSdkVersion = 26, maxSdkVersion = 30)
   fun scrollingSource_refreshesRenderScriptBlur() {
     val hazeState = HazeState()
+    val listState = LazyListState()
     val activity = composeTestRule.activity
     composeTestRule.setContent {
       Box(Modifier.fillMaxSize()) {
@@ -54,6 +56,7 @@ class RenderScriptScrollInstrumentationTest {
             .fillMaxSize()
             .hazeSource(hazeState)
             .testTag("scroll_source"),
+          state = listState,
         ) {
           items(20) { index ->
             Box(
@@ -64,6 +67,8 @@ class RenderScriptScrollInstrumentationTest {
             )
           }
         }
+        // Hide the source itself so the sampled colors must come from the blur output.
+        Box(Modifier.fillMaxSize().background(Color.Black))
         Box(
           Modifier
             .align(Alignment.Center)
@@ -94,15 +99,7 @@ class RenderScriptScrollInstrumentationTest {
 
     composeTestRule.onNodeWithTag("scroll_source").performScrollToIndex(1)
     composeTestRule.waitForIdle()
-
-    val sourceScreenshot = activity.copyWindow()
-    val sourcePixel = sourceScreenshot.getPixel(
-      sourceScreenshot.width / 2,
-      sourceScreenshot.height / 4,
-    )
-    sourceScreenshot.recycle()
-    assertThat(AndroidColor.red(sourcePixel), "source after scroll pixel=#${Integer.toHexString(sourcePixel)}")
-      .isGreaterThan(220)
+    assertThat(listState.firstVisibleItemIndex, "source after scroll").isEqualTo(1)
 
     val scrolledPixel = activity.awaitCenterPixel {
       AndroidColor.red(it) > 220 && AndroidColor.green(it) > 200
@@ -114,6 +111,7 @@ class RenderScriptScrollInstrumentationTest {
 
     composeTestRule.onNodeWithTag("scroll_source").performScrollToIndex(0)
     composeTestRule.waitForIdle()
+    assertThat(listState.firstVisibleItemIndex, "source after scrolling back").isEqualTo(0)
     val returnedPixel = activity.awaitCenterPixel {
       AndroidColor.blue(it) > 180 && AndroidColor.red(it) < 80
     }
