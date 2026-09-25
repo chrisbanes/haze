@@ -205,6 +205,10 @@ internal class BlurVisualEffect :
     (delegate as? RetainedOutputDelegate)?.clearRetainedOutput()
   }
 
+  override fun invalidateRetainedOutput() {
+    (delegate as? RetainedOutputDelegate)?.invalidateRetainedOutput()
+  }
+
   override fun shouldClipToNodeBounds(): Boolean = blurredEdgeTreatment.isBounded()
 
   override fun dispose() {
@@ -347,6 +351,9 @@ internal interface RetainedOutputDelegate {
   fun shouldDrawRetainedOutput(): Boolean = canDrawRetainedOutput()
 
   fun clearRetainedOutput()
+
+  /** See [dev.chrisbanes.haze.HazeEffectRendererRetainedOutput.invalidateRetainedOutput]. */
+  fun invalidateRetainedOutput() = clearRetainedOutput()
 }
 
 /** Tracks whether an asynchronously generated Blur output is still valid for presentation. */

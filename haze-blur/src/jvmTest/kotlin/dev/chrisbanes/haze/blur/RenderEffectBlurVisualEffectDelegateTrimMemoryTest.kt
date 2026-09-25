@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
@@ -232,7 +233,23 @@ class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
   }
 
   @Test
-  fun clearRetainedOutput_invalidatesOutputButKeepsTheCaptureLayer() {
+  fun clearRetainedOutput_releasesLayerMetadataAndAvailability() {
+    val delegate = RenderEffectBlurVisualEffectDelegate(
+      HazeBlurFactory.createRenderer() as BlurVisualEffect,
+    )
+    delegate.setPrivateField("retainedOutputAvailable", true)
+    delegate.setPrivateField("lastScaledLayerSize", Size(10f, 10f))
+
+    delegate.clearRetainedOutput()
+
+    assertThat(delegate.getPrivateField<Boolean>("retainedOutputAvailable")).isFalse()
+    assertThat(delegate.getPrivateField<Size?>("lastScaledLayerSize")).isEqualTo(null)
+    assertThat(delegate.getPrivateField<Any?>("scaledContentLayer")).isEqualTo(null)
+    assertThat(delegate.getPrivateField<Any?>("graphicsContext")).isEqualTo(null)
+  }
+
+  @Test
+  fun invalidateRetainedOutput_keepsTheCaptureLayerForTheNextDraw() {
     val delegate = RenderEffectBlurVisualEffectDelegate(
       HazeBlurFactory.createRenderer() as BlurVisualEffect,
     )
@@ -240,28 +257,78 @@ class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
     context.render { with(delegate) { draw(context) } }
     val layer = delegate.getPrivateField<GraphicsLayer?>("scaledContentLayer")
 
-    delegate.clearRetainedOutput()
+    delegate.invalidateRetainedOutput()
 
     assertThat(delegate.canDrawRetainedOutput()).isFalse()
     assertThat(delegate.getPrivateField<GraphicsLayer?>("scaledContentLayer")).isSameInstanceAs(layer)
     assertThat(layer!!.isReleased).isFalse()
-  }
 
-  @Test
-  fun captureSizeChange_recordsIntoTheSameLayer() {
-    val delegate = RenderEffectBlurVisualEffectDelegate(
-      HazeBlurFactory.createRenderer() as BlurVisualEffect,
-    )
-    val context = RecordingDrawContext()
-    context.render { with(delegate) { draw(context) } }
-    val layer = delegate.getPrivateField<GraphicsLayer?>("scaledContentLayer")
-
-    context.layerSize = Size(11f, 10f)
     context.render { with(delegate) { draw(context) } }
 
     assertThat(context.inputCaptureCount).isEqualTo(2)
     assertThat(delegate.getPrivateField<GraphicsLayer?>("scaledContentLayer")).isSameInstanceAs(layer)
+  }
+
+  @Test
+  fun captureSizeGrows_drawsTheResizedInputFromTheSameLayer() {
+    val resized = Size(11f, 10f)
+    val output = drawAfterResize(resized, canvasSize = resized)
+
+    // The column the resize added: a layer still clipped to its first size leaves it empty.
+    assertThat(output[10, 5].alpha).isGreaterThan(0f)
+  }
+
+  @Test
+  fun captureSizeShrinks_drawsTheResizedInputFromTheSameLayer() {
+    // A canvas wider than the resized layer, so drawing past its new edge would show.
+    val output = drawAfterResize(Size(9f, 10f), canvasSize = Size(10f, 10f))
+
+    assertThat(output[4, 5].alpha).isGreaterThan(0f)
+  }
+
+  /**
+   * Draws a delegate at 10x10, resizes its capture to [resized] and draws it again into a canvas of
+   * [canvasSize], asserting it recorded into the same layer and drew exactly what a delegate created
+   * at the new size draws, so a blank, stale or wrongly sized frame cannot pass for the right one.
+   */
+  private fun drawAfterResize(resized: Size, canvasSize: Size): PixelMap {
+    val effect = BlurVisualEffect()
+    effect.update(
+      BlurLifecycleScope,
+      BlurConfiguration(
+        HazeBlurStyle {
+          blurRadius(1.dp)
+          noiseFactor(0f)
+          colorEffects(emptyList())
+        },
+        HazePerformanceMode.Quality,
+      ),
+      HazeSampling.FullResolution,
+    )
+    val delegate = RenderEffectBlurVisualEffectDelegate(effect)
+    val context = RecordingDrawContext()
+    context.render { with(delegate) { draw(context) } }
+    val layer = delegate.getPrivateField<GraphicsLayer?>("scaledContentLayer")
+
+    context.layerSize = resized
+    context.render(canvasSize = canvasSize) { with(delegate) { draw(context) } }
+
+    assertThat(context.inputCaptureCount).isEqualTo(2)
+    assertThat(delegate.getPrivateField<GraphicsLayer?>("scaledContentLayer")).isSameInstanceAs(layer)
     assertThat(layer!!.isReleased).isFalse()
+
+    val freshContext = RecordingDrawContext()
+    freshContext.layerSize = resized
+    val fresh = RenderEffectBlurVisualEffectDelegate(effect)
+    freshContext.render(canvasSize = canvasSize) { with(fresh) { draw(freshContext) } }
+    val expected = checkNotNull(freshContext.output).toPixelMap()
+    val actual = checkNotNull(context.output).toPixelMap()
+    for (y in 0 until actual.height) {
+      for (x in 0 until actual.width) {
+        assertThat(actual[x, y], "pixel ($x, $y)").isEqualTo(expected[x, y])
+      }
+    }
+    return actual
   }
 
   @Test
@@ -417,14 +484,20 @@ private class RecordingDrawContext(
     override val coroutineContext: CoroutineContext = EmptyCoroutineContext
   }
 
-  fun render(block: DrawScope.() -> Unit) {
+  /** The frame the latest [render] drew into. */
+  var output: ImageBitmap? = null
+    private set
+
+  fun render(canvasSize: Size = recordedSize, block: DrawScope.() -> Unit) {
+    val bitmap = ImageBitmap(canvasSize.width.toInt(), canvasSize.height.toInt())
     drawScope.draw(
       density = Density(1f),
       layoutDirection = LayoutDirection.Ltr,
-      canvas = Canvas(ImageBitmap(recordedSize.width.toInt(), recordedSize.height.toInt())),
-      size = modifierSize,
+      canvas = Canvas(bitmap),
+      size = canvasSize,
       block = block,
     )
+    output = bitmap
   }
 
   fun releaseLatestLayer() {

@@ -107,6 +107,7 @@ package dev.chrisbanes.haze {
   @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectRendererRetainedOutput {
     method public boolean canDrawRetainedOutput();
     method public void clearRetainedOutput();
+    method public default void invalidateRetainedOutput();
     method public default boolean shouldDrawRetainedOutput();
   }
 

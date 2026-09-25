@@ -195,7 +195,7 @@ internal class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "size changed. Current: $field. New: $value" }
-        clearRetainedOutput()
+        invalidateRetainedOutput()
         dirtyTracker += DirtyFields.Size
         field = value
       }
@@ -206,7 +206,7 @@ internal class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "layerSize changed. Current: $field. New: $value" }
-        clearRetainedOutput()
+        invalidateRetainedOutput()
         dirtyTracker += DirtyFields.LayerSize
         field = value
       }
@@ -1256,6 +1256,13 @@ internal class HazeEffectNode(
   private fun clearRetainedOutput() {
     hasRenderedTypedSourceOutput = false
     (typedEffectRenderer as? HazeEffectRendererRetainedOutput)?.clearRetainedOutput()
+  }
+
+  /** [clearRetainedOutput] for a size change, which lets the renderer keep its resources. */
+  @OptIn(InternalHazeApi::class)
+  private fun invalidateRetainedOutput() {
+    hasRenderedTypedSourceOutput = false
+    (typedEffectRenderer as? HazeEffectRendererRetainedOutput)?.invalidateRetainedOutput()
   }
 
   @OptIn(InternalHazeApi::class)
