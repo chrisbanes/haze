@@ -1532,7 +1532,7 @@ decision.</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">(),</span>
-<span class="w">  </span><span class="n">performanceMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePerformanceMode</span><span class="p">.</span><span class="na">Adaptive</span><span class="p">,</span>
+<span class="w">  </span><span class="n">performanceMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePerformanceMode</span><span class="p">.</span><span class="na">Default</span><span class="p">,</span>
 <span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
@@ -1576,7 +1576,7 @@ the existing renderer. Factory replacement and detachment dispose it exactly onc
 <p><code>HazePerformanceMode</code> lets you choose the quality and performance trade-off for built-in Blur and
 Glass:</p>
 <ul>
-<li><code>Default</code> (<code>Adaptive</code>) adjusts quality automatically.</li>
+<li><code>Default</code> selects the fixed <code>Balanced</code> profile. <code>Adaptive</code> is deprecated and behaves the same as <code>Default</code>.</li>
 <li><code>Quality</code> prioritises detail, <code>Performance</code> prioritises lower rendering cost, and <code>Balanced</code>
   offers a middle ground.</li>
 <li><code>Fixed(qualityFraction)</code> lets you choose a level from <code>0f</code> (lowest supported quality) to <code>1f</code>

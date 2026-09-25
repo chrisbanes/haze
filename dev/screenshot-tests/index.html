@@ -1125,13 +1125,12 @@
 <div><h1 id="screenshot-tests">Screenshot tests<a class="headerlink" href="#screenshot-tests" title="Permanent link">¶</a></h1>
 <p>The host matrix replaces the Blur and Glass <code>creditCard</code> tests with independent configurations.
 Other library regression and sample presentation suites remain in place. Current coverage is
-16 Desktop cases, 48 Sources/forced-fallback Android host cases, and 8 SDK 37 native-Backdrop
-Robolectric cases: two scenes × Sources/forced Backdrop fallback × Quality/Balanced/Performance/
-Adaptive on Desktop and Android SDKs 28, 32, and 35, plus two scenes × native Backdrop × those four
+12 Desktop cases, 36 Sources/forced-fallback Android host cases, and 6 SDK 37 native-Backdrop
+Robolectric cases: two scenes × Sources/forced Backdrop fallback × Quality/Balanced/Performance
+on Desktop and Android SDKs 28, 32, and 35, plus two scenes × native Backdrop × those three
 modes on SDK 37.</p>
-<p>Baselines live at <code>screenshots/matrix/&lt;profile&gt;/&lt;scene&gt;/&lt;input&gt;/&lt;mode&gt;.webp</code>. The original
-Sources/Adaptive references were moved without changing their image contents. Other configurations
-have independent goldens. Forced-fallback cases also compare live pixels against a fresh Sources
+<p>Baselines live at <code>screenshots/matrix/&lt;profile&gt;/&lt;scene&gt;/&lt;input&gt;/&lt;mode&gt;.webp</code>. Each configuration
+has an independent golden. Forced-fallback cases also compare live pixels against a fresh Sources
 attachment using the same scene and mode. This checks parity separately from the goldens. Native
 SDK 37 cases use a separate, empty fallback state, so their golden cannot silently use the scene's
 registered Sources.</p>
@@ -1144,13 +1143,13 @@ registered Sources.</p>
 <p>Run one Android case on a specific SDK:</p>
 <div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-screenshot-tests:testAndroidHostTest<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--tests<span class="w"> </span><span class="s1">'*ScreenshotMatrixAndroidTest*'</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-PscreenshotMatrixCase<span class="o">=</span>glass-credit-card-backdrop-fallback-adaptive<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-PscreenshotMatrixCase<span class="o">=</span>glass-credit-card-backdrop-fallback-balanced<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-PscreenshotMatrixSdk<span class="o">=</span><span class="m">35</span><span class="w"> </span>--no-scan
 </code></pre></div>
 <p>Run one native Backdrop SDK 37 case:</p>
 <div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-screenshot-tests:testAndroidHostTest<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--tests<span class="w"> </span><span class="s1">'*ScreenshotMatrixNativeBackdropAndroidTest*'</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-PscreenshotMatrixCase<span class="o">=</span>glass-credit-card-backdrop-native-adaptive<span class="w"> </span>--no-scan
+<span class="w">  </span>-PscreenshotMatrixCase<span class="o">=</span>glass-credit-card-backdrop-native-balanced<span class="w"> </span>--no-scan
 </code></pre></div>
 <p>Selectors are scene/input/mode IDs; the task and optional SDK select the platform. Android's
 JUnit report adds SDK suffixes for 28 and 32; Robolectric omits the suffix for the last configured
@@ -1159,7 +1158,7 @@ SDK (35). Baseline paths always include the SDK explicitly.</p>
 <div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-screenshot-tests:verifyScreenshotMatrixPr<span class="w"> </span>--no-scan
 </code></pre></div>
 <p>This runs the legacy library suite and verifies the exact enrolled matrix case set in JUnit XML,
-including failure and skip checks. The Android host gate also requires all eight SDK 37 native
+including failure and skip checks. The Android host gate also requires all six SDK 37 native
 Backdrop cases and the exact four <code>BackdropAndroidRegressionTest</code> proof methods to pass. CI uses
 <code>verifyScreenshotMatrixJvm</code> and <code>verifyScreenshotMatrixAndroid</code> in its existing separate host jobs.
 These gates reject matrix selectors, recording, and disabled verification before running tests. A
@@ -1176,7 +1175,7 @@ command above without record mode:</p>
 <p>To record one native Backdrop SDK 37 case, keep the runner and selector equally narrow:</p>
 <div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-screenshot-tests:recordRoborazziAndroidHostTest<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--tests<span class="w"> </span><span class="s1">'*ScreenshotMatrixNativeBackdropAndroidTest*'</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-PscreenshotMatrixCase<span class="o">=</span>glass-credit-card-backdrop-native-adaptive<span class="w"> </span>--no-scan
+<span class="w">  </span>-PscreenshotMatrixCase<span class="o">=</span>glass-credit-card-backdrop-native-balanced<span class="w"> </span>--no-scan
 </code></pre></div>
 <p>When enrolling a scene or changing the SDK matrix, update <code>ScreenshotMatrix</code>, its configuration
 tests, and the independent acceptance set in <code>scripts/verify_screenshot_matrix.py</code>. Rename/move

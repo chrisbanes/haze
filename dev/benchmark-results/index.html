@@ -1314,8 +1314,8 @@ devices and builds: compare configurations within a table, not timings across se
 Each section records its aggregation method and measurement conditions.</p>
 <p><a id="performance-mode-calibration"></a></p>
 <h2 id="performance-modes">Performance modes<a class="headerlink" href="#performance-modes" title="Permanent link">¶</a></h2>
-<p>This comparison measures <code>Adaptive</code>, <code>Quality</code>, <code>Balanced</code>, and <code>Performance</code> with stable
-and continuously changing source input. It used a Pixel 8a running Android 17 (full SDK 37.2)
+<p>This page reports the fixed-mode results for <code>Quality</code>, <code>Balanced</code>, and <code>Performance</code> with
+stable and continuously changing source input. It used a Pixel 8a running Android 17 (full SDK 37.2)
 at 60 Hz, with fixed-performance mode enabled and normal Android CPU scheduling.</p>
 <p>Values are <strong>P90 CPU frame duration / P90 frame overrun</strong>, in milliseconds. Each value is the
 arithmetic mean of two per-pass P90s, calculated before rounding, not the P90 of pooled frames.
@@ -1326,7 +1326,6 @@ sample.</p>
 <thead>
 <tr>
 <th>Workload</th>
-<th style="text-align: right;">Adaptive</th>
 <th style="text-align: right;">Quality</th>
 <th style="text-align: right;">Balanced</th>
 <th style="text-align: right;">Performance</th>
@@ -1335,14 +1334,12 @@ sample.</p>
 <tbody>
 <tr>
 <td>Stable source</td>
-<td style="text-align: right;">4.90 / -6.90</td>
 <td style="text-align: right;">4.60 / -6.85</td>
 <td style="text-align: right;">4.67 / -6.93</td>
 <td style="text-align: right;">4.58 / -7.02</td>
 </tr>
 <tr>
 <td>Continuously changing source</td>
-<td style="text-align: right;">5.88 / -5.21</td>
 <td style="text-align: right;">5.49 / -4.91</td>
 <td style="text-align: right;">5.35 / -5.50</td>
 <td style="text-align: right;">5.47 / -5.70</td>
@@ -1354,7 +1351,6 @@ sample.</p>
 <thead>
 <tr>
 <th>Workload</th>
-<th style="text-align: right;">Adaptive</th>
 <th style="text-align: right;">Quality</th>
 <th style="text-align: right;">Balanced</th>
 <th style="text-align: right;">Performance</th>
@@ -1363,14 +1359,12 @@ sample.</p>
 <tbody>
 <tr>
 <td>Stable source</td>
-<td style="text-align: right;">4.07 / -9.88</td>
 <td style="text-align: right;">4.53 / -9.80</td>
 <td style="text-align: right;">4.10 / -10.13</td>
 <td style="text-align: right;">3.93 / -10.07</td>
 </tr>
 <tr>
 <td>Continuously changing source</td>
-<td style="text-align: right;">4.67 / -8.91</td>
 <td style="text-align: right;">4.45 / -6.95</td>
 <td style="text-align: right;">4.27 / -8.08</td>
 <td style="text-align: right;">4.08 / -8.99</td>
@@ -1396,10 +1390,11 @@ appearance and repeat measurements on your screen before choosing an override.</
 status 0 before both passes. The first pass started at a battery temperature of 28.1°C;
 after cooling, the reverse pass started at 28.6°C. Automatic brightness remained enabled
 with the setting value unchanged at 10. Glass kept the other <code>GlassDefaults</code> values unchanged.</p>
-<p>The 16 methods ran in both orders, producing 256 measured iterations and 256 Perfetto traces.
-The first pass ran Blur stable, Blur changing, Glass stable, then Glass changing; each group
-ran Adaptive, Quality, Balanced, then Performance. The second pass reversed the complete
-method order.</p>
+<p>The original calibration ran 16 methods in both orders, producing 256 measured iterations
+and 256 Perfetto traces. The first pass ran Blur stable, Blur changing, Glass stable, then
+Glass changing; each group ran the then-configured adaptive input-scale policy, Quality,
+Balanced, then Performance. This page retains the fixed-mode results only. The second pass
+reversed the complete method order.</p>
 <p>Every method was dry-run and measured through its own selector. JSON method identity, XML
 success, iteration count, and trace count were verified before continuing. The first reverse
 attempt failed before measurement because the secure keyguard prevented activity-launch

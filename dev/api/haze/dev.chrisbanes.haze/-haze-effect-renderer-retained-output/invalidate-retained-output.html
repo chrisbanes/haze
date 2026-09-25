@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
-    <title>reset</title>
+    <title>invalidateRetainedOutput</title>
 <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
     <script>document.documentElement.classList.replace("no-js", "js");</script>
     <script>const storage = localStorage.getItem("dokka-dark-mode")
@@ -89,12 +89,12 @@
         </nav>
         <div id="resizer" class="resizer" data-item-type="BAR"></div>
         <div id="main" data-item-type="SECTION" role="main">
-<div class="main-content" data-page-type="member" id="content" pageids="haze::dev.chrisbanes.haze/HazeInputUpdateCadence/reset/#/PointingToDeclaration//-907335505">
-  <div class="breadcrumbs"><a href="../../index.html">haze</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze</a><span class="delimiter">/</span><a href="index.html">HazeInputUpdateCadence</a><span class="delimiter">/</span><span class="current">reset</span></div>
+<div class="main-content" data-page-type="member" id="content" pageids="haze::dev.chrisbanes.haze/HazeEffectRendererRetainedOutput/invalidateRetainedOutput/#/PointingToDeclaration//-907335505">
+  <div class="breadcrumbs"><a href="../../index.html">haze</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze</a><span class="delimiter">/</span><a href="index.html">HazeEffectRendererRetainedOutput</a><span class="delimiter">/</span><span class="current">invalidateRetainedOutput</span></div>
   <div class="cover ">
-    <h1 class="cover"><span><span>reset</span></span></h1>
+    <h1 class="cover"><span>invalidate</span><wbr><span>Retained</span><wbr><span><span>Output</span></span></h1>
   </div>
-  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="reset.html"><span class="token function">reset</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><p class="paragraph">Clears the current update burst and restores <a href="multiplier.html">multiplier</a> to one.</p></div></div>
+  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="invalidate-retained-output.html"><span class="token function">invalidateRetainedOutput</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><p class="paragraph">Marks retained output stale because the effect's size or layer size changed.</p><p class="paragraph">Unlike <a href="clear-retained-output.html">clearRetainedOutput</a>, resources may be kept so the next draw can record into them again. Replacing them on each size change can leave anything drawing this effect's output with an empty input for a frame, and an effect moving across a source changes size every frame. Defaults to <a href="clear-retained-output.html">clearRetainedOutput</a>.</p></div></div>
 </div>
     <div class="footer">
         <div class="footer--container">

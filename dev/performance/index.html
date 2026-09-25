@@ -1291,8 +1291,8 @@ scrolling, transitions, and visual quality together: a setting is useful only if
 looks right and feels smooth.</p>
 <h2 id="start-with-the-defaults">Start with the defaults<a class="headerlink" href="#start-with-the-defaults" title="Permanent link">¶</a></h2>
 <p>Use <code>HazePerformanceMode.Default</code> for built-in Blur and Glass, and start Glass with
-<code>GlassStyle.regular</code>. The default performance mode adjusts quality automatically. Custom effects
-use <code>HazeSampling.Default</code>.</p>
+<code>GlassStyle.regular</code>. <code>Default</code> selects the fixed <code>Balanced</code> profile. Custom effects use
+<code>HazeSampling.Default</code>.</p>
 <p>Build the complete screen before choosing overrides. The area covered by effects, their number,
 and the content moving behind them all affect the cost.</p>
 <p><a id="measure-on-target-devices"></a></p>
@@ -1344,7 +1344,7 @@ based on the problem you can see:</p>
 <tbody>
 <tr>
 <td>A starting point for most screens</td>
-<td><code>Default</code> or <code>Adaptive</code>, which adjusts quality automatically.</td>
+<td><code>Default</code> (<code>Balanced</code>).</td>
 </tr>
 <tr>
 <td>Lower rendering cost</td>
@@ -1370,8 +1370,8 @@ based on the problem you can see:</p>
 <span class="w">  </span><span class="n">performanceMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePerformanceMode</span><span class="p">.</span><span class="na">Performance</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>The same <code>performanceMode</code> parameter is available on <code>hazeGlass</code>. Fixed modes keep the chosen
-quality setting instead of adapting it. <code>Performance</code>, <code>Balanced</code>, and <code>Quality</code> correspond to
+<p>The same <code>performanceMode</code> parameter is available on <code>hazeGlass</code>. Profiles keep the chosen quality
+setting fixed. <code>Performance</code>, <code>Balanced</code>, and <code>Quality</code> correspond to
 <code>Fixed(0f)</code>, <code>Fixed(0.5f)</code>, and <code>Fixed(1f)</code>. The fraction describes quality, not a percentage
 reduction in rendering time.</p>
 <div class="admonition note">

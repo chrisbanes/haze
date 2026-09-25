@@ -1647,9 +1647,10 @@ selection/fallback messages and inspect the <code>HazeBackdrop.draw</code> trace
 native draw. No performance result is implied; physical Android 37.2 acceptance remains pending.
 Later releases may enable the default, retain a temporary <code>false</code> escape hatch, and then remove
 the flag.</p>
-<p><code>HazePerformanceMode.Default</code> points to <code>Adaptive</code> for built-in Blur and Glass. Use <code>Adaptive</code> to pin that policy,
-<code>Quality</code>, <code>Balanced</code>, or <code>Performance</code> for its named profiles, or <code>Fixed(qualityFraction)</code> for an
-explicit quality level from <code>0f</code> (lowest) to <code>1f</code> (highest). <code>Quality</code> replaces the previous
+<p><code>HazePerformanceMode.Default</code> selects the fixed <code>Balanced</code> profile for built-in Blur and Glass.
+<code>Adaptive</code> remains deprecated for binary compatibility and behaves the same as <code>Default</code>; replace
+it with <code>Default</code>. Use <code>Quality</code> or <code>Performance</code> for their named profiles, or
+<code>Fixed(qualityFraction)</code> for an explicit quality level from <code>0f</code> (lowest) to <code>1f</code> (highest). <code>Quality</code> replaces the previous
 built-in full-resolution choice. Previous fixed input-pixel fractions are not equivalent to the
 same <code>qualityFraction</code> value; compare appearance and performance before choosing a replacement.
 <code>HazeSampling</code> remains the generic policy used by custom effects.</p>
@@ -1782,7 +1783,7 @@ former <code>Offset.Unspecified</code> behavior, logical start/end alignments fo
 <span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">glassStyle</span><span class="p">,</span>
-<span class="w">  </span><span class="n">performanceMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePerformanceMode</span><span class="p">.</span><span class="na">Adaptive</span><span class="p">,</span>
+<span class="w">  </span><span class="n">performanceMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePerformanceMode</span><span class="p">.</span><span class="na">Default</span><span class="p">,</span>
 <span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
 <span class="w">  </span><span class="n">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span><span class="p">,</span>
 <span class="w">  </span><span class="n">interactionTransformTarget</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassTransformTarget</span><span class="p">.</span><span class="na">MaterialOnly</span><span class="p">,</span>
@@ -1882,7 +1883,7 @@ and <code>then</code>.</p>
 <tr>
 <td><code>HazeEffectScope.inputScale</code></td>
 <td><code>Modifier.hazeBlur(performanceMode = ...)</code></td>
-<td>Map <code>Default</code> to <code>Default</code>, <code>Auto</code> to <code>Adaptive</code>, <code>None</code> to <code>Quality</code>, and choose <code>Balanced</code>, <code>Performance</code>, or <code>Fixed(qualityFraction)</code> for an explicit Blur profile.</td>
+<td>Map <code>Default</code> and <code>Auto</code> to <code>Default</code>, <code>None</code> to <code>Quality</code>, or choose <code>Balanced</code>, <code>Performance</code>, or <code>Fixed(qualityFraction)</code> for an explicit Blur profile.</td>
 </tr>
 <tr>
 <td><code>HazeEffectScope.drawContentBehind</code></td>
@@ -1962,7 +1963,7 @@ and <code>then</code>.</p>
 <tr>
 <td><code>VisualEffect.calculateInputScaleFactor()</code></td>
 <td><code>HazePerformanceMode</code> for built-in Blur and Glass, <code>HazeSampling</code> for custom effects</td>
-<td>Built-in effects choose default, adaptive, named, or fixed performance profiles; generic effects retain sampling.</td>
+<td>Built-in effects choose default, named, or fixed performance profiles; generic effects retain sampling.</td>
 </tr>
 <tr>
 <td><code>VisualEffect.requireInvalidation()</code></td>
@@ -2007,7 +2008,7 @@ and <code>then</code>.</p>
 <tr>
 <td><code>HazeProgressive.LinearGradient(..., preferPerformance = ...)</code></td>
 <td><code>Modifier.hazeBlur(performanceMode = ...)</code></td>
-<td>Choose <code>Quality</code> for full resolution or a downsampled <code>Balanced</code>/<code>Performance</code> tier; <code>Adaptive</code> follows Haze's workload policy.</td>
+<td>Choose <code>Quality</code> for full resolution or a downsampled <code>Balanced</code>/<code>Performance</code> profile.</td>
 </tr>
 <tr>
 <td><code>HazeColorEffect.Unspecified</code> or a concrete <code>HazeColorEffect</code> constructor</td>
@@ -2063,8 +2064,8 @@ and <code>then</code>.</p>
    exact captured-source semantics, or <code>HazeInput.Content</code> for own-content Blur.</li>
 <li>Move Blur properties into <code>HazeBlurStyle { ... }</code>, changing property assignments into Style
    functions. Use <code>then</code> instead of <code>copy</code> when customizing a preset.</li>
-<li>Move built-in Blur input-scale choices to <code>HazePerformanceMode</code>: map the previous default to
-   <code>Default</code>, automatic selection to <code>Adaptive</code>, and full resolution to <code>Quality</code>. Remeasure old
+<li>Move built-in Blur input-scale choices to <code>HazePerformanceMode</code>: map the previous default and
+   automatic selection to <code>Default</code>, and full resolution to <code>Quality</code>. Remeasure old
    fixed input-pixel fractions before choosing <code>Fixed(qualityFraction)</code>. Move retention, source
    selection, and layer expansion to <code>HazeSourceRetention</code>, <code>HazeSourceSelection</code>, and
    <code>expandLayerBounds</code>.</li>
