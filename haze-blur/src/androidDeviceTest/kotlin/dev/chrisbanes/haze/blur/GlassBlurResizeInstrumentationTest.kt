@@ -122,10 +122,7 @@ class GlassBlurResizeInstrumentationTest {
     val blurDelegate = blurFactory.renderer.delegate as RenderEffectBlurVisualEffectDelegate
     // Glass can still show red when a resized Blur replaces its capture layer. Check layer
     // identity as well as pixels to catch the replacement that caused the transient flicker.
-    val layerField = blurDelegate.javaClass.getDeclaredField("scaledContentLayer").apply {
-      isAccessible = true
-    }
-    val captureLayer = checkNotNull(layerField.get(blurDelegate))
+    val captureLayer = checkNotNull(blurDelegate.scaledContentLayer)
 
     fun assertGlassInput(frame: String) {
       val pixels = composeTestRule.onNodeWithTag("root").captureToImage().toPixelMap()
@@ -140,7 +137,7 @@ class GlassBlurResizeInstrumentationTest {
       composeTestRule.runOnIdle { blurWidth.value = width.dp }
       composeTestRule.mainClock.advanceTimeByFrame()
       assertGlassInput("${width}dp")
-      assertThat(layerField.get(blurDelegate), "Blur capture layer at ${width}dp")
+      assertThat(blurDelegate.scaledContentLayer, "Blur capture layer at ${width}dp")
         .isSameInstanceAs(captureLayer)
     }
   }

@@ -22,7 +22,6 @@ import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.unit.Density
@@ -244,7 +243,7 @@ class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
 
     assertThat(delegate.getPrivateField<Boolean>("retainedOutputAvailable")).isFalse()
     assertThat(delegate.getPrivateField<Size?>("lastScaledLayerSize")).isEqualTo(null)
-    assertThat(delegate.getPrivateField<Any?>("scaledContentLayer")).isEqualTo(null)
+    assertThat(delegate.scaledContentLayer).isEqualTo(null)
     assertThat(delegate.getPrivateField<Any?>("graphicsContext")).isEqualTo(null)
   }
 
@@ -255,18 +254,18 @@ class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
     )
     val context = RecordingDrawContext()
     context.render { with(delegate) { draw(context) } }
-    val layer = delegate.getPrivateField<GraphicsLayer?>("scaledContentLayer")
+    val layer = delegate.scaledContentLayer
 
     delegate.invalidateRetainedOutput()
 
     assertThat(delegate.canDrawRetainedOutput()).isFalse()
-    assertThat(delegate.getPrivateField<GraphicsLayer?>("scaledContentLayer")).isSameInstanceAs(layer)
+    assertThat(delegate.scaledContentLayer).isSameInstanceAs(layer)
     assertThat(layer!!.isReleased).isFalse()
 
     context.render { with(delegate) { draw(context) } }
 
     assertThat(context.inputCaptureCount).isEqualTo(2)
-    assertThat(delegate.getPrivateField<GraphicsLayer?>("scaledContentLayer")).isSameInstanceAs(layer)
+    assertThat(delegate.scaledContentLayer).isSameInstanceAs(layer)
   }
 
   @Test
@@ -308,13 +307,13 @@ class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
     val delegate = RenderEffectBlurVisualEffectDelegate(effect)
     val context = RecordingDrawContext()
     context.render { with(delegate) { draw(context) } }
-    val layer = delegate.getPrivateField<GraphicsLayer?>("scaledContentLayer")
+    val layer = delegate.scaledContentLayer
 
     context.layerSize = resized
     context.render(canvasSize = canvasSize) { with(delegate) { draw(context) } }
 
     assertThat(context.inputCaptureCount).isEqualTo(2)
-    assertThat(delegate.getPrivateField<GraphicsLayer?>("scaledContentLayer")).isSameInstanceAs(layer)
+    assertThat(delegate.scaledContentLayer).isSameInstanceAs(layer)
     assertThat(layer!!.isReleased).isFalse()
 
     val freshContext = RecordingDrawContext()
