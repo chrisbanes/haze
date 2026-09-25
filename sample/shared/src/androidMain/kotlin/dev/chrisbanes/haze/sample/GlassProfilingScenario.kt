@@ -65,11 +65,6 @@ internal enum class GlassProfilingScenario(
     attachesDuringMeasurement = true,
     prewarmsBeforeMeasurement = true,
   ),
-  StableAdaptive(
-    id = "stable_adaptive",
-    steadyDraw = true,
-    performanceMode = HazePerformanceMode.Adaptive,
-  ),
   StableQuality(
     id = "stable_quality",
     steadyDraw = true,
@@ -208,10 +203,6 @@ internal enum class GlassProfilingScenario(
   OpticalUpdate("optical_update"),
   DepthUpdate("depth_update", opticsOverride = GlassOptics()),
   BlurUpdate("blur_update", opticsOverride = GlassOptics()),
-  SourceUpdateAdaptive(
-    id = "source_update_adaptive",
-    performanceMode = HazePerformanceMode.Adaptive,
-  ),
   SourceUpdateQuality(
     id = "source_update_quality",
     performanceMode = HazePerformanceMode.Quality,
@@ -290,7 +281,6 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.EffectAttach3,
     GlassProfilingScenario.EffectAttach9,
     GlassProfilingScenario.EffectReattach,
-    GlassProfilingScenario.StableAdaptive,
     GlassProfilingScenario.StableQuality,
     GlassProfilingScenario.BackdropStableQuality,
     GlassProfilingScenario.StableBalanced,
@@ -331,7 +321,6 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.BlurUpdate -> base.copy(
       blurRadius = lerp(4f, 28f, progress).dp,
     )
-    GlassProfilingScenario.SourceUpdateAdaptive,
     GlassProfilingScenario.SourceUpdateQuality,
     GlassProfilingScenario.BackdropSourceUpdateQuality,
     GlassProfilingScenario.SourceUpdateBalanced,
@@ -353,7 +342,6 @@ internal inline fun glassProfilingSourceProgress(
   scenario: GlassProfilingScenario,
   progress: () -> Float,
 ): Float = when (scenario) {
-  GlassProfilingScenario.SourceUpdateAdaptive,
   GlassProfilingScenario.SourceUpdateQuality,
   GlassProfilingScenario.BackdropSourceUpdateQuality,
   GlassProfilingScenario.SourceUpdateBalanced,

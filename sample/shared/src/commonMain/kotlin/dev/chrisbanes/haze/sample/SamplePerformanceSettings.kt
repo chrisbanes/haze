@@ -57,16 +57,16 @@ internal fun SampleChromeVisibilityEffect(visible: Boolean) {
 }
 
 private val performanceModes = listOf(
-  HazePerformanceMode.Adaptive,
-  HazePerformanceMode.Performance,
   HazePerformanceMode.Balanced,
+  HazePerformanceMode.Performance,
   HazePerformanceMode.Quality,
   null,
 )
 
+@Suppress("DEPRECATION")
 internal val HazePerformanceMode?.sampleLabel: String
   get() = when (this) {
-    HazePerformanceMode.Adaptive -> "Adaptive"
+    HazePerformanceMode.Adaptive -> "Balanced"
     HazePerformanceMode.Performance -> "Performance"
     HazePerformanceMode.Balanced -> "Balanced"
     HazePerformanceMode.Quality -> "Quality"
@@ -75,7 +75,7 @@ internal val HazePerformanceMode?.sampleLabel: String
 
 @Stable
 internal class SamplePerformanceSettingsState {
-  var selectedMode by mutableStateOf<HazePerformanceMode?>(HazePerformanceMode.Adaptive)
+  var selectedMode by mutableStateOf<HazePerformanceMode?>(HazePerformanceMode.Balanced)
     private set
   var customQuality by mutableStateOf(0.5f)
     private set

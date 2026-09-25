@@ -1,9 +1,15 @@
 // Copyright 2024, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(androidx.compose.ui.InternalComposeUiApi::class)
+@file:Suppress("DEPRECATION")
+
 package dev.chrisbanes.haze.test
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.LocalSystemTheme
+import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.toPixelMap
@@ -46,7 +52,10 @@ private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiT
   override val supportsRuntimeBlur: Boolean = true
 
   override fun setContent(content: @Composable () -> Unit) {
-    this@createScreenshotUiTest.setContent(content)
+    this@createScreenshotUiTest.setContent {
+      // Keep Glass snapshots independent from the host OS appearance. Nested providers still win.
+      CompositionLocalProvider(LocalSystemTheme provides SystemTheme.Light, content = content)
+    }
   }
 
   override fun captureRoot(

@@ -45,43 +45,6 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
   }
 
   @Test
-  fun adaptiveTiers_preserveRepresentativeBlurQuality() = runScreenshotTest {
-    var effect by mutableStateOf(HazeBlurStyle { blurRadius(12.dp) })
-    var performanceMode by mutableStateOf<HazePerformanceMode>(HazePerformanceMode.Quality)
-
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(effect, performanceMode = performanceMode)
-      }
-    }
-
-    val balancedReference = captureRootPixels().snapshot()
-    performanceMode = HazePerformanceMode.Adaptive
-    waitForIdle()
-    val balancedAdaptive = captureRootPixels().snapshot()
-    captureRoot("balanced")
-    balancedReference.assertPerceptuallyCloseTo(
-      balancedAdaptive,
-      label = "0.8 tier",
-      expectsScaledBlur = supportsRuntimeBlur,
-    )
-
-    effect = effect.then { blurRadius(24.dp) }
-    performanceMode = HazePerformanceMode.Quality
-    waitForIdle()
-    val aggressiveReference = captureRootPixels().snapshot()
-    performanceMode = HazePerformanceMode.Adaptive
-    waitForIdle()
-    val aggressiveAdaptive = captureRootPixels().snapshot()
-    captureRoot("aggressive")
-    aggressiveReference.assertPerceptuallyCloseTo(
-      aggressiveAdaptive,
-      label = "0.5 tier",
-      expectsScaledBlur = supportsRuntimeBlur,
-    )
-  }
-
-  @Test
   fun progressiveDefault_preservesGeometryAtBalancedCap() = runScreenshotTest {
     val effect = HazeBlurStyle {
       blurRadius(24.dp)
@@ -96,14 +59,14 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
     }
 
     val reference = captureRootPixels().snapshot()
-    performanceMode = HazePerformanceMode.Adaptive
+    performanceMode = HazePerformanceMode.Default
     waitForIdle()
-    val adaptive = captureRootPixels().snapshot()
+    val defaultProfile = captureRootPixels().snapshot()
     captureRoot()
 
     reference.assertPerceptuallyCloseTo(
-      adaptive,
-      label = "progressive 0.8 cap",
+      defaultProfile,
+      label = "progressive Balanced default",
       expectsScaledBlur = supportsRuntimeBlur,
     )
   }
@@ -125,12 +88,12 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
     }
 
     val gradientReference = captureRootPixels().snapshot()
-    performanceMode = HazePerformanceMode.Adaptive
+    performanceMode = HazePerformanceMode.Balanced
     waitForIdle()
-    val gradientAdaptive = captureRootPixels().snapshot()
+    val gradientBalanced = captureRootPixels().snapshot()
     gradientReference.assertPerceptuallyCloseTo(
-      gradientAdaptive,
-      label = "gradient mask ordinary tier",
+      gradientBalanced,
+      label = "gradient mask Balanced profile",
       expectsScaledBlur = supportsRuntimeBlur,
     )
 
@@ -147,34 +110,15 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
     performanceMode = HazePerformanceMode.Quality
     waitForIdle()
     val hardEdgeReference = captureRootPixels().snapshot()
-    performanceMode = HazePerformanceMode.Adaptive
+    performanceMode = HazePerformanceMode.Balanced
     waitForIdle()
-    val hardEdgeAdaptive = captureRootPixels().snapshot()
+    val hardEdgeBalanced = captureRootPixels().snapshot()
     captureRoot()
     hardEdgeReference.assertPerceptuallyCloseTo(
-      hardEdgeAdaptive,
-      label = "hard-edged mask ordinary tier",
+      hardEdgeBalanced,
+      label = "hard-edged mask Balanced profile",
       expectsScaledBlur = supportsRuntimeBlur,
     )
-  }
-
-  @Test
-  fun boundaryHysteresis_preservesTierUntilExitMargin() = runScreenshotTest {
-    var effect by mutableStateOf(HazeBlurStyle { blurRadius(12.dp) })
-
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(effect, performanceMode = HazePerformanceMode.Adaptive)
-      }
-    }
-
-    effect = effect.then { blurRadius(11.25.dp) }
-    waitForIdle()
-    captureRoot("held")
-
-    effect = effect.then { blurRadius(10.dp) }
-    waitForIdle()
-    captureRoot("exited")
   }
 }
 

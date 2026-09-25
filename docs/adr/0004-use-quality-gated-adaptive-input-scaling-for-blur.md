@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted
+Accepted. The built-in Blur policy documented here was superseded by the 2026-09-24 amendment to
+[ADR-0006](0006-reconcile-built-in-performance-mode-terminology.md). This ADR preserves its
+original rationale and measurements; `HazeSampling.Adaptive` remains unchanged for custom effects.
 
 ## Date
 

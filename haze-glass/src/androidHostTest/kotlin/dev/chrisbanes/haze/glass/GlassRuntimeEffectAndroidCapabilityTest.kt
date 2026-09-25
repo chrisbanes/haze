@@ -83,13 +83,13 @@ class GlassRuntimeEffectAndroidCapabilityTest {
     val decision = effect.prepareRenderBudget(
       context,
       runtimeShaderSupported = isRuntimeShaderGlassSupported(),
-      requestedScaleOverride = GlassInputScalePolicy.FULL_RESOLUTION_SCALE,
+      requestedScaleOverride = GLASS_FULL_RESOLUTION_SCALE,
     )
 
     assertThat(decision)
       .isInstanceOf<GlassRenderBudgetDecision.Runtime>()
       .prop(GlassRenderBudgetDecision.Runtime::scaleFactor)
-      .isEqualTo(GlassInputScalePolicy.FULL_RESOLUTION_SCALE)
+      .isEqualTo(GLASS_FULL_RESOLUTION_SCALE)
   }
 
   @Test
@@ -101,7 +101,7 @@ class GlassRuntimeEffectAndroidCapabilityTest {
     val decision = effect.prepareRenderBudget(
       context,
       runtimeShaderSupported = isRuntimeShaderGlassSupported(),
-      requestedScaleOverride = GlassInputScalePolicy.FULL_RESOLUTION_SCALE,
+      requestedScaleOverride = GLASS_FULL_RESOLUTION_SCALE,
       backdrop = true,
     )
 
@@ -127,14 +127,14 @@ class GlassRuntimeEffectAndroidCapabilityTest {
     val decision = effect.prepareRenderBudget(
       context,
       runtimeShaderSupported = isRuntimeShaderGlassSupported(),
-      requestedScaleOverride = GlassInputScalePolicy.FULL_RESOLUTION_SCALE,
+      requestedScaleOverride = GLASS_FULL_RESOLUTION_SCALE,
       backdrop = true,
     )
 
     assertThat(decision)
       .isInstanceOf<GlassRenderBudgetDecision.Runtime>()
       .prop(GlassRenderBudgetDecision.Runtime::scaleFactor)
-      .isEqualTo(GlassInputScalePolicy.FULL_RESOLUTION_SCALE)
+      .isEqualTo(GLASS_FULL_RESOLUTION_SCALE)
   }
 
   @Test
@@ -176,7 +176,7 @@ class GlassRuntimeEffectAndroidCapabilityTest {
     val decision = effect.prepareRenderBudget(
       context,
       runtimeShaderSupported = isRuntimeShaderGlassSupported(),
-      requestedScaleOverride = GlassInputScalePolicy.FULL_RESOLUTION_SCALE,
+      requestedScaleOverride = GLASS_FULL_RESOLUTION_SCALE,
       backdrop = true,
     )
 

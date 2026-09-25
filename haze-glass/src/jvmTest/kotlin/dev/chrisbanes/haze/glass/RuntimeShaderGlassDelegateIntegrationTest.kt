@@ -412,33 +412,33 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
-  fun adaptiveSampling_selectsTierFromPreparedRetainedWorkload() = runComposeUiTest {
+  fun defaultProfile_usesBalancedScaleAcrossRetainedWorkloads() = runComposeUiTest {
     val smallEffect = activeDetailEffect()
     setContent {
       RuntimeGlassTestContent(
         effect = smallEffect,
         tag = "small",
-        performanceMode = HazePerformanceMode.Adaptive,
+        performanceMode = HazePerformanceMode.Default,
       )
     }
     waitForIdle()
 
     assertThat(
       (runtime(smallEffect).preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor,
-    ).isEqualTo(GlassInputScalePolicy.BALANCED_SCALE)
+    ).isEqualTo(HazePerformanceMode.Balanced.resolveGlassInputScale())
 
     val largeEffect = activeDetailEffect()
     setContent {
       RuntimeLargeGlassTestContent(
         effect = largeEffect,
-        performanceMode = HazePerformanceMode.Adaptive,
+        performanceMode = HazePerformanceMode.Default,
       )
     }
     waitForIdle()
 
     assertThat(
       (runtime(largeEffect).preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor,
-    ).isEqualTo(0.5f)
+    ).isEqualTo(HazePerformanceMode.Balanced.resolveGlassInputScale())
   }
 
   @Test

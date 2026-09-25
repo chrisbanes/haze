@@ -25,7 +25,7 @@ import org.robolectric.annotation.Config
 @Config(qualifiers = "w393dp-h698dp-440dpi")
 class BlurProfilingSampleTest : ContextTest() {
   @Test
-  fun stableScenario_exposesTheSettledStartProtocol() = runComposeUiTest {
+  fun balancedScenario_exposesTheSettledStartProtocol() = runComposeUiTest {
     setContent {
       BlurProfilingSampleContent(
         state = remember { BlurProfilingState() },
@@ -34,10 +34,10 @@ class BlurProfilingSampleTest : ContextTest() {
       )
     }
 
-    onNodeWithTag("blur_profiling_select_stable_adaptive")
+    onNodeWithTag("blur_profiling_select_stable_balanced")
       .performScrollTo()
       .performClick()
-    onNodeWithTag("blur_profiling_selected_stable_adaptive").assertIsDisplayed()
+    onNodeWithTag("blur_profiling_selected_stable_balanced").assertIsDisplayed()
     onNodeWithTag("blur_profiling_phase_ready").assertIsDisplayed()
     onNodeWithTag("blur_profiling_start").performClick()
     onNodeWithTag("blur_profiling_phase_complete").assertIsDisplayed()

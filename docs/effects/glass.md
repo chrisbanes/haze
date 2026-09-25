@@ -418,7 +418,7 @@ details may be omitted by a fallback.
 
 ## Performance
 
-Start with `HazePerformanceMode.Default` (the adaptive performance mode) and tune only after
+Start with `HazePerformanceMode.Default` (the fixed `Balanced` profile) and tune only after
 measuring a representative screen. The [performance guide](../performance.md#glass) explains
 which Glass-specific workloads and interactions to test.
 

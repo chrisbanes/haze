@@ -541,7 +541,7 @@ private fun everyTypedBlurPolicyCompiles(
       state = state,
       retention = HazeSourceRetention.ClearWhenUnavailable,
     ),
-    performanceMode = HazePerformanceMode.Adaptive,
+    performanceMode = HazePerformanceMode.Default,
   )
   .hazeBlur(
     input = HazeInput.Content,

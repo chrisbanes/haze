@@ -42,7 +42,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
     if (blurVisualEffect.alpha == 0f) return
 
     // Calculate scaled layer size to detect size changes (needs re-allocation)
-    val scaleFactor = blurVisualEffect.resolveInputScaleFactor(context)
+    val scaleFactor = blurVisualEffect.resolveInputScaleFactor()
     val currentScaledSize = (context.layerSize * scaleFactor).roundToIntSize().let {
       Size(it.width.toFloat(), it.height.toFloat())
     }
@@ -210,7 +210,7 @@ internal fun shouldDrawProgressiveWithLayers(
   progressive: RootHazeProgressive,
   inputScale: Float,
 ): Boolean = progressive is RootHazeProgressive.LinearGradient &&
-  inputScale == BlurInputScalePolicy.NONE_SCALE
+  inputScale == BLUR_FULL_RESOLUTION_SCALE
 
 internal fun DrawScope.drawProgressiveWithMultipleLayers(
   progressive: RootHazeProgressive.LinearGradient,

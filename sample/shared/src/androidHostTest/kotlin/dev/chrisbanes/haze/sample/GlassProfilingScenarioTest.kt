@@ -23,11 +23,9 @@ class GlassProfilingScenarioTest {
   @Test
   fun calibrationMatrix_exposesEachNamedModeForStableAndSourceChangingWorkloads() {
     val matrixIds = setOf(
-      "stable_adaptive",
       "stable_quality",
       "stable_balanced",
       "stable_performance",
-      "source_update_adaptive",
       "source_update_quality",
       "source_update_balanced",
       "source_update_performance",
@@ -36,27 +34,23 @@ class GlassProfilingScenarioTest {
 
     assertThat(matrix.map(GlassProfilingScenario::id)).isEqualTo(
       listOf(
-        "stable_adaptive",
         "stable_quality",
         "stable_balanced",
         "stable_performance",
-        "source_update_adaptive",
         "source_update_quality",
         "source_update_balanced",
         "source_update_performance",
       ),
     )
-    assertThat(matrix.take(4).map(GlassProfilingScenario::performanceMode)).isEqualTo(
+    assertThat(matrix.take(3).map(GlassProfilingScenario::performanceMode)).isEqualTo(
       listOf(
-        HazePerformanceMode.Adaptive,
         HazePerformanceMode.Quality,
         HazePerformanceMode.Balanced,
         HazePerformanceMode.Performance,
       ),
     )
-    assertThat(matrix.drop(4).map(GlassProfilingScenario::performanceMode)).isEqualTo(
+    assertThat(matrix.drop(3).map(GlassProfilingScenario::performanceMode)).isEqualTo(
       listOf(
-        HazePerformanceMode.Adaptive,
         HazePerformanceMode.Quality,
         HazePerformanceMode.Balanced,
         HazePerformanceMode.Performance,
@@ -137,7 +131,6 @@ class GlassProfilingScenarioTest {
         "effect_attach_3",
         "effect_attach_9",
         "effect_reattach",
-        "stable_adaptive",
         "stable_quality",
         "backdrop_stable_quality",
         "stable_balanced",
@@ -169,7 +162,6 @@ class GlassProfilingScenarioTest {
         "optical_update",
         "depth_update",
         "blur_update",
-        "source_update_adaptive",
         "source_update_quality",
         "backdrop_source_update_quality",
         "source_update_balanced",
@@ -240,7 +232,6 @@ class GlassProfilingScenarioTest {
         GlassProfilingScenario.OpticalUpdate -> setOf("lightPosition")
         GlassProfilingScenario.DepthUpdate -> setOf("depth")
         GlassProfilingScenario.BlurUpdate -> setOf("blurRadius")
-        GlassProfilingScenario.SourceUpdateAdaptive,
         GlassProfilingScenario.SourceUpdateQuality,
         GlassProfilingScenario.BackdropSourceUpdateQuality,
         GlassProfilingScenario.SourceUpdateBalanced,
@@ -277,7 +268,6 @@ class GlassProfilingScenarioTest {
   @Test
   fun fullScenarios_useDefaultGlassStyleWithoutOpticsOverrides() {
     listOf(
-      GlassProfilingScenario.StableAdaptive,
       GlassProfilingScenario.StableQuality,
       GlassProfilingScenario.StableBalanced,
       GlassProfilingScenario.StablePerformance,
@@ -327,8 +317,7 @@ class GlassProfilingScenarioTest {
         readCount++
         0.75f
       }
-      val updatesSource = scenario == GlassProfilingScenario.SourceUpdateAdaptive ||
-        scenario == GlassProfilingScenario.SourceUpdateQuality ||
+      val updatesSource = scenario == GlassProfilingScenario.SourceUpdateQuality ||
         scenario == GlassProfilingScenario.BackdropSourceUpdateQuality ||
         scenario == GlassProfilingScenario.SourceUpdateBalanced ||
         scenario == GlassProfilingScenario.SourceUpdatePerformance ||
@@ -353,7 +342,7 @@ class GlassProfilingScenarioTest {
     assertThat(state.phase).isEqualTo(GlassProfilingPhase.Selecting)
     assertThat(state.start()).isFalse()
 
-    state.select(GlassProfilingScenario.SourceUpdateAdaptive)
+    state.select(GlassProfilingScenario.SourceUpdateBalanced)
     assertThat(state.phase).isEqualTo(GlassProfilingPhase.Settling)
     assertThat(state.start()).isFalse()
 

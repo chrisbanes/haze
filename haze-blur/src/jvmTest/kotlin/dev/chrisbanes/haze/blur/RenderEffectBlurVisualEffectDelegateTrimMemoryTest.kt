@@ -221,7 +221,7 @@ class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
     context.render { with(delegate) { draw(context) } }
     effect.update(
       BlurLifecycleScope,
-      BlurConfiguration(HazeBlurStyle { alpha(0.5f) }, HazePerformanceMode.Quality),
+      BlurConfiguration(HazeBlurStyle { alpha(0.5f) }, HazePerformanceMode.Balanced),
       HazeSampling.FullResolution,
     )
     context.render { with(delegate) { draw(context) } }

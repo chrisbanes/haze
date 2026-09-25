@@ -39,9 +39,9 @@ import dev.chrisbanes.haze.hazeEffect
  * window backdrop with an optional source fallback. Without a fallback, unavailable or failed
  * native backdrop draws content unchanged and does not demand source capture.
  * @param style Explicit appearance applied after defaults and [LocalGlassStyle].
- * @param performanceMode Rendering-fidelity policy, or `null` to inherit [LocalHazePerformanceMode]. The
- * default adaptive policy selects one of Glass's validated performance profiles from retained work
- * and recent update cadence. Named and fixed modes select a normalized, deterministic profile.
+ * @param performanceMode Rendering-fidelity policy, or `null` to inherit [LocalHazePerformanceMode].
+ * The default selects the fixed `Balanced` profile. Named and fixed modes select a normalized,
+ * deterministic profile.
  * @param expandLayerBounds Whether Glass may expand its capture layer for optical sampling.
  * @param interactionSource Optional external interaction source owned by this modifier node.
  * @param interactionTransformTarget Visual layers that receive the interaction scale transform.

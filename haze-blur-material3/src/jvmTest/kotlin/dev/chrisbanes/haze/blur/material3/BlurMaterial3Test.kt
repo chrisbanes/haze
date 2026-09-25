@@ -21,7 +21,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
-import assertk.assertions.isEqualTo
+import assertk.assertions.isCloseTo
 import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.HazeBlurStyle
@@ -43,12 +43,12 @@ class BlurMaterial3Test {
       }
     }
 
-    assertThat(onNodeWithTag("material").captureToImage().toPixelMap()[20, 20]).isEqualTo(Color.Red)
+    assertColorChannelsCloseTo(onNodeWithTag("material").captureToImage().toPixelMap()[20, 20], Color.Red)
 
     colorScheme.value = lightColorScheme(surface = Color.Blue)
     waitForIdle()
 
-    assertThat(onNodeWithTag("material").captureToImage().toPixelMap()[20, 20]).isEqualTo(Color.Blue)
+    assertColorChannelsCloseTo(onNodeWithTag("material").captureToImage().toPixelMap()[20, 20], Color.Blue)
   }
 
   @Test
@@ -86,12 +86,12 @@ class BlurMaterial3Test {
       }
     }
 
-    assertThat(onNodeWithTag("material").captureToImage().toPixelMap()[20, 20]).isEqualTo(Color.Red)
+    assertColorChannelsCloseTo(onNodeWithTag("material").captureToImage().toPixelMap()[20, 20], Color.Red)
 
     blockOverridesBackground.value = true
     waitForIdle()
 
-    assertThat(onNodeWithTag("material").captureToImage().toPixelMap()[20, 20]).isEqualTo(Color.Green)
+    assertColorChannelsCloseTo(onNodeWithTag("material").captureToImage().toPixelMap()[20, 20], Color.Green)
   }
 
   @Test
@@ -108,7 +108,7 @@ class BlurMaterial3Test {
       }
     }
 
-    assertThat(onNodeWithTag("material").captureToImage().toPixelMap()[20, 20]).isEqualTo(Color.Blue)
+    assertColorChannelsCloseTo(onNodeWithTag("material").captureToImage().toPixelMap()[20, 20], Color.Blue)
   }
 }
 
@@ -123,4 +123,11 @@ private fun BlurMaterial3Content(style: HazeBlurStyle) {
         style = style,
       ),
   )
+}
+
+private fun assertColorChannelsCloseTo(actual: Color, expected: Color) {
+  assertThat(actual.red).isCloseTo(expected.red, 0.01f)
+  assertThat(actual.green).isCloseTo(expected.green, 0.01f)
+  assertThat(actual.blue).isCloseTo(expected.blue, 0.01f)
+  assertThat(actual.alpha).isCloseTo(expected.alpha, 0.05f)
 }

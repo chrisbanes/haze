@@ -7,14 +7,13 @@ import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
-import assertk.assertions.isSameInstanceAs
 import kotlin.test.Test
 
 class HazePerformanceModeTest {
 
   @Test
-  fun default_pointsToAdaptive() {
-    assertThat(HazePerformanceMode.Default).isSameInstanceAs(HazePerformanceMode.Adaptive)
+  fun default_pointsToBalanced() {
+    assertThat(HazePerformanceMode.Default).isEqualTo(HazePerformanceMode.Balanced)
   }
 
   @Test

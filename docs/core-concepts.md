@@ -112,7 +112,7 @@ Blur has an ordinary typed modifier:
 Modifier.hazeBlur(
   input = HazeInput.Backdrop(hazeState),
   style = HazeMaterials.thin(),
-  performanceMode = HazePerformanceMode.Adaptive,
+  performanceMode = HazePerformanceMode.Default,
   expandLayerBounds = true,
 )
 ```
@@ -168,7 +168,7 @@ the existing renderer. Factory replacement and detachment dispose it exactly onc
 `HazePerformanceMode` lets you choose the quality and performance trade-off for built-in Blur and
 Glass:
 
-- `Default` (`Adaptive`) adjusts quality automatically.
+- `Default` selects the fixed `Balanced` profile. `Adaptive` is deprecated and behaves the same as `Default`.
 - `Quality` prioritises detail, `Performance` prioritises lower rendering cost, and `Balanced`
   offers a middle ground.
 - `Fixed(qualityFraction)` lets you choose a level from `0f` (lowest supported quality) to `1f`

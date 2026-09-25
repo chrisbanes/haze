@@ -26,7 +26,7 @@ class ScreenshotMatrixConfigurationTest {
     assertThat(ScreenshotMatrix.hostInputs.map { it.id })
       .containsExactly("sources", "backdrop-fallback")
     assertThat(ScreenshotMatrix.modes.map { it.id })
-      .containsExactly("quality", "balanced", "performance", "adaptive")
+      .containsExactly("quality", "balanced", "performance")
   }
 
   @Test
@@ -45,7 +45,7 @@ class ScreenshotMatrixConfigurationTest {
       ScreenshotMatrixProfile.AndroidHost(SCREENSHOT_MATRIX_ANDROID_SDK_37),
     )
 
-    assertThat(cases.size).isEqualTo(8)
+    assertThat(cases.size).isEqualTo(6)
     assertThat(cases.map { it.input.id }.distinct()).containsExactly("backdrop-native")
     assertThat(cases.map { it.artifactPath }.toSet().size).isEqualTo(cases.size)
     assertThat(cases.map { it.artifactPath }).each {
