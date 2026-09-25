@@ -76,6 +76,7 @@ kotlin {
         implementation(projects.internal.contextTest) {
           exclude(group = "org.robolectric", module = "robolectric")
         }
+        implementation(projects.hazeGlass)
       }
     }
 

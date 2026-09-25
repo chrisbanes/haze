@@ -32,7 +32,8 @@ internal class RenderEffectBlurVisualEffectDelegate(
   val blurVisualEffect: BlurVisualEffect,
 ) : BlurVisualEffect.Delegate, RetainedOutputDelegate {
   private var renderEffect: RenderEffect? = null
-  private var scaledContentLayer: GraphicsLayer? = null
+  internal var scaledContentLayer: GraphicsLayer? = null
+    private set
   private var lastScaledLayerSize: Size? = null
   private var graphicsContext: GraphicsContext? = null
   private var retainedOutputAvailable: Boolean = false
