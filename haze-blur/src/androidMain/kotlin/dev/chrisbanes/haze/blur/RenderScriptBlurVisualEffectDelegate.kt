@@ -14,10 +14,12 @@ import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import android.renderscript.RenderScript
 import android.view.Surface
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
@@ -33,11 +35,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
+import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.asBrush
 import dev.chrisbanes.haze.trace
@@ -65,6 +69,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
   private var currentJob: Job? = null
   private var drawSkipped: Boolean = false
+  private var completedCaptureKey: InputCaptureKey? = null
   private val retainedOutputState = BlurRetainedOutputState()
 
   @Volatile
@@ -92,8 +97,16 @@ internal class RenderScriptBlurVisualEffectDelegate(
     HazeLogger.d(TAG) { "drawEffect. blurRadius=${blurRadiusPx}px. scaleFactor=$scaleFactor" }
 
     val hasDrawableSourceLayers = context.hasDrawableInput
+    val captureKey = InputCaptureKey(
+      inputSnapshot = context.inputSnapshot,
+      scaleFactor = scaleFactor,
+      layerSize = context.layerSize,
+      layerOffset = offset,
+      blurRadiusPx = blurRadiusPx,
+      backgroundColor = blurVisualEffect.backgroundColor,
+    )
 
-    if (hasDrawableSourceLayers && shouldUpdateLayer()) {
+    if (hasDrawableSourceLayers && shouldUpdateLayer(captureKey)) {
       drawSkipped = false
 
       createScaledContentLayer(
@@ -109,7 +122,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
         val retainedOutputGenerationAtStart = retainedOutputState.beginOutputUpdate()
 
         currentJob = context.coroutineScope.launch(Dispatchers.Main.immediate) {
-          try {
+          val outputUpdated = try {
             updateSurface(
               content = layer,
               blurRadius = blurRadiusPx,
@@ -123,8 +136,9 @@ internal class RenderScriptBlurVisualEffectDelegate(
             graphicsContext.releaseGraphicsLayer(layer)
           }
 
-          if (drawSkipped) {
-            // If any draws were skipped, let's trigger a draw invalidation
+          if (outputUpdated) completedCaptureKey = captureKey
+          if (outputUpdated || drawSkipped) {
+            // Present the completed output, or catch up with input changed during the update.
             context.invalidateDraw()
           }
         }
@@ -211,13 +225,13 @@ internal class RenderScriptBlurVisualEffectDelegate(
     }
   }
 
-  private fun shouldUpdateLayer(): Boolean = when {
+  private fun shouldUpdateLayer(captureKey: InputCaptureKey): Boolean = when {
+    // Wait for the in-flight output, then compare its key on the presentation draw.
+    currentJob?.isActive == true -> false
     // We don't have a layer yet...
     contentLayer == null || contentLayer!!.isReleased || contentLayer!!.size == IntSize.Zero -> true
-    // No ongoing update, so start an update...
-    currentJob?.isActive != true -> true
-    // Otherwise, there must be a job ongoing, skip this update
-    else -> false
+    // A redraw requested by a completed output must not start the same update again.
+    else -> completedCaptureKey != captureKey
   }
 
   override fun onTrimMemory(context: HazeEffectLifecycleScope, level: TrimMemoryLevel) {
@@ -249,8 +263,9 @@ internal class RenderScriptBlurVisualEffectDelegate(
     context: HazeEffectRuntimeDrawScope,
     density: Density,
     retainedOutputGenerationAtStart: Int,
-  ) {
+  ): Boolean {
     val generationAtStart = trimGeneration
+    var outputUpdated = false
 
     // Pad the content layer to ensure dimensions are multiples of 4, so the RenderScript
     // Allocation surface is fully covered with content (no transparent/black edges).
@@ -309,7 +324,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
             ) {
               drawImage(output.asImageBitmap())
             }
-            retainedOutputState.completeOutputUpdate(retainedOutputGenerationAtStart)
+            outputUpdated = retainedOutputState.completeOutputUpdate(retainedOutputGenerationAtStart)
           }
         } else {
           if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@traceAsync
@@ -323,7 +338,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
           ) {
             drawLayer(paddedContent)
           }
-          retainedOutputState.completeOutputUpdate(retainedOutputGenerationAtStart)
+          outputUpdated = retainedOutputState.completeOutputUpdate(retainedOutputGenerationAtStart)
         }
 
         HazeLogger.d(TAG) { "Output updated in layer" }
@@ -334,6 +349,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
         graphicsContext.releaseGraphicsLayer(paddedContent)
       }
     }
+    return outputUpdated
   }
 
   private fun isUpdateCurrent(
@@ -411,6 +427,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
     currentJob?.cancel()
     currentJob = null
     retainedOutputState.clear()
+    completedCaptureKey = null
     contentLayer?.let(graphicsContext::releaseGraphicsLayer)
     contentLayer = null
     renderScriptContext?.release()
@@ -442,6 +459,16 @@ internal class RenderScriptBlurVisualEffectDelegate(
       return null
     }
   }
+
+  @Poko
+  private class InputCaptureKey(
+    val inputSnapshot: HazeEffectInputSnapshot?,
+    val scaleFactor: Float,
+    val layerSize: Size,
+    val layerOffset: Offset,
+    val blurRadiusPx: Float,
+    val backgroundColor: ComposeColor,
+  )
 }
 
 private const val MAX_BLUR_RADIUS = 25f

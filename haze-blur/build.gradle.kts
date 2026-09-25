@@ -29,6 +29,12 @@ kotlin {
       @Suppress("UnstableApiUsage")
       managedDevices {
         localDevices {
+          create("pixel5Api30") {
+            device = "Pixel 5"
+            sdkVersion = 30
+            systemImageSource = "aosp"
+          }
+
           create("pixel6Api34") {
             device = "Pixel 6"
             sdkVersion = 34
