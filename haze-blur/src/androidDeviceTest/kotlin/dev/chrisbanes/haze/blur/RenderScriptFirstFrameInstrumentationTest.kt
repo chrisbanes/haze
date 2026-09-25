@@ -25,6 +25,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeInput
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -103,7 +104,7 @@ class RenderScriptFirstFrameInstrumentationTest {
       result = copyResult
       latch.countDown()
     }, Handler(Looper.getMainLooper()))
-    assertThat(latch.await(5, TimeUnit.SECONDS), "Window PixelCopy completed").isEqualTo(true)
+    assertThat(latch.await(5, TimeUnit.SECONDS), "Window PixelCopy completed").isTrue()
     assertThat(result, "Window PixelCopy result").isEqualTo(PixelCopy.SUCCESS)
     return bitmap
   }
