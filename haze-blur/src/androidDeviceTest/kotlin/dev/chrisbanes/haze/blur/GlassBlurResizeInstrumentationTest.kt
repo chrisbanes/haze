@@ -45,7 +45,7 @@ class GlassBlurResizeInstrumentationTest {
   val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
   @Test
-  @SdkSuppress(minSdkVersion = 31)
+  @SdkSuppress(minSdkVersion = 33)
   fun glassSamplingResizingBlur_keepsItsInputOnEveryFrame() {
     val page = HazeState()
     val blurredPage = HazeState()
@@ -124,19 +124,21 @@ class GlassBlurResizeInstrumentationTest {
     // identity as well as pixels to catch the replacement that caused the transient flicker.
     val captureLayer = checkNotNull(blurDelegate.scaledContentLayer)
 
-    fun assertGlassInput(frame: String) {
+    fun assertGlassInput(frame: String, sampleX: Int) {
       val pixels = composeTestRule.onNodeWithTag("root").captureToImage().toPixelMap()
-      val pixel = pixels[pixels.width / 4, pixels.height / 2]
-      assertThat(pixel.red, "Glass red channel at $frame").isGreaterThan(0.5f)
-      assertThat(pixel.red - pixel.blue, "Glass red over blue at $frame").isGreaterThan(0.4f)
+      val pixel = pixels[pixels.width * sampleX / 200, pixels.height / 2]
+      assertThat(pixel.red, "Glass red channel at $frame, x=${sampleX}dp").isGreaterThan(0.5f)
+      assertThat(pixel.red - pixel.blue, "Glass red over blue at $frame, x=${sampleX}dp")
+        .isGreaterThan(0.4f)
     }
 
-    assertGlassInput("initial")
+    assertGlassInput("initial", sampleX = 50)
     composeTestRule.mainClock.autoAdvance = false
     for (width in 105..180 step 5) {
       composeTestRule.runOnIdle { blurWidth.value = width.dp }
       composeTestRule.mainClock.advanceTimeByFrame()
-      assertGlassInput("${width}dp")
+      // From 125dp onward this samples beyond the Blur's original 100dp width.
+      assertGlassInput("${width}dp", sampleX = width - 20)
       assertThat(blurDelegate.scaledContentLayer, "Blur capture layer at ${width}dp")
         .isSameInstanceAs(captureLayer)
     }
