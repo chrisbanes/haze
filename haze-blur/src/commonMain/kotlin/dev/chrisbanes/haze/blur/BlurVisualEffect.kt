@@ -49,7 +49,6 @@ internal class BlurVisualEffect :
   private var lifecycleScope: HazeEffectLifecycleScope? = null
   private var needsDelegateSelection: Boolean = true
   private var needsLayerBoundsInvalidation: Boolean = false
-  private val inputScalePolicy = BlurInputScalePolicy()
   internal val renderEffectCache =
     LruCache<RenderEffectCacheKey, PlatformRenderEffect>(maxSize = 50)
 
@@ -127,7 +126,7 @@ internal class BlurVisualEffect :
       HazeEffectBackdrop(
         platformEffect = getOrCreateRenderEffect(
           context = this,
-          inputScale = BlurInputScalePolicy.NONE_SCALE,
+          inputScale = BLUR_FULL_RESOLUTION_SCALE,
           backgroundColor = backgroundColor,
           progressive = progressive,
         ),
@@ -206,7 +205,7 @@ internal class BlurVisualEffect :
   internal val blurredEdgeTreatment: BlurredEdgeTreatment
     get() = resolvedStyle.blurredEdgeTreatment
 
-  internal fun resolveInputScaleFactor(): Float = inputScalePolicy.resolve(performanceMode)
+  internal fun resolveInputScaleFactor(): Float = performanceMode.resolveBlurInputScale()
 
   private var compositionLocalStyle: HazeBlurStyle = HazeBlurStyle
     set(value) {

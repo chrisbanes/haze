@@ -207,8 +207,7 @@ internal class GlassRuntimeEffect() :
 
   private var budgetCacheKey: GlassRenderBudgetCacheKey? = null
   private var budgetCacheDecision: GlassRenderBudgetDecision? = null
-  private val inputScalePolicy = GlassInputScalePolicy()
-  private var resolvedInputScale: Float = GlassInputScalePolicy.FULL_RESOLUTION_SCALE
+  private var resolvedInputScale: Float = GLASS_FULL_RESOLUTION_SCALE
 
   private var performanceMode: HazePerformanceMode = HazePerformanceMode.Default
     set(value) {
@@ -326,7 +325,7 @@ internal class GlassRuntimeEffect() :
     }
     runtimeShaderIncompatible = false
     needsDelegateSelection = true
-    resolvedInputScale = GlassInputScalePolicy.FULL_RESOLUTION_SCALE
+    resolvedInputScale = GLASS_FULL_RESOLUTION_SCALE
     preparedRender = null
     clearPreparedRenderCache()
   }
@@ -422,7 +421,7 @@ internal class GlassRuntimeEffect() :
       prepareRenderBudget(
         context = context,
         runtimeShaderSupported = isRuntimeShaderGlassSupported(),
-        requestedScaleOverride = GlassInputScalePolicy.FULL_RESOLUTION_SCALE,
+        requestedScaleOverride = GLASS_FULL_RESOLUTION_SCALE,
         backdrop = true,
       )
       if (previousBudget::class != preparedRenderBudget::class) {
@@ -809,9 +808,7 @@ internal class GlassRuntimeEffect() :
         )
       }
     }
-    val requestedScale = requestedScaleOverride ?: inputScalePolicy.resolve(
-      performanceMode = performanceMode,
-    )
+    val requestedScale = requestedScaleOverride ?: performanceMode.resolveGlassInputScale()
     if (requestedScale != resolvedInputScale) {
       HazeLogger.d(TAG) {
         "Glass input scale changed from $resolvedInputScale to $requestedScale"

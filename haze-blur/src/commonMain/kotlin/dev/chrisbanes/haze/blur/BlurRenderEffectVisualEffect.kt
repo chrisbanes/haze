@@ -210,7 +210,7 @@ internal fun shouldDrawProgressiveWithLayers(
   progressive: RootHazeProgressive,
   inputScale: Float,
 ): Boolean = progressive is RootHazeProgressive.LinearGradient &&
-  inputScale == BlurInputScalePolicy.NONE_SCALE
+  inputScale == BLUR_FULL_RESOLUTION_SCALE
 
 internal fun DrawScope.drawProgressiveWithMultipleLayers(
   progressive: RootHazeProgressive.LinearGradient,

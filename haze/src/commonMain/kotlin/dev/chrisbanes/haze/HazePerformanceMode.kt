@@ -42,7 +42,7 @@ public sealed interface HazePerformanceMode {
   public data object Adaptive : HazePerformanceMode
 
   /**
-   * Requests a quality level that stays fixed instead of adjusting automatically.
+   * Requests a fixed quality level for built-in effects.
    *
    * Lower values prioritise rendering performance; higher values prioritise visual detail.
    * If an effect looks too pixelated, try a higher value and check that scrolling and animations

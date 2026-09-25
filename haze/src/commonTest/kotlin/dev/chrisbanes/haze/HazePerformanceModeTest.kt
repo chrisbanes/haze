@@ -17,13 +17,6 @@ class HazePerformanceModeTest {
   }
 
   @Test
-  @Suppress("DEPRECATION")
-  fun adaptive_remainsAvailableAsCompatibilityObject() {
-    assertThat(HazePerformanceMode.Adaptive)
-      .isInstanceOf<HazePerformanceMode.Adaptive>()
-  }
-
-  @Test
   fun presets_useSpecifiedQualityFractions() {
     assertThat(HazePerformanceMode.Quality).isEqualTo(HazePerformanceMode.Fixed(1f))
     assertThat(HazePerformanceMode.Balanced).isEqualTo(HazePerformanceMode.Fixed(0.5f))

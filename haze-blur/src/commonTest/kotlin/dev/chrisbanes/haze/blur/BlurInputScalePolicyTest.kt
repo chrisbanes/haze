@@ -20,7 +20,7 @@ class BlurInputScalePolicyTest {
   fun fixedQuality_interpolatesTotalPixelsAcrossSupportedRange() {
     for (step in 0..100) {
       val quality = step / 100f
-      val scale = BlurInputScalePolicy().resolve(HazePerformanceMode.Fixed(quality))
+      val scale = HazePerformanceMode.Fixed(quality).resolveBlurInputScale()
       assertThat(scale * scale).isCloseTo(0.25f + 0.75f * quality, 0.000001f)
     }
   }
@@ -49,23 +49,21 @@ class BlurInputScalePolicyTest {
 
   @Test
   fun fixedModes_resolveDeterministicProfiles() {
-    val policy = BlurInputScalePolicy()
-
-    assertThat(policy.resolve(HazePerformanceMode.Quality)).isEqualTo(1f)
-    assertThat(policy.resolve(HazePerformanceMode.Balanced)).isEqualTo(sqrt(0.625f))
-    assertThat(policy.resolve(HazePerformanceMode.Performance)).isEqualTo(0.5f)
+    assertThat(HazePerformanceMode.Quality.resolveBlurInputScale()).isEqualTo(1f)
+    assertThat(HazePerformanceMode.Balanced.resolveBlurInputScale()).isEqualTo(sqrt(0.625f))
+    assertThat(HazePerformanceMode.Performance.resolveBlurInputScale()).isEqualTo(0.5f)
   }
 
   @Test
   fun fixedQualityFraction_usesTheCorrespondingProfile() {
-    assertThat(BlurInputScalePolicy().resolve(HazePerformanceMode.Fixed(0.5f)))
+    assertThat(HazePerformanceMode.Fixed(0.5f).resolveBlurInputScale())
       .isEqualTo(sqrt(0.625f))
   }
 
   @Test
   fun increasingFixedQuality_neverLowersTheResolvedProfile() {
     val profiles = listOf(0f, 0.25f, 0.5f, 0.75f, 1f).map { qualityFraction ->
-      BlurInputScalePolicy().resolve(HazePerformanceMode.Fixed(qualityFraction))
+      HazePerformanceMode.Fixed(qualityFraction).resolveBlurInputScale()
     }
 
     assertThat(profiles).containsExactly(0.5f, sqrt(0.4375f), sqrt(0.625f), sqrt(0.8125f), 1f)
@@ -74,7 +72,7 @@ class BlurInputScalePolicyTest {
   @Test
   @Suppress("DEPRECATION")
   fun adaptiveCompatibilityAlias_usesBalancedProfile() {
-    assertThat(BlurInputScalePolicy().resolve(HazePerformanceMode.Adaptive))
-      .isEqualTo(BlurInputScalePolicy().resolve(HazePerformanceMode.Balanced))
+    assertThat(HazePerformanceMode.Adaptive.resolveBlurInputScale())
+      .isEqualTo(HazePerformanceMode.Balanced.resolveBlurInputScale())
   }
 }

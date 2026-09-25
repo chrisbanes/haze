@@ -665,14 +665,6 @@ HSPLdev/chrisbanes/haze/blur/BlurHelpersKt;->drawScrim-DBWKusU(Landroidx/compose
 Ldev/chrisbanes/haze/blur/BlurHelpersKt$$ExternalSyntheticLambda3;
 HSPLdev/chrisbanes/haze/blur/BlurHelpersKt$$ExternalSyntheticLambda3;-><init>(JFLdev/chrisbanes/haze/HazeEffectRuntimeDrawScope;)V
 HSPLdev/chrisbanes/haze/blur/BlurHelpersKt$$ExternalSyntheticLambda3;->invoke(Ljava/lang/Object;)Ljava/lang/Object;
-Ldev/chrisbanes/haze/blur/BlurInputScalePolicy;
-HSPLdev/chrisbanes/haze/blur/BlurInputScalePolicy;-><clinit>()V
-HSPLdev/chrisbanes/haze/blur/BlurInputScalePolicy;-><init>()V
-HSPLdev/chrisbanes/haze/blur/BlurInputScalePolicy;->resolve(Ldev/chrisbanes/haze/HazePerformanceMode;)F
-HSPLdev/chrisbanes/haze/blur/BlurInputScalePolicy;->resolveFixedProfile(F)F
-Ldev/chrisbanes/haze/blur/BlurInputScalePolicy$Companion;
-HSPLdev/chrisbanes/haze/blur/BlurInputScalePolicy$Companion;-><init>()V
-HSPLdev/chrisbanes/haze/blur/BlurInputScalePolicy$Companion;-><init>(Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 Ldev/chrisbanes/haze/blur/BlurRenderEffectKt;
 HSPLdev/chrisbanes/haze/blur/BlurRenderEffectKt;->combinedNoiseTintColor(Ldev/chrisbanes/haze/blur/RenderEffectParams;)Landroidx/compose/ui/graphics/Color;
 HSPLdev/chrisbanes/haze/blur/BlurRenderEffectKt;->createRenderEffect(Landroid/content/Context;Landroidx/compose/ui/unit/Density;Ldev/chrisbanes/haze/blur/RenderEffectParams;)Landroid/graphics/RenderEffect;
@@ -1181,12 +1173,6 @@ PLdev/chrisbanes/haze/glass/GlassGroupAlphaLayerKt;->requiresGlassGroupAlpha(F)Z
 PLdev/chrisbanes/haze/glass/GlassHazeEffectFactory;-><clinit>()V
 PLdev/chrisbanes/haze/glass/GlassHazeEffectFactory;-><init>()V
 PLdev/chrisbanes/haze/glass/GlassHazeEffectFactory;->createRenderer()Ldev/chrisbanes/haze/HazeEffectRenderer;
-PLdev/chrisbanes/haze/glass/GlassInputScalePolicy;-><clinit>()V
-PLdev/chrisbanes/haze/glass/GlassInputScalePolicy;-><init>()V
-HPLdev/chrisbanes/haze/glass/GlassInputScalePolicy;->resolve(Ldev/chrisbanes/haze/HazePerformanceMode;)F
-PLdev/chrisbanes/haze/glass/GlassInputScalePolicy;->resolveFixedScale(F)F
-PLdev/chrisbanes/haze/glass/GlassInputScalePolicy$Companion;-><init>()V
-PLdev/chrisbanes/haze/glass/GlassInputScalePolicy$Companion;-><init>(Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 PLdev/chrisbanes/haze/glass/GlassInteractionController;-><clinit>()V
 HPLdev/chrisbanes/haze/glass/GlassInteractionController;-><init>(Ldev/chrisbanes/haze/HazeEffectLifecycleScope;)V
 PLdev/chrisbanes/haze/glass/GlassInteractionController;->access$getInvalidateDraw$p(Ldev/chrisbanes/haze/glass/GlassInteractionController;)Lkotlin/reflect/KFunction;

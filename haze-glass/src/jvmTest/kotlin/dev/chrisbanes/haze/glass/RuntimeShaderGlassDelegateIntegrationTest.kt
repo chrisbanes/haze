@@ -425,7 +425,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
     assertThat(
       (runtime(smallEffect).preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor,
-    ).isEqualTo(GlassInputScalePolicy().resolve(HazePerformanceMode.Balanced))
+    ).isEqualTo(HazePerformanceMode.Balanced.resolveGlassInputScale())
 
     val largeEffect = activeDetailEffect()
     setContent {
@@ -438,7 +438,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
     assertThat(
       (runtime(largeEffect).preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor,
-    ).isEqualTo(GlassInputScalePolicy().resolve(HazePerformanceMode.Balanced))
+    ).isEqualTo(HazePerformanceMode.Balanced.resolveGlassInputScale())
   }
 
   @Test
