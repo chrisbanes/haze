@@ -415,6 +415,41 @@ class HazeEffectInputTest {
   }
 
   @Test
+  fun effectSizeChange_invalidatesRetainedOutputWithoutClearingIt() = runComposeUiTest {
+    val state = HazeState()
+    val factory = RecordingRendererFactory(::RetainedOutputRenderer)
+    val effectSize = mutableStateOf(100.dp)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        source(state, "source", 0f, Color.Red)
+        Box(
+          Modifier
+            .size(effectSize.value)
+            .hazeEffect(
+              factory = factory,
+              input = HazeInput.Sources(
+                state = state,
+                retention = HazeSourceRetention.ClearWhenUnavailable,
+              ),
+              style = Unit,
+            ),
+        )
+      }
+    }
+    waitForIdle()
+
+    val renderer = factory.renderers.single()
+    val clearsBeforeResize = renderer.clearCalls
+    val invalidationsBeforeResize = renderer.invalidateCalls
+    effectSize.value = 60.dp
+    waitForIdle()
+
+    assertThat(renderer.invalidateCalls).isGreaterThan(invalidationsBeforeResize)
+    assertThat(renderer.clearCalls).isEqualTo(clearsBeforeResize)
+  }
+
+  @Test
   fun sourcesClearWhenUnavailable_clearsRetainedOutput() = runComposeUiTest {
     val state = HazeState()
     val factory = RecordingRendererFactory(::RetainedOutputRenderer)
@@ -639,6 +674,7 @@ private class RetainedOutputRenderer :
   HazeEffectRendererRetainedOutput {
   var drawCalls = 0
   var clearCalls = 0
+  var invalidateCalls = 0
 
   override fun HazeEffectDrawScope.draw(style: Unit) {
     drawCalls++
@@ -649,6 +685,10 @@ private class RetainedOutputRenderer :
 
   override fun clearRetainedOutput() {
     clearCalls++
+  }
+
+  override fun invalidateRetainedOutput() {
+    invalidateCalls++
   }
 }
 

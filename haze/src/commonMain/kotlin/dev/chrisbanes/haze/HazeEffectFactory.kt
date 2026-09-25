@@ -211,6 +211,16 @@ public interface HazeEffectRendererRetainedOutput {
 
   /** Releases and clears all retained output. */
   public fun clearRetainedOutput()
+
+  /**
+   * Marks retained output stale because the effect's size or layer size changed.
+   *
+   * Unlike [clearRetainedOutput], resources may be kept so the next draw can record into them
+   * again. Replacing them on each size change can leave anything drawing this effect's output with
+   * an empty input for a frame, and an effect moving across a source changes size every frame.
+   * Defaults to [clearRetainedOutput].
+   */
+  public fun invalidateRetainedOutput(): Unit = clearRetainedOutput()
 }
 
 /** Built-in-only pointer and content-transform capability. */

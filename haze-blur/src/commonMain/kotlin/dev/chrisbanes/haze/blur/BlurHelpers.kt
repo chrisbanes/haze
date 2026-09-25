@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toIntSize
+import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.InternalHazeApi
@@ -142,6 +143,11 @@ internal fun DrawScope.createScaledContentLayer(
       with(context) { this@record.drawInput() }
     }
   }
+  // The outline a clipped layer clips to, set to the size just recorded. Skia-backed
+  // GraphicsLayers cache their outline and a re-record at a new size does not replace it, so a
+  // reused layer would keep clipping to the size it was first recorded at. This is a no-op when
+  // the size is unchanged.
+  layer.setRectOutline(size = scaledLayerSize.toSize())
 
   return layer
 }
