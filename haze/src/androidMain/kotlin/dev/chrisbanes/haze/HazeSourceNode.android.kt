@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import android.content.Context
 import android.content.ContextWrapper
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
@@ -25,6 +26,8 @@ internal actual fun HazeSourceNode.clearHazeAreaLayerOnStop() {
     }
   }
 }
+
+internal actual fun shouldRefreshHazeSourceLayerOnPlacement(): Boolean = Build.VERSION.SDK_INT < 31
 
 private tailrec fun Context.findActivityOrNull(): ComponentActivity? = when (this) {
   is ComponentActivity -> this

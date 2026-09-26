@@ -79,6 +79,7 @@ class BlurBackdropFallbackInstrumentationTest {
             .hazeBlur(
               input = HazeInput.Backdrop(fallbackState),
               style = HazeBlurStyle {
+                blurEnabled(true)
                 blurRadius(14.dp)
                 noiseFactor(0f)
                 colorEffects(emptyList())

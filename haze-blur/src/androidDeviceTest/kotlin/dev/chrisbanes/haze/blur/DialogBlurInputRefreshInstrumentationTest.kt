@@ -66,6 +66,7 @@ class DialogBlurInputRefreshInstrumentationTest {
               .hazeBlur(
                 input = HazeInput.Sources(hazeState),
                 style = HazeBlurStyle {
+                  blurEnabled(true)
                   blurRadius(8.dp)
                   noiseFactor(0f)
                   backgroundColor(Color.Transparent)

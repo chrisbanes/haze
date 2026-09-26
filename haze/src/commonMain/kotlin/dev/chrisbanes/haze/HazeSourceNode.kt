@@ -239,6 +239,12 @@ internal class HazeSourceNode(
         source = "onPlaced",
         updateScreenPosition = area.coordinates.screenPosition.isUnspecified,
       )
+      // A lazy child can change its own layer during placement without re-recording this source.
+      // Legacy software effects need a fresh source layer and content version for the next blur.
+      if (shouldRefreshHazeSourceLayerOnPlacement() && area.contentLayer != null) {
+        area.releaseLayer()
+        invalidateDraw()
+      }
     }
   }
 
@@ -373,3 +379,5 @@ internal class HazeSourceNode(
 }
 
 internal expect fun HazeSourceNode.clearHazeAreaLayerOnStop()
+
+internal expect fun shouldRefreshHazeSourceLayerOnPlacement(): Boolean
