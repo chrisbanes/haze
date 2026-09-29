@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 2.0.1 <small>2026-09-29</small> { id="2.0.1" }
+
 ### Changed
 
 - Built-in Regular and Clear Glass styles now follow the Compose host's system light or dark

@@ -1,0 +1,10 @@
+// Signature format: 4.0
+package dev.chrisbanes.haze.glass.material3 {
+
+  public final class GlassMaterial3Kt {
+    method @KotlinOnly @androidx.compose.runtime.Composable @dev.chrisbanes.haze.ExperimentalHazeApi public static dev.chrisbanes.haze.glass.GlassStyle Material3(dev.chrisbanes.haze.glass.GlassStyle.Companion, optional androidx.compose.ui.graphics.Color containerColor, optional androidx.compose.ui.graphics.Color? tint);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable @dev.chrisbanes.haze.ExperimentalHazeApi public static dev.chrisbanes.haze.glass.GlassStyle Material3(dev.chrisbanes.haze.glass.GlassStyle.Companion, optional androidx.compose.ui.graphics.Color containerColor, optional androidx.compose.ui.graphics.Color? tint, kotlin.jvm.functions.Function1<dev.chrisbanes.haze.glass.GlassStyleScope,kotlin.Unit> block);
+    method @KotlinOnly @androidx.compose.runtime.Composable @dev.chrisbanes.haze.ExperimentalHazeApi public static dev.chrisbanes.haze.glass.GlassStyle material3(dev.chrisbanes.haze.glass.GlassStyle, optional androidx.compose.ui.graphics.Color containerColor, optional androidx.compose.ui.graphics.Color? tint);
+  }
+
+}
