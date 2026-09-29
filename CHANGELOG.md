@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Built-in Regular and Clear Glass styles now follow the Compose host's system light or dark
+  appearance, including when no style is supplied
+  ([#1349](https://github.com/chrisbanes/haze/pull/1349)).
+- `HazePerformanceMode.Default` now selects the fixed `Balanced` profile for built-in Blur and
+  Glass. `Adaptive` remains as a deprecated compatibility alias and no longer adjusts quality
+  automatically ([#1362](https://github.com/chrisbanes/haze/pull/1362)).
+- Updated Compose Multiplatform to 1.12.1, AndroidX Core to 1.19.1, and AndroidX Tracing to 2.0.3
+  ([#1343](https://github.com/chrisbanes/haze/pull/1343),
+  [#1352](https://github.com/chrisbanes/haze/pull/1352),
+  [#1353](https://github.com/chrisbanes/haze/pull/1353), by
+  [Renovate](https://github.com/apps/renovate)).
+- Documented iOS UIKit interop placement and pixel-capture limits
+  ([#1347](https://github.com/chrisbanes/haze/pull/1347)).
+
+### Fixed
+
+- Avoided unnecessary effect redraws when an effect and its sources move together during screen
+  transitions ([#1351](https://github.com/chrisbanes/haze/pull/1351), by
+  [Tae Hagen](https://github.com/TaeHagen)).
+- Kept the Blur capture layer across size changes to avoid flicker during transitions such as
+  opening a bottom sheet ([#1361](https://github.com/chrisbanes/haze/pull/1361), by
+  [Tae Hagen](https://github.com/TaeHagen)).
+- Stopped observing source selection after a Blur effect detaches
+  ([#1356](https://github.com/chrisbanes/haze/pull/1356)).
+- Presented the first asynchronous RenderScript Blur result without requiring another content
+  redraw ([#1364](https://github.com/chrisbanes/haze/pull/1364)).
+- Refreshed RenderScript Blur when source children move during scrolling on Android below API 31,
+  preventing a stale captured image ([#1367](https://github.com/chrisbanes/haze/pull/1367)).
+
 ## 2.0.0 <small>2026-09-22</small> { id="2.0.0" }
 
 Haze 2.0 rebuilds the library around typed, modular visual effects. Blur moves into its own
