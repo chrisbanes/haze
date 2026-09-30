@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -25,6 +27,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -95,6 +98,23 @@ class GlassSpringScaleTest : ContextTest() {
         onNodeWithTag("glass").captureToImage()
         assertThat(effect.currentContentTransform()).isEqualTo(HazeEffectContentTransform.Identity)
         assertThat(effect.currentMaterialTransform(size)).isEqualTo(HazeEffectContentTransform.Identity)
+      }
+    }
+  }
+
+  @Test
+  fun frameInvalidation_completesSourceBackedDrawForBothTargets() {
+    listOf(GlassTransformTarget.MaterialOnly, GlassTransformTarget.MaterialAndContent).forEach { target ->
+      runComposeUiTest {
+        mainClock.autoAdvance = false
+        val fixture = attach(target, GlassStyle.regular)
+        assertThat(fixture.completedDraws).isGreaterThan(0)
+        val before = fixture.completedDraws
+        frames(fixture, 1)
+        assertThat(fixture.completedDraws).isGreaterThan(before)
+        val image = onNodeWithTag("glass").captureToImage()
+        val center = image.toPixelMap()[image.width / 2, image.height / 2]
+        assertThat(center.red).isGreaterThan(center.blue)
       }
     }
   }
@@ -196,6 +216,8 @@ class GlassSpringScaleTest : ContextTest() {
     val source: MutableInteractionSource,
     val target: GlassTransformTarget,
   ) {
+    var completedDraws = 0
+
     fun emit(interaction: Interaction) {
       val scope = TestScope()
       scope.launch { source.emit(interaction) }
@@ -219,7 +241,10 @@ class GlassSpringScaleTest : ContextTest() {
       Box(Modifier.size(120.dp)) {
         Box(Modifier.fillMaxSize().hazeSource(state).background(Color.Red))
         Box(
-          Modifier.fillMaxSize().testTag("glass").hazeGlass(
+          Modifier.fillMaxSize().testTag("glass").drawWithContent {
+            drawContent()
+            fixture.completedDraws++
+          }.hazeGlass(
             factory = HazeEffectFactory { fixture.effect },
             input = HazeInput.Sources(state),
             style = style,
@@ -241,14 +266,25 @@ class GlassSpringScaleTest : ContextTest() {
     count: Int,
     sample: (HazeEffectContentTransform) -> Unit = {},
   ) {
-    repeat(count) {
+    var capturedFloor = false
+    var capturedOvershoot = false
+    repeat(count) { frame ->
+      val before = fixture.completedDraws
+      checkNotNull(fixture.effect.attachedContextForTest).invalidateDraw()
       mainClock.advanceTimeByFrame()
       waitForIdle()
-      // Force the actual source-backed draw, including both transform consumers.
-      onNodeWithTag("glass").captureToImage()
+      // The observer increments only after source-backed Glass drawing succeeds.
+      assertThat(fixture.completedDraws).isGreaterThan(before)
       val transform = fixture.transform()
       assertThat(transform.scaleX.isFinite() && transform.scaleX > 0f).isTrue()
       assertThat(transform.scaleY.isFinite() && transform.scaleY > 0f).isTrue()
+      val floor = transform.scaleX == Float.MIN_VALUE || transform.scaleY == Float.MIN_VALUE
+      val overshoot = transform.scaleX > 1f || transform.scaleY > 1f
+      if (frame == 0 || frame == count - 1 || (floor && !capturedFloor) || (overshoot && !capturedOvershoot)) {
+        onNodeWithTag("glass").captureToImage()
+        capturedFloor = capturedFloor || floor
+        capturedOvershoot = capturedOvershoot || overshoot
+      }
       sample(transform)
     }
   }
