@@ -211,18 +211,7 @@ internal class RuntimeShaderGlassDelegate(
         clearRetainedMetadata()
       }
 
-      preparedSourceAvailable = layers.hasSource
-      preparedStageAvailability = if (supportsFusedGlassRenderEffect) {
-        GlassStageAvailability(
-          blur = true,
-          depth = true,
-          optical = layers.hasOptical,
-          detail = true,
-          rim = currentRenderEffects.rim == null || layers.hasRim,
-        )
-      } else {
-        stageAvailability(params = params, effects = currentRenderEffects)
-      }
+      refreshPreparedAvailability(params, currentRenderEffects)
 
       val blurRequired = !supportsFusedGlassRenderEffect && shouldBlur(params, currentRenderEffects)
       val depthMixRequired =
@@ -595,6 +584,7 @@ internal class RuntimeShaderGlassDelegate(
           }
           lastSuccessfulStageInputs = currentInputs
           retainedOutputAvailable = true
+          refreshPreparedAvailability(params, effects)
           completed = true
           return
         }
@@ -832,6 +822,7 @@ internal class RuntimeShaderGlassDelegate(
         }
         lastSuccessfulStageInputs = currentInputs
         retainedOutputAvailable = true
+        refreshPreparedAvailability(params, effects)
         completed = true
       } finally {
         if (!completed) {
@@ -1062,6 +1053,21 @@ internal class RuntimeShaderGlassDelegate(
     effects.rim == null -> Unit
     layers.hasRim -> Unit
     else -> null
+  }
+
+  private fun refreshPreparedAvailability(params: GlassRenderParams, effects: GlassRenderEffects) {
+    preparedSourceAvailable = layers.hasSource
+    preparedStageAvailability = if (supportsFusedGlassRenderEffect) {
+      GlassStageAvailability(
+        blur = true,
+        depth = true,
+        optical = layers.hasOptical,
+        detail = true,
+        rim = effects.rim == null || layers.hasRim,
+      )
+    } else {
+      stageAvailability(params = params, effects = effects)
+    }
   }
 
   private fun stageAvailability(
