@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
@@ -32,7 +31,14 @@ import assertk.assertions.isNotEqualTo
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectContentTransform
+import dev.chrisbanes.haze.HazeEffectDrawScope
 import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeEffectRenderer
+import dev.chrisbanes.haze.HazeEffectRendererBackdrop
+import dev.chrisbanes.haze.HazeEffectRendererDrawHooks
+import dev.chrisbanes.haze.HazeEffectRendererInteraction
+import dev.chrisbanes.haze.HazeEffectRendererLifecycle
+import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeState
@@ -51,6 +57,7 @@ class GlassSpringScaleTest : ContextTest() {
       runComposeUiTest {
         val source = MutableInteractionSource()
         val effect = GlassRuntimeEffect()
+        val renderer = ObservedGlassRenderer(effect)
         val state = HazeState()
         val style = GlassStyle.regular.then { pressed { scale(Float.MIN_VALUE, Float.MIN_VALUE) } }
         setContent {
@@ -58,7 +65,7 @@ class GlassSpringScaleTest : ContextTest() {
             Box(Modifier.fillMaxSize().hazeSource(state).background(Color.Red))
             Box(
               Modifier.fillMaxSize().testTag("glass").hazeGlass(
-                factory = HazeEffectFactory { effect },
+                factory = HazeEffectFactory { renderer },
                 input = HazeInput.Sources(state),
                 style = style,
                 performanceMode = HazePerformanceMode.Quality,
@@ -71,11 +78,14 @@ class GlassSpringScaleTest : ContextTest() {
           }
         }
         waitForIdle()
+        val before = renderer.completedDraws
         val press = PressInteraction.Press(Offset(60f, 60f))
         val scope = TestScope()
         scope.launch { source.emit(press) }
         scope.testScheduler.runCurrent()
         waitForIdle()
+        assertThat(renderer.completedDraws).isGreaterThan(before)
+        assertThat(effect.canDrawRetainedOutput()).isTrue()
         onNodeWithTag("glass").captureToImage()
         val size = checkNotNull(effect.attachedContextForTest).modifierSize
         val selected = if (target == GlassTransformTarget.MaterialOnly) {
@@ -107,14 +117,14 @@ class GlassSpringScaleTest : ContextTest() {
     listOf(GlassTransformTarget.MaterialOnly, GlassTransformTarget.MaterialAndContent).forEach { target ->
       runComposeUiTest {
         mainClock.autoAdvance = false
-        val fixture = attach(target, GlassStyle.regular)
+        val fixture = attach(target, GlassStyle.regular.then { tint(Color.Blue) })
         assertThat(fixture.completedDraws).isGreaterThan(0)
         val before = fixture.completedDraws
         frames(fixture, 1)
         assertThat(fixture.completedDraws).isGreaterThan(before)
         val image = onNodeWithTag("glass").captureToImage()
         val center = image.toPixelMap()[image.width / 2, image.height / 2]
-        assertThat(center.red).isGreaterThan(center.blue)
+        assertThat(center.blue).isGreaterThan(center.red)
       }
     }
   }
@@ -216,7 +226,8 @@ class GlassSpringScaleTest : ContextTest() {
     val source: MutableInteractionSource,
     val target: GlassTransformTarget,
   ) {
-    var completedDraws = 0
+    val renderer = ObservedGlassRenderer(effect)
+    val completedDraws: Int get() = renderer.completedDraws
 
     fun emit(interaction: Interaction) {
       val scope = TestScope()
@@ -234,6 +245,23 @@ class GlassSpringScaleTest : ContextTest() {
     }
   }
 
+  private class ObservedGlassRenderer(
+    private val effect: GlassRuntimeEffect,
+  ) : HazeEffectRenderer<GlassNodeConfiguration> by effect,
+    HazeEffectRendererBackdrop<GlassNodeConfiguration> by effect,
+    HazeEffectRendererLifecycle<GlassNodeConfiguration> by effect,
+    HazeEffectRendererDrawHooks<GlassNodeConfiguration> by effect,
+    HazeEffectRendererRetainedOutput by effect,
+    HazeEffectRendererInteraction by effect {
+    var completedDraws = 0
+
+    override fun HazeEffectDrawScope.draw(style: GlassNodeConfiguration) {
+      with(effect) { draw(style) }
+      assertThat(effect.canDrawRetainedOutput()).isTrue()
+      completedDraws++
+    }
+  }
+
   private fun ComposeUiTest.attach(target: GlassTransformTarget, style: GlassStyle): Fixture {
     val fixture = Fixture(GlassRuntimeEffect(), MutableInteractionSource(), target)
     val state = HazeState()
@@ -241,13 +269,11 @@ class GlassSpringScaleTest : ContextTest() {
       Box(Modifier.size(120.dp)) {
         Box(Modifier.fillMaxSize().hazeSource(state).background(Color.Red))
         Box(
-          Modifier.fillMaxSize().testTag("glass").drawWithContent {
-            drawContent()
-            fixture.completedDraws++
-          }.hazeGlass(
-            factory = HazeEffectFactory { fixture.effect },
+          Modifier.fillMaxSize().testTag("glass").hazeGlass(
+            factory = HazeEffectFactory { fixture.renderer },
             input = HazeInput.Sources(state),
-            style = style,
+            // Distinguish successful material output from the unfiltered red source.
+            style = style.then { tint(Color.Blue) },
             performanceMode = HazePerformanceMode.Quality,
             expandLayerBounds = true,
             interactionSource = fixture.source,
@@ -273,15 +299,21 @@ class GlassSpringScaleTest : ContextTest() {
       checkNotNull(fixture.effect.attachedContextForTest).invalidateDraw()
       mainClock.advanceTimeByFrame()
       waitForIdle()
-      // The observer increments only after source-backed Glass drawing succeeds.
+      // The renderer observer increments only after Glass draw returns with valid retained output.
       assertThat(fixture.completedDraws).isGreaterThan(before)
+      assertThat(fixture.effect.canDrawRetainedOutput()).isTrue()
       val transform = fixture.transform()
       assertThat(transform.scaleX.isFinite() && transform.scaleX > 0f).isTrue()
       assertThat(transform.scaleY.isFinite() && transform.scaleY > 0f).isTrue()
       val floor = transform.scaleX == Float.MIN_VALUE || transform.scaleY == Float.MIN_VALUE
       val overshoot = transform.scaleX > 1f || transform.scaleY > 1f
       if (frame == 0 || frame == count - 1 || (floor && !capturedFloor) || (overshoot && !capturedOvershoot)) {
-        onNodeWithTag("glass").captureToImage()
+        val image = onNodeWithTag("glass").captureToImage()
+        // Subpixel scales can legitimately reveal the source; their renderer draw is checked above.
+        if (transform.scaleX >= 0.1f && transform.scaleY >= 0.1f) {
+          val center = image.toPixelMap()[image.width / 2, image.height / 2]
+          assertThat(center.blue).isGreaterThan(center.red)
+        }
         capturedFloor = capturedFloor || floor
         capturedOvershoot = capturedOvershoot || overshoot
       }
