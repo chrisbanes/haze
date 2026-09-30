@@ -219,8 +219,8 @@ internal class GlassInteractionController(
       val lightingIntensity = lightingIntensity.currentValue
       val refractionMultiplier = refractionMultiplier.currentValue
       val whitePointDelta = whitePointDelta.currentValue
-      val scaleX = if (configuration.reducedMotion) 1f else scaleX.currentValue
-      val scaleY = if (configuration.reducedMotion) 1f else scaleY.currentValue
+      val scaleX = if (configuration.reducedMotion) 1f else scaleX.currentValue.validScaleForRender()
+      val scaleY = if (configuration.reducedMotion) 1f else scaleY.currentValue.validScaleForRender()
       return renderStateSnapshot.takeIf {
         it.position == position &&
           it.lightingIntensity == lightingIntensity &&
@@ -638,3 +638,10 @@ private object FullMotionDurationScale : MotionDurationScale {
 }
 
 private fun Offset.validOrNull(): Offset? = takeIf { x.isFinite() && y.isFinite() }
+
+// Accepted spring targets can overshoot; constrain derived samples without changing authored validation.
+internal fun Float.validScaleForRender(): Float = when {
+  !isFinite() -> 1f
+  this > 0f -> this
+  else -> Float.MIN_VALUE
+}

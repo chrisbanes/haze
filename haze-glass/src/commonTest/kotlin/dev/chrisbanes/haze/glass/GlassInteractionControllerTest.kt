@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.HoverInteraction
@@ -37,6 +38,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isSameInstanceAs
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectContentTransform
 import dev.chrisbanes.haze.HazeEffectFactory
@@ -774,6 +776,107 @@ class GlassInteractionControllerTest : ContextTest() {
         nextSignals = GlassInteractionSignals(rawHovered = true),
       ),
     ).isSameInstanceAs(pressFrom)
+  }
+
+  @Test
+  fun derivedScale_preservesPositiveSamplesAndBoundsInvalidSamples() {
+    listOf(Float.MIN_VALUE, 0.000001f, 0.1f, 1f, 1.2f, Float.MAX_VALUE).forEach {
+      assertThat(it.validScaleForRender()).isEqualTo(it)
+    }
+    listOf(0f, -0f, -0.1f).forEach {
+      assertThat(it.validScaleForRender()).isEqualTo(Float.MIN_VALUE)
+    }
+    listOf(Float.NaN, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY).forEach {
+      assertThat(it.validScaleForRender()).isEqualTo(1f)
+    }
+  }
+
+  @Test
+  fun controller_springScalePreservesMotionPoliciesAtZeroSystemScale() {
+    listOf(GlassReducedMotionPolicy.Reduced, GlassReducedMotionPolicy.System, GlassReducedMotionPolicy.Full).forEach { policy ->
+      runComposeUiTest {
+        mainClock.autoAdvance = false
+        val effect = GlassRuntimeEffect().apply {
+          interactionReducedMotionPolicy = policy
+          style = style.then {
+            pressed {
+              animate(spring(dampingRatio = 0.5f, stiffness = 200f), tween(100)) {
+                scale(0.1f)
+                lightingIntensity(1f)
+                refractionMultiplier(1.2f)
+                whitePointDelta(0.2f)
+              }
+            }
+          }
+        }
+        setContent { Box(Modifier.size(100.dp).testGlass(effect)) }
+        waitForIdle()
+        val controller = checkNotNull(runtime(effect).interactionControllerForTest)
+        controller.updateConfiguration(effect.runtimeConfiguration(systemMotionScale = 0f))
+        controller.updateSignals(GlassInteractionSignals(rawPressed = true))
+        repeat(4) { mainClock.advanceTimeByFrame() }
+        waitForIdle()
+        val state = controller.renderState
+        if (policy == GlassReducedMotionPolicy.Full) {
+          assertThat(state.scaleX).isGreaterThan(0.1f)
+          assertThat(state.scaleX).isLessThan(1f)
+          assertThat(state.scaleY).isEqualTo(state.scaleX)
+        } else {
+          assertThat(state.scaleX).isEqualTo(1f)
+          assertThat(state.scaleY).isEqualTo(1f)
+          assertThat(state.lightingIntensity).isEqualTo(1f)
+          assertThat(state.refractionMultiplier).isEqualTo(1.2f)
+          assertThat(state.whitePointDelta).isEqualTo(0.2f)
+        }
+      }
+    }
+  }
+
+  @Test
+  fun controller_springScaleRemainsPositiveOnEachAxis() {
+    listOf(0.1f to 1f, 1f to 0.1f, 0.000001f to Float.MIN_VALUE).forEach { (x, y) ->
+      runComposeUiTest {
+        mainClock.autoAdvance = false
+        val effect = GlassRuntimeEffect().apply {
+          style = style.then {
+            pressed {
+              animate(spring(dampingRatio = 0.5f, stiffness = 200f), spring(dampingRatio = 0.5f, stiffness = 200f)) {
+                scale(x, y)
+              }
+            }
+          }
+          interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+        }
+        setContent { Box(Modifier.size(100.dp).testGlass(effect)) }
+        waitForIdle()
+        val controller = checkNotNull(runtime(effect).interactionControllerForTest)
+        controller.updateConfiguration(effect.runtimeConfiguration(systemMotionScale = 1f))
+        controller.updateSignals(GlassInteractionSignals(rawPressed = true))
+        var floored = false
+        repeat(300) {
+          mainClock.advanceTimeByFrame()
+          waitForIdle()
+          val state = controller.renderState
+          assertThat(state.scaleX.isFinite() && state.scaleX > 0f).isTrue()
+          assertThat(state.scaleY.isFinite() && state.scaleY > 0f).isTrue()
+          if (x == 1f) assertThat(state.scaleX).isEqualTo(1f)
+          if (y == 1f) assertThat(state.scaleY).isEqualTo(1f)
+          floored = floored || state.scaleX == Float.MIN_VALUE || state.scaleY == Float.MIN_VALUE
+        }
+        if (x == 0.1f || y == 0.1f) assertThat(floored).isTrue()
+        assertThat(controller.renderState.scaleX).isEqualTo(x)
+        assertThat(controller.renderState.scaleY).isEqualTo(y)
+        controller.updateSignals(GlassInteractionSignals())
+        repeat(300) {
+          mainClock.advanceTimeByFrame()
+          waitForIdle()
+          assertThat(controller.renderState.scaleX.isFinite() && controller.renderState.scaleX > 0f).isTrue()
+          assertThat(controller.renderState.scaleY.isFinite() && controller.renderState.scaleY > 0f).isTrue()
+        }
+        assertThat(controller.renderState.scaleX).isEqualTo(1f)
+        assertThat(controller.renderState.scaleY).isEqualTo(1f)
+      }
+    }
   }
 
   @Test
