@@ -122,8 +122,9 @@ class ProgressiveBlurBoundsInstrumentationTest {
     rule.waitForIdle()
     val forward = capture()
 
-    // Quarter/centre/three-quarter probes on either side of the checker edges.
-    val positions = listOf(0.25f, 0.5f, 0.75f)
+    // Probe checker edges and tile centres. Edge-only probes cluster near mid-grey
+    // even when a correctly blurred checker still has strong contrast inside each tile.
+    val positions = listOf(3f / 16, 0.25f, 0.5f, 0.75f, 13f / 16)
     var differsFromForward = false
     var darkest = 1f
     var lightest = 0f
