@@ -232,12 +232,17 @@ internal fun DrawScope.drawProgressiveWithMultipleLayers(
   stepHeight: Dp = 64.dp,
   block: (mask: Brush, intensity: Float) -> Unit,
 ) {
-  // Here we're going to calculate an appropriate amount of steps for the length.
-  // We use a calculation of 60dp per step, which is a good balance between
-  // quality vs performance
+  // Use 64dp per step to balance quality and drawing work.
   val stepHeightPx = with(drawContext.density) { stepHeight.toPx() }
   val length = calculateLength(progressive.start, progressive.end, size)
-  val steps = ceil(length / stepHeightPx).toInt().coerceAtLeast(2)
+  // Reject invalid arithmetic before drawing, leaving room for the inclusive final layer.
+  require(length.isFinite() && length >= 0f) { "Gradient length must be finite and nonnegative" }
+  require(stepHeightPx.isFinite() && stepHeightPx > 0f) { "Step height must be finite and positive" }
+  val derivedSteps = ceil(length / stepHeightPx)
+  require(derivedSteps.isFinite() && derivedSteps.toDouble() <= Int.MAX_VALUE.toDouble() - 1) {
+    "Gradient layer count exceeds the supported integer range"
+  }
+  val steps = derivedSteps.toInt().coerceAtLeast(2)
 
   val seq = when {
     progressive.endIntensity >= progressive.startIntensity -> 0..steps
