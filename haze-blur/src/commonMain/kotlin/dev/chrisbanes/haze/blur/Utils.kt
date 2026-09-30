@@ -14,11 +14,12 @@ internal fun calculateLength(
   end: Offset,
   size: Size,
 ): Float {
-  // Match Compose brushes: only positive infinity is relative to the drawing bounds.
+  // Resolve bounds-relative infinity, retaining the baseline finite-END work estimate.
+  // This estimate controls sampling only; mask brushes keep their authored endpoints.
   val startX = if (start.x == Float.POSITIVE_INFINITY) size.width else start.x
   val startY = if (start.y == Float.POSITIVE_INFINITY) size.height else start.y
-  val endX = if (end.x == Float.POSITIVE_INFINITY) size.width else end.x
-  val endY = if (end.y == Float.POSITIVE_INFINITY) size.height else end.y
+  val endX = (if (end.x == Float.POSITIVE_INFINITY) size.width else end.x).coerceAtMost(size.width)
+  val endY = (if (end.y == Float.POSITIVE_INFINITY) size.height else end.y).coerceAtMost(size.height)
   return hypot(endX - startX, endY - startY)
 }
 

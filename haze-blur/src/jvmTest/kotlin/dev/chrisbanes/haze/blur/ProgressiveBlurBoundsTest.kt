@@ -24,9 +24,88 @@ import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import dev.chrisbanes.haze.HazeProgressive
+import kotlin.math.ceil
+import kotlin.math.hypot
 import kotlin.test.Test
 
 class ProgressiveBlurBoundsTest {
+  @Test
+  fun finiteInputs_preserveBaselineLayersIntensitiesAndMasks() {
+    val quadratic = Easing { it * it }
+    val fixtures = listOf(
+      FiniteFixture(gradient(Offset.Zero, Offset(128f, 0f)), 3),
+      FiniteFixture(gradient(Offset(128f, 0f), Offset.Zero), 3),
+      FiniteFixture(gradient(Offset.Zero, Offset(0f, 192f)), 3),
+      FiniteFixture(gradient(Offset(0f, 128f), Offset.Zero), 3),
+      FiniteFixture(gradient(Offset(-64f, 0f), Offset(128f, 0f)), 3),
+      FiniteFixture(gradient(Offset.Zero, Offset(-192f, 0f)), 4),
+      FiniteFixture(gradient(Offset.Zero, Offset(Float.MAX_VALUE, 0f)), 3),
+      FiniteFixture(gradient(Offset.Zero, Offset(128f, 0f), 0.25f, 0.75f), 3),
+      FiniteFixture(gradient(Offset.Zero, Offset(128f, 0f), 0.75f, 0.25f), 3),
+      FiniteFixture(
+        HazeProgressive.LinearGradient(
+          start = Offset(-64f, 0f),
+          end = Offset(128f, 0f),
+          startIntensity = 0.75f,
+          endIntensity = 0.25f,
+          easing = quadratic,
+        ),
+        3,
+      ),
+      FiniteFixture(gradient(Offset.Zero, Offset(76.8f, 0f)), 4, Size(128f, 128f), Density(0.4f)),
+      FiniteFixture(gradient(Offset.Zero, Offset(127.99999f, 0f)), 3, Size(256f, 256f)),
+      FiniteFixture(gradient(Offset.Zero, Offset(128f, 0f)), 3, Size(256f, 256f)),
+      FiniteFixture(gradient(Offset.Zero, Offset(128.00002f, 0f)), 4, Size(256f, 256f)),
+      FiniteFixture(gradient(Offset(16f, 16f), Offset(16f, 16f)), 3),
+    )
+    for (fixture in fixtures) {
+      val progressive = fixture.progressive
+      // Oracle copied from fixed base f46e03ee, independent of production's work estimate.
+      val end = Offset(
+        progressive.end.x.coerceAtMost(fixture.size.width),
+        progressive.end.y.coerceAtMost(fixture.size.height),
+      )
+      val length = hypot(end.x - progressive.start.x, end.y - progressive.start.y)
+      val stepHeight = with(fixture.density) { 64.dp.toPx() }
+      val steps = ceil(length / stepHeight).toInt().coerceAtLeast(2)
+      assertThat(steps + 1).isEqualTo(fixture.callbacks)
+      val actual = layers(progressive, fixture.size, fixture.density)
+      assertThat(actual.size).isEqualTo(fixture.callbacks)
+      val indices = if (progressive.endIntensity >= progressive.startIntensity) 0..steps else steps downTo 0
+      indices.forEachIndexed { index, i ->
+        val fraction = progressive.easing.transform(i / steps.toFloat())
+        val expectedIntensity = progressive.startIntensity * (1 - fraction) + progressive.endIntensity * fraction
+        assertThat(actual[index].second).isCloseTo(expectedIntensity, 0.000001f)
+        val reference = rasterize(
+          Brush.linearGradient(
+            (i - 2f) / steps to Color.Transparent,
+            (i - 1f) / steps to Color.Black,
+            i / steps.toFloat() to Color.Black,
+            (i + 1f) / steps to Color.Transparent,
+            start = progressive.start,
+            end = progressive.end,
+          ),
+        )
+        val pixels = rasterize(actual[index].first)
+        for (x in listOf(8, 16, 32, 48, 56)) {
+          for (y in listOf(8, 16, 32, 48, 56)) {
+            assertThat(pixels[x, y].alpha).isCloseTo(reference[x, y].alpha, 1f / 255)
+          }
+        }
+      }
+    }
+  }
+
+  @Test
+  fun largePositiveFiniteEnd_retainsBoundedBaselineWork() {
+    assertThat(layers(gradient(Offset.Zero, Offset(100_000_000f, 0f))).size).isEqualTo(3)
+  }
+
+  @Test
+  fun fractionalDensity_preservesFloatSampling() {
+    assertThat(layers(gradient(Offset.Zero, Offset(76.8f, 0f)), Size(128f, 128f), Density(0.4f)).size).isEqualTo(4)
+  }
+
   @Test
   fun boundsRelativeGeometry_preservesFiniteLengthAndSampling() {
     val probes = listOf(
@@ -45,8 +124,8 @@ class ProgressiveBlurBoundsTest {
       assertThat(layers(gradient(start, end)).size).isEqualTo(3)
     }
     val finite = gradient(Offset(-64f, 0f), Offset(128f, 0f))
-    assertThat(calculateLength(finite.start, finite.end, Size(64f, 64f))).isEqualTo(192f)
-    assertThat(layers(finite).size).isEqualTo(4)
+    assertThat(calculateLength(finite.start, finite.end, Size(64f, 64f))).isEqualTo(128f)
+    assertThat(layers(finite).size).isEqualTo(3)
     assertThat(layers(gradient(Offset.Infinite, Offset.Zero), Size.Zero).size).isEqualTo(3)
   }
 
@@ -79,8 +158,8 @@ class ProgressiveBlurBoundsTest {
       val referenceMasks = layers(gradient(finiteStart, finiteEnd))
       masks.forEachIndexed { index, (mask, _) ->
         val actual = rasterize(mask)
-        // Independently author the expected brush stops for the known 2/3-step fixtures.
-        val steps = if (start.x == -64f) 3f else 2f
+        // Independently author the expected brush stops for the baseline two-step fixtures.
+        val steps = 2f
         val reference = rasterize(
           Brush.linearGradient(
             (index - 2f) / steps to Color.Transparent,
@@ -106,8 +185,8 @@ class ProgressiveBlurBoundsTest {
     for ((start, end) in listOf(
       Offset(Float.NaN, 0f) to Offset.Zero,
       Offset(Float.NEGATIVE_INFINITY, 0f) to Offset.Zero,
-      Offset(-Float.MAX_VALUE, 0f) to Offset(Float.MAX_VALUE, 0f),
-      Offset.Zero to Offset(Float.MAX_VALUE, 0f),
+      Offset(Float.MAX_VALUE, 0f) to Offset(-Float.MAX_VALUE, 0f),
+      Offset(Float.MAX_VALUE, 0f) to Offset.Zero,
     )) {
       var callbacks = 0
       assertFailure {
@@ -150,6 +229,13 @@ class ProgressiveBlurBoundsTest {
     }
     assertThat(callbacks).isEqualTo(3)
   }
+  private class FiniteFixture(
+    val progressive: HazeProgressive.LinearGradient,
+    val callbacks: Int,
+    val size: Size = Size(64f, 64f),
+    val density: Density = Density(1f),
+  )
+
   private fun gradient(start: Offset, end: Offset, startIntensity: Float = 0f, endIntensity: Float = 1f) =
     HazeProgressive.LinearGradient(
       start = start,
@@ -159,17 +245,17 @@ class ProgressiveBlurBoundsTest {
       easing = LinearEasing,
     )
 
-  private fun layers(progressive: HazeProgressive.LinearGradient, size: Size = Size(64f, 64f)): List<Pair<Brush, Float>> {
+  private fun layers(progressive: HazeProgressive.LinearGradient, size: Size = Size(64f, 64f), density: Density = Density(1f)): List<Pair<Brush, Float>> {
     val result = mutableListOf<Pair<Brush, Float>>()
-    draw(progressive, size) { mask, intensity ->
+    draw(progressive, size, density) { mask, intensity ->
       result += mask to intensity
       check(result.size < 100) { "Abort runaway layered gradient" }
     }
     return result
   }
 
-  private fun draw(progressive: HazeProgressive.LinearGradient, size: Size = Size(64f, 64f), block: (Brush, Float) -> Unit) {
-    CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, Canvas(ImageBitmap(64, 64)), size) {
+  private fun draw(progressive: HazeProgressive.LinearGradient, size: Size = Size(64f, 64f), density: Density = Density(1f), block: (Brush, Float) -> Unit) {
+    CanvasDrawScope().draw(density, LayoutDirection.Ltr, Canvas(ImageBitmap(64, 64)), size) {
       drawProgressiveWithMultipleLayers(progressive, block = block)
     }
   }

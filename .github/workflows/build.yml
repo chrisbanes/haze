@@ -240,6 +240,51 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -noaudio -no-snapshot-save
           script: ./gradlew :haze-blur:connectedAndroidDeviceTest -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.blur.ProgressiveBlurBoundsInstrumentationTest -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
 
+      - name: Verify progressive rendering XML evidence
+        run: |
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          class_name = "dev.chrisbanes.haze.blur.ProgressiveBlurBoundsInstrumentationTest"
+          expected = {
+              (class_name, "reverseHorizontal_matchesFiniteReference"),
+              (class_name, "reverseVertical_matchesFiniteReference"),
+              (class_name, "reverseDiagonal_matchesFiniteReference"),
+          }
+          paths = list(Path("haze-blur/build/outputs/androidTest-results/connected").rglob("TEST-*.xml"))
+          if not paths:
+              raise SystemExit("Missing progressive rendering XML results")
+          actual = []
+          for path in paths:
+              root = ET.parse(path).getroot()
+              local_name = lambda node: node.tag.rsplit("}", 1)[-1]
+              summaries = [node for node in root.iter() if local_name(node) in ("testsuite", "testsuites")]
+              if not summaries:
+                  raise SystemExit(f"Missing test summary in {path}")
+              for summary in summaries:
+                  counts = {}
+                  for field in ("tests", "failures", "errors", "skipped"):
+                      value = summary.get(field, "")
+                      if not value.isascii() or not value.isdigit():
+                          raise SystemExit(f"Missing or invalid {field} in {path}")
+                      counts[field] = int(value)
+                  cases = [node for node in summary.iter() if local_name(node) == "testcase"]
+                  if counts["tests"] != len(cases):
+                      raise SystemExit(f"Inconsistent test count in {path}: {counts}")
+                  if any(counts[field] for field in ("failures", "errors", "skipped")):
+                      raise SystemExit(f"Unsuccessful test summary in {path}: {counts}")
+              for case in root.iter():
+                  if local_name(case) != "testcase":
+                      continue
+                  if any(local_name(node) in ("failure", "error", "skipped") for node in case.iter()):
+                      raise SystemExit(f"Unsuccessful testcase in {path}: {case.attrib}")
+                  actual.append((case.get("classname"), case.get("name")))
+          if len(actual) != 3 or set(actual) != expected:
+              raise SystemExit(f"Expected exactly three progressive rendering tests, got {actual}")
+          print("Verified three progressive rendering tests, zero skips/failures/errors")
+          PYTHON
+
       - name: Upload instrumentation reports
         if: always()
         uses: actions/upload-artifact@v7

@@ -238,8 +238,8 @@ internal fun DrawScope.drawProgressiveWithMultipleLayers(
   // Reject invalid arithmetic before drawing, leaving room for the inclusive final layer.
   require(length.isFinite() && length >= 0f) { "Gradient length must be finite and nonnegative" }
   require(stepHeightPx.isFinite() && stepHeightPx > 0f) { "Step height must be finite and positive" }
-  val derivedSteps = ceil(length.toDouble() / stepHeightPx.toDouble())
-  require(derivedSteps.isFinite() && derivedSteps <= Int.MAX_VALUE.toDouble() - 1) {
+  val derivedSteps = ceil(length / stepHeightPx)
+  require(derivedSteps.isFinite() && derivedSteps.toDouble() <= Int.MAX_VALUE.toDouble() - 1) {
     "Gradient layer count exceeds the supported integer range"
   }
   val steps = derivedSteps.toInt().coerceAtLeast(2)
