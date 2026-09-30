@@ -124,7 +124,8 @@ class ProgressiveBlurBoundsInstrumentationTest {
 
     // Probe checker edges and tile centres. Edge-only probes cluster near mid-grey
     // even when a correctly blurred checker still has strong contrast inside each tile.
-    val positions = listOf(3f / 16, 0.25f, 0.5f, 0.75f, 13f / 16)
+    val edgePositions = listOf(0.25f, 0.5f, 0.75f)
+    val positions = listOf(3f / 16) + edgePositions + 13f / 16
     var differsFromForward = false
     var darkest = 1f
     var lightest = 0f
@@ -143,7 +144,9 @@ class ProgressiveBlurBoundsInstrumentationTest {
             assertThat(a.alpha, "opaque checker at $x,$y").isGreaterThan(0.95f)
             darkest = minOf(darkest, a.red)
             lightest = maxOf(lightest, a.red)
-            if (abs(a.red - forward[x, y].red) > 2f / 255) differsFromForward = true
+            if (fx in edgePositions && fy in edgePositions && abs(a.red - forward[x, y].red) > 2f / 255) {
+              differsFromForward = true
+            }
           }
         }
       }
