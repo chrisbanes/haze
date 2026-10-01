@@ -73,6 +73,13 @@ kotlin {
       }
     }
 
+    named("androidHostTest") {
+      dependencies {
+        implementation(projects.internal.screenshotTest)
+        implementation(libs.compose.ui.test.junit4)
+      }
+    }
+
     jvmTest {
       dependencies {
         implementation(compose.desktop.currentOs)
@@ -92,4 +99,8 @@ dependencies {
 
 poko {
   pokoAnnotation.set("dev/chrisbanes/haze/Poko")
+}
+
+tasks.withType<Test>().configureEach {
+  systemProperties["robolectric.pixelCopyRenderMode"] = "hardware"
 }
