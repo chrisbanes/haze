@@ -73,6 +73,13 @@ kotlin {
       }
     }
 
+    named("androidHostTest") {
+      dependencies {
+        implementation(projects.internal.screenshotTest)
+        implementation(libs.compose.ui.test.junit4)
+      }
+    }
+
     jvmTest {
       dependencies {
         implementation(compose.desktop.currentOs)
@@ -88,8 +95,6 @@ kotlin {
 
 dependencies {
   add("androidHostTestImplementation", libs.androidx.activity)
-  add("androidHostTestImplementation", projects.internal.screenshotTest)
-  add("androidHostTestImplementation", libs.compose.ui.test.junit4)
 }
 
 poko {
