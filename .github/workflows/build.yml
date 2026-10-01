@@ -184,8 +184,38 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -noaudio -no-snapshot-save
           script: ./gradlew connectedDebugAndroidTest connectedAndroidDeviceTest -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
 
+      - name: Verify SolidColor rendering XML evidence
+        run: |
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          class_name = "dev.chrisbanes.haze.blur.SolidColorBlurRenderEffectInstrumentationTest"
+          expected = {
+              "solidMask_matchesConstantShaderBrush",
+              "solidProgressive_matchesConstantShaderBrush",
+              "solidTint_matchesColorTint",
+          }
+          paths = list(Path("haze-blur/build/outputs/androidTest-results/connected").rglob("TEST-*.xml"))
+          if not paths:
+              raise SystemExit("Missing SolidColor rendering XML results")
+          actual = []
+          for path in paths:
+              root = ET.parse(path).getroot()
+              local_name = lambda node: node.tag.rsplit("}", 1)[-1]
+              for case in root.iter():
+                  if local_name(case) != "testcase" or case.get("classname") != class_name:
+                      continue
+                  if any(local_name(node) in ("failure", "error", "skipped") for node in case.iter()):
+                      raise SystemExit(f"Unsuccessful SolidColor testcase in {path}: {case.attrib}")
+                  actual.append(case.get("name"))
+          if len(actual) != len(expected) or set(actual) != expected:
+              raise SystemExit(f"Expected exactly three SolidColor rendering tests, got {actual}")
+          print("Verified three SolidColor rendering tests, zero skips/failures/errors")
+          PYTHON
+
       - name: Upload instrumentation reports
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: emulator-test-reports
@@ -238,7 +268,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -noaudio -no-snapshot-save
-          script: ./gradlew :haze-blur:connectedAndroidDeviceTest -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.blur.ProgressiveBlurBoundsInstrumentationTest -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
+          script: ./gradlew :haze-blur:connectedAndroidDeviceTest -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.blur.ProgressiveBlurBoundsInstrumentationTest,dev.chrisbanes.haze.blur.SolidColorBlurRenderEffectInstrumentationTest -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
 
       - name: Verify progressive rendering XML evidence
         run: |
@@ -247,7 +277,11 @@ jobs:
           import xml.etree.ElementTree as ET
 
           class_name = "dev.chrisbanes.haze.blur.ProgressiveBlurBoundsInstrumentationTest"
+          solid_class = "dev.chrisbanes.haze.blur.SolidColorBlurRenderEffectInstrumentationTest"
           expected = {
+              (solid_class, "solidMask_matchesConstantShaderBrush"),
+              (solid_class, "solidProgressive_matchesConstantShaderBrush"),
+              (solid_class, "solidTint_matchesColorTint"),
               (class_name, "reverseHorizontal_matchesFiniteReference"),
               (class_name, "reverseVertical_matchesFiniteReference"),
               (class_name, "reverseDiagonal_matchesFiniteReference"),
@@ -280,9 +314,9 @@ jobs:
                   if any(local_name(node) in ("failure", "error", "skipped") for node in case.iter()):
                       raise SystemExit(f"Unsuccessful testcase in {path}: {case.attrib}")
                   actual.append((case.get("classname"), case.get("name")))
-          if len(actual) != 3 or set(actual) != expected:
-              raise SystemExit(f"Expected exactly three progressive rendering tests, got {actual}")
-          print("Verified three progressive rendering tests, zero skips/failures/errors")
+          if len(actual) != len(expected) or set(actual) != expected:
+              raise SystemExit(f"Expected exactly six Blur rendering tests, got {actual}")
+          print("Verified six Blur rendering tests, zero skips/failures/errors")
           PYTHON
 
       - name: Upload instrumentation reports

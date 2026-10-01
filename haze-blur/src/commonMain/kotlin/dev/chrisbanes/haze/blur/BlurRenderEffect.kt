@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Density
@@ -195,7 +196,11 @@ private fun PlatformRenderEffect.withBrushTint(
   alphaModulate: Float,
   mask: Shader?,
 ): PlatformRenderEffect {
-  val tintBrush = effect.brush.toShader(size) ?: return this
+  val brush = effect.brush
+  if (brush is SolidColor) {
+    return withColorTint(TintColorHazeColorEffect(brush.value, effect.blendMode), offset, alphaModulate, mask)
+  }
+  val tintBrush = brush.toShader(size) ?: return this
 
   val brushEffect = if (alphaModulate >= 1f) {
     createShaderRenderEffect(tintBrush)
@@ -229,31 +234,26 @@ private fun PlatformRenderEffect.withColorTint(
   alphaModulate: Float,
   mask: Shader?,
 ): PlatformRenderEffect {
+  if (effect.blendMode == BlendMode.Dst) return this
   val tintColor = effect.resolveColor(alphaModulate) ?: return this
 
-  val colorEffect = createBlendColorFilter(tintColor.toArgb(), effect.blendMode)
-
-  val effectWithMask = if (mask != null) {
-    createColorFilterRenderEffect(
-      colorFilter = createBlendColorFilter(tintColor.toArgb(), BlendMode.SrcIn),
+  val tintArgb = tintColor.toArgb()
+  if (mask != null) {
+    val maskedTint = createColorFilterRenderEffect(
+      colorFilter = createBlendColorFilter(tintArgb, BlendMode.SrcIn),
       input = createShaderRenderEffect(mask),
     )
-  } else {
-    createColorFilterRenderEffect(
-      colorFilter = colorEffect,
-      input = this,
-    )
-  }
-
-  return if (mask != null) {
-    blendForeground(
-      foreground = effectWithMask,
+    return blendForeground(
+      foreground = maskedTint,
       blendMode = effect.blendMode,
       offset = offset,
     )
-  } else {
-    effectWithMask
   }
+  if (effect.blendMode == BlendMode.DstIn && (tintArgb ushr 24) == 255) return this
+  return createColorFilterRenderEffect(
+    colorFilter = createBlendColorFilter(tintArgb, effect.blendMode),
+    input = this,
+  )
 }
 
 private fun TintColorHazeColorEffect.resolveColor(alphaModulate: Float): Color? {
@@ -328,7 +328,8 @@ private fun PlatformRenderEffect.withMask(
   )
 }
 
-private fun Brush.toShader(size: Size): Shader? = when (this) {
-  is ShaderBrush -> createShader(size)
+private fun Brush.toShader(size: Size): Shader? = when {
+  this is ShaderBrush -> createShader(size)
+  this is SolidColor -> Brush.linearGradient(listOf(value, value)).toShader(size)
   else -> null
 }
