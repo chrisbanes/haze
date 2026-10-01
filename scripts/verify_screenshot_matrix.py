@@ -15,6 +15,11 @@ NATIVE_BACKDROP_PROOF = {
     "glassBackdrop_blursEarlierPixelsWithoutFallbackSources",
 }
 
+COLOR_FILTER_ALIGNMENT = {
+    "sourceBlur_producesSoftenedPixelsAndColorFilterOutput",
+    "identityFilter_preservesExpandedSourcesAtAllScales",
+}
+
 
 def verify_report(path: Path, expected: set[str]) -> None:
     cases = ET.parse(path).getroot().findall("testcase")
@@ -28,6 +33,10 @@ def verify_report(path: Path, expected: set[str]) -> None:
 
 
 def expected_cases(platform: str) -> set[str]:
+    if platform == "color-filter-alignment-desktop":
+        return {f"{method}[jvm]" for method in COLOR_FILTER_ALIGNMENT}
+    if platform == "color-filter-alignment-android":
+        return COLOR_FILTER_ALIGNMENT
     if platform == "native-backdrop-proof":
         return NATIVE_BACKDROP_PROOF
 
@@ -44,7 +53,7 @@ def expected_cases(platform: str) -> set[str]:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("platform", choices=["desktop", "android", "android-native", "native-backdrop-proof"])
+    parser.add_argument("platform", choices=["desktop", "android", "android-native", "native-backdrop-proof", "color-filter-alignment-desktop", "color-filter-alignment-android"])
     parser.add_argument("report", type=Path)
     args = parser.parse_args()
     # This is the acceptance set, deliberately independent of the runner's enumeration.
