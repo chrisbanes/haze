@@ -29,6 +29,13 @@ import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeEffectRenderer
+import dev.chrisbanes.haze.HazeEffectRendererBackdrop
+import dev.chrisbanes.haze.HazeEffectRendererDrawHooks
+import dev.chrisbanes.haze.HazeEffectRendererInteraction
+import dev.chrisbanes.haze.HazeEffectRendererLifecycle
+import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeState
@@ -107,6 +114,100 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
 
   @Test
   fun removeAllResponsesWhileTransparent_hardwareCompletionReleasesLighting() = assertHardwareRemoval(Removal.All, transparent = true)
+
+
+  @Test
+  fun removeAllResponsesWhileTransparent_sourceUnavailableRestoresHardwareMaterial() = runScreenshotTest {
+    val state = HazeState()
+    val effect = GlassRuntimeEffect()
+    val observer = InputObservingGlassRenderer(effect)
+    val sourceEnabled = mutableStateOf(true)
+    val style = mutableStateOf(baseStyle(Removal.All))
+    val source = MutableInteractionSource()
+    val factory = HazeEffectFactory<GlassNodeConfiguration> { observer }
+    setContent {
+      Box(Modifier.fillMaxSize().then(if (sourceEnabled.value) Modifier.hazeSource(state) else Modifier).background(Color.Red))
+      Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(120.dp).testTag("material").hazeGlass(
+          factory = factory, input = HazeInput.Sources(state), style = style.value,
+          performanceMode = HazePerformanceMode.Quality, expandLayerBounds = true,
+          interactionSource = source, interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+        ))
+        Box(Modifier.align(Alignment.TopStart).size(80.dp).testTag("source-control"))
+      }
+    }
+    waitForIdle()
+    fun assertMaterial(phase: String) {
+      composeTestRule.runOnIdle { composeTestRule.activity.window.decorView.invalidate() }
+      waitForIdle()
+      val pixels = captureRootPixels()
+      val controlBounds = onNodeWithTag("source-control").fetchSemanticsNode().boundsInRoot
+      val materialBounds = onNodeWithTag("material").fetchSemanticsNode().boundsInRoot
+      val control = pixels[controlBounds.center.x.roundToInt(), controlBounds.center.y.roundToInt()]
+      val material = pixels[materialBounds.center.x.roundToInt(), materialBounds.center.y.roundToInt()]
+      println("R1 hardware phase=$phase source=$control material=$material")
+      assertThat(control.red).isGreaterThan(0.9f)
+      assertThat(control.blue).isLessThan(0.1f)
+      assertThat(material.blue).isGreaterThan(control.blue + 0.2f)
+    }
+    assertMaterial("base-reference")
+    composeTestRule.runOnIdle { style.value = initialStyle(Removal.All) }
+    waitForIdle()
+    val scope = TestScope()
+    scope.launch { source.emit(PressInteraction.Press(Offset(40f, 40f))) }
+    scope.testScheduler.runCurrent()
+    waitForIdle()
+    assertMaterial("active-entry")
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    assertThat(delegate.fusedShader).isNotNull()
+    assertThat(delegate.layers.interactionOptical).isNull()
+    assertThat(delegate.layers.interactionRefractionDetail).isNull()
+    val snapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
+    val sourceLayer = checkNotNull(delegate.layers.source)
+    val optical = checkNotNull(delegate.layers.optical)
+    val records = delegate.sourceRecordCount
+    val lighting = checkNotNull(delegate.layers.interactionLighting)
+    composeTestRule.mainClock.autoAdvance = false
+    fun sync() { repeat(2) { composeTestRule.mainClock.advanceTimeByFrame(); waitForIdle() } }
+    composeTestRule.runOnIdle { style.value = baseStyle(Removal.All).then { alpha(0f) } }
+    sync()
+    composeTestRule.mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(effect.interactionControllerForTest).isNotNull()
+    assertThat(effect.currentInteractionState.hasOptics).isTrue()
+    assertThat(effect.currentInteractionState.hasLighting).isTrue()
+    assertThat(lighting.isReleased).isFalse()
+    composeTestRule.runOnIdle { sourceEnabled.value = false }
+    sync()
+    assertThat(sourceEnabled.value).isFalse()
+    assertThat(observer.hasDrawableInput).isFalse()
+    assertThat(observer.inputSnapshot).isNull()
+    composeTestRule.mainClock.advanceTimeBy(500, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(effect.interactionControllerForTest).isNull()
+    assertThat(lighting.isReleased).isTrue()
+    assertThat(delegate.layers.interactionLighting).isNull()
+    assertThat(effect.shouldPrepareDraw(GlassNodeConfiguration(style.value, interactionSource = source))).isFalse()
+    assertThat(delegate.canDrawRetainedOutput(), "hidden settled fused retained availability").isTrue()
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
+    assertThat(delegate.layers.source).isSameInstanceAs(sourceLayer)
+    assertThat(delegate.layers.optical).isSameInstanceAs(optical)
+    assertThat(sourceLayer.isReleased).isFalse()
+    assertThat(optical.isReleased).isFalse()
+    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    composeTestRule.runOnIdle { style.value = baseStyle(Removal.All) }
+    sync()
+    assertThat(observer.hasDrawableInput).isFalse()
+    assertThat(observer.inputSnapshot).isNull()
+    assertThat(effect.delegate).isSameInstanceAs(delegate)
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
+    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    val uniforms = checkNotNull(effect.preparedRender).interactionUniforms
+    assertThat(uniforms.whitePointDelta).isEqualTo(0f)
+    assertThat(uniforms.refractionMultiplier).isEqualTo(1f)
+    assertThat(uniforms.lightingIntensity).isEqualTo(0f)
+    assertMaterial("restored-unavailable-source")
+  }
 
   private enum class Removal { WhitePoint, Refraction, Lighting, All }
 
@@ -244,5 +345,22 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     }
     assertFusedGraph()
     assertMaterialPixels("settled")
+  }
+
+  private class InputObservingGlassRenderer(private val effect: GlassRuntimeEffect) :
+    HazeEffectRenderer<GlassNodeConfiguration> by effect,
+    HazeEffectRendererLifecycle<GlassNodeConfiguration> by effect,
+    HazeEffectRendererDrawHooks<GlassNodeConfiguration> by effect,
+    HazeEffectRendererRetainedOutput by effect,
+    HazeEffectRendererInteraction by effect,
+    HazeEffectRendererBackdrop<GlassNodeConfiguration> by effect {
+    private lateinit var inputScope: HazeEffectRuntimeDrawScope
+    val hasDrawableInput get() = inputScope.hasDrawableInput
+    val inputSnapshot get() = inputScope.inputSnapshot
+
+    override fun HazeEffectRuntimeDrawScope.prepareDraw(style: GlassNodeConfiguration) {
+      inputScope = this
+      with(effect) { prepareDraw(style) }
+    }
   }
 }

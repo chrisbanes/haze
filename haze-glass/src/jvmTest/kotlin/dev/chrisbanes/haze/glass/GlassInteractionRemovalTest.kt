@@ -38,6 +38,13 @@ import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeEffectRenderer
+import dev.chrisbanes.haze.HazeEffectRendererBackdrop
+import dev.chrisbanes.haze.HazeEffectRendererDrawHooks
+import dev.chrisbanes.haze.HazeEffectRendererInteraction
+import dev.chrisbanes.haze.HazeEffectRendererLifecycle
+import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeState
@@ -228,6 +235,103 @@ class GlassInteractionRemovalTest : ContextTest() {
     fixture.assertMaterialPixels(this)
   }
 
+
+  @Test
+  fun removeAllResponsesWhileTransparent_sourceUnavailablePreservesRetainedMaterial() = runComposeUiTest {
+    assertHiddenSourceRemoval(1f)
+  }
+
+  @Test
+  fun removeAllResponsesWhileTransparent_sourceUnavailableRestoresPartialAlphaMaterial() = runComposeUiTest {
+    assertHiddenSourceRemoval(0.5f)
+  }
+
+  private fun ComposeUiTest.assertHiddenSourceRemoval(restoredAlpha: Float) {
+    val base = baseStyle().then { alpha(restoredAlpha) }
+    val fixture = attach(base, observeInput = true)
+    val reference = fixture.assertMaterialPixels(this)
+    runOnIdle { fixture.style.value = activeStyle().then { alpha(restoredAlpha) } }
+    waitForIdle()
+    val scope = TestScope()
+    scope.launch { fixture.source.emit(PressInteraction.Press(Offset(40f, 40f))) }
+    scope.testScheduler.runCurrent()
+    waitForIdle()
+    fixture.assertMaterialPixels(this)
+    val delegate = fixture.delegate
+    val snapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
+    val source = checkNotNull(delegate.layers.source)
+    val optical = checkNotNull(delegate.layers.optical)
+    val detail = checkNotNull(delegate.layers.refractionDetail)
+    val sourceRecords = delegate.sourceRecordCount
+    val obsolete = interactionLayers(fixture)
+    val oldGroup = checkNotNull(delegate.layers.groupAlpha.layer)
+    mainClock.autoAdvance = false
+    runOnIdle { fixture.style.value = baseStyle().then { alpha(0f) } }
+    repeat(2) { mainClock.advanceTimeByFrame(); waitForIdle() }
+    mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(fixture.effect.interactionControllerForTest).isNotNull()
+    assertThat(fixture.effect.currentInteractionState.hasOptics).isTrue()
+    assertThat(fixture.effect.currentInteractionState.hasLighting).isTrue()
+    obsolete.forEach { assertThat(it.isReleased).isFalse() }
+    runOnIdle { fixture.sourceEnabled.value = false }
+    repeat(2) { mainClock.advanceTimeByFrame(); waitForIdle() }
+    assertThat(fixture.sourceEnabled.value).isFalse()
+    assertThat(fixture.observer.hasDrawableInput).isFalse()
+    assertThat(fixture.observer.inputSnapshot).isNull()
+    mainClock.advanceTimeBy(500, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(fixture.effect.interactionControllerForTest).isNull()
+    obsolete.forEach { assertThat(it.isReleased).isTrue() }
+    assertObsoleteInteractionLayersNull(delegate)
+    assertThat(oldGroup.isReleased).isTrue()
+    assertThat(fixture.effect.shouldPrepareDraw(GlassNodeConfiguration(fixture.style.value, interactionSource = fixture.source))).isFalse()
+    assertThat(delegate.canDrawRetainedOutput(), "hidden settled retained availability").isTrue()
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
+    assertThat(delegate.layers.source).isSameInstanceAs(source)
+    assertThat(delegate.layers.optical).isSameInstanceAs(optical)
+    assertThat(delegate.layers.refractionDetail).isSameInstanceAs(detail)
+    listOf(source, optical, detail).forEach { assertThat(it.isReleased).isFalse() }
+    assertThat(delegate.sourceRecordCount).isEqualTo(sourceRecords)
+    runOnIdle { fixture.style.value = base }
+    repeat(2) { mainClock.advanceTimeByFrame(); waitForIdle() }
+    assertThat(fixture.observer.hasDrawableInput).isFalse()
+    assertThat(fixture.observer.inputSnapshot).isNull()
+    assertThat(fixture.delegate).isSameInstanceAs(delegate)
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
+    assertThat(delegate.sourceRecordCount).isEqualTo(sourceRecords)
+    val current = checkNotNull(fixture.effect.preparedRender)
+    assertThat(current.alpha).isEqualTo(restoredAlpha)
+    assertIdentityUniforms(current.interactionUniforms)
+    val restored = fixture.assertMaterialPixels(this)
+    if (restoredAlpha == 0.5f) {
+      assertColorNear(restored, reference)
+      val group = checkNotNull(delegate.layers.groupAlpha.layer)
+      assertThat(group === oldGroup).isFalse()
+      assertThat(group.isReleased).isFalse()
+    }
+  }
+
+  private fun assertColorNear(actual: Color, expected: Color) {
+    listOf(actual.red to expected.red, actual.green to expected.green, actual.blue to expected.blue, actual.alpha to expected.alpha).forEach { (a, e) ->
+      assertThat(kotlin.math.abs(a - e)).isLessThan(0.04f)
+    }
+  }
+
+  private fun assertIdentityUniforms(uniforms: GlassInteractionUniforms) {
+    assertThat(uniforms.whitePointDelta).isEqualTo(0f)
+    assertThat(uniforms.refractionMultiplier).isEqualTo(1f)
+    assertThat(uniforms.lightingIntensity).isEqualTo(0f)
+  }
+
+  private fun assertObsoleteInteractionLayersNull(delegate: RuntimeShaderGlassDelegate) {
+    assertThat(delegate.layers.interactionOptical).isNull()
+    assertThat(delegate.layers.interactionRefractionDetail).isNull()
+    assertThat(delegate.layers.interactionRefractionDetailCoverage).isNull()
+    assertThat(delegate.layers.interactionRefractionComposite).isNull()
+    assertThat(delegate.layers.interactionLighting).isNull()
+  }
+
   private fun interactionLayers(fixture: Fixture) = listOf(
     checkNotNull(fixture.delegate.layers.interactionOptical),
     checkNotNull(fixture.delegate.layers.interactionRefractionDetail),
@@ -280,14 +384,16 @@ class GlassInteractionRemovalTest : ContextTest() {
     }
   }
 
-  private class Fixture(initialStyle: GlassStyle) {
+  private class Fixture(initialStyle: GlassStyle, observeInput: Boolean = false) {
     val effect = GlassRuntimeEffect()
     val source = MutableInteractionSource()
     val style = mutableStateOf(initialStyle)
-    val factory = HazeEffectFactory<GlassNodeConfiguration> { effect }
+    val observer = InputObservingGlassRenderer(effect)
+    val sourceEnabled = mutableStateOf(true)
+    val factory = HazeEffectFactory<GlassNodeConfiguration> { if (observeInput) observer else effect }
     val delegate get() = effect.delegate as RuntimeShaderGlassDelegate
 
-    fun assertMaterialPixels(test: ComposeUiTest) {
+    fun assertMaterialPixels(test: ComposeUiTest): Color {
       val controlPixels = test.onNodeWithTag("control").captureToImage().toPixelMap()
       val materialPixels = test.onNodeWithTag("material").captureToImage().toPixelMap()
       val control = controlPixels[controlPixels.width / 2, controlPixels.height / 2]
@@ -295,15 +401,17 @@ class GlassInteractionRemovalTest : ContextTest() {
       assertThat(control.red).isGreaterThan(0.9f)
       assertThat(control.blue).isLessThan(0.1f)
       assertThat(material.blue).isGreaterThan(control.blue + 0.2f)
+      println("JVM source=$control material=$material")
+      return material
     }
   }
 
-  private fun ComposeUiTest.attach(style: GlassStyle, policy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.Full): Fixture {
-    val fixture = Fixture(style)
+  private fun ComposeUiTest.attach(style: GlassStyle, policy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.Full, observeInput: Boolean = false): Fixture {
+    val fixture = Fixture(style, observeInput)
     val state = HazeState()
     setContent {
       Box(Modifier.size(384.dp)) {
-        Box(Modifier.fillMaxSize().hazeSource(state).background(Color.Red))
+        Box(Modifier.fillMaxSize().then(if (fixture.sourceEnabled.value) Modifier.hazeSource(state) else Modifier).background(Color.Red))
         Box(Modifier.align(Alignment.TopStart).size(80.dp).testTag("control"))
         Box(
           Modifier.align(Alignment.Center).size(120.dp).testTag("material").hazeGlass(
@@ -379,5 +487,22 @@ class GlassInteractionRemovalTest : ContextTest() {
     assertThat(delegate.layers.interactionOptical).isNull()
     assertThat(optical.isReleased).isTrue()
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
+  }
+
+  private class InputObservingGlassRenderer(private val effect: GlassRuntimeEffect) :
+    HazeEffectRenderer<GlassNodeConfiguration> by effect,
+    HazeEffectRendererLifecycle<GlassNodeConfiguration> by effect,
+    HazeEffectRendererDrawHooks<GlassNodeConfiguration> by effect,
+    HazeEffectRendererRetainedOutput by effect,
+    HazeEffectRendererInteraction by effect,
+    HazeEffectRendererBackdrop<GlassNodeConfiguration> by effect {
+    private lateinit var inputScope: HazeEffectRuntimeDrawScope
+    val hasDrawableInput get() = inputScope.hasDrawableInput
+    val inputSnapshot get() = inputScope.inputSnapshot
+
+    override fun HazeEffectRuntimeDrawScope.prepareDraw(style: GlassNodeConfiguration) {
+      inputScope = this
+      with(effect) { prepareDraw(style) }
+    }
   }
 }
