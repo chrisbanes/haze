@@ -268,7 +268,14 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -noaudio -no-snapshot-save
-          script: ./gradlew :haze-blur:connectedAndroidDeviceTest -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.blur.ProgressiveBlurBoundsInstrumentationTest,dev.chrisbanes.haze.blur.SolidColorBlurRenderEffectInstrumentationTest -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
+          # AGP's engine serializes runner arguments with commas, truncating a multi-class value.
+          # Run each class explicitly and retain XML before connected output is overwritten.
+          script: |
+            ./gradlew :haze-blur:connectedAndroidDeviceTest -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.blur.ProgressiveBlurBoundsInstrumentationTest -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
+            mkdir -p haze-blur/build/outputs/blur-rendering-regression
+            cp -R haze-blur/build/outputs/androidTest-results/connected haze-blur/build/outputs/blur-rendering-regression/bounds
+            ./gradlew :haze-blur:connectedAndroidDeviceTest -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.blur.SolidColorBlurRenderEffectInstrumentationTest -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
+            cp -R haze-blur/build/outputs/androidTest-results/connected haze-blur/build/outputs/blur-rendering-regression/solid
 
       - name: Verify progressive rendering XML evidence
         run: |
@@ -286,7 +293,7 @@ jobs:
               (class_name, "reverseVertical_matchesFiniteReference"),
               (class_name, "reverseDiagonal_matchesFiniteReference"),
           }
-          paths = list(Path("haze-blur/build/outputs/androidTest-results/connected").rglob("TEST-*.xml"))
+          paths = list(Path("haze-blur/build/outputs/blur-rendering-regression").rglob("TEST-*.xml"))
           if not paths:
               raise SystemExit("Missing progressive rendering XML results")
           actual = []
@@ -327,7 +334,7 @@ jobs:
           path: |
             haze-blur/build/reports/androidTests/**
             haze-blur/build/reports/tests/**
-            haze-blur/build/outputs/androidTest-results/**
+            haze-blur/build/outputs/blur-rendering-regression/**
 
   deploy:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1'
