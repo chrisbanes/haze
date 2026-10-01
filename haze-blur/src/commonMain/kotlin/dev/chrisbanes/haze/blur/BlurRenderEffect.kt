@@ -180,7 +180,7 @@ private fun PlatformRenderEffect.withColorEffect(
   return when (effect) {
     is TintBrushHazeColorEffect -> withBrushTint(effect, size, offset, alphaModulate, mask)
     is TintColorHazeColorEffect -> withColorTint(effect, offset, alphaModulate, mask)
-    is ColorFilterHazeColorEffect -> withColorFilter(effect, size, offset, mask)
+    is ColorFilterHazeColorEffect -> withColorFilter(effect, offset, mask)
   }
 }
 
@@ -271,7 +271,6 @@ private fun TintColorHazeColorEffect.resolveColor(alphaModulate: Float): Color? 
  */
 private fun PlatformRenderEffect.withColorFilter(
   effect: ColorFilterHazeColorEffect,
-  size: Size,
   offset: Offset,
   mask: Shader?,
 ): PlatformRenderEffect {
@@ -280,11 +279,23 @@ private fun PlatformRenderEffect.withColorFilter(
     input = this,
   )
 
-  return applyMaskAndBlend(
-    baseEffect = filterEffect,
+  // Filtered input already uses expanded-layer coordinates. Only the independently
+  // authored mask needs to move from node-local coordinates into that layer.
+  val maskedFilter = if (mask != null) {
+    createBlendRenderEffect(
+      blendMode = BlendMode.SrcIn,
+      background = createShaderRenderEffect(mask).let {
+        createOffsetRenderEffect(offset.x, offset.y, it)
+      },
+      foreground = filterEffect,
+    )
+  } else {
+    filterEffect
+  }
+
+  return blendForeground(
+    foreground = maskedFilter,
     blendMode = effect.blendMode,
-    mask = mask,
-    offset = offset,
   )
 }
 
