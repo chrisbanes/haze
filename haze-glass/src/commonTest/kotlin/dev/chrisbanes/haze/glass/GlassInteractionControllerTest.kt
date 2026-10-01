@@ -40,6 +40,7 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
+import assertk.fail
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectContentTransform
 import dev.chrisbanes.haze.HazeEffectFactory
@@ -1229,7 +1230,7 @@ class GlassInteractionControllerTest : ContextTest() {
       }
       if (settled) return
     }
-    error("Glass animation did not settle within 300 frames")
+    fail("Glass animation did not settle within 300 frames")
   }
 
   private fun interactive(effect: GlassRuntimeEffect): HazeEffectRendererInteraction =

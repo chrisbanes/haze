@@ -26,6 +26,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isTrue
@@ -338,6 +339,6 @@ class GlassSpringScaleTest : ContextTest() {
       sample(transform)
       if (settled) return
     }
-    check(!stopWhenIdle) { "Glass animation did not settle within $count frames" }
+    assertThat(stopWhenIdle, "Glass animation did not settle within $count frames").isFalse()
   }
 }
