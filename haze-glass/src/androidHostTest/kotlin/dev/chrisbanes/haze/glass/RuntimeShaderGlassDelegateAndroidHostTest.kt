@@ -1378,6 +1378,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         assertThat(delegate.layers.interactionLighting).isSameInstanceAs(it)
         assertThat(it.isReleased).isFalse()
       }
+    } else {
+      assertOutgoingUniforms(active = false)
     }
     if (rapid) {
       replace(fusedRemovalStyle(removal))
@@ -1385,11 +1387,13 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       waitForIdle()
       drawFrame()
       assertGraph()
+      assertOutgoingUniforms(active = true)
       replace(replacement)
       mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
       waitForIdle()
       drawFrame()
       assertGraph()
+      assertOutgoingUniforms(active = true)
     }
     mainClock.advanceTimeBy(500, ignoreFrameDuration = true)
     waitForIdle()
