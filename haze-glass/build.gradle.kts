@@ -88,8 +88,16 @@ kotlin {
 
 dependencies {
   add("androidHostTestImplementation", libs.androidx.activity)
+  add("androidHostTestImplementation", projects.internal.screenshotTest)
+  add("androidHostTestImplementation", libs.compose.ui.test.junit4)
 }
 
 poko {
   pokoAnnotation.set("dev/chrisbanes/haze/Poko")
+}
+
+tasks.withType<Test>().configureEach {
+  if (name == "testAndroidHostTest") {
+    systemProperty("robolectric.pixelCopyRenderMode", "hardware")
+  }
 }
