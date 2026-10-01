@@ -3,6 +3,7 @@
 
 
 import dev.chrisbanes.gradle.addDefaultHazeTargets
+import org.gradle.api.tasks.testing.Test
 
 plugins {
   id("dev.chrisbanes.android.library")
@@ -73,13 +74,6 @@ kotlin {
       }
     }
 
-    named("androidHostTest") {
-      dependencies {
-        implementation(projects.internal.screenshotTest)
-        implementation(libs.compose.ui.test.junit4)
-      }
-    }
-
     jvmTest {
       dependencies {
         implementation(compose.desktop.currentOs)
@@ -95,12 +89,14 @@ kotlin {
 
 dependencies {
   add("androidHostTestImplementation", libs.androidx.activity)
+  add("androidHostTestImplementation", projects.internal.screenshotTest)
+  add("androidHostTestImplementation", libs.compose.ui.test.junit4)
 }
 
 poko {
   pokoAnnotation.set("dev/chrisbanes/haze/Poko")
 }
 
-tasks.withType<Test>().configureEach {
-  systemProperties["robolectric.pixelCopyRenderMode"] = "hardware"
+tasks.withType<Test>().matching { it.name == "testAndroidHostTest" }.configureEach {
+  systemProperty("robolectric.pixelCopyRenderMode", "hardware")
 }
