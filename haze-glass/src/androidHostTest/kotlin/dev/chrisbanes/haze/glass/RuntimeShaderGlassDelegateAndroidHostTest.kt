@@ -11,6 +11,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -74,6 +75,8 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -1234,6 +1237,130 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       interactionTransformPivot = effect.interactionTransformPivot,
       interactionReducedMotionPolicy = effect.interactionReducedMotionPolicy,
     )
+  }
+
+  @Test
+  fun removeWhitePoint_preservesFusedOpticsUntilExitCompletes() = assertFusedRemoval(FusedRemoval.WhitePoint)
+
+  @Test
+  fun removeRefraction_preservesFusedDetailUntilExitCompletes() = assertFusedRemoval(FusedRemoval.Refraction)
+
+  @Test
+  fun removeLighting_preservesForegroundUntilExitCompletes() = assertFusedRemoval(FusedRemoval.Lighting)
+
+  @Test
+  fun removeAllResponses_preservesFusedGraphAndCleansController() = assertFusedRemoval(FusedRemoval.All)
+
+  @Test
+  fun rapidRemovalAndReintroduction_preservesFusedGraphThroughFinalExit() = assertFusedRemoval(FusedRemoval.All, rapid = true)
+
+  @Test
+  fun reducedMotion_removalCleansFusedInteractionStagesImmediately() = assertFusedRemoval(FusedRemoval.All, reduced = true)
+
+  private enum class FusedRemoval { WhitePoint, Refraction, Lighting, All }
+
+  private fun fusedRemovalBase(removal: FusedRemoval) = GlassStyle.regular.then {
+    optics(
+      GlassOptics(
+        refractionStrength = if (removal == FusedRemoval.WhitePoint) 0f else 0.5f,
+        refractionDetailIntensity = if (removal == FusedRemoval.WhitePoint) 0f else 0.75f,
+        refractionDisplacement = 20.dp,
+        blurRadius = OpticalSizeValue.Fixed(0.dp),
+      ),
+    )
+    tint(Color.Blue.copy(alpha = 0.5f))
+  }
+
+  private fun fusedRemovalStyle(removal: FusedRemoval) = fusedRemovalBase(removal).then {
+    pressed {
+      animate(tween(1), tween(500)) {
+        if (removal != FusedRemoval.Refraction) whitePointDelta(0.2f)
+        if (removal == FusedRemoval.Refraction || removal == FusedRemoval.All) refractionMultiplier(1.8f)
+        if (removal == FusedRemoval.Lighting || removal == FusedRemoval.All) lightingIntensity(0.5f)
+      }
+    }
+  }
+
+  private fun assertFusedRemoval(removal: FusedRemoval, rapid: Boolean = false, reduced: Boolean = false) = runAndroidComposeUiTest<ComponentActivity> {
+    val source = MutableInteractionSource()
+    val effect = GlassRuntimeEffect().apply {
+      interactionSource = source
+      interactionReducedMotionPolicy = if (reduced) GlassReducedMotionPolicy.Reduced else GlassReducedMotionPolicy.Full
+    }
+    val style = mutableStateOf(fusedRemovalStyle(removal))
+    val replacement = fusedRemovalBase(removal).then {
+      if (removal == FusedRemoval.Lighting) pressed { animate(tween(1), tween(500)) { whitePointDelta(0.2f) } }
+    }
+    val state = dev.chrisbanes.haze.HazeState()
+    setContent {
+      Box(Modifier.size(384.dp)) {
+        Box(Modifier.fillMaxSize().hazeSource(state).background(Color.Red))
+        Box(Modifier.align(Alignment.Center).size(120.dp).testGlassRuntime(effect, HazeInput.Sources(state), style.value))
+      }
+    }
+    waitForIdle()
+    val scope = TestScope()
+    scope.launch { source.emit(PressInteraction.Press(Offset(40f, 40f))) }
+    scope.testScheduler.runCurrent()
+    waitForIdle()
+    drawFrame()
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    fun assertGraph() {
+      assertThat(delegate.layers.source).isNotNull()
+      assertThat(delegate.layers.optical).isNotNull()
+      assertThat(delegate.lastSuccessfulSourceSnapshot).isNotNull()
+      assertThat(delegate.fusedShader).isNotNull()
+      assertThat(delegate.layers.interactionOptical).isNull()
+      assertThat(delegate.layers.interactionRefractionDetail).isNull()
+      assertThat(delegate.layers.interactionRefractionDetailCoverage).isNull()
+      assertThat(delegate.layers.interactionRefractionComposite).isNull()
+      assertThat(delegate.canDrawRetainedOutput()).isTrue()
+    }
+    assertGraph()
+    assertThat(effect.currentInteractionState.hasOptics).isTrue()
+    val lighting = delegate.layers.interactionLighting
+    if (removal == FusedRemoval.Lighting || removal == FusedRemoval.All) assertThat(lighting).isNotNull()
+    mainClock.autoAdvance = false
+    fun replace(next: GlassStyle) {
+      runOnIdle { style.value = next }
+      repeat(2) {
+        mainClock.advanceTimeByFrame()
+        waitForIdle()
+      }
+    }
+    replace(replacement)
+    mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
+    waitForIdle()
+    drawFrame()
+    assertGraph()
+    if (!reduced) {
+      assertThat(effect.currentInteractionState.hasOptics).isTrue()
+      lighting?.let {
+        assertThat(delegate.layers.interactionLighting).isSameInstanceAs(it)
+        assertThat(it.isReleased).isFalse()
+      }
+    }
+    if (rapid) {
+      replace(fusedRemovalStyle(removal))
+      mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
+      waitForIdle()
+      drawFrame()
+      assertGraph()
+      replace(replacement)
+      mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
+      waitForIdle()
+      drawFrame()
+      assertGraph()
+    }
+    mainClock.advanceTimeBy(500, ignoreFrameDuration = true)
+    waitForIdle()
+    drawFrame()
+    assertGraph()
+    assertThat(effect.currentInteractionState.hasOptics).isEqualTo(removal == FusedRemoval.Lighting)
+    assertThat(effect.currentInteractionState.hasLighting).isFalse()
+    if (removal != FusedRemoval.Lighting) assertThat(effect.interactionControllerForTest).isNull()
+    lighting?.let { assertThat(it.isReleased).isTrue() }
+    assertThat(delegate.layers.interactionLighting).isNull()
   }
 
   private fun AndroidComposeUiTest<ComponentActivity>.drawFrame() {

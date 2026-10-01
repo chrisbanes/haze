@@ -27,6 +27,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.contains
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
@@ -132,6 +133,138 @@ class GlassInteractionRemovalTest : ContextTest() {
     fixture.assertMaterialPixels(this)
   }
 
+  @Test
+  fun removeWhitePointWithoutBaseDetail_preservesOpticalStageAndMaterialUntilSettled() = runComposeUiTest {
+    val base = baseStyle().then { optics(GlassOptics(refractionStrength = 0f, refractionDetailIntensity = 0f, blurRadius = OpticalSizeValue.Fixed(0.dp))) }
+    val initial = base.then { pressed { animate(tween(1), tween(500)) { whitePointDelta(0.2f) } } }
+    val fixture = attach(initial)
+    assertThat(fixture.delegate.layers.refractionDetail).isNull()
+    assertRemoval(fixture, base, listOf(checkNotNull(fixture.delegate.layers.interactionOptical)))
+    assertThat(fixture.delegate.layers.interactionOptical).isNull()
+    assertThat(fixture.effect.interactionControllerForTest).isNull()
+  }
+
+  @Test
+  fun removeRefraction_preservesInteractionDetailUntilSettledAndKeepsBaseDetail() = runComposeUiTest {
+    val initial = baseStyle().then { pressed { animate(tween(1), tween(500)) { refractionMultiplier(1.8f) } } }
+    val fixture = attach(initial)
+    assertThat(checkNotNull(fixture.effect.preparedRender).refractionDetailKey).isNotNull()
+    assertThat(fixture.delegate.layers.refractionDetail).isNotNull()
+    val layers = listOf(
+      checkNotNull(fixture.delegate.layers.interactionOptical),
+      checkNotNull(fixture.delegate.layers.interactionRefractionDetail),
+      checkNotNull(fixture.delegate.layers.interactionRefractionDetailCoverage),
+      checkNotNull(fixture.delegate.layers.interactionRefractionComposite),
+    )
+    assertRemoval(fixture, baseStyle(), layers)
+    assertThat(fixture.delegate.layers.interactionOptical).isNull()
+    assertThat(fixture.delegate.layers.interactionRefractionDetail).isNull()
+    assertThat(fixture.delegate.layers.interactionRefractionDetailCoverage).isNull()
+    assertThat(fixture.delegate.layers.interactionRefractionComposite).isNull()
+    assertThat(fixture.delegate.layers.refractionDetail).isNotNull()
+    assertThat(checkNotNull(fixture.delegate.layers.refractionDetail).isReleased).isFalse()
+  }
+
+  @Test
+  fun removeLighting_preservesForegroundUntilSettledWhileOpticsRemain() = runComposeUiTest {
+    val fixture = attach(activeStyle())
+    val optical = checkNotNull(fixture.delegate.layers.interactionOptical)
+    val lighting = checkNotNull(fixture.delegate.layers.interactionLighting)
+    val replacement = baseStyle().then {
+      pressed {
+        animate(tween(1), tween(500)) {
+          refractionMultiplier(1.8f)
+          whitePointDelta(0.2f)
+        }
+      }
+    }
+    assertRemoval(fixture, replacement, listOf(lighting))
+    assertThat(fixture.delegate.layers.interactionLighting).isNull()
+    assertThat(fixture.delegate.layers.interactionOptical).isSameInstanceAs(optical)
+    assertThat(fixture.effect.currentInteractionState.hasOptics).isTrue()
+  }
+
+  @Test
+  fun removeAllResponses_preservesMaterialAndReleasesEveryObsoleteStage() = runComposeUiTest {
+    val fixture = attach(activeStyle())
+    val layers = interactionLayers(fixture)
+    assertRemoval(fixture, baseStyle(), layers)
+    assertThat(fixture.delegate.layers.interactionOptical).isNull()
+    assertThat(fixture.delegate.layers.interactionRefractionDetail).isNull()
+    assertThat(fixture.delegate.layers.interactionLighting).isNull()
+    assertThat(fixture.effect.interactionControllerForTest).isNull()
+  }
+
+  @Test
+  fun rapidRemovalAndReintroduction_preservesMaterialAndFinishesFinalExit() = runComposeUiTest {
+    val fixture = attach(activeStyle())
+    val layers = interactionLayers(fixture)
+    fixture.assertMaterialPixels(this)
+    mainClock.autoAdvance = false
+    runOnIdle { fixture.style.value = baseStyle() }
+    mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
+    waitForIdle()
+    fixture.assertMaterialPixels(this)
+    layers.forEach { assertThat(it.isReleased).isFalse() }
+    runOnIdle { fixture.style.value = activeStyle() }
+    mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
+    waitForIdle()
+    fixture.assertMaterialPixels(this)
+    assertRemoval(fixture, baseStyle(), layers)
+    assertThat(fixture.effect.interactionControllerForTest).isNull()
+  }
+
+  @Test
+  fun reducedMotion_removalSettlesWithoutObsoleteLayersOrController() = runComposeUiTest {
+    val fixture = attach(activeStyle(), GlassReducedMotionPolicy.Reduced)
+    val layers = interactionLayers(fixture)
+    fixture.assertMaterialPixels(this)
+    runOnIdle { fixture.style.value = baseStyle() }
+    waitForIdle()
+    layers.forEach { assertThat(it.isReleased).isTrue() }
+    assertThat(fixture.effect.interactionControllerForTest).isNull()
+    assertThat(fixture.delegate.layers.interactionOptical).isNull()
+    assertThat(fixture.delegate.layers.interactionLighting).isNull()
+    fixture.assertMaterialPixels(this)
+  }
+
+  private fun interactionLayers(fixture: Fixture) = listOf(
+    checkNotNull(fixture.delegate.layers.interactionOptical),
+    checkNotNull(fixture.delegate.layers.interactionRefractionDetail),
+    checkNotNull(fixture.delegate.layers.interactionRefractionDetailCoverage),
+    checkNotNull(fixture.delegate.layers.interactionRefractionComposite),
+    checkNotNull(fixture.delegate.layers.interactionLighting),
+  )
+
+  private fun ComposeUiTest.assertRemoval(fixture: Fixture, replacement: GlassStyle, layers: List<androidx.compose.ui.graphics.layer.GraphicsLayer>) {
+    fixture.assertMaterialPixels(this)
+    assertThat(fixture.effect.currentInteractionState.hasOptics || fixture.effect.currentInteractionState.hasLighting).isTrue()
+    mainClock.autoAdvance = false
+    runOnIdle { fixture.style.value = replacement }
+    repeat(9) {
+      mainClock.advanceTimeBy(50, ignoreFrameDuration = true)
+      waitForIdle()
+      assertThat(fixture.delegate.canDrawRetainedOutput()).isTrue()
+      val currentStages = listOfNotNull(
+        fixture.delegate.layers.interactionOptical,
+        fixture.delegate.layers.interactionRefractionDetail,
+        fixture.delegate.layers.interactionRefractionDetailCoverage,
+        fixture.delegate.layers.interactionRefractionComposite,
+        fixture.delegate.layers.interactionLighting,
+      )
+      layers.forEach {
+        assertThat(it.isReleased).isFalse()
+        assertThat(currentStages).contains(it)
+      }
+      fixture.assertMaterialPixels(this)
+    }
+    mainClock.advanceTimeBy(150, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(fixture.delegate.canDrawRetainedOutput()).isTrue()
+    layers.forEach { assertThat(it.isReleased).isTrue() }
+    fixture.assertMaterialPixels(this)
+  }
+
   private fun baseStyle() = GlassStyle.regular.then {
     optics(GlassOptics(refractionStrength = 0.5f, refractionDisplacement = 20.dp, blurRadius = OpticalSizeValue.Fixed(0.dp)))
     tint(Color.Blue.copy(alpha = 0.5f))
@@ -165,7 +298,7 @@ class GlassInteractionRemovalTest : ContextTest() {
     }
   }
 
-  private fun ComposeUiTest.attach(style: GlassStyle): Fixture {
+  private fun ComposeUiTest.attach(style: GlassStyle, policy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.Full): Fixture {
     val fixture = Fixture(style)
     val state = HazeState()
     setContent {
@@ -180,7 +313,7 @@ class GlassInteractionRemovalTest : ContextTest() {
             performanceMode = HazePerformanceMode.Quality,
             expandLayerBounds = true,
             interactionSource = fixture.source,
-            interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+            interactionReducedMotionPolicy = policy,
           ),
         )
       }
