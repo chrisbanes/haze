@@ -7,7 +7,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import kotlin.math.min
@@ -159,5 +158,3 @@ internal fun CornerRadii.toRoundRect(size: Size): RoundRect = RoundRect(
   bottomRightCornerRadius = CornerRadius(bottomRight),
   bottomLeftCornerRadius = CornerRadius(bottomLeft),
 )
-
-internal fun CornerRadii.toPath(size: Size): Path = Path().apply { addRoundRect(toRoundRect(size)) }

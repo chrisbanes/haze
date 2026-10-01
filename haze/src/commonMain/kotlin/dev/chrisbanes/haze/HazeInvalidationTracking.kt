@@ -12,16 +12,6 @@ import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.modifier.modifierLocalProvider
 import androidx.compose.ui.node.invalidateDraw
 
-internal enum class HazeInvalidationNodeType {
-  Source,
-  Effect,
-}
-
-internal enum class HazeInvalidationType {
-  Draw,
-  Layout,
-}
-
 internal enum class HazeInvalidationReason {
   Content,
   DirtyFields,
@@ -31,8 +21,6 @@ internal enum class HazeInvalidationReason {
 
 internal data class HazeInvalidationEvent(
   val tag: String?,
-  val nodeType: HazeInvalidationNodeType,
-  val invalidationType: HazeInvalidationType,
   val reason: HazeInvalidationReason,
 )
 
@@ -70,8 +58,6 @@ internal fun HazeEffectNode.invalidateHazeDraw(reason: HazeInvalidationReason) {
   recordHazeInvalidation {
     HazeInvalidationEvent(
       tag = currentHazeInvalidationTag(),
-      nodeType = HazeInvalidationNodeType.Effect,
-      invalidationType = HazeInvalidationType.Draw,
       reason = reason,
     )
   }
