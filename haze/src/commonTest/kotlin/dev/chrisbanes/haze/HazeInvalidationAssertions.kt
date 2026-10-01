@@ -5,44 +5,27 @@ package dev.chrisbanes.haze
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isLessThanOrEqualTo
 
 internal class HazeInvalidationAssertionScope internal constructor(
   private val tag: String,
 ) {
   fun drawInvalidationsExactly(count: Int) {
-    assertInvalidationsExactly(HazeInvalidationType.Draw, count)
-  }
-
-  fun drawInvalidationsAtMost(count: Int) {
-    assertInvalidationsAtMost(HazeInvalidationType.Draw, count)
-  }
-
-  private fun assertInvalidationsExactly(
-    type: HazeInvalidationType,
-    count: Int,
-  ) {
-    val matchingEvents = hazeInvalidationEvents().filter {
-      it.tag == tag && it.invalidationType == type
-    }
+    val matchingCount = hazeInvalidationEvents().count { it.tag == tag }
     assertThat(
-      matchingEvents.size,
-      "Haze $type invalidations for tag '$tag'. All events: ${hazeInvalidationEvents()}",
+      matchingCount,
+      "Haze Draw invalidations for tag '$tag'. All events: ${hazeInvalidationEvents()}",
     ).isEqualTo(count)
   }
 
-  private fun assertInvalidationsAtMost(
-    type: HazeInvalidationType,
-    count: Int,
-  ) {
+  fun drawInvalidationsAtMost(count: Int) {
     val allEvents = hazeInvalidationEvents()
-    val matchingEvents = allEvents.filter {
-      it.tag == tag && it.invalidationType == type
-    }
+    val matchingCount = allEvents.count { it.tag == tag }
     assertThat(
-      matchingEvents.size <= count,
-      "Haze $type invalidations for tag '$tag' expected at most $count. " +
-        "Actual=${matchingEvents.size}. All events: $allEvents",
-    ).isEqualTo(true)
+      matchingCount,
+      "Haze Draw invalidations for tag '$tag' expected at most $count. " +
+        "Actual=$matchingCount. All events: $allEvents",
+    ).isLessThanOrEqualTo(count)
   }
 }
 
