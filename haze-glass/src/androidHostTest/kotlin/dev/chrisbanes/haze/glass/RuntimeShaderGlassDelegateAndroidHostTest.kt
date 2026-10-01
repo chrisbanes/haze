@@ -1316,7 +1316,45 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.layers.interactionRefractionComposite).isNull()
       assertThat(delegate.canDrawRetainedOutput()).isTrue()
     }
+    fun assertOutgoingUniforms(active: Boolean) {
+      val uniforms = checkNotNull(runtime(effect).preparedRender).interactionUniforms
+      when (removal) {
+        FusedRemoval.WhitePoint -> {
+          if (active) {
+            assertThat(uniforms.whitePointDelta).isGreaterThan(0f)
+          } else {
+            assertThat(uniforms.whitePointDelta).isEqualTo(0f)
+          }
+        }
+        FusedRemoval.Refraction -> {
+          if (active) {
+            assertThat(uniforms.refractionMultiplier).isGreaterThan(1f)
+          } else {
+            assertThat(uniforms.refractionMultiplier).isEqualTo(1f)
+          }
+        }
+        FusedRemoval.Lighting -> {
+          if (active) {
+            assertThat(uniforms.lightingIntensity).isGreaterThan(0f)
+          } else {
+            assertThat(uniforms.lightingIntensity).isEqualTo(0f)
+          }
+        }
+        FusedRemoval.All -> {
+          if (active) {
+            assertThat(uniforms.whitePointDelta).isGreaterThan(0f)
+            assertThat(uniforms.refractionMultiplier).isGreaterThan(1f)
+            assertThat(uniforms.lightingIntensity).isGreaterThan(0f)
+          } else {
+            assertThat(uniforms.whitePointDelta).isEqualTo(0f)
+            assertThat(uniforms.refractionMultiplier).isEqualTo(1f)
+            assertThat(uniforms.lightingIntensity).isEqualTo(0f)
+          }
+        }
+      }
+    }
     assertGraph()
+    assertOutgoingUniforms(active = true)
     assertThat(effect.currentInteractionState.hasOptics).isTrue()
     val lighting = delegate.layers.interactionLighting
     if (removal == FusedRemoval.Lighting || removal == FusedRemoval.All) assertThat(lighting).isNotNull()
@@ -1334,6 +1372,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     drawFrame()
     assertGraph()
     if (!reduced) {
+      assertOutgoingUniforms(active = true)
       assertThat(effect.currentInteractionState.hasOptics).isTrue()
       lighting?.let {
         assertThat(delegate.layers.interactionLighting).isSameInstanceAs(it)
@@ -1356,6 +1395,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     waitForIdle()
     drawFrame()
     assertGraph()
+    assertOutgoingUniforms(active = false)
     assertThat(effect.currentInteractionState.hasOptics).isEqualTo(removal == FusedRemoval.Lighting)
     assertThat(effect.currentInteractionState.hasLighting).isFalse()
     if (removal != FusedRemoval.Lighting) assertThat(effect.interactionControllerForTest).isNull()
