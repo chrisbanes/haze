@@ -16,11 +16,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -511,6 +513,9 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     val source = checkNotNull(delegate.layers.source)
     val optical = checkNotNull(delegate.layers.optical)
     val detail = checkNotNull(delegate.layers.refractionDetail)
+    val materialSize = checkNotNull(runtime(effect).attachedContextForTest).modifierSize
+    assertThat(materialSize.width).isGreaterThan(1000f)
+    assertThat(materialSize.height).isGreaterThan(600f)
     val decision = runtime(effect).preparedRenderBudget as GlassRenderBudgetDecision.Runtime
     val plannedKinds = checkNotNull(runtime(effect).preparedRender).plan.layers.map { it.kind }
     val positions = listOf(Offset(200f, 150f), Offset(500f, 300f), Offset(800f, 450f))
@@ -1498,7 +1503,16 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     performanceMode: HazePerformanceMode = HazePerformanceMode.Quality,
   ) {
     val hazeState = remember { HazeState() }
-    Box(Modifier.size(1100.dp, 650.dp)) {
+    Box(
+      Modifier.size(1100.dp, 650.dp).drawWithContent {
+        // These tests verify full-size layer retention and recording, not whole-panel pixels.
+        // Keep the geometry intact, but rasterize a small sample of the current interaction patch.
+        val position = effect.currentInteractionState.position
+        clipRect(position.x - 16f, position.y - 16f, position.x + 16f, position.y + 16f) {
+          this@drawWithContent.drawContent()
+        }
+      },
+    ) {
       Box(Modifier.fillMaxSize().background(Color.Red).hazeSource(hazeState))
       Box(
         Modifier

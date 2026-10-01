@@ -26,6 +26,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isTrue
@@ -143,11 +144,11 @@ class GlassSpringScaleTest : ContextTest() {
           )
           val press = PressInteraction.Press(Offset(60f, 60f))
           fixture.emit(press)
-          frames(fixture, 300)
+          settle(fixture)
           assertThat(fixture.transform().scaleX).isEqualTo(x)
           assertThat(fixture.transform().scaleY).isEqualTo(y)
           fixture.emit(PressInteraction.Release(press))
-          frames(fixture, 300)
+          settle(fixture)
           assertThat(fixture.transform()).isEqualTo(HazeEffectContentTransform.Identity)
           if (x == 0.1f && y == 0.1f) {
             val first = PressInteraction.Press(Offset(60f, 60f))
@@ -159,7 +160,7 @@ class GlassSpringScaleTest : ContextTest() {
             fixture.emit(second)
             frames(fixture, 8)
             fixture.emit(PressInteraction.Release(second))
-            frames(fixture, 300)
+            settle(fixture)
             assertThat(fixture.transform()).isEqualTo(HazeEffectContentTransform.Identity)
           }
         }
@@ -175,16 +176,16 @@ class GlassSpringScaleTest : ContextTest() {
         )
         val hover = HoverInteraction.Enter()
         fixture.emit(hover)
-        frames(fixture, 300)
+        settle(fixture)
         val press = PressInteraction.Press(Offset(60f, 60f))
         fixture.emit(press)
-        frames(fixture, 300)
+        settle(fixture)
         fixture.emit(PressInteraction.Release(press))
-        frames(fixture, 300)
+        settle(fixture)
         assertThat(fixture.transform().scaleX).isEqualTo(0.000001f)
         assertThat(fixture.transform().scaleY).isEqualTo(Float.MIN_VALUE)
         fixture.emit(HoverInteraction.Exit(hover))
-        frames(fixture, 300)
+        settle(fixture)
         assertThat(fixture.transform()).isEqualTo(HazeEffectContentTransform.Identity)
       }
     }
@@ -209,12 +210,12 @@ class GlassSpringScaleTest : ContextTest() {
         fixture.emit(press)
         frames(fixture, 8)
         assertThat(fixture.transform()).isNotEqualTo(HazeEffectContentTransform.Identity)
-        frames(fixture, 300)
+        settle(fixture)
         assertThat(fixture.transform().scaleX).isEqualTo(0.9f)
         assertThat(fixture.transform().scaleY).isEqualTo(0.8f)
         fixture.emit(PressInteraction.Release(press))
         var overshot = false
-        frames(fixture, 300) { overshot = overshot || it.scaleX > 1f || it.scaleY > 1f }
+        settle(fixture) { overshot = overshot || it.scaleX > 1f || it.scaleY > 1f }
         assertThat(overshot).isTrue()
         assertThat(fixture.transform()).isEqualTo(HazeEffectContentTransform.Identity)
       }
@@ -287,9 +288,17 @@ class GlassSpringScaleTest : ContextTest() {
     return fixture
   }
 
+  private fun ComposeUiTest.settle(
+    fixture: Fixture,
+    sample: (HazeEffectContentTransform) -> Unit = {},
+  ) {
+    frames(fixture, count = 300, stopWhenIdle = true, sample = sample)
+  }
+
   private fun ComposeUiTest.frames(
     fixture: Fixture,
     count: Int,
+    stopWhenIdle: Boolean = false,
     sample: (HazeEffectContentTransform) -> Unit = {},
   ) {
     var capturedFloor = false
@@ -307,7 +316,17 @@ class GlassSpringScaleTest : ContextTest() {
       assertThat(transform.scaleY.isFinite() && transform.scaleY > 0f).isTrue()
       val floor = transform.scaleX == Float.MIN_VALUE || transform.scaleY == Float.MIN_VALUE
       val overshoot = transform.scaleX > 1f || transform.scaleY > 1f
-      if (frame == 0 || frame == count - 1 || (floor && !capturedFloor) || (overshoot && !capturedOvershoot)) {
+      val settled = stopWhenIdle && run {
+        // Pending animations count as work only with autoAdvance enabled. Toggle it for the query
+        // without advancing time, so every animated frame still receives the draw checks above.
+        mainClock.autoAdvance = true
+        try {
+          !hasPendingWork()
+        } finally {
+          mainClock.autoAdvance = false
+        }
+      }
+      if (frame == 0 || frame == count - 1 || settled || (floor && !capturedFloor) || (overshoot && !capturedOvershoot)) {
         val image = onNodeWithTag("glass").captureToImage()
         // Subpixel scales can legitimately reveal the source; their renderer draw is checked above.
         if (transform.scaleX >= 0.1f && transform.scaleY >= 0.1f) {
@@ -318,6 +337,8 @@ class GlassSpringScaleTest : ContextTest() {
         capturedOvershoot = capturedOvershoot || overshoot
       }
       sample(transform)
+      if (settled) return
     }
+    assertThat(stopWhenIdle, "Glass animation did not settle within $count frames").isFalse()
   }
 }
