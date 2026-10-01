@@ -25,6 +25,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.onNodeWithTag
@@ -853,9 +854,7 @@ class GlassInteractionControllerTest : ContextTest() {
         controller.updateConfiguration(effect.runtimeConfiguration(systemMotionScale = 1f))
         controller.updateSignals(GlassInteractionSignals(rawPressed = true))
         var floored = false
-        repeat(300) {
-          mainClock.advanceTimeByFrame()
-          waitForIdle()
+        sampleAnimationFrames {
           val state = controller.renderState
           assertThat(state.scaleX.isFinite() && state.scaleX > 0f).isTrue()
           assertThat(state.scaleY.isFinite() && state.scaleY > 0f).isTrue()
@@ -867,9 +866,7 @@ class GlassInteractionControllerTest : ContextTest() {
         assertThat(controller.renderState.scaleX).isEqualTo(x)
         assertThat(controller.renderState.scaleY).isEqualTo(y)
         controller.updateSignals(GlassInteractionSignals())
-        repeat(300) {
-          mainClock.advanceTimeByFrame()
-          waitForIdle()
+        sampleAnimationFrames {
           assertThat(controller.renderState.scaleX.isFinite() && controller.renderState.scaleX > 0f).isTrue()
           assertThat(controller.renderState.scaleY.isFinite() && controller.renderState.scaleY > 0f).isTrue()
         }
@@ -1217,6 +1214,23 @@ class GlassInteractionControllerTest : ContextTest() {
 
   private fun runtime(effect: GlassRuntimeEffect): GlassRuntimeEffect =
     checkNotNull(attachedRuntime).also { check(it === effect) }
+
+  private fun ComposeUiTest.sampleAnimationFrames(sample: () -> Unit) {
+    repeat(300) {
+      mainClock.advanceTimeByFrame()
+      waitForIdle()
+      sample()
+      // Include animations in the idle query without automatically advancing past their samples.
+      mainClock.autoAdvance = true
+      val settled = try {
+        !hasPendingWork()
+      } finally {
+        mainClock.autoAdvance = false
+      }
+      if (settled) return
+    }
+    error("Glass animation did not settle within 300 frames")
+  }
 
   private fun interactive(effect: GlassRuntimeEffect): HazeEffectRendererInteraction =
     runtime(effect)
