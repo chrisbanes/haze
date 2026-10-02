@@ -102,5 +102,7 @@ poko {
 }
 
 tasks.withType<Test>().configureEach {
-  systemProperties["robolectric.pixelCopyRenderMode"] = "hardware"
+  if (name == "testAndroidHostTest") {
+    systemProperty("robolectric.pixelCopyRenderMode", "hardware")
+  }
 }

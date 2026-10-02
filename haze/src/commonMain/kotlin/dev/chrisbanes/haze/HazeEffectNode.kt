@@ -128,6 +128,7 @@ internal class HazeEffectNode(
   private var needsDirtyFieldsInvalidation = false
   private var needsVisualEffectInvalidation = false
   private var needsNextFrameVisualEffectInvalidation = false
+  private var needsNextFrameLayerBounds = false
   private var needsContentInvalidation = false
   private val sourceDemandKey = Any()
   private var sourceDemandState: HazeState? = null
@@ -562,7 +563,6 @@ internal class HazeEffectNode(
   }
 
   override fun ContentDrawScope.draw() {
-    isDrawing = true
     try {
       HazeLogger.d(TAG) { "-> start draw()" }
 
@@ -572,6 +572,12 @@ internal class HazeEffectNode(
         return
       }
 
+      if (DirtyFields.VisualEffectLayerBounds in dirtyTracker) {
+        observeReads(::updateEffect)
+      }
+      // Bounds requested during the refresh are consumed by that update's calculation.
+      // Only requests after this boundary need to survive until another frame.
+      isDrawing = true
       for (area in areas) {
         require(!area.isContentDrawing) {
           "Modifier.hazeEffect nodes cannot draw an ancestor Modifier.hazeSource. " +
@@ -1080,6 +1086,7 @@ internal class HazeEffectNode(
   }
 
   internal fun invalidateVisualEffectLayerBounds() {
+    if (isDrawing) needsNextFrameLayerBounds = true
     dirtyTracker += DirtyFields.VisualEffectLayerBounds
     invalidateVisualEffectDraw()
   }
@@ -1106,7 +1113,11 @@ internal class HazeEffectNode(
   }
 
   private fun onPostDraw() {
-    dirtyTracker = Bitmask()
+    dirtyTracker = if (needsNextFrameLayerBounds) {
+      Bitmask(DirtyFields.VisualEffectLayerBounds)
+    } else {
+      Bitmask()
+    }
     val invalidateNextFrame = needsNextFrameVisualEffectInvalidation
     resetPendingInvalidations()
     if (invalidateNextFrame) {
@@ -1122,6 +1133,7 @@ internal class HazeEffectNode(
     needsDirtyFieldsInvalidation = false
     needsVisualEffectInvalidation = false
     needsNextFrameVisualEffectInvalidation = false
+    needsNextFrameLayerBounds = false
     needsContentInvalidation = false
   }
 
