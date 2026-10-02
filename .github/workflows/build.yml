@@ -99,9 +99,10 @@ jobs:
         run: >
           SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp'
           ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan
+          --tests '*HazeDesktopWindowRenderingTest.crossWindowEffect_samplesExpectedScreenRegion*'
 
-      # Temporary T1 proof: remove after the complete suite receives its exact-execution gate.
-      - name: Prove Desktop fixture repeatability and negative controls
+      # Temporary T1/T2 proof: remove after the complete suite receives its exact-execution gate.
+      - name: Prove Desktop fixture controls and complete suite repeatability
         shell: bash
         run: |
           set -euo pipefail
@@ -150,7 +151,28 @@ jobs:
           }
           display_run() {
             SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp' \
-              ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan "$@"
+              ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan \
+              --tests '*HazeDesktopWindowRenderingTest.crossWindowEffect_samplesExpectedScreenRegion*' "$@"
+          }
+          verify_suite() {
+            python3 - "$report" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+          expected = {
+              "crossWindowEffect_samplesExpectedScreenRegion",
+              "effectWindowMove_updatesSampledRegion",
+              "sourceWindowMove_updatesSampledRegion",
+              "sourceDrawChange_refreshesEffectWindow",
+              "windowsReturnToOriginalPosition_restoresSampledRegion",
+          }
+          cases = ET.parse(sys.argv[1]).getroot().findall(".//testcase")
+          names = [case.get("name", "").removesuffix("[jvm]") for case in cases]
+          assert len(names) == len(expected) and set(names) == expected, f"Expected all five T2 cases, found {names}"
+          for case in cases:
+              assert case.get("classname") == "dev.chrisbanes.haze.HazeDesktopWindowRenderingTest"
+              assert not case.findall("failure") + case.findall("error") + case.findall("skipped"), ET.tostring(case, encoding="unicode")
+          print("T2 complete five-method XML proof passed")
+          PY
           }
 
           verify_report pass
@@ -159,7 +181,8 @@ jobs:
           verify_report pass
           preserve_proof repeated
 
-          if env -u DISPLAY -u WAYLAND_DISPLAY ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan; then
+          if env -u DISPLAY -u WAYLAND_DISPLAY ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan \
+            --tests '*HazeDesktopWindowRenderingTest.crossWindowEffect_samplesExpectedScreenRegion*'; then
             echo 'Missing-display control unexpectedly passed'
             exit 1
           fi
@@ -188,7 +211,16 @@ jobs:
           preserve_proof restored
           git diff --exit-code -- "$production"
 
-      - name: Upload Desktop T1 proof reports and captures
+          SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp' \
+            ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan
+          verify_suite
+          preserve_proof t2-first
+          SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp' \
+            ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan --rerun-tasks
+          verify_suite
+          preserve_proof t2-repeated
+
+      - name: Upload Desktop T1 and T2 proof reports and captures
         if: always()
         uses: actions/upload-artifact@v7
         with:

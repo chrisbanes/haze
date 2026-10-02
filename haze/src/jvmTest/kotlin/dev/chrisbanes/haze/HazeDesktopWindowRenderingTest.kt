@@ -55,6 +55,68 @@ class HazeDesktopWindowRenderingTest {
       }
     }
   }
+
+  @Test
+  fun effectWindowMove_updatesSampledRegion() {
+    withDesktopWindowFixture("effectWindowMove_updatesSampledRegion") { fixture ->
+      fixture.moveEffectWindow(Point(260, 196))
+      fixture.awaitDisplayedRegion()
+      fixture.saveDiagnostics("effect-moved")
+    }
+  }
+
+  @Test
+  fun sourceWindowMove_updatesSampledRegion() {
+    withDesktopWindowFixture("sourceWindowMove_updatesSampledRegion") { fixture ->
+      fixture.moveSourceWindow(Point(36, 100))
+      fixture.awaitDisplayedRegion()
+      fixture.saveDiagnostics("source-moved")
+    }
+  }
+
+  @Test
+  fun sourceDrawChange_refreshesEffectWindow() {
+    withDesktopWindowFixture("sourceDrawChange_refreshesEffectWindow") { fixture ->
+      val previousEffectDraws = fixture.changeSourcePalette()
+      fixture.awaitDisplayedRegion(expectedPalette = 1, afterEffectDraws = previousEffectDraws)
+      fixture.saveDiagnostics("source-redrawn")
+    }
+  }
+
+  @Test
+  fun windowsReturnToOriginalPosition_restoresSampledRegion() {
+    withDesktopWindowFixture("windowsReturnToOriginalPosition_restoresSampledRegion") { fixture ->
+      fixture.moveEffectWindow(Point(260, 196))
+      fixture.awaitDisplayedRegion()
+      fixture.saveDiagnostics("effect-moved")
+
+      fixture.moveSourceWindow(Point(36, 100))
+      fixture.awaitDisplayedRegion()
+      fixture.saveDiagnostics("both-moved")
+
+      fixture.moveSourceWindow(Point(100, 100))
+      fixture.awaitDisplayedRegion()
+      fixture.saveDiagnostics("source-restored")
+
+      fixture.moveEffectWindow(Point(196, 196))
+      fixture.awaitDisplayedRegion()
+      fixture.saveDiagnostics("both-restored")
+    }
+  }
+}
+
+private fun withDesktopWindowFixture(method: String, scenario: (DesktopWindowFixture) -> Unit) {
+  DesktopWindowFixture(method).use { fixture ->
+    try {
+      fixture.open()
+      fixture.awaitDisplayedRegion()
+      fixture.saveDiagnostics("initial")
+      scenario(fixture)
+    } catch (failure: Throwable) {
+      runCatching { fixture.saveDiagnostics("failure", failure) }.exceptionOrNull()?.let(failure::addSuppressed)
+      throw failure
+    }
+  }
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -70,6 +132,9 @@ private class DesktopWindowFixture(method: String) : AutoCloseable {
   private var effectWindow: ComposeWindow? = null
   private var robot: Robot? = null
   private var lastCapture: BufferedImage? = null
+  private var expectedPalette = 0
+  private var sourceLocation = Point(100, 100)
+  private var effectLocation = Point(196, 196)
   private val outputDirectory = File(
     System.getProperty("haze.desktopWindowTest.outputDir"),
     method,
@@ -161,17 +226,40 @@ private class DesktopWindowFixture(method: String) : AutoCloseable {
         ).isTrue()
       }
     }
-    awaitCondition("requested native window geometry") {
+    awaitWindowGeometry()
+  }
+
+  fun moveSourceWindow(location: Point) {
+    sourceLocation = location
+    onEdt { checkNotNull(sourceWindow).setLocation(location) }
+    awaitWindowGeometry()
+  }
+
+  fun moveEffectWindow(location: Point) {
+    effectLocation = location
+    onEdt { checkNotNull(effectWindow).setLocation(location) }
+    awaitWindowGeometry()
+  }
+
+  fun changeSourcePalette(): Int = onEdt {
+    val previousEffectDraws = effectDraws.get()
+    palette.intValue = 1
+    previousEffectDraws
+  }
+
+  private fun awaitWindowGeometry() {
+    awaitCondition("requested native window geometry: source=$sourceLocation effect=$effectLocation") {
       onEdt {
-        sourceWindow?.locationOnScreen == Point(100, 100) &&
-          effectWindow?.locationOnScreen == Point(196, 196) &&
+        sourceWindow?.locationOnScreen == sourceLocation &&
+          effectWindow?.locationOnScreen == effectLocation &&
           sourceWindow?.contentPane?.size == java.awt.Dimension(320, 320) &&
           effectWindow?.contentPane?.size == java.awt.Dimension(64, 64)
       }
     }
   }
 
-  fun awaitDisplayedRegion() {
+  fun awaitDisplayedRegion(expectedPalette: Int = 0, afterEffectDraws: Int? = null) {
+    this.expectedPalette = expectedPalette
     val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
     var mismatch: String
     do {
@@ -179,22 +267,25 @@ private class DesktopWindowFixture(method: String) : AutoCloseable {
       val (source, effect) = onEdt { windowRectangles() }
       val image = checkNotNull(robot).createScreenCapture(effect)
       lastCapture = image
-      mismatch = sampledRegionMismatch(image, source, effect)
-      if (mismatch.isEmpty()) {
-        assertSampledRegion(image, source, effect)
+      mismatch = sampledRegionMismatch(image, source, effect, expectedPalette)
+      if (mismatch.isEmpty() && (afterEffectDraws == null || effectDraws.get() > afterEffectDraws)) {
+        assertSampledRegion(image, source, effect, expectedPalette)
         return
       }
       LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(25))
     } while (System.nanoTime() < deadline)
-    throw AssertionError("Displayed region pixel mismatch after 10 seconds: $mismatch")
+    throw AssertionError(
+      "Displayed region pixel mismatch after 10 seconds: $mismatch" +
+        "effectDraws=${effectDraws.get()}, required after=$afterEffectDraws",
+    )
   }
 
   fun saveDiagnostics(label: String, failure: Throwable? = null) {
     outputDirectory.mkdirs()
     // Diagnostic read failures must not replace the original assertion or startup failure.
     val geometry = runCatching { onEdt { windowRectangles() } }.getOrNull()
-    if (lastCapture == null && robot != null && geometry != null) {
-      lastCapture = runCatching { robot?.createScreenCapture(geometry.second) }.getOrNull()
+    if (robot != null && geometry != null) {
+      runCatching { robot?.createScreenCapture(geometry.second) }.getOrNull()?.let { lastCapture = it }
     }
     lastCapture?.let { ImageIO.write(it, "png", File(outputDirectory, "$label.png")) }
     File(outputDirectory, "$label.txt").writeText(
@@ -203,6 +294,8 @@ private class DesktopWindowFixture(method: String) : AutoCloseable {
         appendLine("DISPLAY=${System.getenv("DISPLAY")}")
         appendLine("SKIKO_RENDER_API=${System.getenv("SKIKO_RENDER_API")}")
         appendLine("effectDraws=${effectDraws.get()}")
+        appendLine("expectedPalette=$expectedPalette")
+        appendLine("requested source/effect origins=$sourceLocation/$effectLocation")
         appendLine("source/effect Compose density=${sourceDensity.get()}/${effectDensity.get()}")
         appendLine("sourceHost=${sourceHost.get()}")
         appendLine("effectHost=${effectHost.get()}")
@@ -218,7 +311,7 @@ private class DesktopWindowFixture(method: String) : AutoCloseable {
         )
         val image = lastCapture
         if (image != null && geometry != null) {
-          appendLine(sampledRegionMismatch(image, geometry.first, geometry.second, includeMatches = true))
+          appendLine(sampledRegionMismatch(image, geometry.first, geometry.second, expectedPalette, includeMatches = true))
         }
       },
     )
@@ -259,14 +352,15 @@ private fun tileColor(column: Int, row: Int, palette: Int): Color {
   return if (palette == 0) Color(red, green, 80) else Color(255 - red, 255 - green, 175)
 }
 
-private fun assertSampledRegion(image: BufferedImage, source: Rectangle, effect: Rectangle) {
-  assertThat(sampledRegionMismatch(image, source, effect), "Displayed region pixel mismatch").isEqualTo("")
+private fun assertSampledRegion(image: BufferedImage, source: Rectangle, effect: Rectangle, palette: Int) {
+  assertThat(sampledRegionMismatch(image, source, effect, palette), "Displayed region pixel mismatch").isEqualTo("")
 }
 
 private fun sampledRegionMismatch(
   image: BufferedImage,
   source: Rectangle,
   effect: Rectangle,
+  palette: Int,
   includeMatches: Boolean = false,
 ): String = buildString {
   for (y in listOf(16, 48)) {
@@ -274,7 +368,8 @@ private fun sampledRegionMismatch(
       // Expected colours follow the analytic grid at observed screen positions, not Haze transforms.
       val column = (effect.x + x - source.x) / 64
       val row = (effect.y + y - source.y) / 64
-      val expected = listOf(40 + 32 * column, 56 + 32 * row, 80)
+      val original = listOf(40 + 32 * column, 56 + 32 * row, 80)
+      val expected = if (palette == 0) original else original.map { 255 - it }
       for (dy in -1..1) {
         for (dx in -1..1) {
           val rgb = image.getRGB(x + dx, y + dy)
