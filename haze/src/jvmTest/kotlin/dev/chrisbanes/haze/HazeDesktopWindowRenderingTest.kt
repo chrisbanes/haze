@@ -121,6 +121,7 @@ private fun withDesktopWindowFixture(method: String, scenario: (DesktopWindowFix
 
 @OptIn(ExperimentalComposeUiApi::class)
 private class DesktopWindowFixture(method: String) : AutoCloseable {
+  private val previousLogging = HazeLogger.enabled
   private val state = HazeState()
   private val palette = mutableIntStateOf(0)
   private val effectDraws = AtomicInteger()
@@ -141,6 +142,8 @@ private class DesktopWindowFixture(method: String) : AutoCloseable {
   )
 
   fun open() {
+    HazeLogger.enabled = true
+    println("desktop-geometry fixture=${outputDirectory.name} open")
     assertThat(GraphicsEnvironment.isHeadless(), "A functioning display is required").isFalse()
     // Own windows before configuring them so partial construction is also cleaned up by use().
     onEdt {
@@ -230,18 +233,21 @@ private class DesktopWindowFixture(method: String) : AutoCloseable {
   }
 
   fun moveSourceWindow(location: Point) {
+    println("desktop-geometry fixture=${outputDirectory.name} source move=$sourceLocation->$location")
     sourceLocation = location
     onEdt { checkNotNull(sourceWindow).setLocation(location) }
     awaitWindowGeometry()
   }
 
   fun moveEffectWindow(location: Point) {
+    println("desktop-geometry fixture=${outputDirectory.name} effect move=$effectLocation->$location")
     effectLocation = location
     onEdt { checkNotNull(effectWindow).setLocation(location) }
     awaitWindowGeometry()
   }
 
   fun changeSourcePalette(): Int = onEdt {
+    println("desktop-geometry fixture=${outputDirectory.name} source palette=1")
     val previousEffectDraws = effectDraws.get()
     palette.intValue = 1
     previousEffectDraws
@@ -324,12 +330,17 @@ private class DesktopWindowFixture(method: String) : AutoCloseable {
   }
 
   override fun close() {
-    onEdt {
-      try {
-        effectWindow?.dispose()
-      } finally {
-        sourceWindow?.dispose()
+    try {
+      onEdt {
+        try {
+          effectWindow?.dispose()
+        } finally {
+          sourceWindow?.dispose()
+        }
       }
+    } finally {
+      println("desktop-geometry fixture=${outputDirectory.name} closed")
+      HazeLogger.enabled = previousLogging
     }
   }
 }
