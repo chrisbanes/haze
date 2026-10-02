@@ -99,7 +99,7 @@ jobs:
       - name: Verify real Desktop window rendering
         run: >
           SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp'
-          ./gradlew :haze:verifyDesktopWindowTests -Phaze.disableAppleTargets --no-scan
+          ./gradlew :haze:verifyDesktopWindowTests -Phaze.disableAppleTargets
 
       - name: Upload reports + Roborazzi outputs
         if: failure()

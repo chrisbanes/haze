@@ -25,8 +25,10 @@ The verification task depends on a fresh `desktopWindowTest` execution. It rejec
 filtered, duplicated, failed, errored, or skipped methods. A missing or unusable display fails the
 test task; the suite does not skip when display setup is unavailable.
 
-Agent-invoked Gradle commands must use the repository's managed `gradle-run` wrapper with Java 21
-and `--no-scan`; CI and human-run commands may use the direct commands above.
+Agent-invoked Gradle commands must use Java 21 and `--no-scan`. If the `gradle-run` skill is
+available, use its managed wrapper; it is agent tooling, not a repository executable. The direct
+commands above are otherwise executable from this repository. CI preserves the configured Build
+Scan publishing behavior and omits `--no-scan`.
 
 ## Results and coverage
 
@@ -35,6 +37,9 @@ The JUnit report is written to
 Screen captures and accompanying diagnostic text are stored under
 `haze/build/outputs/desktop-window-tests/<test-method>/`. CI retains both locations when the Linux
 job fails.
+
+The effect applies a fixed 50% black tint after drawing the sampled input. Expected pixels include
+this tint, so an overlapping source window cannot satisfy the effect's pixel assertions.
 
 The tests cover source-backed pixel alignment across independent native windows, movement of
 either window, source-only redraw, and recovery after moving both windows. They verify the Linux

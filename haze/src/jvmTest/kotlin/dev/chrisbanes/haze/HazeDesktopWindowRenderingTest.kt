@@ -341,6 +341,8 @@ private class WindowInputDrawingFactory(
     override fun HazeEffectDrawScope.draw(style: Unit) {
       drawRect(Color.Magenta)
       drawInput()
+      // Distinguish the effect's pixels from the source if native window stacking changes.
+      drawRect(Color.Black, alpha = 0.5f)
       draws.incrementAndGet()
     }
   }
@@ -369,7 +371,9 @@ private fun sampledRegionMismatch(
       val column = (effect.x + x - source.x) / 64
       val row = (effect.y + y - source.y) / 64
       val original = listOf(40 + 32 * column, 56 + 32 * row, 80)
-      val expected = if (palette == 0) original else original.map { 255 - it }
+      val sampled = if (palette == 0) original else original.map { 255 - it }
+      // A 50% black overlay is applied only by the effect, never by the source window.
+      val expected = sampled.map { it / 2 }
       for (dy in -1..1) {
         for (dx in -1..1) {
           val rgb = image.getRGB(x + dx, y + dy)
