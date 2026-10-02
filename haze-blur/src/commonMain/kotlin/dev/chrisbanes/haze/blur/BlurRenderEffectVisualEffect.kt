@@ -102,6 +102,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
     val resultLayer = if (inputCaptureKey == currentCaptureKey) {
       layer
     } else {
+      blurVisualEffect.invalidateRenderEffectOnInputChange()
       // Returns null when the scaled size is 0 (e.g., window minimized).
       createScaledContentLayer(
         context = context,
@@ -220,6 +221,8 @@ internal expect fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   context: HazeEffectRuntimeDrawScope,
   inputScale: Float,
 )
+
+internal expect fun BlurVisualEffect.invalidateRenderEffectOnInputChange()
 
 internal fun shouldDrawProgressiveWithLayers(
   progressive: RootHazeProgressive,

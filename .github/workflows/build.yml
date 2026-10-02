@@ -142,13 +142,13 @@ jobs:
             haze-screenshot-tests/build/reports/**
             haze-screenshot-tests/build/outputs/roborazzi/**
 
-  emulator_tests:
+  emulator_tests_matrix:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
 
     strategy:
       fail-fast: false
       matrix:
-        api-level: [32, 34]
+        api-level: [31, 34]
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -197,6 +197,17 @@ jobs:
             **/build/reports/androidTests/**
             **/build/reports/tests/**
             **/build/outputs/androidTest-results/**
+
+  emulator_tests:
+    if: always() && !contains(github.event.head_commit.message, 'skip ci')
+    needs: emulator_tests_matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check emulator matrix
+        env:
+          MATRIX_RESULT: ${{ needs.emulator_tests_matrix.result }}
+        run: test "$MATRIX_RESULT" = success
 
   deploy:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1'

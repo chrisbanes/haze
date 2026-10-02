@@ -11,6 +11,8 @@ import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.asComposeRenderEffect
 
+internal actual fun BlurVisualEffect.invalidateRenderEffectOnInputChange() = Unit
+
 @OptIn(InternalHazeApi::class)
 internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   drawScope: DrawScope,
