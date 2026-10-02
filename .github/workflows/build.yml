@@ -92,6 +92,112 @@ jobs:
           ORG_GRADLE_PROJECT_remoteBuildCachePassword: ${{ secrets.GRADLE_REMOTE_CACHE_PASSWORD }}
           ORG_GRADLE_PROJECT_remoteBuildCachePush: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1') }}
 
+      - name: Install Desktop display prerequisites
+        run: sudo apt-get update && sudo apt-get install -y xvfb xauth
+
+      - name: Run real Desktop window rendering test
+        run: >
+          SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp'
+          ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan
+
+      # Temporary T1 proof: remove after the complete suite receives its exact-execution gate.
+      - name: Prove Desktop fixture repeatability and negative controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          report=haze/build/test-results/desktopWindowTest/TEST-dev.chrisbanes.haze.HazeDesktopWindowRenderingTest.xml
+          captures=haze/build/outputs/desktop-window-tests
+          proof=haze/build/desktop-window-proof
+          production=haze/src/jvmMain/kotlin/dev/chrisbanes/haze/Utils.jvm.kt
+          original=$(mktemp)
+          cp "$production" "$original"
+          trap 'cp "$original" "$production"; rm -f "$original"' EXIT
+
+          verify_report() {
+            python3 - "$report" "$1" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+          report, mode = sys.argv[1:]
+          root = ET.parse(report).getroot()
+          cases = root.findall(".//testcase")
+          assert len(cases) == 1, f"Expected exactly one T1 case, found {len(cases)}"
+          case = cases[0]
+          assert case.get("classname") == "dev.chrisbanes.haze.HazeDesktopWindowRenderingTest"
+          assert case.get("name").removesuffix("[jvm]") == "crossWindowEffect_samplesExpectedScreenRegion"
+          assert case.find("skipped") is None, "Display proof must not skip"
+          failures = case.findall("failure") + case.findall("error")
+          if mode == "pass":
+              assert not failures, ET.tostring(case, encoding="unicode")
+          else:
+              assert len(failures) == 1, "Negative control must fail exactly once"
+              failure = failures[0]
+              detail = failure.get("message", "") + (failure.text or "")
+              if mode == "pixels":
+                  assert failure.get("type") == "java.lang.AssertionError", detail
+                  assert "Displayed region pixel mismatch after 10 seconds" in detail, detail
+              elif mode == "display":
+                  assert "display" in detail.lower() or "X11" in detail, detail
+              else:
+                  raise AssertionError(f"Unknown proof mode: {mode}")
+          print(f"T1 {mode} XML proof passed")
+          PY
+          }
+          preserve_proof() {
+            mkdir -p "$proof/$1"
+            cp "$report" "$proof/$1/"
+            cp -R "$captures" "$proof/$1/"
+            rm -rf "$captures"
+          }
+          display_run() {
+            SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp' \
+              ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan "$@"
+          }
+
+          verify_report pass
+          preserve_proof initial
+          display_run --rerun-tasks
+          verify_report pass
+          preserve_proof repeated
+
+          if env -u DISPLAY -u WAYLAND_DISPLAY ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan; then
+            echo 'Missing-display control unexpectedly passed'
+            exit 1
+          fi
+          verify_report display
+          preserve_proof missing-display
+
+          python3 - "$production" <<'PY'
+          from pathlib import Path
+          import sys
+          path = Path(sys.argv[1])
+          source = path.read_text()
+          marker = "internal actual fun CompositionLocalConsumerModifierNode.getWindowId(): Any? {"
+          assert source.count(marker) == 1, "Production identity function must match the planned seam"
+          path.write_text(source[:source.index(marker)] + marker + "\n  return null\n}\n")
+          PY
+          if display_run --tests '*HazeDesktopWindowRenderingTest.crossWindowEffect_samplesExpectedScreenRegion'; then
+            echo 'Null-identity control unexpectedly passed'
+            exit 1
+          fi
+          verify_report pixels
+          preserve_proof null-identity
+          cp "$original" "$production"
+          cmp "$original" "$production"
+          display_run
+          verify_report pass
+          preserve_proof restored
+          git diff --exit-code -- "$production"
+
+      - name: Upload Desktop T1 proof reports and captures
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: desktop-window-t1-proof
+          path: |
+            haze/build/desktop-window-proof/**
+            haze/build/test-results/desktopWindowTest/**
+            haze/build/outputs/desktop-window-tests/**
+
       - name: Upload reports + Roborazzi outputs
         if: failure()
         uses: actions/upload-artifact@v7
@@ -100,6 +206,8 @@ jobs:
           path: |
             **/build/reports/**
             **/build/outputs/roborazzi/**
+            haze/build/test-results/desktopWindowTest/**
+            haze/build/outputs/desktop-window-tests/**
 
   screenshot_tests:
     name: Screenshot tests (android)

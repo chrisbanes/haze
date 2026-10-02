@@ -3,6 +3,7 @@
 
 
 import dev.chrisbanes.gradle.addDefaultHazeTargets
+import java.time.Duration
 import java.util.Properties
 import java.util.zip.ZipFile
 plugins {
@@ -127,6 +128,31 @@ dependencies {
 
 tasks.withType<Test> {
   failOnNoDiscoveredTests.set(false)
+}
+
+val jvmTest = tasks.named<Test>("jvmTest") {
+  exclude("**/HazeDesktopWindowRenderingTest.class")
+}
+
+tasks.register<Test>("desktopWindowTest") {
+  group = "verification"
+  description = "Tests source-backed rendering between real Desktop windows; requires a display."
+  testClassesDirs = files(jvmTest.map { it.testClassesDirs })
+  classpath = files(jvmTest.map { it.classpath })
+  javaLauncher.set(jvmTest.flatMap { it.javaLauncher })
+  dependsOn(provider { jvmTest.get().let { it.taskDependencies.getDependencies(it) } })
+  include("**/HazeDesktopWindowRenderingTest.class")
+  failOnNoDiscoveredTests.set(true)
+  maxParallelForks = 1
+  timeout.set(Duration.ofMinutes(2))
+  systemProperty("java.awt.headless", "false")
+  systemProperty(
+    "haze.desktopWindowTest.outputDir",
+    layout.buildDirectory.dir("outputs/desktop-window-tests").get().asFile.absolutePath,
+  )
+  environment("SKIKO_RENDER_API", "SOFTWARE")
+  outputs.upToDateWhen { false }
+  outputs.doNotCacheIf("Real display rendering must execute on every invocation") { true }
 }
 
 val verifyAndroidAarCompileSdk = tasks.register("verifyAndroidAarCompileSdk") {
