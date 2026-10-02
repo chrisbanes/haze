@@ -2,11 +2,6 @@ name: Build
 
 on:
   workflow_dispatch:
-    inputs:
-      desktop_window_proof:
-        description: 'Run only the temporary focused Desktop window proof'
-        type: boolean
-        default: false
   push:
     branches:
       - main
@@ -20,106 +15,12 @@ on:
       - 'docs/**'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}${{ github.event_name == 'workflow_dispatch' && inputs.desktop_window_proof && '-desktop-proof' || '' }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # Temporary diagnostic job; remove with its input, guards and concurrency suffix in T3.
-  desktop_window_proof:
-    if: github.event_name == 'workflow_dispatch' && inputs.desktop_window_proof
-    permissions:
-      contents: read
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Setup JDK
-        uses: actions/setup-java@v6
-        with:
-          distribution: 'zulu'
-          java-version: 21
-
-      - uses: gradle/actions/setup-gradle@v6
-        with:
-          gradle-home-cache-excludes: |
-            caches/build-cache-1
-
-      - name: Setup Android SDK
-        shell: bash
-        run: |
-          test -n "$ANDROID_HOME"
-          test -d "$ANDROID_HOME"
-          printf 'sdk.dir=%s\n' "$ANDROID_HOME" > local.properties
-
-      - name: Install Desktop display prerequisites
-        run: sudo apt-get update && sudo apt-get install -y xvfb xauth
-
-      - name: Run complete Desktop suite and repeat
-        shell: bash
-        run: |
-          set -euo pipefail
-          report=haze/build/test-results/desktopWindowTest/TEST-dev.chrisbanes.haze.HazeDesktopWindowRenderingTest.xml
-          captures=haze/build/outputs/desktop-window-tests
-          proof=haze/build/desktop-window-focused-proof
-          stage=first
-
-          preserve_stage() {
-            mkdir -p "$proof/$1"
-            if [ -f "$report" ]; then cp "$report" "$proof/$1/"; fi
-            if [ -d "$captures" ]; then cp -R "$captures" "$proof/$1/"; fi
-          }
-          trap 'preserve_stage "$stage"' EXIT
-
-          verify_suite() {
-            python3 - "$report" <<'PY'
-          import sys
-          import xml.etree.ElementTree as ET
-          expected = {
-              "crossWindowEffect_samplesExpectedScreenRegion",
-              "effectWindowMove_updatesSampledRegion",
-              "sourceWindowMove_updatesSampledRegion",
-              "sourceDrawChange_refreshesEffectWindow",
-              "windowsReturnToOriginalPosition_restoresSampledRegion",
-          }
-          cases = ET.parse(sys.argv[1]).getroot().findall(".//testcase")
-          names = [case.get("name", "").removesuffix("[jvm]") for case in cases]
-          assert len(names) == len(expected) and set(names) == expected, f"Expected all five cases, found {names}"
-          for case in cases:
-              assert case.get("classname") == "dev.chrisbanes.haze.HazeDesktopWindowRenderingTest"
-              assert not case.findall("failure") + case.findall("error") + case.findall("skipped"), ET.tostring(case, encoding="unicode")
-          print("Complete five-method XML proof passed")
-          PY
-          }
-
-          rm -f "$report"
-          SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp' \
-            ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan
-          verify_suite
-          preserve_stage first
-
-          stage=repeated
-          rm -f "$report"
-          rm -rf "$captures"
-          SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp' \
-            ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan --rerun-tasks
-          verify_suite
-          preserve_stage repeated
-          trap - EXIT
-
-      - name: Upload Desktop diagnostic reports and captures
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: desktop-window-focused-proof
-          path: |
-            haze/build/desktop-window-focused-proof/**
-            haze/build/test-results/desktopWindowTest/TEST-dev.chrisbanes.haze.HazeDesktopWindowRenderingTest.xml
-            haze/build/outputs/desktop-window-tests/**
-
   mac_build:
-    if: "!contains(github.event.head_commit.message, 'skip ci') && !(github.event_name == 'workflow_dispatch' && inputs.desktop_window_proof)"
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
 
     runs-on: macos-26
     timeout-minutes: 45
@@ -160,7 +61,7 @@ jobs:
             **/build/test-results/**
 
   linux_build:
-    if: "!contains(github.event.head_commit.message, 'skip ci') && !(github.event_name == 'workflow_dispatch' && inputs.desktop_window_proof)"
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
 
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -194,140 +95,11 @@ jobs:
       - name: Install Desktop display prerequisites
         run: sudo apt-get update && sudo apt-get install -y xvfb xauth
 
-      - name: Run real Desktop window rendering test
+      # See docs/agents/desktop-window-tests.md for prerequisites, commands, and coverage limits.
+      - name: Verify real Desktop window rendering
         run: >
           SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp'
-          ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan
-          --tests '*HazeDesktopWindowRenderingTest.crossWindowEffect_samplesExpectedScreenRegion*'
-
-      # Temporary T1/T2 proof: remove after the complete suite receives its exact-execution gate.
-      - name: Prove Desktop fixture controls and complete suite repeatability
-        shell: bash
-        run: |
-          set -euo pipefail
-          report=haze/build/test-results/desktopWindowTest/TEST-dev.chrisbanes.haze.HazeDesktopWindowRenderingTest.xml
-          captures=haze/build/outputs/desktop-window-tests
-          proof=haze/build/desktop-window-proof
-          production=haze/src/jvmMain/kotlin/dev/chrisbanes/haze/Utils.jvm.kt
-          original=$(mktemp)
-          cp "$production" "$original"
-          trap 'cp "$original" "$production"; rm -f "$original"' EXIT
-
-          verify_report() {
-            python3 - "$report" "$1" <<'PY'
-          import sys
-          import xml.etree.ElementTree as ET
-          report, mode = sys.argv[1:]
-          root = ET.parse(report).getroot()
-          cases = root.findall(".//testcase")
-          assert len(cases) == 1, f"Expected exactly one T1 case, found {len(cases)}"
-          case = cases[0]
-          assert case.get("classname") == "dev.chrisbanes.haze.HazeDesktopWindowRenderingTest"
-          assert case.get("name").removesuffix("[jvm]") == "crossWindowEffect_samplesExpectedScreenRegion"
-          assert case.find("skipped") is None, "Display proof must not skip"
-          failures = case.findall("failure") + case.findall("error")
-          if mode == "pass":
-              assert not failures, ET.tostring(case, encoding="unicode")
-          else:
-              assert len(failures) == 1, "Negative control must fail exactly once"
-              failure = failures[0]
-              detail = failure.get("message", "") + (failure.text or "")
-              if mode == "pixels":
-                  assert failure.get("type") == "java.lang.AssertionError", detail
-                  assert "Displayed region pixel mismatch after 10 seconds" in detail, detail
-              elif mode == "display":
-                  assert "display" in detail.lower() or "X11" in detail, detail
-              else:
-                  raise AssertionError(f"Unknown proof mode: {mode}")
-          print(f"T1 {mode} XML proof passed")
-          PY
-          }
-          preserve_proof() {
-            mkdir -p "$proof/$1"
-            cp "$report" "$proof/$1/"
-            cp -R "$captures" "$proof/$1/"
-            rm -rf "$captures"
-          }
-          display_run() {
-            SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp' \
-              ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan \
-              --tests '*HazeDesktopWindowRenderingTest.crossWindowEffect_samplesExpectedScreenRegion*' "$@"
-          }
-          verify_suite() {
-            python3 - "$report" <<'PY'
-          import sys
-          import xml.etree.ElementTree as ET
-          expected = {
-              "crossWindowEffect_samplesExpectedScreenRegion",
-              "effectWindowMove_updatesSampledRegion",
-              "sourceWindowMove_updatesSampledRegion",
-              "sourceDrawChange_refreshesEffectWindow",
-              "windowsReturnToOriginalPosition_restoresSampledRegion",
-          }
-          cases = ET.parse(sys.argv[1]).getroot().findall(".//testcase")
-          names = [case.get("name", "").removesuffix("[jvm]") for case in cases]
-          assert len(names) == len(expected) and set(names) == expected, f"Expected all five T2 cases, found {names}"
-          for case in cases:
-              assert case.get("classname") == "dev.chrisbanes.haze.HazeDesktopWindowRenderingTest"
-              assert not case.findall("failure") + case.findall("error") + case.findall("skipped"), ET.tostring(case, encoding="unicode")
-          print("T2 complete five-method XML proof passed")
-          PY
-          }
-
-          verify_report pass
-          preserve_proof initial
-          display_run --rerun-tasks
-          verify_report pass
-          preserve_proof repeated
-
-          if env -u DISPLAY -u WAYLAND_DISPLAY ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan \
-            --tests '*HazeDesktopWindowRenderingTest.crossWindowEffect_samplesExpectedScreenRegion*'; then
-            echo 'Missing-display control unexpectedly passed'
-            exit 1
-          fi
-          verify_report display
-          preserve_proof missing-display
-
-          python3 - "$production" <<'PY'
-          from pathlib import Path
-          import sys
-          path = Path(sys.argv[1])
-          source = path.read_text()
-          marker = "internal actual fun CompositionLocalConsumerModifierNode.getWindowId(): Any? {"
-          assert source.count(marker) == 1, "Production identity function must match the planned seam"
-          path.write_text(source[:source.index(marker)] + marker + "\n  return null\n}\n")
-          PY
-          if display_run --tests '*HazeDesktopWindowRenderingTest.crossWindowEffect_samplesExpectedScreenRegion'; then
-            echo 'Null-identity control unexpectedly passed'
-            exit 1
-          fi
-          verify_report pixels
-          preserve_proof null-identity
-          cp "$original" "$production"
-          cmp "$original" "$production"
-          display_run
-          verify_report pass
-          preserve_proof restored
-          git diff --exit-code -- "$production"
-
-          SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp' \
-            ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan
-          verify_suite
-          preserve_proof t2-first
-          SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp' \
-            ./gradlew :haze:desktopWindowTest -Phaze.disableAppleTargets --no-scan --rerun-tasks
-          verify_suite
-          preserve_proof t2-repeated
-
-      - name: Upload Desktop T1 and T2 proof reports and captures
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: desktop-window-t1-proof
-          path: |
-            haze/build/desktop-window-proof/**
-            haze/build/test-results/desktopWindowTest/**
-            haze/build/outputs/desktop-window-tests/**
+          ./gradlew :haze:verifyDesktopWindowTests -Phaze.disableAppleTargets --no-scan
 
       - name: Upload reports + Roborazzi outputs
         if: failure()
@@ -342,7 +114,7 @@ jobs:
 
   screenshot_tests:
     name: Screenshot tests (android)
-    if: "!contains(github.event.head_commit.message, 'skip ci') && !(github.event_name == 'workflow_dispatch' && inputs.desktop_window_proof)"
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
 
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -382,7 +154,7 @@ jobs:
             haze-screenshot-tests/build/outputs/roborazzi/**
 
   emulator_tests_matrix:
-    if: "!contains(github.event.head_commit.message, 'skip ci') && !(github.event_name == 'workflow_dispatch' && inputs.desktop_window_proof)"
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
 
     strategy:
       fail-fast: false
@@ -438,7 +210,7 @@ jobs:
             **/build/outputs/androidTest-results/**
 
   emulator_tests:
-    if: always() && !contains(github.event.head_commit.message, 'skip ci') && !(github.event_name == 'workflow_dispatch' && inputs.desktop_window_proof)
+    if: always() && !contains(github.event.head_commit.message, 'skip ci')
     needs: emulator_tests_matrix
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -449,7 +221,7 @@ jobs:
         run: test "$MATRIX_RESULT" = success
 
   deploy:
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1') && !(github.event_name == 'workflow_dispatch' && inputs.desktop_window_proof)
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1'
 
     runs-on: macos-26
     needs:

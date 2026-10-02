@@ -159,6 +159,19 @@ tasks.register<Test>("desktopWindowTest") {
   outputs.doNotCacheIf("Real display rendering must execute on every invocation") { true }
 }
 
+tasks.register<org.gradle.api.tasks.Exec>("verifyDesktopWindowTests") {
+  group = "verification"
+  description = "Runs and verifies every required real Desktop window rendering test."
+  dependsOn("desktopWindowTest")
+  commandLine(
+    "python3",
+    rootProject.file("scripts/verify_desktop_window_tests.py").absolutePath,
+    layout.buildDirectory.file(
+      "test-results/desktopWindowTest/TEST-dev.chrisbanes.haze.HazeDesktopWindowRenderingTest.xml",
+    ).get().asFile.absolutePath,
+  )
+}
+
 val verifyAndroidAarCompileSdk = tasks.register("verifyAndroidAarCompileSdk") {
   group = "verification"
   description = "Verifies that the Android AAR supports consumers compiling with SDK 37.0."
