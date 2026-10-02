@@ -3,6 +3,16 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.awt.LocalAwtWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
+import androidx.compose.ui.node.currentValueOf
 
-internal actual fun CompositionLocalConsumerModifierNode.getWindowId(): Any? = null
+@OptIn(ExperimentalComposeUiApi::class)
+internal actual fun CompositionLocalConsumerModifierNode.getWindowId(): Any? {
+  return try {
+    currentValueOf(LocalAwtWindow)
+  } catch (_: IllegalStateException) {
+    null
+  }
+}
