@@ -123,14 +123,9 @@ internal class HazeArea {
   internal fun updateLayoutCoordinates(coordinates: LayoutCoordinates) {
     layoutCoordinates = coordinates
     val transform = coordinates.transformToScreenOrRoot()
-    HazeLogger.d("HazeArea") {
-      "desktop-geometry area=${hashCode()} producer version=$coordinateVersion old=${coordinateTransformValues?.contentToString()} " +
-        "new=${transform.values.contentToString()}"
-    }
     if (coordinateTransformValues?.contentEquals(transform.values) != true) {
       coordinateTransformValues = transform.values.copyOf()
       coordinateVersion++
-      HazeLogger.d("HazeArea") { "desktop-geometry area=${hashCode()} published version=$coordinateVersion" }
     }
   }
 

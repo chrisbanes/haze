@@ -493,9 +493,6 @@ internal class HazeEffectNode(
   }
 
   override fun onObservedReadsChanged() {
-    HazeLogger.d(TAG) {
-      "desktop-geometry effect=${hashCode()} window=${windowId?.hashCode()} observed callback dirty=${DirtyFields.stringify(dirtyTracker)}"
-    }
     dirtyTracker += DirtyFields.AreaPositionReads
     observeReads(::updateEffect)
   }
@@ -535,7 +532,9 @@ internal class HazeEffectNode(
       dirtyTracker += DirtyFields.AreaPositionReads
     }
     updatePositionGeometry(coordinates, source, effectToScreenTransform)
-    updateEffect()
+    // Initial observed updates can exit before the effect has coordinates and drop source reads.
+    // Refresh those reads even when this placement leaves the effect's own transform unchanged.
+    update()
   }
 
   private fun updatePositionGeometry(
@@ -819,10 +818,6 @@ internal class HazeEffectNode(
 
   private fun updateEffect(): Unit = trace("HazeEffectNode-updateEffect") {
     if (!isAttached) return@trace
-    HazeLogger.d(TAG) {
-      "desktop-geometry effect=${hashCode()} window=${windowId?.hashCode()} update dirty=${DirtyFields.stringify(dirtyTracker)} " +
-        "versions=${areas.map { "${it.hashCode()}:${it.coordinateVersion}" }} position=$position"
-    }
 
     windowId = getWindowId()
 
@@ -1113,9 +1108,6 @@ internal class HazeEffectNode(
   }
 
   private fun onPostDraw() {
-    HazeLogger.d(TAG) {
-      "desktop-geometry effect=${hashCode()} window=${windowId?.hashCode()} postDraw clearing=${DirtyFields.stringify(dirtyTracker)}"
-    }
     dirtyTracker = Bitmask()
     val invalidateNextFrame = needsNextFrameVisualEffectInvalidation
     resetPendingInvalidations()
@@ -1161,10 +1153,6 @@ internal class HazeEffectNode(
 
     for (area in areas) {
       val transform = calculateSourceTransformInEffect(area)
-      HazeLogger.d(TAG) {
-        "desktop-geometry effect=${hashCode()} window=${windowId?.hashCode()} area=${area.hashCode()} refresh version=${area.coordinateVersion} " +
-          "old=${areaTransforms[area]?.values?.contentToString()} new=${transform.values.contentToString()}"
-      }
       if (areaTransforms[area]?.hasSameValues(transform) != true) {
         areaTransforms[area] = transform
         haveAreaTransformsChanged = true
@@ -1177,14 +1165,8 @@ internal class HazeEffectNode(
     }
   }
 
-  internal fun sourceTransformInEffect(area: HazeArea): Matrix {
-    HazeLogger.d(TAG) {
-      "desktop-geometry effect=${hashCode()} window=${windowId?.hashCode()} area=${area.hashCode()} consume version=${area.coordinateVersion} source=${area.coordinates.screenPosition} " +
-        "cached=${areaTransforms[area]?.values?.contentToString()} " +
-        "fresh=${calculateSourceTransformInEffect(area).values.contentToString()}"
-    }
-    return areaTransforms[area] ?: calculateSourceTransformInEffect(area)
-  }
+  internal fun sourceTransformInEffect(area: HazeArea): Matrix =
+    areaTransforms[area] ?: calculateSourceTransformInEffect(area)
 
   private fun calculateSourceTransformInEffect(area: HazeArea): Matrix {
     val effectCoordinates = lastKnownCoordinates
