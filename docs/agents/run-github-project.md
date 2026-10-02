@@ -22,8 +22,8 @@
 - Field ID: `PVTSSF_lAHOAAN4ns4BeqrmzhZDK4M`
 - Backlog name: `Backlog`
 - Backlog option ID: `f75ad846`
-- Planning name: `Planning`
-- Planning option ID: `61e4505c`
+- Todo name: `Todo`
+- Todo option ID: `61e4505c`
 - Ready to implement name: `Ready to implement`
 - Ready to implement option ID: `28bbf99e`
 - In progress name: `In progress`
