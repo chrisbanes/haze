@@ -532,7 +532,9 @@ internal class HazeEffectNode(
       dirtyTracker += DirtyFields.AreaPositionReads
     }
     updatePositionGeometry(coordinates, source, effectToScreenTransform)
-    updateEffect()
+    // Initial observed updates can exit before the effect has coordinates and drop source reads.
+    // Refresh those reads even when this placement leaves the effect's own transform unchanged.
+    update()
   }
 
   private fun updatePositionGeometry(

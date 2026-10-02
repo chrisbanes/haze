@@ -3,6 +3,7 @@
 
 
 import dev.chrisbanes.gradle.addDefaultHazeTargets
+import java.time.Duration
 import java.util.Properties
 import java.util.zip.ZipFile
 plugins {
@@ -125,8 +126,50 @@ dependencies {
   baselineProfile(projects.internal.benchmark)
 }
 
-tasks.withType<Test> {
+tasks.withType<Test>().configureEach {
   failOnNoDiscoveredTests.set(false)
+}
+
+val jvmTest = tasks.named<Test>("jvmTest") {
+  exclude("**/HazeDesktopWindowRenderingTest.class")
+}
+
+tasks.register<Test>("desktopWindowTest") {
+  group = "verification"
+  description = "Tests source-backed rendering between real Desktop windows; requires a display."
+  val compiledJvmTests = jvmTest.get()
+  testClassesDirs = compiledJvmTests.testClassesDirs
+  classpath = compiledJvmTests.classpath
+  javaLauncher.set(compiledJvmTests.javaLauncher)
+  dependsOn(provider { jvmTest.get().let { it.taskDependencies.getDependencies(it) } })
+  include("**/HazeDesktopWindowRenderingTest.class")
+  failOnNoDiscoveredTests.set(true)
+  maxParallelForks = 1
+  timeout.set(Duration.ofMinutes(2))
+  systemProperty("java.awt.headless", "false")
+  systemProperty(
+    "haze.desktopWindowTest.outputDir",
+    layout.buildDirectory.dir("outputs/desktop-window-tests").get().asFile.absolutePath,
+  )
+  environment("SKIKO_RENDER_API", "SOFTWARE")
+  // Xvfb sessions change both values; track them so cached fork options cannot retain a dead display.
+  environment("DISPLAY", providers.environmentVariable("DISPLAY").getOrElse(""))
+  environment("XAUTHORITY", providers.environmentVariable("XAUTHORITY").getOrElse(""))
+  outputs.upToDateWhen { false }
+  outputs.doNotCacheIf("Real display rendering must execute on every invocation") { true }
+}
+
+tasks.register<org.gradle.api.tasks.Exec>("verifyDesktopWindowTests") {
+  group = "verification"
+  description = "Runs and verifies every required real Desktop window rendering test."
+  dependsOn("desktopWindowTest")
+  commandLine(
+    "python3",
+    rootProject.file("scripts/verify_desktop_window_tests.py").absolutePath,
+    layout.buildDirectory.file(
+      "test-results/desktopWindowTest/TEST-dev.chrisbanes.haze.HazeDesktopWindowRenderingTest.xml",
+    ).get().asFile.absolutePath,
+  )
 }
 
 val verifyAndroidAarCompileSdk = tasks.register("verifyAndroidAarCompileSdk") {

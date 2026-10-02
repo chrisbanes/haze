@@ -92,6 +92,15 @@ jobs:
           ORG_GRADLE_PROJECT_remoteBuildCachePassword: ${{ secrets.GRADLE_REMOTE_CACHE_PASSWORD }}
           ORG_GRADLE_PROJECT_remoteBuildCachePush: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1') }}
 
+      - name: Install Desktop display prerequisites
+        run: sudo apt-get update && sudo apt-get install -y xvfb xauth
+
+      # See docs/agents/desktop-window-tests.md for prerequisites, commands, and coverage limits.
+      - name: Verify real Desktop window rendering
+        run: >
+          SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp'
+          ./gradlew :haze:verifyDesktopWindowTests -Phaze.disableAppleTargets
+
       - name: Upload reports + Roborazzi outputs
         if: failure()
         uses: actions/upload-artifact@v7
@@ -100,6 +109,8 @@ jobs:
           path: |
             **/build/reports/**
             **/build/outputs/roborazzi/**
+            haze/build/test-results/desktopWindowTest/**
+            haze/build/outputs/desktop-window-tests/**
 
   screenshot_tests:
     name: Screenshot tests (android)
