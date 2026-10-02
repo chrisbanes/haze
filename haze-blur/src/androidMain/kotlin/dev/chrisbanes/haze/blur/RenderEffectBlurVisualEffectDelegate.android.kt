@@ -24,6 +24,15 @@ import dev.chrisbanes.haze.withGraphicsLayer
 @OptIn(InternalHazeApi::class)
 private const val USE_RUNTIME_SHADER = true
 
+internal actual fun BlurVisualEffect.invalidateRenderEffectOnInputChange() {
+  if (Build.VERSION.SDK_INT == 31) {
+    // API 31 can retain blurred pixels after a nested source layer changes, even when the
+    // input is re-recorded. A fresh RenderEffect refreshes the output without replacing the
+    // capture layer, which another effect may be sampling.
+    clearRenderEffectCache()
+  }
+}
+
 @RequiresApi(31)
 internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   drawScope: DrawScope,

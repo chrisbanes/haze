@@ -31,7 +31,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-@SdkSuppress(maxSdkVersion = 36)
+@SdkSuppress(minSdkVersion = 33, maxSdkVersion = 36)
 @OptIn(ExperimentalTestApi::class, ExperimentalHazeApi::class)
 class GlassBackdropFallbackInstrumentationTest {
 
