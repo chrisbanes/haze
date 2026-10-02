@@ -152,6 +152,9 @@ tasks.register<Test>("desktopWindowTest") {
     layout.buildDirectory.dir("outputs/desktop-window-tests").get().asFile.absolutePath,
   )
   environment("SKIKO_RENDER_API", "SOFTWARE")
+  // Xvfb sessions change both values; track them so cached fork options cannot retain a dead display.
+  environment("DISPLAY", providers.environmentVariable("DISPLAY").getOrElse(""))
+  environment("XAUTHORITY", providers.environmentVariable("XAUTHORITY").getOrElse(""))
   outputs.upToDateWhen { false }
   outputs.doNotCacheIf("Real display rendering must execute on every invocation") { true }
 }
