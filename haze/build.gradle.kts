@@ -126,7 +126,7 @@ dependencies {
   baselineProfile(projects.internal.benchmark)
 }
 
-tasks.withType<Test> {
+tasks.withType<Test>().configureEach {
   failOnNoDiscoveredTests.set(false)
 }
 
@@ -137,9 +137,10 @@ val jvmTest = tasks.named<Test>("jvmTest") {
 tasks.register<Test>("desktopWindowTest") {
   group = "verification"
   description = "Tests source-backed rendering between real Desktop windows; requires a display."
-  testClassesDirs = files(jvmTest.map { it.testClassesDirs })
-  classpath = files(jvmTest.map { it.classpath })
-  javaLauncher.set(jvmTest.flatMap { it.javaLauncher })
+  val compiledJvmTests = jvmTest.get()
+  testClassesDirs = compiledJvmTests.testClassesDirs
+  classpath = compiledJvmTests.classpath
+  javaLauncher.set(compiledJvmTests.javaLauncher)
   dependsOn(provider { jvmTest.get().let { it.taskDependencies.getDependencies(it) } })
   include("**/HazeDesktopWindowRenderingTest.class")
   failOnNoDiscoveredTests.set(true)
