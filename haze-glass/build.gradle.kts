@@ -3,6 +3,7 @@
 
 
 import dev.chrisbanes.gradle.addDefaultHazeTargets
+import org.gradle.api.tasks.testing.Test
 
 plugins {
   id("dev.chrisbanes.android.library")
@@ -101,6 +102,6 @@ poko {
   pokoAnnotation.set("dev/chrisbanes/haze/Poko")
 }
 
-tasks.withType<Test>().configureEach {
-  systemProperties["robolectric.pixelCopyRenderMode"] = "hardware"
+tasks.withType<Test>().matching { it.name == "testAndroidHostTest" }.configureEach {
+  systemProperty("robolectric.pixelCopyRenderMode", "hardware")
 }
