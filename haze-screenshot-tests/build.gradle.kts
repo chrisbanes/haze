@@ -157,9 +157,30 @@ val matrixPreflight = tasks.register("screenshotMatrixPreflight") {
 // It runs only when a coverage gate is requested, so focused record/test commands remain available.
 tasks.withType<Test>().configureEach { mustRunAfter(matrixPreflight) }
 
-val verifyScreenshotMatrixJvm = tasks.register<Exec>("verifyScreenshotMatrixJvm") {
+val verifyColorFilterAlignmentJvm = tasks.register<Exec>("verifyColorFilterAlignmentJvm") {
   group = "verification"
   dependsOn(matrixPreflight, "jvmTest")
+  commandLine(
+    "python3",
+    rootProject.file("scripts/verify_screenshot_matrix.py"),
+    "color-filter-alignment-desktop",
+    layout.buildDirectory.file("test-results/jvmTest/TEST-dev.chrisbanes.haze.ColorFilterAlignmentDesktopTest.xml").get().asFile,
+  )
+}
+val verifyColorFilterAlignmentAndroid = tasks.register<Exec>("verifyColorFilterAlignmentAndroid") {
+  group = "verification"
+  dependsOn(matrixPreflight, "testAndroidHostTest")
+  commandLine(
+    "python3",
+    rootProject.file("scripts/verify_screenshot_matrix.py"),
+    "color-filter-alignment-android",
+    layout.buildDirectory.file("test-results/testAndroidHostTest/TEST-dev.chrisbanes.haze.ColorFilterAlignmentAndroidTest.xml").get().asFile,
+  )
+}
+
+val verifyScreenshotMatrixJvm = tasks.register<Exec>("verifyScreenshotMatrixJvm") {
+  group = "verification"
+  dependsOn(matrixPreflight, "jvmTest", verifyColorFilterAlignmentJvm)
   commandLine(
     "python3",
     rootProject.file("scripts/verify_screenshot_matrix.py"),
@@ -204,6 +225,7 @@ val verifyScreenshotMatrixAndroid = tasks.register("verifyScreenshotMatrixAndroi
     verifyScreenshotMatrixAndroidCases,
     verifyScreenshotMatrixAndroidNative,
     verifyScreenshotMatrixNativeBackdropProof,
+    verifyColorFilterAlignmentAndroid,
   )
 }
 tasks.register("verifyScreenshotMatrixPr") {

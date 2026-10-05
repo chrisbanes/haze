@@ -50,36 +50,21 @@ public fun createProgressiveBlurRenderEffect(
 }
 
 private val VERTICAL_PROGRESSIVE_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(ProgressiveBlurShaders.VERTICAL_BLUR_SKSL)
+  createRuntimeEffect(makeBlurSksl(vertical = true))
 }
 
 private val HORIZONTAL_PROGRESSIVE_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(ProgressiveBlurShaders.HORIZONTAL_BLUR_SKSL)
+  createRuntimeEffect(makeBlurSksl(vertical = false))
 }
 
-private object ProgressiveBlurShaders {
-  /**
-   * SKSL for vertical blur pass with mask support.
-   */
-  val VERTICAL_BLUR_SKSL: String by lazy(mode = LazyThreadSafetyMode.NONE) {
-    makeBlurSksl(vertical = true)
-  }
-
-  /**
-   * SKSL for horizontal blur pass with mask support.
-   */
-  val HORIZONTAL_BLUR_SKSL: String by lazy(mode = LazyThreadSafetyMode.NONE) {
-    makeBlurSksl(vertical = false)
-  }
-
-  /**
-   * Creates the SKSL blur shader code for either vertical or horizontal pass.
-   *
-   * Adapted from https://www.shadertoy.com/view/Mtl3Rj
-   * Uses GPU-friendly optimizations, see
-   * https://www.rastergrid.com/blog/2010/09/efficient-gaussian-blur-with-linear-sampling
-   */
-  private fun makeBlurSksl(vertical: Boolean): String = """
+/**
+ * Creates the SKSL blur shader code for either vertical or horizontal pass.
+ *
+ * Adapted from https://www.shadertoy.com/view/Mtl3Rj
+ * Uses GPU-friendly optimizations, see
+ * https://www.rastergrid.com/blog/2010/09/efficient-gaussian-blur-with-linear-sampling
+ */
+private fun makeBlurSksl(vertical: Boolean): String = """
     uniform shader content;
     uniform float blurRadius;
     uniform vec4 crop;
@@ -158,4 +143,3 @@ private object ProgressiveBlurShaders {
       return blur(coord, mix(0.0, blurRadius, intensity));
     }
   """
-}
