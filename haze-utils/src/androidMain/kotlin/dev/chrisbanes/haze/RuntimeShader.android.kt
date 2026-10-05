@@ -137,13 +137,14 @@ private fun createAndroidRuntimeShaderRenderEffect(
  * thread as effects first draw. A [RenderEffect] copies the shader's uniforms and children when it
  * is created, so effects can share one compiled shader if each gives it the state a new shader would
  * have before creating a [RenderEffect]: its own uniforms and children, zero for uniforms only other
- * effects set, and no children otherwise. A child cannot be unset, so between effects every child is
+ * effects set (using each uniform's integer or float type), and no children otherwise. A child cannot be unset, so between effects every child is
  * [EmptyChildShader], which samples as transparent black just as an unset child does, and which
  * keeps the shared shader from holding on to a child after the effect that set it is gone.
  */
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal class SharedRuntimeShader(sksl: String) {
   private val shader = RuntimeShader(sksl)
+  private val intUniformNames = HashSet<String>()
   private val floatUniformSizes = HashMap<String, Int>()
   private val colorUniforms = HashSet<String>()
   private val childNames = HashSet<String>()
@@ -154,11 +155,18 @@ internal class SharedRuntimeShader(sksl: String) {
     shaderNames: Array<String>,
     inputs: Array<PlatformRenderEffect?>,
   ): PlatformRenderEffect {
+    for (name in intUniformNames) {
+      if (name !in uniforms.ints) shader.setIntUniform(name, 0)
+    }
     for ((name, size) in floatUniformSizes) {
       if (name !in uniforms.floats) shader.setFloatUniform(name, FloatArray(size))
     }
     for (name in colorUniforms) {
       if (name !in uniforms.colors) shader.setColorUniform(name, 0)
+    }
+    for ((name, value) in uniforms.ints) {
+      shader.setIntUniform(name, value)
+      intUniformNames += name
     }
     for ((name, values) in uniforms.floats) {
       shader.setFloatUniform(name, values)
@@ -192,6 +200,7 @@ private val EmptyChildShader: android.graphics.Shader by lazy {
 /** Uniforms set by one effect, applied to its [SharedRuntimeShader] each time it creates an effect. */
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal class RecordedUniforms : RuntimeShaderUniformProvider {
+  val ints = HashMap<String, Int>()
   val floats = HashMap<String, FloatArray>()
   val colors = HashMap<String, android.graphics.Color>()
   val children = HashMap<String, Shader>()
@@ -219,7 +228,7 @@ internal class RecordedUniforms : RuntimeShaderUniformProvider {
   }
 
   override fun setIntUniform(name: String, value: Int) {
-    floats[name] = floatArrayOf(value.toFloat())
+    ints[name] = value
   }
 
   override fun setChildShader(name: String, shader: Shader) {
