@@ -4,13 +4,11 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.asComposeShader
-import org.jetbrains.skia.RuntimeEffect
-import org.jetbrains.skia.RuntimeShaderBuilder
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.asComposeShader
 import androidx.compose.ui.graphics.skiaPaint
 import androidx.compose.ui.graphics.toPixelMap
 import assertk.assertThat
@@ -20,6 +18,8 @@ import dev.chrisbanes.haze.createMutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.createRuntimeEffect
 import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
 import kotlin.test.Test
+import org.jetbrains.skia.RuntimeEffect
+import org.jetbrains.skia.RuntimeShaderBuilder
 
 class RuntimeShaderIntegerUniformJvmTest {
   @Test

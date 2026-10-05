@@ -5,12 +5,12 @@ package dev.chrisbanes.haze.glass
 
 import android.graphics.Bitmap
 import android.graphics.BitmapShader
-import android.graphics.Shader
 import android.graphics.RenderEffect
 import android.graphics.RuntimeShader
+import android.graphics.Shader
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
@@ -183,7 +183,12 @@ class RuntimeShaderIntegerUniformAndroidHostTest : ScreenshotTest() {
           effects.forEachIndexed { index, effect ->
             Box(Modifier.size(32.dp)) {
               Box(Modifier.fillMaxSize().background(Color.Magenta))
-              Box(Modifier.fillMaxSize().testTag("filtered$index").graphicsLayer { clip = true; renderEffect = effect?.asComposeRenderEffect() }.background(content))
+              Box(
+                Modifier.fillMaxSize().testTag("filtered$index").graphicsLayer {
+                  clip = true
+                  renderEffect = effect?.asComposeRenderEffect()
+                }.background(content),
+              )
             }
           }
         }

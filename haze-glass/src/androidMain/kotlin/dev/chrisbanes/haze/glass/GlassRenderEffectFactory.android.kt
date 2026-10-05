@@ -94,7 +94,7 @@ private class GlassRimUniformProvider(private val shader: RuntimeShader) : Runti
   override fun setFloatUniform(name: String, value1: Float, value2: Float, value3: Float, value4: Float) =
     shader.setFloatUniform(name, value1, value2, value3, value4)
 
-  override fun setIntUniform(name: String, value: Int) = shader.setFloatUniform(name, value.toFloat())
+  override fun setIntUniform(name: String, value: Int) = shader.setIntUniform(name, value)
 
   override fun setChildShader(name: String, shader: Shader) = this.shader.setInputShader(name, shader)
 }

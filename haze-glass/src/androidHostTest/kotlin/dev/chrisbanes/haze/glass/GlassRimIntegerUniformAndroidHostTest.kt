@@ -66,7 +66,9 @@ class GlassRimIntegerUniformAndroidHostTest : ScreenshotTest() {
   }
 
   @Test fun adapter_positiveIntegerRendersGreen() = assertInteger(1)
+
   @Test fun adapter_negativeIntegerRendersGreen() = assertInteger(-1)
+
   @Test fun adapter_beyondFloatExactIntegerRendersGreen() = assertInteger(16777217)
 
   @Test
