@@ -246,6 +246,11 @@ private class AndroidCapabilityContext(
 
   override fun drawInput() = Unit
 
+  override fun captureInput(): dev.chrisbanes.haze.HazeEffectInputCapture = object : dev.chrisbanes.haze.HazeEffectInputCapture {
+    override fun DrawScope.drawInput() = Unit
+    override fun release() = Unit
+  }
+
   override fun DrawScope.drawInput() = Unit
 
   override fun invalidateDraw() = Unit

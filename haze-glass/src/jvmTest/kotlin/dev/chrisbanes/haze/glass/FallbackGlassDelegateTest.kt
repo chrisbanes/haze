@@ -559,6 +559,11 @@ private class FallbackRecordingContext(
   }
   override fun requireGraphicsContext(): GraphicsContext = graphicsContext
   override fun drawInput() = Unit
+  override fun captureInput(): dev.chrisbanes.haze.HazeEffectInputCapture = object : dev.chrisbanes.haze.HazeEffectInputCapture {
+    override fun androidx.compose.ui.graphics.drawscope.DrawScope.drawInput() = Unit
+    override fun release() = Unit
+  }
+
   override fun androidx.compose.ui.graphics.drawscope.DrawScope.drawInput() = Unit
   override fun invalidateDraw() = Unit
   override fun invalidateLayerBounds() = Unit

@@ -21,6 +21,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
+import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -171,6 +172,28 @@ internal class HazeArea {
    */
   internal var contentLayer: GraphicsLayer? by mutableStateOf(null)
     internal set
+
+  private var currentCapture: HazeContentCapture? = null
+
+  internal fun writableContentLayer(context: GraphicsContext): GraphicsLayer {
+    val current = currentCapture
+    if (current != null && !current.layer.isReleased && !current.isLeased) return current.layer
+    releaseContentLayer()
+    return context.createGraphicsLayer().also { layer ->
+      currentCapture = HazeContentCapture(context, layer)
+      contentLayer = layer
+    }
+  }
+
+  internal fun acquireContentCapture(): HazeContentCapture? = currentCapture
+    ?.takeUnless { it.layer.isReleased || it.layer.size.width <= 0 || it.layer.size.height <= 0 }
+    ?.also { it.acquire() }
+
+  internal fun releaseContentLayer() {
+    contentLayer = null
+    currentCapture?.dropOwner()
+    currentCapture = null
+  }
 
   internal var contentDrawing: Boolean = false
 

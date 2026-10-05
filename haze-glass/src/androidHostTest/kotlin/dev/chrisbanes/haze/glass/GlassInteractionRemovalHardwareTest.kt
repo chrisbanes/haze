@@ -28,8 +28,8 @@ import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectDrawScope
+import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeEffectRendererBackdrop
 import dev.chrisbanes.haze.HazeEffectRendererDrawHooks
@@ -39,6 +39,7 @@ import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
+import dev.chrisbanes.haze.HazeSourceSelection
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.hazeSource
@@ -116,7 +117,6 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
   @Test
   fun removeAllResponsesWhileTransparent_hardwareCompletionReleasesLighting() = assertHardwareRemoval(Removal.All, transparent = true)
 
-
   @Test
   fun removeAllResponsesWhileTransparent_sourceUnavailableRestoresHardwareMaterial() = runScreenshotTest {
     val state = HazeState()
@@ -129,11 +129,17 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     setContent {
       Box(Modifier.fillMaxSize().then(if (sourceEnabled.value) Modifier.hazeSource(state) else Modifier).background(Color.Red))
       Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(120.dp).testTag("material").hazeGlass(
-          factory = factory, input = HazeInput.Sources(state), style = style.value,
-          performanceMode = HazePerformanceMode.Quality, expandLayerBounds = true,
-          interactionSource = source, interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
-        ))
+        Box(
+          Modifier.size(120.dp).testTag("material").hazeGlass(
+            factory = factory,
+            input = HazeInput.Sources(state),
+            style = style.value,
+            performanceMode = HazePerformanceMode.Quality,
+            expandLayerBounds = true,
+            interactionSource = source,
+            interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+          ),
+        )
         Box(Modifier.align(Alignment.TopStart).size(80.dp).testTag("source-control"))
       }
     }
@@ -171,7 +177,12 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     val records = delegate.sourceRecordCount
     val lighting = checkNotNull(delegate.layers.interactionLighting)
     composeTestRule.mainClock.autoAdvance = false
-    fun sync() { repeat(2) { composeTestRule.mainClock.advanceTimeByFrame(); waitForIdle() } }
+    fun sync() {
+      repeat(2) {
+        composeTestRule.mainClock.advanceTimeByFrame()
+        waitForIdle()
+      }
+    }
     composeTestRule.runOnIdle { style.value = baseStyle(Removal.All).then { alpha(0f) } }
     sync()
     composeTestRule.mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
@@ -215,7 +226,6 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     assertMaterial("restored-unavailable-source")
   }
 
-
   @Test
   fun baseOnlyWhileTransparent_sourceUnavailableRestoresHardwareMaterial() = runScreenshotTest {
     val state = HazeState()
@@ -228,11 +238,17 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     setContent {
       Box(Modifier.fillMaxSize().then(if (sourceEnabled.value) Modifier.hazeSource(state) else Modifier).background(Color.Red))
       Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(120.dp).testTag("material").hazeGlass(
-          factory = factory, input = HazeInput.Sources(state), style = style.value,
-          performanceMode = HazePerformanceMode.Quality, expandLayerBounds = true,
-          interactionSource = null, interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
-        ))
+        Box(
+          Modifier.size(120.dp).testTag("material").hazeGlass(
+            factory = factory,
+            input = HazeInput.Sources(state),
+            style = style.value,
+            performanceMode = HazePerformanceMode.Quality,
+            expandLayerBounds = true,
+            interactionSource = null,
+            interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+          ),
+        )
         Box(Modifier.align(Alignment.TopStart).size(80.dp).testTag("source-control"))
       }
     }
@@ -259,7 +275,12 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     val geometry = observer.layerSize
     val records = delegate.sourceRecordCount
     composeTestRule.mainClock.autoAdvance = false
-    fun sync() { repeat(2) { composeTestRule.mainClock.advanceTimeByFrame(); waitForIdle() } }
+    fun sync() {
+      repeat(2) {
+        composeTestRule.mainClock.advanceTimeByFrame()
+        waitForIdle()
+      }
+    }
     composeTestRule.runOnIdle { style.value = base.then { alpha(0f) } }
     sync()
     composeTestRule.runOnIdle { sourceEnabled.value = false }
@@ -282,6 +303,373 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
     assertThat(delegate.sourceRecordCount).isEqualTo(records)
     assertMaterial("restored-unavailable-source-no-completion")
+  }
+
+  @Test
+  fun baseOnlyWhileTransparent_selectionUnavailableRestoresHardwareMaterial() = runScreenshotTest {
+    val state = HazeState()
+    val effect = GlassRuntimeEffect()
+    val observer = InputObservingGlassRenderer(effect)
+    val targetSelected = mutableStateOf(true)
+    val targetInput = HazeInput.Sources(state, selection = HazeSourceSelection.All.where { targetSelected.value })
+    val keeperInput = HazeInput.Sources(state, selection = HazeSourceSelection.All)
+    val keeperEffect = GlassRuntimeEffect()
+    val keeperFactory = HazeEffectFactory<GlassNodeConfiguration> { keeperEffect }
+    val keeperStyle = GlassStyle.regular.then { alpha(0f) }
+    val base = baseStyle(Removal.All)
+    val style = mutableStateOf(base)
+    val factory = HazeEffectFactory<GlassNodeConfiguration> { observer }
+    setContent {
+      Box(Modifier.fillMaxSize().hazeSource(state).background(Color.Red))
+      Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(
+          Modifier.size(120.dp).hazeGlass(
+            factory = keeperFactory,
+            input = keeperInput,
+            style = keeperStyle,
+            performanceMode = HazePerformanceMode.Quality,
+            expandLayerBounds = true,
+            interactionSource = null,
+          ),
+        )
+        Box(
+          Modifier.size(120.dp).testTag("material").hazeGlass(
+            factory = factory,
+            input = targetInput,
+            style = style.value,
+            performanceMode = HazePerformanceMode.Quality,
+            expandLayerBounds = true,
+            interactionSource = null,
+            interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+          ),
+        )
+        Box(Modifier.align(Alignment.TopStart).size(80.dp).testTag("source-control"))
+      }
+    }
+    waitForIdle()
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    fun assertMaterial(phase: String): Color {
+      composeTestRule.runOnIdle { composeTestRule.activity.window.decorView.invalidate() }
+      waitForIdle()
+      val pixels = captureRootPixels()
+      val controlBounds = onNodeWithTag("source-control").fetchSemanticsNode().boundsInRoot
+      val materialBounds = onNodeWithTag("material").fetchSemanticsNode().boundsInRoot
+      val control = pixels[controlBounds.center.x.roundToInt(), controlBounds.center.y.roundToInt()]
+      val material = pixels[materialBounds.center.x.roundToInt(), materialBounds.center.y.roundToInt()]
+      println("P5 hardware phase=$phase source=$control material=$material input=${observer.hasDrawableInput} snapshot=${observer.inputSnapshot} geometry=${observer.layerSize} records=${delegate.stageRecordCounts} retained=${delegate.canDrawRetainedOutput()} alpha=${effect.preparedRender?.alpha}")
+      assertThat(control.red).isGreaterThan(0.9f)
+      assertThat(control.blue).isLessThan(0.1f)
+      assertThat(material.blue).isGreaterThan(control.blue + 0.2f)
+      return material
+    }
+    assertMaterial("base-reference")
+    assertThat(effect.interactionControllerForTest).isNull()
+    assertThat(keeperEffect.attachedContextForTest).isNotNull()
+    assertThat(observer.hasDrawableInput).isTrue()
+    assertThat(observer.inputSnapshot).isNotNull()
+    assertThat(delegate.fusedShader).isNotNull()
+    val snapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
+    val source = checkNotNull(delegate.layers.source)
+    val optical = checkNotNull(delegate.layers.optical)
+    val detail = delegate.layers.refractionDetail
+    val records = delegate.sourceRecordCount
+    val geometry = observer.layerSize
+    composeTestRule.mainClock.autoAdvance = false
+    fun sync() {
+      repeat(2) {
+        composeTestRule.mainClock.advanceTimeByFrame()
+        waitForIdle()
+      }
+    }
+    composeTestRule.runOnIdle { style.value = base.then { alpha(0f) } }
+    sync()
+    assertThat(effect.interactionControllerForTest).isNull()
+    composeTestRule.runOnIdle { targetSelected.value = false }
+    sync()
+    assertThat(targetSelected.value).isFalse()
+    assertThat(keeperEffect.attachedContextForTest).isNotNull()
+    assertThat(observer.hasDrawableInput).isFalse()
+    assertThat(observer.inputSnapshot).isNull()
+    composeTestRule.mainClock.advanceTimeBy(600, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(effect.interactionControllerForTest).isNull()
+    assertThat(effect.shouldPrepareDraw(GlassNodeConfiguration(style.value, interactionSource = null))).isFalse()
+    assertThat(delegate.canDrawRetainedOutput()).isTrue()
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
+    assertThat(delegate.layers.source).isSameInstanceAs(source)
+    assertThat(delegate.layers.optical).isSameInstanceAs(optical)
+    assertThat(delegate.layers.refractionDetail).isSameInstanceAs(detail)
+    assertThat(source.isReleased).isFalse()
+    assertThat(optical.isReleased).isFalse()
+    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    assertThat(observer.layerSize).isEqualTo(geometry)
+    composeTestRule.runOnIdle { style.value = base }
+    sync()
+    assertThat(targetSelected.value).isFalse()
+    assertThat(observer.hasDrawableInput).isFalse()
+    assertThat(observer.inputSnapshot).isNull()
+    assertThat(effect.interactionControllerForTest).isNull()
+    assertThat(effect.delegate).isSameInstanceAs(delegate)
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
+    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    assertThat(observer.layerSize).isEqualTo(geometry)
+    val render = checkNotNull(effect.preparedRender)
+    assertThat(render.alpha).isEqualTo(1f)
+    assertThat(render.interactionUniforms.whitePointDelta).isEqualTo(0f)
+    assertThat(render.interactionUniforms.refractionMultiplier).isEqualTo(1f)
+    assertThat(render.interactionUniforms.lightingIntensity).isEqualTo(0f)
+    assertMaterial("restored-selection-unavailable")
+  }
+
+  @Test
+  fun baseOnlyCapture_actualSourceDetachRestoresHardwareMaterial() = runScreenshotTest {
+    val state = HazeState()
+    val effect = GlassRuntimeEffect()
+    val observer = InputObservingGlassRenderer(effect)
+    val targetSelected = mutableStateOf(true)
+    val sourceAttached = mutableStateOf(true)
+    val targetInput = HazeInput.Sources(state, selection = HazeSourceSelection.All.where { targetSelected.value })
+    val keeperInput = HazeInput.Sources(state, selection = HazeSourceSelection.All)
+    val keeperEffect = GlassRuntimeEffect()
+    val keeperFactory = HazeEffectFactory<GlassNodeConfiguration> { keeperEffect }
+    val keeperStyle = GlassStyle.regular.then { alpha(0f) }
+    val base = baseStyle(Removal.All)
+    val style = mutableStateOf(base)
+    val factory = HazeEffectFactory<GlassNodeConfiguration> { observer }
+    setContent {
+      Box(Modifier.fillMaxSize().then(if (sourceAttached.value) Modifier.hazeSource(state) else Modifier).background(Color.Red))
+      Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(
+          Modifier.size(120.dp).hazeGlass(
+            factory = keeperFactory,
+            input = keeperInput,
+            style = keeperStyle,
+            performanceMode = HazePerformanceMode.Quality,
+            expandLayerBounds = true,
+            interactionSource = null,
+          ),
+        )
+        Box(
+          Modifier.size(120.dp).testTag("material").hazeGlass(
+            factory = factory,
+            input = targetInput,
+            style = style.value,
+            performanceMode = HazePerformanceMode.Quality,
+            expandLayerBounds = true,
+            interactionSource = null,
+            interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+          ),
+        )
+        Box(Modifier.align(Alignment.TopStart).size(80.dp).testTag("source-control"))
+      }
+    }
+    waitForIdle()
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    fun assertMaterial(phase: String): Color {
+      composeTestRule.runOnIdle { composeTestRule.activity.window.decorView.invalidate() }
+      waitForIdle()
+      val pixels = captureRootPixels()
+      val controlBounds = onNodeWithTag("source-control").fetchSemanticsNode().boundsInRoot
+      val materialBounds = onNodeWithTag("material").fetchSemanticsNode().boundsInRoot
+      val control = pixels[controlBounds.center.x.roundToInt(), controlBounds.center.y.roundToInt()]
+      val material = pixels[materialBounds.center.x.roundToInt(), materialBounds.center.y.roundToInt()]
+      println("P5 hardware phase=$phase source=$control material=$material input=${observer.hasDrawableInput} snapshot=${observer.inputSnapshot} geometry=${observer.layerSize} records=${delegate.stageRecordCounts} retained=${delegate.canDrawRetainedOutput()} alpha=${effect.preparedRender?.alpha}")
+      assertThat(control.red).isGreaterThan(0.9f)
+      assertThat(control.blue).isLessThan(0.1f)
+      assertThat(material.blue).isGreaterThan(control.blue + 0.2f)
+      return material
+    }
+    assertMaterial("base-reference")
+    assertThat(effect.interactionControllerForTest).isNull()
+    assertThat(keeperEffect.attachedContextForTest).isNotNull()
+    assertThat(observer.hasDrawableInput).isTrue()
+    assertThat(observer.inputSnapshot).isNotNull()
+    assertThat(delegate.fusedShader).isNotNull()
+    val snapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
+    val source = checkNotNull(delegate.layers.source)
+    val optical = checkNotNull(delegate.layers.optical)
+    val detail = delegate.layers.refractionDetail
+    val records = delegate.sourceRecordCount
+    val geometry = observer.layerSize
+    composeTestRule.mainClock.autoAdvance = false
+    fun sync() {
+      repeat(2) {
+        composeTestRule.mainClock.advanceTimeByFrame()
+        waitForIdle()
+      }
+    }
+    composeTestRule.runOnIdle { style.value = base.then { alpha(0f) } }
+    sync()
+    assertThat(effect.interactionControllerForTest).isNull()
+    composeTestRule.runOnIdle {
+      targetSelected.value = false
+      sourceAttached.value = false
+    }
+    sync()
+    assertThat(targetSelected.value).isFalse()
+    assertThat(keeperEffect.attachedContextForTest).isNotNull()
+    assertThat(observer.hasDrawableInput).isFalse()
+    assertThat(observer.inputSnapshot).isNull()
+    composeTestRule.mainClock.advanceTimeBy(600, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(effect.interactionControllerForTest).isNull()
+    assertThat(effect.shouldPrepareDraw(GlassNodeConfiguration(style.value, interactionSource = null))).isFalse()
+    assertThat(delegate.canDrawRetainedOutput()).isTrue()
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
+    assertThat(delegate.layers.source).isSameInstanceAs(source)
+    assertThat(delegate.layers.optical).isSameInstanceAs(optical)
+    assertThat(delegate.layers.refractionDetail).isSameInstanceAs(detail)
+    assertThat(source.isReleased).isFalse()
+    assertThat(optical.isReleased).isFalse()
+    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    assertThat(observer.layerSize).isEqualTo(geometry)
+    composeTestRule.runOnIdle { style.value = base }
+    sync()
+    assertThat(targetSelected.value).isFalse()
+    assertThat(observer.hasDrawableInput).isFalse()
+    assertThat(observer.inputSnapshot).isNull()
+    assertThat(effect.interactionControllerForTest).isNull()
+    assertThat(effect.delegate).isSameInstanceAs(delegate)
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
+    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    assertThat(observer.layerSize).isEqualTo(geometry)
+    val render = checkNotNull(effect.preparedRender)
+    assertThat(render.alpha).isEqualTo(1f)
+    assertThat(render.interactionUniforms.whitePointDelta).isEqualTo(0f)
+    assertThat(render.interactionUniforms.refractionMultiplier).isEqualTo(1f)
+    assertThat(render.interactionUniforms.lightingIntensity).isEqualTo(0f)
+    assertMaterial("restored-selection-unavailable")
+  }
+
+  @Test
+  fun baseOnlyCapture_keeperRecaptureRetainsPreviousSourceFrame() = runScreenshotTest {
+    val state = HazeState()
+    val effect = GlassRuntimeEffect()
+    val observer = InputObservingGlassRenderer(effect)
+    val targetSelected = mutableStateOf(true)
+    val sourceColor = mutableStateOf(Color.Red)
+    val targetInput = HazeInput.Sources(state, selection = HazeSourceSelection.All.where { targetSelected.value })
+    val keeperInput = HazeInput.Sources(state, selection = HazeSourceSelection.All)
+    val keeperEffect = GlassRuntimeEffect()
+    val keeperFactory = HazeEffectFactory<GlassNodeConfiguration> { keeperEffect }
+    val keeperStyle = baseStyle(Removal.All)
+    val base = baseStyle(Removal.All)
+    val style = mutableStateOf(base)
+    val factory = HazeEffectFactory<GlassNodeConfiguration> { observer }
+    setContent {
+      Box(Modifier.fillMaxSize().hazeSource(state).background(sourceColor.value))
+      Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(
+          Modifier.align(Alignment.BottomCenter).size(120.dp).testTag("keeper-material").hazeGlass(
+            factory = keeperFactory,
+            input = keeperInput,
+            style = keeperStyle,
+            performanceMode = HazePerformanceMode.Quality,
+            expandLayerBounds = true,
+            interactionSource = null,
+          ),
+        )
+        Box(
+          Modifier.size(120.dp).testTag("material").hazeGlass(
+            factory = factory,
+            input = targetInput,
+            style = style.value,
+            performanceMode = HazePerformanceMode.Quality,
+            expandLayerBounds = true,
+            interactionSource = null,
+            interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+          ),
+        )
+        Box(Modifier.align(Alignment.TopStart).size(80.dp).testTag("source-control"))
+      }
+    }
+    waitForIdle()
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    fun assertMaterial(phase: String): Color {
+      composeTestRule.runOnIdle { composeTestRule.activity.window.decorView.invalidate() }
+      waitForIdle()
+      val pixels = captureRootPixels()
+      val controlBounds = onNodeWithTag("source-control").fetchSemanticsNode().boundsInRoot
+      val materialBounds = onNodeWithTag("material").fetchSemanticsNode().boundsInRoot
+      val control = pixels[controlBounds.center.x.roundToInt(), controlBounds.center.y.roundToInt()]
+      val material = pixels[materialBounds.center.x.roundToInt(), materialBounds.center.y.roundToInt()]
+      println("P5 hardware phase=$phase source=$control material=$material input=${observer.hasDrawableInput} snapshot=${observer.inputSnapshot} geometry=${observer.layerSize} records=${delegate.stageRecordCounts} retained=${delegate.canDrawRetainedOutput()} alpha=${effect.preparedRender?.alpha}")
+      if (sourceColor.value == Color.Red) {
+        assertThat(control.red).isGreaterThan(0.9f)
+      } else {
+        assertThat(control.green).isGreaterThan(0.9f)
+        assertThat(control.red).isLessThan(0.1f)
+      }
+      assertThat(control.blue).isLessThan(0.1f)
+      assertThat(material.blue).isGreaterThan(control.blue + 0.2f)
+      return material
+    }
+    assertMaterial("base-reference")
+    assertThat(effect.interactionControllerForTest).isNull()
+    assertThat(keeperEffect.attachedContextForTest).isNotNull()
+    assertThat(observer.hasDrawableInput).isTrue()
+    assertThat(observer.inputSnapshot).isNotNull()
+    assertThat(delegate.fusedShader).isNotNull()
+    val snapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
+    val source = checkNotNull(delegate.layers.source)
+    val optical = checkNotNull(delegate.layers.optical)
+    val detail = delegate.layers.refractionDetail
+    val records = delegate.sourceRecordCount
+    val geometry = observer.layerSize
+    composeTestRule.mainClock.autoAdvance = false
+    fun sync() {
+      repeat(2) {
+        composeTestRule.mainClock.advanceTimeByFrame()
+        waitForIdle()
+      }
+    }
+    composeTestRule.runOnIdle { style.value = base.then { alpha(0f) } }
+    sync()
+    assertThat(effect.interactionControllerForTest).isNull()
+    composeTestRule.runOnIdle {
+      targetSelected.value = false
+      sourceColor.value = Color.Green
+    }
+    sync()
+    assertThat(targetSelected.value).isFalse()
+    assertThat(keeperEffect.attachedContextForTest).isNotNull()
+    assertThat(observer.hasDrawableInput).isFalse()
+    assertThat(observer.inputSnapshot).isNull()
+    composeTestRule.mainClock.advanceTimeBy(600, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(effect.interactionControllerForTest).isNull()
+    assertThat(effect.shouldPrepareDraw(GlassNodeConfiguration(style.value, interactionSource = null))).isFalse()
+    assertThat(delegate.canDrawRetainedOutput()).isTrue()
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
+    assertThat(delegate.layers.source).isSameInstanceAs(source)
+    assertThat(delegate.layers.optical).isSameInstanceAs(optical)
+    assertThat(delegate.layers.refractionDetail).isSameInstanceAs(detail)
+    assertThat(source.isReleased).isFalse()
+    assertThat(optical.isReleased).isFalse()
+    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    assertThat(observer.layerSize).isEqualTo(geometry)
+    composeTestRule.runOnIdle { style.value = base }
+    sync()
+    assertThat(targetSelected.value).isFalse()
+    assertThat(observer.hasDrawableInput).isFalse()
+    assertThat(observer.inputSnapshot).isNull()
+    assertThat(effect.interactionControllerForTest).isNull()
+    assertThat(effect.delegate).isSameInstanceAs(delegate)
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
+    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    assertThat(observer.layerSize).isEqualTo(geometry)
+    val render = checkNotNull(effect.preparedRender)
+    assertThat(render.alpha).isEqualTo(1f)
+    assertThat(render.interactionUniforms.whitePointDelta).isEqualTo(0f)
+    assertThat(render.interactionUniforms.refractionMultiplier).isEqualTo(1f)
+    assertThat(render.interactionUniforms.lightingIntensity).isEqualTo(0f)
+    val retained = assertMaterial("restored-after-keeper-recapture")
+    val pixels = captureRootPixels()
+    val keeperBounds = onNodeWithTag("keeper-material").fetchSemanticsNode().boundsInRoot
+    val current = pixels[keeperBounds.center.x.roundToInt(), keeperBounds.center.y.roundToInt()]
+    println("R6 keeper material old=$retained current=$current")
+    assertThat(retained.red).isGreaterThan(current.red + 0.2f)
+    assertThat(current.green).isGreaterThan(retained.green + 0.2f)
   }
 
   private enum class Removal { WhitePoint, Refraction, Lighting, All }

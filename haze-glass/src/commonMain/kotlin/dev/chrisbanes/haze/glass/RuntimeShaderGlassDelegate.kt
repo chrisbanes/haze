@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectInputCapture
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.InternalHazeApi
@@ -205,6 +206,8 @@ internal class RuntimeShaderGlassDelegate(
       graphicsContext = currentGraphicsContext
       if (layers.scaledSize != scaledSize) {
         layers.release(currentGraphicsContext)
+        sourceInputCapture?.release()
+        sourceInputCapture = null
         clearRimLayerMetadata()
         layers.scaledSize = scaledSize
         clearInteractionLayerMetadata()
@@ -327,6 +330,8 @@ internal class RuntimeShaderGlassDelegate(
     graphicsContext = currentGraphicsContext
     if (layers.scaledSize != scaledSize) {
       layers.release(currentGraphicsContext)
+      sourceInputCapture?.release()
+      sourceInputCapture = null
       layers.scaledSize = scaledSize
       clearRimLayerMetadata()
       clearInteractionLayerMetadata()
@@ -1021,11 +1026,15 @@ internal class RuntimeShaderGlassDelegate(
     }
   }
 
+  private var sourceInputCapture: HazeEffectInputCapture? = null
+
   private fun releaseRetainedResources(
     releaseContext: GraphicsContext? = graphicsContext,
     releaseShaderHandles: Boolean = true,
   ) {
     layers.release(releaseContext)
+    sourceInputCapture?.release()
+    sourceInputCapture = null
     graphicsContext = null
     blurKey = null
     blurEffects = null
@@ -1146,15 +1155,31 @@ internal class RuntimeShaderGlassDelegate(
         ?.takeIf { retainedOutputAvailable }
     }
 
-    return createScaledContentLayer(
-      context = context,
-      scaleFactor = params.coordinates.scaleFactor,
-      layerSize = context.layerSize,
-      existingLayer = layers.source,
-      backgroundColor = params.backgroundColor,
-    )?.also {
-      layers.source = it
+    val input = context.captureInput()
+    try {
+      val recorded = createScaledContentLayer(
+        context = context,
+        scaleFactor = params.coordinates.scaleFactor,
+        layerSize = context.layerSize,
+        input = input,
+        existingLayer = layers.source,
+        backgroundColor = params.backgroundColor,
+      ) ?: run {
+        input.release()
+        return null
+      }
+      val previous = layers.source
+      val previousInput = sourceInputCapture
+      layers.source = recorded
+      sourceInputCapture = input
+      if (previous != null && previous !== recorded) context.requireGraphicsContext().releaseGraphicsLayer(previous)
+      previousInput?.release()
       sourceRecordCount++
+      return recorded
+    } catch (failure: Throwable) {
+      clearRetainedOutput()
+      input.release()
+      throw failure
     }
   }
 

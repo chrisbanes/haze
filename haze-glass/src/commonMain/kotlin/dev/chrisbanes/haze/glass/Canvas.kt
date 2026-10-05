@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectInputCapture
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.InternalHazeApi
 import kotlin.math.max
@@ -92,6 +93,7 @@ internal fun DrawScope.createScaledContentLayer(
   backgroundColor: Color,
   scaleFactor: Float,
   layerSize: Size,
+  input: HazeEffectInputCapture,
   existingLayer: GraphicsLayer? = null,
 ): GraphicsLayer? {
   val scaledLayerSize = (layerSize * scaleFactor).roundToIntSize()
@@ -101,19 +103,22 @@ internal fun DrawScope.createScaledContentLayer(
   }
 
   val graphicsContext = context.requireGraphicsContext()
-  val layer = existingLayer?.takeUnless { it.isReleased }
-    ?: graphicsContext.createGraphicsLayer()
+  val layer = existingLayer?.takeUnless { it.isReleased } ?: graphicsContext.createGraphicsLayer()
 
-  layer.record(size = scaledLayerSize) {
-    if (backgroundColor.alpha > 0f) {
-      drawRect(backgroundColor)
-    }
+  try {
+    layer.record(size = scaledLayerSize) {
+      if (backgroundColor.alpha > 0f) {
+        drawRect(backgroundColor)
+      }
 
-    scale(scale = scaleFactor, pivot = Offset.Zero) {
-      with(context) { this@record.drawInput() }
+      scale(scale = scaleFactor, pivot = Offset.Zero) {
+        with(input) { this@record.drawInput() }
+      }
     }
+  } catch (failure: Throwable) {
+    if (layer !== existingLayer) graphicsContext.releaseGraphicsLayer(layer)
+    throw failure
   }
-
   return layer
 }
 

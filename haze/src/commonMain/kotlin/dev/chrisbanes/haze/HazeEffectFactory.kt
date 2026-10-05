@@ -327,6 +327,9 @@ public interface HazeEffectRuntimeDrawScope : HazeEffectDrawScope {
   /** Schedules a redraw of the effect. */
   public fun invalidateDraw()
 
+  /** Acquires the current input and copied geometry for replay until released. */
+  public fun captureInput(): HazeEffectInputCapture
+
   /** Draws the selected input into this [DrawScope]. */
   public fun DrawScope.drawInput()
 }
@@ -375,6 +378,22 @@ internal class HazeEffectDrawScopeImpl(
 
   override fun drawInput() {
     with(this) { drawScope.drawInput() }
+  }
+
+  override fun captureInput(): HazeEffectInputCapture {
+    val inputs = mutableListOf<CapturedHazeInput>()
+    try {
+      for (area in node.areas) {
+        val transform = Snapshot.withoutReadObservation { node.sourceTransformInEffect(area) }
+        val copiedTransform = androidx.compose.ui.graphics.Matrix(transform.values.copyOf())
+        val capture = area.acquireContentCapture() ?: continue
+        inputs += CapturedHazeInput(capture, copiedTransform)
+      }
+      return HazeEffectInputCaptureImpl(inputs, node.layerOffset)
+    } catch (failure: Throwable) {
+      inputs.forEach { it.capture.release() }
+      throw failure
+    }
   }
 
   override fun DrawScope.drawInput() {

@@ -499,6 +499,8 @@ private class ZeroAlphaDrawContext(
   override fun <T> currentValueOf(local: CompositionLocal<T>): T = error("Unexpected local read")
   override fun invalidateDraw() = Unit
   override fun drawInput() = error("Unexpected input capture")
+  override fun captureInput(): dev.chrisbanes.haze.HazeEffectInputCapture = error("Unexpected input capture")
+
   override fun DrawScope.drawInput() = error("Unexpected input capture")
 }
 

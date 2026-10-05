@@ -235,7 +235,6 @@ class GlassInteractionRemovalTest : ContextTest() {
     fixture.assertMaterialPixels(this)
   }
 
-
   @Test
   fun removeAllResponsesWhileTransparent_sourceUnavailablePreservesRetainedMaterial() = runComposeUiTest {
     assertHiddenSourceRemoval(1f)
@@ -267,7 +266,10 @@ class GlassInteractionRemovalTest : ContextTest() {
     val oldGroup = checkNotNull(delegate.layers.groupAlpha.layer)
     mainClock.autoAdvance = false
     runOnIdle { fixture.style.value = baseStyle().then { alpha(0f) } }
-    repeat(2) { mainClock.advanceTimeByFrame(); waitForIdle() }
+    repeat(2) {
+      mainClock.advanceTimeByFrame()
+      waitForIdle()
+    }
     mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
     waitForIdle()
     assertThat(fixture.effect.interactionControllerForTest).isNotNull()
@@ -278,7 +280,10 @@ class GlassInteractionRemovalTest : ContextTest() {
     assertThat(fixture.effect.currentInteractionState.lightingIntensity).isGreaterThan(0f)
     obsolete.forEach { assertThat(it.isReleased).isFalse() }
     runOnIdle { fixture.sourceEnabled.value = false }
-    repeat(2) { mainClock.advanceTimeByFrame(); waitForIdle() }
+    repeat(2) {
+      mainClock.advanceTimeByFrame()
+      waitForIdle()
+    }
     assertThat(fixture.sourceEnabled.value).isFalse()
     assertThat(fixture.observer.hasDrawableInput).isFalse()
     assertThat(fixture.observer.inputSnapshot).isNull()
@@ -297,7 +302,10 @@ class GlassInteractionRemovalTest : ContextTest() {
     listOf(source, optical, detail).forEach { assertThat(it.isReleased).isFalse() }
     assertThat(delegate.sourceRecordCount).isEqualTo(sourceRecords)
     runOnIdle { fixture.style.value = base }
-    repeat(2) { mainClock.advanceTimeByFrame(); waitForIdle() }
+    repeat(2) {
+      mainClock.advanceTimeByFrame()
+      waitForIdle()
+    }
     assertThat(fixture.observer.hasDrawableInput).isFalse()
     assertThat(fixture.observer.inputSnapshot).isNull()
     assertThat(fixture.delegate).isSameInstanceAs(delegate)
@@ -334,7 +342,6 @@ class GlassInteractionRemovalTest : ContextTest() {
     assertThat(delegate.layers.interactionRefractionComposite).isNull()
     assertThat(delegate.layers.interactionLighting).isNull()
   }
-
 
   @Test
   fun removeOpticsWhileTransparent_keepsDeclaredLightingAndRetainedBase() = runComposeUiTest {
@@ -535,7 +542,10 @@ class GlassInteractionRemovalTest : ContextTest() {
   }
 
   private fun ComposeUiTest.syncFrames() {
-    repeat(2) { mainClock.advanceTimeByFrame(); waitForIdle() }
+    repeat(2) {
+      mainClock.advanceTimeByFrame()
+      waitForIdle()
+    }
   }
 
   private fun ComposeUiTest.replaceHidden(fixture: Fixture, style: GlassStyle) {

@@ -510,6 +510,14 @@ private class RecordingDrawContext(
   override fun invalidateDraw() = Unit
   override fun drawInput() = Unit
 
+  override fun captureInput(): dev.chrisbanes.haze.HazeEffectInputCapture = object : dev.chrisbanes.haze.HazeEffectInputCapture {
+    override fun DrawScope.drawInput() {
+      this@RecordingDrawContext.inputCaptureCount++
+      drawRect(Color.Red)
+    }
+    override fun release() = Unit
+  }
+
   override fun DrawScope.drawInput() {
     this@RecordingDrawContext.inputCaptureCount++
     drawRect(Color.Red)

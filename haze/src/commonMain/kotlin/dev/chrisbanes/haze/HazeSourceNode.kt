@@ -306,12 +306,7 @@ internal class HazeSourceNode(
       if (size.minDimension.roundToInt() >= 1) {
         val graphicsContext = currentValueOf(LocalGraphicsContext)
 
-        val contentLayer = area.contentLayer
-          ?.takeUnless { it.isReleased }
-          ?: graphicsContext.createGraphicsLayer().also {
-            area.contentLayer = it
-            HazeLogger.d(TAG) { "Updated contentLayer in HazeArea: $area" }
-          }
+        val contentLayer = area.writableContentLayer(graphicsContext)
 
         // First we draw the composable content into a graphics layer
         trace("HazeSource.record") {
@@ -365,13 +360,7 @@ internal class HazeSourceNode(
     area.reset()
   }
 
-  internal fun HazeArea.releaseLayer() {
-    contentLayer?.let { layer ->
-      HazeLogger.d(TAG) { "Releasing content layer: $layer" }
-      currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(layer)
-    }
-    contentLayer = null
-  }
+  internal fun HazeArea.releaseLayer() = releaseContentLayer()
 
   private companion object {
     const val TAG = "HazeSource"

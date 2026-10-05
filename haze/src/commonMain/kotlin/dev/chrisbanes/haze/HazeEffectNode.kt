@@ -485,13 +485,7 @@ internal class HazeEffectNode(
     sourceDemandState = null
   }
 
-  private fun HazeArea.releaseLayer() {
-    contentLayer?.let { layer ->
-      HazeLogger.d(TAG) { "Releasing content layer: $layer" }
-      requireGraphicsContext().releaseGraphicsLayer(layer)
-    }
-    contentLayer = null
-  }
+  private fun HazeArea.releaseLayer() = releaseContentLayer()
 
   override fun onObservedReadsChanged() {
     dirtyTracker += DirtyFields.AreaPositionReads
@@ -635,12 +629,7 @@ internal class HazeEffectNode(
   }
 
   private fun ContentDrawScope.drawContentEffect() {
-    val contentLayer = contentDrawArea.contentLayer
-      ?.takeUnless { it.isReleased }
-      ?: requireGraphicsContext().createGraphicsLayer().also {
-        contentDrawArea.contentLayer = it
-        HazeLogger.d(TAG) { "Updated contentLayer in content HazeArea" }
-      }
+    val contentLayer = contentDrawArea.writableContentLayer(requireGraphicsContext())
     contentLayer.record(size.toIntSize()) {
       this@drawContentEffect.drawContentSafely()
     }
