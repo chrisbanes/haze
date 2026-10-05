@@ -178,7 +178,6 @@ internal class GlassRuntimeEffect() :
 
   private var interactionController: GlassInteractionController? = null
   private var interactionRefractionMaximum = 1f
-  private var hiddenInteractionOutputCleared = false
 
   internal val interactionControllerForTest: GlassInteractionController?
     get() = interactionController
@@ -391,7 +390,6 @@ internal class GlassRuntimeEffect() :
     val context = this
     trace(GlassTraceSection.Prepare) {
       attachedContext?.let(::reconcileInteractionCompletion)
-      hiddenInteractionOutputCleared = false
       if (canReusePreparedDraw(context)) return@trace
       val previousBudget = preparedRenderBudget
       trace(GlassTraceSection.PrepareBudget) {
@@ -422,7 +420,6 @@ internal class GlassRuntimeEffect() :
     val context = this
     return try {
       attachedContext?.let(::reconcileInteractionCompletion)
-      hiddenInteractionOutputCleared = false
       val previousBudget = preparedRenderBudget
       prepareRenderBudget(
         context = context,
@@ -624,9 +621,8 @@ internal class GlassRuntimeEffect() :
     val context = attachedContext ?: return
     if (!isAttached || controller !== interactionController) return
     reconcileInteractionCompletion(context)
-    if (alpha == 0f && !controller.hasRunningResponseAnimations && !hiddenInteractionOutputCleared) {
-      hiddenInteractionOutputCleared = true
-      clearRetainedOutput()
+    if (alpha == 0f && !controller.hasRunningResponseAnimations) {
+      (delegate as? RetainedOutputDelegate)?.releaseObsoleteInteractionOutput(interactionTopologySnapshot)
       clearPreparedRenderCache()
     }
     context.invalidateDraw()
@@ -1120,6 +1116,8 @@ internal interface RetainedOutputDelegate {
   fun shouldDrawRetainedOutput(): Boolean = canDrawRetainedOutput()
 
   fun clearRetainedOutput()
+
+  fun releaseObsoleteInteractionOutput(topology: GlassInteractionTopology): Unit = Unit
 }
 
 internal fun GlassRuntimeEffect.updateDelegate(): GlassRuntimeEffect.Delegate {

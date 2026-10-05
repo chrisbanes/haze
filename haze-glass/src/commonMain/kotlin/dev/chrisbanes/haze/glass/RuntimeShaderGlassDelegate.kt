@@ -889,6 +889,51 @@ internal class RuntimeShaderGlassDelegate(
       (!interactionLightingRequired || layers.hasInteractionLighting)
   }
 
+  override fun releaseObsoleteInteractionOutput(topology: GlassInteractionTopology) {
+    val context = graphicsContext ?: return
+    val opticsRequired = !supportsFusedGlassRenderEffect && topology.hasOptics
+    val detailRequired = opticsRequired && lastSuccessfulStageInputs?.detail != null
+    // A composite recorded with interaction optics still references the outgoing patch.
+    if (!opticsRequired && layers.interactionOptical != null) {
+      layers.groupAlpha.release(context)
+    }
+    releaseObsoleteInteractionLayers(
+      opticsRequired = opticsRequired,
+      detailRequired = detailRequired,
+      lightingRequired = topology.hasLighting,
+      graphicsContext = context,
+    )
+    if (!opticsRequired) {
+      interactionOpticalEffectKey = null
+      interactionOpticalEffectUniforms = null
+      interactionOpticalPlatformEffect = null
+      interactionOpticalComposeEffect = null
+      interactionOutputInput = null
+      interactionOutputUniforms = null
+      interactionOutputFeatherWidth = Float.NaN
+      interactionOutputComposeEffect = null
+    }
+    if (!detailRequired) {
+      interactionDetailEffectKey = null
+      interactionDetailEffectUniforms = null
+      interactionDetailComposeEffect = null
+      interactionDetailCoverageEffectKey = null
+      interactionDetailCoverageEffectUniforms = null
+      interactionDetailCoverageComposeEffect = null
+    }
+    if (!topology.hasLighting) {
+      interactionLightingEffectKey = null
+      interactionLightingEffectUniforms = null
+      interactionLightingComposeEffect = null
+    }
+    preparedRender = null
+    preparedParams = null
+    preparedRenderEffects = null
+    preparedInteractionUniforms = null
+    preparedInteractionPatch = null
+    preparedStageAvailability = null
+  }
+
   override fun clearRetainedOutput() {
     releaseRetainedResources(releaseShaderHandles = false)
   }
