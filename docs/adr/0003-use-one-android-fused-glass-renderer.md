@@ -68,6 +68,46 @@ stable configuration.
 Skiko and Android environments without RuntimeShader support continue to use their existing
 adapters. The public Glass API is unchanged.
 
+### Preserve the last displayed source-backed input
+
+Issue [#1373](https://github.com/chrisbanes/haze/issues/1373) exposed a separate
+correctness limit: retaining a recorded source layer does not freeze its mutable
+descendants. After source selection loss, modifier detach or another consumer's
+recapture, replay can lose or change the input that produced the displayed
+material. Layer identity and retained metadata do not establish retained pixels.
+
+The [approved exception](https://github.com/chrisbanes/haze/issues/1373#issuecomment-6013730424)
+permits a completed immutable image of the cropped raw input before presenting
+source-backed Android fused Glass. The existing fused effect graph consumes that
+image. Native Backdrop, own-content input, Skiko and unsupported Android paths
+retain their existing rendering paths.
+
+Capture publication distinguishes pending, ready and displayed input. A completed
+image becomes the retained last frame only after a successful Glass draw. Source
+loss discards undrawn candidates and preserves the last displayed input under
+`KeepLastFrame`; full clear and lifetime teardown discard it. Pending replacement
+uses the displayed image's copied crop and scale, rather than interpreting its
+pixels with new geometry.
+
+The graph rebuilt for retained geometry must satisfy the existing aggregate layer
+budget. If it exceeds that budget, existing fallback rendering is used temporarily
+while the displayed immutable input remains owned for recovery. Full rendering
+resumes when its actual graph fits; explicit clear, trim and detach release both.
+
+Conservative snapshot invalidation observes descendant changes that do not
+re-record the parent source. It can also trigger image capture and allocation
+during interaction-only animation. This is an explicit exception to the earlier
+capture-cadence policy; it preserves the fused output topology, not the earlier
+source-capture and allocation behavior. Capture completion requests presentation
+without advancing the input revision.
+
+Physical frame-cost, capture-cadence and memory qualification is pending. The
+exception is approved, but adoption requires paired release-like physical-device
+measurements and bounded lifetime evidence. Emulator or host correctness tests
+cannot qualify driver cost or memory reclamation. The earlier measurements and
+rejection of a separate cached output renderer remain applicable to the measured
+alternatives.
+
 ## Alternatives Considered
 
 ### Keep the shared retained graph for every platform
@@ -131,9 +171,11 @@ into the fused shader recorded a 10.9 ms CPU P90 and a -1.2 ms frame-overrun P90
 - Topology tests verify sibling-independent selection, stable interaction topology, retained
   source and output layers, intermediate optical-layer absence, and resource release. Pixel and
   physical-device checks cover visual and performance behavior.
-- Interaction-only updates retain the shader provider, native effect topology, source capture, and
-  graphics-layer allocation, but re-record fused output pixels. This evidence-driven exception
-  supersedes the original issue preference for retaining the previous fused base pixels.
+- Interaction-only updates retain the shader provider and native effect topology, but re-record
+  fused output pixels. Paths without immutable input capture also retain the source capture and
+  graphics-layer allocation. The approved source-backed input exception can capture and allocate
+  during interaction animation; physical qualification of that cost remains pending. The fused
+  output decision still supersedes the original preference for retaining previous fused base pixels.
 - Effect alpha groups the base material stages. Rim and interaction lighting receive the same
   alpha in a separate foreground pass because child content is drawn between the base and
   foreground passes. This preserves the established `VisualEffect` ordering and partial-alpha

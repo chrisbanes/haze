@@ -171,10 +171,8 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     assertThat(delegate.fusedShader).isNotNull()
     assertThat(delegate.layers.interactionOptical).isNull()
     assertThat(delegate.layers.interactionRefractionDetail).isNull()
-    val snapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
     val sourceLayer = checkNotNull(delegate.layers.source)
     val optical = checkNotNull(delegate.layers.optical)
-    val records = delegate.sourceRecordCount
     val lighting = checkNotNull(delegate.layers.interactionLighting)
     composeTestRule.mainClock.autoAdvance = false
     fun sync() {
@@ -194,6 +192,7 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     assertThat(effect.currentInteractionState.refractionMultiplier).isGreaterThan(1f)
     assertThat(effect.currentInteractionState.lightingIntensity).isGreaterThan(0f)
     assertThat(lighting.isReleased).isFalse()
+    val capturedFrame = DisplayedSourceFrame(delegate)
     composeTestRule.runOnIdle { sourceEnabled.value = false }
     sync()
     assertThat(sourceEnabled.value).isFalse()
@@ -206,19 +205,19 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     assertThat(delegate.layers.interactionLighting).isNull()
     assertThat(effect.shouldPrepareDraw(GlassNodeConfiguration(style.value, interactionSource = source))).isFalse()
     assertThat(delegate.canDrawRetainedOutput(), "hidden settled fused retained availability").isTrue()
-    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
+    capturedFrame.assertPreserved()
     assertThat(delegate.layers.source).isSameInstanceAs(sourceLayer)
     assertThat(delegate.layers.optical).isSameInstanceAs(optical)
     assertThat(sourceLayer.isReleased).isFalse()
     assertThat(optical.isReleased).isFalse()
-    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    assertThat(delegate.sourceRecordCount).isEqualTo(capturedFrame.records)
     composeTestRule.runOnIdle { style.value = baseStyle(Removal.All) }
     sync()
     assertThat(observer.hasDrawableInput).isFalse()
     assertThat(observer.inputSnapshot).isNull()
     assertThat(effect.delegate).isSameInstanceAs(delegate)
-    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
-    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    capturedFrame.assertPreserved()
+    assertThat(delegate.sourceRecordCount).isEqualTo(capturedFrame.records)
     val uniforms = checkNotNull(effect.preparedRender).interactionUniforms
     assertThat(uniforms.whitePointDelta).isEqualTo(0f)
     assertThat(uniforms.refractionMultiplier).isEqualTo(1f)
@@ -269,11 +268,9 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     }
     assertMaterial("reference")
     assertThat(effect.interactionControllerForTest).isNull()
-    val snapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
     val sourceLayer = checkNotNull(delegate.layers.source)
     val optical = checkNotNull(delegate.layers.optical)
     val geometry = observer.layerSize
-    val records = delegate.sourceRecordCount
     composeTestRule.mainClock.autoAdvance = false
     fun sync() {
       repeat(2) {
@@ -283,6 +280,7 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     }
     composeTestRule.runOnIdle { style.value = base.then { alpha(0f) } }
     sync()
+    val capturedFrame = DisplayedSourceFrame(delegate)
     composeTestRule.runOnIdle { sourceEnabled.value = false }
     sync()
     assertThat(observer.hasDrawableInput).isFalse()
@@ -291,17 +289,17 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     waitForIdle()
     assertThat(effect.interactionControllerForTest).isNull()
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
-    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
+    capturedFrame.assertPreserved()
     assertThat(delegate.layers.source).isSameInstanceAs(sourceLayer)
     assertThat(delegate.layers.optical).isSameInstanceAs(optical)
-    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    assertThat(delegate.sourceRecordCount).isEqualTo(capturedFrame.records)
     assertThat(observer.layerSize).isEqualTo(geometry)
     composeTestRule.runOnIdle { style.value = base }
     sync()
     assertThat(observer.hasDrawableInput).isFalse()
     assertThat(observer.inputSnapshot).isNull()
-    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
-    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    capturedFrame.assertPreserved()
+    assertThat(delegate.sourceRecordCount).isEqualTo(capturedFrame.records)
     assertMaterial("restored-unavailable-source-no-completion")
   }
 
@@ -368,11 +366,9 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     assertThat(observer.hasDrawableInput).isTrue()
     assertThat(observer.inputSnapshot).isNotNull()
     assertThat(delegate.fusedShader).isNotNull()
-    val snapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
     val source = checkNotNull(delegate.layers.source)
     val optical = checkNotNull(delegate.layers.optical)
     val detail = delegate.layers.refractionDetail
-    val records = delegate.sourceRecordCount
     val geometry = observer.layerSize
     composeTestRule.mainClock.autoAdvance = false
     fun sync() {
@@ -384,6 +380,7 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     composeTestRule.runOnIdle { style.value = base.then { alpha(0f) } }
     sync()
     assertThat(effect.interactionControllerForTest).isNull()
+    val capturedFrame = DisplayedSourceFrame(delegate)
     composeTestRule.runOnIdle { targetSelected.value = false }
     sync()
     assertThat(targetSelected.value).isFalse()
@@ -395,13 +392,13 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     assertThat(effect.interactionControllerForTest).isNull()
     assertThat(effect.shouldPrepareDraw(GlassNodeConfiguration(style.value, interactionSource = null))).isFalse()
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
-    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
+    capturedFrame.assertPreserved()
     assertThat(delegate.layers.source).isSameInstanceAs(source)
     assertThat(delegate.layers.optical).isSameInstanceAs(optical)
     assertThat(delegate.layers.refractionDetail).isSameInstanceAs(detail)
     assertThat(source.isReleased).isFalse()
     assertThat(optical.isReleased).isFalse()
-    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    assertThat(delegate.sourceRecordCount).isEqualTo(capturedFrame.records)
     assertThat(observer.layerSize).isEqualTo(geometry)
     composeTestRule.runOnIdle { style.value = base }
     sync()
@@ -410,8 +407,8 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     assertThat(observer.inputSnapshot).isNull()
     assertThat(effect.interactionControllerForTest).isNull()
     assertThat(effect.delegate).isSameInstanceAs(delegate)
-    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
-    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    capturedFrame.assertPreserved()
+    assertThat(delegate.sourceRecordCount).isEqualTo(capturedFrame.records)
     assertThat(observer.layerSize).isEqualTo(geometry)
     val render = checkNotNull(effect.preparedRender)
     assertThat(render.alpha).isEqualTo(1f)
@@ -485,11 +482,9 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     assertThat(observer.hasDrawableInput).isTrue()
     assertThat(observer.inputSnapshot).isNotNull()
     assertThat(delegate.fusedShader).isNotNull()
-    val snapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
     val source = checkNotNull(delegate.layers.source)
     val optical = checkNotNull(delegate.layers.optical)
     val detail = delegate.layers.refractionDetail
-    val records = delegate.sourceRecordCount
     val geometry = observer.layerSize
     composeTestRule.mainClock.autoAdvance = false
     fun sync() {
@@ -501,6 +496,7 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     composeTestRule.runOnIdle { style.value = base.then { alpha(0f) } }
     sync()
     assertThat(effect.interactionControllerForTest).isNull()
+    val capturedFrame = DisplayedSourceFrame(delegate)
     composeTestRule.runOnIdle {
       targetSelected.value = false
       sourceAttached.value = false
@@ -515,13 +511,13 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     assertThat(effect.interactionControllerForTest).isNull()
     assertThat(effect.shouldPrepareDraw(GlassNodeConfiguration(style.value, interactionSource = null))).isFalse()
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
-    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
+    capturedFrame.assertPreserved()
     assertThat(delegate.layers.source).isSameInstanceAs(source)
     assertThat(delegate.layers.optical).isSameInstanceAs(optical)
     assertThat(delegate.layers.refractionDetail).isSameInstanceAs(detail)
     assertThat(source.isReleased).isFalse()
     assertThat(optical.isReleased).isFalse()
-    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    assertThat(delegate.sourceRecordCount).isEqualTo(capturedFrame.records)
     assertThat(observer.layerSize).isEqualTo(geometry)
     composeTestRule.runOnIdle { style.value = base }
     sync()
@@ -530,8 +526,8 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     assertThat(observer.inputSnapshot).isNull()
     assertThat(effect.interactionControllerForTest).isNull()
     assertThat(effect.delegate).isSameInstanceAs(delegate)
-    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
-    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    capturedFrame.assertPreserved()
+    assertThat(delegate.sourceRecordCount).isEqualTo(capturedFrame.records)
     assertThat(observer.layerSize).isEqualTo(geometry)
     val render = checkNotNull(effect.preparedRender)
     assertThat(render.alpha).isEqualTo(1f)
@@ -610,11 +606,9 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     assertThat(observer.hasDrawableInput).isTrue()
     assertThat(observer.inputSnapshot).isNotNull()
     assertThat(delegate.fusedShader).isNotNull()
-    val snapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
     val source = checkNotNull(delegate.layers.source)
     val optical = checkNotNull(delegate.layers.optical)
     val detail = delegate.layers.refractionDetail
-    val records = delegate.sourceRecordCount
     val geometry = observer.layerSize
     composeTestRule.mainClock.autoAdvance = false
     fun sync() {
@@ -626,6 +620,7 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     composeTestRule.runOnIdle { style.value = base.then { alpha(0f) } }
     sync()
     assertThat(effect.interactionControllerForTest).isNull()
+    val capturedFrame = DisplayedSourceFrame(delegate)
     composeTestRule.runOnIdle {
       targetSelected.value = false
       sourceColor.value = Color.Green
@@ -640,13 +635,13 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     assertThat(effect.interactionControllerForTest).isNull()
     assertThat(effect.shouldPrepareDraw(GlassNodeConfiguration(style.value, interactionSource = null))).isFalse()
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
-    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
+    capturedFrame.assertPreserved()
     assertThat(delegate.layers.source).isSameInstanceAs(source)
     assertThat(delegate.layers.optical).isSameInstanceAs(optical)
     assertThat(delegate.layers.refractionDetail).isSameInstanceAs(detail)
     assertThat(source.isReleased).isFalse()
     assertThat(optical.isReleased).isFalse()
-    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    assertThat(delegate.sourceRecordCount).isEqualTo(capturedFrame.records)
     assertThat(observer.layerSize).isEqualTo(geometry)
     composeTestRule.runOnIdle { style.value = base }
     sync()
@@ -655,8 +650,8 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     assertThat(observer.inputSnapshot).isNull()
     assertThat(effect.interactionControllerForTest).isNull()
     assertThat(effect.delegate).isSameInstanceAs(delegate)
-    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
-    assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    capturedFrame.assertPreserved()
+    assertThat(delegate.sourceRecordCount).isEqualTo(capturedFrame.records)
     assertThat(observer.layerSize).isEqualTo(geometry)
     val render = checkNotNull(effect.preparedRender)
     assertThat(render.alpha).isEqualTo(1f)
@@ -808,6 +803,23 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     }
     assertFusedGraph()
     assertMaterialPixels("settled")
+  }
+
+  private class DisplayedSourceFrame(private val delegate: RuntimeShaderGlassDelegate) {
+    // Freshness can advance while the source is still available. Freeze the actual displayed
+    // frame after hidden staging, immediately before source loss, rather than the latest scope key.
+    private val image = checkNotNull(delegate.displayedImmutableInput)
+    private val capturedKey = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
+    private val source = checkNotNull(delegate.layers.source)
+    val records = delegate.sourceRecordCount
+
+    fun assertPreserved() {
+      assertThat(delegate.displayedImmutableInput).isSameInstanceAs(image)
+      assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(capturedKey)
+      assertThat(delegate.layers.source).isSameInstanceAs(source)
+      assertThat(source.isReleased).isFalse()
+      assertThat(delegate.sourceRecordCount).isEqualTo(records)
+    }
   }
 
   private class InputObservingGlassRenderer(private val effect: GlassRuntimeEffect) :

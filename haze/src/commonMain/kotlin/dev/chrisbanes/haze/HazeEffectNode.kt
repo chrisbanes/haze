@@ -280,6 +280,31 @@ internal class HazeEffectNode(
       if (area !in captureDemandAreas) area.addCaptureConsumer(captureConsumer)
     }
     captureDemandAreas = desiredAreas
+    syncSourceSnapshotObservation()
+  }
+
+  private var sourceSnapshotObservation: androidx.compose.runtime.snapshots.ObserverHandle? = null
+  private var sourceSnapshotObservationEpoch = 0
+
+  private fun syncSourceSnapshotObservation() {
+    val observe = isAttached && captureDemandAreas.isNotEmpty() &&
+      (typedEffectRenderer as? HazeEffectRendererDrawHooks<*>)?.observesSourceSnapshotChanges == true
+    if (!observe) {
+      sourceSnapshotObservationEpoch++
+      sourceSnapshotObservation?.dispose()
+      sourceSnapshotObservation = null
+    } else if (sourceSnapshotObservation == null) {
+      val epoch = ++sourceSnapshotObservationEpoch
+      val ownerScope = coroutineScope
+      sourceSnapshotObservation = Snapshot.registerApplyObserver { _, _ ->
+        ownerScope.launch {
+          if (isAttached && epoch == sourceSnapshotObservationEpoch) {
+            inputCaptureGeneration++
+            invalidateHazeDraw(HazeInvalidationReason.PreDraw)
+          }
+        }
+      }
+    }
   }
 
   private val contentDrawArea by lazy { HazeArea() }
@@ -326,6 +351,7 @@ internal class HazeEffectNode(
       if (isAttached) {
         typedRendererAttached = true
         updateTypedRenderer()
+        syncSourceSnapshotObservation()
       }
       dirtyTracker += DirtyFields.VisualEffectLayerBounds
       if (isAttached) {
@@ -439,9 +465,13 @@ internal class HazeEffectNode(
     rebindTrimMemoryCallback()
     update()
     reconcileSourceDemand()
+    syncSourceSnapshotObservation()
   }
 
   override fun onDetach() {
+    sourceSnapshotObservationEpoch++
+    sourceSnapshotObservation?.dispose()
+    sourceSnapshotObservation = null
     unregisterSourceDemand()
     stopSourceSelectionSnapshotObserver()
     trimMemoryCallbackDisposable?.dispose()
@@ -602,6 +632,9 @@ internal class HazeEffectNode(
 
   private fun ContentDrawScope.drawSourceBackedEffect(shouldPrepareDraw: Boolean) {
     val hasDrawableSourceLayers = hasDrawableSourceLayers()
+    if (!hasDrawableSourceLayers) {
+      (typedEffectRenderer as? HazeEffectRendererRetainedOutput)?.onSourceUnavailable()
+    }
     if (!retainOutputWhenSourceUnavailable && !hasDrawableSourceLayers) {
       clearRetainedOutput()
     }
@@ -614,6 +647,7 @@ internal class HazeEffectNode(
     if (shouldDrawEffect) {
       prepareEffectDraw()
     }
+    syncSourceSnapshotObservation()
     withVisualEffectTransform {
       if (shouldDrawEffect) {
         drawEffect()
@@ -629,16 +663,21 @@ internal class HazeEffectNode(
   }
 
   private fun ContentDrawScope.drawContentEffect() {
-    val contentLayer = contentDrawArea.writableContentLayer(requireGraphicsContext())
-    contentLayer.record(size.toIntSize()) {
-      this@drawContentEffect.drawContentSafely()
-    }
     val effectOnlyDraw = needsVisualEffectInvalidation &&
       !needsPreDrawInvalidation &&
       !needsDirtyFieldsInvalidation &&
       !needsContentInvalidation
-    if (!effectOnlyDraw) {
-      contentDrawArea.contentVersion++
+    val retainedContent = contentDrawArea.contentLayer?.takeUnless { it.isReleased }
+    val contentLayer = if (effectOnlyDraw && retainedContent != null) {
+      // A material-only draw must not replace a leased, unchanged own-content capture.
+      retainedContent
+    } else {
+      contentDrawArea.writableContentLayer(requireGraphicsContext()).also { layer ->
+        layer.record(size.toIntSize()) {
+          this@drawContentEffect.drawContentSafely()
+        }
+        contentDrawArea.contentVersion++
+      }
     }
     prepareEffectDraw()
     withVisualEffectTransform {
@@ -1264,8 +1303,9 @@ internal class HazeEffectNode(
   /** [clearRetainedOutput] for a size change, which lets the renderer keep its resources. */
   @OptIn(InternalHazeApi::class)
   private fun invalidateRetainedOutput() {
-    hasRenderedTypedSourceOutput = false
-    (typedEffectRenderer as? HazeEffectRendererRetainedOutput)?.invalidateRetainedOutput()
+    val renderer = typedEffectRenderer as? HazeEffectRendererRetainedOutput
+    renderer?.invalidateRetainedOutput()
+    hasRenderedTypedSourceOutput = renderer?.canDrawRetainedOutput() == true
   }
 
   @OptIn(InternalHazeApi::class)
@@ -1332,6 +1372,8 @@ internal class HazeEffectNode(
         area.contentLayer?.isReleased == false
     }
   }
+
+  internal fun isSourceBackedInput(): Boolean = resolvedSourcesInput() != null
 
   internal fun hasDrawableInput(): Boolean =
     (explicitInput is HazeInput.Backdrop && !backdropBackendState.usesFallback) ||
@@ -1426,6 +1468,10 @@ private class HazeEffectInputSnapshotImpl(
     return drawableIndex == entries.size
   }
 
+  override fun hasSameSourceGeometry(other: HazeEffectInputSnapshot): Boolean =
+    other is HazeEffectInputSnapshotImpl && entries.size == other.entries.size &&
+      entries.indices.all { entries[it].hasSameGeometry(other.entries[it]) }
+
   override fun equals(other: Any?): Boolean =
     other is HazeEffectInputSnapshotImpl &&
       captureGeneration == other.captureGeneration &&
@@ -1455,6 +1501,10 @@ private class HazeEffectInputSnapshotEntry(
       this.contentVersion == contentVersion &&
       transformValues.contentEquals(transform.values) &&
       this.size == size
+
+  fun hasSameGeometry(other: HazeEffectInputSnapshotEntry): Boolean =
+    areaIdentity === other.areaIdentity &&
+      transformValues.contentEquals(other.transformValues) && size == other.size
 
   override fun equals(other: Any?): Boolean =
     other is HazeEffectInputSnapshotEntry &&

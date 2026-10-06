@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -173,9 +174,11 @@ internal class RuntimeShaderGlassDelegate(
       rim = rimRecordCount,
     )
 
+  private var heldInputBudgetFallback: FallbackGlassDelegate? = null
+
   override fun DrawScope.prepareDraw(context: HazeEffectRuntimeDrawScope) {
     backdropOutputAvailable = false
-    val currentPreparedRender = effect.preparedRender
+    var currentPreparedRender = effect.preparedRender
     if (
       effect.preparedRenderBudget !is GlassRenderBudgetDecision.Runtime ||
       currentPreparedRender == null
@@ -183,6 +186,33 @@ internal class RuntimeShaderGlassDelegate(
       releaseRetainedResources()
       return
     }
+    preparedImmutableInput = null
+    if (supportsFusedGlassRenderEffect && context.isSourceBackedInput) {
+      currentPreparedRender = prepareImmutableInput(context, currentPreparedRender) ?: run {
+        preparedRender = null
+        return
+      }
+    }
+    if (currentPreparedRender.alpha == 0f && heldInputBudgetFallback != null) {
+      releaseRuntimeConsumers()
+      heldInputBudgetFallback?.detach()
+      return
+    }
+    if (!currentPreparedRender.plan.fitsGlassRenderBudget()) {
+      // The displayed input can have larger copied geometry than the current request.
+      // Release its consuming graph before preparing the existing bounded fallback.
+      releaseRuntimeConsumers()
+      val fallback = heldInputBudgetFallback ?: FallbackGlassDelegate(effect).also { heldInputBudgetFallback = it }
+      try {
+        with(fallback) { prepareDraw(context) }
+      } catch (failure: Throwable) {
+        clearRetainedOutput()
+        throw failure
+      }
+      return
+    }
+    heldInputBudgetFallback?.detach()
+    heldInputBudgetFallback = null
     val params = currentPreparedRender.params
     val interactionUniforms = currentPreparedRender.interactionUniforms
     val currentRenderEffects = trace(GlassTraceSection.PrepareEffects) {
@@ -206,6 +236,7 @@ internal class RuntimeShaderGlassDelegate(
       graphicsContext = currentGraphicsContext
       if (layers.scaledSize != scaledSize) {
         layers.release(currentGraphicsContext)
+        recordedImmutableInput = null
         sourceInputCapture?.release()
         sourceInputCapture = null
         clearRimLayerMetadata()
@@ -456,6 +487,15 @@ internal class RuntimeShaderGlassDelegate(
 
   override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope): Unit =
     trace(GlassTraceSection.RuntimeDraw) {
+      heldInputBudgetFallback?.let { fallback ->
+        try {
+          with(fallback) { draw(context) }
+        } catch (failure: Throwable) {
+          clearRetainedOutput()
+          throw failure
+        }
+        return@trace
+      }
       val render = preparedRender ?: return
       val params = preparedParams ?: return
       val effects = preparedRenderEffects ?: return
@@ -483,24 +523,29 @@ internal class RuntimeShaderGlassDelegate(
           detail = render.refractionDetailKey,
           rim = render.rimKey,
         )
+        val immutableFrame = preparedImmutableInput
         val sourceState = context.resolveGlassRuntimeSourceState(
           captureScale = params.coordinates.scaleFactor,
           backgroundColor = params.backgroundColor,
           previousSnapshot = lastSuccessfulSourceSnapshot,
         )
         if (
-          !sourceState.hasDrawableSource &&
+          immutableFrame == null && !sourceState.hasDrawableSource &&
           lastSuccessfulSourceSnapshot?.backgroundColor != params.backgroundColor
         ) {
           clearRetainedOutput()
           return
         }
-        val shouldRecordSource = sourceState.hasDrawableSource && (
-          sourceState.snapshot == null ||
-            sourceState.snapshot != lastSuccessfulSourceSnapshot ||
-            !preparedSourceAvailable ||
-            !retainedOutputAvailable
-          )
+        val shouldRecordSource = if (immutableFrame != null) {
+          recordedImmutableInput !== immutableFrame.value || !preparedSourceAvailable
+        } else {
+          sourceState.hasDrawableSource && (
+            sourceState.snapshot == null ||
+              sourceState.snapshot != lastSuccessfulSourceSnapshot ||
+              !preparedSourceAvailable ||
+              !retainedOutputAvailable
+            )
+        }
         val source = requireRetainedStage(
           if (shouldRecordSource) {
             trace(GlassTraceSection.Source) { recordSource(context, params) }
@@ -585,11 +630,15 @@ internal class RuntimeShaderGlassDelegate(
             }
           }
           if (shouldRecordSource) {
-            lastSuccessfulSourceSnapshot = sourceState.snapshot
+            lastSuccessfulSourceSnapshot = immutableFrame?.key?.source ?: sourceState.snapshot
           }
           lastSuccessfulStageInputs = currentInputs
           retainedOutputAvailable = true
           refreshPreparedAvailability(params, effects)
+          immutableFrame?.let {
+            immutableInput.didDraw(it)
+            if (immutableInput.needsCapture()) invalidateImmutablePresentation()
+          }
           completed = true
           return
         }
@@ -838,6 +887,15 @@ internal class RuntimeShaderGlassDelegate(
 
   override fun DrawScope.drawForeground(context: HazeEffectRuntimeDrawScope): Unit =
     trace(GlassTraceSection.Compose) {
+      heldInputBudgetFallback?.let { fallback ->
+        try {
+          with(fallback) { drawForeground(context) }
+        } catch (failure: Throwable) {
+          clearRetainedOutput()
+          throw failure
+        }
+        return@trace
+      }
       val render = preparedRender ?: return
       val params = preparedParams ?: return
       requireDrawableMaterialSize(params.coordinates.materialSize, ::clearRetainedOutput) ?: return
@@ -867,7 +925,11 @@ internal class RuntimeShaderGlassDelegate(
       }
     }
 
+  override fun shouldDrawRetainedOutput(): Boolean =
+    immutableInput.displayed != null || canDrawRetainedOutput()
+
   override fun canDrawRetainedOutput(): Boolean {
+    if (heldInputBudgetFallback != null && immutableInput.displayed != null) return true
     val fusedOutputAvailable = supportsFusedGlassRenderEffect
     val detailRequired = preparedRenderEffects?.refractionDetail != null ||
       preparedRenderEffects == null && lastSuccessfulStageInputs?.detail != null
@@ -895,6 +957,7 @@ internal class RuntimeShaderGlassDelegate(
   }
 
   override fun releaseObsoleteInteractionOutput(topology: GlassInteractionTopology) {
+    if (effect.alpha == 0f) heldInputBudgetFallback?.detach()
     val context = graphicsContext ?: return
     val opticsRequired = !supportsFusedGlassRenderEffect && topology.hasOptics
     val detailRequired = opticsRequired && lastSuccessfulStageInputs?.detail != null
@@ -1026,13 +1089,110 @@ internal class RuntimeShaderGlassDelegate(
     }
   }
 
+  internal fun invalidateRetainedOutput() {
+    if (immutableInput.frame != null || immutableInput.isCapturing) {
+      immutableInput.update(null)
+      preparedImmutableInput = null
+    } else {
+      clearRetainedOutput()
+    }
+  }
+
+  internal fun onSourceUnavailable() {
+    immutableInput.update(null)
+    preparedImmutableInput = null
+  }
+
+  internal var immutableInputCaptureCount: Int = 0
+    private set
+  internal val immutableInputOwnerCount: Int
+    get() = listOfNotNull(immutableInput.ready, immutableInput.displayed).size +
+      if (immutableInput.isCapturing) 1 else 0
+  internal var captureImmutableInput: suspend (GraphicsLayer) -> ImageBitmap = { it.captureGlassInputSnapshot() }
+  internal val displayedImmutableInput: ImageBitmap? get() = immutableInput.displayed?.value
+
   private var sourceInputCapture: HazeEffectInputCapture? = null
+  private val immutableInput = GlassInputSnapshotState<GlassImmutableInputKey, ImageBitmap>(
+    compatible = { previous, next ->
+      previous.coordinates == next.coordinates && previous.source.hasSamePresentationGeometry(next.source)
+    },
+    release = { },
+  )
+  private var invalidateImmutablePresentation: () -> Unit = {}
+  private var preparedImmutableInput: GlassInputSnapshotState.Frame<GlassImmutableInputKey, ImageBitmap>? = null
+  private var recordedImmutableInput: ImageBitmap? = null
+
+  private fun DrawScope.prepareImmutableInput(
+    context: HazeEffectRuntimeDrawScope,
+    render: GlassPreparedRender,
+  ): GlassPreparedRender? {
+    val key = context.resolveGlassRuntimeSourceState(
+      render.params.coordinates.scaleFactor,
+      render.params.backgroundColor,
+    ).snapshot?.let { GlassImmutableInputKey(it, render.params.coordinates) }
+    invalidateImmutablePresentation = context.inputPresentationInvalidation()
+    immutableInput.update(key)
+    if (immutableInput.needsCapture()) {
+      val input = context.captureInput()
+      val graphics = context.requireGraphicsContext()
+      val candidate = try {
+        createScaledContentLayer(
+          context = context,
+          backgroundColor = render.params.backgroundColor,
+          scaleFactor = render.params.coordinates.scaleFactor,
+          layerSize = context.layerSize,
+          input = input,
+        )
+      } catch (failure: Throwable) {
+        input.release()
+        throw failure
+      }
+      if (candidate != null) {
+        immutableInputCaptureCount++
+        // This closure owns only the already-recorded layer and lease, never a live DrawScope.
+        val invalidatePresentation = context.inputPresentationInvalidation()
+        immutableInput.capture(context.coroutineScope, capture = {
+          captureImmutableInput(candidate)
+        }, settled = invalidatePresentation, finished = {
+          graphics.releaseGraphicsLayer(candidate)
+          input.release()
+        })
+      } else {
+        input.release()
+      }
+    }
+    val frame = immutableInput.frame ?: return null
+    preparedImmutableInput = frame
+    val coordinates = frame.key.coordinates
+    if (coordinates == render.params.coordinates && frame.key.source.backgroundColor == render.params.backgroundColor) {
+      return render
+    }
+    return effect.prepareCapturedInputRender(
+      context = context,
+      coordinates = coordinates,
+      backgroundColor = frame.key.source.backgroundColor,
+      previous = render,
+    )
+  }
 
   private fun releaseRetainedResources(
     releaseContext: GraphicsContext? = graphicsContext,
     releaseShaderHandles: Boolean = true,
   ) {
+    heldInputBudgetFallback?.detach()
+    heldInputBudgetFallback = null
+    releaseRuntimeConsumers(releaseContext, releaseShaderHandles)
+    immutableInput.clear()
+    invalidateImmutablePresentation = {}
+  }
+
+  private fun releaseRuntimeConsumers(
+    releaseContext: GraphicsContext? = graphicsContext,
+    releaseShaderHandles: Boolean = true,
+  ) {
     layers.release(releaseContext)
+    recordedImmutableInput = null
+    preparedImmutableInput = null
     sourceInputCapture?.release()
     sourceInputCapture = null
     graphicsContext = null
@@ -1149,6 +1309,24 @@ internal class RuntimeShaderGlassDelegate(
     context: HazeEffectRuntimeDrawScope,
     params: GlassRenderParams,
   ): GraphicsLayer? {
+    preparedImmutableInput?.let { frame ->
+      val graphics = context.requireGraphicsContext()
+      val source = layers.source?.takeUnless { it.isReleased } ?: graphics.createGraphicsLayer()
+      try {
+        val image = frame.value
+        source.record(IntSize(image.width, image.height)) { drawImage(image) }
+        layers.source = source
+        sourceInputCapture?.release()
+        sourceInputCapture = null
+        recordedImmutableInput = image
+        sourceRecordCount++
+        return source
+      } catch (failure: Throwable) {
+        if (source !== layers.source) graphics.releaseGraphicsLayer(source)
+        clearRetainedOutput()
+        throw failure
+      }
+    }
     if (!context.hasDrawableInput) {
       return layers.source
         ?.takeUnless { it.isReleased }
@@ -1705,8 +1883,17 @@ internal class RuntimeShaderGlassDelegate(
     layer.clip = effect.shouldClipToNodeBounds()
     layer.alpha = alpha
     drawScaledContent(
-      offset = -context.layerOffset,
+      offset = if (preparedImmutableInput != null) {
+        -params.coordinates.materialOrigin / params.coordinates.scaleFactor
+      } else {
+        -context.layerOffset
+      },
       scaledSize = params.coordinates.materialSize,
+      scaleFactor = if (preparedImmutableInput != null) {
+        1f / params.coordinates.scaleFactor
+      } else {
+        kotlin.math.max(size.width / params.coordinates.materialSize.width, size.height / params.coordinates.materialSize.height)
+      },
       clip = effect.shouldClipToNodeBounds(),
     ) {
       drawLayer(layer)
@@ -1745,8 +1932,17 @@ internal class RuntimeShaderGlassDelegate(
     layer.alpha = alpha
     layer.blendMode = blendMode
     drawScaledContent(
-      offset = -context.layerOffset,
+      offset = if (preparedImmutableInput != null) {
+        -params.coordinates.materialOrigin / params.coordinates.scaleFactor
+      } else {
+        -context.layerOffset
+      },
       scaledSize = params.coordinates.materialSize,
+      scaleFactor = if (preparedImmutableInput != null) {
+        1f / params.coordinates.scaleFactor
+      } else {
+        kotlin.math.max(size.width / params.coordinates.materialSize.width, size.height / params.coordinates.materialSize.height)
+      },
       clip = effect.shouldClipToNodeBounds(),
     ) {
       val compositeBounds = patch.compositeBounds.translate(
@@ -2553,3 +2749,9 @@ internal inline fun requireDrawableMaterialSize(
   }
   return size
 }
+
+@Poko
+private class GlassImmutableInputKey(
+  val source: GlassRuntimeSourceSnapshot,
+  val coordinates: GlassCoordinates,
+)

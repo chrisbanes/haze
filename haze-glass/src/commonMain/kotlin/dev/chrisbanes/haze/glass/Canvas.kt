@@ -126,9 +126,9 @@ internal fun DrawScope.drawScaledContent(
   offset: Offset,
   scaledSize: Size,
   clip: Boolean = true,
+  scaleFactor: Float = max(size.width / scaledSize.width, size.height / scaledSize.height),
   block: DrawScope.() -> Unit,
 ) {
-  val scaleFactor = max(size.width / scaledSize.width, size.height / scaledSize.height)
   withTransform({ if (clip) clipRect() }) {
     translate(offset) {
       scale(scale = scaleFactor, pivot = Offset.Zero) {

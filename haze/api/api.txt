@@ -45,7 +45,13 @@ package dev.chrisbanes.haze {
     method @dev.chrisbanes.haze.InternalHazeApi public static inline <R> R withGraphicsLayer(dev.chrisbanes.haze.HazeEffectRuntimeDrawScope, kotlin.jvm.functions.Function1<? super androidx.compose.ui.graphics.layer.GraphicsLayer,? extends R> block);
   }
 
+  @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectInputCapture {
+    method public void drawInput(androidx.compose.ui.graphics.drawscope.DrawScope);
+    method public void release();
+  }
+
   @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectInputSnapshot {
+    method public default boolean hasSameSourceGeometry(dev.chrisbanes.haze.HazeEffectInputSnapshot other);
   }
 
   public final class HazeEffectKt {
@@ -83,11 +89,13 @@ package dev.chrisbanes.haze {
 
   @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectRendererDrawHooks<Style> {
     method public default void drawForeground(dev.chrisbanes.haze.HazeEffectRuntimeDrawScope, Style style);
+    method @InaccessibleFromKotlin public default boolean getObservesSourceSnapshotChanges();
     method public default void prepareDraw(dev.chrisbanes.haze.HazeEffectRuntimeDrawScope, Style style);
     method public default boolean shouldClipToNodeBounds();
     method public default boolean shouldDrawContentBehind();
     method public default boolean shouldPreferClipToInputBounds();
     method public default boolean shouldPrepareDraw(Style style);
+    property public default boolean observesSourceSnapshotChanges;
   }
 
   @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectRendererInteraction {
@@ -108,21 +116,26 @@ package dev.chrisbanes.haze {
     method public boolean canDrawRetainedOutput();
     method public void clearRetainedOutput();
     method public default void invalidateRetainedOutput();
+    method public default void onSourceUnavailable();
     method public default boolean shouldDrawRetainedOutput();
   }
 
   @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectRuntimeDrawScope extends dev.chrisbanes.haze.HazeEffectDrawScope {
+    method public default dev.chrisbanes.haze.HazeEffectInputCapture captureInput();
     method public void drawInput(androidx.compose.ui.graphics.drawscope.DrawScope);
     method @InaccessibleFromKotlin public kotlinx.coroutines.CoroutineScope getCoroutineScope();
     method @InaccessibleFromKotlin public boolean getHasDrawableInput();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeEffectInputSnapshot? getInputSnapshot();
+    method public default kotlin.jvm.functions.Function0<kotlin.Unit> inputPresentationInvalidation();
     method public void invalidateDraw();
+    method @InaccessibleFromKotlin public default boolean isSourceBackedInput();
     method public default androidx.compose.ui.unit.Density requireDensity();
     method public androidx.compose.ui.graphics.GraphicsContext requireGraphicsContext();
     method public dev.chrisbanes.haze.PlatformContext requirePlatformContext();
     property public abstract kotlinx.coroutines.CoroutineScope coroutineScope;
     property public abstract boolean hasDrawableInput;
     property public abstract dev.chrisbanes.haze.HazeEffectInputSnapshot? inputSnapshot;
+    property public default boolean isSourceBackedInput;
     property public abstract androidx.compose.ui.geometry.Offset layerOffset;
     property public abstract androidx.compose.ui.geometry.Size layerSize;
     property public abstract androidx.compose.ui.geometry.Size modifierSize;

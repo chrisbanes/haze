@@ -84,6 +84,11 @@ internal class GlassRuntimeSourceSnapshot(
   val inputSnapshot: HazeEffectInputSnapshot,
   val backgroundColor: Color = Color.Transparent,
 ) {
+  fun hasSamePresentationGeometry(other: GlassRuntimeSourceSnapshot): Boolean =
+    captureScale == other.captureScale && layerSize == other.layerSize &&
+      layerOffset == other.layerOffset && backgroundColor == other.backgroundColor &&
+      inputSnapshot.hasSameSourceGeometry(other.inputSnapshot)
+
   override fun equals(other: Any?): Boolean =
     other is GlassRuntimeSourceSnapshot &&
       captureScale == other.captureScale &&

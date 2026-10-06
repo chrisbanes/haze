@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
@@ -74,7 +75,7 @@ class RuntimeShaderGlassDelegateSourceAndroidRegressionTest : ScreenshotTest() {
       composeTestRule.activity.window.decorView.invalidate()
     }
     waitForIdle()
-    val pixels = captureRootPixels()
+    val pixels = captureCompletedSource(factory)
     assertThat(factory.renderer.completedBatches).isGreaterThan(0)
     if (reuse) assertThat(factory.renderer.measuredBatches).isGreaterThan(0)
     val control = pixels[pixels.width / 4, pixels.height / 2]
@@ -216,7 +217,7 @@ class RuntimeShaderGlassDelegateSourceAndroidRegressionTest : ScreenshotTest() {
       composeTestRule.activity.window.decorView.invalidate()
     }
     waitForIdle()
-    val pixels = captureRootPixels()
+    val pixels = captureCompletedSource(factory)
     assertThat(factory.renderer.measuredBatches).isGreaterThan(before)
     val control = pixels[pixels.width / 4, pixels.height / 2]
     assertThat(control.alpha).isGreaterThan(0.9f)
@@ -226,6 +227,15 @@ class RuntimeShaderGlassDelegateSourceAndroidRegressionTest : ScreenshotTest() {
     assertThat(material.alpha).isGreaterThan(0.9f)
     assertThat(material.blue - material.red).isGreaterThan(0.2f)
     return material
+  }
+
+  private fun ScreenshotUiTest.captureCompletedSource(factory: StableSourceGlassRuntimeFactory): PixelMap {
+    composeTestRule.waitUntil(timeoutMillis = 5_000) {
+      org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+      captureRootPixels()
+      factory.renderer.completedBatches > 0
+    }
+    return captureRootPixels()
   }
 
   private fun prepareAndDraw(
@@ -315,6 +325,7 @@ private class StableSourceGlassRuntimeRenderer(
     assertThat(drawContext.canvas.nativeCanvas.isHardwareAccelerated).isTrue()
     with(effect) { draw(style) }
     val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    if (delegate.displayedImmutableInput == null) return
     pendingAction?.also { action ->
       pendingAction = null
       action(context, effect, delegate)
@@ -355,8 +366,13 @@ private class StableSourceGlassRuntimeRenderer(
   override fun HazeEffectLayoutScope.calculateLayerBounds(style: GlassNodeConfiguration): Rect =
     with(effect) { calculateLayerBounds(style) }
 
-  override fun HazeEffectRuntimeDrawScope.prepareDraw(style: GlassNodeConfiguration) =
+  override fun HazeEffectRuntimeDrawScope.prepareDraw(style: GlassNodeConfiguration) {
     with(effect) { prepareDraw(style) }
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    // The first real queued capture is serviced by the outer fixture. Subsequent synchronous
+    // same-draw batches rasterize the actual candidate through the completion seam.
+    delegate.captureImmutableInput = { it.toImageBitmap() }
+  }
 
   override fun HazeEffectRuntimeDrawScope.drawForeground(style: GlassNodeConfiguration) =
     with(effect) { drawForeground(style) }

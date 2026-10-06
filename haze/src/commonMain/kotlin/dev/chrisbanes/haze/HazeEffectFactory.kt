@@ -150,6 +150,9 @@ public interface HazeEffectLifecycleScope {
 /** Built-in-only draw hooks which are not part of the third-party renderer contract. */
 @InternalHazeApi
 public interface HazeEffectRendererDrawHooks<Style> {
+  /** Whether source-backed input needs conservative descendant snapshot invalidation. */
+  public val observesSourceSnapshotChanges: Boolean get() = false
+
   /** Whether the renderer should prepare and draw effect output for the current frame. */
   public fun shouldPrepareDraw(style: Style): Boolean = true
 
@@ -203,6 +206,9 @@ public class HazeEffectBackdrop(
 /** Built-in-only retained-output capability. */
 @InternalHazeApi
 public interface HazeEffectRendererRetainedOutput {
+  /** Discards undrawn input when the selected source disappears, including hidden frames. */
+  public fun onSourceUnavailable(): Unit = Unit
+
   /** Whether the renderer currently owns output that can be drawn again. */
   public fun canDrawRetainedOutput(): Boolean
 
@@ -287,7 +293,10 @@ public class HazeEffectContentTransform(
  * Renderers may compare instances for equality but cannot inspect live source handles.
  */
 @InternalHazeApi
-public interface HazeEffectInputSnapshot
+public interface HazeEffectInputSnapshot {
+  /** Whether both captures share ordered selected sources and copied presentation geometry. */
+  public fun hasSameSourceGeometry(other: HazeEffectInputSnapshot): Boolean = false
+}
 
 /**
  * Built-in-only semantic draw capability.
@@ -297,6 +306,9 @@ public interface HazeEffectInputSnapshot
  */
 @InternalHazeApi
 public interface HazeEffectRuntimeDrawScope : HazeEffectDrawScope {
+  /** Whether the resolved input is selected haze sources, including backdrop fallback. */
+  public val isSourceBackedInput: Boolean get() = false
+
   /** Current size of the modifier carrying the effect. */
   public val modifierSize: Size
 
@@ -327,8 +339,16 @@ public interface HazeEffectRuntimeDrawScope : HazeEffectDrawScope {
   /** Schedules a redraw of the effect. */
   public fun invalidateDraw()
 
-  /** Acquires the current input and copied geometry for replay until released. */
-  public fun captureInput(): HazeEffectInputCapture
+  /** A redraw callback safe to retain after this temporary draw scope returns. */
+  public fun inputPresentationInvalidation(): () -> Unit = {}
+
+  /**
+   * Acquires the current input and copied geometry for replay until released.
+   *
+   * Scopes without this built-in managed-capture capability throw [UnsupportedOperationException].
+   */
+  public fun captureInput(): HazeEffectInputCapture =
+    throw UnsupportedOperationException("This scope does not support managed input capture")
 
   /** Draws the selected input into this [DrawScope]. */
   public fun DrawScope.drawInput()
@@ -369,6 +389,9 @@ internal class HazeEffectDrawScopeImpl(
 
   override val hasDrawableInput: Boolean
     get() = node.hasDrawableInput()
+
+  override val isSourceBackedInput: Boolean
+    get() = node.isSourceBackedInput()
 
   override val inputSnapshot: HazeEffectInputSnapshot?
     get() = node.inputSnapshot()
@@ -422,6 +445,11 @@ internal class HazeEffectDrawScopeImpl(
   override fun requirePlatformContext(): PlatformContext = node.requirePlatformContext()
   override fun requireGraphicsContext(): GraphicsContext = node.requireGraphicsContext()
   override fun requireDensity(): Density = node.requireDensity()
+  override fun inputPresentationInvalidation(): () -> Unit {
+    val owner = node
+    return { if (owner.isAttached) owner.invalidateVisualEffectDraw() }
+  }
+
   override fun invalidateDraw() = node.invalidateVisualEffectDraw()
 }
 

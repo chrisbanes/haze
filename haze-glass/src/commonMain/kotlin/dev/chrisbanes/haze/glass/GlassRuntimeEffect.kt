@@ -14,6 +14,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.input.pointer.PointerEvent
@@ -386,11 +387,18 @@ internal class GlassRuntimeEffect() :
     interactionController?.setRawPressedForTest(pressed, position, context.modifierSize)
   }
 
+  override val observesSourceSnapshotChanges: Boolean
+    get() = supportsFusedGlassRenderEffect && delegate is RuntimeShaderGlassDelegate
+
   override fun HazeEffectRuntimeDrawScope.prepareDraw(style: GlassNodeConfiguration) {
     val context = this
     trace(GlassTraceSection.Prepare) {
       attachedContext?.let(::reconcileInteractionCompletion)
-      if (canReusePreparedDraw(context)) return@trace
+      if (!(supportsFusedGlassRenderEffect && context.isSourceBackedInput) &&
+        canReusePreparedDraw(context)
+      ) {
+        return@trace
+      }
       val previousBudget = preparedRenderBudget
       trace(GlassTraceSection.PrepareBudget) {
         prepareRenderBudget(context, runtimeShaderSupported = isRuntimeShaderGlassSupported())
@@ -658,6 +666,15 @@ internal class GlassRuntimeEffect() :
     return (delegate as? RetainedOutputDelegate)?.shouldDrawRetainedOutput() == true
   }
 
+  override fun invalidateRetainedOutput() {
+    val runtime = delegate as? RuntimeShaderGlassDelegate
+    if (runtime != null) runtime.invalidateRetainedOutput() else clearRetainedOutput()
+  }
+
+  override fun onSourceUnavailable() {
+    (delegate as? RuntimeShaderGlassDelegate)?.onSourceUnavailable()
+  }
+
   override fun clearRetainedOutput() {
     (delegate as? RetainedOutputDelegate)?.clearRetainedOutput()
   }
@@ -681,11 +698,14 @@ internal class GlassRuntimeEffect() :
     return resolveGlassRenderPreparation(context, runtimeShaderSupported = true).decision
   }
 
-  private fun resolvePreparedStyle(context: HazeEffectRuntimeDrawScope): ResolvedGlassStyle {
+  private fun resolvePreparedStyle(
+    context: HazeEffectRuntimeDrawScope,
+    materialSize: Size = context.modifierSize,
+  ): ResolvedGlassStyle {
     val density = context.requireDensity()
     val layoutDirection = context.currentValueOf(LocalLayoutDirection)
     resolvedStyleCache?.takeIf {
-      resolvedStyleCacheSize == context.modifierSize &&
+      resolvedStyleCacheSize == materialSize &&
         resolvedStyleCacheDensity == density &&
         resolvedStyleCacheLayoutDirection == layoutDirection
     }?.let { return it }
@@ -693,23 +713,23 @@ internal class GlassRuntimeEffect() :
     val resolvedStyle = geometrySnapshotObserver?.let { observer ->
       lateinit var observedStyle: ResolvedGlassStyle
       observer.observeReads(styleObservationScope, onObservedStyleChanged) {
-        observedStyle = resolveGlassStyle(this, context.modifierSize, density, layoutDirection)
+        observedStyle = resolveGlassStyle(this, materialSize, density, layoutDirection)
       }
       observedStyle
-    } ?: resolveGlassStyle(this, context.modifierSize, density, layoutDirection)
+    } ?: resolveGlassStyle(this, materialSize, density, layoutDirection)
 
     return resolvedStyle.also {
       resolvedStyleCache = it
-      resolvedStyleCacheSize = context.modifierSize
+      resolvedStyleCacheSize = materialSize
       resolvedStyleCacheDensity = density
       resolvedStyleCacheLayoutDirection = layoutDirection
     }
   }
 
   private fun resolvePreparedInteraction(
-    context: HazeEffectRuntimeDrawScope,
+    materialSize: Size,
   ): ResolvedGlassInteraction {
-    val state = interactionRenderState(context.modifierSize)
+    val state = interactionRenderState(materialSize)
     resolvedInteractionCache?.takeIf {
       interactionRenderStateCache === state &&
         interactionRadiusFractionCache == interactionLightRadiusFraction
@@ -723,6 +743,26 @@ internal class GlassRuntimeEffect() :
       interactionRadiusFractionCache = interactionLightRadiusFraction
       resolvedInteractionCache = it
     }
+  }
+
+  internal fun prepareCapturedInputRender(
+    context: HazeEffectRuntimeDrawScope,
+    coordinates: GlassCoordinates,
+    backgroundColor: Color,
+    previous: GlassPreparedRender,
+  ): GlassPreparedRender {
+    val materialSize = coordinates.materialSize / coordinates.scaleFactor
+    val style = resolvePreparedStyle(context, materialSize)
+    val interaction = resolvePreparedInteraction(materialSize)
+    return buildGlassPreparedRender(
+      params = buildGlassRenderParams(style, coordinates).copy(backgroundColor = backgroundColor),
+      interactionUniforms = interaction.uniforms(coordinates),
+      interactionTopology = interactionTopologySnapshot,
+      interactionRadiusFraction = interaction.radiusFraction,
+      alpha = style.alpha,
+      outputSize = materialSize.roundToIntSize(),
+      previous = previous,
+    )
   }
 
   private fun resolvePreparedCoordinates(
@@ -768,7 +808,7 @@ internal class GlassRuntimeEffect() :
       )
     }
     val style = resolvePreparedStyle(context)
-    val interaction = resolvePreparedInteraction(context)
+    val interaction = resolvePreparedInteraction(context.modifierSize)
     val interactionTopology = interactionTopologySnapshot
     val optics = style.resolvedOptics
     val allowNativeWideBlur = optics.progressive == null

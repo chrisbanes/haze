@@ -319,7 +319,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         )
       }
       waitForIdle()
-      drawFrame()
+      drawSourceFrame(effects.first())
       val firstDelegate =
         checkNotNull(runtime(effects.first()).delegate as? RuntimeShaderGlassDelegate)
       val sourceLayer = checkNotNull(firstDelegate.layers.source)
@@ -333,8 +333,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
       attachSecond.value = true
       waitForIdle()
-      drawFrame()
-      drawFrame()
+      drawSourceFrame(effects.first())
+      drawSourceFrame(effects.first())
       assertThat(firstDelegate.layers.source).isSameInstanceAs(sourceLayer)
       assertThat(firstDelegate.layers.optical).isSameInstanceAs(fusedLayer)
       assertThat(firstDelegate.layers.source?.renderEffect).isNull()
@@ -351,7 +351,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
       attachSecond.value = false
       waitForIdle()
-      drawFrame()
+      drawSourceFrame(effects.first())
       assertThat(firstDelegate.layers.source).isSameInstanceAs(sourceLayer)
       assertThat(firstDelegate.layers.optical).isSameInstanceAs(fusedLayer)
       assertThat(firstDelegate.layers.source?.renderEffect).isNull()
@@ -1303,7 +1303,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     scope.launch { source.emit(PressInteraction.Press(Offset(40f, 40f))) }
     scope.testScheduler.runCurrent()
     waitForIdle()
-    drawFrame()
+    drawSourceFrame(effect)
     val delegate = effect.delegate as RuntimeShaderGlassDelegate
     fun assertGraph() {
       assertThat(delegate.layers.source).isNotNull()
@@ -1369,7 +1369,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     replace(replacement)
     mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
     waitForIdle()
-    drawFrame()
+    drawSourceFrame(effect)
     assertGraph()
     if (!reduced) {
       assertOutgoingUniforms(active = true)
@@ -1385,19 +1385,19 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       replace(fusedRemovalStyle(removal))
       mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
       waitForIdle()
-      drawFrame()
+      drawSourceFrame(effect)
       assertGraph()
       assertOutgoingUniforms(active = true)
       replace(replacement)
       mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
       waitForIdle()
-      drawFrame()
+      drawSourceFrame(effect)
       assertGraph()
       assertOutgoingUniforms(active = true)
     }
     mainClock.advanceTimeBy(500, ignoreFrameDuration = true)
     waitForIdle()
-    drawFrame()
+    drawSourceFrame(effect)
     assertGraph()
     assertOutgoingUniforms(active = false)
     assertThat(effect.currentInteractionState.hasOptics).isEqualTo(removal == FusedRemoval.Lighting)
@@ -1405,6 +1405,18 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     if (removal != FusedRemoval.Lighting) assertThat(effect.interactionControllerForTest).isNull()
     lighting?.let { assertThat(it.isReleased).isTrue() }
     assertThat(delegate.layers.interactionLighting).isNull()
+  }
+
+  private fun AndroidComposeUiTest<ComponentActivity>.drawSourceFrame(effect: GlassRuntimeEffect) {
+    // A source-backed draw starts a queued snapshot. Drain the Android queue and draw its
+    // completed image before checking output, while servicing the Compose v2 test clock.
+    waitUntil(timeoutMillis = 5_000) {
+      drawFrame()
+      org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+      waitForIdle()
+      drawFrame()
+      (effect.delegate as RuntimeShaderGlassDelegate).displayedImmutableInput != null
+    }
   }
 
   private fun AndroidComposeUiTest<ComponentActivity>.drawFrame() {
