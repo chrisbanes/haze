@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -51,6 +52,7 @@ import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalHazeApi::class)
+@SdkSuppress(minSdkVersion = 37)
 class GlassBackdropInstrumentationTest {
 
   private lateinit var activityScenario: ActivityScenario<ComponentActivity>

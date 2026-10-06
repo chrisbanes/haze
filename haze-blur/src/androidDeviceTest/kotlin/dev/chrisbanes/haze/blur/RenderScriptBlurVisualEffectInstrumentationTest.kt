@@ -22,6 +22,7 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
+import androidx.test.filters.SdkSuppress
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
@@ -34,6 +35,7 @@ import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalTestApi::class)
+@SdkSuppress(minSdkVersion = 30, maxSdkVersion = 30)
 class RenderScriptBlurVisualEffectInstrumentationTest {
 
   @get:Rule
