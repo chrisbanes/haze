@@ -101,12 +101,50 @@ capture-cadence policy; it preserves the fused output topology, not the earlier
 source-capture and allocation behavior. Capture completion requests presentation
 without advancing the input revision.
 
-Physical frame-cost, capture-cadence and memory qualification is pending. The
-exception is approved, but adoption requires paired release-like physical-device
-measurements and bounded lifetime evidence. Emulator or host correctness tests
-cannot qualify driver cost or memory reclamation. The earlier measurements and
-rejection of a separate cached output renderer remain applicable to the measured
-alternatives.
+On API 34 and newer, immutable input capture renders the cropped layer into a
+fresh `HardwareBuffer` through `HardwareBufferRenderer`. Publication requires a
+successful render result and a valid, completed fence. The wrapped image owns
+its buffer reference, and that buffer is never rendered into again. Cancellation
+retains the recorded input until native cleanup finishes; failed captures are
+abandoned without publishing their pixels. An unsupported or failed backend uses
+the existing Compose capture path, which remains the API 33 implementation.
+Buffer support checks and fresh allocation run off the UI thread. Cancellation
+keeps input ownership until allocation returns and the buffer is closed; the
+original caller must still be active before submission. RenderNode access and
+renderer construction, submission and cleanup remain on the UI thread that owns
+the recorded input. Renderer cleanup retires traversal but does not itself
+establish GPU completion.
+
+This changes the capture operation, not the fused effect graph or invalidation
+policy. Physical qualification on a Pixel 8a running Android 17 supports this
+backend at 60 Hz for the measured scenarios. Each release benchmark used eight
+iterations with fixed-performance mode and thermal status zero. Steady nine-effect
+frame-overrun P90 was -1.60 ms versus baseline -8.89 ms; reversing build order
+produced -1.76 ms versus -8.86 ms. Source-update nine-effect overrun P90 was
+-1.49 ms versus -4.92 ms. These are one-device measurements, not isolated GPU
+shader timings or a guarantee for other workloads.
+
+The correctness change still costs CPU time and memory. Nine-effect CPU frame
+P90 was approximately 8.6-8.8 ms versus baseline 5.5-6.4 ms, leaving less deadline
+slack. Median sampled anonymous memory maxima increased by approximately 10 MiB;
+median sampled bitmap accounting increased by approximately 115-129 MiB. Those
+categories overlap and must not be added. Bitmap accounting repeatedly decreased
+within every measured window, and its peaks did not accumulate over eight
+iterations. GPU counters contained only a pre-window sample, so they establish
+neither peak GPU usage nor complete driver reclamation.
+
+The physical lifetime fixture released all 36 tracked consumers across three
+cycles and reached zero logical input owners at clear, trim and detach. Process
+PSS settled naturally to approximately 128 MiB five seconds after activity close,
+remaining approximately 54 MiB above the cold baseline. The render budget bounds
+planned layer pixels, not total process memory or images awaiting platform
+reclamation. These observations support a bounded measured correctness tradeoff;
+they do not establish return to cold memory or complete native reclamation.
+Build identities, run order, trace provenance and qualification limits are
+recorded in [issue #1373](https://github.com/chrisbanes/haze/issues/1373).
+
+The earlier measurements and rejection of a separate cached output renderer
+remain applicable to the measured alternatives.
 
 ## Alternatives Considered
 
@@ -174,8 +212,10 @@ into the fused shader recorded a 10.9 ms CPU P90 and a -1.2 ms frame-overrun P90
 - Interaction-only updates retain the shader provider and native effect topology, but re-record
   fused output pixels. Paths without immutable input capture also retain the source capture and
   graphics-layer allocation. The approved source-backed input exception can capture and allocate
-  during interaction animation; physical qualification of that cost remains pending. The fused
-  output decision still supersedes the original preference for retaining previous fused base pixels.
+  during interaction animation. The repaired capture backend has negative frame-overrun P90
+  on the measured Pixel 8a, with higher CPU and memory cost and less deadline slack. Its
+  qualification is limited to that device and the measured scenarios. The fused output decision
+  still supersedes the original preference for retaining previous fused base pixels.
 - Effect alpha groups the base material stages. Rim and interaction lighting receive the same
   alpha in a separate foreground pass because child content is drawn between the base and
   foreground passes. This preserves the established `VisualEffect` ordering and partial-alpha

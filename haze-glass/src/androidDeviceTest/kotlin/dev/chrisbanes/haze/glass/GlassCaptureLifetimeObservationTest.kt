@@ -124,6 +124,7 @@ class GlassCaptureLifetimeObservationTest {
     compose.runOnIdle { current.value = session }
     compose.waitUntil(10_000) { session.observer.installed && hasDisplayedInput(session.delegate) }
     compose.runOnIdle {
+      check(!expectCapture || ownerCount(session.delegate) != null) { "Candidate must expose immutable input ownership" }
       ownerCount(session.delegate)?.let { assertThat(it).isGreaterThan(0) }
       val expected = expectCapture
       assertThat(session.observer.captureHookAvailable).isEqualTo(expected)
@@ -153,19 +154,28 @@ class GlassCaptureLifetimeObservationTest {
     }
     compose.runOnIdle { session.selected.value = false }
     compose.waitForIdle()
+    awaitReleasedInput(session.delegate)
     compose.runOnIdle {
       ownerCount(session.delegate)?.let { assertThat(it).isEqualTo(0) }
       logCounters(session, "clear-unavailable")
     }
     assertReleased(consumers)
     compose.runOnIdle { session.selected.value = true }
-    compose.waitUntil(10_000) { hasDisplayedInput(session.delegate) }
-    compose.runOnIdle {
-      rememberConsumers(session, consumers)
-      session.effect.onTrimMemory(TrimMemoryLevel.COMPLETE)
-      ownerCount(session.delegate)?.let { assertThat(it).isEqualTo(0) }
-      assertReleased(consumers)
-      logCounters(session, "trim")
+    // Observe settled trim before normal drawing can start a new capture of the valid source.
+    // Cancellation during native rendering is qualified separately by the backend boundary tests.
+    compose.waitUntil(10_000) {
+      var trimmed = false
+      compose.runOnIdle {
+        if (hasDisplayedInput(session.delegate) && ownerCount(session.delegate).let { it == null || it == 1 }) {
+          rememberConsumers(session, consumers)
+          session.effect.onTrimMemory(TrimMemoryLevel.COMPLETE)
+          ownerCount(session.delegate)?.let { assertThat(it).isEqualTo(0) }
+          assertReleased(consumers)
+          logCounters(session, "trim")
+          trimmed = true
+        }
+      }
+      trimmed
     }
     compose.waitUntil(10_000) { hasDisplayedInput(session.delegate) }
     compose.runOnIdle {
@@ -173,6 +183,7 @@ class GlassCaptureLifetimeObservationTest {
       session.attached.value = false
     }
     compose.waitForIdle()
+    awaitReleasedInput(session.delegate)
     compose.runOnIdle {
       ownerCount(session.delegate)?.let { assertThat(it).isEqualTo(0) }
       logCounters(session, "source-detached")
@@ -186,6 +197,16 @@ class GlassCaptureLifetimeObservationTest {
     val released = consumers.size
     consumers.clear()
     return released
+  }
+
+  private fun awaitReleasedInput(delegate: RuntimeShaderGlassDelegate) {
+    compose.waitUntil(10_000) {
+      var released = false
+      InstrumentationRegistry.getInstrumentation().runOnMainSync {
+        released = ownerCount(delegate).let { it == null || it == 0 }
+      }
+      released
+    }
   }
 
   private fun rememberConsumers(session: Session, consumers: MutableList<GraphicsLayer>) {

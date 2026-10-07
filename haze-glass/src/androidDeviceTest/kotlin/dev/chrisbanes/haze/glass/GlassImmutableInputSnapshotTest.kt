@@ -102,6 +102,14 @@ class GlassImmutableInputSnapshotTest {
       }
     }
     compose.activityRule.scenario.close()
+    // Native capture retains its input through asynchronous fence completion and cleanup.
+    compose.waitUntil(timeoutMillis = 5_000) {
+      var released = false
+      InstrumentationRegistry.getInstrumentation().runOnMainSync {
+        released = delegates.all { it.immutableInputOwnerCount == 0 }
+      }
+      released
+    }
     delegates.forEach { assertThat(it.immutableInputOwnerCount).isEqualTo(0) }
     consumers.forEach { (role, layer) ->
       assertThat(layer.isReleased, "$role is released after activity close").isTrue()
@@ -206,7 +214,8 @@ class GlassImmutableInputSnapshotTest {
       try {
         val bounds = fixture.materialBounds
         val edge = current.color((bounds.right - 5).roundToInt(), bounds.center.y.roundToInt())
-        assertThat(edge.blue, "New capture covers the resized target").isGreaterThan(0.7f)
+        assertThat(abs(edge.blue - initial.material.blue), "New capture covers the resized target with the same tint")
+          .isLessThan(0.05f)
         assertThat(edge.green).isGreaterThan(initial.material.green + 0.2f)
         log("delayed geometry current bounds=$bounds edge=$edge sourceCount=${delegate.sourceRecordCount}")
       } finally {
@@ -359,7 +368,13 @@ class GlassImmutableInputSnapshotTest {
     assertMaterial(initial)
     mutateAndPresent { change(fixture) }
     val current = materialPixels(fixture, "$name changed")
-    assertThat(current.material.blue).isGreaterThan(0.7f)
+    if (name == "color") {
+      assertThat(abs(current.material.blue - initial.material.blue), "Source color replacement preserves the tint")
+        .isLessThan(0.05f)
+      assertThat(initial.material.red - current.material.red).isGreaterThan(0.2f)
+    } else {
+      assertThat(current.material.blue, "Exposing the white source contributes additional blue").isGreaterThan(0.7f)
+    }
     assertThat(abs(current.material.green - initial.material.green)).isGreaterThan(0.2f)
     assertSameColor(current.material, current.keeper, "Both current consumers see descendant changes")
   }
