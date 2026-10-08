@@ -204,31 +204,30 @@ internal class GlassInteractionController(
 
   private var declaredTopology = configuration.slots.resolveInteractionTopology()
   private var renderTopologySnapshot = declaredTopology
-  private var historicalRefractionMaximum = 1f
 
   internal val renderTopology: GlassInteractionTopology
     get() {
       val declared = declaredTopology
-      val pendingRefraction = refractionMultiplier.isAnimating || refractionMultiplier.currentValue != 1f
-      val pendingOptics = pendingRefraction || whitePointDelta.isAnimating || whitePointDelta.currentValue != 0f
-      historicalRefractionMaximum = if (pendingRefraction) {
-        maxOf(historicalRefractionMaximum, declared.maxRefractionMultiplier)
+      val snapshot = renderTopologySnapshot
+      val pendingRefraction = refractionMultiplier.isPending
+      // An exiting refraction keeps the largest multiplier it reached until it settles.
+      val maxRefractionMultiplier = if (pendingRefraction) {
+        maxOf(snapshot.maxRefractionMultiplier, declared.maxRefractionMultiplier)
       } else {
         declared.maxRefractionMultiplier
       }
-      val hasOptics = declared.hasOptics || pendingOptics
-      val hasLighting = declared.hasLighting || lightingIntensity.isAnimating || lightingIntensity.currentValue != 0f
-      val snapshot = renderTopologySnapshot
+      val hasOptics = declared.hasOptics || pendingRefraction || whitePointDelta.isPending
+      val hasLighting = declared.hasLighting || lightingIntensity.isPending
       if (snapshot.hasOptics == hasOptics &&
         snapshot.hasLighting == hasLighting &&
-        snapshot.maxRefractionMultiplier == historicalRefractionMaximum
+        snapshot.maxRefractionMultiplier == maxRefractionMultiplier
       ) {
         return snapshot
       }
       return GlassInteractionTopology(
         hasOptics = hasOptics,
         hasLighting = hasLighting,
-        maxRefractionMultiplier = historicalRefractionMaximum,
+        maxRefractionMultiplier = maxRefractionMultiplier,
       ).also { renderTopologySnapshot = it }
     }
 
@@ -237,9 +236,8 @@ internal class GlassInteractionController(
       whitePointDelta.isAnimating || scaleX.isAnimating || scaleY.isAnimating
 
   internal val hasPendingResponseWork: Boolean
-    get() = hasRunningResponseAnimations || lightingIntensity.currentValue != 0f ||
-      refractionMultiplier.currentValue != 1f || whitePointDelta.currentValue != 0f ||
-      scaleX.currentValue != 1f || scaleY.currentValue != 1f
+    get() = lightingIntensity.isPending || refractionMultiplier.isPending ||
+      whitePointDelta.isPending || scaleX.isPending || scaleY.isPending
 
   private fun responseCompleted() {
     if (!disposed) onResponseCompleted(this)
@@ -285,7 +283,8 @@ internal class GlassInteractionController(
   fun updateConfiguration(configuration: GlassInteractionControllerConfiguration) {
     if (disposed || configuration == this.configuration) return
     val previous = this.configuration
-    historicalRefractionMaximum = renderTopology.maxRefractionMultiplier
+    // Latch the exit's refraction maximum against the outgoing declarations.
+    renderTopology
     this.configuration = configuration
     if (previous.slots != configuration.slots) declaredTopology = configuration.slots.resolveInteractionTopology()
     val forceFullMotionChanged = previous.forceFullMotion != configuration.forceFullMotion
@@ -602,7 +601,7 @@ internal class GlassInteractionController(
 }
 
 private class AnimatedFloatChannel(
-  identity: Float,
+  private val identity: Float,
   private val scope: CoroutineScope,
   private val invalidateDraw: () -> Unit,
   private val onCompleted: () -> Unit,
@@ -617,6 +616,7 @@ private class AnimatedFloatChannel(
 
   val currentValue: Float get() = value.value
   val isAnimating: Boolean get() = hasPendingAnimation || value.isRunning
+  val isPending: Boolean get() = isAnimating || currentValue != identity
 
   fun retarget(
     target: OwnedGlassResponseValue,

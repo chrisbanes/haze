@@ -178,7 +178,6 @@ internal class GlassRuntimeEffect() :
   }
 
   private var interactionController: GlassInteractionController? = null
-  private var interactionRefractionMaximum = 1f
   private var reconciledInteractionTopology: GlassInteractionTopology? = null
 
   internal val interactionControllerForTest: GlassInteractionController?
@@ -637,11 +636,10 @@ internal class GlassRuntimeEffect() :
   /** Returns whether the interaction topology changed since the last reconcile. */
   private fun reconcileInteractionCompletion(context: HazeEffectLifecycleScope): Boolean {
     val topology = interactionTopologySnapshot
-    val topologyChanged = topology !== reconciledInteractionTopology
+    val previous = reconciledInteractionTopology
+    val topologyChanged = topology !== previous
     reconciledInteractionTopology = topology
-    val maximum = topology.maxRefractionMultiplier
-    if (maximum != interactionRefractionMaximum) {
-      interactionRefractionMaximum = maximum
+    if (topology.maxRefractionMultiplier != (previous?.maxRefractionMultiplier ?: 1f)) {
       context.invalidateLayerBounds()
     }
     val controller = interactionController ?: return topologyChanged

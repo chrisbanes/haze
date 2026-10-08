@@ -903,29 +903,9 @@ internal class RuntimeShaderGlassDelegate(
       lightingRequired = topology.hasLighting,
       graphicsContext = context,
     )
-    if (!opticsRequired) {
-      interactionOpticalEffectKey = null
-      interactionOpticalEffectUniforms = null
-      interactionOpticalPlatformEffect = null
-      interactionOpticalComposeEffect = null
-      interactionOutputInput = null
-      interactionOutputUniforms = null
-      interactionOutputFeatherWidth = Float.NaN
-      interactionOutputComposeEffect = null
-    }
-    if (!detailRequired) {
-      interactionDetailEffectKey = null
-      interactionDetailEffectUniforms = null
-      interactionDetailComposeEffect = null
-      interactionDetailCoverageEffectKey = null
-      interactionDetailCoverageEffectUniforms = null
-      interactionDetailCoverageComposeEffect = null
-    }
-    if (!topology.hasLighting) {
-      interactionLightingEffectKey = null
-      interactionLightingEffectUniforms = null
-      interactionLightingComposeEffect = null
-    }
+    if (!opticsRequired) clearInteractionOpticalEffectCache()
+    if (!detailRequired) clearInteractionDetailEffectCache()
+    if (!topology.hasLighting) clearInteractionLightingEffectCache()
     preparedRender = null
     preparedParams = null
     preparedRenderEffects = null
@@ -949,21 +929,33 @@ internal class RuntimeShaderGlassDelegate(
     clearInteractionOpticalLayerMetadata()
     clearInteractionRefractionLayerMetadata()
     clearInteractionLightingLayerMetadata()
+    clearInteractionOpticalEffectCache()
+    interactionOutputEffect = null
+    clearInteractionDetailEffectCache()
+    clearInteractionLightingEffectCache()
+  }
+
+  private fun clearInteractionOpticalEffectCache() {
     interactionOpticalEffectKey = null
     interactionOpticalEffectUniforms = null
     interactionOpticalPlatformEffect = null
     interactionOpticalComposeEffect = null
-    interactionOutputEffect = null
     interactionOutputInput = null
     interactionOutputUniforms = null
     interactionOutputFeatherWidth = Float.NaN
     interactionOutputComposeEffect = null
+  }
+
+  private fun clearInteractionDetailEffectCache() {
     interactionDetailEffectKey = null
     interactionDetailEffectUniforms = null
     interactionDetailComposeEffect = null
     interactionDetailCoverageEffectKey = null
     interactionDetailCoverageEffectUniforms = null
     interactionDetailCoverageComposeEffect = null
+  }
+
+  private fun clearInteractionLightingEffectCache() {
     interactionLightingEffectKey = null
     interactionLightingEffectUniforms = null
     interactionLightingComposeEffect = null

@@ -17,6 +17,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ComposeUiTest
@@ -253,10 +254,7 @@ class GlassInteractionRemovalTest : ContextTest() {
     val reference = fixture.assertMaterialPixels(this)
     runOnIdle { fixture.style.value = activeStyle().then { alpha(restoredAlpha) } }
     waitForIdle()
-    val scope = TestScope()
-    scope.launch { fixture.source.emit(PressInteraction.Press(Offset(40f, 40f))) }
-    scope.testScheduler.runCurrent()
-    waitForIdle()
+    press(fixture)
     fixture.assertMaterialPixels(this)
     val delegate = fixture.delegate
     val snapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
@@ -384,7 +382,7 @@ class GlassInteractionRemovalTest : ContextTest() {
 
   @Test
   fun removeLightingWhileTransparent_keepsIndependentPartialAlphaBaseGroup() = runComposeUiTest {
-    val referenceStyle = fixedCaptureBaseStyle().then { alpha(0.5f) }
+    val referenceStyle = baseStyle().then { alpha(0.5f) }
     val fixture = attach(referenceStyle, observeInput = true)
     val reference = fixture.assertMaterialPixels(this)
     runOnIdle { fixture.style.value = lightingStyle().then { alpha(0.5f) } }
@@ -396,7 +394,7 @@ class GlassInteractionRemovalTest : ContextTest() {
     val group = checkNotNull(fixture.delegate.layers.groupAlpha.layer)
     val lighting = checkNotNull(fixture.delegate.layers.interactionLighting)
     mainClock.autoAdvance = false
-    replaceHidden(fixture, fixedCaptureBaseStyle())
+    replaceHidden(fixture, baseStyle())
     mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
     waitForIdle()
     assertThat(fixture.effect.currentInteractionState.hasLighting).isTrue()
@@ -459,7 +457,7 @@ class GlassInteractionRemovalTest : ContextTest() {
     assertThat(fixture.sourceEnabled.value).isFalse()
     assertThat(fixture.observer.hasDrawableInput).isFalse()
     assertThat(fixture.observer.inputSnapshot).isNull()
-    replaceHidden(fixture, fixedCaptureBaseStyle())
+    replaceHidden(fixture, baseStyle())
     mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
     waitForIdle()
     assertThat(fixture.effect.currentInteractionState.hasLighting).isTrue()
@@ -471,7 +469,7 @@ class GlassInteractionRemovalTest : ContextTest() {
     assertObsoleteInteractionLayersNull(fixture.delegate)
     assertThat(fixture.effect.interactionControllerForTest).isNull()
     base.assertPreserved(fixture.delegate)
-    runOnIdle { fixture.style.value = fixedCaptureBaseStyle() }
+    runOnIdle { fixture.style.value = baseStyle() }
     syncFrames()
     assertThat(fixture.observer.hasDrawableInput).isFalse()
     assertThat(fixture.observer.inputSnapshot).isNull()
@@ -487,7 +485,7 @@ class GlassInteractionRemovalTest : ContextTest() {
     fixture.assertMaterialPixels(this)
     val base = RetainedBase(fixture)
     mainClock.autoAdvance = false
-    replaceHidden(fixture, fixedCaptureBaseStyle())
+    replaceHidden(fixture, baseStyle())
     runOnIdle { fixture.sourceEnabled.value = false }
     syncFrames()
     assertThat(fixture.observer.hasDrawableInput).isFalse()
@@ -601,9 +599,7 @@ class GlassInteractionRemovalTest : ContextTest() {
     }
   }
 
-  private fun fixedCaptureBaseStyle() = baseStyle()
-
-  private fun fixedCaptureActiveStyle() = fixedCaptureBaseStyle().then {
+  private fun fixedCaptureActiveStyle() = baseStyle().then {
     pressed {
       animate(tween(1), tween(500)) {
         lightingIntensity(0.5f)
@@ -612,7 +608,7 @@ class GlassInteractionRemovalTest : ContextTest() {
     }
   }
 
-  private fun lightingStyle() = fixedCaptureBaseStyle().then {
+  private fun lightingStyle() = baseStyle().then {
     pressed { animate(tween(1), tween(500)) { lightingIntensity(0.5f) } }
   }
 
@@ -643,7 +639,7 @@ class GlassInteractionRemovalTest : ContextTest() {
     checkNotNull(fixture.delegate.layers.interactionLighting),
   )
 
-  private fun ComposeUiTest.assertRemoval(fixture: Fixture, replacement: GlassStyle, layers: List<androidx.compose.ui.graphics.layer.GraphicsLayer>) {
+  private fun ComposeUiTest.assertRemoval(fixture: Fixture, replacement: GlassStyle, layers: List<GraphicsLayer>) {
     fixture.assertMaterialPixels(this)
     assertThat(fixture.effect.currentInteractionState.hasOptics || fixture.effect.currentInteractionState.hasLighting).isTrue()
     mainClock.autoAdvance = false
@@ -729,10 +725,7 @@ class GlassInteractionRemovalTest : ContextTest() {
       }
     }
     waitForIdle()
-    val scope = TestScope()
-    scope.launch { fixture.source.emit(PressInteraction.Press(Offset(40f, 40f))) }
-    scope.testScheduler.runCurrent()
-    waitForIdle()
+    press(fixture)
     return fixture
   }
 
