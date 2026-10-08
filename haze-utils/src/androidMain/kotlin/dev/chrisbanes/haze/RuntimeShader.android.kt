@@ -143,7 +143,7 @@ private fun createAndroidRuntimeShaderRenderEffect(
  */
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal class SharedRuntimeShader(sksl: String) {
-  private val shader = RuntimeShader(sksl)
+  private val shader = trace("HazeRuntimeShader.construct") { RuntimeShader(sksl) }
   private val intUniformNames = HashSet<String>()
   private val floatUniformSizes = HashMap<String, Int>()
   private val colorUniforms = HashSet<String>()

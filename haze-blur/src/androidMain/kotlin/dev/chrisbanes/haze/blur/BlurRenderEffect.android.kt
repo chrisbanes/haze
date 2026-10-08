@@ -30,6 +30,7 @@ import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.createBlendRenderEffect
 import dev.chrisbanes.haze.createShaderRenderEffect
+import dev.chrisbanes.haze.trace
 import kotlin.math.abs
 
 private var noiseTexture: Bitmap? = null
@@ -164,13 +165,17 @@ internal actual fun createCombinedNoiseTintRenderEffectOrNull(
 ): PlatformRenderEffect? {
   if (Build.VERSION.SDK_INT < 33) return null
 
-  val shader = RuntimeShader(COMBINED_NOISE_TINT_SKSL).apply {
-    setInputShader("noise", context.createNoiseShader(scale))
-    setFloatUniform("noiseAlpha", noiseFactor.coerceIn(0f, 1f))
-    setColorUniform("tintColor", tintColor.toArgb())
+  return trace("HazeBlur.combinedNoiseTint") {
+    val shader = trace("HazeRuntimeShader.construct") {
+      RuntimeShader(COMBINED_NOISE_TINT_SKSL)
+    }.apply {
+      setInputShader("noise", context.createNoiseShader(scale))
+      setFloatUniform("noiseAlpha", noiseFactor.coerceIn(0f, 1f))
+      setColorUniform("tintColor", tintColor.toArgb())
+    }
+    val postProcess = AndroidRenderEffect.createRuntimeShaderEffect(shader, "content")
+    AndroidRenderEffect.createChainEffect(postProcess, input)
   }
-  val postProcess = AndroidRenderEffect.createRuntimeShaderEffect(shader, "content")
-  return AndroidRenderEffect.createChainEffect(postProcess, input)
 }
 
 @RequiresApi(31)

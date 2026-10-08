@@ -15,7 +15,7 @@ import kotlin.test.Test
 class BlurProfilingScenarioTest {
   @Test
   fun matrix_exposesEachNamedModeForStableAndSourceChangingWorkloads() {
-    assertThat(BlurProfilingScenario.entries.map(BlurProfilingScenario::id)).isEqualTo(
+    assertThat(BlurProfilingScenario.entries.filter { it.noiseTintProperty == null }.map(BlurProfilingScenario::id)).isEqualTo(
       listOf(
         "stable_quality",
         "backdrop_stable_quality",
@@ -31,7 +31,7 @@ class BlurProfilingScenarioTest {
     )
 
     assertThat(
-      BlurProfilingScenario.entries.groupBy(BlurProfilingScenario::updatesSource)
+      BlurProfilingScenario.entries.filter { it.noiseTintProperty == null }.groupBy(BlurProfilingScenario::updatesSource)
         .mapValues { (_, scenarios) -> scenarios.map(BlurProfilingScenario::performanceMode) },
     ).isEqualTo(
       mapOf(
@@ -51,6 +51,48 @@ class BlurProfilingScenarioTest {
         ),
       ),
     )
+  }
+
+  @Test
+  fun noiseTintMatrix_changesOnlySelectedPropertyAndKeepsIndependentNodes() {
+    val scenarios = BlurProfilingScenario.entries.filter { it.noiseTintProperty != null }
+    assertThat(scenarios.map { it.id }).isEqualTo(
+      listOf(
+        "noise_tint_stable_1",
+        "noise_tint_stable_3",
+        "noise_tint_tint_1",
+        "noise_tint_tint_3",
+        "noise_tint_radius_1",
+        "noise_tint_radius_3",
+        "noise_tint_noise_1",
+        "noise_tint_noise_3",
+      ),
+    )
+    for (scenario in scenarios) {
+      assertThat(scenario.performanceMode).isEqualTo(HazePerformanceMode.Quality)
+      assertThat(scenario.usesBackdrop).isEqualTo(false)
+      assertThat(scenario.updatesSource).isEqualTo(false)
+      val start = List(scenario.noiseTintNodes) { blurNoiseTintParameters(scenario, 0f, it) }
+      assertThat(start.toSet().size).isEqualTo(scenario.noiseTintNodes)
+      for (node in start.indices) for (progress in listOf(0.5f, 1f)) {
+        val later = blurNoiseTintParameters(scenario, progress, node)
+        if (scenario.noiseTintProperty == BlurNoiseTintProperty.Radius) {
+          assertThat(later.radius).isNotEqualTo(start[node].radius)
+        } else {
+          assertThat(later.radius).isEqualTo(start[node].radius)
+        }
+        if (scenario.noiseTintProperty == BlurNoiseTintProperty.Noise) {
+          assertThat(later.noise).isNotEqualTo(start[node].noise)
+        } else {
+          assertThat(later.noise).isEqualTo(start[node].noise)
+        }
+        if (scenario.noiseTintProperty == BlurNoiseTintProperty.Tint) {
+          assertThat(later.tint).isNotEqualTo(start[node].tint)
+        } else {
+          assertThat(later.tint).isEqualTo(start[node].tint)
+        }
+      }
+    }
   }
 
   @Test

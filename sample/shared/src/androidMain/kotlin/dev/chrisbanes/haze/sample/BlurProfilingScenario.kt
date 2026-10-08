@@ -23,6 +23,8 @@ internal enum class BlurProfilingScenario(
   val updatesSource: Boolean,
   val mode: ScaffoldSampleMode = ScaffoldSampleMode.Default,
   val usesBackdrop: Boolean = false,
+  val noiseTintProperty: BlurNoiseTintProperty? = null,
+  val noiseTintNodes: Int = 1,
 ) {
   StableQuality("stable_quality", HazePerformanceMode.Quality, updatesSource = false),
   BackdropStableQuality(
@@ -54,6 +56,14 @@ internal enum class BlurProfilingScenario(
   ),
   SourceUpdateBalanced("source_update_balanced", HazePerformanceMode.Balanced, updatesSource = true),
   SourceUpdatePerformance("source_update_performance", HazePerformanceMode.Performance, updatesSource = true),
+  NoiseTintStable1("noise_tint_stable_1", HazePerformanceMode.Quality, false, noiseTintProperty = BlurNoiseTintProperty.Stable),
+  NoiseTintStable3("noise_tint_stable_3", HazePerformanceMode.Quality, false, noiseTintProperty = BlurNoiseTintProperty.Stable, noiseTintNodes = 3),
+  NoiseTintTint1("noise_tint_tint_1", HazePerformanceMode.Quality, false, noiseTintProperty = BlurNoiseTintProperty.Tint),
+  NoiseTintTint3("noise_tint_tint_3", HazePerformanceMode.Quality, false, noiseTintProperty = BlurNoiseTintProperty.Tint, noiseTintNodes = 3),
+  NoiseTintRadius1("noise_tint_radius_1", HazePerformanceMode.Quality, false, noiseTintProperty = BlurNoiseTintProperty.Radius),
+  NoiseTintRadius3("noise_tint_radius_3", HazePerformanceMode.Quality, false, noiseTintProperty = BlurNoiseTintProperty.Radius, noiseTintNodes = 3),
+  NoiseTintNoise1("noise_tint_noise_1", HazePerformanceMode.Quality, false, noiseTintProperty = BlurNoiseTintProperty.Noise),
+  NoiseTintNoise3("noise_tint_noise_3", HazePerformanceMode.Quality, false, noiseTintProperty = BlurNoiseTintProperty.Noise, noiseTintNodes = 3),
 }
 
 internal enum class BlurProfilingPhase(val id: String) {

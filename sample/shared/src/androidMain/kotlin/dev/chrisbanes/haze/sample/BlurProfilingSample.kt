@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -27,9 +28,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeFeatureFlags
+import kotlinx.coroutines.flow.first
 
 @Composable
 internal fun BlurProfilingSampleContent(
@@ -98,8 +102,11 @@ private fun BlurProfilingScene(
     }
   }
 
-  LaunchedEffect(state.phase, scenario) {
+  val lifecycle = LocalLifecycleOwner.current.lifecycle
+  LaunchedEffect(state.phase, scenario, lifecycle) {
     if (state.phase == BlurProfilingPhase.Settling) {
+      // Navigation exposes incoming semantics before it finishes handing off pointer input.
+      lifecycle.currentStateFlow.first { it.isAtLeast(Lifecycle.State.RESUMED) }
       repeat(BLUR_PROFILING_SETTLING_FRAMES) {
         androidx.compose.runtime.withFrameNanos {}
       }
@@ -131,19 +138,24 @@ private fun BlurProfilingScene(
   }
 
   Box(modifier = modifier.fillMaxSize()) {
-    ScaffoldSample(
-      navController = navController,
-      effect = SampleEffect.Blur,
-      mode = scenario.mode,
-      performanceMode = scenario.performanceMode,
-      sourceOffset = sourceOffset,
-      sourceDrawProgress = if (scenario.updatesSource) ({ state.progress }) else null,
-      profilingDrawProgress = profilingDrawProgress,
-      useBackdrop = scenario.usesBackdrop,
-    )
+    if (scenario.noiseTintProperty != null) {
+      BlurNoiseTintProfilingScene(state, scenario)
+    } else {
+      ScaffoldSample(
+        navController = navController,
+        effect = SampleEffect.Blur,
+        mode = scenario.mode,
+        performanceMode = scenario.performanceMode,
+        sourceOffset = sourceOffset,
+        sourceDrawProgress = if (scenario.updatesSource) ({ state.progress }) else null,
+        profilingDrawProgress = profilingDrawProgress,
+        useBackdrop = scenario.usesBackdrop,
+      )
+    }
     Column(
       modifier = Modifier
         .align(Alignment.TopStart)
+        .statusBarsPadding()
         .background(Color.Black.copy(alpha = 0.6f))
         .padding(16.dp)
         .testTag("blur_profiling_selected_${scenario.id}"),

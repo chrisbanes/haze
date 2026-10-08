@@ -175,6 +175,26 @@ class SamplesAndroidTest : ContextTest() {
     onNodeWithTag("blur_profiling_picker").assertDoesNotExist()
   }
 
+  @Test
+  fun initialNoiseTintScenario_bypassesBothPickersAndKeepsThreeNodes() = runComposeUiTest {
+    setContent {
+      Samples(
+        appTitle = "Haze Samples",
+        samples = listOf(AndroidBlurProfiling),
+        initialSelection = SampleLaunchRequest.Selected(
+          sample = AndroidBlurProfiling,
+          effect = SampleEffect.Blur,
+          theme = SampleEmbedTheme.System,
+        ),
+        initialProfilingScenarioId = "noise_tint_radius_3",
+      )
+    }
+    onNodeWithTag("blur_profiling_selected_noise_tint_radius_3").assertIsDisplayed()
+    repeat(3) { onNodeWithTag("noise_tint_node_$it").assertIsDisplayed() }
+    onNodeWithTag("sample_list").assertDoesNotExist()
+    onNodeWithTag("blur_profiling_picker").assertDoesNotExist()
+  }
+
   private fun performanceModeSample(
     route: String,
     title: String,
