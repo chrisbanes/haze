@@ -165,16 +165,17 @@ internal fun selectTransitionSpec(
 
 internal class GlassInteractionController(
   context: HazeEffectLifecycleScope,
+  private val onResponseCompleted: (GlassInteractionController) -> Unit = {},
 ) {
   private val scope = context.coroutineScope
   private val hasFrameClock = scope.coroutineContext[MonotonicFrameClock] != null
   private val sizeProvider = { context.modifierSize }
   private val invalidateDraw = context::invalidateDraw
-  private val lightingIntensity = AnimatedFloatChannel(0f, scope, invalidateDraw)
-  private val refractionMultiplier = AnimatedFloatChannel(1f, scope, invalidateDraw)
-  private val whitePointDelta = AnimatedFloatChannel(0f, scope, invalidateDraw)
-  private val scaleX = AnimatedFloatChannel(1f, scope, invalidateDraw)
-  private val scaleY = AnimatedFloatChannel(1f, scope, invalidateDraw)
+  private val lightingIntensity = AnimatedFloatChannel(0f, scope, invalidateDraw, ::responseCompleted)
+  private val refractionMultiplier = AnimatedFloatChannel(1f, scope, invalidateDraw, ::responseCompleted)
+  private val whitePointDelta = AnimatedFloatChannel(0f, scope, invalidateDraw, ::responseCompleted)
+  private val scaleX = AnimatedFloatChannel(1f, scope, invalidateDraw, ::responseCompleted)
+  private val scaleY = AnimatedFloatChannel(1f, scope, invalidateDraw, ::responseCompleted)
   private val position = Animatable(Offset.Zero, Offset.VectorConverter)
 
   private var configuration = GlassInteractionControllerConfiguration(
@@ -200,6 +201,48 @@ internal class GlassInteractionController(
   private var sourcePosition: Offset? = null
   private var disposed = false
   private var renderStateSnapshot = GlassInteractionRenderState(Offset.Zero)
+
+  private var renderTopologySnapshot = configuration.slots.resolveInteractionTopology()
+  private var historicalRefractionMaximum = 1f
+
+  internal val renderTopology: GlassInteractionTopology
+    get() {
+      val declared = configuration.slots.resolveInteractionTopology()
+      val pendingOptics = refractionMultiplier.isAnimating || refractionMultiplier.currentValue != 1f ||
+        whitePointDelta.isAnimating || whitePointDelta.currentValue != 0f
+      historicalRefractionMaximum = if (pendingOptics) {
+        maxOf(historicalRefractionMaximum, declared.maxRefractionMultiplier)
+      } else {
+        declared.maxRefractionMultiplier
+      }
+      val hasOptics = declared.hasOptics || pendingOptics
+      val hasLighting = declared.hasLighting || lightingIntensity.isAnimating || lightingIntensity.currentValue != 0f
+      val snapshot = renderTopologySnapshot
+      if (snapshot.hasOptics == hasOptics &&
+        snapshot.hasLighting == hasLighting &&
+        snapshot.maxRefractionMultiplier == historicalRefractionMaximum
+      ) {
+        return snapshot
+      }
+      return GlassInteractionTopology(
+        hasOptics = hasOptics,
+        hasLighting = hasLighting,
+        maxRefractionMultiplier = historicalRefractionMaximum,
+      ).also { renderTopologySnapshot = it }
+    }
+
+  internal val hasRunningResponseAnimations: Boolean
+    get() = lightingIntensity.isAnimating || refractionMultiplier.isAnimating ||
+      whitePointDelta.isAnimating || scaleX.isAnimating || scaleY.isAnimating
+
+  internal val hasPendingResponseWork: Boolean
+    get() = hasRunningResponseAnimations || lightingIntensity.currentValue != 0f ||
+      refractionMultiplier.currentValue != 1f || whitePointDelta.currentValue != 0f ||
+      scaleX.currentValue != 1f || scaleY.currentValue != 1f
+
+  private fun responseCompleted() {
+    if (!disposed) onResponseCompleted(this)
+  }
 
   internal val configurationForTest: GlassInteractionControllerConfiguration
     get() = configuration
@@ -241,6 +284,7 @@ internal class GlassInteractionController(
   fun updateConfiguration(configuration: GlassInteractionControllerConfiguration) {
     if (disposed || configuration == this.configuration) return
     val previous = this.configuration
+    historicalRefractionMaximum = renderTopology.maxRefractionMultiplier
     this.configuration = configuration
     val forceFullMotionChanged = previous.forceFullMotion != configuration.forceFullMotion
     val positionAnimationSpecChanged =
@@ -559,14 +603,18 @@ private class AnimatedFloatChannel(
   identity: Float,
   private val scope: CoroutineScope,
   private val invalidateDraw: () -> Unit,
+  private val onCompleted: () -> Unit,
 ) {
   private val hasFrameClock = scope.coroutineContext[MonotonicFrameClock] != null
   private val value = Animatable(identity)
   private var owner = OwnedGlassResponseValue(null, null, null, identity)
   private var animationSpec: FiniteAnimationSpec<Float>? = null
   private var job: Job? = null
+  private var workRevision = 0L
+  private var hasPendingAnimation = false
 
   val currentValue: Float get() = value.value
+  val isAnimating: Boolean get() = hasPendingAnimation || value.isRunning
 
   fun retarget(
     target: OwnedGlassResponseValue,
@@ -604,7 +652,9 @@ private class AnimatedFloatChannel(
     reducedMotion: Boolean,
     forceFullMotion: Boolean,
   ) {
+    val revision = ++workRevision
     job?.cancel()
+    hasPendingAnimation = true
     job = scope.launch(if (forceFullMotion) FullMotionDurationScale else EmptyCoroutineContext) {
       if (reducedMotion || spec == null || !hasFrameClock) {
         value.snapTo(target)
@@ -614,20 +664,23 @@ private class AnimatedFloatChannel(
           invalidateDraw()
         }
       }
+      if (revision == workRevision) {
+        hasPendingAnimation = false
+        invalidateDraw()
+        onCompleted()
+      }
     }
   }
 
   fun snapTo(target: OwnedGlassResponseValue) {
     owner = target
     animationSpec = null
-    job?.cancel()
-    job = scope.launch {
-      value.snapTo(target.value)
-      invalidateDraw()
-    }
+    launchAnimation(target.value, null, reducedMotion = true, forceFullMotion = false)
   }
 
   fun cancel() {
+    workRevision++
+    hasPendingAnimation = false
     job?.cancel()
     job = null
   }
