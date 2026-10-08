@@ -209,7 +209,7 @@ internal class BlurVisualEffect :
   internal val blurredEdgeTreatment: BlurredEdgeTreatment
     get() = resolvedStyle.blurredEdgeTreatment
 
-  internal fun resolveInputScaleFactor(): Float = performanceMode.resolveBlurInputScale()
+  internal fun resolveInputScaleFactor(): Float = constrainInputScaleForBrushes(performanceMode.resolveBlurInputScale())
 
   private var compositionLocalStyle: HazeBlurStyle = HazeBlurStyle
     set(value) {

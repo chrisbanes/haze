@@ -5,9 +5,13 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.asComposeShader
+import androidx.compose.ui.graphics.skiaShader
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
@@ -17,6 +21,20 @@ import dev.chrisbanes.haze.createFractalNoiseShader
 import dev.chrisbanes.haze.createShaderRenderEffect
 import org.jetbrains.skia.ColorFilter
 import org.jetbrains.skia.ColorMatrix
+import org.jetbrains.skia.Matrix33
+
+internal actual fun ShaderBrush.createScaledShader(size: Size, scale: Float): Shader {
+  val shader = createShader(size)
+  return if (scale == 1f) {
+    shader
+  } else {
+    shader.skiaShader
+      .makeWithLocalMatrix(Matrix33.makeScale(scale, scale))
+      .asComposeShader()
+  }
+}
+
+internal actual fun BlurVisualEffect.constrainInputScaleForBrushes(scale: Float): Float = scale
 
 private val NOISE_SHADER by lazy(LazyThreadSafetyMode.NONE) {
   createFractalNoiseShader(

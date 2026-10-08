@@ -18,10 +18,13 @@ import android.graphics.RuntimeShader
 import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.toArgb
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
@@ -30,6 +33,42 @@ import dev.chrisbanes.haze.createShaderRenderEffect
 import kotlin.math.abs
 
 private var noiseTexture: Bitmap? = null
+
+internal actual fun ShaderBrush.createScaledShader(size: Size, scale: Float): Shader {
+  val shader = createShader(size)
+  if (scale == 1f) return shader
+
+  if (!isCustomShaderBrush()) {
+    // Compose's built-in gradients create a fresh shader with no local matrix.
+    return shader.apply { setLocalMatrix(Matrix().apply { setScale(scale, scale) }) }
+  }
+
+  // Evaluate the complete caller shader in logical coordinates. A local-matrix wrapper
+  // composes in the wrong order on Android when the caller shader has a translation.
+  check(Build.VERSION.SDK_INT >= 33)
+  return RuntimeShader(
+    """
+      uniform shader source;
+      uniform float scale;
+      half4 main(float2 coord) { return source.eval(coord / scale); }
+    """.trimIndent(),
+  ).apply {
+    setInputShader("source", shader)
+    setFloatUniform("scale", scale)
+  }
+}
+
+internal actual fun BlurVisualEffect.constrainInputScaleForBrushes(scale: Float): Float {
+  if (Build.VERSION.SDK_INT !in 31..32 || scale == 1f) return scale
+
+  // API 31–32 cannot transform an arbitrary shader without changing its local matrices.
+  // Keep capture and filtering at the same full resolution for these brushes.
+  val progressiveBrush = (progressive as? HazeProgressive.Brush)?.brush
+  val hasCustomBrush = mask?.isCustomShaderBrush() == true ||
+    progressiveBrush?.isCustomShaderBrush() == true ||
+    colorEffects.orEmpty().any { it is TintBrushHazeColorEffect && it.brush.isCustomShaderBrush() }
+  return if (hasCustomBrush) BLUR_FULL_RESOLUTION_SCALE else scale
+}
 
 private const val COMBINED_NOISE_TINT_SKSL = """
   uniform shader content;
