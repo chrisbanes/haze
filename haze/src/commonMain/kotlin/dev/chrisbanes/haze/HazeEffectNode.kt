@@ -33,6 +33,7 @@ import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.node.TraversableNode
+import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
@@ -45,6 +46,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlinx.coroutines.DisposableHandle
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 
@@ -285,10 +287,23 @@ internal class HazeEffectNode(
 
   private var sourceSnapshotObservation: androidx.compose.runtime.snapshots.ObserverHandle? = null
   private var sourceSnapshotObservationEpoch = 0
+  private var inputPresentationNotificationJob: Job? = null
+  private var inputPresentationLayoutJob: Job? = null
+  private var inputPresentationLayoutAnchor: InputPresentationLayerNode? = null
+  private var inputPresentationAreas = emptyList<HazeArea>()
 
   private fun syncSourceSnapshotObservation() {
+    reconcileInputPresentationLayout()
     val observe = isAttached && captureDemandAreas.isNotEmpty() &&
       (typedEffectRenderer as? HazeEffectRendererDrawHooks<*>)?.observesSourceSnapshotChanges == true
+    val presentationAreas = if (observe) captureDemandAreas else emptyList()
+    for (area in inputPresentationAreas) {
+      if (area !in presentationAreas) area.inputPresentationListeners -= areaPreDrawListener
+    }
+    for (area in presentationAreas) {
+      if (area !in inputPresentationAreas) area.inputPresentationListeners += areaPreDrawListener
+    }
+    inputPresentationAreas = presentationAreas
     if (!observe) {
       sourceSnapshotObservationEpoch++
       sourceSnapshotObservation?.dispose()
@@ -438,6 +453,7 @@ internal class HazeEffectNode(
           invalidateHazeDraw(HazeInvalidationReason.PreDraw)
         }
       },
+      presentationOutputAreas = ::currentPresentationOutputAreas,
     )
   }
 
@@ -469,6 +485,14 @@ internal class HazeEffectNode(
   }
 
   override fun onDetach() {
+    inputPresentationLayoutJob?.cancel()
+    inputPresentationLayoutJob = null
+    inputPresentationLayoutAnchor?.release(this)
+    inputPresentationLayoutAnchor = null
+    inputPresentationNotificationJob?.cancel()
+    inputPresentationNotificationJob = null
+    inputPresentationAreas.forEach { it.inputPresentationListeners -= areaPreDrawListener }
+    inputPresentationAreas = emptyList()
     sourceSnapshotObservationEpoch++
     sourceSnapshotObservation?.dispose()
     sourceSnapshotObservation = null
@@ -523,6 +547,7 @@ internal class HazeEffectNode(
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
+    reconcileInputPresentationLayout()
     Snapshot.withoutReadObservation {
       lastKnownCoordinates = coordinates
       // onPlaced is needed before first draw because onGloballyPositioned can arrive
@@ -589,6 +614,8 @@ internal class HazeEffectNode(
   }
 
   override fun ContentDrawScope.draw() {
+    val visualEffectChanged = needsVisualEffectInvalidation
+    var drewSourceEffect = false
     try {
       HazeLogger.d(TAG) { "-> start draw()" }
 
@@ -614,7 +641,10 @@ internal class HazeEffectNode(
       if (this@HazeEffectNode.size.isSpecified && this@HazeEffectNode.layerSize.isSpecified) {
         val shouldPrepareDraw = shouldPrepareEffectDraw()
         when {
-          state != null -> drawSourceBackedEffect(shouldPrepareDraw)
+          state != null -> {
+            drawSourceBackedEffect(shouldPrepareDraw)
+            drewSourceEffect = true
+          }
           explicitInput is HazeInput.Backdrop -> drawBackdropEffect(shouldPrepareDraw)
           explicitInput === HazeInput.Content && shouldPrepareDraw -> drawContentEffect()
           else -> withVisualEffectTransform { drawContentSafely() }
@@ -626,6 +656,7 @@ internal class HazeEffectNode(
     } finally {
       isDrawing = false
       onPostDraw()
+      if (visualEffectChanged && drewSourceEffect) notifyContainingSourceInputsAfterDraw()
       HazeLogger.d(TAG) { "-> end draw()" }
     }
   }
@@ -659,6 +690,56 @@ internal class HazeEffectNode(
       if (shouldDrawEffect) {
         drawEffectForeground()
       }
+    }
+  }
+
+  private fun currentPresentationOutputAreas(): List<HazeArea>? {
+    if (!isAttached || !isSourceBackedInput() ||
+      (typedEffectRenderer as? HazeEffectRendererDrawHooks<*>)?.observesSourceSnapshotChanges != true
+    ) {
+      return null
+    }
+    return buildList {
+      traverseAncestors(HazeTraversableNodeKeys.Source) { node ->
+        add((node as HazeSourceNode).area)
+        true
+      }
+    }
+  }
+
+  private fun reconcileInputPresentationLayout() {
+    if (!isAttached || inputPresentationLayoutJob != null) return
+    val anchor = findNearestAncestor(InputPresentationLayerNode.Key) as? InputPresentationLayerNode
+    val required = !currentPresentationOutputAreas().isNullOrEmpty()
+    if (anchor === inputPresentationLayoutAnchor && (anchor?.matches(this, required) != false)) return
+    inputPresentationLayoutJob = coroutineScope.launch {
+      // Runtime capability can change during preparation. Change coordinators after drawing.
+      yield()
+      inputPresentationLayoutJob = null
+      if (!isAttached) return@launch
+      val current = findNearestAncestor(InputPresentationLayerNode.Key) as? InputPresentationLayerNode
+      val enabled = !currentPresentationOutputAreas().isNullOrEmpty()
+      var changed = false
+      if (current !== inputPresentationLayoutAnchor) {
+        changed = inputPresentationLayoutAnchor?.release(this@HazeEffectNode) == true
+        inputPresentationLayoutAnchor = current
+      }
+      changed = current?.setEnabled(this@HazeEffectNode, enabled) == true || changed
+      if (changed) {
+        // A pending redraw may target the previous coordinator; reissue it without recapture.
+        needsVisualEffectInvalidation = true
+        invalidateHazeDraw(HazeInvalidationReason.VisualEffect)
+      }
+    }
+  }
+
+  private fun notifyContainingSourceInputsAfterDraw() {
+    if (inputPresentationNotificationJob != null || currentPresentationOutputAreas().isNullOrEmpty()) return
+    inputPresentationNotificationJob = coroutineScope.launch {
+      // The enclosing source may still be recording. Do not invalidate consumers in that draw.
+      yield()
+      inputPresentationNotificationJob = null
+      currentPresentationOutputAreas()?.forEach { it.notifyInputPresentationListeners() }
     }
   }
 

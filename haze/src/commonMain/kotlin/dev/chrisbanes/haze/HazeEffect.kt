@@ -8,10 +8,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.node.DelegatingNode
 import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.findNearestAncestor
+import androidx.compose.ui.node.invalidateMeasurement
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.unit.Constraints
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.jvm.JvmInline
@@ -83,7 +91,7 @@ public fun <Style> Modifier.hazeEffect(
   sampling,
   expandLayerBounds,
 ) {
-  val effect = Modifier then TypedHazeEffectNodeElement(
+  val effect = Modifier then InputPresentationLayerElement then TypedHazeEffectNodeElement(
     factory = factory,
     input = input,
     style = style,
@@ -95,6 +103,71 @@ public fun <Style> Modifier.hazeEffect(
     effect.graphicsLayer() then ForegroundContentInvalidationElement
   } else {
     effect
+  }
+}
+
+private data object InputPresentationLayerElement : ModifierNodeElement<InputPresentationLayerNode>() {
+  override fun create() = InputPresentationLayerNode()
+
+  override fun update(node: InputPresentationLayerNode) = Unit
+
+  override fun InspectorInfo.inspectableProperties() {
+    name = "hazeInputPresentationLayer"
+  }
+}
+
+/** A distinct boundary keeps effect drawing and its invalidation inside the same layer. */
+internal class InputPresentationLayerNode : DelegatingNode(), TraversableNode {
+  override val traverseKey: Any get() = Key
+  private var owner: HazeEffectNode? = null
+  private var layoutDelegate: LayoutModifierNode? = null
+
+  fun matches(requester: HazeEffectNode, enabled: Boolean): Boolean = if (enabled) {
+    owner === requester && layoutDelegate != null
+  } else {
+    owner !== requester || layoutDelegate == null
+  }
+
+  fun setEnabled(requester: HazeEffectNode, enabled: Boolean): Boolean {
+    if (!isAttached) return false
+    if (!enabled) return release(requester)
+    owner = requester
+    if (layoutDelegate != null) return false
+    layoutDelegate = delegate(LayerNode())
+    layoutDelegate?.invalidateMeasurement()
+    return true
+  }
+
+  fun release(requester: HazeEffectNode): Boolean {
+    if (owner !== requester) return false
+    owner = null
+    return removeLayer()
+  }
+
+  override fun onDetach() {
+    owner = null
+    removeLayer()
+  }
+
+  private fun removeLayer(): Boolean {
+    val current = layoutDelegate ?: return false
+    if (isAttached) current.invalidateMeasurement()
+    undelegate(current)
+    layoutDelegate = null
+    return true
+  }
+
+  private class LayerNode : Modifier.Node(), LayoutModifierNode {
+    override fun MeasureScope.measure(measurable: Measurable, constraints: Constraints): MeasureResult {
+      val placeable = measurable.measure(constraints)
+      return layout(placeable.width, placeable.height) {
+        placeable.placeWithLayer(0, 0) { clip = false }
+      }
+    }
+  }
+
+  companion object {
+    val Key = Any()
   }
 }
 

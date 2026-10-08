@@ -148,6 +148,7 @@ internal class HazeArea {
     internal set
 
   internal val preDrawListeners = mutableStateSetOf<OnPreDrawListener>()
+  internal val inputPresentationListeners = mutableSetOf<OnPreDrawListener>()
 
   private val captureConsumers = mutableStateSetOf<Any>()
 
@@ -230,10 +231,36 @@ internal fun HazeArea.reset() {
 internal class OnPreDrawListener(
   private val effectWindowId: () -> Any?,
   private val onPreDraw: (invalidateInputCapture: Boolean) -> Unit,
+  private val presentationOutputAreas: (() -> List<HazeArea>?)? = null,
 ) {
   fun needsSnapshotApplyObservation(area: HazeArea): Boolean = area.windowId != effectWindowId()
 
   operator fun invoke(invalidateInputCapture: Boolean) = onPreDraw(invalidateInputCapture)
+
+  fun currentPresentationOutputAreas(): List<HazeArea>? = presentationOutputAreas?.invoke()
+}
+
+/** Refresh copied inputs after a descendant material changes without rerecording its source. */
+internal fun HazeArea.notifyInputPresentationListeners() {
+  val eligible = inputPresentationListeners.filter { listener ->
+    listener.currentPresentationOutputAreas()?.none { output -> output.reachesPresentationSource(this) } == true
+  }
+  eligible.forEach { it(true) }
+}
+
+private fun HazeArea.reachesPresentationSource(target: HazeArea): Boolean {
+  val pending = mutableListOf(this)
+  val visited = mutableSetOf<HazeArea>()
+  while (pending.isNotEmpty()) {
+    val area = pending.removeAt(pending.lastIndex)
+    if (area === target) return true
+    if (!visited.add(area)) continue
+    // Include suppressed edges: filtering them here would conceal the cycle being guarded.
+    for (listener in area.inputPresentationListeners) {
+      listener.currentPresentationOutputAreas()?.let { pending.addAll(it) }
+    }
+  }
+  return false
 }
 
 internal fun HazeArea.notifyPreDrawListeners(
