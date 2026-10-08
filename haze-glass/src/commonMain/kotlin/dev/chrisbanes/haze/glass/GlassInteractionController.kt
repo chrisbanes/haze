@@ -202,12 +202,13 @@ internal class GlassInteractionController(
   private var disposed = false
   private var renderStateSnapshot = GlassInteractionRenderState(Offset.Zero)
 
-  private var renderTopologySnapshot = configuration.slots.resolveInteractionTopology()
+  private var declaredTopology = configuration.slots.resolveInteractionTopology()
+  private var renderTopologySnapshot = declaredTopology
   private var historicalRefractionMaximum = 1f
 
   internal val renderTopology: GlassInteractionTopology
     get() {
-      val declared = configuration.slots.resolveInteractionTopology()
+      val declared = declaredTopology
       val pendingOptics = refractionMultiplier.isAnimating || refractionMultiplier.currentValue != 1f ||
         whitePointDelta.isAnimating || whitePointDelta.currentValue != 0f
       historicalRefractionMaximum = if (pendingOptics) {
@@ -286,6 +287,7 @@ internal class GlassInteractionController(
     val previous = this.configuration
     historicalRefractionMaximum = renderTopology.maxRefractionMultiplier
     this.configuration = configuration
+    if (previous.slots != configuration.slots) declaredTopology = configuration.slots.resolveInteractionTopology()
     val forceFullMotionChanged = previous.forceFullMotion != configuration.forceFullMotion
     val positionAnimationSpecChanged =
       previous.positionAnimationSpec != configuration.positionAnimationSpec

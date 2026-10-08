@@ -1199,6 +1199,7 @@ class GlassInteractionControllerTest : ContextTest() {
     waitForIdle()
     val snapshot = controller.renderTopology
     assertThat(controller.renderTopology).isSameInstanceAs(snapshot)
+    assertThat(controller.renderTopology).isSameInstanceAs(controller.renderTopology)
     mainClock.autoAdvance = false
     runOnIdle { controller.updateConfiguration(configuration(1.2f)) }
     mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
