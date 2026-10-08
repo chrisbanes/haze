@@ -89,7 +89,8 @@ internal class RuntimeShaderGlassDelegate(
   private var interactionOpticalPlatformEffect: PlatformRenderEffect? = null
   private var interactionOpticalComposeEffect: RenderEffect? = null
   private var interactionOpticalEffectLayer: GraphicsLayer? = null
-  private var interactionOutputEffect: MutableRuntimeShaderRenderEffect? = null
+  internal var interactionOutputEffect: MutableRuntimeShaderRenderEffect? = null
+    private set
   private var interactionOutputInput: PlatformRenderEffect? = null
   private var interactionOutputUniforms: GlassInteractionUniforms? = null
   private var interactionOutputFeatherWidth: Float = Float.NaN
@@ -1588,27 +1589,34 @@ internal class RuntimeShaderGlassDelegate(
     patch: GlassInteractionPatch,
     featherWidth: Float,
   ) {
-    if (interactionOutputEffect == null || input != interactionOutputInput) {
-      interactionOutputEffect = traceCreateRenderEffect {
-        createMutableRuntimeShaderRenderEffect(
-          effect = GLASS_INTERACTION_OUTPUT_EFFECT,
-          shaderNames = arrayOf("content"),
-          inputs = arrayOf(input),
-        )
-      }
+    val outputEffect = interactionOutputEffect ?: traceCreateRenderEffect {
+      createMutableRuntimeShaderRenderEffect(
+        effect = GLASS_INTERACTION_OUTPUT_EFFECT,
+        shaderNames = arrayOf("content"),
+        inputs = arrayOf(input),
+      )
+    }.also {
+      interactionOutputEffect = it
       interactionOutputInput = input
-      interactionOutputUniforms = null
-      interactionOutputFeatherWidth = Float.NaN
       interactionOutputComposeEffect = null
     }
+    // The input changes on every frame of a press-drag, so update the existing shader with it.
+    val inputChanged = input != interactionOutputInput
     if (
+      inputChanged ||
       patch.uniforms != interactionOutputUniforms ||
       featherWidth != interactionOutputFeatherWidth ||
       interactionOutputComposeEffect == null
     ) {
-      interactionOutputComposeEffect = checkNotNull(interactionOutputEffect).updateUniforms {
+      val updateUniforms: RuntimeShaderUniformProvider.() -> Unit = {
         setInteractionOutputUniforms(patch.uniforms, featherWidth)
+      }
+      interactionOutputComposeEffect = if (inputChanged) {
+        outputEffect.updateInputs(inputs = arrayOf(input), uniforms = updateUniforms)
+      } else {
+        outputEffect.updateUniforms(updateUniforms)
       }.asComposeRenderEffect()
+      interactionOutputInput = input
       interactionOutputUniforms = patch.uniforms
       interactionOutputFeatherWidth = featherWidth
     }

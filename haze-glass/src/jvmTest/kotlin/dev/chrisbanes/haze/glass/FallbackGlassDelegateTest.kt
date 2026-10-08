@@ -331,6 +331,7 @@ class FallbackGlassDelegateTest {
 
     delegate.prepare(context)
     val first = delegate.preparedResourcesForTest()
+    assertThat(first.style).isSameInstanceAs(effect.resolvePreparedStyle(context))
     delegate.prepare(context)
     val stable = delegate.preparedResourcesForTest()
 

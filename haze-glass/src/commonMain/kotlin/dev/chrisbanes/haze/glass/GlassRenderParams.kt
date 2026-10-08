@@ -478,15 +478,13 @@ internal fun resolveGlassStyle(
     density,
     layoutDirection,
   )
-  val defaultRadii = GlassDefaults.shape.toCornerRadiiPx(materialSizePx, density, layoutDirection)
   val defaultEdgeSoftnessPx = with(density) { GlassDefaults.edgeSoftness.toPx() }
     .finiteOrZero()
     .coerceAtLeast(0f)
-  val cornerRadii = when {
-    requestedRadii?.isFiniteAndNonNegative() == true -> requestedRadii
-    defaultRadii.isFiniteAndNonNegative() -> defaultRadii
-    else -> CornerRadii.zero
-  }
+  val cornerRadii = requestedRadii?.takeIf { it.isFiniteAndNonNegative() }
+    ?: GlassDefaults.shape.toCornerRadiiPx(materialSizePx, density, layoutDirection)
+      .takeIf { it.isFiniteAndNonNegative() }
+    ?: CornerRadii.zero
   val alignedLightPosition = effect.lightPosition.resolveLightPosition(
     materialSizePx = materialSizePx,
     layoutDirection = layoutDirection,
