@@ -141,7 +141,9 @@ calculating bounds recalculate the bounds and then redraw.
   capabilities have dedicated public contracts.
 
 On Android and iOS, Haze forwards the platform's native memory-pressure notifications to attached
-effects. On Desktop and Web, an attached effect receives `TrimMemoryLevel.MODERATE` whenever its
+effects. Android 14 and later only send `TRIM_MEMORY_UI_HIDDEN` and `TRIM_MEMORY_BACKGROUND`, so
+Haze forwards `TRIM_MEMORY_BACKGROUND` as `TrimMemoryLevel.MODERATE` there. On Desktop and Web, an
+attached effect receives `TrimMemoryLevel.MODERATE` whenever its
 composition lifecycle reaches `ON_STOP`. Discard only resources that can be rebuilt: the next draw
 that needs them must recreate valid output.
 
