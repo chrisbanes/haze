@@ -36,7 +36,6 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
-import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.HazeEffectDrawScope
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
@@ -231,7 +230,7 @@ class HazeBlurModifierTest {
     )
 
     assertThat(effect.shouldPrepareDraw(BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Default))).isFalse()
-    assertThat(effect.dirtyTracker).isEqualTo(Bitmask())
+    assertThat(effect.styleChanged).isFalse()
     assertThat(effect.canDrawRetainedOutput()).isTrue()
     assertThat(delegate.clearCount).isEqualTo(0)
 
