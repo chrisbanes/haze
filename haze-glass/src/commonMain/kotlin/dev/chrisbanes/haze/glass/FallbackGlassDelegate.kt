@@ -14,7 +14,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.isSpecified
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
@@ -35,9 +34,7 @@ internal class FallbackGlassDelegate(
   override fun DrawScope.prepareDraw(context: HazeEffectRuntimeDrawScope) {
     if (effect.alpha == 0f) return
 
-    val density = context.requireDensity()
-    val layoutDirection = context.currentValueOf(LocalLayoutDirection)
-    val style = resolveGlassStyle(effect, size, density, layoutDirection)
+    val style = effect.resolvePreparedStyle(context)
     val interaction = resolveFallbackGlassInteraction(
       state = effect.currentInteractionState,
       radiusFraction = effect.interactionLightRadiusFraction,
