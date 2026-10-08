@@ -653,7 +653,7 @@ internal class GlassRuntimeEffect() :
     return shouldClipToNodeBoundsCache
   }
 
-  private fun resolvePreparedStyle(context: HazeEffectRuntimeDrawScope): ResolvedGlassStyle {
+  internal fun resolvePreparedStyle(context: HazeEffectRuntimeDrawScope): ResolvedGlassStyle {
     val density = context.requireDensity()
     val layoutDirection = context.currentValueOf(LocalLayoutDirection)
     resolvedStyleCache?.takeIf {

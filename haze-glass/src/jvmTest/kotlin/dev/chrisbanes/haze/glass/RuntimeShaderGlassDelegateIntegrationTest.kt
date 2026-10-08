@@ -457,6 +457,31 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun interactionFramesWithoutDetail_reuseInteractionOutputEffect() = runComposeUiTest {
+    val effect = runtimeInteractiveEffect().apply {
+      style = style.then { optics(optics.copy(refractionDetailIntensity = 0f)) }
+    }
+    setContent { RuntimeGlassTestContent(effect, tag = "glass") }
+    waitForIdle()
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
+
+    onNodeWithTag("glass").performTouchInput { down(Offset(20f, 20f)) }
+    mainClock.advanceTimeBy(100)
+    waitForIdle()
+    assertThat(delegate.layers.hasInteractionOptical).isTrue()
+    assertThat(delegate.layers.hasInteractionRefractionDetail).isFalse()
+    val outputEffect = checkNotNull(delegate.interactionOutputEffect)
+
+    repeat(3) { step ->
+      onNodeWithTag("glass").performTouchInput { moveTo(Offset(40f + step * 20f, 50f)) }
+      mainClock.advanceTimeBy(32)
+      waitForIdle()
+    }
+
+    assertThat(delegate.interactionOutputEffect).isSameInstanceAs(outputEffect)
+  }
+
+  @Test
   fun interactionOpticalEffect_reusesStableLayerEffectAndUpdatesNewTargets() = runComposeUiTest {
     val effect = runtimeInteractiveEffect()
     val style = mutableStateOf(effect.style)

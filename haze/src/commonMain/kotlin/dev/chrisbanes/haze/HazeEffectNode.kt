@@ -714,7 +714,15 @@ internal class HazeEffectNode(
       return
     }
     if (backdrop == null) {
-      activateBackdropFallback(failed = false)
+      // A renderer can decline single frames, such as Glass beyond its layer budget or a disabled
+      // Blur pass. Only an undecided node with a source fallback switches to it; any other node
+      // draws its content for this frame and retries native rendering on the next.
+      if (
+        backdropBackendState.selection == HazeBackdropBackendSelection.Undecided &&
+        (explicitInput as? HazeInput.Backdrop)?.fallback != null
+      ) {
+        activateBackdropFallback(failed = false)
+      }
       withVisualEffectTransform { drawContentSafely() }
       return
     }

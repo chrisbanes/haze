@@ -366,7 +366,9 @@ window pixels. The current flag default is `false`, and
 canvas, native graph setup, and draw must all succeed. Unsupported platforms or a native failure
 use a supplied source fallback as portable rendering for the rest of that attachment.
 `HazeInput.Backdrop()` has no fallback: if native backdrop is unavailable or fails, its content
-draws unchanged and creates no source-capture demand. The transition may take one frame. Changing
+draws unchanged and creates no source-capture demand. The transition may take one frame. A frame
+beyond the layer budget after native rendering has started draws content unchanged for that frame
+rather than switching to the fallback. Changing
 the flag affects later attachments only, and healthy native rendering does not retain or record
 source layers.
 
