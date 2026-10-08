@@ -141,6 +141,38 @@ class HazeDrawInvalidationTest : ContextTest() {
     assertStableDrawOnlyInvalidations(renderer)
   }
 
+  @Test
+  fun styleChangeBounds_computedByUpdateDoNotRefreshAgainDuringDraw() = runComposeUiTest {
+    val renderer = BoundsInvalidatingRenderer()
+    val state = HazeState()
+    val factory = HazeEffectFactory<Unit> { renderer }
+    val sampling = mutableStateOf<HazeSampling>(HazeSampling.Adaptive)
+    setContent {
+      Box(Modifier.size(384.dp)) {
+        Box(Modifier.fillMaxSize().hazeSource(state).background(Color.Red))
+        Box(
+          Modifier.align(Alignment.Center).size(120.dp).hazeEffect(
+            factory = factory,
+            input = HazeInput.Sources(state),
+            style = Unit,
+            sampling = sampling.value,
+            expandLayerBounds = true,
+          ),
+        )
+      }
+    }
+    waitForIdle()
+    val updates = renderer.updateCalls
+    val calculations = renderer.layoutCalls
+    val draws = renderer.drawCalls
+    runOnIdle { sampling.value = HazeSampling.FullResolution }
+    waitForIdle()
+    assertThat(renderer.drawCalls).isEqualTo(draws + 1)
+    assertThat(renderer.updateCalls).isEqualTo(updates + 1)
+    assertThat(renderer.layoutCalls).isEqualTo(calculations + 1)
+    assertStableDrawOnlyInvalidations(renderer)
+  }
+
   private fun ComposeUiTest.attachBoundsRenderer(): BoundsInvalidatingRenderer {
     val renderer = BoundsInvalidatingRenderer()
     val state = HazeState()

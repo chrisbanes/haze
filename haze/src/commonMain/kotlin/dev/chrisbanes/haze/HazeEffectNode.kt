@@ -129,6 +129,7 @@ internal class HazeEffectNode(
   private var needsVisualEffectInvalidation = false
   private var needsNextFrameVisualEffectInvalidation = false
   private var needsNextFrameLayerBounds = false
+  private var layerBoundsRefreshPending = false
   private var needsContentInvalidation = false
   private val sourceDemandKey = Any()
   private var sourceDemandState: HazeState? = null
@@ -328,6 +329,7 @@ internal class HazeEffectNode(
         updateTypedRenderer()
       }
       dirtyTracker += DirtyFields.VisualEffectLayerBounds
+      layerBoundsRefreshPending = true
       if (isAttached) {
         invalidateVisualEffectDraw()
       }
@@ -574,7 +576,7 @@ internal class HazeEffectNode(
         return
       }
 
-      if (DirtyFields.VisualEffectLayerBounds in dirtyTracker) {
+      if (layerBoundsRefreshPending) {
         observeReads(::updateEffect)
       }
       // Bounds requested during the refresh are consumed by that update's calculation.
@@ -974,6 +976,8 @@ internal class HazeEffectNode(
     syncPointerInputDelegate()
 
     if (dirtyTracker.any(LayerBoundsDirtyFields)) {
+      // Requests made before this point are consumed by the calculation below.
+      layerBoundsRefreshPending = false
       if (state != null && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
         var left = Float.POSITIVE_INFINITY
         var top = Float.POSITIVE_INFINITY
@@ -1088,7 +1092,7 @@ internal class HazeEffectNode(
   }
 
   internal fun invalidateVisualEffectLayerBounds() {
-    if (isDrawing) needsNextFrameLayerBounds = true
+    if (isDrawing) needsNextFrameLayerBounds = true else layerBoundsRefreshPending = true
     dirtyTracker += DirtyFields.VisualEffectLayerBounds
     invalidateVisualEffectDraw()
   }
@@ -1115,13 +1119,15 @@ internal class HazeEffectNode(
   }
 
   private fun onPostDraw() {
-    dirtyTracker = if (needsNextFrameLayerBounds) {
+    val carryLayerBounds = needsNextFrameLayerBounds
+    dirtyTracker = if (carryLayerBounds) {
       Bitmask(DirtyFields.VisualEffectLayerBounds)
     } else {
       Bitmask()
     }
     val invalidateNextFrame = needsNextFrameVisualEffectInvalidation
     resetPendingInvalidations()
+    layerBoundsRefreshPending = carryLayerBounds
     if (invalidateNextFrame) {
       coroutineScope.launch {
         yield()
@@ -1136,6 +1142,7 @@ internal class HazeEffectNode(
     needsVisualEffectInvalidation = false
     needsNextFrameVisualEffectInvalidation = false
     needsNextFrameLayerBounds = false
+    layerBoundsRefreshPending = false
     needsContentInvalidation = false
   }
 
