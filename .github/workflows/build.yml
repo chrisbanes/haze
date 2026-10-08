@@ -64,7 +64,7 @@ jobs:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
 
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v7
@@ -81,8 +81,10 @@ jobs:
             caches/build-cache-1
 
       - name: Assemble and check
+        timeout-minutes: 50
         run: >
           ./gradlew check assembleDebug :haze-screenshot-tests:verifyScreenshotMatrixJvm
+          --console=plain --init-script .github/ci-test-progress.init.gradle.kts
           -x :haze-screenshot-tests:testAndroidHostTest
           -Phaze.disableAppleTargets
           -Pandroidx.baselineprofile.skipgeneration
@@ -102,12 +104,13 @@ jobs:
           ./gradlew :haze:verifyDesktopWindowTests -Phaze.disableAppleTargets
 
       - name: Upload reports + Roborazzi outputs
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: linux-reports
           path: |
             **/build/reports/**
+            **/build/test-results/**
             **/build/outputs/roborazzi/**
             haze/build/test-results/desktopWindowTest/**
             haze/build/outputs/desktop-window-tests/**
@@ -117,7 +120,7 @@ jobs:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
 
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v7
@@ -134,8 +137,10 @@ jobs:
             caches/build-cache-1
 
       - name: Run screenshot tests
+        timeout-minutes: 50
         run: >
           ./gradlew :haze-screenshot-tests:verifyScreenshotMatrixAndroid
+          --console=plain --init-script .github/ci-test-progress.init.gradle.kts
           -Phaze.disableAppleTargets
           -Pandroidx.baselineprofile.skipgeneration
         env:
@@ -145,12 +150,13 @@ jobs:
           ORG_GRADLE_PROJECT_remoteBuildCachePush: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1') }}
 
       - name: Upload reports + Roborazzi outputs
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: haze-screenshot-android-reports
           path: |
             haze-screenshot-tests/build/reports/**
+            haze-screenshot-tests/build/test-results/**
             haze-screenshot-tests/build/outputs/roborazzi/**
 
   emulator_tests_matrix:
