@@ -502,6 +502,24 @@ class GlassInteractionRemovalTest : ContextTest() {
     }
   }
 
+  @Test
+  fun scaleOnlyRemovalWhileTransparent_restoredMaterialDraws() = runComposeUiTest {
+    val fixture = attach(baseStyle().then { pressed { animate(tween(1), tween(500)) { scale(0.9f) } } })
+    fixture.assertMaterialPixels(this)
+    val topology = checkNotNull(fixture.effect.interactionControllerForTest).renderTopology
+    mainClock.autoAdvance = false
+    replaceHidden(fixture, baseStyle())
+    mainClock.advanceTimeBy(600, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(fixture.effect.interactionControllerForTest).isNull()
+    assertThat(topology.hasOptics).isFalse()
+    assertThat(topology.hasLighting).isFalse()
+    runOnIdle { fixture.style.value = baseStyle() }
+    syncFrames()
+    assertThat(fixture.delegate.canDrawRetainedOutput()).isTrue()
+    fixture.assertMaterialPixels(this)
+  }
+
   private class RetainedBase(private val fixture: Fixture) {
     private val delegate = fixture.delegate
     private val layerSize = fixture.observer.layerSize

@@ -625,6 +625,7 @@ internal class GlassRuntimeEffect() :
     reconcileInteractionCompletion(context)
     if (alpha == 0f && !controller.hasRunningResponseAnimations) {
       (delegate as? RetainedOutputDelegate)?.releaseObsoleteInteractionOutput(interactionTopologySnapshot)
+      clearPreparedRenderCache()
     }
     context.invalidateDraw()
   }
