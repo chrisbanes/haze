@@ -306,6 +306,13 @@ class GlassInteractionExitSnapshotTest {
       }
     }
     compose.waitForIdle()
+    compose.waitUntil(timeoutMillis = 5_000) {
+      presentFrame()
+      compose.runOnIdle {
+        fixture.delegate.displayedImmutableInput != null && fixture.delegate.immutableInputOwnerCount == 1
+      }
+    }
+    presentFrame()
     compose.runOnIdle {
       consumers += "source" to checkNotNull(fixture.delegate.layers.source)
       consumers += "optical" to checkNotNull(fixture.delegate.layers.optical)

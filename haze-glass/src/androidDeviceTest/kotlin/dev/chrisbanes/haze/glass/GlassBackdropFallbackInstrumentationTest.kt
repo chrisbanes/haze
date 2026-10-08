@@ -3,6 +3,10 @@
 
 package dev.chrisbanes.haze.glass
 
+import android.graphics.Bitmap
+import android.os.Handler
+import android.os.Looper
+import android.view.PixelCopy
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -10,29 +14,34 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toPixelMap
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import androidx.test.filters.SdkSuppress
 import assertk.assertThat
+import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeFeatureFlags
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.roundToInt
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-@SdkSuppress(minSdkVersion = 33, maxSdkVersion = 36)
+@SdkSuppress(minSdkVersion = 33)
 @OptIn(ExperimentalTestApi::class, ExperimentalHazeApi::class)
 class GlassBackdropFallbackInstrumentationTest {
 
@@ -56,6 +65,7 @@ class GlassBackdropFallbackInstrumentationTest {
   fun unsupportedPlatform_usesSourcesFallback() {
     val fallbackState = HazeState()
     val effect = GlassRuntimeEffect()
+    var effectBounds = Rect.Zero
 
     composeTestRule.setContent {
       Box(Modifier.fillMaxSize().background(Color.White)) {
@@ -77,7 +87,7 @@ class GlassBackdropFallbackInstrumentationTest {
           Modifier
             .align(Alignment.Center)
             .size(width = 200.dp, height = 100.dp)
-            .testTag(EFFECT_TAG)
+            .onGloballyPositioned { effectBounds = it.boundsInWindow() }
             .hazeGlass(
               factory = HazeEffectFactory { effect },
               performanceMode = null,
@@ -112,28 +122,64 @@ class GlassBackdropFallbackInstrumentationTest {
     }
     composeTestRule.waitForIdle()
     composeTestRule.waitUntil(timeoutMillis = 5_000) {
-      composeTestRule.onNodeWithTag(EFFECT_TAG).captureToImage()
+      presentFrame()
       composeTestRule.runOnIdle {
         val delegate = effect.delegate as RuntimeShaderGlassDelegate
         delegate.displayedImmutableInput != null && delegate.immutableInputOwnerCount == 1
       }
     }
 
-    val pixels = composeTestRule.onNodeWithTag(EFFECT_TAG).captureToImage().toPixelMap()
-    val centerX = pixels.width / 2
-    val centerY = pixels.height / 2
-    val blackInterior = pixels[centerX - 60, centerY].red
-    val blackNearEdge = pixels[centerX - 3, centerY].red
-    val whiteNearEdge = pixels[centerX + 3, centerY].red
-    val whiteInterior = pixels[centerX + 60, centerY].red
+    presentFrame()
+    val pixels = copyEffect(effectBounds)
+    try {
+      val centerX = pixels.width / 2
+      val centerY = pixels.height / 2
+      val blackInterior = Color(pixels.getPixel(centerX - 60, centerY)).red
+      val blackNearEdge = Color(pixels.getPixel(centerX - 3, centerY)).red
+      val whiteNearEdge = Color(pixels.getPixel(centerX + 3, centerY)).red
+      val whiteInterior = Color(pixels.getPixel(centerX + 60, centerY)).red
 
-    assertThat(blackNearEdge - blackInterior, "Fallback softens the black side")
-      .isGreaterThan(0.05f)
-    assertThat(whiteInterior - whiteNearEdge, "Fallback softens the white side")
-      .isGreaterThan(0.05f)
+      assertThat(blackNearEdge - blackInterior, "Fallback softens the black side")
+        .isGreaterThan(0.05f)
+      assertThat(whiteInterior - whiteNearEdge, "Fallback softens the white side")
+        .isGreaterThan(0.05f)
+    } finally {
+      pixels.recycle()
+    }
   }
 
-  private companion object {
-    const val EFFECT_TAG = "effect"
+  private fun presentFrame() {
+    val latch = CountDownLatch(1)
+    composeTestRule.runOnUiThread {
+      val view = composeTestRule.activity.window.decorView
+      view.postOnAnimation {
+        view.invalidate()
+        view.postOnAnimation { latch.countDown() }
+      }
+    }
+    assertThat(latch.await(5, TimeUnit.SECONDS), "A following presentation frame arrived").isTrue()
+    composeTestRule.waitForIdle()
+  }
+
+  private fun copyEffect(bounds: Rect): Bitmap {
+    val rect = android.graphics.Rect(
+      bounds.left.roundToInt(),
+      bounds.top.roundToInt(),
+      bounds.right.roundToInt(),
+      bounds.bottom.roundToInt(),
+    )
+    assertThat(rect.width()).isGreaterThan(0)
+    assertThat(rect.height()).isGreaterThan(0)
+    val bitmap = Bitmap.createBitmap(rect.width(), rect.height(), Bitmap.Config.ARGB_8888)
+    val result = AtomicInteger(-1)
+    PixelCopy.request(composeTestRule.activity.window, rect, bitmap, { result.set(it) }, Handler(Looper.getMainLooper()))
+    try {
+      composeTestRule.waitUntil(timeoutMillis = 5_000) { result.get() != -1 }
+      assertThat(result.get()).isEqualTo(PixelCopy.SUCCESS)
+      return bitmap
+    } catch (failure: Throwable) {
+      bitmap.recycle()
+      throw failure
+    }
   }
 }

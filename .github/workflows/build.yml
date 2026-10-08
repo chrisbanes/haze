@@ -115,10 +115,18 @@ jobs:
             haze/build/test-results/desktopWindowTest/**
             haze/build/outputs/desktop-window-tests/**
 
-  screenshot_tests:
-    name: Screenshot tests (android)
+  screenshot_tests_matrix:
+    name: Screenshot tests (android, ${{ matrix.partition }})
     if: "!contains(github.event.head_commit.message, 'skip ci')"
 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - partition: depth-content
+            task: :haze-screenshot-tests:testAndroidHostTest
+          - partition: remaining
+            task: :haze-screenshot-tests:verifyScreenshotMatrixAndroid
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -139,8 +147,9 @@ jobs:
       - name: Run screenshot tests
         timeout-minutes: 50
         run: >
-          ./gradlew :haze-screenshot-tests:verifyScreenshotMatrixAndroid
+          ./gradlew ${{ matrix.task }}
           --console=plain --init-script .github/ci-test-progress.init.gradle.kts
+          -Phaze.androidScreenshotPartition=${{ matrix.partition }}
           -Phaze.disableAppleTargets
           -Pandroidx.baselineprofile.skipgeneration
         env:
@@ -153,11 +162,23 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: haze-screenshot-android-reports
+          name: haze-screenshot-android-reports-${{ matrix.partition }}
           path: |
             haze-screenshot-tests/build/reports/**
             haze-screenshot-tests/build/test-results/**
             haze-screenshot-tests/build/outputs/roborazzi/**
+
+  screenshot_tests:
+    name: Screenshot tests (android)
+    if: always() && !contains(github.event.head_commit.message, 'skip ci')
+    needs: screenshot_tests_matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check screenshot partitions
+        env:
+          MATRIX_RESULT: ${{ needs.screenshot_tests_matrix.result }}
+        run: test "$MATRIX_RESULT" = success
 
   emulator_tests_matrix:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
