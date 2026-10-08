@@ -65,9 +65,9 @@ class GlassCaptureLifetimeObservationTest {
     val qualification = arguments.getString("haze.physicalQualification") == "true"
     val emulator = Build.FINGERPRINT.contains("generic") || Build.MODEL.contains("sdk") ||
       Build.HARDWARE in setOf("ranchu", "goldfish") || Build.PRODUCT.contains("emulator")
-    check(!qualification || !emulator) { "Physical qualification explicitly rejects emulator execution" }
+    assertThat(!qualification || !emulator, "Physical qualification explicitly rejects emulator execution").isTrue()
     val identity = arguments.getString("haze.buildIdentity") ?: "unspecified"
-    check(!qualification || identity != "unspecified") { "Supply haze.buildIdentity with the tested source manifest digest" }
+    assertThat(!qualification || identity != "unspecified", "Supply haze.buildIdentity with the tested source manifest digest").isTrue()
     log("identity=$identity fingerprint=${Build.FINGERPRINT} hardware=${Build.HARDWARE} sdk=${Build.VERSION.SDK_INT} physicalRequested=$qualification diagnostic=true releaseBenchmark=false")
     val current = mutableStateOf<Session?>(null)
     var completedCycles = 0
@@ -124,7 +124,7 @@ class GlassCaptureLifetimeObservationTest {
     compose.runOnIdle { current.value = session }
     compose.waitUntil(10_000) { session.observer.installed && hasDisplayedInput(session.delegate) }
     compose.runOnIdle {
-      check(!expectCapture || ownerCount(session.delegate) != null) { "Candidate must expose immutable input ownership" }
+      assertThat(!expectCapture || ownerCount(session.delegate) != null, "Candidate must expose immutable input ownership").isTrue()
       ownerCount(session.delegate)?.let { assertThat(it).isGreaterThan(0) }
       val expected = expectCapture
       assertThat(session.observer.captureHookAvailable).isEqualTo(expected)
