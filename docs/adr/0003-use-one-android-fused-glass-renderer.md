@@ -101,6 +101,19 @@ capture-cadence policy; it preserves the fused output topology, not the earlier
 source-capture and allocation behavior. Capture completion requests presentation
 without advancing the input revision.
 
+Nested Glass inputs also need presentation freshness: completing a child effect
+can change the pixels seen by a consumer of its enclosing source without changing
+that source's recorded content. The core notifies observing consumers after
+presentation. Each delivery reads the current dependency graph and suppresses
+internal cyclic edges while allowing outside consumers to refresh.
+
+An observing source-backed effect nested inside a source uses a distinct preceding
+unclipped layer boundary. This keeps effect drawing and its invalidation in the
+same coordinator, preventing repeated source copy-on-write recording while still
+displaying completed captures. The boundary follows runtime capability and input
+changes, survives temporary source loss, and releases on detach. Other input and
+renderer paths retain their existing layout behaviour.
+
 On API 34 and newer, immutable input capture renders the cropped layer into a
 fresh `HardwareBuffer` through `HardwareBufferRenderer`. Publication requires a
 successful render result and a valid, completed fence. The wrapped image owns
@@ -115,33 +128,40 @@ renderer construction, submission and cleanup remain on the UI thread that owns
 the recorded input. Renderer cleanup retires traversal but does not itself
 establish GPU completion.
 
-This changes the capture operation, not the fused effect graph or invalidation
-policy. Physical qualification on a Pixel 8a running Android 17 supports this
-backend at 60 Hz for the measured scenarios. Each release benchmark used eight
-iterations with fixed-performance mode and thermal status zero. Steady nine-effect
-frame-overrun P90 was -1.60 ms versus baseline -8.89 ms; reversing build order
-produced -1.76 ms versus -8.86 ms. Source-update nine-effect overrun P90 was
--1.49 ms versus -4.92 ms. These are one-device measurements, not isolated GPU
-shader timings or a guarantee for other workloads.
+Physical qualification of the integrated implementation on a Pixel 8a running
+Android 17 supports this backend at 60 Hz for the measured scenarios. Each release
+benchmark used eight iterations with fixed-performance mode and thermal status
+zero. Steady nine-effect frame-overrun P90 was -2.70 ms versus baseline -8.26 ms;
+reversing build order produced -2.74 ms versus -8.37 ms. Source-update nine-effect
+overrun P90 was -2.51 ms versus -4.83 ms. These percentiles pool each method's
+measured frames. They are one-device observations, not isolated GPU shader timings
+or a guarantee for other workloads or every frame.
 
-The correctness change still costs CPU time and memory. Nine-effect CPU frame
-P90 was approximately 8.6-8.8 ms versus baseline 5.5-6.4 ms, leaving less deadline
-slack. Median sampled anonymous memory maxima increased by approximately 10 MiB;
-median sampled bitmap accounting increased by approximately 115-129 MiB. Those
-categories overlap and must not be added. Bitmap accounting repeatedly decreased
-within every measured window, and its peaks did not accumulate over eight
+The integrated candidate still costs CPU time and memory. Nine-effect CPU frame
+P90 was approximately 8.3-8.6 ms versus baseline 6.0-6.2 ms, leaving less deadline
+slack. CPU placement differed substantially, so this does not establish controlled
+CPU parity or isolate the whole difference to capture. Median sampled anonymous
+memory maxima were approximately 82-84 MiB versus baseline 70-72 MiB. Candidate
+median sampled bitmap maxima were approximately 204-253 MiB; sparse baseline
+bitmap-counter coverage prevents a reliable bitmap-memory difference. These
+categories overlap and must not be added. Bitmap accounting decreased within
+every candidate measured window, while sampled maxima fluctuated across the eight
 iterations. GPU counters contained only a pre-window sample, so they establish
 neither peak GPU usage nor complete driver reclamation.
 
 The physical lifetime fixture released all 36 tracked consumers across three
 cycles and reached zero logical input owners at clear, trim and detach. Process
-PSS settled naturally to approximately 128 MiB five seconds after activity close,
-remaining approximately 54 MiB above the cold baseline. The render budget bounds
+PSS fell naturally to approximately 128 MiB five seconds after activity close,
+remaining approximately 55 MiB above the cold baseline; the matched baseline build
+reached approximately 86 MiB, 13 MiB above cold. Both builds' PSS rose across the
+three cycles, so logical release does not establish nonaccumulating process memory
+or leak freedom. The render budget bounds
 planned layer pixels, not total process memory or images awaiting platform
 reclamation. These observations support a bounded measured correctness tradeoff;
 they do not establish return to cold memory or complete native reclamation.
-Build identities, run order, trace provenance and qualification limits are
-recorded in [issue #1373](https://github.com/chrisbanes/haze/issues/1373).
+Build identities, run order, trace provenance and qualification limits accompany
+the [full comparison](../benchmark-results.md#glass-immutable-input-capture) and
+[issue #1373](https://github.com/chrisbanes/haze/issues/1373).
 
 The earlier measurements and rejection of a separate cached output renderer
 remain applicable to the measured alternatives.

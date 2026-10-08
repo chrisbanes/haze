@@ -145,6 +145,97 @@ ranking reversed between passes, so its average does not establish a consistent 
     Raw JSON, benchmark messages, and traces are retained locally under
     `internal/benchmark/build/pixel8a-2026-09-12-full-backdrop-2pass/`.
 
+<a id="glass-immutable-input-capture"></a>
+
+## Glass immutable input capture
+
+This comparison measures source-backed Android Glass with completed immutable input
+images against recorded-layer replay. Immutable input preserves the displayed material
+when source selection is lost or another consumer recaptures mutable descendants.
+The [renderer decision](adr/0003-use-one-android-fused-glass-renderer.md) records the
+correctness contract and its capture/allocation trade-off.
+
+The Pixel 8a ran Android 17 (full SDK 37.2) at 60 Hz with fixed-performance mode
+and normal CPU scheduling. Each method ran eight measured iterations. Values are
+**P90 pooled across all measured frames within each method**, calculated before rounding.
+
+| Workload and build order | Recorded input CPU P90 (ms) | Immutable input CPU P90 (ms) | Recorded input overrun P90 (ms) | Immutable input overrun P90 (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| Stable, one effect; recorded then immutable | 4.36 | 5.26 | -10.07 | -7.38 |
+| Changing source, one effect; immutable then recorded | 4.83 | 5.37 | -6.78 | -7.34 |
+| Stable, nine effects; recorded then immutable | 6.20 | 8.32 | -8.26 | -2.70 |
+| Changing source, nine effects; immutable then recorded | 5.99 | 8.55 | -4.83 | -2.51 |
+| Stable, nine effects; immutable then recorded | 6.09 | 8.60 | -8.37 | -2.74 |
+
+Both nine-effect steady runs and the changing-source run retained negative P90 overrun.
+Every immutable-input iteration also had negative individual P90; the highest was -1.31 ms.
+Some measured frames still finished late. These observations support deadline headroom for
+this configuration, with higher CPU cost and less slack, rather than zero jank or parity.
+
+CPU placement limits attribution. The first steady comparison ran all eight recorded-input
+iterations predominantly on the low-capacity cluster and all eight immutable-input iterations
+predominantly on higher-capacity cores. The reverse recorded-input run had only one iteration
+in the latter group. Changing-source nine-effect coverage overlapped more closely: six
+recorded-input and eight immutable-input iterations were in the higher-capacity group, with
+CPU P90 5.96 ms versus 8.55 ms. These broad groups do not isolate scheduling or GPU cost.
+Immutable-input nine-effect per-iteration CPU P90 ranged from 7.52 to 9.32 ms across the runs.
+
+Median sampled anonymous-memory maxima were approximately 82–84 MiB for immutable input
+versus 70–72 MiB for recorded input. Immutable-input median sampled bitmap maxima were
+approximately 204–253 MiB. Recorded-input bitmap counters appeared in only two or three
+of each run's eight windows, so they do not support a reliable bitmap-memory difference.
+Bitmap accounting decreased within every immutable-input window; sampled maxima fluctuated
+across iterations. These categories overlap and must not be added. GPU accounting had only
+a carried-in sample per window, which establishes neither measured-window peak nor reclamation.
+
+An identical supplemental lifetime fixture passed on both builds, releasing 36 tracked
+consumers over three cycles. Immutable input reached zero logical owners at clear, trim and
+detach. Five-second post-close PSS was approximately 128 MiB, 55 MiB above cold, versus
+86 MiB and 13 MiB above cold for recorded input. Both builds' PSS rose across the three
+cycles. This diagnostic fixture supports logical release; it does not establish leak freedom,
+return to cold memory or complete native reclamation, and is separate from release frame timings.
+
+??? info "Measurement details"
+
+    The recorded-input baseline was main commit `8602c039`. The integrated candidate retained
+    PR #1383 at `24767614`, incorporated main `96ac22b5`, and included the nested-source
+    presentation repair. Its qualified source manifest SHA256 was
+    `0cbef62a3ba28f060b8fd02abae5a121d08880d1b85f5d639b071dae56877d23`.
+    Frozen target APK hashes were
+    `c0e431f54bf50d87558f2da334dd900b95619fd5cb6ea96090886bfbe4dc0433` (recorded) and
+    `c6da485b201cd3b9396a2be9917abe892c480a2e2446a3bde36a74cd5f21075b` (immutable).
+    The common runner hash was
+    `dd021de434895579dbc080d238a4f1266e79dc49c0536f2753f5562f0d625d87`.
+
+    Android build `CP41.260831.007.A3` was plugged in at 100% charge, awake and unlocked.
+    Thermal status was 0 before every method; battery temperature ranged from 27.4°C to
+    33.0°C across the comparison. Brightness was held at setting 12 with automatic mode
+    disabled. CPU affinity was not requested. Placement groups classify each thread by
+    whether at least half its running time was on CPUs 0–3 (capacity 182), compared with
+    CPUs 4–8 (capacities 725/1024), strictly inside each measured interval. All iterations
+    are retained, including placement groups without comparable coverage.
+
+    Ten explicit method invocations produced 80 measured iterations and 80 verified nonempty
+    Perfetto traces, with matching passing XML and JSON method identities. Before the paired
+    comparison, another eight baseline iterations were preserved separately: the Google app
+    respawned a Chromium producer after force-stop and caused 20-second Perfetto startup
+    timeouts. Its temporary-disable fallback was applied before restarting the comparison;
+    that restart was decided before candidate results were available. The Google app and
+    original refresh, wake and automatic-brightness settings were restored afterwards.
+
+    The supplemental fixture used identical source SHA256
+    `3e0deed58306c35a7b59e35f0f5d727272748673d3b458e8120cdc8a06b949ea`.
+    Unavailable baseline capture/owner hooks were reported as null. It used natural 250 ms,
+    one-second and five-second post-close observations without forced GC, bitmap recycling
+    or sampler-held consumer references. It measures debug/test process memory and
+    owner-thread queue timing, not release frame cost or exact bitmap reclamation.
+
+    Raw XML, JSON, traces, per-iteration placement/capture CSVs, lifetime observations and
+    frozen APK provenance are retained locally under
+    `build/agent-checkpoints/1373-capture-attribution-20261007/r12-measured/`,
+    `r12-lifetime/` and `r12-release-builds/`. The current qualification and delivery state
+    is recorded in [issue #1373](https://github.com/chrisbanes/haze/issues/1373).
+
 <a id="glass-fixed-quality"></a>
 
 ## Glass fixed quality
