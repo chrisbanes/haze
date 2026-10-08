@@ -165,6 +165,101 @@ class HazeBackdropFallbackTest {
   }
 
   @Test
+  fun declinedFrameAfterNativeDraw_resumesNativeWithoutFallback() = runComposeUiTest {
+    val state = HazeState()
+    val nativeRenderer = TestBackdropRenderer()
+    val effectRenderer = DecliningBackdropRenderer()
+    val invalidation = mutableStateOf(0)
+    val previousFlag = HazeFeatureFlags.isPlatformBackdropEnabled
+    HazeFeatureFlags.isPlatformBackdropEnabled = true
+    try {
+      setContent {
+        val lifecycle = LocalLifecycleOwner.current.lifecycle
+        Box(Modifier.size(100.dp)) {
+          Box(
+            Modifier
+              .fillMaxSize()
+              .hazeSource(state)
+              .background(Color.Red),
+          )
+          Box(
+            Modifier
+              .fillMaxSize()
+              .drawWithContent {
+                invalidation.value
+                drawContent()
+              }
+              .then(
+                FaultInjectedEffectElement(
+                  input = HazeInput.Backdrop(state),
+                  lifecycle = lifecycle,
+                  createRenderer = { nativeRenderer },
+                  renderer = effectRenderer,
+                ),
+              ),
+          )
+        }
+      }
+      waitForIdle()
+      val nativeDraws = nativeRenderer.drawCalls
+      assertThat(nativeDraws).isGreaterThan(0)
+
+      effectRenderer.declines = true
+      invalidation.value++
+      waitForIdle()
+      assertThat(nativeRenderer.drawCalls).isEqualTo(nativeDraws)
+
+      effectRenderer.declines = false
+      invalidation.value++
+      waitForIdle()
+      assertThat(nativeRenderer.drawCalls).isGreaterThan(nativeDraws)
+      assertThat(nativeRenderer.releaseCalls).isEqualTo(0)
+      assertThat(state.areas.single().captureConsumerCount).isEqualTo(0)
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousFlag
+    }
+  }
+
+  @Test
+  fun declinedFirstFrameWithoutFallback_retriesNative() = runComposeUiTest {
+    val nativeRenderer = TestBackdropRenderer()
+    val effectRenderer = DecliningBackdropRenderer().apply { declines = true }
+    val invalidation = mutableStateOf(0)
+    val previousFlag = HazeFeatureFlags.isPlatformBackdropEnabled
+    HazeFeatureFlags.isPlatformBackdropEnabled = true
+    try {
+      setContent {
+        val lifecycle = LocalLifecycleOwner.current.lifecycle
+        Box(
+          Modifier
+            .size(100.dp)
+            .drawWithContent {
+              invalidation.value
+              drawContent()
+            }
+            .then(
+              FaultInjectedEffectElement(
+                input = HazeInput.Backdrop(),
+                lifecycle = lifecycle,
+                createRenderer = { nativeRenderer },
+                renderer = effectRenderer,
+              ),
+            ),
+        )
+      }
+      waitForIdle()
+      assertThat(nativeRenderer.drawCalls).isEqualTo(0)
+
+      effectRenderer.declines = false
+      invalidation.value++
+      waitForIdle()
+      assertThat(nativeRenderer.drawCalls).isGreaterThan(0)
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousFlag
+    }
+  }
+
+  @Test
   fun preparationFailure_activatesStickyFallbackAndDemandsCapture() = runComposeUiTest {
     val state = HazeState()
     var creationAttempts = 0
@@ -284,6 +379,17 @@ private class HealthyBackdropRenderer :
 
   override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit): HazeEffectBackdrop =
     HazeEffectBackdrop(ImageFilter.makeBlur(0f, 0f, FilterTileMode.CLAMP))
+}
+
+private class DecliningBackdropRenderer :
+  HazeEffectRenderer<Unit>,
+  HazeEffectRendererBackdrop<Unit> {
+  var declines = false
+
+  override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
+
+  override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit): HazeEffectBackdrop? =
+    if (declines) null else HazeEffectBackdrop(ImageFilter.makeBlur(0f, 0f, FilterTileMode.CLAMP))
 }
 
 private class TestBackdropRenderer : HazeBackdropRenderer {
