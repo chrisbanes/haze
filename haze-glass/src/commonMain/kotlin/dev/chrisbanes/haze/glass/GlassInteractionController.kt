@@ -668,7 +668,7 @@ private class AnimatedFloatChannel(
       }
       if (revision == workRevision) {
         hasPendingAnimation = false
-        invalidateDraw()
+        // The final value was drawn by the last animation frame; the owner decides on any redraw.
         onCompleted()
       }
     }

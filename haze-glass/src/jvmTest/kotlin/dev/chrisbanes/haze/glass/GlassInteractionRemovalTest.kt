@@ -38,6 +38,7 @@ import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectDrawScope
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeEffectRendererBackdrop
@@ -521,6 +522,62 @@ class GlassInteractionRemovalTest : ContextTest() {
     fixture.assertMaterialPixels(this)
   }
 
+  @Test
+  fun pressAndReleaseWithDeclaredResponse_settlesWithoutRedrawingUnchangedState() = runComposeUiTest {
+    val effect = GlassRuntimeEffect()
+    val renderer = InputObservingGlassRenderer(effect)
+    val state = HazeState()
+    val source = MutableInteractionSource()
+    setContent {
+      Box(Modifier.size(120.dp)) {
+        Box(Modifier.fillMaxSize().hazeSource(state).background(Color.Red))
+        Box(
+          Modifier.fillMaxSize().hazeGlass(
+            factory = HazeEffectFactory { renderer },
+            expandLayerBounds = true,
+            interactionSource = source,
+            input = HazeInput.Sources(state),
+            style = activeStyle(),
+            performanceMode = HazePerformanceMode.Quality,
+            interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+          ),
+        )
+      }
+    }
+    waitForIdle()
+    mainClock.autoAdvance = false
+    val pressDraw = renderer.drawnStates.size
+    val press = PressInteraction.Press(Offset(40f, 40f))
+    val scope = TestScope()
+    scope.launch { source.emit(press) }
+    scope.testScheduler.runCurrent()
+    repeat(10) {
+      mainClock.advanceTimeByFrame()
+      waitForIdle()
+    }
+    val controller = checkNotNull(effect.interactionControllerForTest)
+    assertThat(controller.hasRunningResponseAnimations).isFalse()
+    val topology = controller.renderTopology
+    val pressed = controller.renderState
+    val entryDraws = renderer.drawnStates.drop(pressDraw)
+    assertThat(entryDraws.count { it == pressed }, "pressed draws in $entryDraws").isEqualTo(1)
+    val releaseDraw = renderer.drawnStates.size
+    scope.launch { source.emit(PressInteraction.Release(press)) }
+    scope.testScheduler.runCurrent()
+    repeat(60) {
+      mainClock.advanceTimeByFrame()
+      waitForIdle()
+    }
+    assertThat(controller.hasRunningResponseAnimations).isFalse()
+    assertThat(effect.interactionControllerForTest).isSameInstanceAs(controller)
+    assertThat(controller.renderTopology).isSameInstanceAs(topology)
+    val settled = controller.renderState
+    assertThat(settled.lightingIntensity).isEqualTo(0f)
+    val exitDraws = renderer.drawnStates.drop(releaseDraw)
+    // The exit's last animation frame draws the settled state; completion must not draw it again.
+    assertThat(exitDraws.count { it == settled }, "settled draws in $exitDraws").isEqualTo(1)
+  }
+
   private class RetainedBase(private val fixture: Fixture) {
     private val delegate = fixture.delegate
     private val layerSize = fixture.observer.layerSize
@@ -745,6 +802,12 @@ class GlassInteractionRemovalTest : ContextTest() {
     val layerSize get() = inputScope.layerSize
     val hasDrawableInput get() = inputScope.hasDrawableInput
     val inputSnapshot get() = inputScope.inputSnapshot
+    val drawnStates = mutableListOf<GlassInteractionRenderState>()
+
+    override fun HazeEffectDrawScope.draw(style: GlassNodeConfiguration) {
+      drawnStates += effect.currentInteractionState
+      with(effect) { draw(style) }
+    }
 
     override fun HazeEffectRuntimeDrawScope.prepareDraw(style: GlassNodeConfiguration) {
       inputScope = this

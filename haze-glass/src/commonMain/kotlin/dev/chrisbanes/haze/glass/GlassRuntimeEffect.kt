@@ -179,6 +179,7 @@ internal class GlassRuntimeEffect() :
 
   private var interactionController: GlassInteractionController? = null
   private var interactionRefractionMaximum = 1f
+  private var reconciledInteractionTopology: GlassInteractionTopology? = null
 
   internal val interactionControllerForTest: GlassInteractionController?
     get() = interactionController
@@ -622,26 +623,34 @@ internal class GlassRuntimeEffect() :
   private fun onInteractionResponseCompleted(controller: GlassInteractionController) {
     val context = attachedContext ?: return
     if (!isAttached || controller !== interactionController) return
-    reconcileInteractionCompletion(context)
+    // A settle redraws only when the topology changed (stages to release, bounds), the controller
+    // was disposed (invalidated in reconcile), or hidden output was released.
+    var redraw = reconcileInteractionCompletion(context)
     if (alpha == 0f && !controller.hasRunningResponseAnimations) {
       (delegate as? RetainedOutputDelegate)?.releaseObsoleteInteractionOutput(interactionTopologySnapshot)
       clearPreparedRenderCache()
+      redraw = true
     }
-    context.invalidateDraw()
+    if (redraw) context.invalidateDraw()
   }
 
-  private fun reconcileInteractionCompletion(context: HazeEffectLifecycleScope) {
-    val maximum = interactionTopologySnapshot.maxRefractionMultiplier
+  /** Returns whether the interaction topology changed since the last reconcile. */
+  private fun reconcileInteractionCompletion(context: HazeEffectLifecycleScope): Boolean {
+    val topology = interactionTopologySnapshot
+    val topologyChanged = topology !== reconciledInteractionTopology
+    reconciledInteractionTopology = topology
+    val maximum = topology.maxRefractionMultiplier
     if (maximum != interactionRefractionMaximum) {
       interactionRefractionMaximum = maximum
       context.invalidateLayerBounds()
     }
-    val controller = interactionController ?: return
+    val controller = interactionController ?: return topologyChanged
     if (!hasDeclaredInteractions && !controller.hasPendingResponseWork) {
       controller.dispose()
       interactionController = null
       context.invalidateDraw()
     }
+    return topologyChanged
   }
 
   private fun systemMotionScale(context: HazeEffectLifecycleScope): Float {
