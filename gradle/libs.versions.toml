@@ -8,7 +8,7 @@ androidx-lifecycle = "2.11.0"
 androidx-media3 = "1.11.1"
 androidx-test-ext-junit = "1.3.0"
 assertk = "0.28.1"
-coil = "3.6.2"
+coil = "3.6.3"
 compose-multiplatform = "1.12.1"
 # Material3 does not publish every Compose Multiplatform version.
 compose-material3 = "1.9.0"
@@ -24,7 +24,7 @@ metalava = "0.5.1"
 navigation-compose = "2.9.2"
 robolectric = "4.17"
 roborazzi = "1.76.0"
-spotless = "8.10.2"
+spotless = "8.10.3"
 leakcanary = "2.14"
 
 [plugins]
