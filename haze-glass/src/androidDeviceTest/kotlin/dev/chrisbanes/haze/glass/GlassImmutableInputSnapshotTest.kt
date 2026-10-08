@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -131,6 +132,15 @@ class GlassImmutableInputSnapshotTest {
 
   @Test fun productionSnapshot_keeperRecapture() = checkTransition(keeperRecapture = true)
 
+  @Test fun productionSnapshot_pausedClockKeeperRecapture() {
+    val autoAdvance = compose.mainClock.autoAdvance
+    try {
+      checkTransition(keeperRecapture = true, pausedClock = true)
+    } finally {
+      compose.mainClock.autoAdvance = autoAdvance
+    }
+  }
+
   @Test fun clearWhenUnavailable_actualDetachClearsMaterial() {
     val fixture = showFixture(120.dp, clear = true)
     assertMaterial(materialPixels(fixture, "clear initial"))
@@ -165,7 +175,7 @@ class GlassImmutableInputSnapshotTest {
   }
 
   @Test fun delayedCapture_geometryChangeKeepsCopiedPixelsThenRejectsIncompatibleCompletion() {
-    val fixture = showFixture(120.dp)
+    val fixture = showFixture(120.dp, keeperSize = 180.dp)
     val initial = materialPixels(fixture, "delayed geometry initial")
     assertMaterial(initial)
     val delegate = fixture.delegate
@@ -209,15 +219,20 @@ class GlassImmutableInputSnapshotTest {
       compose.runOnIdle { delegate.captureImmutableInput = originalCapture }
       completion.complete(Unit)
       compose.waitForIdle()
-      presentFrame()
+      awaitSettledInputs(fixture)
       val current = copyWindow()
       try {
         val bounds = fixture.materialBounds
         val edge = current.color((bounds.right - 5).roundToInt(), bounds.center.y.roundToInt())
-        assertThat(abs(edge.blue - initial.material.blue), "New capture covers the resized target with the same tint")
-          .isLessThan(0.05f)
+        val referenceBounds = fixture.keeperBounds
+        val referenceEdge = current.color((referenceBounds.right - 5).roundToInt(), referenceBounds.center.y.roundToInt())
+        log("delayed geometry current bounds=$bounds edge=$edge referenceBounds=$referenceBounds referenceEdge=$referenceEdge sourceCount=${delegate.sourceRecordCount}")
+        assertThat(bounds.size).isEqualTo(referenceBounds.size)
+        // Regular-style lighting varies between the old center and the resized edge.
+        assertSameColor(edge, referenceEdge, "Resized capture matches independent same-geometry material")
+        assertThat(edge.blue, "New material covers the previously plain region")
+          .isGreaterThan(current.color(fixture.controlBounds).blue + 0.2f)
         assertThat(edge.green).isGreaterThan(initial.material.green + 0.2f)
-        log("delayed geometry current bounds=$bounds edge=$edge sourceCount=${delegate.sourceRecordCount}")
       } finally {
         current.recycle()
       }
@@ -244,6 +259,7 @@ class GlassImmutableInputSnapshotTest {
     presentFrame()
     val baseline = copyWindow()
     val delegate = fixture.delegate
+    awaitSettledInputs(fixture)
     val initial = checkNotNull(delegate.displayedImmutableInput)
     val heldCoordinates = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
     val originalCapture = delegate.captureImmutableInput
@@ -379,8 +395,8 @@ class GlassImmutableInputSnapshotTest {
     assertSameColor(current.material, current.keeper, "Both current consumers see descendant changes")
   }
 
-  private fun checkTransition(keeperRecapture: Boolean) {
-    val fixture = showFixture(120.dp)
+  private fun checkTransition(keeperRecapture: Boolean, pausedClock: Boolean = false) {
+    val fixture = showFixture(120.dp, directSource = pausedClock)
     val mode = "production keeper=$keeperRecapture"
     val initial = materialPixels(fixture, "$mode initial")
     assertMaterial(initial)
@@ -404,12 +420,38 @@ class GlassImmutableInputSnapshotTest {
     val sourceCount = fixture.delegate.sourceRecordCount
     val geometry = fixture.observer.scope.layerSize
     val optical = fixture.delegate.layers.optical
-    mutateAndPresent { fixture.style.value = fixture.base.then { alpha(0f) } }
-    mutateAndPresent {
+    if (pausedClock) compose.mainClock.autoAdvance = false
+    fun update(block: () -> Unit) {
+      if (!pausedClock) {
+        mutateAndPresent(block)
+        return
+      }
+      compose.runOnIdle(block)
+      repeat(2) {
+        compose.mainClock.advanceTimeByFrame()
+        compose.waitForIdle()
+      }
+      // Native presentation frames service asynchronous capture without advancing animation time.
+      compose.waitUntil(timeoutMillis = 5_000) {
+        presentFrame()
+        compose.runOnIdle {
+          val keeper = fixture.keeperObserver.effect.delegate as RuntimeShaderGlassDelegate
+          keeper.immutableInputOwnerCount == 1 &&
+            fixture.keeperObserver.scope.inputSnapshot == keeper.lastSuccessfulSourceSnapshot?.inputSnapshot
+        }
+      }
+    }
+    update { fixture.style.value = fixture.base.then { alpha(0f) } }
+    val sourceRecords = fixture.directSourceRecords.get()
+    update {
       fixture.selected.value = false
       if (keeperRecapture) fixture.sourceColor.value = Color.Green else fixture.attached.value = false
     }
     compose.runOnIdle {
+      if (pausedClock) {
+        assertThat(fixture.directSourceRecords.get(), "Direct source is rerecorded during the green update")
+          .isGreaterThan(sourceRecords)
+      }
       assertThat(fixture.observer.hasDrawableInput).isFalse()
       assertThat(fixture.observer.scope.inputSnapshot).isNull()
       assertThat(fixture.keeperObserver.hasDrawableInput).isEqualTo(keeperRecapture)
@@ -423,7 +465,7 @@ class GlassImmutableInputSnapshotTest {
       assertThat(fixture.delegate.sourceRecordCount).isEqualTo(sourceCount)
       assertThat(fixture.observer.scope.layerSize).isEqualTo(geometry)
     }
-    mutateAndPresent { fixture.style.value = fixture.base }
+    update { fixture.style.value = fixture.base }
     val restored = materialPixels(fixture, "$mode restored")
     compose.runOnIdle {
       assertThat(fixture.observer.hasDrawableInput).isFalse()
@@ -613,7 +655,7 @@ class GlassImmutableInputSnapshotTest {
     }
   }
 
-  private fun showFixture(materialSize: Dp, clear: Boolean = false, lazy: Boolean = false, patterned: Boolean = false, initialScale: Float = 1f, budget: Boolean = false): Fixture {
+  private fun showFixture(materialSize: Dp, clear: Boolean = false, lazy: Boolean = false, patterned: Boolean = false, initialScale: Float = 1f, budget: Boolean = false, keeperSize: Dp = materialSize, directSource: Boolean = false): Fixture {
     val fixture = Fixture(materialSize, clear, budget)
     fixture.performanceMode.value = if (initialScale == 1f) HazePerformanceMode.Quality else HazePerformanceMode.Performance
     if (budget) {
@@ -637,7 +679,17 @@ class GlassImmutableInputSnapshotTest {
       Box(Modifier.fillMaxSize().then(if (budget) Modifier.background(fixture.sourceColor.value) else Modifier)) {
         Box(
           (if (budget) Modifier.align(Alignment.TopStart).offset(x = 200.dp, y = 200.dp).requiredSize(materialSize) else Modifier.fillMaxSize()).then(if (fixture.attached.value) Modifier.hazeSource(fixture.state) else Modifier)
-            .background(Color.White),
+            .then(
+              if (directSource) {
+                Modifier.drawWithContent {
+                  fixture.directSourceRecords.incrementAndGet()
+                  drawContent()
+                }
+              } else {
+                Modifier
+              },
+            )
+            .background(if (directSource) fixture.sourceColor.value else Color.White),
         ) {
           if (patterned) {
             Canvas(Modifier.fillMaxSize()) {
@@ -654,7 +706,7 @@ class GlassImmutableInputSnapshotTest {
               item { Box(Modifier.fillParentMaxWidth().height(1200.dp).background(Color.Red)) }
               item { Box(Modifier.fillParentMaxWidth().height(1200.dp).background(Color.Green)) }
             }
-          } else {
+          } else if (!directSource) {
             Box(
               Modifier.fillMaxSize().graphicsLayer {
                 alpha = fixture.childAlpha.value
@@ -664,7 +716,7 @@ class GlassImmutableInputSnapshotTest {
           }
         }
         Box(
-          Modifier.align(Alignment.BottomCenter).size(if (budget) 120.dp else materialSize)
+          Modifier.align(Alignment.BottomCenter).size(if (budget) 120.dp else keeperSize)
             .onGloballyPositioned { fixture.keeperBounds = it.boundsInWindow() }
             .hazeGlass(
               factory = fixture.keeperFactory,
@@ -707,11 +759,23 @@ class GlassImmutableInputSnapshotTest {
       }
     }
     compose.waitForIdle()
+    awaitSettledInputs(fixture)
     compose.runOnIdle {
       consumers += "source" to checkNotNull(fixture.delegate.layers.source)
       consumers += "optical" to checkNotNull(fixture.delegate.layers.optical)
     }
     return fixture
+  }
+
+  private fun awaitSettledInputs(fixture: Fixture) {
+    compose.waitUntil(timeoutMillis = 5_000) {
+      presentFrame()
+      compose.runOnIdle {
+        listOf(fixture.delegate, fixture.keeperObserver.effect.delegate as RuntimeShaderGlassDelegate).all {
+          it.displayedImmutableInput != null && it.immutableInputOwnerCount == 1
+        }
+      }
+    }
   }
 
   private fun mutateAndPresent(block: () -> Unit) {
@@ -843,6 +907,7 @@ class GlassImmutableInputSnapshotTest {
     }
     val style = mutableStateOf(if (budget) budgetBase else base)
     var materialBounds = Rect.Zero
+    val directSourceRecords = AtomicInteger()
     var keeperBounds = Rect.Zero
     var controlBounds = Rect.Zero
     val delegate get() = effect.delegate as RuntimeShaderGlassDelegate

@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
@@ -32,6 +34,10 @@ kotlin {
 
     androidMain {
       dependencies {
+        implementation(projects.haze)
+        implementation(projects.hazeGlass)
+        implementation(projects.hazeUtils)
+
         implementation(libs.androidx.test.ext.junit)
         // Compose's older transitive Espresso still calls InputManager.getInstance on API 37.
         implementation(libs.androidx.test.espresso.core)
@@ -66,5 +72,20 @@ kotlin {
         implementation(libs.assertk)
       }
     }
+  }
+}
+
+// Android test support observes existing modifier-node capture ownership, without production hooks.
+tasks.withType<KotlinCompile>().configureEach {
+  if (name == "compileAndroidMain") {
+    compilerOptions.freeCompilerArgs.add(
+      libraries.elements.map { classpath ->
+        "-Xfriend-paths=" + classpath.map { it.asFile }.filter {
+          val path = it.invariantSeparatorsPath
+          path.contains("/haze/build/") || path.contains("/haze-glass/") ||
+            it.name.contains("ui-")
+        }.joinToString(",") { it.absolutePath }
+      },
+    )
   }
 }

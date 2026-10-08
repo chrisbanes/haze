@@ -22,6 +22,7 @@ import androidx.test.filters.SdkSuppress
 import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeFeatureFlags
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
@@ -54,6 +55,7 @@ class GlassBackdropFallbackInstrumentationTest {
   @Test
   fun unsupportedPlatform_usesSourcesFallback() {
     val fallbackState = HazeState()
+    val effect = GlassRuntimeEffect()
 
     composeTestRule.setContent {
       Box(Modifier.fillMaxSize().background(Color.White)) {
@@ -77,6 +79,10 @@ class GlassBackdropFallbackInstrumentationTest {
             .size(width = 200.dp, height = 100.dp)
             .testTag(EFFECT_TAG)
             .hazeGlass(
+              factory = HazeEffectFactory { effect },
+              performanceMode = null,
+              expandLayerBounds = true,
+              interactionSource = null,
               input = HazeInput.Backdrop(fallbackState),
               style = GlassStyle.regular.then {
                 optics(
@@ -105,6 +111,13 @@ class GlassBackdropFallbackInstrumentationTest {
       }
     }
     composeTestRule.waitForIdle()
+    composeTestRule.waitUntil(timeoutMillis = 5_000) {
+      composeTestRule.onNodeWithTag(EFFECT_TAG).captureToImage()
+      composeTestRule.runOnIdle {
+        val delegate = effect.delegate as RuntimeShaderGlassDelegate
+        delegate.displayedImmutableInput != null && delegate.immutableInputOwnerCount == 1
+      }
+    }
 
     val pixels = composeTestRule.onNodeWithTag(EFFECT_TAG).captureToImage().toPixelMap()
     val centerX = pixels.width / 2

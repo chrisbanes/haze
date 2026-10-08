@@ -139,6 +139,11 @@ class GlassInteractionExitSnapshotTest {
     val delegate = fixture.delegate
     val source = checkNotNull(delegate.layers.source)
     val optical = checkNotNull(delegate.layers.optical)
+    // A visible first image can still have a replacement capture pending on a slower device.
+    compose.waitUntil(timeoutMillis = 5_000) {
+      presentFrame()
+      compose.runOnIdle { delegate.displayedImmutableInput != null && delegate.immutableInputOwnerCount == 1 }
+    }
     val image = checkNotNull(delegate.displayedImmutableInput)
     val records = delegate.sourceRecordCount
     val lighting = delegate.layers.interactionLighting
