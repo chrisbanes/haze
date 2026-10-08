@@ -5,9 +5,6 @@ package dev.chrisbanes.haze.blur
 
 import androidx.collection.LruCache
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
@@ -15,7 +12,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
-import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.HazeEffectBackdrop
 import dev.chrisbanes.haze.HazeEffectDrawScope
 import dev.chrisbanes.haze.HazeEffectLayoutScope
@@ -52,7 +48,8 @@ internal class BlurVisualEffect :
   internal val renderEffectCache =
     LruCache<RenderEffectCacheKey, PlatformRenderEffect>(maxSize = 50)
 
-  internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
+  /** Whether the resolved style changed since the last draw. */
+  internal var styleChanged: Boolean = false
     private set
 
   private var resolvedStyle: ResolvedHazeBlurStyle =
@@ -99,7 +96,7 @@ internal class BlurVisualEffect :
       scope.invalidateDraw()
     }
     compositionLocalStyle = scope.currentValueOf(LocalHazeBlurStyle)
-    if (dirtyTracker.any(BlurDirtyFields.InvalidateFlags)) {
+    if (styleChanged) {
       needsDelegateSelection = true
       if (needsLayerBoundsInvalidation) {
         needsLayerBoundsInvalidation = false
@@ -133,13 +130,13 @@ internal class BlurVisualEffect :
         alpha = alpha,
       )
     } finally {
-      resetDirtyTracker()
+      styleChanged = false
     }
   }
 
   override fun shouldPrepareDraw(style: BlurConfiguration): Boolean {
     if (alpha != 0f) return true
-    resetDirtyTracker()
+    styleChanged = false
     return false
   }
 
@@ -151,7 +148,7 @@ internal class BlurVisualEffect :
         with(delegate) { draw(runtimeScope) }
       }
     } finally {
-      resetDirtyTracker()
+      styleChanged = false
     }
   }
 
@@ -184,10 +181,6 @@ internal class BlurVisualEffect :
 
   override fun dispose() {
     detach()
-  }
-
-  private fun resetDirtyTracker() {
-    dirtyTracker = Bitmask()
   }
 
   private fun DrawScope.selectDelegateForDraw(context: HazeEffectRuntimeDrawScope) {
@@ -259,33 +252,14 @@ internal class BlurVisualEffect :
     old: ResolvedHazeBlurStyle,
     new: ResolvedHazeBlurStyle,
   ) {
-    if (old.blurEnabled != new.blurEnabled) dirtyTracker += BlurDirtyFields.BlurEnabled
-    if (old.blurRadius != new.blurRadius) {
-      dirtyTracker += BlurDirtyFields.BlurRadius
+    styleChanged = true
+    if (
+      old.blurRadius != new.blurRadius ||
+      old.backgroundColor.prefersClipToAreaBounds() !=
+      new.backgroundColor.prefersClipToAreaBounds() ||
+      old.blurredEdgeTreatment.isBounded() != new.blurredEdgeTreatment.isBounded()
+    ) {
       needsLayerBoundsInvalidation = true
-    }
-    if (old.noiseFactor != new.noiseFactor) dirtyTracker += BlurDirtyFields.NoiseFactor
-    if (old.mask != new.mask) dirtyTracker += BlurDirtyFields.Mask
-    if (old.backgroundColor != new.backgroundColor) {
-      dirtyTracker += BlurDirtyFields.BackgroundColor
-      if (
-        old.backgroundColor.prefersClipToAreaBounds() !=
-        new.backgroundColor.prefersClipToAreaBounds()
-      ) {
-        needsLayerBoundsInvalidation = true
-      }
-    }
-    if (old.colorEffects != new.colorEffects) dirtyTracker += BlurDirtyFields.ColorEffects
-    if (old.fallbackColorEffect != new.fallbackColorEffect) {
-      dirtyTracker += BlurDirtyFields.FallbackColorEffect
-    }
-    if (old.alpha != new.alpha) dirtyTracker += BlurDirtyFields.Alpha
-    if (old.progressive != new.progressive) dirtyTracker += BlurDirtyFields.Progressive
-    if (old.blurredEdgeTreatment != new.blurredEdgeTreatment) {
-      dirtyTracker += BlurDirtyFields.BlurredEdgeTreatment
-      if (old.blurredEdgeTreatment.isBounded() != new.blurredEdgeTreatment.isBounded()) {
-        needsLayerBoundsInvalidation = true
-      }
     }
   }
 

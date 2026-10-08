@@ -16,7 +16,6 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
-import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazePerformanceMode
@@ -47,7 +46,7 @@ class BlurRendererLifecycleTest {
     val inherited = BlurConfiguration(HazeBlurStyle, null)
     renderer.update(scope, inherited, HazeSampling.Default)
     assertThat(renderer.performanceMode).isEqualTo(HazePerformanceMode.Default)
-    assertThat(renderer.dirtyTracker).isEqualTo(Bitmask())
+    assertThat(renderer.styleChanged).isFalse()
     drawInvalidations = 0
     localMode = HazePerformanceMode.Quality
     renderer.update(scope, inherited, HazeSampling.Default)

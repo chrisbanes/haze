@@ -3,7 +3,6 @@
 
 package dev.chrisbanes.haze.glass
 
-import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.InternalHazeApi
 
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
@@ -68,35 +67,4 @@ internal object GlassDirtyFields {
 
   const val StyleResolutionFlags: Int = InvalidateFlags and Interaction.inv()
   const val ClipDecisionFlags: Int = Shape or EdgeSoftness
-
-  fun stringify(dirtyTracker: Bitmask): String {
-    val params = buildList {
-      if (Optics in dirtyTracker) add("Optics")
-      if (SpecularIntensity in dirtyTracker) add("SpecularIntensity")
-      if (AmbientResponse in dirtyTracker) add("AmbientResponse")
-      if (BackgroundColor in dirtyTracker) add("BackgroundColor")
-      if (Tint in dirtyTracker) add("Tint")
-      if (EdgeSoftness in dirtyTracker) add("EdgeSoftness")
-      if (EdgeShadow in dirtyTracker) add("EdgeShadow")
-      if (LightPosition in dirtyTracker) add("LightPosition")
-      if (ChromaticAberration in dirtyTracker) add("ChromaticAberration")
-      if (Shape in dirtyTracker) add("Shape")
-      if (SurfaceProfile in dirtyTracker) add("SurfaceProfile")
-      if (ChromaticAberrationMode in dirtyTracker) add("ChromaticAberrationMode")
-      if (Alpha in dirtyTracker) add("Alpha")
-      if (Contrast in dirtyTracker) add("Contrast")
-      if (WhitePoint in dirtyTracker) add("WhitePoint")
-      if (ChromaMultiplier in dirtyTracker) add("ChromaMultiplier")
-      if (ContentNormalBlend in dirtyTracker) add("ContentNormalBlend")
-      if (SpecularExponent in dirtyTracker) add("SpecularExponent")
-      if (FresnelExponent in dirtyTracker) add("FresnelExponent")
-      if (Style in dirtyTracker) add("Style")
-      if (InteractionLayerBounds in dirtyTracker) add("InteractionLayerBounds")
-      if (Interaction in dirtyTracker) add("Interaction")
-      if (RuntimeEffectFactory in dirtyTracker) add("RuntimeEffectFactory")
-      if (PerformanceMode in dirtyTracker) add("PerformanceMode")
-      if (Accessibility in dirtyTracker) add("Accessibility")
-    }
-    return params.joinToString(separator = ", ", prefix = "[", postfix = "]")
-  }
 }

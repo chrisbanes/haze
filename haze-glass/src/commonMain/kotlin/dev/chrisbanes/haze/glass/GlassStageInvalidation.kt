@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
+import dev.chrisbanes.haze.Poko
 
 /** Inputs consumed by the retained Glass rendering stages. */
 internal data class GlassStageInputs(
@@ -77,29 +78,14 @@ internal fun calculateRequiredStageInvalidation(
   return GlassStageInvalidation(blur, depth, optical, detail, rim)
 }
 
+@Poko
 internal class GlassRuntimeSourceSnapshot(
   val captureScale: Float,
   val layerSize: Size,
   val layerOffset: Offset,
   val inputSnapshot: HazeEffectInputSnapshot,
   val backgroundColor: Color = Color.Transparent,
-) {
-  override fun equals(other: Any?): Boolean =
-    other is GlassRuntimeSourceSnapshot &&
-      captureScale == other.captureScale &&
-      layerSize == other.layerSize &&
-      layerOffset == other.layerOffset &&
-      inputSnapshot == other.inputSnapshot &&
-      backgroundColor == other.backgroundColor
-
-  override fun hashCode(): Int {
-    var result = captureScale.hashCode()
-    result = 31 * result + layerSize.hashCode()
-    result = 31 * result + layerOffset.hashCode()
-    result = 31 * result + inputSnapshot.hashCode()
-    return 31 * result + backgroundColor.hashCode()
-  }
-}
+)
 
 internal data class GlassRuntimeSourceState(
   val hasDrawableSource: Boolean,

@@ -653,10 +653,6 @@ internal class GlassRuntimeEffect() :
     return shouldClipToNodeBoundsCache
   }
 
-  internal fun resolveGlassRenderBudget(context: HazeEffectRuntimeDrawScope): GlassRenderBudgetDecision {
-    return resolveGlassRenderPreparation(context, runtimeShaderSupported = true).decision
-  }
-
   private fun resolvePreparedStyle(context: HazeEffectRuntimeDrawScope): ResolvedGlassStyle {
     val density = context.requireDensity()
     val layoutDirection = context.currentValueOf(LocalLayoutDirection)
@@ -1045,10 +1041,6 @@ internal class GlassRuntimeEffect() :
     fun detach() = Unit
     fun release() = detach()
     fun onTrimMemory(context: HazeEffectLifecycleScope, level: TrimMemoryLevel) = Unit
-  }
-
-  internal fun release() {
-    delegate.release()
   }
 
   internal fun resetDirtyTracker() {
