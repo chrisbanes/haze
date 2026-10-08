@@ -776,7 +776,7 @@ internal class HazeEffectNode(
       yield()
       if (isAttached && resolvedSourcesInput() != null) {
         dirtyTracker += DirtyFields.Areas
-        dirtyTracker += DirtyFields.VisualEffectLayerBounds
+        invalidateVisualEffectLayerBounds()
         update()
       }
     }
