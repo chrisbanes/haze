@@ -209,9 +209,9 @@ internal class GlassInteractionController(
   internal val renderTopology: GlassInteractionTopology
     get() {
       val declared = declaredTopology
-      val pendingOptics = refractionMultiplier.isAnimating || refractionMultiplier.currentValue != 1f ||
-        whitePointDelta.isAnimating || whitePointDelta.currentValue != 0f
-      historicalRefractionMaximum = if (pendingOptics) {
+      val pendingRefraction = refractionMultiplier.isAnimating || refractionMultiplier.currentValue != 1f
+      val pendingOptics = pendingRefraction || whitePointDelta.isAnimating || whitePointDelta.currentValue != 0f
+      historicalRefractionMaximum = if (pendingRefraction) {
         maxOf(historicalRefractionMaximum, declared.maxRefractionMultiplier)
       } else {
         declared.maxRefractionMultiplier
