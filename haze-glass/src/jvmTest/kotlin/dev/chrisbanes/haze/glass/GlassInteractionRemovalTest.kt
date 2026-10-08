@@ -126,12 +126,12 @@ class GlassInteractionRemovalTest : ContextTest() {
     runOnIdle { fixture.style.value = response(1.2f) }
     mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
     waitForIdle()
-    assertCapture(1.8f)
+    assertCapture(1.2f)
     runOnIdle { fixture.style.value = base }
     repeat(9) {
       mainClock.advanceTimeBy(50, ignoreFrameDuration = true)
       waitForIdle()
-      assertCapture(1.8f)
+      assertCapture(1.2f)
     }
     mainClock.advanceTimeBy(150, ignoreFrameDuration = true)
     waitForIdle()
