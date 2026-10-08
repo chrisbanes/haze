@@ -33,6 +33,7 @@ import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotNull
+import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
@@ -318,7 +319,7 @@ class GlassInteractionRemovalTest : ContextTest() {
     if (restoredAlpha == 0.5f) {
       assertColorNear(restored, reference)
       val group = checkNotNull(delegate.layers.groupAlpha.layer)
-      assertThat(group === oldGroup).isFalse()
+      assertThat(group).isNotSameInstanceAs(oldGroup)
       assertThat(group.isReleased).isFalse()
     }
   }
@@ -532,7 +533,6 @@ class GlassInteractionRemovalTest : ContextTest() {
 
     fun assertPreserved(delegate: RuntimeShaderGlassDelegate) {
       assertThat(fixture.observer.layerSize, "unchanged actual capture geometry").isEqualTo(layerSize)
-      println("R2 retained actualGeometry=$layerSize records=$records sourceAvailable=${fixture.observer.hasDrawableInput}")
       assertThat(delegate.canDrawRetainedOutput()).isTrue()
       assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(snapshot)
       assertThat(delegate.lastSuccessfulStageInputs).isSameInstanceAs(inputs)
@@ -647,7 +647,6 @@ class GlassInteractionRemovalTest : ContextTest() {
       assertThat(control.red).isGreaterThan(0.9f)
       assertThat(control.blue).isLessThan(0.1f)
       assertThat(material.blue).isGreaterThan(control.blue + 0.2f)
-      println("JVM source=$control material=$material")
       return material
     }
   }

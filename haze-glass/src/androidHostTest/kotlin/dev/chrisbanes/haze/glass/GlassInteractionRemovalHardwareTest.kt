@@ -81,7 +81,6 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
     val materialBounds = onNodeWithTag("material").fetchSemanticsNode().boundsInRoot
     val control = pixels[controlBounds.center.x.roundToInt(), controlBounds.center.y.roundToInt()]
     val material = pixels[materialBounds.center.x.roundToInt(), materialBounds.center.y.roundToInt()]
-    println("P1 hardware source=$control material=$material sourceSnapshot=${delegate.lastSuccessfulSourceSnapshot}")
     assertThat(control.red, "source control red").isGreaterThan(0.9f)
     assertThat(control.blue, "source control blue").isLessThan(0.1f)
     assertThat(material.blue, "material blue distinguishes source").isGreaterThan(control.blue + 0.2f)
@@ -182,10 +181,9 @@ class GlassInteractionRemovalHardwareTest : ScreenshotTest() {
       val materialBounds = onNodeWithTag("material").fetchSemanticsNode().boundsInRoot
       val control = pixels[controlBounds.center.x.roundToInt(), controlBounds.center.y.roundToInt()]
       val material = pixels[materialBounds.center.x.roundToInt(), materialBounds.center.y.roundToInt()]
-      println("hardware removal=$removal phase=$phase source=$control material=$material")
-      assertThat(control.red).isGreaterThan(0.9f)
-      assertThat(control.blue).isLessThan(0.1f)
-      assertThat(material.blue).isGreaterThan(control.blue + 0.2f)
+      assertThat(control.red, "$removal $phase source red").isGreaterThan(0.9f)
+      assertThat(control.blue, "$removal $phase source blue").isLessThan(0.1f)
+      assertThat(material.blue, "$removal $phase material blue").isGreaterThan(control.blue + 0.2f)
     }
     assertFusedGraph()
     assertMaterialPixels("entry")
