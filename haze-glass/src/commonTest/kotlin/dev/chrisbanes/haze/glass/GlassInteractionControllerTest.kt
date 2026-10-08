@@ -1262,6 +1262,36 @@ class GlassInteractionControllerTest : ContextTest() {
   }
 
   @Test
+  fun settledRefractionReplacement_releasesHistoricalMaximumWhileStillPressed() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply { style = GlassStyle.regular.then { pressed { lightingIntensity(0.5f) } } }
+    setContent { Box(Modifier.size(100.dp).testGlass(effect)) }
+    waitForIdle()
+    val controller = GlassInteractionController(context(effect))
+    fun configuration(multiplier: Float) = effect.runtimeConfiguration(1f).copy(
+      slots = testSlots(
+        pressed = response {
+          animate(tween(1), tween(500)) { refractionMultiplier(multiplier) }
+        },
+      ),
+    )
+    runOnIdle {
+      controller.updateConfiguration(configuration(1.8f))
+      controller.updateSignals(GlassInteractionSignals(sourcePressed = true))
+    }
+    waitForIdle()
+    assertThat(controller.renderTopology.maxRefractionMultiplier).isEqualTo(1.8f)
+    mainClock.autoAdvance = false
+    runOnIdle { controller.updateConfiguration(configuration(1.2f)) }
+    mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(controller.renderTopology.maxRefractionMultiplier).isEqualTo(1.8f)
+    mainClock.advanceTimeBy(600, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(controller.renderTopology.maxRefractionMultiplier).isEqualTo(1.2f)
+    controller.dispose()
+  }
+
+  @Test
   fun opticalSpring_crossingIdentityKeepsTopologyUntilAnimationCompletes() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply { style = GlassStyle.regular.then { pressed { lightingIntensity(0.5f) } } }
     setContent { Box(Modifier.size(100.dp).testGlass(effect)) }

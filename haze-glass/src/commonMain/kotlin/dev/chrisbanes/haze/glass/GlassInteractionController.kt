@@ -209,14 +209,14 @@ internal class GlassInteractionController(
     get() {
       val declared = declaredTopology
       val snapshot = renderTopologySnapshot
-      val pendingRefraction = refractionMultiplier.isPending
-      // An exiting refraction keeps the largest multiplier it reached until it settles.
-      val maxRefractionMultiplier = if (pendingRefraction) {
+      val animatingRefraction = refractionMultiplier.isAnimating
+      // A moving refraction keeps the largest multiplier it reached until it settles.
+      val maxRefractionMultiplier = if (animatingRefraction) {
         maxOf(snapshot.maxRefractionMultiplier, declared.maxRefractionMultiplier)
       } else {
         declared.maxRefractionMultiplier
       }
-      val hasOptics = declared.hasOptics || pendingRefraction || whitePointDelta.isPending
+      val hasOptics = declared.hasOptics || refractionMultiplier.isPending || whitePointDelta.isPending
       val hasLighting = declared.hasLighting || lightingIntensity.isPending
       if (snapshot.hasOptics == hasOptics &&
         snapshot.hasLighting == hasLighting &&
