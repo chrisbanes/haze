@@ -8,6 +8,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
@@ -177,6 +178,7 @@ internal class GlassRuntimeEffect() :
   }
 
   private var interactionController: GlassInteractionController? = null
+  private var reconciledInteractionTopology: GlassInteractionTopology? = null
 
   internal val interactionControllerForTest: GlassInteractionController?
     get() = interactionController
@@ -268,7 +270,7 @@ internal class GlassRuntimeEffect() :
     get() = resolvedInteractionSlots
 
   private val interactionTopologySnapshot: GlassInteractionTopology
-    get() = resolvedInteractionTopology
+    get() = interactionController?.renderTopology ?: resolvedInteractionTopology
 
   override val observesPointerEvents: Boolean
     get() = super.observesPointerEvents
@@ -388,6 +390,7 @@ internal class GlassRuntimeEffect() :
   override fun HazeEffectRuntimeDrawScope.prepareDraw(style: GlassNodeConfiguration) {
     val context = this
     trace(GlassTraceSection.Prepare) {
+      attachedContext?.let(::reconcileInteractionCompletion)
       if (canReusePreparedDraw(context)) return@trace
       val previousBudget = preparedRenderBudget
       trace(GlassTraceSection.PrepareBudget) {
@@ -417,6 +420,7 @@ internal class GlassRuntimeEffect() :
   ): HazeEffectBackdrop? {
     val context = this
     return try {
+      attachedContext?.let(::reconcileInteractionCompletion)
       val previousBudget = preparedRenderBudget
       prepareRenderBudget(
         context = context,
@@ -599,23 +603,52 @@ internal class GlassRuntimeEffect() :
     }
   }
 
+  private val hasDeclaredInteractions: Boolean
+    get() = interactionSlots.hovered != null || interactionSlots.focused != null ||
+      interactionSlots.pressed != null
+
   private fun syncInteractionController(context: HazeEffectLifecycleScope) {
-    if (
-      interactionSlots.hovered == null &&
-      interactionSlots.focused == null &&
-      interactionSlots.pressed == null
-    ) {
-      val controller = interactionController ?: return
+    if (!hasDeclaredInteractions && interactionController == null) return
+    val controller = interactionController ?: GlassInteractionController(
+      context,
+      onResponseCompleted = ::onInteractionResponseCompleted,
+    ).also { interactionController = it }
+    controller.updateConfiguration(controllerConfiguration(systemMotionScale(context)))
+    controller.updateInteractionSource(interactionSource, context.modifierSize)
+    // update() observes reads; animated channel state must not re-run it every frame.
+    Snapshot.withoutReadObservation { reconcileInteractionCompletion(context) }
+  }
+
+  private fun onInteractionResponseCompleted(controller: GlassInteractionController) {
+    val context = attachedContext ?: return
+    if (!isAttached || controller !== interactionController) return
+    // A settle redraws only when the topology changed (stages to release, bounds), the controller
+    // was disposed (invalidated in reconcile), or hidden output was released.
+    var redraw = reconcileInteractionCompletion(context)
+    if (alpha == 0f && !controller.hasRunningResponseAnimations) {
+      (delegate as? RetainedOutputDelegate)?.releaseObsoleteInteractionOutput(interactionTopologySnapshot)
+      clearPreparedRenderCache()
+      redraw = true
+    }
+    if (redraw) context.invalidateDraw()
+  }
+
+  /** Returns whether the interaction topology changed since the last reconcile. */
+  private fun reconcileInteractionCompletion(context: HazeEffectLifecycleScope): Boolean {
+    val topology = interactionTopologySnapshot
+    val previous = reconciledInteractionTopology
+    val topologyChanged = topology !== previous
+    reconciledInteractionTopology = topology
+    if (topology.maxRefractionMultiplier != (previous?.maxRefractionMultiplier ?: 1f)) {
+      context.invalidateLayerBounds()
+    }
+    val controller = interactionController ?: return topologyChanged
+    if (!hasDeclaredInteractions && !controller.hasPendingResponseWork) {
       controller.dispose()
       interactionController = null
       context.invalidateDraw()
-      return
     }
-    val controller = interactionController ?: GlassInteractionController(context).also {
-      interactionController = it
-    }
-    controller.updateConfiguration(controllerConfiguration(systemMotionScale(context)))
-    controller.updateInteractionSource(interactionSource, context.modifierSize)
+    return topologyChanged
   }
 
   private fun systemMotionScale(context: HazeEffectLifecycleScope): Float {
@@ -1084,6 +1117,8 @@ internal interface RetainedOutputDelegate {
   fun shouldDrawRetainedOutput(): Boolean = canDrawRetainedOutput()
 
   fun clearRetainedOutput()
+
+  fun releaseObsoleteInteractionOutput(topology: GlassInteractionTopology): Unit = Unit
 }
 
 internal fun GlassRuntimeEffect.updateDelegate(): GlassRuntimeEffect.Delegate {

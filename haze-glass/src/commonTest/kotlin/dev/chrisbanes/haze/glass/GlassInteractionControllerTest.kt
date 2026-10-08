@@ -36,6 +36,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isSameInstanceAs
@@ -1141,6 +1142,191 @@ class GlassInteractionControllerTest : ContextTest() {
     assertThat(controller.renderState.lightingIntensity).isLessThan(1f)
     assertThat(controller.renderState.position.x).isGreaterThan(positionBeforePolicyChange)
     assertThat(controller.renderState.position.x).isLessThan(100f)
+  }
+
+  @Test
+  fun removedFinalSlot_retainsQueuedAndRunningResponseWorkUntilIdentity() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply { style = GlassStyle.regular.then { pressed { lightingIntensity(0.5f) } } }
+    setContent { Box(Modifier.size(100.dp).testGlass(effect)) }
+    waitForIdle()
+    val controller = GlassInteractionController(context(effect))
+    val initial = effect.runtimeConfiguration(1f).copy(
+      slots = testSlots(
+        pressed = response {
+          animate(tween(1), tween(500)) {
+            whitePointDelta(0.2f)
+            scale(0.5f, 0.5f)
+          }
+        },
+      ),
+    )
+    runOnIdle {
+      controller.updateConfiguration(initial)
+      controller.updateSignals(GlassInteractionSignals(sourcePressed = true))
+    }
+    waitForIdle()
+    mainClock.autoAdvance = false
+    runOnIdle { controller.updateConfiguration(initial.copy(slots = GlassInteractionSlots())) }
+    assertThat(controller.hasPendingResponseWork).isTrue()
+    mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(controller.hasRunningResponseAnimations).isTrue()
+    assertThat(controller.renderTopology.hasOptics).isTrue()
+    mainClock.advanceTimeBy(500, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(controller.hasPendingResponseWork).isFalse()
+    assertThat(controller.renderTopology.hasOptics).isFalse()
+    controller.dispose()
+  }
+
+  @Test
+  fun rapidRefractionReplacement_preservesHistoricalMaximumAndStableSnapshotUntilSettled() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply { style = GlassStyle.regular.then { pressed { lightingIntensity(0.5f) } } }
+    setContent { Box(Modifier.size(100.dp).testGlass(effect)) }
+    waitForIdle()
+    val controller = GlassInteractionController(context(effect))
+    fun configuration(multiplier: Float) = effect.runtimeConfiguration(1f).copy(
+      slots = testSlots(
+        pressed = response {
+          animate(tween(1), tween(500)) { refractionMultiplier(multiplier) }
+        },
+      ),
+    )
+    runOnIdle {
+      controller.updateConfiguration(configuration(1.8f))
+      controller.updateSignals(GlassInteractionSignals(sourcePressed = true))
+    }
+    waitForIdle()
+    val snapshot = controller.renderTopology
+    assertThat(controller.renderTopology).isSameInstanceAs(snapshot)
+    assertThat(controller.renderTopology).isSameInstanceAs(controller.renderTopology)
+    mainClock.autoAdvance = false
+    runOnIdle { controller.updateConfiguration(configuration(1.2f)) }
+    mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(controller.renderTopology.maxRefractionMultiplier).isEqualTo(1.8f)
+    runOnIdle { controller.updateConfiguration(configuration(1.2f).copy(slots = GlassInteractionSlots())) }
+    mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(controller.renderTopology.maxRefractionMultiplier).isEqualTo(1.8f)
+    assertThat(controller.renderTopology).isSameInstanceAs(snapshot)
+    mainClock.advanceTimeBy(500, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(controller.renderTopology.maxRefractionMultiplier).isEqualTo(1f)
+    assertThat(controller.hasPendingResponseWork).isFalse()
+    controller.dispose()
+  }
+
+  @Test
+  fun settledRefractionExit_releasesHistoricalMaximumWhileWhitePointRemains() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply { style = GlassStyle.regular.then { pressed { lightingIntensity(0.5f) } } }
+    setContent { Box(Modifier.size(100.dp).testGlass(effect)) }
+    waitForIdle()
+    val controller = GlassInteractionController(context(effect))
+    val initial = effect.runtimeConfiguration(1f).copy(
+      slots = testSlots(
+        focused = response {
+          animate(tween(1), tween(500)) {
+            refractionMultiplier(1.8f)
+            whitePointDelta(0.2f)
+          }
+        },
+      ),
+    )
+    runOnIdle {
+      controller.updateConfiguration(initial)
+      controller.updateSignals(GlassInteractionSignals(sourceFocused = true))
+    }
+    waitForIdle()
+    assertThat(controller.renderTopology.maxRefractionMultiplier).isEqualTo(1.8f)
+    mainClock.autoAdvance = false
+    runOnIdle {
+      controller.updateConfiguration(
+        initial.copy(
+          slots = testSlots(
+            focused = response {
+              animate(tween(1), tween(500)) { whitePointDelta(0.2f) }
+            },
+          ),
+        ),
+      )
+    }
+    mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(controller.renderTopology.maxRefractionMultiplier).isEqualTo(1.8f)
+    mainClock.advanceTimeBy(600, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(controller.renderTopology.maxRefractionMultiplier).isEqualTo(1f)
+    assertThat(controller.renderTopology.hasOptics).isTrue()
+    controller.dispose()
+  }
+
+  @Test
+  fun settledRefractionReplacement_releasesHistoricalMaximumWhileStillPressed() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply { style = GlassStyle.regular.then { pressed { lightingIntensity(0.5f) } } }
+    setContent { Box(Modifier.size(100.dp).testGlass(effect)) }
+    waitForIdle()
+    val controller = GlassInteractionController(context(effect))
+    fun configuration(multiplier: Float) = effect.runtimeConfiguration(1f).copy(
+      slots = testSlots(
+        pressed = response {
+          animate(tween(1), tween(500)) { refractionMultiplier(multiplier) }
+        },
+      ),
+    )
+    runOnIdle {
+      controller.updateConfiguration(configuration(1.8f))
+      controller.updateSignals(GlassInteractionSignals(sourcePressed = true))
+    }
+    waitForIdle()
+    assertThat(controller.renderTopology.maxRefractionMultiplier).isEqualTo(1.8f)
+    mainClock.autoAdvance = false
+    runOnIdle { controller.updateConfiguration(configuration(1.2f)) }
+    mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(controller.renderTopology.maxRefractionMultiplier).isEqualTo(1.8f)
+    mainClock.advanceTimeBy(600, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(controller.renderTopology.maxRefractionMultiplier).isEqualTo(1.2f)
+    controller.dispose()
+  }
+
+  @Test
+  fun opticalSpring_crossingIdentityKeepsTopologyUntilAnimationCompletes() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply { style = GlassStyle.regular.then { pressed { lightingIntensity(0.5f) } } }
+    setContent { Box(Modifier.size(100.dp).testGlass(effect)) }
+    waitForIdle()
+    val controller = GlassInteractionController(context(effect))
+    val initial = effect.runtimeConfiguration(1f).copy(
+      slots = testSlots(
+        pressed = response {
+          animate(tween(1), spring(dampingRatio = 0.2f, stiffness = 100f)) { whitePointDelta(0.2f) }
+        },
+      ),
+    )
+    runOnIdle {
+      controller.updateConfiguration(initial)
+      controller.updateSignals(GlassInteractionSignals(sourcePressed = true))
+    }
+    waitForIdle()
+    mainClock.autoAdvance = false
+    runOnIdle { controller.updateConfiguration(initial.copy(slots = GlassInteractionSlots())) }
+    var crossedIdentity = false
+    repeat(120) {
+      mainClock.advanceTimeBy(16, ignoreFrameDuration = true)
+      waitForIdle()
+      if (controller.renderState.whitePointDelta < 0f) {
+        crossedIdentity = true
+        assertThat(controller.hasRunningResponseAnimations).isTrue()
+        assertThat(controller.renderTopology.hasOptics).isTrue()
+      }
+    }
+    assertThat(crossedIdentity).isTrue()
+    mainClock.advanceTimeBy(5000, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(controller.hasPendingResponseWork).isFalse()
+    assertThat(controller.renderTopology.hasOptics).isFalse()
+    controller.dispose()
   }
 
   private fun reducedPressEffect(): GlassRuntimeEffect = GlassRuntimeEffect().apply {
