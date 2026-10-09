@@ -266,19 +266,51 @@ internal enum class GlassProfilingScenario(
     performanceMode = HazePerformanceMode.Quality,
     resizesLayoutBounds = true,
   ),
+  ShapeUpdateBalanced(
+    id = "shape_update_balanced",
+    steadyDraw = true,
+    performanceMode = HazePerformanceMode.Balanced,
+    resizesLayoutBounds = true,
+  ),
+  ShapeUpdateBalanced9(
+    id = "shape_update_balanced_9",
+    effectCount = 9,
+    steadyDraw = true,
+    performanceMode = HazePerformanceMode.Balanced,
+    resizesLayoutBounds = true,
+  ),
 }
 
 internal val ProfilingSurfaceSize = DpSize(280.dp, 180.dp)
 private val ProfilingResizeStartSize = DpSize(196.dp, 126.dp)
 
-internal fun glassProfilingResizeSize(progress: Float): DpSize {
+// Pill (half of the 126 dp start height) at the small size, rounded panel at the large size.
+private val ProfilingShapeStartRadius = 63.dp
+private val ProfilingShapeEndRadius = 24.dp
+
+// Triangular 0 -> 1 -> 0 phase over three cycles, shared so size and radius cannot drift apart.
+private fun glassProfilingResizeCyclePhase(progress: Float): Float {
   require(progress.isFinite() && progress in 0f..1f)
   val cycleProgress = (progress * 6f) % 2f
-  val sizeProgress = if (cycleProgress <= 1f) cycleProgress else 2f - cycleProgress
+  return if (cycleProgress <= 1f) cycleProgress else 2f - cycleProgress
+}
+
+internal fun glassProfilingResizeSize(progress: Float): DpSize {
+  val sizeProgress = glassProfilingResizeCyclePhase(progress)
   return DpSize(
     width = lerp(ProfilingResizeStartSize.width.value, ProfilingSurfaceSize.width.value, sizeProgress).dp,
     height = lerp(ProfilingResizeStartSize.height.value, ProfilingSurfaceSize.height.value, sizeProgress).dp,
   )
+}
+
+/** Corner radius of one effect cell, moving in phase with [glassProfilingResizeSize]. */
+internal fun glassProfilingShapeCornerRadius(progress: Float, effectCount: Int): Dp {
+  val rowCount = if (effectCount <= 3) 1 else 3
+  return lerp(
+    ProfilingShapeStartRadius.value,
+    ProfilingShapeEndRadius.value,
+    glassProfilingResizeCyclePhase(progress),
+  ).dp / rowCount
 }
 
 internal fun glassProfilingScenarioSize(
@@ -305,6 +337,7 @@ internal data class GlassProfilingFrame(
   val lightPosition: Offset = Offset(0.25f, 0.25f),
   val depth: Float = 1f,
   val blurRadius: Dp = 14.dp,
+  val cornerRadius: Dp? = null,
 )
 
 internal fun glassProfilingFrame(
@@ -359,6 +392,11 @@ internal fun glassProfilingFrame(
     )
     GlassProfilingScenario.BlurUpdate -> base.copy(
       blurRadius = lerp(4f, 28f, progress).dp,
+    )
+    GlassProfilingScenario.ShapeUpdateBalanced,
+    GlassProfilingScenario.ShapeUpdateBalanced9,
+    -> base.copy(
+      cornerRadius = glassProfilingShapeCornerRadius(progress, scenario.effectCount),
     )
     GlassProfilingScenario.SourceUpdateQuality,
     GlassProfilingScenario.BackdropSourceUpdateQuality,

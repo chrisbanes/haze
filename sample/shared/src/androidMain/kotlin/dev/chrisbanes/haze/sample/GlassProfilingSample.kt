@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -380,6 +381,14 @@ internal fun profilingGlassStyle(
         ),
       )
     }
+    GlassProfilingScenario.ShapeUpdateBalanced,
+    GlassProfilingScenario.ShapeUpdateBalanced9,
+    -> {
+      // Rebuilds the style every frame on purpose to capture the baseline before state-observed
+      // style evaluation (#1419, ADR-0011). Once that lands, switch to one remembered style that
+      // reads the animated radius state inside its block.
+      shape(RoundedCornerShape(checkNotNull(frame.cornerRadius)))
+    }
     GlassProfilingScenario.EffectAttach,
     GlassProfilingScenario.EffectAttach3,
     GlassProfilingScenario.EffectAttach9,
@@ -446,6 +455,8 @@ internal fun profilingStyleUsesFrame(scenario: GlassProfilingScenario): Boolean 
   GlassProfilingScenario.OpticalUpdate,
   GlassProfilingScenario.DepthUpdate,
   GlassProfilingScenario.BlurUpdate,
+  GlassProfilingScenario.ShapeUpdateBalanced,
+  GlassProfilingScenario.ShapeUpdateBalanced9,
   -> true
   else -> false
 }
