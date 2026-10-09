@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # Evaluate Glass styles under state observation
