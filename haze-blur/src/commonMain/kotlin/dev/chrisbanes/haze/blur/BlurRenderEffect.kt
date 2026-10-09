@@ -109,6 +109,9 @@ internal fun createRenderEffect(
           scale = params.scale,
         ),
         blendMode = BlendMode.Softlight,
+        // Only the mask lives in content coordinates. Unmasked noise stays in layer coordinates;
+        // offsetting it would shift it off the expanded layer.
+        offset = if (progressiveShader != null) offset else Offset.Zero,
       )
     } else {
       blur
