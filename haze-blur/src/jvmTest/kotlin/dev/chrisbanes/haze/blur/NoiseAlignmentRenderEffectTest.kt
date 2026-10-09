@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isBetween
-import assertk.assertions.isGreaterThan
+import assertk.assertions.isEqualTo
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.PlatformContext
 import kotlin.math.abs
@@ -55,8 +55,8 @@ class NoiseAlignmentRenderEffectTest {
           assertThat(noiseStart, "$label noise start").isBetween(expected - 1, expected + 1)
           assertThat(tintStart, "$label tint start").isBetween(expected - 1, expected + 1)
           assertThat(noiseStart - tintStart, "$label noise minus tint").isBetween(-1, 1)
-          // Noise must still be present at the far edge of the layer, not just shifted away.
-          assertThat(differingLines(noise, reference, vertical).size, "$label noisy lines").isGreaterThan(width / 4)
+          // Noise must still reach the far edge of the layer, not just shift away from it.
+          assertThat(differingLines(noise, reference, vertical).lastOrNull(), "$label last noisy line").isEqualTo(width - 1)
         }
       }
     }
