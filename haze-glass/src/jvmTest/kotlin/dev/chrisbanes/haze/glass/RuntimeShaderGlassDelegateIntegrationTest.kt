@@ -1002,6 +1002,42 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun interactionDetailEnabledMidPress_restoresOpticalLayerEffect() = runComposeUiTest {
+    val effect = runtimeInteractiveEffect()
+    val withoutDetail = effect.style.then { optics(effect.optics.copy(refractionDetailIntensity = 0f)) }
+    val withDetail = effect.style.then { optics(effect.optics.copy(refractionDetailIntensity = 0.5f)) }
+    val style = mutableStateOf(withoutDetail)
+    setContent { RuntimeGlassTestContent(effect, tag = "glass", style = style.value) }
+    waitForIdle()
+
+    runtime(effect).setPressedForTest(Offset(60f, 60f))
+    waitForIdle()
+
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
+    val optical = checkNotNull(delegate.layers.interactionOptical)
+    val outputEffect = checkNotNull(optical.renderEffect)
+
+    runtime(effect).setPressedForTest(Offset(60f, 60f))
+    waitForIdle()
+
+    assertThat(optical.renderEffect).isSameInstanceAs(outputEffect)
+
+    style.value = withDetail
+    waitForIdle()
+
+    val composite = checkNotNull(delegate.layers.interactionRefractionComposite)
+    assertThat(composite.renderEffect).isNotNull()
+    assertThat(optical.renderEffect).isNotNull().isNotSameInstanceAs(outputEffect)
+    assertThat(optical.renderEffect).isNotSameInstanceAs(composite.renderEffect)
+    val opticalEffect = optical.renderEffect
+
+    runtime(effect).setPressedForTest(Offset(60f, 60f))
+    waitForIdle()
+
+    assertThat(optical.renderEffect).isSameInstanceAs(opticalEffect)
+  }
+
+  @Test
   fun activeInteractionWithoutPatch_retainsBaseOutput() = runComposeUiTest {
     val effect = runtimeInteractiveEffect()
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }
