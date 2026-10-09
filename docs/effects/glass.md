@@ -127,11 +127,14 @@ Modifier.hazeGlass(
   `Alignment.Center`). Logical start and end follow the node's layout direction.
 - **chromaticAberrationStrength**: Dispersion strength `0..1` (default 0). Higher values produce prismatic color splitting at edges.
 - **chromaticAberrationMode**: Quality mode for chromatic aberration. `Simple` (default, fast) or `Full` (spectral, more expensive).
-- **alpha**: Overall opacity multiplier `0..1` (default 1).
+- **alpha**: Overall opacity multiplier `0..1` (default 1). Values outside that range are clamped.
 
-Glass validates configuration when a Style or `GlassOptics` value is created instead of
-silently correcting it later. Validate or clamp values from user input and remote data before
-building the Style. The generated API reference documents the accepted range for each property.
+A `GlassOptics` value is validated when it is created. A `GlassStyle` block is validated when it
+runs, which is when a node resolves the Style, so an invalid value throws during that node's
+update rather than where the Style is built. Values that animation can overshoot are coerced
+instead: `alpha` and tint alpha are clamped into `0f..1f`, and negative corner radii are treated
+as zero. Validate or clamp other values from user input and remote data before writing them in the
+block. The generated API reference documents the accepted range for each property.
 
 ### Colour handling
 
