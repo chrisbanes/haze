@@ -18,12 +18,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
@@ -32,8 +34,10 @@ import androidx.compose.ui.test.moveTo
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertThat
@@ -90,6 +94,134 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       waitForIdle()
 
       assertThat(delegate.stageRecordCounts).isEqualTo(before)
+    }
+  }
+
+  @Test
+  fun growAndShrink_balancedRetainsLayersAndMatchesFreshPixels() = assertResizeMatchesFreshPixels(HazePerformanceMode.Balanced)
+
+  @Test
+  fun growAndShrink_qualityRetainsLayersAndMatchesFreshPixels() = assertResizeMatchesFreshPixels(HazePerformanceMode.Quality)
+
+  private fun assertResizeMatchesFreshPixels(mode: HazePerformanceMode) = runSkikoComposeUiTest(
+    size = Size(400f, 400f),
+    density = Density(2.75f),
+  ) {
+    val reused = GlassRuntimeEffect()
+    val displayedEffect = mutableStateOf(GlassRuntimeEffect())
+    val physicalSize = mutableStateOf(203)
+    val style = GlassStyle.regular.then {
+      shape(RoundedCornerShape(0.dp))
+      edgeSoftness(0.dp)
+      specularIntensity(0f)
+      alpha(0.5f)
+      optics(
+        GlassOptics(
+          refractionStrength = 0f,
+          refractionDisplacement = 0.dp,
+          depth = OpticalSizeValue.Fixed(0f),
+          blurRadius = OpticalSizeValue.Fixed(0.dp),
+        ),
+      )
+    }
+    setContent {
+      ResizeGlassTestContent(displayedEffect.value, physicalSize.value, mode, style, "glass")
+    }
+    waitForIdle()
+    // References use the same screen origin: fractional input scaling can otherwise change
+    // sampling phase between two side-by-side panels even without retained layers.
+    val references = mutableMapOf<Int, PixelMap>()
+    for (targetSize in listOf(208, 203)) {
+      runOnIdle {
+        physicalSize.value = targetSize
+        displayedEffect.value = GlassRuntimeEffect()
+      }
+      waitForIdle()
+      references[targetSize] = onNodeWithTag("glass").captureToImage().toPixelMap()
+    }
+    runOnIdle { displayedEffect.value = reused }
+    waitForIdle()
+    val delegate = runtime(reused).delegate as RuntimeShaderGlassDelegate
+    val source = checkNotNull(delegate.layers.source)
+    val optical = checkNotNull(delegate.layers.optical)
+    val groupAlpha = checkNotNull(delegate.layers.groupAlpha.layer)
+    // Known fixture dimensions: Balanced samples sqrt(0.625) of each axis. The capture
+    // allocations round to 160/164px while the independent outlines cover 161/165px.
+    val sourceAllocations = if (mode == HazePerformanceMode.Balanced) listOf(160, 164, 160) else listOf(203, 208, 203)
+    val sourceOutlines = if (mode == HazePerformanceMode.Balanced) listOf(161f, 165f, 161f) else listOf(203f, 208f, 203f)
+    assertThat(source.size).isEqualTo(IntSize(sourceAllocations[0], sourceAllocations[0]))
+    val initialSourceOutline = source.outline.bounds
+    val initialGroupOutline = groupAlpha.outline.bounds
+    assertThat(initialGroupOutline).isEqualTo(Rect(0f, 0f, 203f, 203f))
+    for ((index, targetSize) in listOf(208, 203).withIndex()) {
+      val before = delegate.stageRecordCounts
+      runOnIdle {
+        physicalSize.value = targetSize
+      }
+      waitForIdle()
+      val actual = onNodeWithTag("glass").captureToImage().toPixelMap()
+      val expected = checkNotNull(references[targetSize])
+      assertThat(actual.width).isEqualTo(targetSize)
+      assertThat(actual.height).isEqualTo(targetSize)
+      assertThat(expected.width).isEqualTo(targetSize)
+      assertThat(expected.height).isEqualTo(targetSize)
+      // Compare every pixel, including the last row/column where stale outlines clip growth.
+      var mismatches = 0
+      for (y in 0 until targetSize) {
+        for (x in 0 until targetSize) {
+          if (actual[x, y] != expected[x, y]) mismatches++
+        }
+      }
+      assertThat(
+        mismatches,
+        "$mode at $targetSize physical pixels: source ${source.size}, ${source.outline.bounds}; " +
+          "optical ${optical.size}, ${optical.outline.bounds}; " +
+          "group alpha ${groupAlpha.size}, ${groupAlpha.outline.bounds}",
+      ).isEqualTo(0)
+      val allocation = sourceAllocations[index + 1]
+      val outline = sourceOutlines[index + 1]
+      assertThat(source.size).isEqualTo(IntSize(allocation, allocation))
+      assertThat(source.outline.bounds, "source outline after $initialSourceOutline").isEqualTo(Rect(0f, 0f, outline, outline))
+      val outputExtent = targetSize.toFloat()
+      assertThat(groupAlpha.size).isEqualTo(IntSize(targetSize, targetSize))
+      assertThat(groupAlpha.outline.bounds, "output outline after $initialGroupOutline").isEqualTo(Rect(0f, 0f, outputExtent, outputExtent))
+      assertThat(delegate.layers.source).isSameInstanceAs(source)
+      assertThat(delegate.layers.optical).isSameInstanceAs(optical)
+      assertThat(delegate.layers.groupAlpha.layer).isSameInstanceAs(groupAlpha)
+      assertThat(source.isReleased).isFalse()
+      assertThat(optical.isReleased).isFalse()
+      assertThat(groupAlpha.isReleased).isFalse()
+      assertThat(delegate.stageRecordCounts.source).isGreaterThan(before.source)
+      assertThat(delegate.stageRecordCounts.optical).isGreaterThan(before.optical)
+    }
+  }
+
+  @Composable
+  private fun ResizeGlassTestContent(
+    effect: GlassRuntimeEffect,
+    physicalSize: Int,
+    mode: HazePerformanceMode,
+    style: GlassStyle,
+    tag: String,
+  ) {
+    val state = remember { HazeState() }
+    val density = LocalDensity.current
+    Box(Modifier.size(with(density) { 240.toDp() })) {
+      // The source stays stationary and larger than either effect size. The opaque cover
+      // prevents a missing effect pixel from accidentally matching the source below it.
+      Canvas(Modifier.fillMaxSize().hazeSource(state)) {
+        drawRect(Color.Blue)
+        for (x in 0 until 240 step 8) {
+          drawRect(Color.Red, Offset(x.toFloat(), 0f), Size(4f, 240f))
+        }
+      }
+      Box(Modifier.fillMaxSize().background(Color.Black))
+      Box(
+        Modifier
+          .size(with(density) { physicalSize.toDp() })
+          .testTag(tag)
+          .testGlass(effect, HazeInput.Sources(state), mode, style),
+      )
     }
   }
 

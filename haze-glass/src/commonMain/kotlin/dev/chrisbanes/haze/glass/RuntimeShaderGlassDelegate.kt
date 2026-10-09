@@ -205,7 +205,6 @@ internal class RuntimeShaderGlassDelegate(
       val currentGraphicsContext = context.requireGraphicsContext()
       graphicsContext = currentGraphicsContext
       if (layers.scaledSize != scaledSize) {
-        layers.release(currentGraphicsContext)
         clearRimLayerMetadata()
         layers.scaledSize = scaledSize
         clearInteractionLayerMetadata()
@@ -327,7 +326,6 @@ internal class RuntimeShaderGlassDelegate(
     val scaledSize = params.coordinates.sampleSize.roundToIntSize()
     graphicsContext = currentGraphicsContext
     if (layers.scaledSize != scaledSize) {
-      layers.release(currentGraphicsContext)
       layers.scaledSize = scaledSize
       clearRimLayerMetadata()
       clearInteractionLayerMetadata()
@@ -915,6 +913,19 @@ internal class RuntimeShaderGlassDelegate(
     preparedStageAvailability = null
   }
 
+  override fun invalidateRetainedOutput() {
+    clearRetainedMetadata()
+    clearRimLayerMetadata()
+    clearInteractionLayerMetadata()
+    preparedParams = null
+    preparedRender = null
+    preparedRenderEffects = null
+    preparedInteractionUniforms = null
+    preparedInteractionPatch = null
+    preparedSourceAvailable = false
+    preparedStageAvailability = null
+  }
+
   override fun clearRetainedOutput() {
     releaseRetainedResources(releaseShaderHandles = false)
   }
@@ -1167,7 +1178,7 @@ internal class RuntimeShaderGlassDelegate(
         blurred.scaleY = 1f
         blurred.pivotOffset = Offset.Zero
         blurred.renderEffect = native.asComposeRenderEffect()
-        blurred.record(plan.sampleSize) { drawLayer(source) }
+        recordGlassLayer(blurred, plan.sampleSize) { drawLayer(source) }
         blurRecordCount++
       }
     }
@@ -1178,14 +1189,14 @@ internal class RuntimeShaderGlassDelegate(
     horizontal.scaleY = 1f
     horizontal.pivotOffset = Offset.Zero
     horizontal.renderEffect = checkNotNull(blur.horizontal).asComposeRenderEffect()
-    horizontal.record(workingSize) { drawLayer(source) }
+    recordGlassLayer(horizontal, workingSize) { drawLayer(source) }
 
     return layers.blurred?.takeUnless { it.isReleased }?.also { blurred ->
       blurred.scaleX = 1f
       blurred.scaleY = 1f
       blurred.pivotOffset = Offset.Zero
       blurred.renderEffect = checkNotNull(blur.vertical).asComposeRenderEffect()
-      blurred.record(workingSize) { drawLayer(horizontal) }
+      recordGlassLayer(blurred, workingSize) { drawLayer(horizontal) }
       blurRecordCount++
     }
   }
@@ -1228,7 +1239,7 @@ internal class RuntimeShaderGlassDelegate(
     layer.blendMode = BlendMode.SrcOver
     layer.compositingStrategy = CompositingStrategy.Auto
     layer.renderEffect = renderEffect.asComposeRenderEffect()
-    layer.record(params.coordinates.sampleSize.roundToIntSize()) {
+    recordGlassLayer(layer, params.coordinates.sampleSize.roundToIntSize()) {
       drawLayer(source)
     }
     opticalRecordCount++
@@ -1244,7 +1255,7 @@ internal class RuntimeShaderGlassDelegate(
     layer.alpha = 1f
     layer.renderEffect = effects.optical.asComposeRenderEffect()
     layer.compositingStrategy = CompositingStrategy.Auto
-    layer.record(params.coordinates.sampleSize.roundToIntSize()) {
+    recordGlassLayer(layer, params.coordinates.sampleSize.roundToIntSize()) {
       drawLayer(input)
     }
     opticalRecordCount++
@@ -1260,7 +1271,7 @@ internal class RuntimeShaderGlassDelegate(
     layer.alpha = 1f
     layer.blendMode = BlendMode.SrcOver
     layer.renderEffect = detail.effect.asComposeRenderEffect()
-    layer.record(params.coordinates.sampleSize.roundToIntSize()) {
+    recordGlassLayer(layer, params.coordinates.sampleSize.roundToIntSize()) {
       drawLayer(source)
     }
     detailRecordCount++
@@ -1278,7 +1289,7 @@ internal class RuntimeShaderGlassDelegate(
       layer.alpha = 1f
       layer.blendMode = BlendMode.SrcOver
       layer.renderEffect = detail.coverageEffect.asComposeRenderEffect()
-      layer.record(params.coordinates.sampleSize.roundToIntSize()) {
+      recordGlassLayer(layer, params.coordinates.sampleSize.roundToIntSize()) {
         drawLayer(source)
       }
       detailRecordCount++
@@ -1296,7 +1307,7 @@ internal class RuntimeShaderGlassDelegate(
       layer.blendMode = BlendMode.SrcOver
       layer.compositingStrategy = CompositingStrategy.Offscreen
       layer.renderEffect = null
-      layer.record(params.coordinates.sampleSize.roundToIntSize()) {
+      recordGlassLayer(layer, params.coordinates.sampleSize.roundToIntSize()) {
         optical.blendMode = BlendMode.SrcOver
         drawLayer(optical)
         coverage.blendMode = BlendMode.DstOut
@@ -1328,7 +1339,7 @@ internal class RuntimeShaderGlassDelegate(
       }
       val brush = rimBrushProvider?.invoke(key)
       var drawnDirectly = false
-      layer.record(params.coordinates.sampleSize.roundToIntSize()) {
+      recordGlassLayer(layer, params.coordinates.sampleSize.roundToIntSize()) {
         drawnDirectly = supportsDirectDrawing && brush != null && drawGlassRimWithBrush(brush)
         if (!drawnDirectly) drawRect(Color.Black)
       }
@@ -1361,7 +1372,7 @@ internal class RuntimeShaderGlassDelegate(
       inputContentChanged
     ) {
       val origin = patch.bounds.topLeft
-      layer.record(patch.bounds.size) {
+      recordGlassLayer(layer, patch.bounds.size) {
         translate(Offset(-origin.x.toFloat(), -origin.y.toFloat())) { drawLayer(input) }
       }
       recordedInteractionOpticalLayer = layer
@@ -1396,7 +1407,7 @@ internal class RuntimeShaderGlassDelegate(
         inputContentChanged
       ) {
         val origin = patch.bounds.topLeft
-        layer.record(patch.bounds.size) {
+        recordGlassLayer(layer, patch.bounds.size) {
           translate(Offset(-origin.x.toFloat(), -origin.y.toFloat())) { drawLayer(input) }
         }
         recordedInteractionDetailLayer = layer
@@ -1435,7 +1446,7 @@ internal class RuntimeShaderGlassDelegate(
         inputContentChanged
       ) {
         val origin = patch.bounds.topLeft
-        layer.record(patch.bounds.size) {
+        recordGlassLayer(layer, patch.bounds.size) {
           translate(Offset(-origin.x.toFloat(), -origin.y.toFloat())) { drawLayer(input) }
         }
         recordedInteractionDetailCoverageLayer = layer
@@ -1469,7 +1480,7 @@ internal class RuntimeShaderGlassDelegate(
         interactionOpticalRecordCount != recordedInteractionCompositeOpticalRecordCount ||
         interactionDetailRecordCount != recordedInteractionCompositeDetailRecordCount
       ) {
-        layer.record(patch.bounds.size) {
+        recordGlassLayer(layer, patch.bounds.size) {
           drawLayer(optical)
           drawLayer(coverage)
           drawLayer(detail)
@@ -1496,7 +1507,7 @@ internal class RuntimeShaderGlassDelegate(
       layer !== recordedInteractionLightingLayer ||
       patch.bounds.size != recordedInteractionLightingSize
     ) {
-      layer.record(patch.bounds.size) {
+      recordGlassLayer(layer, patch.bounds.size) {
         drawRect(Color.Black)
       }
       interactionLightingRecordCount++

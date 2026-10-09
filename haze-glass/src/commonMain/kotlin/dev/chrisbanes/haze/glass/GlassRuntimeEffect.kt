@@ -667,6 +667,10 @@ internal class GlassRuntimeEffect() :
     return (delegate as? RetainedOutputDelegate)?.shouldDrawRetainedOutput() == true
   }
 
+  override fun invalidateRetainedOutput() {
+    (delegate as? RetainedOutputDelegate)?.invalidateRetainedOutput()
+  }
+
   override fun clearRetainedOutput() {
     (delegate as? RetainedOutputDelegate)?.clearRetainedOutput()
   }
@@ -1117,6 +1121,8 @@ internal interface RetainedOutputDelegate {
   fun shouldDrawRetainedOutput(): Boolean = canDrawRetainedOutput()
 
   fun clearRetainedOutput()
+
+  fun invalidateRetainedOutput(): Unit = clearRetainedOutput()
 
   fun releaseObsoleteInteractionOutput(topology: GlassInteractionTopology): Unit = Unit
 }
