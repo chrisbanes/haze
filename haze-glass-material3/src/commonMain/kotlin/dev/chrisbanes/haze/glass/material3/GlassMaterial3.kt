@@ -53,8 +53,10 @@ public fun GlassStyle.Companion.Material3(
  * Style writes.
  *
  * The default [containerColor] comes from the current [MaterialTheme]. A null [tint] omits the
- * tint write, preserving any inherited tint. The supplied values are recorded before [block], so
- * the block can override them without changing unrelated inherited Style writes.
+ * tint write, preserving any inherited tint. The supplied values are written before [block], so
+ * the block can override them without changing unrelated inherited Style writes. This returns a
+ * new Style on every call; to animate through state read in [block], build the Style with
+ * [GlassStyle] inside `remember` instead.
  */
 @Composable
 @ReadOnlyComposable

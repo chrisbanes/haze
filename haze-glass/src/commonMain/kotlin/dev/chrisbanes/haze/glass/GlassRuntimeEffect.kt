@@ -1150,10 +1150,12 @@ internal fun RoundedCornerShape.hasZeroCornerRadii(): Boolean {
   // Use unit values to check if all corner sizes resolve to zero.
   val unitSize = androidx.compose.ui.geometry.Size(1f, 1f)
   val unitDensity = androidx.compose.ui.unit.Density(1f)
-  return topStart.toPx(unitSize, unitDensity) == 0f &&
-    topEnd.toPx(unitSize, unitDensity) == 0f &&
-    bottomEnd.toPx(unitSize, unitDensity) == 0f &&
-    bottomStart.toPx(unitSize, unitDensity) == 0f
+  // Finite negative corners are drawn square, so they count as zero. Non-finite corners fall back
+  // to the default rounded shape, so they do not.
+  return topStart.toPx(unitSize, unitDensity).isSquareCorner() &&
+    topEnd.toPx(unitSize, unitDensity).isSquareCorner() &&
+    bottomEnd.toPx(unitSize, unitDensity).isSquareCorner() &&
+    bottomStart.toPx(unitSize, unitDensity).isSquareCorner()
 }
 
 internal fun reducedMotion(
@@ -1164,3 +1166,5 @@ internal fun reducedMotion(
   GlassReducedMotionPolicy.Reduced -> true to false
   GlassReducedMotionPolicy.Full -> false to true
 }
+
+private fun Float.isSquareCorner(): Boolean = isFinite() && this <= 0f

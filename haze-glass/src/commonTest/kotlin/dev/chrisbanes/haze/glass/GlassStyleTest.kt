@@ -93,7 +93,7 @@ class GlassStyleTest {
   }
 
   @Test
-  fun directOptics_usesFixedValidation() {
+  fun directOptics_usesFixedValidationWhenEvaluated() {
     assertFixedAndDirectOpticsFailure(
       "refractionStrength must be finite and in 0f..1f",
       fixed = { GlassOptics(refractionStrength = Float.NaN) },
@@ -178,14 +178,11 @@ class GlassStyleTest {
   }
 
   @Test
-  fun interactionLightRadiusFraction_rejectsInvalidValues() {
+  fun interactionLightRadiusFraction_rejectsInvalidValuesWhenEvaluated() {
     listOf(Float.NaN, Float.NEGATIVE_INFINITY, -0.1f, 2.1f, Float.POSITIVE_INFINITY)
       .forEach { invalid ->
-        assertFailure {
-          GlassStyle { interactionLightRadiusFraction(invalid) }
-        }.apply {
-          isInstanceOf<IllegalArgumentException>()
-          hasMessage("interactionLightRadiusFraction must be finite and in 0f..2f")
+        assertEvaluationFailure("interactionLightRadiusFraction must be finite and in 0f..2f") {
+          interactionLightRadiusFraction(invalid)
         }
       }
   }
@@ -206,7 +203,7 @@ class GlassStyleTest {
   }
 
   @Test
-  fun interactionResponses_rejectInvalidValuesAtConstruction() {
+  fun interactionResponses_rejectInvalidValuesWhenEvaluated() {
     assertInvalidFloatWrites(
       invalidUnitInterval("lightingIntensity") { hovered { lightingIntensity(it) } },
       invalidDoubleInterval("refractionMultiplier") { hovered { refractionMultiplier(it) } },
@@ -261,7 +258,7 @@ class GlassStyleTest {
   }
 
   @Test
-  fun construction_recordsWritesOnceAndResolutionCreatesFreshValues() {
+  fun resolution_runsBlocksEachTimeIntoFreshValues() {
     var styleExecutions = 0
     var interactionExecutions = 0
     val style = GlassStyle {
@@ -273,15 +270,16 @@ class GlassStyleTest {
       }
     }
 
-    assertThat(styleExecutions).isEqualTo(1)
-    assertThat(interactionExecutions).isEqualTo(1)
+    assertThat(styleExecutions).isEqualTo(0)
+    assertThat(interactionExecutions).isEqualTo(0)
 
     val first = resolveGlassStyleValues(GlassStyle, style)
     val second = resolveGlassStyleValues(GlassStyle, style)
 
-    assertThat(styleExecutions).isEqualTo(1)
-    assertThat(interactionExecutions).isEqualTo(1)
+    assertThat(styleExecutions).isEqualTo(2)
+    assertThat(interactionExecutions).isEqualTo(2)
     assertThat(first).isNotSameInstanceAs(second)
+    assertThat(second).isEqualTo(first)
     assertThat(first.alpha).isEqualTo(0.4f)
     assertThat(second.alpha).isEqualTo(0.4f)
     assertThat(first.pressedInteraction?.lightingIntensity?.value).isEqualTo(0.6f)
@@ -289,7 +287,7 @@ class GlassStyleTest {
   }
 
   @Test
-  fun then_composesRecordedStylesWithoutRerunningBuilders() {
+  fun then_composesStylesAndRunsEachBlockOncePerResolution() {
     var baseExecutions = 0
     var overrideExecutions = 0
     var appendedExecutions = 0
@@ -311,12 +309,14 @@ class GlassStyleTest {
       alpha(0.5f)
     }
 
+    assertThat(baseExecutions).isEqualTo(0)
+
     val first = resolveGlassStyleValues(GlassStyle, combined)
     val second = resolveGlassStyleValues(GlassStyle, combined)
 
-    assertThat(baseExecutions).isEqualTo(1)
-    assertThat(overrideExecutions).isEqualTo(1)
-    assertThat(appendedExecutions).isEqualTo(1)
+    assertThat(baseExecutions).isEqualTo(2)
+    assertThat(overrideExecutions).isEqualTo(2)
+    assertThat(appendedExecutions).isEqualTo(2)
     assertThat(first.optics).isEqualTo(GlassOptics(depth = OpticalSizeValue.Fixed(0.6f)))
     assertThat(first.pressedInteraction?.lightingIntensity?.value).isEqualTo(0.7f)
     assertThat(first.pressedInteraction?.refractionMultiplier).isNull()
@@ -407,12 +407,11 @@ class GlassStyleTest {
   }
 
   @Test
-  fun staticPropertyWrites_rejectInvalidValuesAtConstruction() {
+  fun staticPropertyWrites_rejectInvalidValuesWhenEvaluated() {
     assertInvalidFloatWrites(
       invalidUnitInterval("specularIntensity") { specularIntensity(it) },
       invalidUnitInterval("ambientResponse") { ambientResponse(it) },
       invalidUnitInterval("chromaticAberrationStrength") { chromaticAberrationStrength(it) },
-      invalidUnitInterval("alpha") { alpha(it) },
       invalidUnitInterval("contentNormalBlend") { contentNormalBlend(it) },
       invalidSignedUnitInterval("contrast") { contrast(it) },
       invalidSignedUnitInterval("whitePoint") { whitePoint(it) },
@@ -420,6 +419,23 @@ class GlassStyleTest {
       invalidNonNegative("specularExponent") { specularExponent(it) },
       invalidNonNegative("fresnelExponent") { fresnelExponent(it) },
     )
+  }
+
+  @Test
+  fun alpha_rejectsNonFiniteWhenEvaluated() {
+    listOf(Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY).forEach { invalid ->
+      assertEvaluationFailure("alpha must be finite") { alpha(invalid) }
+    }
+  }
+
+  @Test
+  fun alphaAndTintAlpha_overshootIsClampedNotThrown() {
+    fun resolve(block: GlassStyleScope.() -> Unit) = resolveGlassStyleValues(GlassStyle, GlassStyle(block))
+
+    assertThat(resolve { alpha(-0.2f) }.alpha).isEqualTo(0f)
+    assertThat(resolve { alpha(1.3f) }.alpha).isEqualTo(1f)
+    assertThat(resolve { tint(Color.Red.copy(alpha = -0.2f)) }.tint.alpha).isEqualTo(0f)
+    assertThat(resolve { tint(Color.Red.copy(alpha = 1.4f)) }.tint.alpha).isEqualTo(1f)
   }
 
   @Test
@@ -480,30 +496,23 @@ class GlassStyleTest {
   }
 
   @Test
-  fun edgeSoftness_rejectsInvalidValuesAtConstruction() {
+  fun edgeSoftness_rejectsInvalidValuesWhenEvaluated() {
     listOf(Dp.Unspecified, Float.NaN.dp, Float.NEGATIVE_INFINITY.dp, (-1).dp, Float.POSITIVE_INFINITY.dp)
       .forEach { invalid ->
-        assertFailure { GlassStyle { edgeSoftness(invalid) } }.apply {
-          isInstanceOf<IllegalArgumentException>()
-          hasMessage("edgeSoftness must be specified, finite, and non-negative")
+        assertEvaluationFailure("edgeSoftness must be specified, finite, and non-negative") {
+          edgeSoftness(invalid)
         }
       }
   }
 
   @Test
-  fun tint_rejectsUnspecifiedAtConstruction() {
-    assertFailure { GlassStyle { tint(Color.Unspecified) } }.apply {
-      isInstanceOf<IllegalArgumentException>()
-      hasMessage("tint must be specified")
-    }
+  fun tint_rejectsUnspecifiedWhenEvaluated() {
+    assertEvaluationFailure("tint must be specified") { tint(Color.Unspecified) }
   }
 
   @Test
-  fun backgroundColor_rejectsUnspecifiedAtConstruction() {
-    assertFailure { GlassStyle { backgroundColor(Color.Unspecified) } }.apply {
-      isInstanceOf<IllegalArgumentException>()
-      hasMessage("backgroundColor must be specified")
-    }
+  fun backgroundColor_rejectsUnspecifiedWhenEvaluated() {
+    assertEvaluationFailure("backgroundColor must be specified") { backgroundColor(Color.Unspecified) }
   }
 
   @Test
@@ -512,10 +521,7 @@ class GlassStyleTest {
 
     assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle { edgeShadow(shadow) }).edgeShadow)
       .isEqualTo(shadow)
-    assertFailure { GlassStyle { edgeShadow(Color.Unspecified) } }.apply {
-      isInstanceOf<IllegalArgumentException>()
-      hasMessage("edgeShadow must be specified")
-    }
+    assertEvaluationFailure("edgeShadow must be specified") { edgeShadow(Color.Unspecified) }
   }
 
   @Test
@@ -723,7 +729,7 @@ class GlassStyleTest {
   }
 
   @Test
-  fun lightPosition_rejectsNonFiniteKnownBiasesAtConstruction() {
+  fun lightPosition_rejectsNonFiniteKnownBiasesWhenEvaluated() {
     val cases = listOf<Pair<String, (Float) -> Alignment>>(
       "horizontalBias" to { invalid: Float -> BiasAlignment(invalid, 0f) },
       "verticalBias" to { invalid: Float -> BiasAlignment(0f, invalid) },
@@ -733,9 +739,8 @@ class GlassStyleTest {
 
     cases.forEach { (axis, createAlignment) ->
       listOf(Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY).forEach { invalid ->
-        assertFailure { GlassStyle { lightPosition(createAlignment(invalid)) } }.apply {
-          isInstanceOf<IllegalArgumentException>()
-          hasMessage("lightPosition.$axis must be finite")
+        assertEvaluationFailure("lightPosition.$axis must be finite") {
+          lightPosition(createAlignment(invalid))
         }
       }
     }
@@ -798,20 +803,24 @@ private fun assertFixedAndDirectOpticsFailure(
   fixed: () -> Unit,
   direct: GlassStyleScope.() -> Unit,
 ) {
-  listOf(fixed, { GlassStyle(direct) }).forEach { invalidWrite ->
-    assertFailure { invalidWrite() }
-      .isInstanceOf<IllegalArgumentException>()
-      .hasMessage(message)
-  }
+  assertFailure { fixed() }
+    .isInstanceOf<IllegalArgumentException>()
+    .hasMessage(message)
+  assertEvaluationFailure(message, direct)
+}
+
+/** Asserts that constructing a Style succeeds and resolving it throws [message]. */
+private fun assertEvaluationFailure(message: String, block: GlassStyleScope.() -> Unit) {
+  val style = GlassStyle(block)
+  assertFailure { resolveGlassStyleValues(GlassStyle, style) }
+    .isInstanceOf<IllegalArgumentException>()
+    .hasMessage(message)
 }
 
 private fun assertInvalidFloatWrites(vararg cases: InvalidFloatWrite) {
   cases.forEach { case ->
     case.invalidValues.forEach { invalid ->
-      assertFailure { GlassStyle { case.write(this, invalid) } }.apply {
-        isInstanceOf<IllegalArgumentException>()
-        hasMessage("${case.property} must be ${case.domain}")
-      }
+      assertEvaluationFailure("${case.property} must be ${case.domain}") { case.write(this, invalid) }
     }
   }
 }

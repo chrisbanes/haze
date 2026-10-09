@@ -211,6 +211,8 @@ internal abstract class GlassRuntimeState {
         HazeLogger.d(TAG) { "LocalGlassStyle changed. Current: $field. New: $value" }
         field = value
       }
+      // Always re-resolve: this re-runs Style blocks inside the node's observed update, which is
+      // how state read by an unchanged Style reaches the node.
       updateInheritedStyleValues()
     }
 

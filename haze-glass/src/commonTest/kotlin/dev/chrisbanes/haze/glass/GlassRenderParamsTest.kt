@@ -26,11 +26,13 @@ import assertk.assertions.containsExactly
 import assertk.assertions.hasMessage
 import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
+import assertk.assertions.isTrue
 import kotlin.math.sqrt
 import kotlin.test.Test
 
@@ -560,28 +562,16 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun resolvedStyle_nonFiniteOrNegativeCornerRadiiUseSafeDefaultRadii() {
+  fun resolvedStyle_nonFiniteCornerRadiiUseSafeDefaultRadii() {
     val defaultRadii = GlassDefaults.shape.toCornerRadiiPx(
       layerSize = Size(100f, 80f),
       density = Density(1f),
       layoutDirection = LayoutDirection.Ltr,
     )
 
-    listOf(Float.NaN, Float.POSITIVE_INFINITY, -1f).forEach { invalidRadius ->
-      val effect = GlassRuntimeEffect().apply {
-        style = style.then {
-          shape(
-            RoundedCornerShape(
-              object : CornerSize {
-                override fun toPx(shapeSize: Size, density: Density): Float = invalidRadius
-              },
-            ),
-          )
-        }
-      }
-
+    listOf(Float.NaN, Float.POSITIVE_INFINITY).forEach { invalidRadius ->
       val resolved = resolveGlassStyle(
-        effect = effect,
+        effect = effectWithShape(RoundedCornerShape(fixedPxCorner(invalidRadius))),
         materialSizePx = Size(100f, 80f),
         density = Density(1f),
         layoutDirection = LayoutDirection.Ltr,
@@ -590,6 +580,35 @@ class GlassRenderParamsTest {
       assertThat(resolved.cornerRadii).isEqualTo(defaultRadii)
     }
   }
+
+  @Test
+  fun resolvedStyle_negativeCornerRadiiAreClampedToZero() {
+    val allNegative = effectWithShape(RoundedCornerShape(fixedPxCorner(-1f)))
+    val mixed = effectWithShape(
+      RoundedCornerShape(
+        topStart = fixedPxCorner(-4f),
+        topEnd = fixedPxCorner(12f),
+        bottomEnd = fixedPxCorner(12f),
+        bottomStart = fixedPxCorner(12f),
+      ),
+    )
+
+    assertThat(
+      resolveGlassStyle(allNegative, Size(100f, 80f), Density(1f), LayoutDirection.Ltr).cornerRadii,
+    ).isEqualTo(CornerRadii.zero)
+    assertThat(
+      resolveGlassStyle(mixed, Size(100f, 80f), Density(1f), LayoutDirection.Ltr).cornerRadii,
+    ).isEqualTo(CornerRadii(topLeft = 0f, topRight = 12f, bottomRight = 12f, bottomLeft = 12f))
+    assertThat(RoundedCornerShape(fixedPxCorner(-1f)).hasZeroCornerRadii()).isTrue()
+    assertThat(RoundedCornerShape(fixedPxCorner(Float.NEGATIVE_INFINITY)).hasZeroCornerRadii()).isFalse()
+  }
+
+  private fun fixedPxCorner(px: Float): CornerSize = object : CornerSize {
+    override fun toPx(shapeSize: Size, density: Density): Float = px
+  }
+
+  private fun effectWithShape(shape: RoundedCornerShape): GlassRuntimeEffect =
+    GlassRuntimeEffect().apply { style = style.then { shape(shape) } }
 
   @Test
   fun resolvedStyle_propagatesCornerSizeConversionFailures() {

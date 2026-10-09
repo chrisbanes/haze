@@ -127,11 +127,14 @@ Modifier.hazeGlass(
   `Alignment.Center`). Logical start and end follow the node's layout direction.
 - **chromaticAberrationStrength**: Dispersion strength `0..1` (default 0). Higher values produce prismatic color splitting at edges.
 - **chromaticAberrationMode**: Quality mode for chromatic aberration. `Simple` (default, fast) or `Full` (spectral, more expensive).
-- **alpha**: Overall opacity multiplier `0..1` (default 1).
+- **alpha**: Overall opacity multiplier `0..1` (default 1). Values outside that range are clamped.
 
-Glass validates configuration when a Style or `GlassOptics` value is created instead of
-silently correcting it later. Validate or clamp values from user input and remote data before
-building the Style. The generated API reference documents the accepted range for each property.
+A `GlassOptics` value is validated when it is created. A `GlassStyle` block is validated when it
+runs, which is when a node resolves the Style, so an invalid value throws during that node's
+update rather than where the Style is built. Values that animation can overshoot are coerced
+instead: `alpha` and tint alpha are clamped into `0f..1f`, and negative corner radii are treated
+as zero. Validate or clamp other values from user input and remote data before writing them in the
+block. The generated API reference documents the accepted range for each property.
 
 ### Colour handling
 
@@ -147,10 +150,27 @@ ambient multiplication remain explicitly deferred colour-model questions.
 
 ## GlassStyle
 
-`GlassStyle` is immutable and safe to share. Build a base Style and use `then` for variations.
-Regular and Clear select their material response from the host's current system appearance on each
-attached node, without replacing the Style. A Style captures caller-supplied values when it is
-constructed, so changes to those values require a replacement Style through recomposition.
+`GlassStyle` is safe to share. Build a base Style and use `then` for variations. Regular and Clear
+select their material response from the host's current system appearance on each attached node,
+without replacing the Style.
+
+A Style's block runs each time a node resolves its style, not when the Style is constructed. The
+block may read snapshot state, such as an animated value. Each node observes those reads and applies
+a change on the next frame without recomposing the `hazeGlass` call site. The block may run on any
+frame, so keep it free of side effects. Styles compare by identity, so `remember` or hoist a Style:
+constructing a new Style in each composition replaces it on every node.
+
+```kotlin
+val radius = animateDpAsState(if (expanded) 20.dp else 28.dp)
+val style = remember {
+  GlassStyle.regular.then { shape(RoundedCornerShape(radius.value)) }
+}
+```
+
+Invalid values throw `IllegalArgumentException` when the block runs. Values that animation can
+overshoot are coerced instead: `alpha` and tint alpha are clamped into `0f..1f`, and negative corner
+radii are treated as zero. Percent corner sizes, such as `CircleShape`, already follow size-only
+changes without any state in the Style.
 
 Each node starts with the appearance-specific Regular response, then applies `LocalGlassStyle` and
 its explicit Style. An omitted value inherits a local write when present; otherwise material

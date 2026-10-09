@@ -197,8 +197,10 @@ Keep one final `GlassStyle` for all platforms. Remove renderer-capability checks
 Style variants, and secondary fallback Styles. Haze selects the available implementation and
 gracefully simplifies unsupported optics.
 
-Invalid Glass values now fail when the Style or `GlassOptics` value is created instead of
-being corrected later. Validate or clamp external values before building the Style. See the
+Invalid Glass values now fail instead of being corrected later: a `GlassOptics` value when it is
+created, and a `GlassStyle` write when the Style's block runs as a node resolves it. Only animatable
+overshoot is coerced: alpha and tint alpha are clamped into `0f..1f`, and negative corner radii are
+treated as zero. Validate or clamp other external values before writing them in the Style. See the
 generated API reference for property-specific ranges.
 
 | Legacy | Typed replacement |
