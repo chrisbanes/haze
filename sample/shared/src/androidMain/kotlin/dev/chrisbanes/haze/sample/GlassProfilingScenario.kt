@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -45,6 +46,7 @@ internal enum class GlassProfilingScenario(
   val opticsOverride: GlassOptics? = null,
   val fullChroma: Boolean = false,
   val usesBackdrop: Boolean = false,
+  val resizesLayoutBounds: Boolean = false,
 ) {
   EffectAttach(
     id = "effect_attach",
@@ -251,6 +253,41 @@ internal enum class GlassProfilingScenario(
     usesBackdrop = true,
   ),
   SourceUpdateNoGlass("source_update_no_glass", glassEnabled = false),
+  ResizeQuality(
+    id = "resize_quality",
+    steadyDraw = true,
+    performanceMode = HazePerformanceMode.Quality,
+    resizesLayoutBounds = true,
+  ),
+  ResizeQuality9(
+    id = "resize_quality_9",
+    effectCount = 9,
+    steadyDraw = true,
+    performanceMode = HazePerformanceMode.Quality,
+    resizesLayoutBounds = true,
+  ),
+}
+
+internal val ProfilingSurfaceSize = DpSize(280.dp, 180.dp)
+private val ProfilingResizeStartSize = DpSize(196.dp, 126.dp)
+
+internal fun glassProfilingResizeSize(progress: Float): DpSize {
+  require(progress.isFinite() && progress in 0f..1f)
+  val cycleProgress = (progress * 6f) % 2f
+  val sizeProgress = if (cycleProgress <= 1f) cycleProgress else 2f - cycleProgress
+  return DpSize(
+    width = lerp(ProfilingResizeStartSize.width.value, ProfilingSurfaceSize.width.value, sizeProgress).dp,
+    height = lerp(ProfilingResizeStartSize.height.value, ProfilingSurfaceSize.height.value, sizeProgress).dp,
+  )
+}
+
+internal fun glassProfilingScenarioSize(
+  scenario: GlassProfilingScenario,
+  progress: () -> Float,
+): DpSize = if (scenario.resizesLayoutBounds) {
+  glassProfilingResizeSize(progress())
+} else {
+  ProfilingSurfaceSize
 }
 
 internal enum class GlassProfilingPhase(val id: String) {
@@ -282,6 +319,8 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.EffectAttach9,
     GlassProfilingScenario.EffectReattach,
     GlassProfilingScenario.StableQuality,
+    GlassProfilingScenario.ResizeQuality,
+    GlassProfilingScenario.ResizeQuality9,
     GlassProfilingScenario.BackdropStableQuality,
     GlassProfilingScenario.StableBalanced,
     GlassProfilingScenario.StablePerformance,

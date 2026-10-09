@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
@@ -161,7 +162,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   }
 
   @Test
-  fun prepareDraw_budgetScaleReductionReleasesAndRebuildsRuntimeLayers() {
+  fun prepareDraw_budgetScaleReductionRetainsRuntimeLayers() {
     val effect = GlassRuntimeEffect().apply {
       style = style.then {
         optics(
@@ -193,11 +194,12 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     val decision = effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime
 
     assertThat(decision.scaleFactor < 1f).isTrue()
-    assertThat(graphicsContext.releasedLayers).containsExactly(*initialLayers.toTypedArray())
+    assertThat(graphicsContext.releasedLayers).isEmpty()
+    assertThat(delegate.layers.allLayers()).containsExactly(*initialLayers.toTypedArray())
     assertThat(delegate.layers.scaledSize).isEqualTo(
       prepared.params.coordinates.sampleSize.roundToIntSize(),
     )
-    assertThat(delegate.layers.allLayers().all { !it.isReleased }).isTrue()
+    initialLayers.forEach { assertThat(it.isReleased).isFalse() }
   }
 
   @Test

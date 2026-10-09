@@ -19,9 +19,11 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.roundToIntSize
+import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.InternalHazeApi
+import kotlin.math.ceil
 import kotlin.math.max
 
 internal fun DrawScope.recordDepthMix(
@@ -48,7 +50,7 @@ internal fun DrawScope.recordDepthMix(
   drawBlurred: DrawScope.() -> Unit,
 ) {
   layer.compositingStrategy = CompositingStrategy.Offscreen
-  layer.record(size) {
+  recordGlassLayer(layer, size) {
     withLayerPaint(alpha = 1f - depth, blendMode = BlendMode.SrcOver) {
       drawSource()
     }
@@ -114,6 +116,11 @@ internal fun DrawScope.createScaledContentLayer(
     }
   }
 
+  // Round the outline outward separately from the capture allocation, preserving the last
+  // output row/column when fractional input scaling is expanded back to output space.
+  val outlineSize = layerSize * scaleFactor
+  layer.setRectOutline(size = Size(ceil(outlineSize.width), ceil(outlineSize.height)))
+
   return layer
 }
 
@@ -143,7 +150,7 @@ internal inline fun DrawScope.recordAndDrawGlassGroupAlpha(
   layer.blendMode = BlendMode.SrcOver
   layer.compositingStrategy = CompositingStrategy.Offscreen
   layer.renderEffect = null
-  layer.record(size = size) { block() }
+  recordGlassLayer(layer, size) { block() }
   drawLayer(layer)
 }
 
@@ -156,4 +163,15 @@ internal inline fun DrawScope.translate(
   } else {
     block()
   }
+}
+
+// GraphicsLayer caches its outline independently of its recording size. Refresh it for retained
+// stages in their own recording space, including local patches and output-space alpha groups.
+internal inline fun DrawScope.recordGlassLayer(
+  layer: GraphicsLayer,
+  size: IntSize,
+  crossinline block: DrawScope.() -> Unit,
+) {
+  layer.record(size = size) { block() }
+  layer.setRectOutline(size = size.toSize())
 }

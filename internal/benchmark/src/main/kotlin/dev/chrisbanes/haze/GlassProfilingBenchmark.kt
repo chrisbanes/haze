@@ -39,6 +39,12 @@ class GlassProfilingBenchmark {
   fun stableQuality() = measureBackdropComparisonScenario("stable_quality")
 
   @Test
+  fun resizeQuality() = measureScenario("resize_quality", includeMemory = true)
+
+  @Test
+  fun resizeQuality9() = measureScenario("resize_quality_9", includeMemory = true)
+
+  @Test
   fun backdropStableQuality() {
     requireBackdropBenchmarkDevice()
     measureBackdropComparisonScenario("backdrop_stable_quality", requireBackdropDraw = true)

@@ -89,6 +89,13 @@ progressive mask. `steadyFullChroma` and `steadyFullChroma9` retain the regular 
 set Full chromatic aberration with a non-zero `0.3` strength. Other style groups remain at their
 defaults.
 
+The `resize_quality` and `resize_quality_9` workloads keep their source pixels stationary while
+resizing the outer Glass grid's layout bounds from 196×126 dp to 280×180 dp and back. Each runs
+three linear grow-and-shrink cycles during the existing three-second measurement window. The
+one-effect and nine-effect variants use `HazeInput.Sources`, `Quality`, Regular style, and retain the
+same effect nodes throughout the run; the changing bounds come from layout size, not a graphics
+transform.
+
 The progressive, Full chroma, interaction-update, and source-update scenarios each have one- and
 nine-effect variants. `source_update_quality`, `source_update_balanced`, and
 `source_update_performance` are the controlled changing-input
