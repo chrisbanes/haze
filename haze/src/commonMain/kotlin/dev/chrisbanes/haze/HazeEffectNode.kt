@@ -145,7 +145,7 @@ internal class HazeEffectNode(
   private val sourceSelectionObservationScope = Any()
   private val onObservedSourceSelectionChanged: (Any) -> Unit = {
     dirtyTracker += DirtyFields.Areas
-    updateEffect()
+    update()
   }
 
   private fun getOrCreateSourceSelectionSnapshotObserver(): SnapshotStateObserver {
