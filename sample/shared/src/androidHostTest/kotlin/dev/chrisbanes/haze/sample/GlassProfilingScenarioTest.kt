@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
+import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
@@ -178,6 +179,8 @@ class GlassProfilingScenarioTest {
         "source_update_no_glass",
         "resize_quality",
         "resize_quality_9",
+        "shape_update_balanced",
+        "shape_update_balanced_9",
       ),
     )
     assertThat(
@@ -235,6 +238,9 @@ class GlassProfilingScenarioTest {
         GlassProfilingScenario.OpticalUpdate -> setOf("lightPosition")
         GlassProfilingScenario.DepthUpdate -> setOf("depth")
         GlassProfilingScenario.BlurUpdate -> setOf("blurRadius")
+        GlassProfilingScenario.ShapeUpdateBalanced,
+        GlassProfilingScenario.ShapeUpdateBalanced9,
+        -> setOf("cornerRadius")
         GlassProfilingScenario.SourceUpdateQuality,
         GlassProfilingScenario.BackdropSourceUpdateQuality,
         GlassProfilingScenario.SourceUpdateBalanced,
@@ -251,19 +257,22 @@ class GlassProfilingScenarioTest {
         -> setOf("sourceOffset")
         else -> emptySet()
       }
-      val early = glassProfilingFrame(scenario, 0.25f)
-      val late = glassProfilingFrame(scenario, 0.75f)
+      // 0.25 and 0.75 share a resize phase, so sample points whose phase differs.
+      val early = glassProfilingFrame(scenario, 0.1f)
+      val late = glassProfilingFrame(scenario, 0.2f)
       assertThat(changedFields(early, late), name = scenario.id).isEqualTo(expectedChanges)
     }
   }
 
   @Test
-  fun styles_changeOnlyForOpticalDepthAndBlurScenarios() {
+  fun styles_changeOnlyForOpticalDepthBlurAndShapeScenarios() {
     GlassProfilingScenario.entries.forEach { scenario ->
       assertThat(profilingStyleUsesFrame(scenario), name = scenario.id).isEqualTo(
         scenario == GlassProfilingScenario.OpticalUpdate ||
           scenario == GlassProfilingScenario.DepthUpdate ||
-          scenario == GlassProfilingScenario.BlurUpdate,
+          scenario == GlassProfilingScenario.BlurUpdate ||
+          scenario == GlassProfilingScenario.ShapeUpdateBalanced ||
+          scenario == GlassProfilingScenario.ShapeUpdateBalanced9,
       )
     }
   }
@@ -354,6 +363,46 @@ class GlassProfilingScenarioTest {
       assertThat(glassProfilingSourceProgress(scenario) { 0.75f }).isEqualTo(0f)
       assertThat(glassProfilingFrame(scenario, 0f).sourceOffset).isEqualTo(0f)
       assertThat(glassProfilingFrame(scenario, 1f).sourceOffset).isEqualTo(0f)
+    }
+  }
+
+  @Test
+  fun shapeUpdateScenarios_startFromRegularBalancedAndChangeOnlyShapeAndSize() {
+    listOf(
+      GlassProfilingScenario.ShapeUpdateBalanced to 1,
+      GlassProfilingScenario.ShapeUpdateBalanced9 to 9,
+    ).forEach { (scenario, effectCount) ->
+      assertThat(scenario.id).isEqualTo(
+        if (effectCount == 1) "shape_update_balanced" else "shape_update_balanced_9",
+      )
+      assertThat(scenario.effectCount).isEqualTo(effectCount)
+      assertThat(scenario.performanceMode).isEqualTo(HazePerformanceMode.Balanced)
+      assertThat(scenario.opticsOverride).isNull()
+      assertThat(scenario.fullChroma).isFalse()
+      assertThat(scenario.rimEnabled).isTrue()
+      assertThat(scenario.usesBackdrop).isFalse()
+      assertThat(scenario.resizesLayoutBounds).isTrue()
+      assertThat(glassProfilingSourceProgress(scenario) { 0.75f }).isEqualTo(0f)
+      listOf(0f, 1f / 6f, 0.5f, 1f).forEach { progress ->
+        assertThat(glassProfilingScenarioSize(scenario) { progress })
+          .isEqualTo(glassProfilingResizeSize(progress))
+      }
+    }
+  }
+
+  @Test
+  fun shapeCornerRadius_followsResizeCyclesFromPillToPanel() {
+    val progressPoints = listOf(0f, 1f / 6f, 1f / 3f, 0.5f, 2f / 3f, 5f / 6f, 1f)
+    listOf(
+      1 to listOf(63f, 24f, 63f, 24f, 63f, 24f, 63f),
+      9 to listOf(21f, 8f, 21f, 8f, 21f, 8f, 21f),
+    ).forEach { (effectCount, expectedDp) ->
+      progressPoints.zip(expectedDp).forEach { (progress, expected) ->
+        assertThat(
+          glassProfilingShapeCornerRadius(progress, effectCount).value,
+          name = "radius at $progress for $effectCount effects",
+        ).isCloseTo(expected, 0.01f)
+      }
     }
   }
 
@@ -498,4 +547,5 @@ private fun changedFields(
   if (first.lightPosition != second.lightPosition) add("lightPosition")
   if (first.depth != second.depth) add("depth")
   if (first.blurRadius != second.blurRadius) add("blurRadius")
+  if (first.cornerRadius != second.cornerRadius) add("cornerRadius")
 }

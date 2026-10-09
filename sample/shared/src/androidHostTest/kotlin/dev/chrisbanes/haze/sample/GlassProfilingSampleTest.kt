@@ -70,10 +70,12 @@ class GlassProfilingSampleTest : ContextTest() {
   }
 
   @Test
-  fun resizeQualityScenarios_changeGridBoundsWithoutMovingSourceOrReplacingEffects() {
+  fun resizingScenarios_changeGridBoundsWithoutMovingSourceOrReplacingEffects() {
     listOf(
       GlassProfilingScenario.ResizeQuality to 1,
       GlassProfilingScenario.ResizeQuality9 to 9,
+      GlassProfilingScenario.ShapeUpdateBalanced to 1,
+      GlassProfilingScenario.ShapeUpdateBalanced9 to 9,
     ).forEach { (scenario, effectCount) ->
       runComposeUiTest {
         mainClock.autoAdvance = false
