@@ -43,6 +43,7 @@ internal fun BlurVisualEffect.getOrCreateRenderEffect(
   contentSize: Size = context.size,
   contentOffset: Offset = context.layerOffset,
   mask: Brush? = this.mask,
+  progressiveMask: Brush? = null,
   retainInputWhenMasked: Boolean = false,
   progressive: HazeProgressive? = null,
   blurTileMode: TileMode = calculateBlurTileMode(),
@@ -59,6 +60,7 @@ internal fun BlurVisualEffect.getOrCreateRenderEffect(
       contentSize = contentSize,
       contentOffset = contentOffset,
       mask = mask,
+      progressiveMask = progressiveMask,
       retainInputWhenMasked = retainInputWhenMasked,
       progressive = progressive,
       blurTileMode = blurTileMode,
@@ -81,6 +83,9 @@ internal class RenderEffectParams(
   val colorEffectsAlphaModulate: Float = 1f,
   val backgroundColor: Color = Color.Transparent,
   val mask: Brush? = null,
+  /** Alpha-mask approximation of [progressive], applied before [mask]. */
+  val progressiveMask: Brush? = null,
+  /** Composites the [progressiveMask]ed output over its input. */
   val retainInputWhenMasked: Boolean = false,
   val progressive: HazeProgressive? = null,
   val blurTileMode: TileMode,
@@ -97,6 +102,7 @@ internal class RenderEffectCacheKey(
   val colorEffectsAlphaModulate: Float,
   val backgroundColor: Color,
   val mask: Brush?,
+  val progressiveMask: Brush?,
   val retainInputWhenMasked: Boolean,
   val progressive: HazeProgressive?,
   val blurTileMode: TileMode,
@@ -110,8 +116,9 @@ internal fun RenderEffectParams.renderEffectCacheKey(density: Density): RenderEf
   val hasOffsetColorEffect = colorEffects.any {
     it is TintBrushHazeColorEffect || it is ColorFilterHazeColorEffect
   }
-  val usesContentSize = progressive != null || mask != null || hasBrushTint
-  val usesContentOffset = progressive != null || mask != null || hasOffsetColorEffect
+  val hasMask = progressive != null || mask != null || progressiveMask != null
+  val usesContentSize = hasMask || hasBrushTint
+  val usesContentOffset = hasMask || hasOffsetColorEffect
 
   return RenderEffectCacheKey(
     blurRadiusPx = resolveBlurRadiusPx(density),
@@ -123,6 +130,7 @@ internal fun RenderEffectParams.renderEffectCacheKey(density: Density): RenderEf
     colorEffectsAlphaModulate = colorEffectsAlphaModulate,
     backgroundColor = backgroundColor,
     mask = mask,
+    progressiveMask = progressiveMask,
     retainInputWhenMasked = retainInputWhenMasked,
     progressive = progressive,
     blurTileMode = blurTileMode,

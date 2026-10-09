@@ -25,7 +25,8 @@ internal class ScrimBlurVisualEffectDelegate(
       drawScrim(
         colorEffect = scrimTint,
         context = context,
-        mask = blurVisualEffect.mask ?: blurVisualEffect.progressive?.asBrush(),
+        mask = blurVisualEffect.mask,
+        progressiveMask = blurVisualEffect.progressive?.asBrush(),
       )
     }
   }

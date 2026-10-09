@@ -127,20 +127,26 @@ internal fun createRenderEffect(
     )
   }
 
-  val masked = styled.withMask(params.mask, params.contentSize, params.scale, offset)
-  val result = if (params.retainInputWhenMasked && params.mask != null) {
-    createOffsetRenderEffect(0f, 0f).blendForeground(masked, BlendMode.SrcOver)
-  } else {
-    masked
-  }
+  val progressiveMasked = styled
+    .withMask(params.progressiveMask, params.contentSize, params.scale, offset)
+    .let { masked ->
+      if (params.retainInputWhenMasked && params.progressiveMask != null) {
+        createOffsetRenderEffect(0f, 0f).blendForeground(masked, BlendMode.SrcOver)
+      } else {
+        masked
+      }
+    }
 
-  return result
+  // The user's mask fades the complete output, including any retained input.
+  return progressiveMasked.withMask(params.mask, params.contentSize, params.scale, offset)
 }
 
 internal fun Float.hasVisibleNoise(): Boolean = this > 0f
 
 private fun RenderEffectParams.combinedNoiseTintColor(): Color? {
-  if (!noiseFactor.hasVisibleNoise() || progressive != null || mask != null) return null
+  if (!noiseFactor.hasVisibleNoise() || progressive != null || mask != null || progressiveMask != null) {
+    return null
+  }
   val tint = colorEffects.singleOrNull() as? TintColorHazeColorEffect ?: return null
   if (tint.blendMode != BlendMode.SrcOver) return null
 

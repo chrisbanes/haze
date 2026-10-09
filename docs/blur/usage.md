@@ -190,6 +190,23 @@ val maskedStyle = HazeBlurStyle {
 }
 ```
 
+The two can be combined. Progressive Blur varies the intensity first, then the mask fades the
+complete result, so fully transparent mask regions show no effect:
+
+```kotlin
+val maskedProgressiveStyle = HazeBlurStyle {
+  progressive(HazeProgressive.horizontalGradient())
+  mask(
+    Brush.verticalGradient(
+      colors = listOf(Color.Black, Color.Transparent),
+    ),
+  )
+}
+```
+
+Where a platform can't vary blur intensity natively, Haze approximates progressive Blur, and
+`mask` still fades the complete result.
+
 <a id="performance-mode"></a>
 
 ## Performance mode and layer expansion

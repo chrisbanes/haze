@@ -157,8 +157,9 @@ internal class RenderScriptBlurVisualEffectDelegate(
       layer.alpha = blurVisualEffect.alpha
       layer.clip = blurVisualEffect.shouldClipToNodeBounds()
 
-      val mask = blurVisualEffect.progressive?.asBrush() ?: blurVisualEffect.mask
-      if (mask != null) {
+      val progressiveMask = blurVisualEffect.progressive?.asBrush()
+      val userMask = blurVisualEffect.mask
+      if (progressiveMask != null || userMask != null) {
         // If we have a mask, this needs to be drawn offscreen
         layer.compositingStrategy = CompositingStrategy.Offscreen
       }
@@ -208,16 +209,20 @@ internal class RenderScriptBlurVisualEffectDelegate(
               context = context,
               offset = offset,
               expandedSize = expandedSize,
-              mask = mask,
+              // Tints keep their existing single mask (see #1413).
+              mask = progressiveMask ?: userMask,
             )
           }
         }
 
-        if (mask != null) {
-          HazeLogger.d(TAG) {
-            "Drawing mask, canvas size=$size"
-          }
-          drawRect(brush = mask, size = size, blendMode = BlendMode.DstIn)
+        // Progressive intensity first, then the user's mask fades the complete output.
+        if (progressiveMask != null) {
+          HazeLogger.d(TAG) { "Drawing progressive mask, canvas size=$size" }
+          drawRect(brush = progressiveMask, size = size, blendMode = BlendMode.DstIn)
+        }
+        if (userMask != null) {
+          HazeLogger.d(TAG) { "Drawing mask, canvas size=$size" }
+          drawRect(brush = userMask, size = size, blendMode = BlendMode.DstIn)
         }
       }
 

@@ -39,16 +39,18 @@ import kotlin.math.max
  * @param offset Offset to translate the effect by
  * @param expandedSize Size for drawing (defaults to canvas size)
  * @param mask Optional brush mask to apply to the effect
+ * @param progressiveMask Optional progressive alpha mask, multiplied with [mask]
  */
-internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffectRuntimeDrawScope, offset: Offset = Offset.Zero, expandedSize: Size = this.size, mask: Brush? = null) {
+internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffectRuntimeDrawScope, offset: Offset = Offset.Zero, expandedSize: Size = this.size, mask: Brush? = null, progressiveMask: Brush? = null) {
+  val masked = mask != null || progressiveMask != null
   when (colorEffect) {
     is TintBrushHazeColorEffect -> {
-      if (mask != null) {
+      if (masked) {
         context.withGraphicsLayer { layer ->
           layer.compositingStrategy = CompositingStrategy.Offscreen
           layer.record(size = size.toIntSize()) {
             drawRect(brush = colorEffect.brush, blendMode = colorEffect.blendMode)
-            drawRect(brush = mask, blendMode = BlendMode.DstIn)
+            drawMasks(progressiveMask, mask)
           }
           translate(offset) {
             drawLayer(layer)
@@ -64,13 +66,13 @@ internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffe
       }
     }
     is TintColorHazeColorEffect -> {
-      if (mask != null) {
+      if (masked) {
         // When we have a mask, combine the tint color with the mask
         context.withGraphicsLayer { layer ->
           layer.compositingStrategy = CompositingStrategy.Offscreen
           layer.record(size = size.toIntSize()) {
             drawRect(color = colorEffect.color, blendMode = colorEffect.blendMode)
-            drawRect(brush = mask, blendMode = BlendMode.DstIn)
+            drawMasks(progressiveMask, mask)
           }
           translate(offset) {
             drawLayer(layer)
@@ -85,12 +87,12 @@ internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffe
       }
     }
     is ColorFilterHazeColorEffect -> {
-      if (mask != null) {
+      if (masked) {
         context.withGraphicsLayer { layer ->
           layer.compositingStrategy = CompositingStrategy.Offscreen
           layer.record(size = size.toIntSize()) {
             drawRect(color = Color.White, colorFilter = colorEffect.colorFilter)
-            drawRect(brush = mask, blendMode = BlendMode.DstIn)
+            drawMasks(progressiveMask, mask)
           }
           translate(offset) {
             val canvas = drawContext.canvas
@@ -111,6 +113,11 @@ internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffe
       }
     }
   }
+}
+
+private fun DrawScope.drawMasks(first: Brush?, second: Brush?) {
+  if (first != null) drawRect(brush = first, blendMode = BlendMode.DstIn)
+  if (second != null) drawRect(brush = second, blendMode = BlendMode.DstIn)
 }
 
 internal fun DrawScope.createScaledContentLayer(

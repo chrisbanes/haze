@@ -103,6 +103,30 @@ class BlurVisualEffectUtilsTest {
   }
 
   @Test
+  fun renderEffectCacheKey_progressiveMaskTracksMaskAndGeometry() {
+    val density = Density(2f)
+    val mask = Brush.verticalGradient(listOf(Color.Black, Color.Transparent))
+    val progressiveMask = Brush.horizontalGradient(listOf(Color.Transparent, Color.Black))
+    val progressiveOnly = renderEffectParams(progressiveMask = progressiveMask)
+
+    assertThat(progressiveOnly.renderEffectCacheKey(density))
+      .isNotEqualTo(renderEffectParams().renderEffectCacheKey(density))
+    assertThat(progressiveOnly.renderEffectCacheKey(density)).isNotEqualTo(
+      renderEffectParams(contentSize = Size(800f, 600f), progressiveMask = progressiveMask)
+        .renderEffectCacheKey(density),
+    )
+    assertThat(progressiveOnly.renderEffectCacheKey(density)).isNotEqualTo(
+      renderEffectParams(contentOffset = Offset(24f, 12f), progressiveMask = progressiveMask)
+        .renderEffectCacheKey(density),
+    )
+
+    val both = renderEffectParams(mask = mask, progressiveMask = progressiveMask)
+      .renderEffectCacheKey(density)
+    assertThat(both).isNotEqualTo(renderEffectParams(mask = mask).renderEffectCacheKey(density))
+    assertThat(both).isNotEqualTo(progressiveOnly.renderEffectCacheKey(density))
+  }
+
+  @Test
   fun renderEffectCacheKey_tracksDensity() {
     val params = renderEffectParams()
 
@@ -148,6 +172,7 @@ class BlurVisualEffectUtilsTest {
     contentOffset: Offset = Offset(8f, 4f),
     backgroundColor: Color = Color.Transparent,
     mask: Brush? = null,
+    progressiveMask: Brush? = null,
     progressive: HazeProgressive? = null,
   ) = RenderEffectParams(
     blurRadius = 20.dp,
@@ -158,6 +183,7 @@ class BlurVisualEffectUtilsTest {
     colorEffects = colorEffects,
     backgroundColor = backgroundColor,
     mask = mask,
+    progressiveMask = progressiveMask,
     progressive = progressive,
     blurTileMode = TileMode.Clamp,
   )
