@@ -111,10 +111,19 @@ public sealed interface HazeBlurStyleScope {
   /** Sets the overall effect opacity, coerced to the range `0f..1f`. */
   public fun alpha(alpha: Float)
 
-  /** Sets the optional alpha [mask] applied to the complete effect. */
+  /**
+   * Sets the optional alpha [mask] applied to the complete effect.
+   *
+   * When [progressive] is also set, the mask is applied after the progressive intensity, and the
+   * two compose: fully transparent mask regions show no effect.
+   */
   public fun mask(mask: Brush?)
 
-  /** Sets the optional progressive effect intensity. */
+  /**
+   * Sets the optional progressive effect intensity.
+   *
+   * It can be combined with [mask], which then fades the whole progressive result.
+   */
   public fun progressive(progressive: HazeProgressive?)
 
   /** Sets how content outside the input bounds contributes to the blur. */
