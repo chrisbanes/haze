@@ -39,3 +39,12 @@ invalidates only the affected work, without recomposition. Built-in styles,
   shape (corner radii), alpha and tint are guaranteed to skip layer-bounds recalculation, delegate
   selection and, unless the radii cross zero, the clip decision. Tests pin these invalidation sets.
   Other properties may invalidate more broadly.
+- **The guarantee has boundaries.** A change that crosses a boundary can change the retained-layer
+  plan, so it may pay the broader cost once:
+  - Corner radii crossing zero change the clip decision.
+  - Alpha entering or leaving the fractional range `0 < alpha < 1` adds or removes the full-size
+    group-composite layer. That layer counts against the render budget, so the change can select a
+    different renderer.
+  - Alpha reaching zero skips drawing altogether.
+
+  An animation that stays within one fractional alpha range keeps the cheap path for every frame.
