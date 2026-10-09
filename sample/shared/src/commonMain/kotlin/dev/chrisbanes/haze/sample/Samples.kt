@@ -104,6 +104,7 @@ val CommonSamples: List<Sample> = listOf(
   Sample.GlassProduct,
   Sample.GlassPlayground,
   Sample.GlassMusicPlayer,
+  Sample.GlassShapeMorph,
 )
 
 @OptIn(ExperimentalHazeApi::class)
@@ -264,6 +265,14 @@ class Sample(
       effects = listOf(SampleEffect.Glass),
     ) { navController, _ ->
       GlassMusicPlayerSample(navController = navController)
+    }
+
+    val GlassShapeMorph = Sample(
+      route = "glass-shape-morph",
+      title = "Glass — Shape Morph",
+      effects = listOf(SampleEffect.Glass),
+    ) { navController, _ ->
+      GlassShapeMorphSample(navController = navController)
     }
   }
 }
