@@ -41,17 +41,31 @@ import kotlin.test.Test
  */
 class BlurMaskProgressiveCombinationTest : ScreenshotTest() {
 
+  // On SDK 32, Quality draws the layered progressive path and Balanced the masked fallback.
   @Test
-  fun blurMaskAndProgressive_composeOnEveryPath() = runScreenshotTest {
-    assertMaskAndProgressiveCompose(blur = true)
+  fun blurMaskAndProgressive_composeAtQuality() = runScreenshotTest {
+    assertMaskAndProgressiveCompose(blur = true, mode = HazePerformanceMode.Quality)
   }
 
   @Test
-  fun scrimMaskAndProgressive_composeOnEveryProfile() = runScreenshotTest {
-    assertMaskAndProgressiveCompose(blur = false)
+  fun blurMaskAndProgressive_composeAtBalanced() = runScreenshotTest {
+    assertMaskAndProgressiveCompose(blur = true, mode = HazePerformanceMode.Balanced)
   }
 
-  private fun ScreenshotUiTest.assertMaskAndProgressiveCompose(blur: Boolean) {
+  @Test
+  fun scrimMaskAndProgressive_composeAtQuality() = runScreenshotTest {
+    assertMaskAndProgressiveCompose(blur = false, mode = HazePerformanceMode.Quality)
+  }
+
+  @Test
+  fun scrimMaskAndProgressive_composeAtBalanced() = runScreenshotTest {
+    assertMaskAndProgressiveCompose(blur = false, mode = HazePerformanceMode.Balanced)
+  }
+
+  private fun ScreenshotUiTest.assertMaskAndProgressiveCompose(
+    blur: Boolean,
+    mode: HazePerformanceMode,
+  ) {
     val base = HazeBlurStyle {
       blurEnabled(blur)
       blurRadius(16.dp)
@@ -69,7 +83,6 @@ class BlurMaskProgressiveCombinationTest : ScreenshotTest() {
     }
 
     var style by mutableStateOf<HazeBlurStyle?>(null)
-    var mode by mutableStateOf<HazePerformanceMode>(HazePerformanceMode.Quality)
     setContent {
       val state = remember { HazeState() }
       Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -98,70 +111,64 @@ class BlurMaskProgressiveCombinationTest : ScreenshotTest() {
       }
     }
 
-    for (performanceMode in listOf(HazePerformanceMode.Quality, HazePerformanceMode.Balanced)) {
-      mode = performanceMode
-      style = null
-      val none = capture()
-      style = progressiveOnly
-      val prog = capture()
-      style = combined
-      val both = capture()
-      style = maskOnly
-      val masked = capture()
-      style = combined
-      val bothAgain = capture()
-
-      val bounds = effectBounds()
-      fun region(x: ClosedFloatingPointRange<Float>, y: ClosedFloatingPointRange<Float>) = IntRect(
-        left = (bounds.left + bounds.width * x.start).roundToInt(),
-        top = (bounds.top + bounds.height * y.start).roundToInt(),
-        right = (bounds.left + bounds.width * x.endInclusive).roundToInt(),
-        bottom = (bounds.top + bounds.height * y.endInclusive).roundToInt(),
-      )
-      val top = 0.02f..0.12f
-      val bottom = 0.90f..0.98f
-      val mid = 0.47f..0.53f
-      val left = 0.02f..0.12f
-      val right = 0.88f..0.98f
-      val all = 0.02f..0.98f
-      val label = "${if (blur) "blur" else "scrim"} $performanceMode"
-      fun diff(a: PixelSnapshot, b: PixelSnapshot, area: IntRect, name: String): Float =
-        a.crop(area).meanAbsoluteDifference(b.crop(area)).also { println("$label $name=$it") }
-
-      // Mask transparent: nothing of the effect remains, although progressive is high there.
-      assertThat(diff(both, none, region(all, bottom), "bottom combined-none"), "$label bottom combined vs none")
-        .isLessThanOrEqualTo(TOLERANCE)
-      assertThat(diff(prog, none, region(right, bottom), "bottom-right progressive-none"), "$label bottom-right progressive vs none")
-        .isGreaterThan(SENSITIVITY)
-
-      // Mask opaque: the progressive result shows through unchanged, low and high.
-      assertThat(diff(both, prog, region(left, top), "top-left combined-progressive"), "$label top-left combined vs progressive")
-        .isLessThanOrEqualTo(TOLERANCE)
-      assertThat(diff(both, prog, region(right, top), "top-right combined-progressive"), "$label top-right combined vs progressive")
-        .isLessThanOrEqualTo(TOLERANCE)
-      assertThat(diff(both, none, region(right, top), "top-right combined-none"), "$label top-right combined vs none")
-        .isGreaterThan(SENSITIVITY)
-
-      // Mask partial: the progressive result is faded, not dropped or kept whole.
-      val midRight = region(right, mid)
-      val span = diff(prog, none, midRight, "mid-right progressive-none")
-      val toNone = diff(both, none, midRight, "mid-right combined-none")
-      val toProg = diff(both, prog, midRight, "mid-right combined-progressive")
-      assertThat(toNone, "$label mid-right combined vs none").isGreaterThan(TOLERANCE)
-      assertThat(toProg, "$label mid-right combined vs progressive").isGreaterThan(TOLERANCE)
-      assertThat(toNone, "$label mid-right combined vs none within span").isLessThan(span)
-      assertThat(toProg, "$label mid-right combined vs progressive within span").isLessThan(span)
-
-      // Runtime updates: returning to the combined style reproduces it; mask-only differs.
-      assertThat(diff(both, bothAgain, region(all, all), "combined repeat"), "$label combined repeat")
-        .isLessThanOrEqualTo(REPEAT_TOLERANCE)
-      assertThat(diff(masked, both, region(left, top), "top-left mask-only-combined"), "$label top-left mask only vs combined")
-        .isGreaterThan(SENSITIVITY)
-    }
-
-    mode = HazePerformanceMode.Quality
+    style = null
+    val none = capture()
+    style = progressiveOnly
+    val prog = capture()
     style = combined
-    waitForIdle()
+    val both = capture()
+    style = maskOnly
+    val masked = capture()
+    style = combined
+    val bothAgain = capture()
+
+    val bounds = effectBounds()
+    fun region(x: ClosedFloatingPointRange<Float>, y: ClosedFloatingPointRange<Float>) = IntRect(
+      left = (bounds.left + bounds.width * x.start).roundToInt(),
+      top = (bounds.top + bounds.height * y.start).roundToInt(),
+      right = (bounds.left + bounds.width * x.endInclusive).roundToInt(),
+      bottom = (bounds.top + bounds.height * y.endInclusive).roundToInt(),
+    )
+    val top = 0.02f..0.12f
+    val bottom = 0.90f..0.98f
+    val mid = 0.47f..0.53f
+    val left = 0.02f..0.12f
+    val right = 0.88f..0.98f
+    val all = 0.02f..0.98f
+    val label = "${if (blur) "blur" else "scrim"} $mode"
+    fun diff(a: PixelSnapshot, b: PixelSnapshot, area: IntRect, name: String): Float =
+      a.crop(area).meanAbsoluteDifference(b.crop(area)).also { println("$label $name=$it") }
+
+    // Mask transparent: nothing of the effect remains, although progressive is high there.
+    assertThat(diff(both, none, region(all, bottom), "bottom combined-none"), "$label bottom combined vs none")
+      .isLessThanOrEqualTo(TOLERANCE)
+    assertThat(diff(prog, none, region(right, bottom), "bottom-right progressive-none"), "$label bottom-right progressive vs none")
+      .isGreaterThan(SENSITIVITY)
+
+    // Mask opaque: the progressive result shows through unchanged, low and high.
+    assertThat(diff(both, prog, region(left, top), "top-left combined-progressive"), "$label top-left combined vs progressive")
+      .isLessThanOrEqualTo(TOLERANCE)
+    assertThat(diff(both, prog, region(right, top), "top-right combined-progressive"), "$label top-right combined vs progressive")
+      .isLessThanOrEqualTo(TOLERANCE)
+    assertThat(diff(both, none, region(right, top), "top-right combined-none"), "$label top-right combined vs none")
+      .isGreaterThan(SENSITIVITY)
+
+    // Mask partial: the progressive result is faded, not dropped or kept whole.
+    val midRight = region(right, mid)
+    val span = diff(prog, none, midRight, "mid-right progressive-none")
+    val toNone = diff(both, none, midRight, "mid-right combined-none")
+    val toProg = diff(both, prog, midRight, "mid-right combined-progressive")
+    assertThat(toNone, "$label mid-right combined vs none").isGreaterThan(TOLERANCE)
+    assertThat(toProg, "$label mid-right combined vs progressive").isGreaterThan(TOLERANCE)
+    assertThat(toNone, "$label mid-right combined vs none within span").isLessThan(span)
+    assertThat(toProg, "$label mid-right combined vs progressive within span").isLessThan(span)
+
+    // Runtime updates: returning to the combined style reproduces it; mask-only differs.
+    assertThat(diff(both, bothAgain, region(all, all), "combined repeat"), "$label combined repeat")
+      .isLessThanOrEqualTo(REPEAT_TOLERANCE)
+    assertThat(diff(masked, both, region(left, top), "top-left mask-only-combined"), "$label top-left mask only vs combined")
+      .isGreaterThan(SENSITIVITY)
+
     captureRoot()
   }
 
