@@ -318,6 +318,37 @@ class HazeEffectInputTest {
   }
 
   @Test
+  fun sourcesWhere_tracksSourceMovedAfterPredicateSelectsIt() = runComposeUiTest {
+    val state = HazeState()
+    val selectedKey = mutableStateOf("first")
+    val secondOffset = mutableStateOf(IntOffset.Zero)
+    val selection = HazeSourceSelection.All.where { info -> info.key == selectedKey.value }
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        source(state, "first", 0f, Color.Red)
+        Box(
+          Modifier
+            .fillMaxSize()
+            .offset { secondOffset.value }
+            .hazeSource(state, zIndex = 1f, key = "second")
+            .background(Color.Blue),
+        )
+        effect(state, selection)
+      }
+    }
+
+    assertThat(effectCenterColor()).isEqualTo(Color.Red)
+    selectedKey.value = "second"
+    waitForIdle()
+    assertThat(effectCenterColor()).isEqualTo(Color.Blue)
+
+    secondOffset.value = IntOffset(60, 0)
+    waitForIdle()
+    assertThat(effectCenterColor()).isEqualTo(Color.Red)
+  }
+
+  @Test
   fun sourcesWhere_doesNotReevaluateForUnrelatedStyleChange() = runComposeUiTest {
     val state = HazeState()
     val style = mutableStateOf(false)
