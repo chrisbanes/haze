@@ -1653,11 +1653,14 @@ contrast with your own content and configure Haze's styles and accessibility set
   <code>Alignment.Center</code>). Logical start and end follow the node's layout direction.</li>
 <li><strong>chromaticAberrationStrength</strong>: Dispersion strength <code>0..1</code> (default 0). Higher values produce prismatic color splitting at edges.</li>
 <li><strong>chromaticAberrationMode</strong>: Quality mode for chromatic aberration. <code>Simple</code> (default, fast) or <code>Full</code> (spectral, more expensive).</li>
-<li><strong>alpha</strong>: Overall opacity multiplier <code>0..1</code> (default 1).</li>
+<li><strong>alpha</strong>: Overall opacity multiplier <code>0..1</code> (default 1). Values outside that range are clamped.</li>
 </ul>
-<p>Glass validates configuration when a Style or <code>GlassOptics</code> value is created instead of
-silently correcting it later. Validate or clamp values from user input and remote data before
-building the Style. The generated API reference documents the accepted range for each property.</p>
+<p>A <code>GlassOptics</code> value is validated when it is created. A <code>GlassStyle</code> block is validated when it
+runs, which is when a node resolves the Style, so an invalid value throws during that node's
+update rather than where the Style is built. Values that animation can overshoot are coerced
+instead: <code>alpha</code> and tint alpha are clamped into <code>0f..1f</code>, and negative corner radii are treated
+as zero. Validate or clamp other values from user input and remote data before writing them in the
+block. The generated API reference documents the accepted range for each property.</p>
 <h3 id="colour-handling">Colour handling<a class="headerlink" href="#colour-handling" title="Permanent link">¶</a></h3>
 <p><code>chromaMultiplier</code> values above <code>1f</code> request a boost, not permission to clip a source colour.
 Glass bounds that boost for colours already within the sRGB gamut, and leaves an out-of-gamut source
@@ -1668,10 +1671,23 @@ passed to the colour-managed shader uniforms. This does not make every Glass ope
 scene-linear colour model: encoded <code>luma()</code> used for content normals, display-space contrast, and
 ambient multiplication remain explicitly deferred colour-model questions.</p>
 <h2 id="glassstyle">GlassStyle<a class="headerlink" href="#glassstyle" title="Permanent link">¶</a></h2>
-<p><code>GlassStyle</code> is immutable and safe to share. Build a base Style and use <code>then</code> for variations.
-Regular and Clear select their material response from the host's current system appearance on each
-attached node, without replacing the Style. A Style captures caller-supplied values when it is
-constructed, so changes to those values require a replacement Style through recomposition.</p>
+<p><code>GlassStyle</code> is safe to share. Build a base Style and use <code>then</code> for variations. Regular and Clear
+select their material response from the host's current system appearance on each attached node,
+without replacing the Style.</p>
+<p>A Style's block runs each time a node resolves its style, not when the Style is constructed. The
+block may read snapshot state, such as an animated value. Each node observes those reads and applies
+a change on the next frame without recomposing the <code>hazeGlass</code> call site. The block may run on any
+frame, so keep it free of side effects. Styles compare by identity, so <code>remember</code> or hoist a Style:
+constructing a new Style in each composition replaces it on every node.</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">radius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">animateDpAsState</span><span class="p">(</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">expanded</span><span class="p">)</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="m">28.</span><span class="n">dp</span><span class="p">)</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">shape</span><span class="p">(</span><span class="n">RoundedCornerShape</span><span class="p">(</span><span class="n">radius</span><span class="p">.</span><span class="na">value</span><span class="p">))</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Invalid values throw <code>IllegalArgumentException</code> when the block runs. Values that animation can
+overshoot are coerced instead: <code>alpha</code> and tint alpha are clamped into <code>0f..1f</code>, and negative corner
+radii are treated as zero. Percent corner sizes, such as <code>CircleShape</code>, already follow size-only
+changes without any state in the Style.</p>
 <p>Each node starts with the appearance-specific Regular response, then applies <code>LocalGlassStyle</code> and
 its explicit Style. An omitted value inherits a local write when present; otherwise material
 response values come from Regular. Presentation values use their accumulator defaults: mostly

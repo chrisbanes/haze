@@ -1388,12 +1388,13 @@ resolution, delegate, retained output, render-effect cache, and platform resourc
 replays defaults, the current composition-local Style, and the explicit Style into a fresh snapshot
 on that same runtime.</p>
 <h2 id="built-in-glass">Built-in Glass<a class="headerlink" href="#built-in-glass" title="Permanent link">¶</a></h2>
-<p>Glass exposes only the typed <code>hazeGlass</code> modifier, replayable <code>GlassStyle</code>, and structural modifier
+<p>Glass exposes only the typed <code>hazeGlass</code> modifier, <code>GlassStyle</code>, and structural modifier
 arguments. The shared factory is stateless. Each modifier creates one internal node-owned runtime
-which replays the immutable writes recorded by defaults, <code>LocalGlassStyle</code>, and the explicit Style
-into a fresh snapshot and owns its interaction controller, delegate, caches, retained layers, and
-platform resources. A Style builder executes only during Style construction; changing a captured
-input requires replacing the Style through recomposition.</p>
+which evaluates defaults, <code>LocalGlassStyle</code>, and the explicit Style into a fresh snapshot and owns
+its interaction controller, delegate, caches, retained layers, and platform resources. Style blocks
+run inside the node's observed update, so snapshot state read by a block is observed by the node:
+a change resolves the Style again and invalidates draw without recomposition
+(<a href="../adr/0011-evaluate-glass-styles-under-state-observation/">ADR-0011</a>).</p>
 <p>The old public effect, renderer, cache, grouped sentinel values, and <code>glassEffect</code> DSL are removed.
 No renderer or lifecycle object can be shared between Glass nodes.</p>
 <p>On supported Backdrop input, Glass reuses the Android fused effect graph with compositor input and

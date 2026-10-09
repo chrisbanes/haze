@@ -1666,8 +1666,10 @@ Use <code>then</code> to build variations from a shared base Style.</p>
 <p>Keep one final <code>GlassStyle</code> for all platforms. Remove renderer-capability checks, platform-specific
 Style variants, and secondary fallback Styles. Haze selects the available implementation and
 gracefully simplifies unsupported optics.</p>
-<p>Invalid Glass values now fail when the Style or <code>GlassOptics</code> value is created instead of
-being corrected later. Validate or clamp external values before building the Style. See the
+<p>Invalid Glass values now fail instead of being corrected later: a <code>GlassOptics</code> value when it is
+created, and a <code>GlassStyle</code> write when the Style's block runs as a node resolves it. Only animatable
+overshoot is coerced: alpha and tint alpha are clamped into <code>0f..1f</code>, and negative corner radii are
+treated as zero. Validate or clamp other external values before writing them in the Style. See the
 generated API reference for property-specific ranges.</p>
 <table>
 <thead>
