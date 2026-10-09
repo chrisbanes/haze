@@ -152,7 +152,7 @@ class RenderScriptMaskProgressiveInstrumentationTest {
       if (current.meanAbsoluteDifference(previous, 0f..1f, 0f..1f) == 0f) return current
       previous = current
     }
-    return previous
+    error("RenderScript capture did not stabilize within $STABLE_TIMEOUT_MS ms")
   }
 
   private fun capture(): PixelMap = composeTestRule.onNodeWithTag(TAG).captureToImage().toPixelMap()
