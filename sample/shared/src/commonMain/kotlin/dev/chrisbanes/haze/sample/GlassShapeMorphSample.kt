@@ -83,11 +83,13 @@ public fun GlassShapeMorphSample(navController: NavHostController) {
         ),
     )
 
-    IconButton(
-      onClick = navController::navigateUp,
-      modifier = Modifier.padding(WindowInsets.safeDrawing.asPaddingValues()).padding(8.dp),
-    ) {
-      Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+    if (LocalSampleNavigationEnabled.current) {
+      IconButton(
+        onClick = navController::navigateUp,
+        modifier = Modifier.padding(WindowInsets.safeDrawing.asPaddingValues()).padding(8.dp),
+      ) {
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+      }
     }
 
     Column(
