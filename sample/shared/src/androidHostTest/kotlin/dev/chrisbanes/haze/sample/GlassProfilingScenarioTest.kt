@@ -376,15 +376,35 @@ class GlassProfilingScenarioTest {
     }
     listOf(0f, 0.5f, 1f).forEach { progress ->
       assertThat(
-        glassProfilingScenarioSize(GlassProfilingScenario.StableQuality, progress),
+        glassProfilingScenarioSize(GlassProfilingScenario.StableQuality) { progress },
       ).isEqualTo(DpSize(280.dp, 180.dp))
     }
     assertThat(
-      glassProfilingScenarioSize(GlassProfilingScenario.ResizeQuality, 0f),
+      glassProfilingScenarioSize(GlassProfilingScenario.ResizeQuality) { 0f },
     ).isEqualTo(DpSize(196.dp, 126.dp))
     assertThat(
-      glassProfilingScenarioSize(GlassProfilingScenario.ResizeQuality, 1f),
+      glassProfilingScenarioSize(GlassProfilingScenario.ResizeQuality) { 1f },
     ).isEqualTo(DpSize(196.dp, 126.dp))
+  }
+
+  @Test
+  fun fixedScenarioSize_doesNotReadAnimatedProgress() {
+    var progressReads = 0
+
+    val size = glassProfilingScenarioSize(GlassProfilingScenario.StableQuality) {
+      progressReads++
+      error("Fixed-size scenarios do not use animation progress")
+    }
+
+    assertThat(size).isEqualTo(DpSize(280.dp, 180.dp))
+    assertThat(progressReads).isEqualTo(0)
+
+    val resizeSize = glassProfilingScenarioSize(GlassProfilingScenario.ResizeQuality) {
+      progressReads++
+      0.5f
+    }
+    assertThat(resizeSize).isEqualTo(DpSize(280.dp, 180.dp))
+    assertThat(progressReads).isEqualTo(1)
   }
 
   @Test

@@ -126,17 +126,28 @@ private fun GlassProfilingScene(
   val hazeState = rememberHazeState()
   val interactionSource = remember { MutableInteractionSource() }
   val density = LocalDensity.current
-  val surfaceSize = glassProfilingScenarioSize(scenario, state.progress)
+  val surfaceSize = glassProfilingScenarioSize(scenario) { state.progress }
   val surfaceSizePx = with(density) {
     Size(surfaceSize.width.toPx(), surfaceSize.height.toPx())
   }
   val effectSurfaceSizePx = profilingEffectSize(surfaceSizePx, scenario.effectCount)
+  val styleSurfaceSizePx = if (scenario.resizesLayoutBounds) {
+    with(density) {
+      profilingEffectSize(
+        Size(ProfilingSurfaceSize.width.toPx(), ProfilingSurfaceSize.height.toPx()),
+        scenario.effectCount,
+      )
+    }
+  } else {
+    effectSurfaceSizePx
+  }
+  val animationSizeKey = if (scenario.resizesLayoutBounds) null else surfaceSizePx
   val backgroundColor = MaterialTheme.colorScheme.surface
   var effectFrame by remember(scenario) {
     mutableStateOf(glassProfilingFrame(scenario, progress = 0f))
   }
   val styleFrame = if (profilingStyleUsesFrame(scenario)) effectFrame else null
-  val styles = remember(scenario, styleFrame, backgroundColor) {
+  val styles = remember(scenario, styleFrame, styleSurfaceSizePx, backgroundColor) {
     List(scenario.effectCount) {
       profilingGlassStyle(
         scenario,
@@ -146,7 +157,7 @@ private fun GlassProfilingScene(
     }
   }
 
-  LaunchedEffect(state.phase, scenario, interactionSource) {
+  LaunchedEffect(state.phase, scenario, interactionSource, animationSizeKey) {
     if (state.phase == GlassProfilingPhase.Settling) {
       repeat(GLASS_PROFILING_SETTLING_FRAMES) {
         androidx.compose.runtime.withFrameNanos {}

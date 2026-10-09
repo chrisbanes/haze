@@ -46,6 +46,7 @@ internal enum class GlassProfilingScenario(
   val opticsOverride: GlassOptics? = null,
   val fullChroma: Boolean = false,
   val usesBackdrop: Boolean = false,
+  val resizesLayoutBounds: Boolean = false,
 ) {
   EffectAttach(
     id = "effect_attach",
@@ -256,16 +257,18 @@ internal enum class GlassProfilingScenario(
     id = "resize_quality",
     steadyDraw = true,
     performanceMode = HazePerformanceMode.Quality,
+    resizesLayoutBounds = true,
   ),
   ResizeQuality9(
     id = "resize_quality_9",
     effectCount = 9,
     steadyDraw = true,
     performanceMode = HazePerformanceMode.Quality,
+    resizesLayoutBounds = true,
   ),
 }
 
-private val ProfilingSurfaceSize = DpSize(280.dp, 180.dp)
+internal val ProfilingSurfaceSize = DpSize(280.dp, 180.dp)
 private val ProfilingResizeStartSize = DpSize(196.dp, 126.dp)
 
 internal fun glassProfilingResizeSize(progress: Float): DpSize {
@@ -280,12 +283,11 @@ internal fun glassProfilingResizeSize(progress: Float): DpSize {
 
 internal fun glassProfilingScenarioSize(
   scenario: GlassProfilingScenario,
-  progress: Float,
-): DpSize = when (scenario) {
-  GlassProfilingScenario.ResizeQuality,
-  GlassProfilingScenario.ResizeQuality9,
-  -> glassProfilingResizeSize(progress)
-  else -> ProfilingSurfaceSize
+  progress: () -> Float,
+): DpSize = if (scenario.resizesLayoutBounds) {
+  glassProfilingResizeSize(progress())
+} else {
+  ProfilingSurfaceSize
 }
 
 internal enum class GlassProfilingPhase(val id: String) {
