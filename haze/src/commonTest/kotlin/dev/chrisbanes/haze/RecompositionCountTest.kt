@@ -21,6 +21,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.test.ContextTest
 import dev.chrisbanes.haze.test.RecompositionCounter
@@ -35,6 +36,28 @@ class RecompositionCountTest : ContextTest() {
     // two frames for a single atomic change) - those use isBetween(1, 2)
     // with a comment explaining why.
     private const val RECOMPOSITION_THRESHOLD = 1
+  }
+
+  @Test
+  fun recompositionCounter_countsContentStateChanges() = runComposeUiTest {
+    val counter = mutableIntStateOf(0)
+    val value = mutableIntStateOf(0)
+
+    setContent {
+      RecompositionCounter(counter) {
+        GradientBox(Modifier.size(value.intValue.dp + 10.dp))
+      }
+    }
+    waitForIdle()
+
+    counter.intValue = 0
+    value.intValue = 1
+    waitForIdle()
+
+    // Positive control: the counter must observe state read inside its content,
+    // otherwise the upper-bound assertions in this class can never fail.
+    assertThat(counter.intValue, "counter after content state change")
+      .isGreaterThanOrEqualTo(1)
   }
 
   @Test
