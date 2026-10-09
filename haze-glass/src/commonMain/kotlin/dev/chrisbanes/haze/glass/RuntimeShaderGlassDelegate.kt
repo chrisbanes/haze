@@ -381,6 +381,7 @@ internal class RuntimeShaderGlassDelegate(
         opticalLayer,
         render.opticalKey.copy(coordinates = patch.coordinates),
         patch.uniforms,
+        outputTargetsLayer = effects.refractionDetail == null,
       )
       val detail = effects.refractionDetail
       val outputLayer = if (detail != null) {
@@ -684,6 +685,7 @@ internal class RuntimeShaderGlassDelegate(
                 key = render.opticalKey,
                 patch = interactionPatch,
                 inputContentChanged = invalidation.depth,
+                outputTargetsLayer = effects.refractionDetail == null,
               )
             },
             ::clearRetainedOutput,
@@ -1360,12 +1362,13 @@ internal class RuntimeShaderGlassDelegate(
     key: GlassOpticalEffectKey,
     patch: GlassInteractionPatch,
     inputContentChanged: Boolean,
+    outputTargetsLayer: Boolean,
   ): GraphicsLayer? = layers.interactionOptical?.takeUnless { it.isReleased }?.also { layer ->
     val localKey = key.copy(coordinates = patch.coordinates)
     input.alpha = 1f
     input.blendMode = BlendMode.SrcOver
     layer.alpha = 1f
-    updateInteractionOpticalEffect(layer, localKey, patch.uniforms)
+    updateInteractionOpticalEffect(layer, localKey, patch.uniforms, outputTargetsLayer)
     if (
       layer !== recordedInteractionOpticalLayer ||
       input !== recordedInteractionOpticalInput ||
@@ -1521,6 +1524,7 @@ internal class RuntimeShaderGlassDelegate(
     layer: GraphicsLayer,
     key: GlassOpticalEffectKey,
     uniforms: GlassInteractionUniforms,
+    outputTargetsLayer: Boolean,
   ) {
     val needsUpdate = key != interactionOpticalEffectKey ||
       uniforms != interactionOpticalEffectUniforms || interactionOpticalComposeEffect == null
@@ -1543,7 +1547,10 @@ internal class RuntimeShaderGlassDelegate(
       interactionOpticalEffectKey = key
       interactionOpticalEffectUniforms = uniforms
     }
-    if (needsUpdate || layer !== interactionOpticalEffectLayer) {
+    if (outputTargetsLayer) {
+      // The output effect replaces this layer's effect, so the optical effect is no longer on it.
+      interactionOpticalEffectLayer = null
+    } else if (needsUpdate || layer !== interactionOpticalEffectLayer) {
       layer.renderEffect = checkNotNull(interactionOpticalComposeEffect)
       interactionOpticalEffectLayer = layer
     }
