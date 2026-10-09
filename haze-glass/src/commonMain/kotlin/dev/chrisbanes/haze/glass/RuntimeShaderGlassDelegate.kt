@@ -942,7 +942,6 @@ internal class RuntimeShaderGlassDelegate(
     clearInteractionRefractionLayerMetadata()
     clearInteractionLightingLayerMetadata()
     clearInteractionOpticalEffectCache()
-    interactionOutputEffect = null
     clearInteractionDetailEffectCache()
     clearInteractionLightingEffectCache()
   }
@@ -952,6 +951,8 @@ internal class RuntimeShaderGlassDelegate(
     interactionOpticalEffectUniforms = null
     interactionOpticalPlatformEffect = null
     interactionOpticalComposeEffect = null
+    // Its shader still holds the previous optical input, which the detail path never replaces.
+    interactionOutputEffect = null
     interactionOutputInput = null
     interactionOutputUniforms = null
     interactionOutputFeatherWidth = Float.NaN

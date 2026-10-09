@@ -52,6 +52,9 @@ import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.MutableRuntimeShaderRenderEffect
+import dev.chrisbanes.haze.PlatformRenderEffect
+import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.math.roundToInt
@@ -503,6 +506,38 @@ class GlassInteractionRemovalTest : ContextTest() {
   }
 
   @Test
+  fun hiddenInteractionCleanup_recreatesOutputEffectWithoutStaleOpticalInput() = runComposeUiTest {
+    val created = mutableListOf<InputRecordingEffect>()
+    val fixture = attach(
+      fixedCaptureActiveStyle().then {
+        optics(GlassOptics(refractionStrength = 0.5f, refractionDisplacement = 20.dp, refractionDetailIntensity = 0f, blurRadius = OpticalSizeValue.Fixed(0.dp)))
+      },
+      runtimeEffectFactory = GlassRuntimeEffectFactory { create ->
+        InputRecordingEffect(create()).also { created += it }
+      },
+    )
+    fixture.assertMaterialPixels(this)
+    val old = checkNotNull(fixture.delegate.interactionOutputEffect)
+    mainClock.autoAdvance = false
+    replaceHidden(fixture, baseStyle())
+    mainClock.advanceTimeBy(600, ignoreFrameDuration = true)
+    waitForIdle()
+    assertThat(fixture.effect.interactionControllerForTest).isNull()
+    assertThat(fixture.delegate.interactionOutputEffect).isNull()
+
+    runOnIdle { fixture.style.value = fixedCaptureActiveStyle() }
+    syncFrames()
+    press(fixture)
+    mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
+    waitForIdle()
+
+    val output = checkNotNull(fixture.delegate.interactionOutputEffect)
+    assertThat(output).isNotSameInstanceAs(old)
+    assertThat(created.single { it === output }.updatedInputs.any { inputs -> inputs.any { it != null } }).isFalse()
+    assertThat(checkNotNull(fixture.delegate.layers.interactionRefractionComposite).renderEffect).isNotNull()
+  }
+
+  @Test
   fun scaleOnlyRemovalWhileTransparent_restoredMaterialDraws() = runComposeUiTest {
     val fixture = attach(baseStyle().then { pressed { animate(tween(1), tween(500)) { scale(0.9f) } } })
     fixture.assertMaterialPixels(this)
@@ -683,8 +718,14 @@ class GlassInteractionRemovalTest : ContextTest() {
     }
   }
 
-  private class Fixture(initialStyle: GlassStyle, observeInput: Boolean = false) {
-    val effect = GlassRuntimeEffect()
+  private class Fixture(
+    initialStyle: GlassStyle,
+    observeInput: Boolean = false,
+    runtimeEffectFactory: GlassRuntimeEffectFactory? = null,
+  ) {
+    val effect = GlassRuntimeEffect().apply {
+      if (runtimeEffectFactory != null) this.runtimeEffectFactory = runtimeEffectFactory
+    }
     val source = MutableInteractionSource()
     val style = mutableStateOf(initialStyle)
     val observer = InputObservingGlassRenderer(effect)
@@ -704,8 +745,13 @@ class GlassInteractionRemovalTest : ContextTest() {
     }
   }
 
-  private fun ComposeUiTest.attach(style: GlassStyle, policy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.Full, observeInput: Boolean = false): Fixture {
-    val fixture = Fixture(style, observeInput)
+  private fun ComposeUiTest.attach(
+    style: GlassStyle,
+    policy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+    observeInput: Boolean = false,
+    runtimeEffectFactory: GlassRuntimeEffectFactory? = null,
+  ): Fixture {
+    val fixture = Fixture(style, observeInput, runtimeEffectFactory)
     val state = HazeState()
     setContent {
       Box(Modifier.size(384.dp)) {
@@ -782,6 +828,20 @@ class GlassInteractionRemovalTest : ContextTest() {
     assertThat(delegate.layers.interactionOptical).isNull()
     assertThat(optical.isReleased).isTrue()
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
+  }
+
+  private class InputRecordingEffect(
+    private val delegate: MutableRuntimeShaderRenderEffect,
+  ) : MutableRuntimeShaderRenderEffect by delegate {
+    val updatedInputs = mutableListOf<Array<PlatformRenderEffect?>>()
+
+    override fun updateInputs(
+      inputs: Array<PlatformRenderEffect?>,
+      uniforms: RuntimeShaderUniformProvider.() -> Unit,
+    ): PlatformRenderEffect {
+      updatedInputs += inputs
+      return delegate.updateInputs(inputs, uniforms)
+    }
   }
 
   private class InputObservingGlassRenderer(private val effect: GlassRuntimeEffect) :
