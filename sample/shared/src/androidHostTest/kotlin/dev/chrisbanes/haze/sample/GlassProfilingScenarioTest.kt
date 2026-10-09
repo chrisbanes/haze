@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
@@ -175,6 +176,8 @@ class GlassProfilingScenarioTest {
         "source_update_9",
         "backdrop_source_update_9",
         "source_update_no_glass",
+        "resize_quality",
+        "resize_quality_9",
       ),
     )
     assertThat(
@@ -334,6 +337,54 @@ class GlassProfilingScenarioTest {
       assertThat(readCount, name = scenario.id).isEqualTo(if (updatesSource) 1 else 0)
       assertThat(resolved, name = scenario.id).isEqualTo(if (updatesSource) 0.75f else 0f)
     }
+  }
+
+  @Test
+  fun resizeQualityScenarios_keepSourceStationaryAndUseQualityWithOneOrNineEffects() {
+    listOf(
+      GlassProfilingScenario.ResizeQuality to 1,
+      GlassProfilingScenario.ResizeQuality9 to 9,
+    ).forEach { (scenario, effectCount) ->
+      assertThat(scenario.effectCount).isEqualTo(effectCount)
+      assertThat(scenario.performanceMode).isEqualTo(HazePerformanceMode.Quality)
+      assertThat(scenario.usesBackdrop).isFalse()
+      assertThat(scenario.id).isEqualTo(
+        if (effectCount == 1) "resize_quality" else "resize_quality_9",
+      )
+      assertThat(glassProfilingSourceProgress(scenario) { 0.75f }).isEqualTo(0f)
+      assertThat(glassProfilingFrame(scenario, 0f).sourceOffset).isEqualTo(0f)
+      assertThat(glassProfilingFrame(scenario, 1f).sourceOffset).isEqualTo(0f)
+    }
+  }
+
+  @Test
+  fun resizeSize_runsThreeLinearCyclesBetweenExactBounds() {
+    val expectedSizes = listOf(
+      0f to (196.dp to 126.dp),
+      1f / 6f to (280.dp to 180.dp),
+      1f / 3f to (196.dp to 126.dp),
+      0.5f to (280.dp to 180.dp),
+      2f / 3f to (196.dp to 126.dp),
+      5f / 6f to (280.dp to 180.dp),
+      1f to (196.dp to 126.dp),
+    )
+
+    expectedSizes.forEach { (progress, expected) ->
+      val size = glassProfilingResizeSize(progress)
+      assertThat(size.width, name = "width at $progress").isEqualTo(expected.first)
+      assertThat(size.height, name = "height at $progress").isEqualTo(expected.second)
+    }
+    listOf(0f, 0.5f, 1f).forEach { progress ->
+      assertThat(
+        glassProfilingScenarioSize(GlassProfilingScenario.StableQuality, progress),
+      ).isEqualTo(DpSize(280.dp, 180.dp))
+    }
+    assertThat(
+      glassProfilingScenarioSize(GlassProfilingScenario.ResizeQuality, 0f),
+    ).isEqualTo(DpSize(196.dp, 126.dp))
+    assertThat(
+      glassProfilingScenarioSize(GlassProfilingScenario.ResizeQuality, 1f),
+    ).isEqualTo(DpSize(196.dp, 126.dp))
   }
 
   @Test

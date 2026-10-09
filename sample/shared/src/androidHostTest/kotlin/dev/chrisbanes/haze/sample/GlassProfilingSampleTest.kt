@@ -5,11 +5,14 @@ package dev.chrisbanes.haze.sample
 
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isEqualTo
@@ -63,6 +66,67 @@ class GlassProfilingSampleTest : ContextTest() {
     onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
     repeat(9) { index ->
       onNodeWithTag("glass_profiling_surface_$index").assertIsDisplayed()
+    }
+  }
+
+  @Test
+  fun resizeQualityScenarios_changeGridBoundsWithoutMovingSourceOrReplacingEffects() {
+    listOf(
+      GlassProfilingScenario.ResizeQuality to 1,
+      GlassProfilingScenario.ResizeQuality9 to 9,
+    ).forEach { (scenario, effectCount) ->
+      runComposeUiTest {
+        mainClock.autoAdvance = false
+        val state = GlassProfilingState().apply { select(scenario) }
+        setContent {
+          GlassProfilingSampleContent(
+            state = state,
+            onBack = {},
+          )
+        }
+
+        repeat(GLASS_PROFILING_SETTLING_FRAMES + 1) {
+          mainClock.advanceTimeByFrame()
+        }
+        waitForIdle()
+        onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
+        val effectNodeIds = List(effectCount) { index ->
+          onNodeWithTag("glass_profiling_surface_$index").fetchSemanticsNode().id
+        }
+        onNodeWithTag("glass_profiling_start").performClick()
+
+        val sourceBounds = onNodeWithTag("glass_profiling_source").fetchSemanticsNode().boundsInRoot
+        val observedWidths = mutableListOf<androidx.compose.ui.unit.Dp>()
+        repeat(6) {
+          mainClock.advanceTimeBy(500L)
+          val expectedSize = glassProfilingResizeSize(state.progress)
+          observedWidths += expectedSize.width
+          onNodeWithTag("glass_profiling_surface")
+            .assertWidthIsEqualTo(expectedSize.width)
+            .assertHeightIsEqualTo(expectedSize.height)
+          assertThat(
+            onNodeWithTag("glass_profiling_source").fetchSemanticsNode().boundsInRoot,
+          ).isEqualTo(sourceBounds)
+          val currentEffectNodeIds = List(effectCount) { index ->
+            onNodeWithTag("glass_profiling_surface_$index").fetchSemanticsNode().id
+          }
+          assertThat(currentEffectNodeIds).isEqualTo(effectNodeIds)
+        }
+        assertThat(observedWidths.any { it >= 275.dp }).isTrue()
+        assertThat(observedWidths.any { it <= 201.dp }).isTrue()
+
+        mainClock.advanceTimeBy(500L)
+        onNodeWithTag("glass_profiling_phase_complete").assertIsDisplayed()
+        val expectedFinalSize = glassProfilingResizeSize(1f)
+        onNodeWithTag("glass_profiling_surface")
+          .assertWidthIsEqualTo(expectedFinalSize.width)
+          .assertHeightIsEqualTo(expectedFinalSize.height)
+        assertThat(
+          List(effectCount) { index ->
+            onNodeWithTag("glass_profiling_surface_$index").fetchSemanticsNode().id
+          },
+        ).isEqualTo(effectNodeIds)
+      }
     }
   }
 
