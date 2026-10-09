@@ -133,10 +133,11 @@ private fun resolveFixedSizeInteractionBounds(
 ): IntRect {
   val sampleWidth = sampleSize.width.toInt()
   val sampleHeight = sampleSize.height.toInt()
-  val left = floor(position.x - patchSize.width / 2f)
+  // The side is ceil(2 * extent) + 1, so centring on (side - 1) / 2 keeps both rounded-out edges inside.
+  val left = floor(position.x - (patchSize.width - 1) / 2f)
     .toInt()
     .coerceIn(0, sampleWidth - patchSize.width)
-  val top = floor(position.y - patchSize.height / 2f)
+  val top = floor(position.y - (patchSize.height - 1) / 2f)
     .toInt()
     .coerceIn(0, sampleHeight - patchSize.height)
   return IntRect(

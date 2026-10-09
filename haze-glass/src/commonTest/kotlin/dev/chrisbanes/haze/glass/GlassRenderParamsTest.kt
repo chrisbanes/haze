@@ -30,6 +30,7 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
+import assertk.assertions.isLessThanOrEqualTo
 import kotlin.math.sqrt
 import kotlin.test.Test
 
@@ -436,6 +437,33 @@ class GlassRenderParamsTest {
 
     assertThat(reserved.width).isGreaterThanOrEqualTo(runtime.bounds.width)
     assertThat(reserved.height).isGreaterThanOrEqualTo(runtime.bounds.height)
+    assertPatchContainsCompositeBounds(runtime)
+
+    val lightingParams = testRenderParams(
+      coordinates = GlassCoordinates(Size(200f, 200f), Offset.Zero, Size(100f, 100f), 1f),
+    )
+    val lightingOnly = GlassInteractionTopology(false, true, 1f)
+    listOf(
+      Offset(10.4f, 10.4f),
+      Offset(100.6f, 50.5f),
+      Offset(195.6f, 195.3f),
+    ).forEach { position ->
+      val patch = checkNotNull(
+        resolveGlassInteractionPatch(
+          lightingParams,
+          GlassInteractionUniforms(position, 5f, 1f, 1f, 0f),
+          lightingOnly,
+        ),
+      )
+      assertPatchContainsCompositeBounds(patch)
+    }
+  }
+
+  private fun assertPatchContainsCompositeBounds(patch: GlassInteractionPatch) {
+    assertThat(patch.compositeBounds.left).isGreaterThanOrEqualTo(patch.bounds.left)
+    assertThat(patch.compositeBounds.top).isGreaterThanOrEqualTo(patch.bounds.top)
+    assertThat(patch.compositeBounds.right).isLessThanOrEqualTo(patch.bounds.right)
+    assertThat(patch.compositeBounds.bottom).isLessThanOrEqualTo(patch.bounds.bottom)
   }
 
   @Test
