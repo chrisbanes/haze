@@ -7,11 +7,17 @@ package dev.chrisbanes.haze.blur
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
+import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeLogger
@@ -74,7 +80,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
         .getOrCreateRenderEffect(
           context = context,
           inputScale = inputScale,
-          mask = progressive.asBrush(),
+          progressiveMask = progressive.asBrush(),
           retainInputWhenMasked = progressive is RootHazeProgressive.LinearGradient,
         )
         .asComposeRenderEffect()
@@ -101,6 +107,13 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
   val colorEffects = blurVisualEffect.colorEffects
   val noiseFactor = blurVisualEffect.noiseFactor
   val blurRadius = blurVisualEffect.blurRadius.takeOrElse { 0.dp }
+
+  // Bands overlap, so fade their composite once: masking each band would not be equivalent.
+  val userMask = blurVisualEffect.mask
+  val layerSize = contentLayer.size.toSize()
+  if (userMask != null) {
+    drawContext.canvas.saveLayer(Rect(Offset.Zero, layerSize), Paint())
+  }
 
   drawProgressiveWithMultipleLayers(progressive) { mask, intensity ->
     context.withGraphicsLayer { layer ->
@@ -129,5 +142,18 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
       // we don't see it (but it still affects the RenderEffect)
       drawLayer(layer)
     }
+  }
+
+  if (userMask != null) {
+    // Cover the expanded layer so clamped mask values reach its outset, as in the shader path.
+    translate(context.layerOffset) {
+      drawRect(
+        brush = userMask,
+        topLeft = -context.layerOffset,
+        size = layerSize,
+        blendMode = BlendMode.DstIn,
+      )
+    }
+    drawContext.canvas.restore()
   }
 }
