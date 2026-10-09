@@ -64,18 +64,17 @@ internal fun RoundedCornerShape.toValidCornerRadiiPxOrNull(
   val bottomEndPx = bottomEnd.toPx(layerSize, density)
   val bottomStartPx = bottomStart.toPx(layerSize, density)
   if (
-    !topStartPx.isFinite() || topStartPx < 0f ||
-    !topEndPx.isFinite() || topEndPx < 0f ||
-    !bottomEndPx.isFinite() || bottomEndPx < 0f ||
-    !bottomStartPx.isFinite() || bottomStartPx < 0f
+    !topStartPx.isFinite() || !topEndPx.isFinite() ||
+    !bottomEndPx.isFinite() || !bottomStartPx.isFinite()
   ) {
     return null
   }
+  // Negative radii, such as animation overshoot, are treated as square corners.
   return toPhysicalCornerRadiiPx(
-    topStartPx,
-    topEndPx,
-    bottomEndPx,
-    bottomStartPx,
+    topStartPx.coerceAtLeast(0f),
+    topEndPx.coerceAtLeast(0f),
+    bottomEndPx.coerceAtLeast(0f),
+    bottomStartPx.coerceAtLeast(0f),
     layerSize,
     layoutDirection,
   )

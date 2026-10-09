@@ -1150,10 +1150,11 @@ internal fun RoundedCornerShape.hasZeroCornerRadii(): Boolean {
   // Use unit values to check if all corner sizes resolve to zero.
   val unitSize = androidx.compose.ui.geometry.Size(1f, 1f)
   val unitDensity = androidx.compose.ui.unit.Density(1f)
-  return topStart.toPx(unitSize, unitDensity) == 0f &&
-    topEnd.toPx(unitSize, unitDensity) == 0f &&
-    bottomEnd.toPx(unitSize, unitDensity) == 0f &&
-    bottomStart.toPx(unitSize, unitDensity) == 0f
+  // Negative corners are drawn square, so they count as zero. NaN does not.
+  return topStart.toPx(unitSize, unitDensity) <= 0f &&
+    topEnd.toPx(unitSize, unitDensity) <= 0f &&
+    bottomEnd.toPx(unitSize, unitDensity) <= 0f &&
+    bottomStart.toPx(unitSize, unitDensity) <= 0f
 }
 
 internal fun reducedMotion(

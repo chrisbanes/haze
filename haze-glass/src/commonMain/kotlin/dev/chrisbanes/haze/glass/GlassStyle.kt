@@ -26,31 +26,34 @@ import dev.chrisbanes.haze.Poko
 /**
  * A [ProvidableCompositionLocal] which provides inherited Glass appearance.
  *
- * A Glass node starts with the Regular response for its current system appearance, then replays
+ * A Glass node starts with the Regular response for its current system appearance, then applies
  * this Style and its explicit [GlassStyle] in that order. Each node uses a fresh accumulator, so a
- * Style may be shared safely by concurrent nodes.
+ * Style may be shared safely by concurrent nodes. Styles compare by identity, so provide a
+ * remembered or hoisted Style.
  */
 @ExperimentalHazeApi
 public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
   compositionLocalOf { GlassStyle }
 
 /**
- * An opaque, immutable sequence of Glass appearance writes.
+ * An opaque sequence of Glass appearance writes.
  *
- * The builder passed to [GlassStyle] executes once during construction. Each property is
- * validated and captured as an immutable write; resolving a Style only replays those captured
- * values and never invokes caller code. Combine Styles with [then]. Writes run in order and the
- * last write to a property wins. The companion object is the empty Style and performs no writes.
+ * The block passed to [GlassStyle] runs each time a node resolves its style, into a fresh
+ * node-owned accumulator. It may run on any frame and must not have side effects. Combine Styles
+ * with [then]. Writes run in order and the last write to a property wins. The companion object is
+ * the empty Style and performs no writes.
  *
- * Mutating an input captured by a previously constructed Style has no effect. To change caller
- * writes, construct and supply a replacement Style through recomposition. The built-in Regular
- * and Clear responses are selected from the attached node's current system appearance during
- * replay, so a system appearance change does not require a replacement Style.
+ * A block may read snapshot state, such as an animated value. Each consuming node observes those
+ * reads; when the state changes the node resolves the Style again and redraws on the next frame
+ * without recomposition. Styles compare by identity, so `remember` or hoist a Style: constructing
+ * a new Style in each composition replaces it on every node. The built-in Regular and Clear
+ * responses are selected from the attached node's current system appearance during resolution,
+ * so a system appearance change does not require a replacement Style.
  *
  * A Style contains no renderer or mutable runtime state. [GlassStyleScope.hovered],
  * [GlassStyleScope.focused], [GlassStyleScope.pressed],
  * [GlassStyleScope.interactionLightRadiusFraction], and
- * [GlassStyleScope.interactionPositionAnimationSpec] record reusable interaction presentation;
+ * [GlassStyleScope.interactionPositionAnimationSpec] declare reusable interaction presentation;
  * each `hazeGlass` node replays it into a fresh node-owned snapshot and owns its signals,
  * geometry, animations, pointer observation, and renderer resources.
  *
@@ -65,7 +68,7 @@ public sealed interface GlassStyle {
   /** Returns a Style which replays [other] after this Style. */
   public infix fun then(other: GlassStyle): GlassStyle = combineGlassStyles(this, other)
 
-  /** Returns a Style which replays the writes recorded by [block] after this Style. */
+  /** Returns a Style which runs [block] after this Style. */
   public fun then(block: GlassStyleScope.() -> Unit): GlassStyle = then(GlassStyle(block))
 
   /** The empty Glass Style, which performs no writes. */
@@ -156,28 +159,24 @@ public sealed interface GlassStyle {
 }
 
 /**
- * Creates a recorded, replayable [GlassStyle].
+ * Creates a [GlassStyle] which runs [block] whenever a node resolves its style.
  *
- * [block] executes exactly once during this call. Its validated property values are captured
- * as immutable writes which can later be replayed into fresh node-local state without invoking
- * [block] again.
+ * [block] does not run during this call. It may run on any frame, so it must not have side
+ * effects. It may read snapshot state: each consuming node observes those reads and applies a
+ * change on the next frame without recomposition. Styles compare by identity, so `remember` or
+ * hoist a Style rather than constructing one in each composition. Invalid values throw
+ * [IllegalArgumentException] when [block] runs.
  */
 @ExperimentalHazeApi
-public fun GlassStyle(block: GlassStyleScope.() -> Unit): GlassStyle =
-  RecordedGlassStyle(recordGlassStyleWrites(block))
+public fun GlassStyle(block: GlassStyleScope.() -> Unit): GlassStyle = EvaluatedGlassStyle(block)
 
 @Immutable
-private class RecordedGlassStyle(
-  private val writes: List<GlassStyleValues.() -> Unit>,
+private class EvaluatedGlassStyle(
+  private val block: GlassStyleScope.() -> Unit,
 ) : GlassStyle {
   fun replay(values: GlassStyleValues) {
-    for (write in writes) {
-      values.write()
-    }
+    GlassStyleScope(values).block()
   }
-
-  fun then(other: RecordedGlassStyle): GlassStyle =
-    RecordedGlassStyle(writes + other.writes)
 }
 
 @Immutable
@@ -212,14 +211,13 @@ private fun combineGlassStyles(
 ): GlassStyle {
   if (first === GlassStyle) return second
   if (second === GlassStyle) return first
-  if (first is RecordedGlassStyle && second is RecordedGlassStyle) return first.then(second)
 
   val firstStyles = if (first is CombinedGlassStyle) first.styles else listOf(first)
   val secondStyles = if (second is CombinedGlassStyle) second.styles else listOf(second)
   return CombinedGlassStyle(firstStyles + secondStyles)
 }
 
-/** Marks the nested receiver scopes used while constructing a [GlassStyle]. */
+/** Marks the nested receiver scopes used while building a [GlassStyle]. */
 @DslMarker
 @ExperimentalHazeApi
 public annotation class GlassStyleDsl
@@ -227,14 +225,15 @@ public annotation class GlassStyleDsl
 /**
  * Receiver for Glass appearance property writes.
  *
- * Property functions validate values while the Style is constructed and record them for later
- * replay. Invalid direct Glass numbers throw [IllegalArgumentException]. Calling a function again
- * records a later write which takes precedence.
+ * Property functions validate values when the Style's block runs. Invalid direct Glass numbers
+ * throw [IllegalArgumentException], except that [alpha] is clamped into `0f..1f` and negative
+ * [shape] corner radii are treated as zero, so animation overshoot never throws. Calling a
+ * function again writes a later value which takes precedence.
  */
 @ExperimentalHazeApi
 @GlassStyleDsl
 public class GlassStyleScope internal constructor(
-  private val writes: MutableList<GlassStyleValues.() -> Unit>,
+  private val values: GlassStyleValues,
 ) {
   /**
    * Declares the response evaluated by each node while it is hovered.
@@ -243,20 +242,17 @@ public class GlassStyleScope internal constructor(
    * press has a declaration, and observes without consuming application input.
    */
   public fun hovered(response: GlassInteractionScope.() -> Unit) {
-    val recorded = buildGlassInteractionResponse(response)
-    writes += { hoveredInteraction = recorded }
+    values.hoveredInteraction = buildGlassInteractionResponse(response)
   }
 
   /** Declares the response evaluated by each node while it is focused. */
   public fun focused(response: GlassInteractionScope.() -> Unit) {
-    val recorded = buildGlassInteractionResponse(response)
-    writes += { focusedInteraction = recorded }
+    values.focusedInteraction = buildGlassInteractionResponse(response)
   }
 
   /** Declares the response evaluated by each node while it is pressed. */
   public fun pressed(response: GlassInteractionScope.() -> Unit) {
-    val recorded = buildGlassInteractionResponse(response)
-    writes += { pressedInteraction = recorded }
+    values.pressedInteraction = buildGlassInteractionResponse(response)
   }
 
   /**
@@ -271,7 +267,7 @@ public class GlassStyleScope internal constructor(
       0f..2f,
       DOUBLE_INTERVAL_DOMAIN,
     )
-    writes += { interactionLightRadiusFraction = validated }
+    values.interactionLightRadiusFraction = validated
   }
 
   /**
@@ -282,12 +278,12 @@ public class GlassStyleScope internal constructor(
    * This presentation is replayed into fresh animation state owned by each consuming node.
    */
   public fun interactionPositionAnimationSpec(animationSpec: FiniteAnimationSpec<Offset>) {
-    writes += { interactionPositionAnimationSpec = animationSpec }
+    values.interactionPositionAnimationSpec = animationSpec
   }
 
   /** Sets the rounded boundary used for refraction and masking. */
   public fun shape(shape: RoundedCornerShape) {
-    writes += { this.shape = shape }
+    values.shape = shape
   }
 
   /** Sets a complete fixed optical model used to refract and blur captured content. */
@@ -323,13 +319,13 @@ public class GlassStyleScope internal constructor(
    * Complete optics values retain the contracts enforced by their concrete [GlassOptics] type.
    */
   public fun optics(optics: GlassOptics) {
-    writes += { this.optics = optics }
+    values.optics = optics
   }
 
   /** Sets finite specular-highlight intensity in the inclusive range `0f..1f`. */
   public fun specularIntensity(intensity: Float) {
     val validated = requireFiniteInRange("specularIntensity", intensity, 0f..1f, UNIT_INTERVAL_DOMAIN)
-    writes += { specularIntensity = validated }
+    values.specularIntensity = validated
   }
 
   /**
@@ -340,25 +336,25 @@ public class GlassStyleScope internal constructor(
    */
   public fun edgeShadow(color: Color) {
     require(color.isSpecified) { "edgeShadow must be specified" }
-    writes += { edgeShadow = color }
+    values.edgeShadow = color
   }
 
   /** Sets finite ambient-light response in the inclusive range `0f..1f`. */
   public fun ambientResponse(response: Float) {
     val validated = requireFiniteInRange("ambientResponse", response, 0f..1f, UNIT_INTERVAL_DOMAIN)
-    writes += { ambientResponse = validated }
+    values.ambientResponse = validated
   }
 
   /** Sets any specified color, including transparent, composited behind the captured input. */
   public fun backgroundColor(color: Color) {
     require(color.isSpecified) { "backgroundColor must be specified" }
-    writes += { backgroundColor = color }
+    values.backgroundColor = color
   }
 
   /** Sets any specified tint, including transparent, applied to refracted content. */
   public fun tint(color: Color) {
     require(color.isSpecified) { "tint must be specified" }
-    writes += { tint = color }
+    values.tint = color
   }
 
   /**
@@ -367,7 +363,7 @@ public class GlassStyleScope internal constructor(
    */
   public fun edgeSoftness(softness: Dp) {
     val validated = requireSpecifiedFiniteNonNegative("edgeSoftness", softness)
-    writes += { edgeSoftness = validated }
+    values.edgeSoftness = validated
   }
 
   /**
@@ -377,8 +373,8 @@ public class GlassStyleScope internal constructor(
    * layout direction, and a shared Style is resolved independently for each consuming node's size.
    * [BiasAlignment] and [BiasAbsoluteAlignment] require finite horizontal and vertical biases;
    * finite values outside `-1f..1f` intentionally place the light beyond the material. Other
-   * [Alignment] implementations retain their own contract and are not evaluated during Style
-   * construction.
+   * [Alignment] implementations retain their own contract and are not evaluated when the Style's
+   * block runs.
    */
   public fun lightPosition(alignment: Alignment) {
     when (alignment) {
@@ -392,7 +388,7 @@ public class GlassStyleScope internal constructor(
       )
       else -> Unit
     }
-    writes += { lightPosition = alignment }
+    values.lightPosition = alignment
   }
 
   /** Sets finite chromatic dispersion strength in the inclusive range `0f..1f`. */
@@ -403,7 +399,7 @@ public class GlassStyleScope internal constructor(
       0f..1f,
       UNIT_INTERVAL_DOMAIN,
     )
-    writes += { chromaticAberrationStrength = validated }
+    values.chromaticAberrationStrength = validated
   }
 
   /**
@@ -411,24 +407,26 @@ public class GlassStyleScope internal constructor(
    * [RefractionProfile.Edge] authors its sampling response independently.
    */
   public fun surfaceProfile(profile: SurfaceProfile) {
-    writes += { surfaceProfile = profile }
+    values.surfaceProfile = profile
   }
 
   /** Sets the quality mode used to render chromatic aberration. */
   public fun chromaticAberrationMode(mode: ChromaticAberrationMode) {
-    writes += { chromaticAberrationMode = mode }
+    values.chromaticAberrationMode = mode
   }
 
-  /** Sets finite overall material opacity in the inclusive range `0f..1f`. */
+  /**
+   * Sets finite overall material opacity. Values outside `0f..1f`, such as animation overshoot,
+   * are clamped into that range.
+   */
   public fun alpha(alpha: Float) {
-    val validated = requireFiniteInRange("alpha", alpha, 0f..1f, UNIT_INTERVAL_DOMAIN)
-    writes += { this.alpha = validated }
+    values.alpha = requireFinite("alpha", alpha).coerceIn(0f, 1f)
   }
 
   /** Sets finite contrast adjustment in the inclusive range `-1f..1f`. */
   public fun contrast(contrast: Float) {
     val validated = requireFiniteInRange("contrast", contrast, -1f..1f, SIGNED_UNIT_INTERVAL_DOMAIN)
-    writes += { this.contrast = validated }
+    values.contrast = validated
   }
 
   /** Sets finite white-point adjustment in the inclusive range `-1f..1f`. */
@@ -439,7 +437,7 @@ public class GlassStyleScope internal constructor(
       -1f..1f,
       SIGNED_UNIT_INTERVAL_DOMAIN,
     )
-    writes += { this.whitePoint = validated }
+    values.whitePoint = validated
   }
 
   /**
@@ -449,13 +447,13 @@ public class GlassStyleScope internal constructor(
    */
   public fun chromaMultiplier(multiplier: Float) {
     val validated = requireFiniteInRange("chromaMultiplier", multiplier, 0f..2f, DOUBLE_INTERVAL_DOMAIN)
-    writes += { chromaMultiplier = validated }
+    values.chromaMultiplier = validated
   }
 
   /** Sets the finite blend between generated and captured normals in inclusive `0f..1f`. */
   public fun contentNormalBlend(blend: Float) {
     val validated = requireFiniteInRange("contentNormalBlend", blend, 0f..1f, UNIT_INTERVAL_DOMAIN)
-    writes += { contentNormalBlend = validated }
+    values.contentNormalBlend = validated
   }
 
   /**
@@ -464,7 +462,7 @@ public class GlassStyleScope internal constructor(
    */
   public fun specularExponent(exponent: Float) {
     val validated = requireFiniteNonNegative("specularExponent", exponent)
-    writes += { specularExponent = validated }
+    values.specularExponent = validated
   }
 
   /**
@@ -473,19 +471,13 @@ public class GlassStyleScope internal constructor(
    */
   public fun fresnelExponent(exponent: Float) {
     val validated = requireFiniteNonNegative("fresnelExponent", exponent)
-    writes += { fresnelExponent = validated }
+    values.fresnelExponent = validated
   }
 }
 
 private fun validateLightPositionBiases(horizontalBias: Float, verticalBias: Float) {
   requireFinite("lightPosition.horizontalBias", horizontalBias)
   requireFinite("lightPosition.verticalBias", verticalBias)
-}
-
-private fun recordGlassStyleWrites(
-  block: GlassStyleScope.() -> Unit,
-): List<GlassStyleValues.() -> Unit> = buildList {
-  GlassStyleScope(this).block()
 }
 
 @Poko
@@ -532,7 +524,7 @@ internal enum class GlassSystemAppearance { Light, Dark }
 private fun GlassStyle.replay(values: GlassStyleValues, appearance: GlassSystemAppearance) {
   when (this) {
     GlassStyle -> Unit
-    is RecordedGlassStyle -> replay(values)
+    is EvaluatedGlassStyle -> replay(values)
     is BuiltInGlassStyle -> replay(values, appearance)
     is CombinedGlassStyle -> replay(values, appearance)
   }
