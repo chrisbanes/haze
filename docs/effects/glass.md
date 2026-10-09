@@ -160,7 +160,7 @@ constructing a new Style in each composition replaces it on every node.
 ```kotlin
 val radius = animateDpAsState(if (expanded) 20.dp else 28.dp)
 val style = remember {
-  GlassStyle.regular then GlassStyle { shape(RoundedCornerShape(radius.value)) }
+  GlassStyle.regular.then { shape(RoundedCornerShape(radius.value)) }
 }
 ```
 

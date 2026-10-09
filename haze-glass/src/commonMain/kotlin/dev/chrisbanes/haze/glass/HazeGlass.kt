@@ -20,15 +20,15 @@ import dev.chrisbanes.haze.hazeEffect
 /**
  * Draws a Glass material using an explicit Haze [input].
  *
- * [style] is an immutable sequence of appearance writes recorded when its builder executes. Haze
- * initializes a fresh Regular response for the current system appearance, then replays
- * [LocalGlassStyle] → [style]
- * without invoking any Style builder. The same Style may therefore be shared by concurrent nodes.
- * Each node independently owns and animates the recorded hover, focus, and press responses.
+ * [style] is a sequence of appearance writes. Each time this node resolves its style, Haze
+ * initializes a fresh Regular response for the current system appearance, then runs
+ * [LocalGlassStyle] → [style] into it, so the same Style may be shared by concurrent nodes. Each
+ * node independently owns and animates the declared hover, focus, and press responses.
  *
- * Values captured by a previously constructed Style do not update when they are mutated. To change
- * caller writes, construct and supply a replacement Style through recomposition. Built-in Regular
- * and Clear material responses update when the Compose host's system appearance changes.
+ * Snapshot state read by a Style block is observed by this node: a change resolves the Style again
+ * and redraws on the next frame without recomposition. Styles compare by identity, so `remember` or
+ * hoist [style]. Invalid values throw [IllegalArgumentException] when the block runs. Built-in
+ * Regular and Clear material responses update when the Compose host's system appearance changes.
  *
  * [input], [performanceMode], [expandLayerBounds], [interactionSource], [interactionTransformTarget],
  * [interactionTransformPivot], and [interactionReducedMotionPolicy] are node-owned modifier

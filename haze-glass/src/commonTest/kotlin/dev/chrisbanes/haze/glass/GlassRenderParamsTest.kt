@@ -26,6 +26,7 @@ import assertk.assertions.containsExactly
 import assertk.assertions.hasMessage
 import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
@@ -599,6 +600,7 @@ class GlassRenderParamsTest {
       resolveGlassStyle(mixed, Size(100f, 80f), Density(1f), LayoutDirection.Ltr).cornerRadii,
     ).isEqualTo(CornerRadii(topLeft = 0f, topRight = 12f, bottomRight = 12f, bottomLeft = 12f))
     assertThat(RoundedCornerShape(fixedPxCorner(-1f)).hasZeroCornerRadii()).isTrue()
+    assertThat(RoundedCornerShape(fixedPxCorner(Float.NEGATIVE_INFINITY)).hasZeroCornerRadii()).isFalse()
   }
 
   private fun fixedPxCorner(px: Float): CornerSize = object : CornerSize {

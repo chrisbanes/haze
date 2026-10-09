@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -60,7 +61,7 @@ public fun GlassShapeMorphSample(navController: NavHostController) {
   // Styles compare by identity, so remember the style once. Its block runs again whenever
   // the state it reads changes.
   val menuStyle = remember {
-    GlassStyle.regular then GlassStyle {
+    GlassStyle.regular.then {
       shape(RoundedCornerShape(cornerRadius.value))
       alpha(surfaceAlpha.value)
     }
@@ -68,7 +69,7 @@ public fun GlassShapeMorphSample(navController: NavHostController) {
 
   // A percent corner size, such as CircleShape, already follows size-only changes, so this
   // style is constant.
-  val chipStyle = remember { GlassStyle.regular then GlassStyle { shape(CircleShape) } }
+  val chipStyle = remember { GlassStyle.regular.then { shape(CircleShape) } }
 
   Box(Modifier.fillMaxSize()) {
     Box(
@@ -100,7 +101,11 @@ public fun GlassShapeMorphSample(navController: NavHostController) {
         Modifier
           .animateContentSize()
           .hazeGlass(input = HazeInput.Backdrop(hazeState), style = menuStyle)
-          .clip(RoundedCornerShape(20.dp))
+          // Clip the ripple to the same animated radius, read in the draw phase.
+          .graphicsLayer {
+            shape = RoundedCornerShape(cornerRadius.value)
+            clip = true
+          }
           .clickable { menuExpanded = !menuExpanded }
           .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
