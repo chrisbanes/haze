@@ -204,8 +204,8 @@ val maskedProgressiveStyle = HazeBlurStyle {
 }
 ```
 
-Where a platform can't vary blur intensity natively, Haze approximates progressive Blur with an
-alpha mask and multiplies it with `mask`.
+Where a platform can't vary blur intensity natively, Haze approximates progressive Blur, and
+`mask` still fades the complete result.
 
 <a id="performance-mode"></a>
 
