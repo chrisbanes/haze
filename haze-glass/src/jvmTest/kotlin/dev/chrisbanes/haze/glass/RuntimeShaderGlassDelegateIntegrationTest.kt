@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
+import androidx.compose.ui.unit.toSize
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -147,13 +149,13 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     val groupAlpha = checkNotNull(delegate.layers.groupAlpha.layer)
     // Known fixture dimensions: Balanced samples sqrt(0.625) of each axis. The capture
     // allocations round to 160/164px while the independent outlines cover 161/165px.
-    val sourceAllocations = if (mode == HazePerformanceMode.Balanced) listOf(160, 164, 160) else listOf(203, 208, 203)
-    val sourceOutlines = if (mode == HazePerformanceMode.Balanced) listOf(161f, 165f, 161f) else listOf(203f, 208f, 203f)
+    val sourceAllocations = if (mode == HazePerformanceMode.Balanced) listOf(160, 164, 160, 164) else listOf(203, 208, 203, 208)
+    val sourceOutlines = if (mode == HazePerformanceMode.Balanced) listOf(161f, 165f, 161f, 165f) else listOf(203f, 208f, 203f, 208f)
     assertThat(source.size).isEqualTo(IntSize(sourceAllocations[0], sourceAllocations[0]))
     val initialSourceOutline = source.outline.bounds
     val initialGroupOutline = groupAlpha.outline.bounds
     assertThat(initialGroupOutline).isEqualTo(Rect(0f, 0f, 203f, 203f))
-    for ((index, targetSize) in listOf(208, 203).withIndex()) {
+    for ((index, targetSize) in listOf(208, 203, 208).withIndex()) {
       val before = delegate.stageRecordCounts
       runOnIdle {
         physicalSize.value = targetSize
@@ -193,8 +195,209 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       assertThat(groupAlpha.isReleased).isFalse()
       assertThat(delegate.stageRecordCounts.source).isGreaterThan(before.source)
       assertThat(delegate.stageRecordCounts.optical).isGreaterThan(before.optical)
+      val recorded = delegate.stageRecordCounts
+      runOnIdle { checkNotNull(reused.attachedContextForTest).invalidateDraw() }
+      waitForIdle()
+      assertThat(delegate.stageRecordCounts).isEqualTo(recorded)
+      assertExactResizePixels(onNodeWithTag("glass").captureToImage().toPixelMap(), expected)
     }
   }
+
+  @Test
+  fun resize_paddedBalancedRetainsEveryStageAndMatchesFreshPixels() = assertPipelineResize()
+
+  @Test
+  fun resize_fractionalAlphaRetainsOutputLayerAndMatchesFreshPixels() = assertPipelineResize(effectAlpha = 0.5f)
+
+  @Test
+  fun resize_paddedQualityRetainsEveryStageAndMatchesFreshPixels() = assertPipelineResize(mode = HazePerformanceMode.Quality)
+
+  @Test
+  fun resize_activeInteractionRetainsLocalPatchesAndMatchesFreshPixels() = assertPipelineResize(interaction = true)
+
+  private fun assertPipelineResize(
+    mode: HazePerformanceMode = HazePerformanceMode.Balanced,
+    effectAlpha: Float = 1f,
+    interaction: Boolean = false,
+  ) = runSkikoComposeUiTest(size = Size(400f, 400f), density = Density(1f)) {
+    fun newEffect() = animatedStageEffect().apply {
+      if (interaction) interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+    }
+    val physicalSize = mutableStateOf(140)
+    val displayedEffect = mutableStateOf(newEffect())
+    val style = animatedStageEffect().style.then {
+      alpha(effectAlpha)
+      if (interaction) {
+        pressed {
+          animate(toSpec = tween(1), fromSpec = tween(1)) {
+            lightingIntensity(1f)
+            refractionMultiplier(1.08f)
+            whitePointDelta(0.04f)
+          }
+        }
+        interactionLightRadiusFraction(0.25f)
+        interactionPositionAnimationSpec(tween(1))
+      }
+    }
+    fun settleInteraction() {
+      if (interaction) {
+        runOnIdle { runtime(displayedEffect.value).setPressedForTest(Offset(40f, 40f)) }
+        mainClock.advanceTimeBy(64)
+        waitForIdle()
+      }
+    }
+    setContent {
+      ResizeGlassTestContent(displayedEffect.value, physicalSize.value, mode, style, "glass")
+    }
+    waitForIdle()
+    val references = mutableMapOf<Int, PixelMap>()
+    for (target in listOf(210, 100)) {
+      runOnIdle {
+        physicalSize.value = target
+        displayedEffect.value = newEffect()
+      }
+      waitForIdle()
+      settleInteraction()
+      references[target] = onNodeWithTag("glass").captureToImage().toPixelMap()
+    }
+    val reused = newEffect()
+    runOnIdle {
+      physicalSize.value = 140
+      displayedEffect.value = reused
+    }
+    waitForIdle()
+    settleInteraction()
+    val delegate = runtime(reused).delegate as RuntimeShaderGlassDelegate
+    val activeLayers = delegate.layers.activeLayersForResize()
+    assertThat(delegate.layers.blurred).isNotNull()
+    assertThat(delegate.layers.depthMixed).isNotNull()
+    assertThat(delegate.layers.refractionComposite).isNotNull()
+    if (effectAlpha < 1f) assertThat(delegate.layers.groupAlpha.layer).isNotNull()
+    if (interaction) {
+      assertThat(delegate.layers.interactionOptical).isNotNull()
+      assertThat(delegate.layers.interactionRefractionDetail).isNotNull()
+      assertThat(delegate.layers.interactionRefractionDetailCoverage).isNotNull()
+      assertThat(delegate.layers.interactionRefractionComposite).isNotNull()
+      assertThat(delegate.layers.interactionLighting).isNotNull()
+    }
+    // Observe every initial outline so cached geometry is exercised by the next recordings.
+    activeLayers.forEach { it.outline.bounds }
+    for (target in listOf(210, 100, 210)) {
+      val before = delegate.stageRecordCounts
+      val beforeInteraction = listOf(delegate.interactionOpticalRecordCount, delegate.interactionDetailRecordCount, delegate.interactionCompositeRecordCount, delegate.interactionLightingRecordCount)
+      runOnIdle { physicalSize.value = target }
+      waitForIdle()
+      settleInteraction()
+      val actual = onNodeWithTag("glass").captureToImage().toPixelMap()
+      assertExactResizePixels(actual, checkNotNull(references[target]))
+      val current = delegate.layers.activeLayersForResize()
+      assertThat(current.size).isEqualTo(activeLayers.size)
+      current.zip(activeLayers).forEach { (layer, original) ->
+        assertThat(layer).isSameInstanceAs(original)
+        assertThat(layer.isReleased).isFalse()
+        if (layer !== delegate.layers.source) {
+          assertThat(layer.outline.bounds.size).isEqualTo(layer.size.toSize())
+        }
+      }
+      val after = delegate.stageRecordCounts
+      assertThat(after.source).isGreaterThan(before.source)
+      assertThat(after.blur).isGreaterThan(before.blur)
+      assertThat(after.depth).isGreaterThan(before.depth)
+      assertThat(after.optical).isGreaterThan(before.optical)
+      assertThat(after.detail).isGreaterThan(before.detail)
+      assertThat(after.rim).isGreaterThan(before.rim)
+      val afterInteraction = listOf(delegate.interactionOpticalRecordCount, delegate.interactionDetailRecordCount, delegate.interactionCompositeRecordCount, delegate.interactionLightingRecordCount)
+      if (interaction) {
+        afterInteraction.zip(beforeInteraction).forEach { (recorded, previous) -> assertThat(recorded).isGreaterThan(previous) }
+      }
+      repeat(2) {
+        runOnIdle { checkNotNull(reused.attachedContextForTest).invalidateDraw() }
+        waitForIdle()
+        assertThat(delegate.stageRecordCounts).isEqualTo(after)
+        assertThat(listOf(delegate.interactionOpticalRecordCount, delegate.interactionDetailRecordCount, delegate.interactionCompositeRecordCount, delegate.interactionLightingRecordCount)).isEqualTo(afterInteraction)
+        assertExactResizePixels(onNodeWithTag("glass").captureToImage().toPixelMap(), checkNotNull(references[target]))
+      }
+    }
+  }
+
+  @Test
+  fun resize_unavailableSourceNeverReplaysStaleOutputAndRecovers() = runSkikoComposeUiTest(size = Size(400f, 400f), density = Density(1f)) {
+    val displayedEffect = mutableStateOf(animatedStageEffect())
+    val physicalSize = mutableStateOf(140)
+    val showSource = mutableStateOf(false)
+    val style = animatedStageEffect().style
+    setContent {
+      ResizeGlassTestContent(displayedEffect.value, physicalSize.value, HazePerformanceMode.Balanced, style, "glass", showSource.value)
+    }
+    waitForIdle()
+    val freshWithoutSource = mutableMapOf<Int, PixelMap>()
+    for (target in listOf(210, 100)) {
+      runOnIdle {
+        physicalSize.value = target
+        displayedEffect.value = animatedStageEffect()
+      }
+      waitForIdle()
+      freshWithoutSource[target] = onNodeWithTag("glass").captureToImage().toPixelMap()
+    }
+    val reused = animatedStageEffect()
+    runOnIdle {
+      physicalSize.value = 140
+      displayedEffect.value = reused
+      showSource.value = true
+    }
+    waitForIdle()
+    val delegate = runtime(reused).delegate as RuntimeShaderGlassDelegate
+    val recorded = delegate.stageRecordCounts
+    assertThat(delegate.canDrawRetainedOutput()).isTrue()
+    runOnIdle { showSource.value = false }
+    waitForIdle()
+    assertThat(delegate.canDrawRetainedOutput()).isTrue()
+    for (target in listOf(210, 100, 210)) {
+      runOnIdle { physicalSize.value = target }
+      waitForIdle()
+      assertThat(reused.canDrawRetainedOutput()).isFalse()
+      assertThat(delegate.lastSuccessfulSourceSnapshot).isNull()
+      assertThat(delegate.lastSuccessfulStageInputs).isNull()
+      assertExactResizePixels(onNodeWithTag("glass").captureToImage().toPixelMap(), checkNotNull(freshWithoutSource[target]))
+      runOnIdle { checkNotNull(reused.attachedContextForTest).invalidateDraw() }
+      waitForIdle()
+      assertThat(reused.canDrawRetainedOutput()).isFalse()
+    }
+    runOnIdle { showSource.value = true }
+    waitForIdle()
+    assertThat(reused.canDrawRetainedOutput()).isTrue()
+    assertThat((runtime(reused).delegate as RuntimeShaderGlassDelegate).stageRecordCounts.source).isGreaterThan(recorded.source)
+  }
+
+  private fun assertExactResizePixels(actual: PixelMap, expected: PixelMap) {
+    assertThat(actual.width).isEqualTo(expected.width)
+    assertThat(actual.height).isEqualTo(expected.height)
+    var mismatches = 0
+    for (y in 0 until actual.height) {
+      for (x in 0 until actual.width) {
+        if (actual[x, y] != expected[x, y]) mismatches++
+      }
+    }
+    assertThat(mismatches).isEqualTo(0)
+  }
+
+  private fun GlassLayers.activeLayersForResize(): List<GraphicsLayer> = listOfNotNull(
+    groupAlpha.layer,
+    source,
+    blurHorizontal,
+    blurred,
+    depthMixed,
+    optical,
+    refractionDetail,
+    refractionDetailCoverage,
+    refractionComposite,
+    interactionOptical,
+    interactionRefractionDetail,
+    interactionRefractionDetailCoverage,
+    interactionRefractionComposite,
+    interactionLighting,
+    rim,
+  )
 
   @Composable
   private fun ResizeGlassTestContent(
@@ -203,16 +406,19 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     mode: HazePerformanceMode,
     style: GlassStyle,
     tag: String,
+    showSource: Boolean = true,
   ) {
     val state = remember { HazeState() }
     val density = LocalDensity.current
     Box(Modifier.size(with(density) { 240.toDp() })) {
       // The source stays stationary and larger than either effect size. The opaque cover
       // prevents a missing effect pixel from accidentally matching the source below it.
-      Canvas(Modifier.fillMaxSize().hazeSource(state)) {
-        drawRect(Color.Blue)
-        for (x in 0 until 240 step 8) {
-          drawRect(Color.Red, Offset(x.toFloat(), 0f), Size(4f, 240f))
+      if (showSource) {
+        Canvas(Modifier.fillMaxSize().hazeSource(state)) {
+          drawRect(Color.Blue)
+          for (x in 0 until 240 step 8) {
+            drawRect(Color.Red, Offset(x.toFloat(), 0f), Size(4f, 240f))
+          }
         }
       }
       Box(Modifier.fillMaxSize().background(Color.Black))

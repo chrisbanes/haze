@@ -49,6 +49,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
@@ -62,6 +63,7 @@ import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeEffectRendererDrawHooks
 import dev.chrisbanes.haze.HazeEffectRendererLifecycle
+import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
@@ -369,33 +371,60 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   @Test
   fun sizeChange_reusesFusedShaderAndMatchesFreshOutput() =
     runAndroidComposeUiTest<ComponentActivity> {
-      val resizedEffect = retainedBlurEffect()
-      val freshEffect = retainedBlurEffect()
+      fun newEffect() = retainedBlurEffect().apply {
+        style = style.then { tint(Color.Blue.copy(alpha = 0.75f)) }
+      }
+      val displayed = mutableStateOf(newEffect())
       val size = mutableStateOf(120.dp)
-      val showFresh = mutableStateOf(false)
-      setContent {
-        Row {
-          RuntimeGlassTestContent(resizedEffect, size = size.value)
-          if (showFresh.value) {
-            RuntimeGlassTestContent(freshEffect, size = 100.dp)
-          }
+      setContent { RuntimeGlassTestContent(displayed.value, size = size.value, measureStableInputReuse = true) }
+      waitForIdle()
+      drawFrame()
+      val freshPixels = mutableMapOf<Int, IntArray>()
+      for (target in listOf(180, 100)) {
+        runOnIdle {
+          size.value = target.dp
+          displayed.value = newEffect()
         }
+        waitForIdle()
+        freshPixels[target] = captureRegionPixels(0, 0, target, target)
+        // A missing material cannot pass simply by showing its authored red content.
+        assertThat(checkNotNull(freshPixels[target])[target * (target / 2) + target / 2]).isNotEqualTo(android.graphics.Color.RED)
+      }
+      val resizedEffect = newEffect()
+      runOnIdle {
+        size.value = 120.dp
+        displayed.value = resizedEffect
       }
       waitForIdle()
       drawFrame()
-
       val delegate = checkNotNull(runtime(resizedEffect).delegate as? RuntimeShaderGlassDelegate)
       val fusedShader = checkNotNull(delegate.fusedShader)
-
-      size.value = 100.dp
-      showFresh.value = true
-      waitForIdle()
-      drawFrame()
-
-      assertThat(delegate.fusedShader).isSameInstanceAs(fusedShader)
-      val resizedPixels = captureRegionPixels(left = 0, top = 0, width = 100, height = 100)
-      val freshPixels = captureRegionPixels(left = 100, top = 0, width = 100, height = 100)
-      assertThat(resizedPixels).containsExactly(*freshPixels)
+      val active = listOfNotNull(delegate.layers.source, delegate.layers.optical, delegate.layers.rim, delegate.layers.groupAlpha.layer)
+      active.forEach { it.outline.bounds }
+      for (target in listOf(180, 100, 180)) {
+        val before = delegate.stageRecordCounts
+        runOnIdle { size.value = target.dp }
+        waitForIdle()
+        val resizedPixels = captureRegionPixels(0, 0, target, target)
+        assertThat(resizedPixels).containsExactly(*checkNotNull(freshPixels[target]))
+        assertThat(delegate.fusedShader).isSameInstanceAs(fusedShader)
+        val current = listOfNotNull(delegate.layers.source, delegate.layers.optical, delegate.layers.rim, delegate.layers.groupAlpha.layer)
+        assertThat(current.size).isEqualTo(active.size)
+        current.zip(active).forEach { (layer, original) ->
+          assertThat(layer).isSameInstanceAs(original)
+          assertThat(layer.isReleased).isFalse()
+        }
+        val recorded = delegate.stageRecordCounts
+        assertThat(recorded.source).isGreaterThan(before.source)
+        assertThat(recorded.optical).isGreaterThan(before.optical)
+        repeat(2) {
+          runOnIdle { checkNotNull(resizedEffect.attachedContextForTest).invalidateDraw() }
+          waitForIdle()
+          assertThat(captureRegionPixels(0, 0, target, target)).containsExactly(*checkNotNull(freshPixels[target]))
+          // Content capture may supply a new input generation; stable-input reuse is
+          // asserted inside the renderer callback before that snapshot can change.
+        }
+      }
     }
 
   @Test
@@ -612,6 +641,66 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     }
 
   @Test
+  fun backdropResize_reusesRimAndMatchesFreshPixels() = runAndroidComposeUiTest<ComponentActivity> {
+    val style = animatedStageEffect().style
+    val displayed = mutableStateOf(TestGlassRuntimeFactory(GlassRuntimeEffect()))
+    val size = mutableStateOf(120.dp)
+    setContent {
+      Box(
+        Modifier.size(size.value).testTag("direct-glass").hazeEffect(
+          factory = displayed.value,
+          input = HazeInput.Content,
+          style = GlassNodeConfiguration(style, performanceMode = HazePerformanceMode.Quality, interactionSource = null),
+          expandLayerBounds = true,
+        ),
+      ) {
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Red, Color.Blue))))
+      }
+    }
+    fun capturePixels(): List<Color> {
+      val pixels = onNodeWithTag("direct-glass").captureToImage().toPixelMap()
+      return List(pixels.width * pixels.height) { index -> pixels[index % pixels.width, index / pixels.width] }
+    }
+    val fresh = mutableMapOf<Int, List<Color>>()
+    for (target in listOf(160, 100)) {
+      runOnIdle {
+        displayed.value = TestGlassRuntimeFactory(GlassRuntimeEffect())
+        size.value = target.dp
+      }
+      waitForIdle()
+      fresh[target] = capturePixels()
+    }
+    val effect = GlassRuntimeEffect()
+    val factory = TestGlassRuntimeFactory(effect)
+    runOnIdle {
+      displayed.value = factory
+      size.value = 120.dp
+    }
+    waitForIdle()
+    capturePixels()
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val rim = checkNotNull(delegate.layers.rim)
+    rim.outline.bounds
+    for (target in listOf(160, 100, 160)) {
+      val before = delegate.rimRecordCount
+      runOnIdle { size.value = target.dp }
+      waitForIdle()
+      assertThat(capturePixels()).isEqualTo(checkNotNull(fresh[target]))
+      assertThat(delegate.layers.source).isNull()
+      assertThat(delegate.layers.optical).isNull()
+      assertThat(delegate.layers.rim).isSameInstanceAs(rim)
+      assertThat(rim.isReleased).isFalse()
+      assertThat(delegate.rimRecordCount).isEqualTo(before + 1)
+      repeat(2) {
+        runOnIdle { factory.renderer.invalidateDraw() }
+        waitForIdle()
+        assertThat(capturePixels()).isEqualTo(checkNotNull(fresh[target]))
+        assertThat(delegate.rimRecordCount).isEqualTo(before + 1)
+      }
+    }
+  }
+
+  @Test
   fun repeatedBackdropPreparation_reusesUnchangedRimRecording() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = animatedStageEffect()
@@ -688,13 +777,21 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.rimRecordCount).isEqualTo(firstCount)
       assertThat(delegate.layers.rim).isSameInstanceAs(firstRimLayer)
 
-      contentSize = 100.dp
-      waitForIdle()
-      val resizedPixels = capturePixels()
-      val resizedCount = delegate.rimRecordCount
+      var resizedPixels = initialPixels
+      for (target in listOf(160.dp, 100.dp, 160.dp)) {
+        val beforeResize = delegate.rimRecordCount
+        contentSize = target
+        waitForIdle()
+        resizedPixels = capturePixels()
+        assertThat(delegate.rimRecordCount).isEqualTo(beforeResize + 1)
+        assertThat(delegate.layers.rim).isSameInstanceAs(firstRimLayer)
+        assertThat(firstRimLayer.isReleased).isFalse()
+        renderer.invalidateDraw()
+        waitForIdle()
+        capturePixels()
+        assertThat(delegate.rimRecordCount).isEqualTo(beforeResize + 1)
+      }
       val resizedRimLayer = checkNotNull(delegate.layers.rim)
-      assertThat(resizedCount).isEqualTo(firstCount + 1)
-      assertThat(resizedRimLayer).isNotSameInstanceAs(firstRimLayer)
 
       val countBeforeLight = delegate.rimRecordCount
       val pixelsBeforeLight = resizedPixels
@@ -1102,13 +1199,14 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     attachEffect: Boolean = true,
     size: Dp = 120.dp,
     style: GlassStyle = effect.style,
+    measureStableInputReuse: Boolean = false,
   ) {
     Box(
       Modifier
         .size(size)
         .then(
           if (attachEffect) {
-            Modifier.testGlassRuntime(effect, HazeInput.Content, style)
+            Modifier.testGlassRuntime(effect, HazeInput.Content, style, measureStableInputReuse)
           } else {
             Modifier
           },
@@ -1224,8 +1322,9 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     effect: GlassRuntimeEffect,
     input: HazeInput,
     style: GlassStyle = effect.style,
+    measureStableInputReuse: Boolean = false,
   ): Modifier {
-    val factory = remember(effect) { FixedGlassRuntimeFactory(effect) }
+    val factory = remember(effect, measureStableInputReuse) { FixedGlassRuntimeFactory(effect, measureStableInputReuse) }
     return hazeGlass(
       factory = factory,
       input = input,
@@ -1474,8 +1573,31 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
 private class FixedGlassRuntimeFactory(
   private val effect: GlassRuntimeEffect,
+  private val measureStableInputReuse: Boolean = false,
 ) : HazeEffectFactory<GlassNodeConfiguration> {
-  override fun createRenderer(): HazeEffectRenderer<GlassNodeConfiguration> = effect
+  override fun createRenderer(): HazeEffectRenderer<GlassNodeConfiguration> =
+    if (measureStableInputReuse) StableContentGlassRuntimeRenderer(effect) else effect
+}
+
+@OptIn(InternalHazeApi::class)
+private class StableContentGlassRuntimeRenderer(
+  private val effect: GlassRuntimeEffect,
+) : HazeEffectRenderer<GlassNodeConfiguration> by effect,
+  HazeEffectRendererLifecycle<GlassNodeConfiguration> by effect,
+  HazeEffectRendererDrawHooks<GlassNodeConfiguration> by effect,
+  HazeEffectRendererRetainedOutput by effect {
+  override fun HazeEffectDrawScope.draw(style: GlassNodeConfiguration) {
+    with(effect) { draw(style) }
+    val context = this as HazeEffectRuntimeDrawScope
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val input = checkNotNull(context.inputSnapshot)
+    val recorded = delegate.stageRecordCounts
+    repeat(2) {
+      with(delegate) { draw(context) }
+      assertThat(context.inputSnapshot).isSameInstanceAs(input)
+      assertThat(delegate.stageRecordCounts).isEqualTo(recorded)
+    }
+  }
 }
 
 @OptIn(InternalHazeApi::class)

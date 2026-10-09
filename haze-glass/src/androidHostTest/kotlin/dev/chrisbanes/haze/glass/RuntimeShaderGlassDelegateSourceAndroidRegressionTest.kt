@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
@@ -84,6 +85,63 @@ class RuntimeShaderGlassDelegateSourceAndroidRegressionTest : ScreenshotTest() {
     assertThat(control.red - control.blue).isGreaterThan(0.5f)
     assertThat(material.alpha).isGreaterThan(0.9f)
     assertThat(material.blue - material.red).isGreaterThan(0.2f)
+  }
+
+  @Test
+  fun sourceResize_reusesLayersAndMatchesFreshHardwareOutput() = runScreenshotTest(size = Size(240f, 120f)) {
+    val displayed = mutableStateOf(StableSourceGlassRuntimeFactory(GlassRuntimeEffect()))
+    val size = mutableStateOf(80.dp)
+    setContent { SourceGlassContent(displayed.value, size = size.value) }
+
+    fun captureMaterial(factory: StableSourceGlassRuntimeFactory): List<Color> {
+      captureHardware(factory)
+      val pixels = captureRootPixels()
+      val bounds = onNodeWithTag("material").fetchSemanticsNode().boundsInRoot
+      val left = bounds.left.roundToInt()
+      val top = bounds.top.roundToInt()
+      val width = bounds.width.roundToInt()
+      val height = bounds.height.roundToInt()
+      return List(width * height) { index -> pixels[left + index % width, top + index / width] }
+    }
+
+    val fresh = mutableMapOf<Int, List<Color>>()
+    for (target in listOf(110, 60)) {
+      composeTestRule.runOnIdle {
+        displayed.value = StableSourceGlassRuntimeFactory(GlassRuntimeEffect())
+        size.value = target.dp
+      }
+      waitForIdle()
+      fresh[target] = captureMaterial(displayed.value)
+    }
+    val effect = GlassRuntimeEffect()
+    val factory = StableSourceGlassRuntimeFactory(effect)
+    composeTestRule.runOnIdle {
+      displayed.value = factory
+      size.value = 80.dp
+    }
+    waitForIdle()
+    captureMaterial(factory)
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val source = checkNotNull(delegate.layers.source)
+    val optical = checkNotNull(delegate.layers.optical)
+    val shader = checkNotNull(delegate.fusedShader)
+    source.outline.bounds
+    optical.outline.bounds
+    for (target in listOf(110, 60, 110)) {
+      val before = delegate.stageRecordCounts
+      composeTestRule.runOnIdle { size.value = target.dp }
+      waitForIdle()
+      assertThat(captureMaterial(factory)).isEqualTo(checkNotNull(fresh[target]))
+      assertThat(delegate.layers.source).isSameInstanceAs(source)
+      assertThat(delegate.layers.optical).isSameInstanceAs(optical)
+      assertThat(delegate.fusedShader).isSameInstanceAs(shader)
+      assertThat(source.isReleased).isFalse()
+      assertThat(optical.isReleased).isFalse()
+      assertThat(delegate.stageRecordCounts.source).isGreaterThan(before.source)
+      assertThat(delegate.stageRecordCounts.optical).isGreaterThan(before.optical)
+      // captureHardware checks three unchanged-input draws in each native callback.
+      repeat(2) { assertThat(captureMaterial(factory)).isEqualTo(checkNotNull(fresh[target])) }
+    }
   }
 
   @Test
