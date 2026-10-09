@@ -6,9 +6,7 @@ across supported platforms.
 ## Language
 
 **Glass style**:
-A reusable description of a Glass material's appearance. Its values may depend on observable
-state, so the same Glass style can describe an appearance that changes over time, such as a
-surface morphing between shapes.
+A reusable description of a Glass material's appearance.
 _Avoid_: Material variant
 
 **Built-in Glass style**:
