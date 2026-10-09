@@ -1509,6 +1509,19 @@ clears inherited color effects:</p>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
+<p>The two can be combined. Progressive Blur varies the intensity first, then the mask fades the
+complete result, so fully transparent mask regions show no effect:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">maskedProgressiveStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">progressive</span><span class="p">(</span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">horizontalGradient</span><span class="p">())</span>
+<span class="w">  </span><span class="n">mask</span><span class="p">(</span>
+<span class="w">    </span><span class="n">Brush</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span>
+<span class="w">      </span><span class="n">colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Transparent</span><span class="p">),</span>
+<span class="w">    </span><span class="p">),</span>
+<span class="w">  </span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Where a platform can't vary blur intensity natively, Haze approximates progressive Blur, and
+<code>mask</code> still fades the complete result.</p>
 <p><a id="performance-mode"></a></p>
 <h2 id="performance-mode-and-layer-expansion">Performance mode and layer expansion<a class="headerlink" href="#performance-mode-and-layer-expansion" title="Permanent link">¶</a></h2>
 <p>Performance mode and layer expansion are structural modifier policies, not Style properties:</p>
