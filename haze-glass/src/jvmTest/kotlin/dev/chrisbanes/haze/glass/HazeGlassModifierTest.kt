@@ -662,6 +662,53 @@ class HazeGlassModifierTest : ContextTest() {
     assertPreparedRadius(effect, 24.dp)
   }
 
+  @Test
+  fun observedInteractionResponseChange_addsOneRendererUpdatePerFrame() = runComposeUiTest {
+    val intensity = mutableStateOf(0.2f)
+    val factory = RecordingGlassFactory()
+
+    setContent {
+      Spacer(
+        Modifier
+          .size(100.dp)
+          .hazeGlass(
+            factory = factory,
+            input = HazeInput.Content,
+            style = remember { GlassStyle { pressed { lightingIntensity(intensity.value) } } },
+            performanceMode = HazePerformanceMode.Default,
+            expandLayerBounds = true,
+            interactionSource = null,
+          ),
+      )
+    }
+    waitForIdle()
+    mainClock.autoAdvance = false
+    val effect = factory.effects.single()
+
+    fun updatesInFrame(change: () -> Unit): Int {
+      effect.updateCalls = 0
+      change()
+      mainClock.advanceTimeByFrame()
+      return effect.updateCalls
+    }
+
+    fun assertDelivered(value: Float) {
+      val controller = checkNotNull(effect.delegate.interactionControllerForTest)
+      assertThat(controller.configurationForTest.slots.pressed?.response?.lightingIntensity?.value)
+        .isEqualTo(value)
+      assertThat(effect.delegate.interactionSlots.pressed?.response?.lightingIntensity?.value)
+        .isEqualTo(value)
+    }
+
+    val first = updatesInFrame { intensity.value = 0.5f }
+    assertDelivered(0.5f)
+    val second = updatesInFrame { intensity.value = 0.8f }
+    assertDelivered(0.8f)
+
+    assertThat(first).isEqualTo(1)
+    assertThat(second).isEqualTo(1)
+  }
+
   /** Prepared radii are in the render's input-scaled coordinates. */
   private fun uniformRadii(radiusPx: Float, prepared: GlassPreparedRender): CornerRadii =
     CornerRadii(radiusPx, radiusPx, radiusPx, radiusPx) * prepared.params.coordinates.scaleFactor
