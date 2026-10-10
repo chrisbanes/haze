@@ -35,16 +35,18 @@ invalidates only the affected work, without recomposition. Built-in styles,
   alpha are clamped to `0..1` and negative corner radii to zero, so animation overshoot can't throw
   during draw. Non-finite corner radii keep using the safe-default fallback. Other invalid values
   still throw `IllegalArgumentException`, now when the block runs.
-- **Only some properties are guaranteed cheap.** Every property can be driven by state, but only
-  shape (corner radii), alpha and tint are guaranteed to skip layer-bounds recalculation, delegate
-  selection and, unless the radii cross zero, the clip decision. Tests pin these invalidation sets.
-  Other properties may invalidate more broadly.
-- **The guarantee has boundaries.** A change that crosses a boundary can change the retained-layer
-  plan, so it may pay the broader cost once:
+- **No property has a guaranteed-cheap invalidation path.** Every property can be driven by
+  state, and a change invalidates the stages its dirty fields map to, which for shape, alpha and tint
+  still includes layer bounds and delegate selection. The original decision promised that those three
+  would skip that work. A physical-device measurement
+  ([#1408](https://github.com/chrisbanes/haze/issues/1408#issuecomment-6096008219)) found the skipped
+  work would cost about 0.004 ms per effect per frame on a shape-and-size morph, where the size change
+  pays it anyway. The narrowing ([#1420](https://github.com/chrisbanes/haze/issues/1420)) was dropped.
+  Revisit it only if a measurement, such as a radius-only animation at constant size, shows a
+  meaningful cost.
+- **Some changes always pay the broader cost.** These can change the retained-layer plan:
   - Corner radii crossing zero change the clip decision.
   - Alpha entering or leaving the fractional range `0 < alpha < 1` adds or removes the full-size
     group-composite layer. That layer counts against the render budget, so the change can select a
     different renderer.
   - Alpha reaching zero skips drawing altogether.
-
-  An animation that stays within one fractional alpha range keeps the cheap path for every frame.
