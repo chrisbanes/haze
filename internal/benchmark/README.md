@@ -100,8 +100,10 @@ The `shape_update_balanced` and `shape_update_balanced_9` workloads use the same
 resize as `resize_quality`, with `Balanced`, `HazeInput.Sources`, Regular style with default
 presentation, and a stationary source. All four corner radii move in phase with the size, from a pill
 (63 dp, or 21 dp per cell with nine effects) at the smallest size to 24 dp (8 dp per cell) at the
-largest. The style is rebuilt every frame through today's public API, so these rows are the baseline
-before state-observed style evaluation (#1419) and include call-site recomposition. Run them with
+largest. Each effect keeps one remembered style whose block reads the animated radius from state,
+so the node re-evaluates the style each frame without rebuilding it (ADR-0011). The resize still
+recomposes the scene each frame, as in `resize_quality`. Earlier results in which the style was
+rebuilt every frame (before #1427) are not directly comparable. Run them with
 `GlassProfilingBenchmark#shapeUpdateBalanced` and `#shapeUpdateBalanced9`; the benchmark launches each
 directly through its intent extra.
 

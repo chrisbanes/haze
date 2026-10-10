@@ -43,6 +43,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeFeatureFlags
@@ -154,6 +155,7 @@ private fun GlassProfilingScene(
         scenario,
         styleFrame ?: glassProfilingFrame(scenario, progress = 0f),
         backgroundColor,
+        cornerRadius = { effectFrame.cornerRadius },
       )
     }
   }
@@ -354,6 +356,7 @@ internal fun profilingGlassStyle(
   scenario: GlassProfilingScenario,
   frame: GlassProfilingFrame,
   backgroundColor: Color,
+  cornerRadius: () -> Dp?,
 ): GlassStyle = GlassStyle.regular.then {
   backgroundColor(backgroundColor)
   scenario.opticsOverride?.let(::optics)
@@ -384,10 +387,9 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.ShapeUpdateBalanced,
     GlassProfilingScenario.ShapeUpdateBalanced9,
     -> {
-      // Rebuilds the style every frame on purpose to capture the baseline before state-observed
-      // style evaluation (#1419, ADR-0011). Once that lands, switch to one remembered style that
-      // reads the animated radius state inside its block.
-      shape(RoundedCornerShape(checkNotNull(frame.cornerRadius)))
+      // The style is remembered once and passed unchanged each frame; the node re-evaluates this
+      // read of the animated radius state instead of the style being rebuilt (ADR-0011).
+      shape(RoundedCornerShape(checkNotNull(cornerRadius())))
     }
     GlassProfilingScenario.EffectAttach,
     GlassProfilingScenario.EffectAttach3,
@@ -455,8 +457,6 @@ internal fun profilingStyleUsesFrame(scenario: GlassProfilingScenario): Boolean 
   GlassProfilingScenario.OpticalUpdate,
   GlassProfilingScenario.DepthUpdate,
   GlassProfilingScenario.BlurUpdate,
-  GlassProfilingScenario.ShapeUpdateBalanced,
-  GlassProfilingScenario.ShapeUpdateBalanced9,
   -> true
   else -> false
 }
