@@ -1,0 +1,19 @@
+# Throwaway iOS reference harness for #1438: two Liquid Glass pills in a GlassEffectContainer.
+# Generate with `xcodegen generate` in this directory; build products go outside the repo.
+name: MergeHarness
+options:
+  bundleIdPrefix: dev.chrisbanes.haze.prototype
+  deploymentTarget:
+    iOS: "26.0"
+targets:
+  MergeHarness:
+    type: application
+    platform: iOS
+    sources: [Sources]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        SWIFT_VERSION: "6.0"
+        CODE_SIGNING_ALLOWED: NO
