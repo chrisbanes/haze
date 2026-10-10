@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.platform.InspectorInfo
@@ -73,6 +74,99 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
 
     // onGloballyPositioned no longer repeats onPlaced's update for the same placement (#1437).
     assertThat(fixture.renderer.updateCalls - updates).isEqualTo(1)
+  }
+
+  @Test
+  fun sourcePlacedAfterEffect_positionedCallbacksSeeMovedSource() = runComposeUiTest {
+    val hazeState = HazeState()
+    var moved by mutableStateOf(false)
+    var effectNode: HazeEffectNode? = null
+    val positionedSourceOffsets = mutableListOf<Offset>()
+
+    setContent {
+      Box(Modifier.size(300.dp)) {
+        // The effect is placed before its source, so its onPlaced update sees the old source.
+        Box(
+          Modifier
+            .size(if (moved) 120.dp else 100.dp)
+            .hazeEffect(
+              factory = PlacementTestEffectFactory,
+              input = HazeInput.Sources(hazeState),
+              style = Unit,
+            )
+            .capturePlacementEffectNode { effectNode = it },
+        )
+        Box(
+          Modifier
+            .offset { IntOffset(if (moved) 40 else 0, 0) }
+            .size(200.dp)
+            .hazeSource(hazeState),
+        ) {
+          // Deeper nodes are dispatched after the effect, but before snapshot apply notifications
+          // that desktop delivers ahead of draw. Android can draw with this state.
+          Spacer(
+            Modifier.size(10.dp).onGloballyPositioned {
+              val node = checkNotNull(effectNode)
+              positionedSourceOffsets +=
+                node.sourceTransformInEffect(node.areas.single()).map(Offset.Zero)
+            },
+          )
+        }
+      }
+    }
+    waitForIdle()
+    positionedSourceOffsets.clear()
+
+    moved = true
+    waitForIdle()
+
+    assertThat(positionedSourceOffsets.first()).isEqualTo(Offset(40f, 0f))
+  }
+
+  @Test
+  fun screenStrategyMove_globallyPositionedWithoutPlacementRecord_updates() = runComposeUiTest {
+    val hazeState = HazeState()
+    val sourceWindow = createPlacementTestWindow("SourceWindow")
+    val effectWindow = createPlacementTestWindow("EffectWindow")
+    var effectX by mutableIntStateOf(0)
+    var effectNode: HazeEffectNode? = null
+
+    try {
+      setContent {
+        CompositionLocalProvider(LocalAwtWindow provides sourceWindow) {
+          Box(Modifier.size(100.dp).hazeSource(hazeState))
+        }
+        CompositionLocalProvider(LocalAwtWindow provides effectWindow) {
+          Spacer(
+            Modifier
+              .offset { IntOffset(effectX, 0) }
+              .size(100.dp)
+              .hazeEffect(
+                factory = PlacementTestEffectFactory,
+                input = HazeInput.Sources(hazeState),
+                style = Unit,
+              )
+              .capturePlacementEffectNode { effectNode = it },
+          )
+        }
+      }
+      waitForIdle()
+
+      val node = checkNotNull(effectNode)
+      val area = hazeState.areas.single()
+      // Under the Screen strategy onPlaced does not position, so no placement record exists.
+      assertThat(node.resolvedPositionStrategy).isEqualTo(HazePositionStrategy.Screen)
+      val initialOffset = node.sourceTransformInEffect(area).map(Offset.Zero)
+
+      effectX = 40
+      waitForIdle()
+
+      assertThat(node.sourceTransformInEffect(area).map(Offset.Zero))
+        .isEqualTo(initialOffset - Offset(40f, 0f))
+    } finally {
+      (sourceWindow as? Frame)?.dispose()
+      (effectWindow as? Frame)?.dispose()
+    }
   }
 
   @Test

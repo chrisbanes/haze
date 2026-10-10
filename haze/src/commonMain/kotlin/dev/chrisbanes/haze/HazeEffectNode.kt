@@ -142,10 +142,14 @@ internal class HazeEffectNode(
   // False means a source read refresh is pending: the last observed updateEffect did not finish.
   private var observedUpdateCompleted = false
 
-  // Placement applied by onPlaced this frame, consumed by onGloballyPositioned (#1437).
+  // Placement and sources applied by onPlaced, consumed by onGloballyPositioned (#1437).
+  // Without a draw a record can outlive its frame; the source check below keeps that safe.
   private var placedPosition = Offset.Unspecified
   private var placedSize = Size.Unspecified
-  private var placedTransformValues: FloatArray? = null
+  private var placedTransformValues: FloatArray? = null // null: no record
+  private var placedAreas: List<HazeArea> = emptyList()
+  private var placedAreaVersions = IntArray(0)
+  private var placedAreaSizes = LongArray(0)
   private var coordinateTransformValues: FloatArray? = null
   private var screenToEffectTransform: Matrix? = null
   private var sourceSelectionSnapshotObserver: SnapshotStateObserver? = null
@@ -474,6 +478,7 @@ internal class HazeEffectNode(
     coordinateTransformValues = null
     observedUpdateCompleted = false
     placedTransformValues = null
+    placedAreas = emptyList()
     screenToEffectTransform = null
     lastInputSnapshot = null
     releaseBackdropRenderer()
@@ -522,16 +527,16 @@ internal class HazeEffectNode(
       // screen coordinates guarded/authoritative via onGloballyPositioned, but
       // allow local coordinates to refresh from placement.
       if (resolvedPositionStrategy != HazePositionStrategy.Screen || position.isUnspecified) {
-        onPositioned(coordinates, "onPlaced")
+        onPositioned(coordinates, "onPlaced", fromPlacement = true)
       }
     }
   }
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-    onPositioned(coordinates, "onGloballyPositioned")
+    onPositioned(coordinates, "onGloballyPositioned", fromPlacement = false)
   }
 
-  private fun onPositioned(coordinates: LayoutCoordinates, source: String) {
+  private fun onPositioned(coordinates: LayoutCoordinates, source: String, fromPlacement: Boolean) {
     if (!isAttached) {
       // This shouldn't happen, but it does...
       // https://github.com/chrisbanes/haze/issues/665
@@ -546,15 +551,17 @@ internal class HazeEffectNode(
       dirtyTracker += DirtyFields.AreaPositionReads
     }
     updatePositionGeometry(coordinates, source, effectToScreenTransform)
-    if (source == "onGloballyPositioned") {
+    if (!fromPlacement) {
       val placedValues = placedTransformValues
       placedTransformValues = null
-      // #1437: onPlaced already applied this placement and its reads completed, so skip the repeat.
+      // #1437: onPlaced already applied this placement with these sources; sources placed later in
+      // the pass need this update. The pending-refresh check is defensive.
       if (
         placedValues != null &&
         placedPosition == _position &&
         placedSize == _size &&
         placedValues.contentEquals(transform.values) &&
+        placedAreasUnchanged() &&
         observedUpdateCompleted
       ) {
         return
@@ -563,11 +570,45 @@ internal class HazeEffectNode(
     // Initial observed updates can exit before the effect has coordinates and drop source reads.
     // Refresh those reads even when this placement leaves the effect's own transform unchanged.
     update()
-    if (source == "onPlaced") {
+    if (fromPlacement) {
       placedTransformValues = if (observedUpdateCompleted) transform.values.copyOf() else null
       placedPosition = _position
       placedSize = _size
+      recordPlacedAreas()
     }
+  }
+
+  private fun recordPlacedAreas() {
+    val areas = _areas
+    placedAreas = areas
+    if (placedAreaVersions.size < areas.size) {
+      placedAreaVersions = IntArray(areas.size)
+      placedAreaSizes = LongArray(areas.size)
+    }
+    Snapshot.withoutReadObservation {
+      for (i in areas.indices) {
+        val area = areas[i]
+        placedAreaVersions[i] = area.coordinateVersion
+        placedAreaSizes[i] = area.size.packedValue
+      }
+    }
+  }
+
+  private fun placedAreasUnchanged(): Boolean {
+    val areas = _areas
+    if (placedAreas !== areas) return false
+    Snapshot.withoutReadObservation {
+      for (i in areas.indices) {
+        val area = areas[i]
+        if (
+          placedAreaVersions[i] != area.coordinateVersion ||
+          placedAreaSizes[i] != area.size.packedValue
+        ) {
+          return false
+        }
+      }
+    }
+    return true
   }
 
   private fun updatePositionGeometry(
