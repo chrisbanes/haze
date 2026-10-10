@@ -331,6 +331,13 @@ the same shape only when child content also needs clipping.
 
 Glass can retain and redraw its last captured output when all source areas disappear. This
 keeps source transitions smooth, but can briefly preserve stale pixels from removed source content.
+
+Retained output is not a frozen copy of the last displayed frame. On Android, retained Glass can
+redraw from live source content instead: after source selection is lost, or a source detaches
+while the material is hidden, it can show the source's current pixels when it becomes visible
+again. Content changed inside a source after capture can also appear. Use
+`ClearWhenUnavailable` when that is unacceptable.
+
 Keep the default for smooth transitions, and keep source ownership explicit with
 `HazeInput.Sources`:
 
