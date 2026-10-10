@@ -5,20 +5,26 @@ package dev.chrisbanes.haze
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.LocalAwtWindow
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.IntOffset
@@ -33,6 +39,41 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class, InternalHazeApi::class, ExperimentalComposeUiApi::class)
 class HazeEffectPlacementUpdateTest : ContextTest() {
+
+  @Test
+  fun sizeOnlyChange_runsOneUpdatePerFrame() = runComposeUiTest {
+    val fixture = setPlacementFixtureContent()
+    val updates = fixture.renderer.updateCalls
+
+    fixture.sizeDp = 120
+    waitForIdle()
+
+    assertThat(fixture.renderer.updateCalls - updates).isEqualTo(1)
+  }
+
+  @Test
+  fun positionOnlyChange_runsUpdatePerFrame() = runComposeUiTest {
+    val fixture = setPlacementFixtureContent()
+    val updates = fixture.renderer.updateCalls
+
+    fixture.offsetPx = 20
+    waitForIdle()
+
+    // Today's count on the #1437 base.
+    assertThat(fixture.renderer.updateCalls - updates).isEqualTo(2)
+  }
+
+  @Test
+  fun transformOnlyChange_runsUpdatePerFrame() = runComposeUiTest {
+    val fixture = setPlacementFixtureContent()
+    val updates = fixture.renderer.updateCalls
+
+    fixture.scale = 1.5f
+    waitForIdle()
+
+    // Today's count on the #1437 base.
+    assertThat(fixture.renderer.updateCalls - updates).isEqualTo(2)
+  }
 
   @Test
   fun onPositioned_unchangedTransform_refreshesDroppedSourceReads() = runComposeUiTest {
@@ -92,6 +133,55 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
       (effectWindow as? Frame)?.dispose()
     }
   }
+}
+
+@OptIn(InternalHazeApi::class)
+private class PlacementFixture {
+  var sizeDp by mutableIntStateOf(100)
+  var offsetPx by mutableIntStateOf(0)
+  var scale by mutableFloatStateOf(1f)
+  val renderer = CountingUpdateRenderer()
+}
+
+/** A source-backed effect whose size, offset and transform are each driven by their own state. */
+@OptIn(ExperimentalTestApi::class, InternalHazeApi::class)
+private fun ComposeUiTest.setPlacementFixtureContent(): PlacementFixture {
+  val fixture = PlacementFixture()
+  val hazeState = HazeState()
+  val factory = HazeEffectFactory<Unit> { fixture.renderer }
+  setContent {
+    Box(Modifier.size(300.dp)) {
+      Box(Modifier.fillMaxSize().hazeSource(hazeState).drawBehind { drawRect(Color.Red) })
+      Box(
+        Modifier.graphicsLayer {
+          scaleX = fixture.scale
+          scaleY = fixture.scale
+        },
+      ) {
+        Box(
+          Modifier
+            .offset { IntOffset(fixture.offsetPx, 0) }
+            .size(fixture.sizeDp.dp)
+            .hazeEffect(factory = factory, input = HazeInput.Sources(hazeState), style = Unit),
+        )
+      }
+    }
+  }
+  waitForIdle()
+  return fixture
+}
+
+@OptIn(InternalHazeApi::class)
+private class CountingUpdateRenderer :
+  HazeEffectRenderer<Unit>,
+  HazeEffectRendererLifecycle<Unit> {
+  var updateCalls = 0
+
+  override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+    updateCalls++
+  }
+
+  override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
 }
 
 private fun createPlacementTestWindow(title: String): Window {
