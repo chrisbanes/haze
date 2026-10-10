@@ -891,7 +891,7 @@ internal object GlassShaders {
       );
     }
 
-    vec2 refractionDisplacement(
+    ${if (merged) MERGED_REFRACTION_GRADIENT else ""}vec2 refractionDisplacement(
       vec2 localCoord,
       float heightNorm,
       float opticalDistance,
@@ -910,7 +910,7 @@ internal object GlassShaders {
           effectiveRefractionStrength * refractionScale,
           ${if (merged) "mergeMaxDisplacement()" else "min(materialSize.x, materialSize.y) * 0.5"}
         );
-        vec2 gradient = ${if (merged) "shapeGradient" else "edgeRefractionGradient"}(localCoord);
+        ${if (merged) MERGED_EDGE_GRADIENT else "vec2 gradient = edgeRefractionGradient(localCoord);"}
         float gradientLength = length(gradient);
         float centerFade = smootherstep(clamp(gradientLength / 0.5, 0.0, 1.0));
         return -gradient / max(gradientLength, 0.0001) * centerFade * magnitude;
@@ -1103,6 +1103,28 @@ internal object GlassShaders {
    * The members' midpoint field is `gap / 2 - k / 4`, so `k = 2 * spacing` bridges exactly when
    * the gap is less than the spacing.
    */
+  // Prototype (#1438): a central difference over half the refraction width smooths the refraction
+  // direction where it turns across the neck's saddle.
+  private const val MERGED_REFRACTION_GRADIENT = """vec2 shapeRefractionGradient(vec2 localCoord) {
+      return shapeGradientOver(localCoord, max(sampleStep, edgeRefractionWidth * 0.5));
+    }
+
+    // 1 where the glass is at least a refraction width deep along the inward normal, falling to 0
+    // where a thin bridge would carry the sample across to its opposite edge.
+    float shapeThicknessWeight(vec2 localCoord, vec2 gradient) {
+      float width = max(edgeRefractionWidth, 0.0001);
+      vec2 inward = -safeNormalize(gradient, vec2(0.0));
+      float depthAhead = -shapeSd(localCoord + inward * width);
+      return smootherstep(clamp(depthAhead / width, 0.0, 1.0));
+    }
+
+    """
+
+  // A bridge thinner than the refraction width would pull content across its midline from both
+  // edges, folding it into a crease, so merged refraction fades where the glass is that thin.
+  private const val MERGED_EDGE_GRADIENT = """vec2 gradient = shapeRefractionGradient(localCoord);
+        magnitude *= shapeThicknessWeight(localCoord, gradient);"""
+
   private fun mergedShapeHelpers(merged: Boolean): String = if (!merged) {
     ""
   } else {
@@ -1125,14 +1147,18 @@ internal object GlassShaders {
       return smoothMin(a, b, mergeSmoothing * 2.0);
     }
 
-    vec2 shapeGradient(vec2 localCoord) {
-      float delta = max(sampleStep, 0.0001);
+    vec2 shapeGradientOver(vec2 localCoord, float step) {
+      float delta = max(step, 0.0001);
       vec2 dx = vec2(delta, 0.0);
       vec2 dy = vec2(0.0, delta);
       return vec2(
         shapeSd(localCoord + dx) - shapeSd(localCoord - dx),
         shapeSd(localCoord + dy) - shapeSd(localCoord - dy)
       ) * (0.5 / delta);
+    }
+
+    vec2 shapeGradient(vec2 localCoord) {
+      return shapeGradientOver(localCoord, sampleStep);
     }
 
     float memberCornerWeight(vec2 localCoord) {
