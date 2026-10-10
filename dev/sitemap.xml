@@ -89,6 +89,10 @@
          <lastmod>2026-10-10</lastmod>
     </url>
     <url>
+         <loc>https://chrisbanes.github.io/haze/dev/adr/0012-do-not-guarantee-frozen-pixels-for-retained-glass-output/</loc>
+         <lastmod>2026-10-10</lastmod>
+    </url>
+    <url>
          <loc>https://chrisbanes.github.io/haze/dev/blur/</loc>
          <lastmod>2026-10-10</lastmod>
     </url>

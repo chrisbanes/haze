@@ -1809,8 +1809,13 @@ The <code>shape</code> supplied to Glass defines its material boundary. Add an o
 the same shape only when child content also needs clipping.</p>
 <h3 id="retained-output">Retained output<a class="headerlink" href="#retained-output" title="Permanent link">¶</a></h3>
 <p>Glass can retain and redraw its last captured output when all source areas disappear. This
-keeps source transitions smooth, but can briefly preserve stale pixels from removed source content.
-Keep the default for smooth transitions, and keep source ownership explicit with
+keeps source transitions smooth, but can briefly preserve stale pixels from removed source content.</p>
+<p>Retained output is not a frozen copy of the last displayed frame. On Android, retained Glass can
+redraw from live source content instead: after source selection is lost, or a source detaches
+while the material is hidden, it can show the source's current pixels when it becomes visible
+again. Content changed inside a source after capture can also appear. Use
+<code>ClearWhenUnavailable</code> when that is unacceptable.</p>
+<p>Keep the default for smooth transitions, and keep source ownership explicit with
 <code>HazeInput.Sources</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
 <span class="w">  </span><span class="n">Modifier</span>

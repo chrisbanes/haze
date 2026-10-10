@@ -1497,6 +1497,9 @@ pixels:</p>
 </code></pre></div>
 <p><code>KeepLastFrame</code> smooths temporary source gaps. <code>ClearWhenUnavailable</code> clears retained output as
 soon as no selected source is drawable.</p>
+<p><code>KeepLastFrame</code> does not guarantee frozen pixels. On Android, retained Glass output can redraw
+from live or changed source content after its source is lost. Use <code>ClearWhenUnavailable</code> when
+that is unacceptable.</p>
 <h3 id="android-window-backdrops">Android window backdrops<a class="headerlink" href="#android-window-backdrops" title="Permanent link">¶</a></h3>
 <p><code>HazeInput.Backdrop</code> is a stable, portable input contract. Its native path is currently eligible
 only when the experimental process flag is enabled, the built-in effect supports it, and the
