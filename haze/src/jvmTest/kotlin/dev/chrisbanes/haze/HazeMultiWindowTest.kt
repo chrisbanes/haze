@@ -115,7 +115,7 @@ class HazeMultiWindowTest : ContextTest() {
   }
 }
 
-private fun createTestWindow(title: String): Window {
+internal fun createTestWindow(title: String): Window {
   return try {
     Frame(title)
   } catch (_: HeadlessException) {
@@ -131,13 +131,13 @@ private fun createTestWindow(title: String): Window {
   }
 }
 
-private object TestEffectFactory : HazeEffectFactory<Unit> {
+internal object TestEffectFactory : HazeEffectFactory<Unit> {
   override fun createRenderer(): HazeEffectRenderer<Unit> = object : HazeEffectRenderer<Unit> {
     override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
   }
 }
 
-private fun Modifier.captureEffectNode(
+internal fun Modifier.captureEffectNode(
   onEffectNode: (HazeEffectNode) -> Unit,
 ): Modifier = this then CaptureEffectNodeElement(onEffectNode)
 

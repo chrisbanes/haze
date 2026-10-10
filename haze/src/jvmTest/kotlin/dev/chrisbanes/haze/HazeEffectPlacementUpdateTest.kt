@@ -22,9 +22,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.node.ModifierNodeElement
-import androidx.compose.ui.node.findNearestAncestor
-import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -34,8 +31,6 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import dev.chrisbanes.haze.test.ContextTest
 import java.awt.Frame
-import java.awt.HeadlessException
-import java.awt.Window
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class, InternalHazeApi::class, ExperimentalComposeUiApi::class)
@@ -53,7 +48,7 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
   }
 
   @Test
-  fun positionOnlyChange_runsUpdatePerFrame() = runComposeUiTest {
+  fun positionOnlyChange_runsOneUpdatePerFrame() = runComposeUiTest {
     val fixture = setPlacementFixtureContent()
     val updates = fixture.renderer.updateCalls
 
@@ -65,7 +60,7 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
   }
 
   @Test
-  fun transformOnlyChange_runsUpdatePerFrame() = runComposeUiTest {
+  fun transformOnlyChange_runsOneUpdatePerFrame() = runComposeUiTest {
     val fixture = setPlacementFixtureContent()
     val updates = fixture.renderer.updateCalls
 
@@ -90,11 +85,11 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
           Modifier
             .size(if (moved) 120.dp else 100.dp)
             .hazeEffect(
-              factory = PlacementTestEffectFactory,
+              factory = TestEffectFactory,
               input = HazeInput.Sources(hazeState),
               style = Unit,
             )
-            .capturePlacementEffectNode { effectNode = it },
+            .captureEffectNode { effectNode = it },
         )
         Box(
           Modifier
@@ -126,8 +121,8 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
   @Test
   fun screenStrategyMove_globallyPositionedWithoutPlacementRecord_updates() = runComposeUiTest {
     val hazeState = HazeState()
-    val sourceWindow = createPlacementTestWindow("SourceWindow")
-    val effectWindow = createPlacementTestWindow("EffectWindow")
+    val sourceWindow = createTestWindow("SourceWindow")
+    val effectWindow = createTestWindow("EffectWindow")
     var effectX by mutableIntStateOf(0)
     var effectNode: HazeEffectNode? = null
 
@@ -142,11 +137,11 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
               .offset { IntOffset(effectX, 0) }
               .size(100.dp)
               .hazeEffect(
-                factory = PlacementTestEffectFactory,
+                factory = TestEffectFactory,
                 input = HazeInput.Sources(hazeState),
                 style = Unit,
               )
-              .capturePlacementEffectNode { effectNode = it },
+              .captureEffectNode { effectNode = it },
           )
         }
       }
@@ -172,8 +167,8 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
   @Test
   fun onPositioned_unchangedTransform_refreshesDroppedSourceReads() = runComposeUiTest {
     val hazeState = HazeState()
-    val sourceWindow = createPlacementTestWindow("SourceWindow")
-    val effectWindow = createPlacementTestWindow("EffectWindow")
+    val sourceWindow = createTestWindow("SourceWindow")
+    val effectWindow = createTestWindow("EffectWindow")
     var sourceX by mutableIntStateOf(0)
     var showEffect by mutableStateOf(false)
     var effectNode: HazeEffectNode? = null
@@ -195,11 +190,11 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
               Modifier
                 .size(100.dp)
                 .hazeEffect(
-                  factory = PlacementTestEffectFactory,
+                  factory = TestEffectFactory,
                   input = HazeInput.Sources(hazeState),
                   style = Unit,
                 )
-                .capturePlacementEffectNode { effectNode = it },
+                .captureEffectNode { effectNode = it },
             )
           }
         }
@@ -276,52 +271,4 @@ private class CountingUpdateRenderer :
   }
 
   override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
-}
-
-private fun createPlacementTestWindow(title: String): Window {
-  return try {
-    Frame(title)
-  } catch (_: HeadlessException) {
-    // Headless runners cannot construct a Frame; allocate a Window without a native peer.
-    val unsafeField = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe").apply {
-      isAccessible = true
-    }
-    val unsafe = unsafeField.get(null)
-    val allocateMethod = unsafe.javaClass.getMethod("allocateInstance", Class::class.java)
-    allocateMethod.invoke(unsafe, Window::class.java) as Window
-  }
-}
-
-private object PlacementTestEffectFactory : HazeEffectFactory<Unit> {
-  override fun createRenderer(): HazeEffectRenderer<Unit> = object : HazeEffectRenderer<Unit> {
-    override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
-  }
-}
-
-private fun Modifier.capturePlacementEffectNode(
-  onEffectNode: (HazeEffectNode) -> Unit,
-): Modifier = this then CapturePlacementEffectNodeElement(onEffectNode)
-
-private data class CapturePlacementEffectNodeElement(
-  val onEffectNode: (HazeEffectNode) -> Unit,
-) : ModifierNodeElement<CapturePlacementEffectNode>() {
-
-  override fun create(): CapturePlacementEffectNode = CapturePlacementEffectNode(onEffectNode)
-
-  override fun update(node: CapturePlacementEffectNode) {
-    node.onEffectNode = onEffectNode
-  }
-
-  override fun InspectorInfo.inspectableProperties() {
-    name = "capturePlacementEffectNode"
-  }
-}
-
-private class CapturePlacementEffectNode(
-  var onEffectNode: (HazeEffectNode) -> Unit,
-) : Modifier.Node() {
-
-  override fun onAttach() {
-    (findNearestAncestor(HazeTraversableNodeKeys.Effect) as? HazeEffectNode)?.let(onEffectNode)
-  }
 }
