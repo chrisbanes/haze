@@ -81,11 +81,30 @@ internal class HazeCoordinates(
   localPosition: Offset = Offset.Unspecified,
   screenPosition: Offset = Offset.Unspecified,
 ) {
-  internal var localPosition: Offset by mutableStateOf(localPosition)
-    internal set
+  private var localPositionState by mutableStateOf(localPosition)
+  private var screenPositionState by mutableStateOf(screenPosition)
 
-  internal var screenPosition: Offset by mutableStateOf(screenPosition)
-    internal set
+  /** Plain counter of position changes; see [HazeArea.changeCount]. */
+  internal var changeCount: Int = 0
+    private set
+
+  internal var localPosition: Offset
+    get() = localPositionState
+    set(value) {
+      if (value != localPositionState) {
+        localPositionState = value
+        changeCount++
+      }
+    }
+
+  internal var screenPosition: Offset
+    get() = screenPositionState
+    set(value) {
+      if (value != screenPositionState) {
+        screenPositionState = value
+        changeCount++
+      }
+    }
 
   internal fun positionFor(strategy: HazePositionStrategy): Offset = when (strategy) {
     HazePositionStrategy.Local,
@@ -120,12 +139,23 @@ internal class HazeArea {
   internal var coordinateVersion: Int by mutableIntStateOf(0)
     private set
 
+  private var ownChangeCount = 0
+
+  /**
+   * Counts changes to the values an effect reads when placing this area: its transform, positions,
+   * size, z-index, key and window. It is a plain counter, so an effect sees changes made earlier in
+   * the same layout pass, before snapshot observers are notified (#1437).
+   */
+  internal val changeCount: Int
+    get() = ownChangeCount + coordinates.changeCount
+
   internal fun updateLayoutCoordinates(coordinates: LayoutCoordinates) {
     layoutCoordinates = coordinates
     val transform = coordinates.transformToScreenOrRoot()
     if (coordinateTransformValues?.contentEquals(transform.values) != true) {
       coordinateTransformValues = transform.values.copyOf()
       coordinateVersion++
+      ownChangeCount++
     }
   }
 
@@ -134,17 +164,44 @@ internal class HazeArea {
     coordinateTransformValues = null
   }
 
-  internal var size: Size by mutableStateOf(Size.Unspecified)
-    internal set
+  private var sizeState by mutableStateOf(Size.Unspecified)
+  private var zIndexState by mutableFloatStateOf(0f)
+  private var keyState by mutableStateOf<Any?>(null)
 
-  internal var zIndex: Float by mutableFloatStateOf(0f)
-    internal set
+  internal var size: Size
+    get() = sizeState
+    set(value) {
+      if (value != sizeState) {
+        sizeState = value
+        ownChangeCount++
+      }
+    }
 
-  internal var key: Any? by mutableStateOf(null)
-    internal set
+  internal var zIndex: Float
+    get() = zIndexState
+    set(value) {
+      if (value != zIndexState) {
+        zIndexState = value
+        ownChangeCount++
+      }
+    }
+
+  internal var key: Any?
+    get() = keyState
+    set(value) {
+      if (value != keyState) {
+        keyState = value
+        ownChangeCount++
+      }
+    }
 
   internal var windowId: Any? = null
-    internal set
+    set(value) {
+      if (value != field) {
+        field = value
+        ownChangeCount++
+      }
+    }
 
   internal val preDrawListeners = mutableStateSetOf<OnPreDrawListener>()
 

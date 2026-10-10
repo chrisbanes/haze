@@ -138,6 +138,14 @@ internal class HazeEffectNode(
   private var inputCaptureGeneration = 0L
   private var isDrawing = false
   private var lastKnownCoordinates: LayoutCoordinates? = null
+
+  // False means a source read refresh is pending: the last observed updateEffect did not finish.
+  private var observedUpdateCompleted = false
+
+  // Sources seen by a completed onPlaced update, consumed by onGloballyPositioned (#1437).
+  // Without a draw a record can outlive its frame; the source check below keeps that safe.
+  private var placedAreas: List<HazeArea>? = null // null: no record
+  private var placedSourceChangeCounts = IntArray(0)
   private var coordinateTransformValues: FloatArray? = null
   private var screenToEffectTransform: Matrix? = null
   private var sourceSelectionSnapshotObserver: SnapshotStateObserver? = null
@@ -464,6 +472,8 @@ internal class HazeEffectNode(
     pointerInputDelegate = null
     lastKnownCoordinates = null
     coordinateTransformValues = null
+    observedUpdateCompleted = false
+    clearPlacementRecord()
     screenToEffectTransform = null
     lastInputSnapshot = null
     releaseBackdropRenderer()
@@ -497,6 +507,12 @@ internal class HazeEffectNode(
 
   override fun onObservedReadsChanged() {
     dirtyTracker += DirtyFields.AreaPositionReads
+    refreshObservedReads()
+  }
+
+  private fun refreshObservedReads() {
+    // Cleared first so an early exit from updateEffect leaves a source read refresh pending.
+    observedUpdateCompleted = false
     observeReads(::updateEffect)
   }
 
@@ -511,16 +527,16 @@ internal class HazeEffectNode(
       // screen coordinates guarded/authoritative via onGloballyPositioned, but
       // allow local coordinates to refresh from placement.
       if (resolvedPositionStrategy != HazePositionStrategy.Screen || position.isUnspecified) {
-        onPositioned(coordinates, "onPlaced")
+        onPositioned(coordinates, fromPlacement = true)
       }
     }
   }
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-    onPositioned(coordinates, "onGloballyPositioned")
+    onPositioned(coordinates, fromPlacement = false)
   }
 
-  private fun onPositioned(coordinates: LayoutCoordinates, source: String) {
+  private fun onPositioned(coordinates: LayoutCoordinates, fromPlacement: Boolean) {
     if (!isAttached) {
       // This shouldn't happen, but it does...
       // https://github.com/chrisbanes/haze/issues/665
@@ -530,14 +546,75 @@ internal class HazeEffectNode(
     lastKnownCoordinates = coordinates
     val effectToScreenTransform = coordinates.safeTransformToScreen()
     val transform = effectToScreenTransform ?: coordinates.transformToRoot()
-    if (coordinateTransformValues?.contentEquals(transform.values) != true) {
+    val transformChanged = coordinateTransformValues?.contentEquals(transform.values) != true
+    if (transformChanged) {
       coordinateTransformValues = transform.values.copyOf()
       dirtyTracker += DirtyFields.AreaPositionReads
     }
-    updatePositionGeometry(coordinates, source, effectToScreenTransform)
+    val previousPosition = _position
+    val previousSize = _size
+    updatePositionGeometry(
+      coordinates = coordinates,
+      source = if (fromPlacement) "onPlaced" else "onGloballyPositioned",
+      effectToScreenTransform = effectToScreenTransform,
+    )
+    if (!fromPlacement) {
+      // #1437: onPlaced already applied this placement with these sources; sources placed later in
+      // the pass need this update. The pending-refresh check is defensive.
+      val alreadyApplied = placedAreas != null &&
+        !transformChanged &&
+        _position == previousPosition &&
+        _size == previousSize &&
+        observedUpdateCompleted &&
+        placedAreasUnchanged()
+      clearPlacementRecord()
+      if (alreadyApplied) return
+    }
     // Initial observed updates can exit before the effect has coordinates and drop source reads.
     // Refresh those reads even when this placement leaves the effect's own transform unchanged.
     update()
+    if (fromPlacement) {
+      if (observedUpdateCompleted) recordPlacedAreas() else clearPlacementRecord()
+    }
+  }
+
+  private fun clearPlacementRecord() {
+    placedAreas = null
+  }
+
+  // All of the state's sources, selected or not, since any of them can change the selection.
+  private fun placementSources(): List<HazeArea> = if (state != null) lastSeenStateAreas else _areas
+
+  private fun recordPlacedAreas() {
+    placedAreas = _areas
+    val sources = placementSources()
+    if (placedSourceChangeCounts.size < sources.size) {
+      placedSourceChangeCounts = IntArray(sources.size)
+    }
+    for (i in sources.indices) {
+      placedSourceChangeCounts[i] = sources[i].changeCount
+    }
+  }
+
+  private fun placedAreasUnchanged(): Boolean {
+    if (placedAreas !== _areas) return false
+    // Sources can join the state during layout, e.g. lazy items composed after onPlaced.
+    Snapshot.withoutReadObservation {
+      val stateAreas = state?.areas
+      if (stateAreas != null) {
+        if (stateAreas.size != lastSeenStateAreas.size) return false
+        for (i in stateAreas.indices) {
+          if (stateAreas[i] !== lastSeenStateAreas[i]) return false
+        }
+      }
+    }
+    // Sources placed later in the pass change after onPlaced, before observers are notified.
+    val sources = placementSources()
+    if (sources.size > placedSourceChangeCounts.size) return false
+    for (i in sources.indices) {
+      if (placedSourceChangeCounts[i] != sources[i].changeCount) return false
+    }
+    return true
   }
 
   private fun updatePositionGeometry(
@@ -577,7 +654,7 @@ internal class HazeEffectNode(
       }
 
       if (layerBoundsRefreshPending) {
-        observeReads(::updateEffect)
+        refreshObservedReads()
       }
       // Bounds requested during the refresh are consumed by that update's calculation.
       // Only requests after this boundary need to survive until another frame.
@@ -1050,6 +1127,7 @@ internal class HazeEffectNode(
     }
 
     invalidateIfNeeded()
+    observedUpdateCompleted = true
   }
 
   internal fun updateLifecycle(lifecycle: Lifecycle) {
@@ -1131,6 +1209,7 @@ internal class HazeEffectNode(
   }
 
   private fun onPostDraw() {
+    clearPlacementRecord()
     val carryLayerBounds = needsNextFrameLayerBounds
     dirtyTracker = if (carryLayerBounds) {
       Bitmask(DirtyFields.VisualEffectLayerBounds)
