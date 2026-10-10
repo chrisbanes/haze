@@ -209,8 +209,6 @@ internal class RenderScriptBlurVisualEffectDelegate(
               context = context,
               offset = offset,
               expandedSize = expandedSize,
-              // Tints keep their existing single mask (see #1413).
-              mask = progressiveMask ?: userMask,
             )
           }
         }
