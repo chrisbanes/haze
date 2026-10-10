@@ -1,0 +1,143 @@
+// Copyright 2026, Christopher Banes and the Haze project contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package dev.chrisbanes.haze
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.awt.LocalAwtWindow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.findNearestAncestor
+import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import assertk.assertThat
+import assertk.assertions.isEqualTo
+import dev.chrisbanes.haze.test.ContextTest
+import java.awt.Frame
+import java.awt.HeadlessException
+import java.awt.Window
+import kotlin.test.Test
+
+@OptIn(ExperimentalTestApi::class, InternalHazeApi::class, ExperimentalComposeUiApi::class)
+class HazeEffectPlacementUpdateTest : ContextTest() {
+
+  @Test
+  fun onPositioned_unchangedTransform_refreshesDroppedSourceReads() = runComposeUiTest {
+    val hazeState = HazeState()
+    val sourceWindow = createPlacementTestWindow("SourceWindow")
+    val effectWindow = createPlacementTestWindow("EffectWindow")
+    var sourceX by mutableIntStateOf(0)
+    var showEffect by mutableStateOf(false)
+    var effectNode: HazeEffectNode? = null
+
+    try {
+      setContent {
+        CompositionLocalProvider(LocalAwtWindow provides sourceWindow) {
+          Box(
+            Modifier
+              .offset { IntOffset(sourceX, 0) }
+              .size(100.dp)
+              .hazeSource(hazeState),
+          )
+        }
+
+        if (showEffect) {
+          CompositionLocalProvider(LocalAwtWindow provides effectWindow) {
+            Spacer(
+              Modifier
+                .size(100.dp)
+                .hazeEffect(
+                  factory = PlacementTestEffectFactory,
+                  input = HazeInput.Sources(hazeState),
+                  style = Unit,
+                )
+                .capturePlacementEffectNode { effectNode = it },
+            )
+          }
+        }
+      }
+      waitForIdle()
+
+      // The source already has a window, so the effect's first observed update promotes to the
+      // Screen strategy before it has coordinates and exits early, dropping its source reads.
+      showEffect = true
+      waitForIdle()
+
+      val node = checkNotNull(effectNode)
+      val area = hazeState.areas.single()
+      assertThat(node.resolvedPositionStrategy).isEqualTo(HazePositionStrategy.Screen)
+      val initialOffset = node.sourceTransformInEffect(area).map(Offset.Zero)
+
+      // Only the source moves: the effect's own placement and transform stay unchanged.
+      sourceX = 40
+      waitForIdle()
+
+      assertThat(node.sourceTransformInEffect(area).map(Offset.Zero))
+        .isEqualTo(initialOffset + Offset(40f, 0f))
+    } finally {
+      (sourceWindow as? Frame)?.dispose()
+      (effectWindow as? Frame)?.dispose()
+    }
+  }
+}
+
+private fun createPlacementTestWindow(title: String): Window {
+  return try {
+    Frame(title)
+  } catch (_: HeadlessException) {
+    // Headless runners cannot construct a Frame; allocate a Window without a native peer.
+    val unsafeField = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe").apply {
+      isAccessible = true
+    }
+    val unsafe = unsafeField.get(null)
+    val allocateMethod = unsafe.javaClass.getMethod("allocateInstance", Class::class.java)
+    allocateMethod.invoke(unsafe, Window::class.java) as Window
+  }
+}
+
+private object PlacementTestEffectFactory : HazeEffectFactory<Unit> {
+  override fun createRenderer(): HazeEffectRenderer<Unit> = object : HazeEffectRenderer<Unit> {
+    override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
+  }
+}
+
+private fun Modifier.capturePlacementEffectNode(
+  onEffectNode: (HazeEffectNode) -> Unit,
+): Modifier = this then CapturePlacementEffectNodeElement(onEffectNode)
+
+private data class CapturePlacementEffectNodeElement(
+  val onEffectNode: (HazeEffectNode) -> Unit,
+) : ModifierNodeElement<CapturePlacementEffectNode>() {
+
+  override fun create(): CapturePlacementEffectNode = CapturePlacementEffectNode(onEffectNode)
+
+  override fun update(node: CapturePlacementEffectNode) {
+    node.onEffectNode = onEffectNode
+  }
+
+  override fun InspectorInfo.inspectableProperties() {
+    name = "capturePlacementEffectNode"
+  }
+}
+
+private class CapturePlacementEffectNode(
+  var onEffectNode: (HazeEffectNode) -> Unit,
+) : Modifier.Node() {
+
+  override fun onAttach() {
+    (findNearestAncestor(HazeTraversableNodeKeys.Effect) as? HazeEffectNode)?.let(onEffectNode)
+  }
+}
