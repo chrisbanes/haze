@@ -17,3 +17,23 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         SWIFT_VERSION: "6.0"
         CODE_SIGNING_ALLOWED: NO
+  # Holds `.interactive()` presses for recording (see UITests/PressTests.swift).
+  MergeHarnessUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: MergeHarness
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "6.0"
+        CODE_SIGNING_ALLOWED: NO
+schemes:
+  MergeHarness:
+    build:
+      targets:
+        MergeHarness: all
+        MergeHarnessUITests: [test]
+    test:
+      targets: [MergeHarnessUITests]

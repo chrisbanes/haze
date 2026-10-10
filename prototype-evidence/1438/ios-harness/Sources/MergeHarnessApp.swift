@@ -7,7 +7,14 @@ import SwiftUI
 @main
 struct MergeHarnessApp: App {
   var body: some Scene {
-    WindowGroup { ContentView() }
+    WindowGroup {
+      // `-scenario <name>` selects one of the open-question scenes in Scenarios.swift.
+      if let scenario = UserDefaults.standard.string(forKey: "scenario").flatMap(Scenario.init(rawValue:)) {
+        ScenarioView(scenario: scenario)
+      } else {
+        ContentView()
+      }
+    }
   }
 }
 
