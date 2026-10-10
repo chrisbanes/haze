@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -50,6 +51,7 @@ import dev.chrisbanes.haze.HazeFeatureFlags
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
+import dev.chrisbanes.haze.glass.GlassMergePrototype
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
@@ -242,22 +244,35 @@ private fun GlassProfilingScene(
     }
 
     if (scenario.glassEnabled && attachGlass) {
-      GlassProfilingEffectGrid(
-        hazeState = hazeState,
-        usesBackdrop = scenario.usesBackdrop,
-        styles = styles,
-        performanceMode = scenario.performanceMode,
-        interactionSource = interactionSource,
-        drawProgress = if (scenario.steadyDraw) {
-          { state.progress }
-        } else {
-          null
-        },
-        modifier = Modifier
-          .align(Alignment.Center)
-          .size(surfaceSize)
-          .testTag("glass_profiling_surface"),
-      )
+      val mergeLayer = scenario.mergeLayer
+      if (mergeLayer != null) {
+        GlassMergeProfilingSurface(
+          hazeState = hazeState,
+          layer = mergeLayer,
+          style = styles.single(),
+          performanceMode = scenario.performanceMode,
+          modifier = Modifier
+            .align(Alignment.Center)
+            .testTag("glass_profiling_surface"),
+        )
+      } else {
+        GlassProfilingEffectGrid(
+          hazeState = hazeState,
+          usesBackdrop = scenario.usesBackdrop,
+          styles = styles,
+          performanceMode = scenario.performanceMode,
+          interactionSource = interactionSource,
+          drawProgress = if (scenario.steadyDraw) {
+            { state.progress }
+          } else {
+            null
+          },
+          modifier = Modifier
+            .align(Alignment.Center)
+            .size(surfaceSize)
+            .testTag("glass_profiling_surface"),
+        )
+      }
     }
 
     if (scenario == GlassProfilingScenario.RetainedReuse) {
@@ -296,6 +311,12 @@ private fun GlassProfilingScene(
         text = scenario.id,
         modifier = Modifier.testTag("glass_profiling_phase_${state.phase.id}"),
       )
+      if (scenario.mergeLayer != null) {
+        Text(
+          text = glassProfilingMergeAreas(density),
+          modifier = Modifier.testTag("glass_profiling_merge_areas"),
+        )
+      }
       if (state.phase == GlassProfilingPhase.Ready) {
         Button(
           onClick = { state.start() },
@@ -352,6 +373,41 @@ private fun GlassProfilingEffectGrid(
   }
 }
 
+/**
+ * The merge prototype's two pills (#1438). Both layer modes fill the same container-sized frame and
+ * place the pills at the same offsets, so only the layer topology differs. No interaction source is
+ * passed: the prototype does not wire interaction stages for merging.
+ */
+@Composable
+private fun GlassMergeProfilingSurface(
+  hazeState: dev.chrisbanes.haze.HazeState,
+  layer: GlassProfilingMergeLayer,
+  style: GlassStyle,
+  performanceMode: HazePerformanceMode,
+  modifier: Modifier = Modifier,
+) {
+  Box(modifier.size(ProfilingMergeContainerSize)) {
+    when (layer) {
+      GlassProfilingMergeLayer.Merged -> Box(
+        Modifier
+          .fillMaxSize()
+          .hazeGlass(HazeInput.Sources(hazeState), style, performanceMode)
+          .testTag("glass_profiling_surface_0"),
+      )
+      GlassProfilingMergeLayer.Independent -> listOf(ProfilingMergePillA, ProfilingMergePillB)
+        .forEachIndexed { index, pill ->
+          Box(
+            Modifier
+              .offset(pill.left, pill.top)
+              .size(ProfilingMergePillSize)
+              .hazeGlass(HazeInput.Sources(hazeState), style, performanceMode)
+              .testTag("glass_profiling_surface_$index"),
+          )
+        }
+    }
+  }
+}
+
 internal fun profilingGlassStyle(
   scenario: GlassProfilingScenario,
   frame: GlassProfilingFrame,
@@ -366,6 +422,18 @@ internal fun profilingGlassStyle(
   }
   if (!scenario.rimEnabled) specularIntensity(0f)
   when (scenario) {
+    GlassProfilingScenario.MergePrototypeMerged -> mergePrototype(
+      GlassMergePrototype(
+        rectA = ProfilingMergePillA,
+        shapeA = RoundedCornerShape(ProfilingMergePillRadius),
+        rectB = ProfilingMergePillB,
+        shapeB = RoundedCornerShape(ProfilingMergePillRadius),
+        spacing = ProfilingMergeSpacing,
+      ),
+    )
+    GlassProfilingScenario.MergePrototypeIndependent -> {
+      shape(RoundedCornerShape(ProfilingMergePillRadius))
+    }
     GlassProfilingScenario.OpticalUpdate -> {
       lightPosition(
         BiasAlignment(
@@ -440,15 +508,22 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.SourceUpdateNoGlass,
     -> Unit
   }
-}.then {
-  pressed {
-    animate(
-      toSpec = DefaultGlassPressAnimationSpec,
-      fromSpec = DefaultGlassReleaseAnimationSpec,
-    ) {
-      lightingIntensity(1f)
-      refractionMultiplier(1.08f)
-      scale(0.98f)
+}.let { style ->
+  // The merge prototype wires no interaction stages, so its styles carry no pressed state.
+  if (scenario.mergeLayer != null) {
+    style
+  } else {
+    style.then {
+      pressed {
+        animate(
+          toSpec = DefaultGlassPressAnimationSpec,
+          fromSpec = DefaultGlassReleaseAnimationSpec,
+        ) {
+          lightingIntensity(1f)
+          refractionMultiplier(1.08f)
+          scale(0.98f)
+        }
+      }
     }
   }
 }

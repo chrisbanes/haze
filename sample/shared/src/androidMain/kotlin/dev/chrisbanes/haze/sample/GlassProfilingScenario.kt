@@ -12,7 +12,10 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
@@ -47,6 +50,7 @@ internal enum class GlassProfilingScenario(
   val fullChroma: Boolean = false,
   val usesBackdrop: Boolean = false,
   val resizesLayoutBounds: Boolean = false,
+  val mergeLayer: GlassProfilingMergeLayer? = null,
 ) {
   EffectAttach(
     id = "effect_attach",
@@ -279,9 +283,53 @@ internal enum class GlassProfilingScenario(
     performanceMode = HazePerformanceMode.Balanced,
     resizesLayoutBounds = true,
   ),
+
+  // Prototype (#1438): the same two pills over the SourceUpdateFixed100 workload, one merged layer
+  // against two independent layers.
+  MergePrototypeMerged(
+    id = "merge_prototype_merged",
+    performanceMode = HazePerformanceMode.Fixed(1f),
+    mergeLayer = GlassProfilingMergeLayer.Merged,
+  ),
+  MergePrototypeIndependent(
+    id = "merge_prototype_independent",
+    performanceMode = HazePerformanceMode.Fixed(1f),
+    mergeLayer = GlassProfilingMergeLayer.Independent,
+  ),
 }
 
+internal enum class GlassProfilingMergeLayer { Merged, Independent }
+
 internal val ProfilingSurfaceSize = DpSize(280.dp, 180.dp)
+
+// Merge prototype (#1438). Both layer modes share these pills, in container-local coordinates; the
+// merged container is the pills' union inflated by the spacing on every side.
+internal val ProfilingMergePillSize = DpSize(140.dp, 64.dp)
+internal val ProfilingMergePillRadius = 32.dp
+internal val ProfilingMergeSpacing = 40.dp
+private val ProfilingMergePillGap = 16.dp
+internal val ProfilingMergePillA = DpRect(
+  origin = DpOffset(ProfilingMergeSpacing, ProfilingMergeSpacing),
+  size = ProfilingMergePillSize,
+)
+internal val ProfilingMergePillB = DpRect(
+  origin = DpOffset(
+    ProfilingMergePillA.right + ProfilingMergePillGap,
+    ProfilingMergeSpacing,
+  ),
+  size = ProfilingMergePillSize,
+)
+internal val ProfilingMergeContainerSize = DpSize(
+  width = ProfilingMergePillB.right + ProfilingMergeSpacing,
+  height = ProfilingMergePillB.bottom + ProfilingMergeSpacing,
+)
+
+/** Layer pixel areas of both merge modes, rounded as layout does, for the benchmark report. */
+internal fun glassProfilingMergeAreas(density: Density): String = with(density) {
+  fun DpSize.px() = "${width.roundToPx()}x${height.roundToPx()}"
+  "merged=${ProfilingMergeContainerSize.px()} " +
+    "independent=${ProfilingMergePillSize.px()}+${ProfilingMergePillSize.px()}"
+}
 private val ProfilingResizeStartSize = DpSize(196.dp, 126.dp)
 
 // Pill (half of the 126 dp start height) at the small size, rounded panel at the large size.
@@ -411,6 +459,8 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.SourceUpdate9,
     GlassProfilingScenario.BackdropSourceUpdate9,
     GlassProfilingScenario.SourceUpdateNoGlass,
+    GlassProfilingScenario.MergePrototypeMerged,
+    GlassProfilingScenario.MergePrototypeIndependent,
     -> base.copy(sourceOffset = lerp(-0.08f, 0.08f, progress))
   }
 }
@@ -432,6 +482,8 @@ internal inline fun glassProfilingSourceProgress(
   GlassProfilingScenario.SourceUpdate9,
   GlassProfilingScenario.BackdropSourceUpdate9,
   GlassProfilingScenario.SourceUpdateNoGlass,
+  GlassProfilingScenario.MergePrototypeMerged,
+  GlassProfilingScenario.MergePrototypeIndependent,
   -> progress()
   else -> 0f
 }

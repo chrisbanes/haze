@@ -5,6 +5,8 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
@@ -181,6 +183,8 @@ class GlassProfilingScenarioTest {
         "resize_quality_9",
         "shape_update_balanced",
         "shape_update_balanced_9",
+        "merge_prototype_merged",
+        "merge_prototype_independent",
       ),
     )
     assertThat(
@@ -215,6 +219,49 @@ class GlassProfilingScenarioTest {
         ),
       )
     }
+  }
+
+  @Test
+  fun mergePair_matchesFixedFullSourceWorkloadExceptForLayerTopology() {
+    val merged = GlassProfilingScenario.MergePrototypeMerged
+    val independent = GlassProfilingScenario.MergePrototypeIndependent
+    val reference = GlassProfilingScenario.SourceUpdateFixed100
+
+    assertThat(merged.id).isEqualTo("merge_prototype_merged")
+    assertThat(independent.id).isEqualTo("merge_prototype_independent")
+    listOf(merged, independent).forEach { scenario ->
+      assertThat(scenario.performanceMode, name = scenario.id).isEqualTo(HazePerformanceMode.Fixed(1f))
+      assertThat(scenario.effectCount, name = scenario.id).isEqualTo(reference.effectCount)
+      assertThat(scenario.usesBackdrop, name = scenario.id).isFalse()
+      assertThat(scenario.glassEnabled, name = scenario.id).isTrue()
+      assertThat(scenario.steadyDraw, name = scenario.id).isFalse()
+      assertThat(scenario.resizesLayoutBounds, name = scenario.id).isFalse()
+      assertThat(scenario.opticsOverride, name = scenario.id).isNull()
+      assertThat(glassProfilingSourceProgress(scenario) { 0.75f }, name = scenario.id).isEqualTo(0.75f)
+      listOf(0f, 0.25f, 0.5f, 1f).forEach { progress ->
+        assertThat(glassProfilingFrame(scenario, progress), name = "${scenario.id}@$progress")
+          .isEqualTo(glassProfilingFrame(reference, progress))
+      }
+    }
+    assertThat(merged.performanceMode).isEqualTo(independent.performanceMode)
+    assertThat(merged.effectCount).isEqualTo(independent.effectCount)
+  }
+
+  @Test
+  fun mergeLayout_placesTwoPillsInsideAContainerInflatedBySpacing() {
+    assertThat(ProfilingMergePillA).isEqualTo(DpRect(40.dp, 40.dp, 180.dp, 104.dp))
+    assertThat(ProfilingMergePillB).isEqualTo(DpRect(196.dp, 40.dp, 336.dp, 104.dp))
+    assertThat(ProfilingMergeContainerSize).isEqualTo(DpSize(376.dp, 144.dp))
+    assertThat(ProfilingMergePillRadius).isEqualTo(32.dp)
+    assertThat(ProfilingMergeSpacing).isEqualTo(40.dp)
+  }
+
+  @Test
+  fun mergeAreas_reportMergedAndIndependentLayerSizesInPixels() {
+    // 376 x 144 dp and 140 x 64 dp at 2.75x.
+    assertThat(glassProfilingMergeAreas(Density(2.75f))).isEqualTo(
+      "merged=1034x396 independent=385x176+385x176",
+    )
   }
 
   @Test
@@ -254,6 +301,8 @@ class GlassProfilingScenarioTest {
         GlassProfilingScenario.SourceUpdate9,
         GlassProfilingScenario.BackdropSourceUpdate9,
         GlassProfilingScenario.SourceUpdateNoGlass,
+        GlassProfilingScenario.MergePrototypeMerged,
+        GlassProfilingScenario.MergePrototypeIndependent,
         -> setOf("sourceOffset")
         else -> emptySet()
       }
@@ -339,7 +388,9 @@ class GlassProfilingScenarioTest {
         scenario == GlassProfilingScenario.SourceUpdateFixed100 ||
         scenario == GlassProfilingScenario.SourceUpdate9 ||
         scenario == GlassProfilingScenario.BackdropSourceUpdate9 ||
-        scenario == GlassProfilingScenario.SourceUpdateNoGlass
+        scenario == GlassProfilingScenario.SourceUpdateNoGlass ||
+        scenario == GlassProfilingScenario.MergePrototypeMerged ||
+        scenario == GlassProfilingScenario.MergePrototypeIndependent
 
       assertThat(readCount, name = scenario.id).isEqualTo(if (updatesSource) 1 else 0)
       assertThat(resolved, name = scenario.id).isEqualTo(if (updatesSource) 0.75f else 0f)

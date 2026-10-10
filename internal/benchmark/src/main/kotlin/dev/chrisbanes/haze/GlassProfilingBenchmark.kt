@@ -51,6 +51,12 @@ class GlassProfilingBenchmark {
   fun shapeUpdateBalanced9() = measureScenario("shape_update_balanced_9", includeMemory = true)
 
   @Test
+  fun mergePrototypeMerged() = measureScenario("merge_prototype_merged", includeMemory = true)
+
+  @Test
+  fun mergePrototypeIndependent() = measureScenario("merge_prototype_independent", includeMemory = true)
+
+  @Test
   fun backdropStableQuality() {
     requireBackdropBenchmarkDevice()
     measureBackdropComparisonScenario("backdrop_stable_quality", requireBackdropDraw = true)
