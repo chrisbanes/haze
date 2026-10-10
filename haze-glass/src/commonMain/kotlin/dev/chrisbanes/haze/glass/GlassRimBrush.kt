@@ -10,7 +10,7 @@ internal fun interface GlassRimBrushProvider {
   operator fun invoke(key: GlassRimEffectKey): Brush?
 }
 
-internal expect fun createGlassRimBrushProvider(): GlassRimBrushProvider?
+internal expect fun createGlassRimBrushProvider(merged: Boolean = false): GlassRimBrushProvider?
 
 internal expect fun DrawScope.supportsGlassRimBrush(): Boolean
 

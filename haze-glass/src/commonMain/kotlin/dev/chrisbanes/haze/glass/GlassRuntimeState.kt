@@ -180,6 +180,7 @@ internal abstract class GlassRuntimeState {
   internal val surfaceProfile: SurfaceProfile get() = inheritedStyleValues.surfaceProfile
   internal val chromaticAberrationMode: ChromaticAberrationMode get() = inheritedStyleValues.chromaticAberrationMode
   internal val shape: RoundedCornerShape get() = inheritedStyleValues.shape
+  internal val mergePrototype: GlassMergePrototype? get() = inheritedStyleValues.mergePrototype
   internal val alpha: Float get() = inheritedStyleValues.alpha
   internal val contrast: Float get() = inheritedStyleValues.contrast
   internal val whitePoint: Float get() = inheritedStyleValues.whitePoint
@@ -275,7 +276,7 @@ internal abstract class GlassRuntimeState {
     if (old.tint != new.tint) {
       markDirty(GlassDirtyFields.Tint)
     }
-    if (old.shape != new.shape) {
+    if (old.shape != new.shape || old.mergePrototype != new.mergePrototype) {
       markDirty(GlassDirtyFields.Shape)
     }
     if (old.alpha != new.alpha) {

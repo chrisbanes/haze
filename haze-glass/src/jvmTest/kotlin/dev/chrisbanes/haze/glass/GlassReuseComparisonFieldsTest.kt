@@ -18,15 +18,15 @@ class GlassReuseComparisonFieldsTest {
   fun effectKeyFields_matchGlassRenderParamsReuseComparisons() {
     // Update hasSame*EffectInputs in GlassRenderParams.kt before changing these counts.
     assertThat(fieldCount<GlassBlurEffectKey>()).isEqualTo(6)
-    assertThat(fieldCount<GlassOpticalEffectKey>()).isEqualTo(19)
-    assertThat(fieldCount<GlassRefractionDetailEffectKey>()).isEqualTo(15)
-    assertThat(fieldCount<GlassRimEffectKey>()).isEqualTo(8)
+    assertThat(fieldCount<GlassOpticalEffectKey>()).isEqualTo(20)
+    assertThat(fieldCount<GlassRefractionDetailEffectKey>()).isEqualTo(16)
+    assertThat(fieldCount<GlassRimEffectKey>()).isEqualTo(9)
   }
 
   @Test
   fun resolvedStyleFields_matchGlassRuntimeEffectReuseComparison() {
     // Update ResolvedGlassStyle.hasSameRenderParams in GlassRuntimeEffect.kt before changing this.
-    assertThat(fieldCount<ResolvedGlassStyle>()).isEqualTo(19)
+    assertThat(fieldCount<ResolvedGlassStyle>()).isEqualTo(20)
   }
 
   private inline fun <reified T> fieldCount(): Int =

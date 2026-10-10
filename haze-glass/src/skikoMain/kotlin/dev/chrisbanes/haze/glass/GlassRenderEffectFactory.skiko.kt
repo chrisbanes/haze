@@ -26,9 +26,9 @@ internal actual fun createGlassDepthInputRenderEffect(
 
 internal actual val supportsFusedGlassRenderEffect: Boolean = false
 
-internal actual fun createGlassRimBrushProvider(): GlassRimBrushProvider? {
+internal actual fun createGlassRimBrushProvider(merged: Boolean): GlassRimBrushProvider? {
   val builder = runCatchingGlassRim {
-    RuntimeShaderBuilder(RuntimeEffect.makeForShader(GlassShaders.buildRim()))
+    RuntimeShaderBuilder(RuntimeEffect.makeForShader(GlassShaders.buildRim(merged)))
   }.getOrNull() ?: return null
   val uniforms = GlassRimUniformProvider(builder)
   return GlassRimBrushProvider { key ->

@@ -61,8 +61,8 @@ internal actual fun DrawScope.supportsGlassRimBrush(): Boolean =
   drawContext.canvas.nativeCanvas.isHardwareAccelerated
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createGlassRimBrushProvider(): GlassRimBrushProvider? {
-  val shader = runCatchingGlassRim { RuntimeShader(GlassShaders.buildRim()) }.getOrNull() ?: return null
+internal actual fun createGlassRimBrushProvider(merged: Boolean): GlassRimBrushProvider? {
+  val shader = runCatchingGlassRim { RuntimeShader(GlassShaders.buildRim(merged)) }.getOrNull() ?: return null
   val brush = ShaderBrush(shader)
   val uniforms = GlassRimUniformProvider(shader)
   return GlassRimBrushProvider { key ->

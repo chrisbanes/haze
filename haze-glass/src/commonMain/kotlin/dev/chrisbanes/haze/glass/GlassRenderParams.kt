@@ -230,6 +230,7 @@ internal data class GlassRenderParams(
   val refractionDetailIntensity: Float = GLASS_REFRACTION_DETAIL_INTENSITY,
   /** Negative selects Surface; zero disables Edge refraction. */
   val edgeRefractionWidthPx: Float = -1f,
+  val merge: GlassMergeGeometry? = null,
 )
 
 internal data class GlassBlurEffectKey(
@@ -281,6 +282,7 @@ internal data class GlassOpticalEffectKey(
   val sampleStepPx: Float,
   /** Negative selects Surface; zero disables Edge refraction. */
   val edgeRefractionWidthPx: Float = -1f,
+  val merge: GlassMergeGeometry? = null,
 )
 
 internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
@@ -303,6 +305,7 @@ internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
   cornerRadii = cornerRadii,
   sampleStepPx = sampleStepPx,
   edgeRefractionWidthPx = edgeRefractionWidthPx,
+  merge = merge,
 )
 
 internal data class GlassRefractionDetailEffectKey(
@@ -322,6 +325,7 @@ internal data class GlassRefractionDetailEffectKey(
   val detailVisibility: Float,
   /** Negative selects Surface; zero disables Edge refraction. */
   val edgeRefractionWidthPx: Float = -1f,
+  val merge: GlassMergeGeometry? = null,
 )
 
 internal fun GlassRenderParams.refractionDetailEffectKey(
@@ -350,6 +354,7 @@ internal fun GlassRenderParams.refractionDetailEffectKey(
     refractionScalePx = refractionScalePx,
     sampleStepPx = sampleStepPx,
   ),
+  merge = merge,
 )
 
 internal fun GlassRenderParams.activeRefractionDetailEffectKey(
@@ -373,6 +378,7 @@ internal data class GlassRimEffectKey(
   val cornerRadii: CornerRadii,
   val lightPosition: Offset,
   val sampleStepPx: Float,
+  val merge: GlassMergeGeometry? = null,
 )
 
 internal fun GlassRenderParams.rimEffectKey() = GlassRimEffectKey(
@@ -384,6 +390,7 @@ internal fun GlassRenderParams.rimEffectKey() = GlassRimEffectKey(
   cornerRadii = cornerRadii,
   lightPosition = lightPosition,
   sampleStepPx = sampleStepPx,
+  merge = merge,
 )
 
 internal data class GlassInteractionLightingKey(
@@ -465,6 +472,7 @@ internal data class ResolvedGlassStyle(
   val specularExponent: Float,
   val fresnelExponent: Float,
   val cornerRadii: CornerRadii,
+  val merge: GlassMergeGeometry? = null,
 )
 
 internal fun resolveGlassStyle(
@@ -511,6 +519,7 @@ internal fun resolveGlassStyle(
     specularExponent = effect.specularExponent,
     fresnelExponent = effect.fresnelExponent,
     cornerRadii = cornerRadii,
+    merge = effect.mergePrototype?.resolve(density, layoutDirection),
   ).withAccessibility(
     settings = effect.accessibilitySettings,
     minimumBorderSoftnessPx = defaultEdgeSoftnessPx,
@@ -617,6 +626,7 @@ internal fun buildGlassRenderParams(
     specularExponent = style.specularExponent,
     fresnelExponent = style.fresnelExponent,
     cornerRadii = style.cornerRadii * scaleFactor,
+    merge = style.merge?.times(scaleFactor),
     lightPosition = style.lightPosition * scaleFactor,
     sampleStepPx = 2f * scaleFactor,
     refractionDetailIntensity = resolvedOptics.refractionDetailIntensity,
@@ -990,6 +1000,7 @@ private fun GlassRenderParams.hasSameOpticalEffectInputs(other: GlassRenderParam
     contentNormalBlend == other.contentNormalBlend &&
     fresnelExponent == other.fresnelExponent &&
     cornerRadii == other.cornerRadii &&
+    merge == other.merge &&
     sampleStepPx == other.sampleStepPx
 
 private fun GlassRenderParams.hasSameRefractionDetailEffectInputs(
@@ -1005,6 +1016,7 @@ private fun GlassRenderParams.hasSameRefractionDetailEffectInputs(
     surfaceProfile == other.surfaceProfile &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
     cornerRadii == other.cornerRadii &&
+    merge == other.merge &&
     refractionDetailIntensity == other.refractionDetailIntensity
 
 private fun GlassRenderParams.hasSameRimEffectInputs(other: GlassRenderParams): Boolean =
@@ -1014,6 +1026,7 @@ private fun GlassRenderParams.hasSameRimEffectInputs(other: GlassRenderParams): 
     specularExponent == other.specularExponent &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
     cornerRadii == other.cornerRadii &&
+    merge == other.merge &&
     lightPosition == other.lightPosition &&
     sampleStepPx == other.sampleStepPx
 

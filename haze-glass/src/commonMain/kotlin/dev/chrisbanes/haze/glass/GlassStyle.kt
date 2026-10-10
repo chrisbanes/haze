@@ -286,6 +286,14 @@ public class GlassStyleScope internal constructor(
     values.shape = shape
   }
 
+  /**
+   * Prototype only (#1438): merges two members into one smooth field. `null` restores the
+   * single [shape] boundary.
+   */
+  public fun mergePrototype(merge: GlassMergePrototype?) {
+    values.mergePrototype = merge
+  }
+
   /** Sets a complete fixed optical model used to refract and blur captured content. */
   public fun optics(
     refractionStrength: Float = 0.7f,
@@ -483,6 +491,7 @@ private fun validateLightPositionBiases(horizontalBias: Float, verticalBias: Flo
 @Poko
 internal class GlassStyleValues(
   var shape: RoundedCornerShape = GlassDefaults.shape,
+  var mergePrototype: GlassMergePrototype? = null,
   var optics: GlassOptics = GlassDefaults.optics,
   var specularIntensity: Float = GlassDefaults.specularIntensity,
   var edgeShadow: Color = GlassDefaults.edgeShadow,

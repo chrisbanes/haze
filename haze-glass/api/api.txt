@@ -75,6 +75,19 @@ package dev.chrisbanes.haze.glass {
     method public void whitePointDelta(float delta);
   }
 
+  @dev.chrisbanes.haze.ExperimentalHazeApi @dev.chrisbanes.haze.Poko public final class GlassMergePrototype {
+    ctor @KotlinOnly public GlassMergePrototype(androidx.compose.ui.unit.DpRect rectA, androidx.compose.foundation.shape.RoundedCornerShape shapeA, androidx.compose.ui.unit.DpRect rectB, androidx.compose.foundation.shape.RoundedCornerShape shapeB, androidx.compose.ui.unit.Dp spacing);
+    method @InaccessibleFromKotlin public androidx.compose.ui.unit.DpRect getRectA();
+    method @InaccessibleFromKotlin public androidx.compose.ui.unit.DpRect getRectB();
+    method @InaccessibleFromKotlin public androidx.compose.foundation.shape.RoundedCornerShape getShapeA();
+    method @InaccessibleFromKotlin public androidx.compose.foundation.shape.RoundedCornerShape getShapeB();
+    property public androidx.compose.ui.unit.DpRect rectA;
+    property public androidx.compose.ui.unit.DpRect rectB;
+    property public androidx.compose.foundation.shape.RoundedCornerShape shapeA;
+    property public androidx.compose.foundation.shape.RoundedCornerShape shapeB;
+    property public androidx.compose.ui.unit.Dp spacing;
+  }
+
   @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassOptics {
     ctor public GlassOptics();
     ctor @KotlinOnly public GlassOptics(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> depth, optional dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength, optional float refractionDetailIntensity, optional dev.chrisbanes.haze.glass.RefractionProfile refractionProfile);
@@ -152,6 +165,7 @@ package dev.chrisbanes.haze.glass {
     method public void interactionLightRadiusFraction(float radiusFraction);
     method public void interactionPositionAnimationSpec(androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.geometry.Offset> animationSpec);
     method public void lightPosition(androidx.compose.ui.Alignment alignment);
+    method public void mergePrototype(dev.chrisbanes.haze.glass.GlassMergePrototype? merge);
     method public void optics(dev.chrisbanes.haze.glass.GlassOptics optics);
     method @KotlinOnly public void optics(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength, optional float refractionDetailIntensity, optional dev.chrisbanes.haze.glass.RefractionProfile refractionProfile);
     method public void pressed(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> response);
