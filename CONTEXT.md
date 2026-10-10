@@ -48,6 +48,21 @@ An optical parameter value that is either fixed for every Glass surface size or 
 interpolated across two or more ordered optical size points.
 _Avoid_: Size response, blur profile, adaptive optics
 
+**Glass container**:
+An ancestor that draws its Glass members' surfaces together, so that nearby members can merge into
+one shape and share one optical size. Its spacing sets how close members must be before they merge.
+_Avoid_: Glass group, effect container
+
+**Glass member**:
+A Glass surface that belongs to its nearest Glass container. It keeps its own shape, colours and
+interaction response.
+_Avoid_: Child surface, container item
+
+**Glass cluster**:
+Glass members of one container that are close enough and share enough appearance to draw as one
+merged shape, joined by smooth bridges.
+_Avoid_: Union, blob, merged group
+
 **Backdrop input**:
 The `HazeInput.Backdrop` intent to consume all pixels drawn earlier in the same window. A native
 renderer may consume those current-window pixels when it is eligible. When native rendering is
