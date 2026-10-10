@@ -265,14 +265,12 @@ class GlassProfilingScenarioTest {
   }
 
   @Test
-  fun styles_changeOnlyForOpticalDepthBlurAndShapeScenarios() {
+  fun styles_rebuildOnlyForOpticalDepthAndBlurScenarios() {
     GlassProfilingScenario.entries.forEach { scenario ->
       assertThat(profilingStyleUsesFrame(scenario), name = scenario.id).isEqualTo(
         scenario == GlassProfilingScenario.OpticalUpdate ||
           scenario == GlassProfilingScenario.DepthUpdate ||
-          scenario == GlassProfilingScenario.BlurUpdate ||
-          scenario == GlassProfilingScenario.ShapeUpdateBalanced ||
-          scenario == GlassProfilingScenario.ShapeUpdateBalanced9,
+          scenario == GlassProfilingScenario.BlurUpdate,
       )
     }
   }
