@@ -497,8 +497,10 @@ internal fun resolveGlassStyle(
     materialSizePx = materialSizePx,
     layoutDirection = layoutDirection,
   )
+  val merge = effect.mergePrototype?.resolve(density, layoutDirection)
   return ResolvedGlassStyle(
-    resolvedOptics = resolveGlassOptics(effect.optics, materialSizePx, density),
+    // A merged node is the members' union inflated by the spacing, so size optics from a member.
+    resolvedOptics = resolveGlassOptics(effect.optics, merge?.opticsSize() ?: materialSizePx, density),
     specularIntensity = effect.specularIntensity,
     edgeShadow = effect.edgeShadow,
     ambientResponse = effect.ambientResponse,
@@ -519,7 +521,7 @@ internal fun resolveGlassStyle(
     specularExponent = effect.specularExponent,
     fresnelExponent = effect.fresnelExponent,
     cornerRadii = cornerRadii,
-    merge = effect.mergePrototype?.resolve(density, layoutDirection),
+    merge = merge,
   ).withAccessibility(
     settings = effect.accessibilitySettings,
     minimumBorderSoftnessPx = defaultEdgeSoftnessPx,

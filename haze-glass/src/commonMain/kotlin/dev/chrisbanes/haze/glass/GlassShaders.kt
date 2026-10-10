@@ -117,9 +117,7 @@ internal object GlassShaders {
       );
       vec2 refractCoord = clampSample(coord + displacement);
 
-      float cornerWeight = abs(
-        (centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 0.001)
-      );
+      float cornerWeight = ${cornerWeight(merged)};
       vec2 chromaOffset =
         displacement * chromaticAberrationStrength * 0.5 * cornerWeight;
       vec4 refractedCenter = sampleDepth(refractCoord);
@@ -339,9 +337,7 @@ internal object GlassShaders {
       );
       vec2 refractCoord = clampSample(coord + displacement);
 
-      float cornerWeight = abs(
-        (centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 0.001)
-      );
+      float cornerWeight = ${cornerWeight(merged)};
       vec2 chromaOffset = displacement * chromaticAberrationStrength * 0.5 * cornerWeight;
       vec4 refractedCenterSample = sampleDepth(refractCoord);
       vec3 refractedStraightColor =
@@ -1087,6 +1083,13 @@ internal object GlassShaders {
   private fun shapeSd(merged: Boolean, coord: String): String =
     if (merged) "shapeSd($coord)" else "sdRoundedRect($coord, materialSize, cornerRadii)"
 
+  // Chroma is strongest at a member's corners, so merged fields weight by the nearest member.
+  private fun cornerWeight(merged: Boolean): String = if (merged) {
+    "memberCornerWeight(localCoord)"
+  } else {
+    "abs(\n        (centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 0.001)\n      )"
+  }
+
   // The dome is defined over one material rectangle, so merged fields disable it (#1438).
   private fun fieldWeight(merged: Boolean): String =
     if (merged) "0.0" else "opticalFieldWeight()"
@@ -1130,6 +1133,17 @@ internal object GlassShaders {
         shapeSd(localCoord + dx) - shapeSd(localCoord - dx),
         shapeSd(localCoord + dy) - shapeSd(localCoord - dy)
       ) * (0.5 / delta);
+    }
+
+    float memberCornerWeight(vec2 localCoord) {
+      float a = sdRoundedRect(localCoord - mergeRectA.xy, mergeRectA.zw, mergeRadiiA);
+      float b = sdRoundedRect(localCoord - mergeRectB.xy, mergeRectB.zw, mergeRadiiB);
+      vec4 member = a <= b ? mergeRectA : mergeRectB;
+      vec2 memberHalfSize = member.zw * 0.5;
+      vec2 memberCentered = localCoord - member.xy - memberHalfSize;
+      return abs(
+        (memberCentered.x * memberCentered.y) / max(memberHalfSize.x * memberHalfSize.y, 0.001)
+      );
     }
 
     float mergeMaxDisplacement() {

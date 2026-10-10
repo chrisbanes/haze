@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import assertk.assertThat
+import assertk.assertions.contains
+import assertk.assertions.doesNotContain
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotEqualTo
@@ -54,6 +56,61 @@ class MergedGlassShaderTest {
     assertThat(pixels[100, 40].alpha, "gap midpoint alpha").isEqualTo(0f)
     assertThat(pixels[50, 40].alpha, "member A centre alpha").isGreaterThan(0f)
     assertThat(pixels[150, 40].alpha, "member B centre alpha").isGreaterThan(0f)
+  }
+
+  @Test
+  fun mergePrototype_resolvesOpticsFromSmallerMemberNotContainer() {
+    val merged = params(members(gapPx = 12f))
+    // A lone 60x40 member, resolved by the normal single-shape path.
+    val member = buildGlassRenderParams(
+      resolveGlassStyle(
+        GlassRuntimeEffect().apply { style = GlassStyle.regular },
+        Size(60f, 40f),
+        Density(1f),
+        LayoutDirection.Ltr,
+      ),
+      GlassCoordinates(Size(60f, 40f), Offset.Zero, Size(60f, 40f), 1f),
+    )
+    val container = params(merge = null)
+    assertThat(container.depth, "container depth differs, so this test is sensitive")
+      .isNotEqualTo(member.depth)
+
+    assertThat(merged.depth).isEqualTo(member.depth)
+    assertThat(merged.blurRadiusPx).isEqualTo(member.blurRadiusPx)
+    assertThat(merged.refractionHeightPx).isEqualTo(member.refractionHeightPx)
+    assertThat(merged.edgeRefractionWidthPx).isEqualTo(member.edgeRefractionWidthPx)
+  }
+
+  @Test
+  fun fullyOverlappingMembers_drawTheirUnionWithoutGrowth() {
+    // Both members on the same 60x40 rect at x 70..130, y 20..60.
+    val pixels = render(members(gapPx = -60f)).toPixelMap()
+    assertThat(pixels[100, 40].alpha, "member centre alpha").isGreaterThan(0f)
+    // The unscaled smooth minimum grows the union by spacing / 2 (12 px) on every side.
+    assertThat(pixels[134, 40].alpha, "4 px right of the member").isEqualTo(0f)
+    assertThat(pixels[100, 64].alpha, "4 px below the member").isEqualTo(0f)
+  }
+
+  @Test
+  fun mergeSmoothing_keepsSpacingWhileApartAndFadesToZeroAtFullOverlap() {
+    fun smoothing(gapPx: Float) = members(gapPx).resolve(Density(1f), LayoutDirection.Ltr).smoothingPx
+    assertThat(smoothing(gapPx = 12f)).isEqualTo(24f)
+    assertThat(smoothing(gapPx = 0f)).isEqualTo(24f)
+    assertThat(smoothing(gapPx = -60f)).isEqualTo(0f)
+    val partial = smoothing(gapPx = -20f)
+    assertThat(partial).isGreaterThan(0f)
+    assertThat(24f - partial).isGreaterThan(0f)
+  }
+
+  @Test
+  fun mergedChromaCornerWeight_usesNearestMemberNotContainer() {
+    for (source in listOf(GlassShaders.buildFused(merged = true), GlassShaders.buildOptical(merged = true))) {
+      assertThat(source).contains("memberCornerWeight(localCoord)")
+      assertThat(RuntimeEffect.makeForShader(source)).isNotNull()
+    }
+    for (source in listOf(GlassShaders.buildFused(), GlassShaders.buildOptical())) {
+      assertThat(source).doesNotContain("memberCornerWeight")
+    }
   }
 
   @Test

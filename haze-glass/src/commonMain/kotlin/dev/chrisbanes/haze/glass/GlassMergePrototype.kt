@@ -78,8 +78,29 @@ internal fun GlassMergePrototype.resolve(
     radiiA = shapeA.radiiPx(pxA.size, density, layoutDirection),
     rectB = pxB,
     radiiB = shapeB.radiiPx(pxB.size, density, layoutDirection),
-    smoothingPx = with(density) { spacing.toPx() },
+    smoothingPx = with(density) { spacing.toPx() } * overlapSmoothingScale(pxA, pxB),
   )
+}
+
+/** The smaller member's size, used to resolve size-responsive optics instead of the container. */
+internal fun GlassMergeGeometry.opticsSize(): Size =
+  if (rectA.minDimension <= rectB.minDimension) rectA.size else rectB.size
+
+/**
+ * The smooth minimum lowers the field by up to `k / 4` wherever both members are equally near, so
+ * overlapping members would grow past their union. Keep full smoothing while the members are apart
+ * (so bridging is unchanged), and fade it out as they overlap, reaching zero once the overlap depth
+ * equals the smaller member's shortest side.
+ */
+private fun overlapSmoothingScale(a: Rect, b: Rect): Float {
+  val separation = maxOf(
+    maxOf(a.left - b.right, b.left - a.right),
+    maxOf(a.top - b.bottom, b.top - a.bottom),
+  )
+  if (separation >= 0f) return 1f
+  val fullOverlap = minOf(a.minDimension, b.minDimension)
+  val t = (-separation / fullOverlap).coerceIn(0f, 1f)
+  return 1f - t * t * (3f - 2f * t)
 }
 
 private fun RoundedCornerShape.radiiPx(size: Size, density: Density, layoutDirection: LayoutDirection) =
