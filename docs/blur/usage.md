@@ -39,8 +39,10 @@ Box {
 ```
 
 `HazeInput.Sources` also owns source selection and retained-output behavior. The default
-`KeepLastFrame` policy avoids an empty flash during source transitions. Use
-`ClearWhenUnavailable` for privacy-sensitive content:
+`KeepLastFrame` policy avoids an empty flash during source transitions, but retained output is
+not guaranteed to be a frozen copy of the last frame (see
+[Core concepts](../core-concepts.md)). Use `ClearWhenUnavailable` for
+privacy-sensitive content:
 
 ```kotlin
 Modifier.hazeBlur(

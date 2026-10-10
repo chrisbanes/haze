@@ -67,6 +67,10 @@ HazeInput.Sources(
 `KeepLastFrame` smooths temporary source gaps. `ClearWhenUnavailable` clears retained output as
 soon as no selected source is drawable.
 
+`KeepLastFrame` does not guarantee frozen pixels. On Android, retained Glass output can redraw
+from live or changed source content after its source is lost. Use `ClearWhenUnavailable` when
+that is unacceptable.
+
 ### Android window backdrops
 
 `HazeInput.Backdrop` is a stable, portable input contract. Its native path is currently eligible

@@ -130,6 +130,11 @@ public sealed interface HazeSourceRetention {
    * Continue drawing the most recently rendered output.
    *
    * This visually compatible behavior is the default for source transitions.
+   *
+   * Retained output is not guaranteed to be a frozen copy of the last displayed pixels. On
+   * Android, retained Glass output can redraw from live source content after its source is lost,
+   * including descendant changes made after capture. Use [ClearWhenUnavailable] when retained
+   * output must not show source content that is no longer selected.
    */
   public data object KeepLastFrame : HazeSourceRetention
 
