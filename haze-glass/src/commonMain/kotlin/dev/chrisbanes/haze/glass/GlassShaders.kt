@@ -1100,8 +1100,8 @@ internal object GlassShaders {
 
   /**
    * Prototype (#1438): two rounded members joined by a quadratic polynomial smooth minimum.
-   * The members' midpoint field is `gap / 2 - k / 4`, so `k = 2 * spacing` bridges exactly when
-   * the gap is less than the spacing.
+   * The members' midpoint field is `gap / 2 - k / 4`, so `k = spacing` bridges when the gap is less
+   * than half the spacing, matching iOS 27's GlassEffectContainer in the #1438 reference harness.
    */
   // Prototype (#1438): a central difference over half the refraction width smooths the refraction
   // direction where it turns across the neck's saddle.
@@ -1144,7 +1144,7 @@ internal object GlassShaders {
     float shapeSd(vec2 localCoord) {
       float a = sdRoundedRect(localCoord - mergeRectA.xy, mergeRectA.zw, mergeRadiiA);
       float b = sdRoundedRect(localCoord - mergeRectB.xy, mergeRectB.zw, mergeRadiiB);
-      return smoothMin(a, b, mergeSmoothing * 2.0);
+      return smoothMin(a, b, mergeSmoothing);
     }
 
     vec2 shapeGradientOver(vec2 localCoord, float step) {

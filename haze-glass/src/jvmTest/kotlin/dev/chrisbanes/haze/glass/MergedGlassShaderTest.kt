@@ -49,14 +49,15 @@ class MergedGlassShaderTest {
   }
 
   @Test
-  fun gapBelowSpacing_bridgesNeck() {
-    val pixels = render(members(gapPx = 12f)).toPixelMap()
+  fun gapBelowHalfSpacing_bridgesNeck() {
+    // Spacing is 24 px, so members bridge below a 12 px gap, as in iOS's GlassEffectContainer.
+    val pixels = render(members(gapPx = 8f)).toPixelMap()
     assertThat(pixels[100, 40].alpha, "neck midpoint alpha").isGreaterThan(0f)
   }
 
   @Test
-  fun gapAboveSpacing_leavesTwoSeparateMembers() {
-    val pixels = render(members(gapPx = 40f)).toPixelMap()
+  fun gapAboveHalfSpacing_leavesTwoSeparateMembers() {
+    val pixels = render(members(gapPx = 16f)).toPixelMap()
     assertThat(pixels[100, 40].alpha, "gap midpoint alpha").isEqualTo(0f)
     assertThat(pixels[50, 40].alpha, "member A centre alpha").isGreaterThan(0f)
     assertThat(pixels[150, 40].alpha, "member B centre alpha").isGreaterThan(0f)
@@ -108,13 +109,13 @@ class MergedGlassShaderTest {
 
   @Test
   fun thinBridge_doesNotRefractContentAcrossItsMidline() {
-    // At a 16 px gap with 24 px spacing the bridge is about 30 px tall, thinner than twice the
-    // 20 px refraction width, so both edges would otherwise shift the ramp by up to ~0.07.
-    val merge = members(gapPx = 16f)
+    // At a 4 px gap with 24 px spacing the bridge is about 26 px tall, thinner than twice the
+    // 20 px refraction width, so both edges would otherwise shift the ramp by up to ~0.08.
+    val merge = members(gapPx = 4f)
     val refracted = render(merge, source = VerticalRamp).toPixelMap()
     val unrefracted = render(merge, source = VerticalRamp, refraction = false).toPixelMap()
     val neckColumn = 100
-    for (y in 28..52) {
+    for (y in 28..50) {
       val difference = abs(refracted[neckColumn, y].red - unrefracted[neckColumn, y].red)
       assertThat(difference, "red difference at neck y=$y").isLessThan(0.02f)
     }

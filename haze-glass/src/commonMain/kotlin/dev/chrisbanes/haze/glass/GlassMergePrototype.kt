@@ -20,7 +20,7 @@ import dev.chrisbanes.haze.Poko
  * Prototype only (#1438), never shipped: merges two rounded members into one Glass surface.
  *
  * [rectA] and [rectB] are in the Glass node's local coordinates. Members whose gap is less than
- * [spacing] are joined by a smooth bridge. The node should cover both members' union bounds
+ * half of [spacing] are joined by a smooth bridge, as in iOS's GlassEffectContainer. The node should cover both members' union bounds
  * inflated by [spacing] on every side, so the merged field is never clipped.
  */
 @ExperimentalHazeApi
