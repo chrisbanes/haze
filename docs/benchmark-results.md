@@ -310,10 +310,12 @@ overrun) in both builds. CPU frame duration does not measure GPU cost.
     The `benchmarkRelease` builds used commits `903b02e9` (before) and `1f1c8a3a` (after); the
     Android build was `CP41.260831.007.A3`. The commits differ only in `HazeEffectNode` and its
     tests. `internal/benchmark` and `sample` are identical, and both builds produced a
-    byte-identical benchmark APK. The published pull request head adds a follow-up commit,
-    `f745384f`. It only makes the skip rarer when sources join during layout and releases
-    references. It does not affect these workloads, whose sources are stationary and attached from
-    the start, and it was not measured.
+    byte-identical benchmark APK. The merged change also contains later commits that were not
+    measured. One restructures the placement record and drops a per-placement array copy. The
+    others make the skip rarer when sources join, leave, or change window during layout, and
+    release references. These workloads keep their sources attached, stationary, and in one
+    window, so the added conditions should not change their update counts, but the final code was
+    not re-measured.
 
     The device was on AC power at 90% charge, and every readback reported thermal status 0. Before
     each measured run, all CPU sensors read 35°C or less and the battery 28.4°C or less; the
