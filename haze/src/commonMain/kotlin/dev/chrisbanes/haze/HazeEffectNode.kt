@@ -147,6 +147,7 @@ internal class HazeEffectNode(
   private var placedAreas: List<HazeArea>? = null // null: no record
   private var placedAreaVersions = IntArray(0)
   private var placedAreaSizes = LongArray(0)
+  private var placedAreaScreenPositions = LongArray(0)
   private var placedAreaWindowIds = arrayOfNulls<Any>(0)
   private var coordinateTransformValues: FloatArray? = null
   private var screenToEffectTransform: Matrix? = null
@@ -593,12 +594,15 @@ internal class HazeEffectNode(
     if (placedAreaVersions.size < areas.size) {
       placedAreaVersions = IntArray(areas.size)
       placedAreaSizes = LongArray(areas.size)
+      placedAreaScreenPositions = LongArray(areas.size)
       placedAreaWindowIds = arrayOfNulls(areas.size)
     }
     for (i in areas.indices) {
       val area = areas[i]
       placedAreaVersions[i] = area.coordinateVersion
       placedAreaSizes[i] = area.size.packedValue
+      // Without a screen transform, coordinateVersion follows the root transform only.
+      placedAreaScreenPositions[i] = area.coordinates.screenPosition.packedValue
       placedAreaWindowIds[i] = area.windowId
     }
   }
@@ -622,6 +626,7 @@ internal class HazeEffectNode(
         if (
           placedAreaVersions[i] != area.coordinateVersion ||
           placedAreaSizes[i] != area.size.packedValue ||
+          placedAreaScreenPositions[i] != area.coordinates.screenPosition.packedValue ||
           placedAreaWindowIds[i] != area.windowId
         ) {
           return false
