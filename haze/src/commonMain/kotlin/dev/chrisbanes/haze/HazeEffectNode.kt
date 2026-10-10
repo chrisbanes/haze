@@ -145,10 +145,7 @@ internal class HazeEffectNode(
   // Sources seen by a completed onPlaced update, consumed by onGloballyPositioned (#1437).
   // Without a draw a record can outlive its frame; the source check below keeps that safe.
   private var placedAreas: List<HazeArea>? = null // null: no record
-  private var placedAreaVersions = IntArray(0)
-  private var placedAreaSizes = LongArray(0)
-  private var placedAreaScreenPositions = LongArray(0)
-  private var placedAreaWindowIds = arrayOfNulls<Any>(0)
+  private var placedSourceChangeCounts = IntArray(0)
   private var coordinateTransformValues: FloatArray? = null
   private var screenToEffectTransform: Matrix? = null
   private var sourceSelectionSnapshotObserver: SnapshotStateObserver? = null
@@ -583,55 +580,39 @@ internal class HazeEffectNode(
 
   private fun clearPlacementRecord() {
     placedAreas = null
-    // Window IDs can reference closed windows; release them with the record.
-    placedAreaWindowIds.fill(null)
   }
 
-  // Called from onPlaced, which already runs without read observation.
+  // All of the state's sources, selected or not, since any of them can change the selection.
+  private fun placementSources(): List<HazeArea> = if (state != null) lastSeenStateAreas else _areas
+
   private fun recordPlacedAreas() {
-    val areas = _areas
-    placedAreas = areas
-    if (placedAreaVersions.size < areas.size) {
-      placedAreaVersions = IntArray(areas.size)
-      placedAreaSizes = LongArray(areas.size)
-      placedAreaScreenPositions = LongArray(areas.size)
-      placedAreaWindowIds = arrayOfNulls(areas.size)
+    placedAreas = _areas
+    val sources = placementSources()
+    if (placedSourceChangeCounts.size < sources.size) {
+      placedSourceChangeCounts = IntArray(sources.size)
     }
-    for (i in areas.indices) {
-      val area = areas[i]
-      placedAreaVersions[i] = area.coordinateVersion
-      placedAreaSizes[i] = area.size.packedValue
-      // Without a screen transform, coordinateVersion follows the root transform only.
-      placedAreaScreenPositions[i] = area.coordinates.screenPosition.packedValue
-      placedAreaWindowIds[i] = area.windowId
+    for (i in sources.indices) {
+      placedSourceChangeCounts[i] = sources[i].changeCount
     }
   }
 
   private fun placedAreasUnchanged(): Boolean {
-    val areas = _areas
-    if (placedAreas !== areas) return false
+    if (placedAreas !== _areas) return false
+    // Sources can join the state during layout, e.g. lazy items composed after onPlaced.
     Snapshot.withoutReadObservation {
-      // Sources can join the state during layout, e.g. lazy items composed after onPlaced.
       val stateAreas = state?.areas
       if (stateAreas != null) {
         if (stateAreas.size != lastSeenStateAreas.size) return false
         for (i in stateAreas.indices) {
           if (stateAreas[i] !== lastSeenStateAreas[i]) return false
         }
-        // Sources updated during layout can also change the selection inputs.
-        if (haveAreaZIndexesChanged(stateAreas) || haveAreaKeysChanged(stateAreas)) return false
       }
-      for (i in areas.indices) {
-        val area = areas[i]
-        if (
-          placedAreaVersions[i] != area.coordinateVersion ||
-          placedAreaSizes[i] != area.size.packedValue ||
-          placedAreaScreenPositions[i] != area.coordinates.screenPosition.packedValue ||
-          placedAreaWindowIds[i] != area.windowId
-        ) {
-          return false
-        }
-      }
+    }
+    // Sources placed later in the pass change after onPlaced, before observers are notified.
+    val sources = placementSources()
+    if (sources.size > placedSourceChangeCounts.size) return false
+    for (i in sources.indices) {
+      if (placedSourceChangeCounts[i] != sources[i].changeCount) return false
     }
     return true
   }
