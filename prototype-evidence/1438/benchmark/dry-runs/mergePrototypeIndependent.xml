@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="0.000" timestamp="2026-10-10T17:40:37" hostname="localhost">
+  <testsuite name="dev.chrisbanes.haze.GlassProfilingBenchmark" tests="1" failures="0" errors="0" skipped="0" time="11.216" timestamp="2026-10-10T17:40:37" hostname="localhost">
+    <properties>
+      <property name="device" value="42231JEKB15683" />
+    </properties>
+    <testcase name="mergePrototypeIndependent" classname="dev.chrisbanes.haze.GlassProfilingBenchmark" time="11.216" />
+  </testsuite>
+</testsuites>
