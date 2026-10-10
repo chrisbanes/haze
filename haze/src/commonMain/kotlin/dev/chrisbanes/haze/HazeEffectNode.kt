@@ -147,6 +147,7 @@ internal class HazeEffectNode(
   private var placedAreas: List<HazeArea>? = null // null: no record
   private var placedAreaVersions = IntArray(0)
   private var placedAreaSizes = LongArray(0)
+  private var placedAreaWindowIds = arrayOfNulls<Any>(0)
   private var coordinateTransformValues: FloatArray? = null
   private var screenToEffectTransform: Matrix? = null
   private var sourceSelectionSnapshotObserver: SnapshotStateObserver? = null
@@ -475,6 +476,7 @@ internal class HazeEffectNode(
     coordinateTransformValues = null
     observedUpdateCompleted = false
     placedAreas = null
+    placedAreaWindowIds.fill(null)
     screenToEffectTransform = null
     lastInputSnapshot = null
     releaseBackdropRenderer()
@@ -586,11 +588,13 @@ internal class HazeEffectNode(
     if (placedAreaVersions.size < areas.size) {
       placedAreaVersions = IntArray(areas.size)
       placedAreaSizes = LongArray(areas.size)
+      placedAreaWindowIds = arrayOfNulls(areas.size)
     }
     for (i in areas.indices) {
       val area = areas[i]
       placedAreaVersions[i] = area.coordinateVersion
       placedAreaSizes[i] = area.size.packedValue
+      placedAreaWindowIds[i] = area.windowId
     }
   }
 
@@ -610,7 +614,8 @@ internal class HazeEffectNode(
         val area = areas[i]
         if (
           placedAreaVersions[i] != area.coordinateVersion ||
-          placedAreaSizes[i] != area.size.packedValue
+          placedAreaSizes[i] != area.size.packedValue ||
+          placedAreaWindowIds[i] != area.windowId
         ) {
           return false
         }
