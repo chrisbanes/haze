@@ -225,7 +225,12 @@ internal class GlassRuntimeEffect() :
 
   private var preparedDrawCacheKey: GlassPreparedDrawCacheKey? = null
 
-  private var dirtyTrackerVersion: Int by mutableIntStateOf(0)
+  private var dirtyTrackerVersion: Int = 0
+
+  // Read by update() so changes from outside it re-run the node's update. Changes made during
+  // update() don't bump it, as that update already handles them (#1408).
+  private var dirtyTrackerSignal: Int by mutableIntStateOf(0)
+  private var isUpdating: Boolean = false
   internal var dirtyTracker: Bitmask = Bitmask()
     private set
 
@@ -357,13 +362,18 @@ internal class GlassRuntimeEffect() :
     sampling: HazeSampling,
   ) {
     val context = scope
-    applyConfiguration(style, style.performanceMode ?: scope.currentValueOf(LocalHazePerformanceMode))
-    dirtyTrackerVersion
-    systemAppearance = appearanceReader(context)
-    compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
-    accessibilitySettings = context.currentValueOf(LocalGlassAccessibilitySettings)
-    updateStyleInteractionSlots()
-    syncInteractionController(context)
+    isUpdating = true
+    try {
+      applyConfiguration(style, style.performanceMode ?: scope.currentValueOf(LocalHazePerformanceMode))
+      dirtyTrackerSignal
+      systemAppearance = appearanceReader(context)
+      compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
+      accessibilitySettings = context.currentValueOf(LocalGlassAccessibilitySettings)
+      updateStyleInteractionSlots()
+      syncInteractionController(context)
+    } finally {
+      isUpdating = false
+    }
 
     if (dirtyTracker.any(GlassDirtyFields.LayerBoundsFlags)) {
       context.invalidateLayerBounds()
@@ -1089,6 +1099,7 @@ internal class GlassRuntimeEffect() :
     if (updated != dirtyTracker) {
       dirtyTracker = updated
       dirtyTrackerVersion++
+      if (!isUpdating) dirtyTrackerSignal++
     }
     if (fields and GlassDirtyFields.StyleResolutionFlags != 0) {
       resolvedStyleCache = null
