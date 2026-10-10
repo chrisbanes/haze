@@ -475,8 +475,7 @@ internal class HazeEffectNode(
     lastKnownCoordinates = null
     coordinateTransformValues = null
     observedUpdateCompleted = false
-    placedAreas = null
-    placedAreaWindowIds.fill(null)
+    clearPlacementRecord()
     screenToEffectTransform = null
     lastInputSnapshot = null
     releaseBackdropRenderer()
@@ -570,15 +569,21 @@ internal class HazeEffectNode(
         _size == previousSize &&
         observedUpdateCompleted &&
         placedAreasUnchanged()
-      placedAreas = null
+      clearPlacementRecord()
       if (alreadyApplied) return
     }
     // Initial observed updates can exit before the effect has coordinates and drop source reads.
     // Refresh those reads even when this placement leaves the effect's own transform unchanged.
     update()
     if (fromPlacement) {
-      if (observedUpdateCompleted) recordPlacedAreas() else placedAreas = null
+      if (observedUpdateCompleted) recordPlacedAreas() else clearPlacementRecord()
     }
+  }
+
+  private fun clearPlacementRecord() {
+    placedAreas = null
+    // Window IDs can reference closed windows; release them with the record.
+    placedAreaWindowIds.fill(null)
   }
 
   // Called from onPlaced, which already runs without read observation.
@@ -609,6 +614,8 @@ internal class HazeEffectNode(
         for (i in stateAreas.indices) {
           if (stateAreas[i] !== lastSeenStateAreas[i]) return false
         }
+        // Sources updated during layout can also change the selection inputs.
+        if (haveAreaZIndexesChanged(stateAreas) || haveAreaKeysChanged(stateAreas)) return false
       }
       for (i in areas.indices) {
         val area = areas[i]
@@ -1216,7 +1223,7 @@ internal class HazeEffectNode(
   }
 
   private fun onPostDraw() {
-    placedAreas = null
+    clearPlacementRecord()
     val carryLayerBounds = needsNextFrameLayerBounds
     dirtyTracker = if (carryLayerBounds) {
       Bitmask(DirtyFields.VisualEffectLayerBounds)
