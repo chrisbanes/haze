@@ -477,8 +477,7 @@ internal class HazeEffectNode(
     lastKnownCoordinates = null
     coordinateTransformValues = null
     observedUpdateCompleted = false
-    placedTransformValues = null
-    placedAreas = emptyList()
+    clearPlacementRecord()
     screenToEffectTransform = null
     lastInputSnapshot = null
     releaseBackdropRenderer()
@@ -553,7 +552,8 @@ internal class HazeEffectNode(
     updatePositionGeometry(coordinates, source, effectToScreenTransform)
     if (!fromPlacement) {
       val placedValues = placedTransformValues
-      placedTransformValues = null
+      val areasUnchanged = placedValues != null && placedAreasUnchanged()
+      clearPlacementRecord()
       // #1437: onPlaced already applied this placement with these sources; sources placed later in
       // the pass need this update. The pending-refresh check is defensive.
       if (
@@ -561,7 +561,7 @@ internal class HazeEffectNode(
         placedPosition == _position &&
         placedSize == _size &&
         placedValues.contentEquals(transform.values) &&
-        placedAreasUnchanged() &&
+        areasUnchanged &&
         observedUpdateCompleted
       ) {
         return
@@ -571,11 +571,20 @@ internal class HazeEffectNode(
     // Refresh those reads even when this placement leaves the effect's own transform unchanged.
     update()
     if (fromPlacement) {
-      placedTransformValues = if (observedUpdateCompleted) transform.values.copyOf() else null
-      placedPosition = _position
-      placedSize = _size
-      recordPlacedAreas()
+      if (observedUpdateCompleted) {
+        placedTransformValues = transform.values.copyOf()
+        placedPosition = _position
+        placedSize = _size
+        recordPlacedAreas()
+      } else {
+        clearPlacementRecord()
+      }
     }
+  }
+
+  private fun clearPlacementRecord() {
+    placedTransformValues = null
+    placedAreas = emptyList()
   }
 
   private fun recordPlacedAreas() {
@@ -598,6 +607,14 @@ internal class HazeEffectNode(
     val areas = _areas
     if (placedAreas !== areas) return false
     Snapshot.withoutReadObservation {
+      // Sources can join the state during layout, e.g. lazy items composed after onPlaced.
+      val stateAreas = state?.areas
+      if (stateAreas != null) {
+        if (stateAreas.size != lastSeenStateAreas.size) return false
+        for (i in stateAreas.indices) {
+          if (stateAreas[i] !== lastSeenStateAreas[i]) return false
+        }
+      }
       for (i in areas.indices) {
         val area = areas[i]
         if (
@@ -1205,7 +1222,7 @@ internal class HazeEffectNode(
   }
 
   private fun onPostDraw() {
-    placedTransformValues = null
+    clearPlacementRecord()
     val carryLayerBounds = needsNextFrameLayerBounds
     dirtyTracker = if (carryLayerBounds) {
       Bitmask(DirtyFields.VisualEffectLayerBounds)
