@@ -3,9 +3,12 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.nativePaint
 
 internal actual fun Paint.reset() {
   nativePaint.reset()
+  // Compose caches the blend mode, so re-sync it or reuse skips setting it on the reset native paint.
+  blendMode = BlendMode.SrcOver
 }

@@ -57,12 +57,10 @@ internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffe
           }
         }
       } else {
-        drawRect(
-          brush = colorEffect.brush,
-          topLeft = offset,
-          size = size,
-          blendMode = colorEffect.blendMode,
-        )
+        // Translate rather than offset the rect, so the brush stays node-local like the masked branch.
+        translate(offset) {
+          drawRect(brush = colorEffect.brush, size = size, blendMode = colorEffect.blendMode)
+        }
       }
     }
     is TintColorHazeColorEffect -> {
