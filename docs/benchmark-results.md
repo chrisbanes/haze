@@ -259,6 +259,143 @@ workloads.
     Raw JSON, benchmark messages, traces, frozen APKs, and per-method device readbacks are
     retained locally under `internal/benchmark/build/benchmark-results/noise-tint.eO1A65/`.
 
+<a id="placement-update-deduplication"></a>
+
+## Placement update deduplication
+
+When an effect's size changed, Haze updated the effect twice in the same frame: once when Compose
+placed the node, and again when it reported the node's global position. The second callback now
+skips its update if the first already applied the same position, size, and transform and its source
+reads completed ([#1437](https://github.com/chrisbanes/haze/issues/1437)). This comparison counts
+`HazeEffectNode-updateEffect` trace slices before and after that change in four Glass profiling
+workloads.
+
+It used a Pixel 8a running Android 17 (full SDK 37.2) at 60 Hz, with fixed-performance mode
+enabled and normal CPU scheduling. Each workload resizes one or nine Glass effects over a stationary
+source for three seconds; `shapeUpdateBalanced` also animates the corner radii with the size. See
+the [controlled scenario baseline][benchmark-runbook-scenarios] for the exact workloads. Each
+method ran eight iterations in each of two passes, in opposite build order.
+
+Values are **before → after**. Update counts pool both passes (16 iterations per build). Frame
+timings are the **arithmetic mean of two per-pass P90s**, not the P90 of pooled frames.
+
+| Workload | Effects | `updateEffect` per effect per frame | per animating frame | CPU P90 (ms) | Overrun P90 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `resizeQuality` | 1 | 1.90 → 0.96 | 1.99 → 1.00 | 5.35 → 5.40 | -6.14 → -6.17 |
+| `resizeQuality9` | 9 | 1.84 → 0.93 | 1.99 → 1.00 | 12.72 → 12.53 | 0.58 → 0.62 |
+| `shapeUpdateBalanced` | 1 | 2.81 → 1.91 | 2.98 → 1.99 | 5.47 → 5.38 | -6.83 → -7.06 |
+| `shapeUpdateBalanced9` | 9 | 2.76 → 1.85 | 2.99 → 1.99 | 12.94 → 12.75 | 0.47 → 0.24 |
+
+"Per frame" counts every main-thread frame in the measured window, including idle frames at its
+edges. "Per animating frame" counts only frames that ran at least one update.
+
+The change removed one update from each animating frame. The resize workloads went from two
+updates per effect to one. The `shapeUpdateBalanced` workloads went from about three to about two.
+In both builds, the remaining update in those workloads ran inside `Recomposer:animation` instead
+of during placement. That is consistent with the single update Glass runs when state read by its
+style changes, here the animated corner radius. A style-only frame already ran one update after
+[#1434](https://github.com/chrisbanes/haze/pull/1434) and
+[#1439](https://github.com/chrisbanes/haze/pull/1439), and this change does not merge that update
+with the placement update. The traces show where the update ran, not which code path requested
+it, so treat that attribution as likely rather than proven.
+
+The measurements show fewer updates, not a frame-time change. Build differences were at most
+0.19 ms in CPU P90 and 0.23 ms in overrun P90, while the two passes of the same build differed by
+up to 0.42 ms and 0.50 ms. Both nine-effect workloads missed the frame deadline at P90 (positive
+overrun) in both builds. CPU frame duration does not measure GPU cost.
+
+??? info "Measurement details"
+
+    The `benchmarkRelease` builds used commits `903b02e9` (before) and `1f1c8a3a` (after); the
+    Android build was `CP41.260831.007.A3`. The commits differ only in `HazeEffectNode` and its
+    tests. `internal/benchmark` and `sample` are identical, and both builds produced a
+    byte-identical benchmark APK. The published pull request head adds a follow-up commit,
+    `f745384f`. It only makes the skip rarer when sources join during layout and releases
+    references. It does not affect these workloads, whose sources are stationary and attached from
+    the start, and it was not measured.
+
+    The device was on AC power at 90% charge, and every readback reported thermal status 0. Before
+    each measured run, all CPU sensors read 35°C or less and the battery 28.4°C or less; the
+    runs waited until the CPU sensors read at most 33°C and the battery at most 28.5°C. The
+    hottest CPU reading after a run was 48°C. The display stayed in its 60 Hz mode, and automatic
+    brightness stayed enabled with the setting unchanged at 2. Fixed-performance mode pinned each
+    CPU cluster to its maximum frequency during the passes. Force-stopping the Google app did not
+    stop it from restarting immediately, so it was temporarily disabled to avoid its Chromium
+    trace-producer delay. Fixed-performance mode was then turned off and the Google app was
+    re-enabled.
+
+    Four workloads, two builds, two passes, and eight iterations produced 128 measured iterations
+    and 128 Perfetto traces. No completed iteration was discarded. Each method was dry-run on
+    both builds and measured through its own selector. JSON method identity, XML success,
+    iteration count, and trace count were verified before continuing. Pass 1 ran the before build
+    and then the after build, in the order shown above. Pass 2 reversed both the build order and
+    the method order.
+
+    Per-pass CPU P90 / overrun P90, in milliseconds:
+
+    | Workload | Build | Pass 1 | Pass 2 |
+    | --- | --- | ---: | ---: |
+    | `resizeQuality` | before | 5.40 / -6.23 | 5.30 / -6.05 |
+    | | after | 5.61 / -6.04 | 5.19 / -6.31 |
+    | `resizeQuality9` | before | 12.84 / 0.61 | 12.59 / 0.55 |
+    | | after | 12.43 / 0.47 | 12.64 / 0.78 |
+    | `shapeUpdateBalanced` | before | 5.46 / -7.08 | 5.47 / -6.58 |
+    | | after | 5.27 / -7.16 | 5.49 / -6.95 |
+    | `shapeUpdateBalanced9` | before | 12.87 / 0.29 | 13.02 / 0.65 |
+    | | after | 12.80 / 0.39 | 12.70 / 0.09 |
+
+    Each measured window is the benchmark's `measureBlock` slice, about 3.3 s long. Updates are the
+    `HazeEffectNode-updateEffect` slices that start in that window in the sample process. Frames are
+    its main-thread `Choreographer#doFrame` slices. Animating frames are the frames that contain at
+    least one update. Totals over both passes:
+
+    | Workload | Build | Updates | Frames | Animating frames |
+    | --- | --- | ---: | ---: | ---: |
+    | `resizeQuality` | before | 5,772 | 3,039 | 2,899 |
+    | | after | 2,897 | 3,015 | 2,897 |
+    | `resizeQuality9` | before | 51,942 | 3,136 | 2,897 |
+    | | after | 26,082 | 3,132 | 2,897 |
+    | `shapeUpdateBalanced` | before | 8,648 | 3,076 | 2,899 |
+    | | after | 5,776 | 3,020 | 2,896 |
+    | `shapeUpdateBalanced9` | before | 77,823 | 3,129 | 2,896 |
+    | | after | 51,984 | 3,130 | 2,896 |
+
+    The name of a slice's parent shows where each update ran. Before the change, each animating
+    frame had one update inside `AndroidOwner:measureAndLayout` (placement) and one inside
+    `Compose:onPositionedCallbacks` (the global-position callback). After it, the second one fell
+    to fewer than two per effect per iteration. These counts add up to the update totals above.
+
+    | Workload | Build | `measureAndLayout` | `onPositionedCallbacks` | `Recomposer:animation` |
+    | --- | --- | ---: | ---: | ---: |
+    | `resizeQuality` | before | 2,873 | 2,899 | 0 |
+    | | after | 2,875 | 22 | 0 |
+    | `resizeQuality9` | before | 25,866 | 26,076 | 0 |
+    | | after | 25,884 | 198 | 0 |
+    | `shapeUpdateBalanced` | before | 2,869 | 2,899 | 2,880 |
+    | | after | 2,874 | 22 | 2,880 |
+    | `shapeUpdateBalanced9` | before | 25,839 | 26,064 | 25,920 |
+    | | after | 25,812 | 252 | 25,920 |
+
+    Perfetto scheduler data showed the main thread and RenderThread running on the middle CPU
+    cluster (CPUs 4–7) for most of the window in every run. The one-effect workloads sometimes ran
+    more on the little cluster (CPUs 0–3). An iteration counts as slow-core if either thread spent
+    more than 25% of its running time in the window on the little cluster. Before the change, 2 of
+    16 `resizeQuality` and 2 of 16 `shapeUpdateBalanced` iterations were slow-core; after it, 4 and
+    3. No nine-effect iteration was. Excluding slow-core iterations, the pooled-frame CPU P90 moved
+    from 5.23 to 5.20 ms for `resizeQuality` (14 and 12 iterations) and from 5.43 to 5.26 ms for
+    `shapeUpdateBalanced` (14 and 13 iterations), which is also within the pass-to-pass variation.
+    The table above includes slow-core iterations.
+
+    Two passes per build is a small sample. Update counts were stable across iterations and passes
+    (for example, 0.92–0.93 per effect per frame for `resizeQuality9` after the change), but frame
+    timings varied more between passes than between builds. Resolving a difference smaller than
+    about 0.5 ms would need more passes, again in alternating order.
+
+    Raw JSON, benchmark messages, XML, and traces are retained locally, outside the repository,
+    under `~/dev/haze-worktrees/1437-artifacts/`: `before-903b02e9/` and `after-1f1c8a3a/`, each
+    with `pass1/` and `pass2/`. That directory also holds the dry-run XML, per-run device
+    readbacks, the two builds' APK hashes, and the trace-analysis scripts.
+
 ## Representative workloads
 
 These Glass sample measurements cover paging, an animated timeline, and steady-state scenes
@@ -291,6 +428,7 @@ For the historical scrolling and dragging comparison between Haze 1 and Haze 2, 
 [migration guide](migrating-2.0.md#performance-compared-with-haze-1).
 
 [benchmark-runbook]: https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md
+[benchmark-runbook-scenarios]: https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md#controlled-scenario-baseline
 [blur-adr]: adr/0004-use-quality-gated-adaptive-input-scaling-for-blur.md
 [glass-adr]: adr/0005-use-cadence-weighted-adaptive-input-scaling-for-glass.md
 [performance-mode-adr]: adr/0006-reconcile-built-in-performance-mode-terminology.md
