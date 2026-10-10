@@ -265,8 +265,9 @@ workloads.
 
 When an effect's size changed, Haze updated the effect twice in the same frame: once when Compose
 placed the node, and again when it reported the node's global position. The second callback now
-skips its update if the first already applied the same position, size, and transform and its source
-reads completed ([#1437](https://github.com/chrisbanes/haze/issues/1437)). This comparison counts
+skips its update if the first already applied the same position, size, and transform, its source
+reads completed, and its sources haven't changed since
+([#1437](https://github.com/chrisbanes/haze/issues/1437)). This comparison counts
 `HazeEffectNode-updateEffect` trace slices before and after that change in four Glass profiling
 workloads.
 
