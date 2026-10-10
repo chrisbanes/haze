@@ -881,6 +881,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#placement-update-deduplication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Placement update deduplication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#representative-workloads" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1282,6 +1293,17 @@
     <span class="md-ellipsis">
       
         Blur noise and tint shader reuse
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#placement-update-deduplication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Placement update deduplication
       
     </span>
   </a>
@@ -1698,6 +1720,334 @@ builds; their mean CPU P90 differed by less than 1 ms, passes differed by up to 
 and the ranking varied between passes.</p>
 <p>Raw JSON, benchmark messages, traces, frozen APKs, and per-method device readbacks are
 retained locally under <code>internal/benchmark/build/benchmark-results/noise-tint.eO1A65/</code>.</p>
+</details>
+<p><a id="placement-update-deduplication"></a></p>
+<h2 id="placement-update-deduplication">Placement update deduplication<a class="headerlink" href="#placement-update-deduplication" title="Permanent link">¶</a></h2>
+<p>When an effect's size changed, Haze updated the effect twice in the same frame: once when Compose
+placed the node, and again when it reported the node's global position. The second callback now
+skips its update if the first already applied the same position, size, and transform, its source
+reads completed, and its sources haven't changed since
+(<a href="https://github.com/chrisbanes/haze/issues/1437">#1437</a>). This comparison counts
+<code>HazeEffectNode-updateEffect</code> trace slices before and after that change in four Glass profiling
+workloads.</p>
+<p>It used a Pixel 8a running Android 17 (full SDK 37.2) at 60 Hz, with fixed-performance mode
+enabled and normal CPU scheduling. Each workload resizes one or nine Glass effects over a stationary
+source for three seconds; <code>shapeUpdateBalanced</code> also animates the corner radii with the size. See
+the <a href="https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md#controlled-scenario-baseline">controlled scenario baseline</a> for the exact workloads. Each
+method ran eight iterations in each of two passes, in opposite build order.</p>
+<p>Values are <strong>before → after</strong>. Update counts pool both passes (16 iterations per build). Frame
+timings are the <strong>arithmetic mean of two per-pass P90s</strong>, not the P90 of pooled frames.</p>
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th style="text-align: right;">Effects</th>
+<th style="text-align: right;"><code>updateEffect</code> per effect per frame</th>
+<th style="text-align: right;">per animating frame</th>
+<th style="text-align: right;">CPU P90 (ms)</th>
+<th style="text-align: right;">Overrun P90 (ms)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>resizeQuality</code></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.90 → 0.96</td>
+<td style="text-align: right;">1.99 → 1.00</td>
+<td style="text-align: right;">5.35 → 5.40</td>
+<td style="text-align: right;">-6.14 → -6.17</td>
+</tr>
+<tr>
+<td><code>resizeQuality9</code></td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">1.84 → 0.93</td>
+<td style="text-align: right;">1.99 → 1.00</td>
+<td style="text-align: right;">12.72 → 12.53</td>
+<td style="text-align: right;">0.58 → 0.62</td>
+</tr>
+<tr>
+<td><code>shapeUpdateBalanced</code></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.81 → 1.91</td>
+<td style="text-align: right;">2.98 → 1.99</td>
+<td style="text-align: right;">5.47 → 5.38</td>
+<td style="text-align: right;">-6.83 → -7.06</td>
+</tr>
+<tr>
+<td><code>shapeUpdateBalanced9</code></td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">2.76 → 1.85</td>
+<td style="text-align: right;">2.99 → 1.99</td>
+<td style="text-align: right;">12.94 → 12.75</td>
+<td style="text-align: right;">0.47 → 0.24</td>
+</tr>
+</tbody>
+</table>
+<p>"Per frame" counts every main-thread frame in the measured window, including idle frames at its
+edges. "Per animating frame" counts only frames that ran at least one update.</p>
+<p>The change removed one update from each animating frame. The resize workloads went from two
+updates per effect to one. The <code>shapeUpdateBalanced</code> workloads went from about three to about two.
+In both builds, the remaining update in those workloads ran inside <code>Recomposer:animation</code> instead
+of during placement. That is consistent with the single update Glass runs when state read by its
+style changes, here the animated corner radius. A style-only frame already ran one update after
+<a href="https://github.com/chrisbanes/haze/pull/1434">#1434</a> and
+<a href="https://github.com/chrisbanes/haze/pull/1439">#1439</a>, and this change does not merge that update
+with the placement update. The traces show where the update ran, not which code path requested
+it, so treat that attribution as likely rather than proven.</p>
+<p>The measurements show fewer updates, not a frame-time change. Build differences were at most
+0.19 ms in CPU P90 and 0.23 ms in overrun P90, while the two passes of the same build differed by
+up to 0.42 ms and 0.50 ms. Both nine-effect workloads missed the frame deadline at P90 (positive
+overrun) in both builds. CPU frame duration does not measure GPU cost.</p>
+<details class="info">
+<summary>Measurement details</summary>
+<p>The <code>benchmarkRelease</code> builds used commits <code>903b02e9</code> (before) and <code>1f1c8a3a</code> (after); the
+Android build was <code>CP41.260831.007.A3</code>. The commits differ only in <code>HazeEffectNode</code> and its
+tests. <code>internal/benchmark</code> and <code>sample</code> are identical, and both builds produced a
+byte-identical benchmark APK. The merged change also contains later commits that were not
+measured. One restructures the placement record and drops a per-placement array copy. The
+others make the skip rarer when sources join, leave, or change window during layout, and
+release references. These workloads keep their sources attached, stationary, and in one
+window, so the added conditions should not change their update counts, but the final code was
+not re-measured.</p>
+<p>The device was on AC power at 90% charge, and every readback reported thermal status 0. Before
+each measured run, all CPU sensors read 35°C or less and the battery 28.4°C or less; the
+runs waited until the CPU sensors read at most 33°C and the battery at most 28.5°C. The
+hottest CPU reading after a run was 48°C. The display stayed in its 60 Hz mode, and automatic
+brightness stayed enabled with the setting unchanged at 2. Fixed-performance mode pinned each
+CPU cluster to its maximum frequency during the passes. Force-stopping the Google app did not
+stop it from restarting immediately, so it was temporarily disabled to avoid its Chromium
+trace-producer delay. Fixed-performance mode was then turned off and the Google app was
+re-enabled.</p>
+<p>Four workloads, two builds, two passes, and eight iterations produced 128 measured iterations
+and 128 Perfetto traces. No completed iteration was discarded. Each method was dry-run on
+both builds and measured through its own selector. JSON method identity, XML success,
+iteration count, and trace count were verified before continuing. Pass 1 ran the before build
+and then the after build, in the order shown above. Pass 2 reversed both the build order and
+the method order.</p>
+<p>Per-pass CPU P90 / overrun P90, in milliseconds:</p>
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th>Build</th>
+<th style="text-align: right;">Pass 1</th>
+<th style="text-align: right;">Pass 2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>resizeQuality</code></td>
+<td>before</td>
+<td style="text-align: right;">5.40 / -6.23</td>
+<td style="text-align: right;">5.30 / -6.05</td>
+</tr>
+<tr>
+<td></td>
+<td>after</td>
+<td style="text-align: right;">5.61 / -6.04</td>
+<td style="text-align: right;">5.19 / -6.31</td>
+</tr>
+<tr>
+<td><code>resizeQuality9</code></td>
+<td>before</td>
+<td style="text-align: right;">12.84 / 0.61</td>
+<td style="text-align: right;">12.59 / 0.55</td>
+</tr>
+<tr>
+<td></td>
+<td>after</td>
+<td style="text-align: right;">12.43 / 0.47</td>
+<td style="text-align: right;">12.64 / 0.78</td>
+</tr>
+<tr>
+<td><code>shapeUpdateBalanced</code></td>
+<td>before</td>
+<td style="text-align: right;">5.46 / -7.08</td>
+<td style="text-align: right;">5.47 / -6.58</td>
+</tr>
+<tr>
+<td></td>
+<td>after</td>
+<td style="text-align: right;">5.27 / -7.16</td>
+<td style="text-align: right;">5.49 / -6.95</td>
+</tr>
+<tr>
+<td><code>shapeUpdateBalanced9</code></td>
+<td>before</td>
+<td style="text-align: right;">12.87 / 0.29</td>
+<td style="text-align: right;">13.02 / 0.65</td>
+</tr>
+<tr>
+<td></td>
+<td>after</td>
+<td style="text-align: right;">12.80 / 0.39</td>
+<td style="text-align: right;">12.70 / 0.09</td>
+</tr>
+</tbody>
+</table>
+<p>Each measured window is the benchmark's <code>measureBlock</code> slice, about 3.3 s long. Updates are the
+<code>HazeEffectNode-updateEffect</code> slices that start in that window in the sample process. Frames are
+its main-thread <code>Choreographer#doFrame</code> slices. Animating frames are the frames that contain at
+least one update. Totals over both passes:</p>
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th>Build</th>
+<th style="text-align: right;">Updates</th>
+<th style="text-align: right;">Frames</th>
+<th style="text-align: right;">Animating frames</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>resizeQuality</code></td>
+<td>before</td>
+<td style="text-align: right;">5,772</td>
+<td style="text-align: right;">3,039</td>
+<td style="text-align: right;">2,899</td>
+</tr>
+<tr>
+<td></td>
+<td>after</td>
+<td style="text-align: right;">2,897</td>
+<td style="text-align: right;">3,015</td>
+<td style="text-align: right;">2,897</td>
+</tr>
+<tr>
+<td><code>resizeQuality9</code></td>
+<td>before</td>
+<td style="text-align: right;">51,942</td>
+<td style="text-align: right;">3,136</td>
+<td style="text-align: right;">2,897</td>
+</tr>
+<tr>
+<td></td>
+<td>after</td>
+<td style="text-align: right;">26,082</td>
+<td style="text-align: right;">3,132</td>
+<td style="text-align: right;">2,897</td>
+</tr>
+<tr>
+<td><code>shapeUpdateBalanced</code></td>
+<td>before</td>
+<td style="text-align: right;">8,648</td>
+<td style="text-align: right;">3,076</td>
+<td style="text-align: right;">2,899</td>
+</tr>
+<tr>
+<td></td>
+<td>after</td>
+<td style="text-align: right;">5,776</td>
+<td style="text-align: right;">3,020</td>
+<td style="text-align: right;">2,896</td>
+</tr>
+<tr>
+<td><code>shapeUpdateBalanced9</code></td>
+<td>before</td>
+<td style="text-align: right;">77,823</td>
+<td style="text-align: right;">3,129</td>
+<td style="text-align: right;">2,896</td>
+</tr>
+<tr>
+<td></td>
+<td>after</td>
+<td style="text-align: right;">51,984</td>
+<td style="text-align: right;">3,130</td>
+<td style="text-align: right;">2,896</td>
+</tr>
+</tbody>
+</table>
+<p>The name of a slice's parent shows where each update ran. Before the change, each animating
+frame had one update inside <code>AndroidOwner:measureAndLayout</code> (placement) and one inside
+<code>Compose:onPositionedCallbacks</code> (the global-position callback). After it, the second one fell
+to fewer than two per effect per iteration. These counts add up to the update totals above.</p>
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th>Build</th>
+<th style="text-align: right;"><code>measureAndLayout</code></th>
+<th style="text-align: right;"><code>onPositionedCallbacks</code></th>
+<th style="text-align: right;"><code>Recomposer:animation</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>resizeQuality</code></td>
+<td>before</td>
+<td style="text-align: right;">2,873</td>
+<td style="text-align: right;">2,899</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td></td>
+<td>after</td>
+<td style="text-align: right;">2,875</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td><code>resizeQuality9</code></td>
+<td>before</td>
+<td style="text-align: right;">25,866</td>
+<td style="text-align: right;">26,076</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td></td>
+<td>after</td>
+<td style="text-align: right;">25,884</td>
+<td style="text-align: right;">198</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td><code>shapeUpdateBalanced</code></td>
+<td>before</td>
+<td style="text-align: right;">2,869</td>
+<td style="text-align: right;">2,899</td>
+<td style="text-align: right;">2,880</td>
+</tr>
+<tr>
+<td></td>
+<td>after</td>
+<td style="text-align: right;">2,874</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">2,880</td>
+</tr>
+<tr>
+<td><code>shapeUpdateBalanced9</code></td>
+<td>before</td>
+<td style="text-align: right;">25,839</td>
+<td style="text-align: right;">26,064</td>
+<td style="text-align: right;">25,920</td>
+</tr>
+<tr>
+<td></td>
+<td>after</td>
+<td style="text-align: right;">25,812</td>
+<td style="text-align: right;">252</td>
+<td style="text-align: right;">25,920</td>
+</tr>
+</tbody>
+</table>
+<p>Perfetto scheduler data showed the main thread and RenderThread running on the middle CPU
+cluster (CPUs 4–7) for most of the window in every run. The one-effect workloads sometimes ran
+more on the little cluster (CPUs 0–3). An iteration counts as slow-core if either thread spent
+more than 25% of its running time in the window on the little cluster. Before the change, 2 of
+16 <code>resizeQuality</code> and 2 of 16 <code>shapeUpdateBalanced</code> iterations were slow-core; after it, 4 and
+3. No nine-effect iteration was. Excluding slow-core iterations, the pooled-frame CPU P90 moved
+from 5.23 to 5.20 ms for <code>resizeQuality</code> (14 and 12 iterations) and from 5.43 to 5.26 ms for
+<code>shapeUpdateBalanced</code> (14 and 13 iterations), which is also within the pass-to-pass variation.
+The table above includes slow-core iterations.</p>
+<p>Two passes per build is a small sample. Update counts were stable across iterations and passes
+(for example, 0.92–0.93 per effect per frame for <code>resizeQuality9</code> after the change), but frame
+timings varied more between passes than between builds. Resolving a difference smaller than
+about 0.5 ms would need more passes, again in alternating order.</p>
+<p>Raw JSON, benchmark messages, XML, and traces are retained locally, outside the repository,
+under <code>~/dev/haze-worktrees/1437-artifacts/</code>: <code>before-903b02e9/</code> and <code>after-1f1c8a3a/</code>, each
+with <code>pass1/</code> and <code>pass2/</code>. That directory also holds the dry-run XML, per-run device
+readbacks, the two builds' APK hashes, and the trace-analysis scripts.</p>
 </details>
 <h2 id="representative-workloads">Representative workloads<a class="headerlink" href="#representative-workloads" title="Permanent link">¶</a></h2>
 <p>These Glass sample measurements cover paging, an animated timeline, and steady-state scenes
