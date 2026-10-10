@@ -30,6 +30,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
@@ -611,6 +612,56 @@ class HazeGlassModifierTest : ContextTest() {
     assertThat(prepared.params.cornerRadii).isEqualTo(uniformRadii(expectedRadius, prepared))
   }
 
+  @Test
+  fun observedStyleChange_addsOneRendererUpdatePerFrame() = runComposeUiTest {
+    val radius = mutableStateOf(8.dp)
+    val side = mutableStateOf(100.dp)
+    val factory = RecordingGlassFactory()
+
+    setContent {
+      Spacer(
+        Modifier
+          .size(side.value)
+          .hazeGlass(
+            factory = factory,
+            input = HazeInput.Content,
+            style = remember { GlassStyle { shape(RoundedCornerShape(radius.value)) } },
+            performanceMode = HazePerformanceMode.Default,
+            expandLayerBounds = true,
+            interactionSource = null,
+          ),
+      )
+    }
+    waitForIdle()
+    mainClock.autoAdvance = false
+    val effect = factory.effects.single()
+
+    fun assertPreparedRadius(effect: RecordingGlassRuntimeEffect, radius: Dp) {
+      val prepared = checkNotNull(effect.delegate.preparedRender)
+      val radiusPx = with(density) { radius.toPx() }
+      assertThat(prepared.params.cornerRadii).isEqualTo(uniformRadii(radiusPx, prepared))
+    }
+
+    fun updatesInFrame(change: () -> Unit): Int {
+      effect.updateCalls = 0
+      change()
+      mainClock.advanceTimeByFrame()
+      return effect.updateCalls
+    }
+
+    val sizeOnly = updatesInFrame { side.value = 120.dp }
+    val styleOnly = updatesInFrame { radius.value = 16.dp }
+    assertPreparedRadius(effect, 16.dp)
+    val styleAndSize = updatesInFrame {
+      radius.value = 24.dp
+      side.value = 140.dp
+    }
+
+    assertThat(styleOnly).isEqualTo(1)
+    assertThat(styleAndSize).isEqualTo(sizeOnly + 1)
+    assertPreparedRadius(effect, 24.dp)
+  }
+
   /** Prepared radii are in the render's input-scaled coordinates. */
   private fun uniformRadii(radiusPx: Float, prepared: GlassPreparedRender): CornerRadii =
     CornerRadii(radiusPx, radiusPx, radiusPx, radiusPx) * prepared.params.coordinates.scaleFactor
@@ -940,6 +991,7 @@ private class RecordingGlassRuntimeEffect(
     get() = delegate.performanceModeForTest
 
   var calculateLayerBoundsCalls = 0
+  var updateCalls = 0
   var clearRetainedOutputCalls = 0
   var retainedDrawDecisions = 0
 
@@ -963,6 +1015,7 @@ private class RecordingGlassRuntimeEffect(
     style: GlassNodeConfiguration,
     sampling: HazeSampling,
   ) {
+    updateCalls++
     delegate.update(scope, style, sampling)
   }
 
