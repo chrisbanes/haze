@@ -197,6 +197,68 @@ appearance and frame timing on the actual screen under normal scheduling.
     remains in git history. This controlled sweep also fixed brightness, so differences
     between the experiments cannot be attributed to CPU affinity alone.
 
+<a id="blur-noise-tint"></a>
+
+## Blur noise and tint shader reuse
+
+On Android 13 and newer, Blur combines nonzero noise with one `SrcOver` color tint in a single
+runtime shader. Animating radius, tint, or noise creates a new effect for almost every frame.
+This comparison measured constructing that shader for each new effect, then compiling it once
+per process and reusing it for every effect.
+
+It used a Pixel 8a running Android 17 (full SDK 37.2) at 60 Hz, with fixed-performance mode
+enabled and normal CPU scheduling. Each workload animates one property for three seconds over
+a constant 240 × 180 dp source-backed area, split across one or three nodes.
+
+Values are the **arithmetic mean of two per-pass P90s**, not the P90 of pooled frames.
+Constructions and their elapsed time are per three-second measured window.
+
+| Workload | Constructions before → after | Construction time before (ms) | CPU P90 before → after (ms) | Overrun P90 before → after (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| Tint, 1 node | 127 → 0 | 51.1 | 5.11 → 5.29 | -7.46 → -7.70 |
+| Tint, 3 nodes | 381 → 0 | 99.4 | 5.71 → 4.75 | -6.22 → -7.07 |
+| Radius, 1 node | 180 → 0 | 70.1 | 5.53 → 5.01 | -7.78 → -8.31 |
+| Radius, 3 nodes | 540 → 0 | 134.2 | 6.61 → 5.75 | -7.03 → -7.77 |
+| Noise, 1 node | 180 → 0 | 77.6 | 6.66 → 6.26 | -6.56 → -7.00 |
+| Noise, 3 nodes | 540 → 0 | 132.5 | 5.97 → 5.38 | -6.01 → -6.30 |
+
+Reuse removed every warm construction. Before, each new effect constructed the shader on the
+main thread, taking roughly 0.25–0.45 ms each. A fresh process still constructs it once on
+first use. Stable styles constructed nothing in either build.
+
+CPU frame-duration changes are inconclusive. The two passes of one build differed by up to
+1.47 ms in CPU P90, more than any before/after difference in the table. Three-node rows also
+ran with different CPU placement in each build, in both run orders, so their P90 differences
+cannot be attributed to shader reuse alone. Neither build missed its deadline at P90 in these
+workloads.
+
+??? info "Measurement details"
+
+    The `benchmarkRelease` builds used commits `0f81d5f4` (before) and `92168671` (after) with
+    an identical benchmark APK; the Android build was `CP41.260831.007.A3`. The device was on
+    AC power at 90% charge. Every method started at thermal status 0, with the big CPU at most
+    34°C and the battery at most 28.5°C. Brightness was unchanged and not recorded.
+
+    Ten methods (the six rows above, stable one- and three-node controls, and one- and
+    three-node process-cold launches) ran eight measured iterations in four passes: before
+    then after, then after then before with method order reversed. This produced 320
+    iterations and 320 Perfetto traces. No completed iteration was discarded. The Google app
+    was temporarily disabled to prevent its Chromium trace producer from delaying collection.
+
+    Construction counts come from a `HazeRuntimeShader.construct` section nested in
+    `HazeBlur.combinedNoiseTint` in the sample process. Its duration measures CPU-side
+    construction, not backend or GPU shader compilation; GPU timings were not analyzed.
+
+    Without reuse, three-node main-thread and RenderThread time ran about 97% on the middle
+    CPU cluster. With reuse, more main-thread time ran on the little cluster and 22–30% of
+    RenderThread time ran on the big core. Main-thread running time still fell by 58–90 ms per
+    window for three nodes. Process-cold launches exceeded their deadline at P90 in both
+    builds; their mean CPU P90 differed by less than 1 ms, passes differed by up to 3.49 ms,
+    and the ranking varied between passes.
+
+    Raw JSON, benchmark messages, traces, frozen APKs, and per-method device readbacks are
+    retained locally under `internal/benchmark/build/benchmark-results/noise-tint.eO1A65/`.
+
 ## Representative workloads
 
 These Glass sample measurements cover paging, an animated timeline, and steady-state scenes

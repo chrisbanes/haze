@@ -9,6 +9,7 @@ see the [performance guide](../../docs/performance.md); published historical mea
 | Task | Start here |
 | --- | --- |
 | Compare Blur and Glass performance modes | [Calibration matrix](#calibration-matrix) |
+| Observe combined Blur noise/tint reconstruction | [Noise/tint construction](#noisetint-construction) |
 | Diagnose one controlled scenario or run Gallery journeys | [Run a profile](#run-a-profile) |
 | Compare source and native backdrop paths | [Android 37.2 comparisons](#android-372-sourcebackdrop-comparisons) |
 | Find artifacts and interpret metrics or traces | [Results](#results) |
@@ -122,6 +123,47 @@ count.
 The input levels are benchmark labels. Interpret their resolution using the Glass implementation
 under test and preserve its build identity with the result. The sweep does not establish a public
 minimum-resolution guarantee.
+
+## Noise/tint construction
+
+`BlurNoiseTintBenchmark` measures the Android combined noise-and-single-SrcOver-tint path.
+The sample picker and benchmark intents select the same `noise_tint_*` scenarios. All use a
+stationary checker source, Quality/full-resolution filtering, and a constant total visible area
+of 240 × 180 dp, split across one or three independently configured nodes.
+
+Run these methods individually: `stable1`, `stable3`, `tint1`, `tint3`, `radius1`, `radius3`,
+`noise1`, `noise3`, `cold1`, and `cold3`. Warm methods settle before starting a three-second
+draw/animation window; changing methods animate only their named property. Cold methods launch
+inside `measureBlock`, capturing first construction in a fresh process. They do not establish
+a cold GPU driver or disk cache. Direct profiling launches skip unrelated image prefetching.
+
+```shell
+./gradlew :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BlurNoiseTintBenchmark#tint3 \
+  -Pandroid.testInstrumentationRunnerArguments.haze.targetSha256="$noise_tint_target_sha256" \
+  -Pandroid.testInstrumentationRunnerArguments.haze.benchmarkSha256="$noise_tint_benchmark_sha256" \
+  --no-scan
+python3 internal/benchmark/archive_result.py \
+  --method 'dev.chrisbanes.haze.BlurNoiseTintBenchmark#tint3' \
+  --destination "$noise_tint_archive/baseline-forward/tint3"
+```
+
+Follow device preparation and cleanup above, and qualify every method with the dry-run argument
+below first. Save the XML from dry runs; they are automation checks, not measured results.
+Measured archives must retain eight traces per method before another invocation replaces outputs.
+Save frozen target/benchmark APKs and their SHA-256 hashes, source identities, run order, and
+before/after thermal and refresh readbacks alongside the archives. Compare baseline then candidate,
+and candidate then baseline, using the same APKs and device settings.
+The two `haze.*Sha256` arguments require the frozen hashes; the benchmark checks the installed APKs
+before measurement. Dry runs may omit these arguments.
+
+`HazeRuntimeShader.construct` surrounds actual native construction. Attribute it to the nested
+`HazeBlur.combinedNoiseTint` section and the target process; a factory call alone does not prove
+construction. `analyze_noise_tint.py` verifies these markers, measured windows, scheduler evidence,
+archive completeness, and frozen APK identities. The complete four-pass session is checked with
+`--session "$noise_tint_archive" --expect-shared`; `--pass baseline-forward` checks the baseline
+before reuse is implemented. Constructor duration is CPU-side native construction, not total
+backend/GPU compilation cost. Report CPU frame timing and scheduler placement separately.
 
 ## Validate automation
 

@@ -301,7 +301,7 @@ fun Samples(
   val coilPlatformContext = LocalPlatformContext.current
   val inspectionMode = LocalInspectionMode.current
   LaunchedEffect(coilPlatformContext, inspectionMode) {
-    if (!inspectionMode) {
+    if (!inspectionMode && initialSelection?.sample?.route?.endsWith("-profiling") != true) {
       // Preload the first 20 precanned image urls
       val imageLoader = SingletonImageLoader.get(coilPlatformContext)
       precannedImageUrls

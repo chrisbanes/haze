@@ -143,7 +143,7 @@ internal fun createRenderEffect(
 
 internal fun Float.hasVisibleNoise(): Boolean = this > 0f
 
-private fun RenderEffectParams.combinedNoiseTintColor(): Color? {
+internal fun RenderEffectParams.combinedNoiseTintColor(): Color? {
   if (!noiseFactor.hasVisibleNoise() || progressive != null || mask != null || progressiveMask != null) {
     return null
   }

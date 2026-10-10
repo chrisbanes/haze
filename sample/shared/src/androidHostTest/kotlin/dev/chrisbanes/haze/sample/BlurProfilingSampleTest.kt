@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -10,6 +11,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.compose.rememberNavController
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -25,6 +30,28 @@ import org.robolectric.annotation.Config
 @Config(qualifiers = "w393dp-h698dp-440dpi")
 class BlurProfilingSampleTest : ContextTest() {
   @Test
+  fun incomingDestination_keepsStartHiddenUntilNavigationCompletes() = runComposeUiTest {
+    val owner = object : LifecycleOwner {
+      val registry = LifecycleRegistry(this)
+      override val lifecycle: Lifecycle get() = registry
+    }
+    val state = BlurProfilingState().apply { select(BlurProfilingScenario.NoiseTintTint3) }
+    runOnUiThread { owner.registry.currentState = Lifecycle.State.STARTED }
+    setContent {
+      CompositionLocalProvider(LocalLifecycleOwner provides owner) {
+        BlurProfilingSampleContent(state, rememberNavController(), onBack = {})
+      }
+    }
+    mainClock.advanceTimeBy(1_000)
+    onNodeWithTag("blur_profiling_start").assertDoesNotExist()
+    runOnIdle { assertThat(state.phase).isEqualTo(BlurProfilingPhase.Settling) }
+    runOnUiThread { owner.registry.currentState = Lifecycle.State.RESUMED }
+    onNodeWithTag("blur_profiling_phase_ready").assertIsDisplayed()
+    onNodeWithTag("blur_profiling_start").performClick()
+    onNodeWithTag("blur_profiling_phase_complete").assertIsDisplayed()
+  }
+
+  @Test
   fun balancedScenario_exposesTheSettledStartProtocol() = runComposeUiTest {
     setContent {
       BlurProfilingSampleContent(
@@ -38,6 +65,23 @@ class BlurProfilingSampleTest : ContextTest() {
       .performScrollTo()
       .performClick()
     onNodeWithTag("blur_profiling_selected_stable_balanced").assertIsDisplayed()
+    onNodeWithTag("blur_profiling_phase_ready").assertIsDisplayed()
+    onNodeWithTag("blur_profiling_start").performClick()
+    onNodeWithTag("blur_profiling_phase_complete").assertIsDisplayed()
+  }
+
+  @Test
+  fun noiseTintThreeNodes_pickerRunsTheSettledProtocol() = runComposeUiTest {
+    setContent {
+      BlurProfilingSampleContent(
+        state = remember { BlurProfilingState() },
+        navController = rememberNavController(),
+        onBack = {},
+      )
+    }
+    onNodeWithTag("blur_profiling_select_noise_tint_tint_3").performScrollTo().performClick()
+    onNodeWithTag("blur_profiling_selected_noise_tint_tint_3").assertIsDisplayed()
+    repeat(3) { onNodeWithTag("noise_tint_node_$it").assertIsDisplayed() }
     onNodeWithTag("blur_profiling_phase_ready").assertIsDisplayed()
     onNodeWithTag("blur_profiling_start").performClick()
     onNodeWithTag("blur_profiling_phase_complete").assertIsDisplayed()

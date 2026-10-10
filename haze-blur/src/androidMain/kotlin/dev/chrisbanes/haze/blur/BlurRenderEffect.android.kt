@@ -29,7 +29,10 @@ import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.createBlendRenderEffect
+import dev.chrisbanes.haze.createRuntimeEffect
+import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.createShaderRenderEffect
+import dev.chrisbanes.haze.trace
 import kotlin.math.abs
 
 private var noiseTexture: Bitmap? = null
@@ -70,7 +73,7 @@ internal actual fun BlurVisualEffect.constrainInputScaleForBrushes(scale: Float)
   return if (hasCustomBrush) BLUR_FULL_RESOLUTION_SCALE else scale
 }
 
-private const val COMBINED_NOISE_TINT_SKSL = """
+internal const val COMBINED_NOISE_TINT_SKSL = """
   uniform shader content;
   uniform shader noise;
   uniform float noiseAlpha;
@@ -140,7 +143,7 @@ internal fun Context.getNoiseTexture(): Bitmap {
   }
 }
 
-private fun Context.createNoiseShader(scale: Float): BitmapShader {
+internal fun Context.createNoiseShader(scale: Float): BitmapShader {
   val normalizedScale = if (scale > 0f) scale else 1f
   return BitmapShader(getNoiseTexture(), REPEAT, REPEAT).apply {
     if (abs(normalizedScale - 1f) >= 0.001f) {
@@ -164,14 +167,23 @@ internal actual fun createCombinedNoiseTintRenderEffectOrNull(
 ): PlatformRenderEffect? {
   if (Build.VERSION.SDK_INT < 33) return null
 
-  val shader = RuntimeShader(COMBINED_NOISE_TINT_SKSL).apply {
-    setInputShader("noise", context.createNoiseShader(scale))
-    setFloatUniform("noiseAlpha", noiseFactor.coerceIn(0f, 1f))
-    setColorUniform("tintColor", tintColor.toArgb())
+  return trace("HazeBlur.combinedNoiseTint") {
+    // Animated styles miss the node effect cache every frame; compile this source once per process.
+    val postProcess = createRuntimeShaderRenderEffect(
+      effect = CombinedNoiseTintEffect,
+      shaderNames = arrayOf("content"),
+      inputs = arrayOf(null),
+    ) {
+      setChildShader("noise", context.createNoiseShader(scale))
+      setFloatUniform("noiseAlpha", noiseFactor.coerceIn(0f, 1f))
+      // Keep the packed sRGB tint that the per-effect RuntimeShader received.
+      setColorUniform("tintColor", Color(tintColor.toArgb()))
+    }
+    AndroidRenderEffect.createChainEffect(postProcess, input)
   }
-  val postProcess = AndroidRenderEffect.createRuntimeShaderEffect(shader, "content")
-  return AndroidRenderEffect.createChainEffect(postProcess, input)
 }
+
+private val CombinedNoiseTintEffect = createRuntimeEffect(COMBINED_NOISE_TINT_SKSL)
 
 @RequiresApi(31)
 internal actual fun createNoiseEffect(
