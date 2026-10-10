@@ -28,12 +28,14 @@ its own children. A member's own style still sets its shape, input and appearanc
   outside every cluster draw as separate surfaces.
 - A cluster merges at most four members, because shapes reach the shader as fixed-size uniform
   arrays. Beyond four, the extra members draw on their own without a bridge, in a deterministic
-  order.
-- Members can merge only when their input, performance mode and every resolved non-colour style
-  value are equal: optics, surface profile, specular and edge response, chromatic aberration,
-  tone, light position and alpha. `tint` and `backgroundColor` may differ. Each member keeps its
-  own colour, and the colours blend across the bridge. As a result, Regular and Clear surfaces
-  never merge.
+  order. Where an extra member overlaps the cluster, blur and tint apply twice in the overlap,
+  which is the visible cost of the cap.
+- Members can merge only when their input, performance mode and material values are equal:
+  optics, surface profile, specular and edge response, chromatic aberration, tone, light position
+  and alpha. Values that belong to each member are excluded from that comparison: `shape`,
+  `tint`, `backgroundColor` and interaction responses. Each member keeps its own shape, colours
+  and interaction response, and the colours blend across the bridge. As a result, Regular and
+  Clear surfaces never merge.
 - The container resolves one optical size: the largest shortest side among all its members. Every
   member evaluates its own optics at that size, whether or not it is in a cluster. When the size
   changes because a member was added, removed or resized, it changes immediately and is not
@@ -88,14 +90,19 @@ instead of the spring, so it doesn't overshoot. `reducedMotionPolicy` uses the e
 - **Optics depend on the container's members.** A small member next to a large one shows the large
   member's diffusion even when the two don't merge. Adding or removing the large member changes the
   small one's optics immediately.
-- **The renderer gains shader inputs and new uniform plumbing.** Clusters still use the shared stage
-  graph and the single Android renderer (ADR-0002, ADR-0003). The new shader inputs are the merged
-  field, per-member colours, interaction transforms and lights, which needs an array setter for
-  runtime-shader uniforms. Merged silhouettes must stay full resolution in reduced-quality modes,
+- **A cluster is one Glass surface for the renderer.** This narrows ADR-0003's ownership rule from
+  one node to one drawn surface. On Android API 33 and newer, each cluster owns one source capture
+  and one fused output, built as ADR-0003 describes. Skiko and environments without RuntimeShader
+  keep their existing adapters. An isolated member is a cluster of one. The container decides which
+  members share a surface, but renderer selection still doesn't depend on member or sibling count.
+- **The renderer gains shader inputs and new uniform plumbing.** The new shader inputs are the
+  merged field, per-member colours, interaction transforms and lights, which needs an array setter
+  for runtime-shader uniforms. Merged silhouettes must stay full resolution in reduced-quality modes,
   like single surfaces ([#1339](https://github.com/chrisbanes/haze/issues/1339)).
 - **The dome term is disabled for clusters.** It is defined only for a single rounded rectangle.
 - **The fallback renderer draws no bridge.** It renders each cluster as one surface clipped to the
-  hard union of the member shapes, so overlapping members never double their blur or tint.
+  hard union of the member shapes, so overlapping members of a cluster never double their blur or
+  tint. Members beyond the cap still draw separately.
 - **Merging costs extra GPU work.** On a Pixel 8a, two merged pills finished frames about 1.2–1.5 ms
   later at P50 and P90 than the same pills drawn independently, with a layer about three times the
   area. CPU frame time was within noise. These were single sessions, and CPU frame time does not
