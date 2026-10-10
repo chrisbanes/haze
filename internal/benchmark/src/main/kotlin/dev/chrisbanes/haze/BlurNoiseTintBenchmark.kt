@@ -12,6 +12,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.UiObject2
+import kotlin.time.Duration.Companion.seconds
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -66,8 +68,8 @@ class BlurNoiseTintBenchmark {
           startActivityAndWait { it.selectBenchmarkSample("blur-profiling", "blur", scenario) }
           device.waitForBlurProfilingScenario(scenario)
         } else {
-          device.runBlurProfilingScenario(scenario)
-          check(device.waitForObjectOrNull(By.res("blur_profiling_phase_complete")) != null) {
+          device.startNoiseTintRun()
+          check(device.waitForObjectOrNull(By.res("blur_profiling_phase_complete"), 8.seconds) != null) {
             "Noise/tint workload did not complete: " + device.findObjects(By.pkg(GLASS_TARGET_PACKAGE)).map {
               "${it.resourceName}:${it.text}:${it.visibleBounds}"
             }
@@ -75,6 +77,18 @@ class BlurNoiseTintBenchmark {
         }
       }
     }
+  }
+
+  // On the Pixel 8a a Start click shortly after launch was occasionally dropped, leaving the
+  // scenario Ready. Confirm that the run started rather than failing all eight iterations.
+  private fun UiDevice.startNoiseTintRun() {
+    var start: UiObject2? = waitForObject(By.res("blur_profiling_start"))
+    repeat(3) {
+      start?.click() ?: return
+      if (waitForObjectOrNull(By.res("blur_profiling_phase_running"), 1.seconds) != null) return
+      start = findObject(By.res("blur_profiling_start"))
+    }
+    error("Noise/tint workload did not start after three clicks")
   }
 
   private fun verifyFrozenApks() {
