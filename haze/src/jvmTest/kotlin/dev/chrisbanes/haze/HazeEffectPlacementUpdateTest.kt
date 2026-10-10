@@ -59,8 +59,8 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
     fixture.offsetPx = 20
     waitForIdle()
 
-    // Today's count on the #1437 base.
-    assertThat(fixture.renderer.updateCalls - updates).isEqualTo(2)
+    // onGloballyPositioned no longer repeats onPlaced's update for the same placement (#1437).
+    assertThat(fixture.renderer.updateCalls - updates).isEqualTo(1)
   }
 
   @Test
@@ -71,8 +71,8 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
     fixture.scale = 1.5f
     waitForIdle()
 
-    // Today's count on the #1437 base.
-    assertThat(fixture.renderer.updateCalls - updates).isEqualTo(2)
+    // onGloballyPositioned no longer repeats onPlaced's update for the same placement (#1437).
+    assertThat(fixture.renderer.updateCalls - updates).isEqualTo(1)
   }
 
   @Test
