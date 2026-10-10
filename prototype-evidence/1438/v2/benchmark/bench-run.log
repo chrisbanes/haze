@@ -1,0 +1,174 @@
+original rotation accel=1 user=0
+== before-prep 20:32:39
+Thermal Status: 0
+  level: 90
+  temperature: 271
+  Capacity level: 4
+null
+null
+renderFrameRate 60.0
+Failed to write while dumping service display: Broken pipe
+Google app respawned:        4 processes; disabling temporarily
+Package com.google.android.googlequicksearchbox new state: disabled-user
+GSA processes after check: 0
+== after-prep 20:32:50
+Thermal Status: 0
+  level: 90
+  temperature: 271
+  Capacity level: 4
+60
+60
+renderFrameRate 60.0
+Failed to write while dumping service display: Broken pipe
+== before dry mergePrototypeMerged 20:32:50
+Thermal Status: 0
+  level: 90
+  temperature: 270
+  Capacity level: 4
+60
+60
+renderFrameRate 60.0
+Failed to write while dumping service display: Broken pipe
+gradle exit=0 (dry mergePrototypeMerged)
+BUILD SUCCESSFUL in 1m 10s
+195 actionable tasks: 49 executed, 31 from cache, 115 up-to-date
+Configuration cache entry stored.
+testcase name="mergePrototypeMerged"
+== after dry mergePrototypeMerged 20:34:02
+Thermal Status: 0
+  level: 90
+  temperature: 270
+  Capacity level: 4
+60
+60
+renderFrameRate 60.0
+Failed to write while dumping service display: Broken pipe
+== before dry mergePrototypeIndependent 20:34:02
+Thermal Status: 0
+  level: 90
+  temperature: 270
+  Capacity level: 4
+60
+60
+renderFrameRate 60.0
+Failed to write while dumping service display: Broken pipe
+gradle exit=0 (dry mergePrototypeIndependent)
+BUILD SUCCESSFUL in 24s
+195 actionable tasks: 9 executed, 186 up-to-date
+Configuration cache entry stored.
+testcase name="mergePrototypeIndependent"
+== after dry mergePrototypeIndependent 20:34:27
+Thermal Status: 0
+  level: 90
+  temperature: 270
+  Capacity level: 4
+60
+60
+renderFrameRate 60.0
+Failed to write while dumping service display: Broken pipe
+== before fwd1 mergePrototypeMerged 20:34:27
+Thermal Status: 0
+  level: 90
+  temperature: 270
+  Capacity level: 4
+60
+60
+renderFrameRate 60.0
+Failed to write while dumping service display: Broken pipe
+gradle exit=0 (fwd1 mergePrototypeMerged)
+BUILD SUCCESSFUL in 1m 9s
+195 actionable tasks: 9 executed, 186 up-to-date
+Configuration cache entry stored.
+Verified dev.chrisbanes.haze.GlassProfilingBenchmark#mergePrototypeMerged: 8 iterations and traces at /private/tmp/claude-501/-Users-chris-dev-haze--claude-worktrees-mattpocock-skills-triage-1409-73ad72/7c7d5fc2-7e85-4714-9145-ce662af4a782/scratchpad/v2/bench/fwd1-mergePrototypeMerged
+== after fwd1 mergePrototypeMerged 20:35:37
+Thermal Status: 0
+  level: 90
+  temperature: 271
+  Capacity level: 4
+60
+60
+renderFrameRate 60.0
+Failed to write while dumping service display: Broken pipe
+== before fwd2 mergePrototypeIndependent 20:35:37
+Thermal Status: 0
+  level: 90
+  temperature: 271
+  Capacity level: 4
+60
+60
+renderFrameRate 60.0
+Failed to write while dumping service display: Broken pipe
+gradle exit=0 (fwd2 mergePrototypeIndependent)
+BUILD SUCCESSFUL in 1m 10s
+195 actionable tasks: 9 executed, 186 up-to-date
+Configuration cache entry stored.
+Verified dev.chrisbanes.haze.GlassProfilingBenchmark#mergePrototypeIndependent: 8 iterations and traces at /private/tmp/claude-501/-Users-chris-dev-haze--claude-worktrees-mattpocock-skills-triage-1409-73ad72/7c7d5fc2-7e85-4714-9145-ce662af4a782/scratchpad/v2/bench/fwd2-mergePrototypeIndependent
+== after fwd2 mergePrototypeIndependent 20:36:48
+Thermal Status: 0
+  level: 90
+  temperature: 275
+  Capacity level: 4
+60
+60
+renderFrameRate 60.0
+Failed to write while dumping service display: Broken pipe
+== before rev1 mergePrototypeIndependent 20:36:49
+Thermal Status: 0
+  level: 90
+  temperature: 275
+  Capacity level: 4
+60
+60
+renderFrameRate 60.0
+Failed to write while dumping service display: Broken pipe
+gradle exit=0 (rev1 mergePrototypeIndependent)
+BUILD SUCCESSFUL in 1m 6s
+191 actionable tasks: 9 executed, 182 up-to-date
+Configuration cache entry reused.
+Verified dev.chrisbanes.haze.GlassProfilingBenchmark#mergePrototypeIndependent: 8 iterations and traces at /private/tmp/claude-501/-Users-chris-dev-haze--claude-worktrees-mattpocock-skills-triage-1409-73ad72/7c7d5fc2-7e85-4714-9145-ce662af4a782/scratchpad/v2/bench/rev1-mergePrototypeIndependent
+== after rev1 mergePrototypeIndependent 20:37:56
+Thermal Status: 0
+  level: 90
+  temperature: 281
+  Capacity level: 4
+60
+60
+renderFrameRate 60.0
+Failed to write while dumping service display: Broken pipe
+== before rev2 mergePrototypeMerged 20:37:57
+Thermal Status: 0
+  level: 90
+  temperature: 281
+  Capacity level: 4
+60
+60
+renderFrameRate 60.0
+Failed to write while dumping service display: Broken pipe
+gradle exit=0 (rev2 mergePrototypeMerged)
+BUILD SUCCESSFUL in 1m 11s
+195 actionable tasks: 9 executed, 186 up-to-date
+Configuration cache entry stored.
+Verified dev.chrisbanes.haze.GlassProfilingBenchmark#mergePrototypeMerged: 8 iterations and traces at /private/tmp/claude-501/-Users-chris-dev-haze--claude-worktrees-mattpocock-skills-triage-1409-73ad72/7c7d5fc2-7e85-4714-9145-ce662af4a782/scratchpad/v2/bench/rev2-mergePrototypeMerged
+== after rev2 mergePrototypeMerged 20:39:09
+Thermal Status: 0
+  level: 90
+  temperature: 288
+  Capacity level: 4
+60
+60
+renderFrameRate 60.0
+Failed to write while dumping service display: Broken pipe
+ALL_DONE
+Deleted 1 rows
+Deleted 1 rows
+Package com.google.android.googlequicksearchbox new state: enabled
+== restored 20:39:10
+Thermal Status: 0
+  level: 90
+  temperature: 288
+  Capacity level: 4
+null
+null
+renderFrameRate 60.0
+Failed to write while dumping service display: Broken pipe
+gsa enabled packages: 2
