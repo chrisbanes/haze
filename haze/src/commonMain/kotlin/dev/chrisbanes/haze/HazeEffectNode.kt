@@ -758,7 +758,11 @@ internal class HazeEffectNode(
         HazeLogger.d(TAG, exception) { "Backdrop renderer draw failed" }
       }
       if (!backdropDrawn) {
-        activateBackdropFallback(failed = true)
+        if (layerSize.width > 0f && layerSize.height > 0f) {
+          activateBackdropFallback(failed = true)
+        } else {
+          HazeLogger.d(TAG) { "Backdrop layer is empty; retrying native rendering next frame" }
+        }
       }
       drawContentSafely()
       if (backdropDrawn) {

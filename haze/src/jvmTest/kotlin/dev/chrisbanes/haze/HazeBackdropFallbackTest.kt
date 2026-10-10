@@ -33,9 +33,11 @@ import org.jetbrains.skia.ImageFilter
 @OptIn(ExperimentalTestApi::class, ExperimentalHazeApi::class, InternalHazeApi::class)
 class HazeBackdropFallbackTest {
   @Test
-  fun healthyNativeBackdrop_doesNotDemandFallbackCapture() = runComposeUiTest {
+  fun emptyLayer_retriesNativeAfterGrowthWithoutFallbackCapture() = runComposeUiTest {
     val state = HazeState()
-    val nativeRenderer = TestBackdropRenderer()
+    val nativeRenderer = TestBackdropRenderer().apply { rejectEmptyBounds = true }
+    val effectRenderer = HealthyBackdropRenderer().apply { emptyBounds = true }
+    val height = mutableStateOf(50.dp)
     val previousFlag = HazeFeatureFlags.isPlatformBackdropEnabled
     HazeFeatureFlags.isPlatformBackdropEnabled = true
     try {
@@ -50,13 +52,13 @@ class HazeBackdropFallbackTest {
           )
           Box(
             Modifier
-              .fillMaxSize()
+              .size(width = 100.dp, height = height.value)
               .then(
                 FaultInjectedEffectElement(
                   input = HazeInput.Backdrop(state),
                   lifecycle = lifecycle,
                   createRenderer = { nativeRenderer },
-                  renderer = HealthyBackdropRenderer(),
+                  renderer = effectRenderer,
                 ),
               ),
           )
@@ -64,11 +66,20 @@ class HazeBackdropFallbackTest {
       }
       waitForIdle()
 
+      assertThat(nativeRenderer.emptyConfigureCalls).isGreaterThan(0)
+      assertThat(nativeRenderer.releaseCalls).isEqualTo(0)
+      assertThat(state.areas.single().captureConsumerCount).isEqualTo(0)
+
+      effectRenderer.emptyBounds = false
+      height.value = 100.dp
+      waitForIdle()
+
       val area = state.areas.single()
       assertThat(area.captureConsumerCount).isEqualTo(0)
       assertThat(area.contentVersion).isEqualTo(0L)
       assertThat(area.contentLayer).isNull()
       assertThat(nativeRenderer.drawCalls).isGreaterThan(0)
+      assertThat(nativeRenderer.releaseCalls).isEqualTo(0)
     } finally {
       HazeFeatureFlags.isPlatformBackdropEnabled = previousFlag
     }
@@ -375,6 +386,11 @@ private class ThrowingBackdropRenderer :
 private class HealthyBackdropRenderer :
   HazeEffectRenderer<Unit>,
   HazeEffectRendererBackdrop<Unit> {
+  var emptyBounds = false
+
+  override fun HazeEffectLayoutScope.calculateLayerBounds(style: Unit): androidx.compose.ui.geometry.Rect =
+    if (emptyBounds) androidx.compose.ui.geometry.Rect.Zero else modifierBounds
+
   override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
 
   override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit): HazeEffectBackdrop =
@@ -393,6 +409,8 @@ private class DecliningBackdropRenderer :
 }
 
 private class TestBackdropRenderer : HazeBackdropRenderer {
+  var rejectEmptyBounds = false
+  var emptyConfigureCalls = 0
   var drawCalls = 0
   var releaseCalls = 0
 
@@ -403,7 +421,13 @@ private class TestBackdropRenderer : HazeBackdropRenderer {
     clip: androidx.compose.ui.geometry.Rect?,
     effect: PlatformRenderEffect,
     alpha: Float,
-  ): Boolean = true
+  ): Boolean {
+    if (rejectEmptyBounds && (bounds.width <= 0f || bounds.height <= 0f)) {
+      emptyConfigureCalls++
+      return false
+    }
+    return true
+  }
 
   override fun draw(canvas: Canvas): Boolean {
     drawCalls++
