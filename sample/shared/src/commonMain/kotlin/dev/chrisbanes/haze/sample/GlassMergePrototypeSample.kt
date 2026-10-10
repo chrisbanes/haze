@@ -33,12 +33,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
@@ -67,11 +70,24 @@ import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import kotlin.math.abs
 import kotlin.math.ceil
+import kotlin.math.sqrt
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 private val PillSize = DpSize(140.dp, 64.dp)
 private val PillShape = RoundedCornerShape(32.dp)
+
+// Once joined, the bridge stretches until the gap is this multiple of the spacing, then breaks.
+private const val BREAK_STRETCH = 2f
+
+// Room around the container for pills that stretch while moving.
+private val StretchMargin = 24.dp
+
+private val JoinSpring = spring<Float>(dampingRatio = 0.4f, stiffness = 380f)
+private val WobbleSpring = spring<Float>(dampingRatio = 0.3f, stiffness = 260f)
+private val StretchSpring = spring(dampingRatio = 0.45f, stiffness = 320f, visibilityThreshold = Offset(0.001f, 0.001f))
 
 /**
  * Prototype only (#1438): two draggable pills that Glass merges into one surface, or draws as two
@@ -92,22 +108,65 @@ public fun GlassMergePrototypeSample(navController: NavHostController) {
   val offsetA = remember { mutableStateOf(DpOffset(24.dp, 160.dp)) }
   val offsetB = remember { Animatable(DpOffset(24.dp + PillSize.width + 16.dp, 160.dp), DpOffset.VectorConverter) }
 
+  // Water-droplet behaviour. The pills join when closer than the spacing, but once joined the
+  // bridge keeps stretching, thinning as it goes, until the gap is BREAK_STRETCH times the spacing.
+  var joined by remember { mutableStateOf(pillGap(offsetA.value, offsetB.value) < spacing.floatValue.dp) }
+  // Springs to 1 with overshoot as the pills join, so the bridge snaps out and settles.
+  val join = remember { Animatable(if (joined) 1f else 0f) }
+  // A damped stretch along the line between the pills, kicked when they join or break apart.
+  val wobble = remember { Animatable(0f) }
+  // Each pill stretches along its direction of travel, in proportion to its speed.
+  val stretchA = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
+  val stretchB = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
+
+  LaunchedEffect(Unit) {
+    snapshotFlow { pillGap(offsetA.value, offsetB.value) to spacing.floatValue.dp }
+      .collect { (gap, space) ->
+        val next = nextJoined(joined, gap, space)
+        if (next == joined) return@collect
+        joined = next
+        if (next) {
+          scope.launch { join.animateTo(1f, JoinSpring) }
+          scope.launch {
+            wobble.snapTo(-0.12f)
+            wobble.animateTo(0f, WobbleSpring)
+          }
+        } else {
+          // The neck has thinned to nothing, so dropping the join is invisible; the pills recoil.
+          join.snapTo(0f)
+          scope.launch {
+            wobble.snapTo(0.16f)
+            wobble.animateTo(0f, WobbleSpring)
+          }
+        }
+      }
+  }
+  PillStretchEffect(offset = { offsetA.value }, stretch = stretchA)
+  PillStretchEffect(offset = { offsetB.value }, stretch = stretchB)
+
+  // The spacing Glass merges with: the user's spacing, widened while joined so the neck thins
+  // steadily and reaches zero exactly at the break distance.
+  val mergeSpacing = { dropletSpacing(pillGap(offsetA.value, offsetB.value), spacing.floatValue.dp, join.value) }
+
   // Styles compare by identity, so remember the style once. Its block reads the offsets and the
   // spacing, so dragging or animating redraws the Glass surface without recomposing it.
   val mergedStyle = remember {
     GlassStyle.regular.then {
       val a = offsetA.value
       val b = offsetB.value
-      val bounds = mergedBounds(a, b, spacing.floatValue.dp)
+      val merge = mergeSpacing()
+      val bounds = mergedBounds(a, b, merge)
+      val origin = DpOffset(bounds.left, bounds.top)
+      val axis = Offset((b.x - a.x).value, (b.y - a.y).value)
       // The merge geometry is relative to the container, so subtract the container's origin
       // from the stage-relative pill positions.
       mergePrototype(
         GlassMergePrototype(
-          rectA = DpRect(DpOffset(a.x - bounds.left, a.y - bounds.top), PillSize),
+          rectA = dropletRect(a - origin, stretchA.value, wobble.value, axis),
           shapeA = PillShape,
-          rectB = DpRect(DpOffset(b.x - bounds.left, b.y - bounds.top), PillSize),
+          rectB = dropletRect(b - origin, stretchB.value, wobble.value, axis),
           shapeB = PillShape,
-          spacing = spacing.floatValue.dp,
+          spacing = merge,
         ),
       )
     }
@@ -166,7 +225,7 @@ public fun GlassMergePrototypeSample(navController: NavHostController) {
       Box(
         Modifier
           .layout { measurable, constraints ->
-            val bounds = mergedBounds(offsetA.value, offsetB.value, spacing.floatValue.dp)
+            val bounds = mergedBounds(offsetA.value, offsetB.value, mergeSpacing())
             val placeable = measurable.measure(
               Constraints.fixed(bounds.width.roundToPx(), bounds.height.roundToPx()),
             )
@@ -299,10 +358,73 @@ private fun MergePill(
   }
 }
 
-/** The union of both pills inflated by [spacing], so the bulge at the neck is never clipped. */
+/**
+ * The union of both pills inflated by [spacing] and room to stretch, so neither the bulge at the
+ * neck nor a stretched pill is clipped.
+ */
 private fun mergedBounds(a: DpOffset, b: DpOffset, spacing: Dp) = DpRect(
-  left = minOf(a.x, b.x) - spacing,
-  top = minOf(a.y, b.y) - spacing,
-  right = maxOf(a.x, b.x) + PillSize.width + spacing,
-  bottom = maxOf(a.y, b.y) + PillSize.height + spacing,
+  left = minOf(a.x, b.x) - spacing - StretchMargin,
+  top = minOf(a.y, b.y) - spacing - StretchMargin,
+  right = maxOf(a.x, b.x) + PillSize.width + spacing + StretchMargin,
+  bottom = maxOf(a.y, b.y) + PillSize.height + spacing + StretchMargin,
 )
+
+/** The gap between two pills: positive while apart, negative as deep as they overlap. */
+internal fun pillGap(a: DpOffset, b: DpOffset): Dp = maxOf(
+  maxOf(a.x - (b.x + PillSize.width), b.x - (a.x + PillSize.width)),
+  maxOf(a.y - (b.y + PillSize.height), b.y - (a.y + PillSize.height)),
+)
+
+/** Joins below [spacing]; once joined, stays joined until the gap passes [BREAK_STRETCH] × [spacing]. */
+internal fun nextJoined(joined: Boolean, gap: Dp, spacing: Dp): Boolean =
+  if (joined) gap <= spacing * BREAK_STRETCH else gap < spacing
+
+/**
+ * Glass bridges members closer than its spacing, so while joined ([join] = 1) widen it by half the
+ * gap: the neck stays connected but thins, closing exactly at a gap of twice [spacing].
+ */
+internal fun dropletSpacing(gap: Dp, spacing: Dp, join: Float): Dp =
+  spacing + gap.coerceAtLeast(0.dp) * ((BREAK_STRETCH - 1f) / BREAK_STRETCH) * join
+
+/**
+ * A pill's rect at [offset], stretched by [stretch] along each axis (keeping its area) and by
+ * [wobble] along the line between the pills, [axis].
+ */
+private fun dropletRect(offset: DpOffset, stretch: Offset, wobble: Float, axis: Offset): DpRect {
+  var scaleX = sqrt((1f + stretch.x) / (1f + stretch.y))
+  var scaleY = 1f / scaleX
+  val wobbleScale = 1f + wobble
+  if (abs(axis.x) >= abs(axis.y)) {
+    scaleX *= wobbleScale
+    scaleY /= wobbleScale
+  } else {
+    scaleX /= wobbleScale
+    scaleY *= wobbleScale
+  }
+  val size = DpSize(PillSize.width * scaleX, PillSize.height * scaleY)
+  val center = DpOffset(offset.x + PillSize.width / 2, offset.y + PillSize.height / 2)
+  return DpRect(DpOffset(center.x - size.width / 2, center.y - size.height / 2), size)
+}
+
+/** Drives [stretch] from the speed of [offset], then lets it spring back once the pill stops. */
+@Composable
+private fun PillStretchEffect(offset: () -> DpOffset, stretch: Animatable<Offset, *>) {
+  LaunchedEffect(stretch) {
+    var last = offset()
+    var lastNanos = withFrameNanos { it }
+    snapshotFlow(offset).collectLatest { current ->
+      val nanos = withFrameNanos { it }
+      val seconds = ((nanos - lastNanos) / 1_000_000_000f).coerceAtLeast(0.001f)
+      val velocity = Offset(((current.x - last.x) / seconds).value, ((current.y - last.y) / seconds).value)
+      last = current
+      lastNanos = nanos
+      // Up to 18% longer along each axis at 1500 dp/s and above.
+      val target = Offset(
+        (abs(velocity.x) / 1500f).coerceAtMost(1f) * 0.18f,
+        (abs(velocity.y) / 1500f).coerceAtMost(1f) * 0.18f,
+      )
+      stretch.animateTo(target, StretchSpring)
+      stretch.animateTo(Offset.Zero, StretchSpring)
+    }
+  }
+}
