@@ -17,6 +17,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.graphics.RenderEffect as ComposeRenderEffect
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.graphicsLayer
@@ -34,12 +35,17 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
+import dev.chrisbanes.haze.Poko
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import org.junit.Rule
 import org.junit.Test
 
-/** Hardware-canvas parity and snapshot isolation for the shared combined noise/tint shader. */
+/**
+ * Hardware-canvas parity and snapshot isolation for the shared combined noise/tint shader.
+ *
+ * Member signatures use Compose's RenderEffect so the class still loads before API 31.
+ */
 class CombinedNoiseTintRenderEffectInstrumentationTest {
   @get:Rule
   val rule = createAndroidComposeRule<ComponentActivity>()
@@ -81,18 +87,19 @@ class CombinedNoiseTintRenderEffectInstrumentationTest {
   }
 
   @Test
-  @SdkSuppress(maxSdkVersion = 32)
+  // RenderEffect itself needs API 31.
+  @SdkSuppress(minSdkVersion = 31, maxSdkVersion = 32)
   fun combinedEffect_isUnavailableBeforeApi33() {
     val input = RenderEffect.createOffsetEffect(0f, 0f)
     assertThat(createCombinedNoiseTintRenderEffectOrNull(rule.activity, input, 0.5f, Color.Red, 1f)).isNull()
   }
 
-  private fun candidate(case: Case): RenderEffect = checkNotNull(
+  private fun candidate(case: Case): ComposeRenderEffect = checkNotNull(
     createCombinedNoiseTintRenderEffectOrNull(rule.activity, RenderEffect.createOffsetEffect(0f, 0f), case.noise, case.tint, case.scale),
-  )
+  ).asComposeRenderEffect()
 
   /** The pre-reuse construction: a fresh RuntimeShader per effect. */
-  private fun reference(case: Case): RenderEffect {
+  private fun reference(case: Case): ComposeRenderEffect {
     val shader = RuntimeShader(COMBINED_NOISE_TINT_SKSL).apply {
       setInputShader("noise", rule.activity.createNoiseShader(case.scale))
       setFloatUniform("noiseAlpha", case.noise.coerceIn(0f, 1f))
@@ -101,10 +108,10 @@ class CombinedNoiseTintRenderEffectInstrumentationTest {
     return RenderEffect.createChainEffect(
       RenderEffect.createRuntimeShaderEffect(shader, "content"),
       RenderEffect.createOffsetEffect(0f, 0f),
-    )
+    ).asComposeRenderEffect()
   }
 
-  private fun render(boxes: List<Pair<RenderEffect?, Case>>): PixelMap {
+  private fun render(boxes: List<Pair<ComposeRenderEffect?, Case>>): PixelMap {
     rule.setContent {
       Column(Modifier.background(Color.White).testTag(ROOT)) {
         boxes.chunked(COLUMNS).forEachIndexed { row, rowBoxes ->
@@ -113,7 +120,7 @@ class CombinedNoiseTintRenderEffectInstrumentationTest {
               Box(
                 Modifier.size(32.dp).testTag("effect${row * COLUMNS + column}").graphicsLayer {
                   clip = true
-                  renderEffect = effect?.asComposeRenderEffect()
+                  renderEffect = effect
                 }.drawBehind {
                   assertThat(drawContext.canvas.nativeCanvas.isHardwareAccelerated, "hardware canvas").isTrue()
                   hardwareDraws++
@@ -153,7 +160,8 @@ class CombinedNoiseTintRenderEffectInstrumentationTest {
       maxOf(abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
     }
 
-  private data class Case(val tint: Color, val noise: Float, val scale: Float, val translucent: Boolean = false)
+  @Poko
+  private class Case(val tint: Color, val noise: Float, val scale: Float, val translucent: Boolean = false)
 
   private companion object {
     const val ROOT = "combined_noise_tint_root"

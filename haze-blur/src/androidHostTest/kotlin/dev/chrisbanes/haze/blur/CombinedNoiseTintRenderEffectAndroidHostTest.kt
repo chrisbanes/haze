@@ -34,6 +34,7 @@ import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -199,7 +200,8 @@ class CombinedNoiseTintRenderEffectAndroidHostTest : ScreenshotTest() {
       maxOf(abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
     }
 
-  data class Case(val tint: Color, val noise: Float, val scale: Float, val translucent: Boolean = false)
+  @Poko
+  private class Case(val tint: Color, val noise: Float, val scale: Float, val translucent: Boolean = false)
 
   private companion object {
     const val TOLERANCE = 2f / 255
