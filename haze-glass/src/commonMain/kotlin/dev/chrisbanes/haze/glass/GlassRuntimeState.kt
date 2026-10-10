@@ -38,9 +38,10 @@ internal abstract class GlassRuntimeState {
   internal var nextInteractionRevision: Long = 0L
 
   // A Style contains only declarations. Each attached effect owns these evaluated slots.
-  private var styleHoveredSlot: GlassInteractionSlot? by mutableStateOf(null)
-  private var styleFocusedSlot: GlassInteractionSlot? by mutableStateOf(null)
-  private var stylePressedSlot: GlassInteractionSlot? by mutableStateOf(null)
+  // Deliberately not snapshot state: they are written inside the observed update() that reads them.
+  private var styleHoveredSlot: GlassInteractionSlot? = null
+  private var styleFocusedSlot: GlassInteractionSlot? = null
+  private var stylePressedSlot: GlassInteractionSlot? = null
 
   private var interactionSlotsSnapshot: GlassInteractionSlots = GlassInteractionSlots()
   private var currentInteractionTopology = interactionSlotsSnapshot.resolveInteractionTopology()
