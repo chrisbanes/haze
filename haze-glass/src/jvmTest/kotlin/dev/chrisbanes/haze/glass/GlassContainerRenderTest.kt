@@ -46,10 +46,10 @@ import kotlin.math.abs
 import kotlin.test.Test
 import kotlinx.coroutines.runBlocking
 
-internal fun containerTestStyle(tint: Color, alpha: Float = 1f): GlassStyle = GlassStyle {
+internal fun containerTestStyle(tint: Color, alpha: Float = 1f, background: Color = Color.Transparent): GlassStyle = GlassStyle {
   optics(GlassOptics(refractionStrength = 0f, refractionDisplacement = 0.dp, refractionDetailIntensity = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp)))
   tint(tint)
-  backgroundColor(Color.Transparent)
+  backgroundColor(background)
   shape(RoundedCornerShape(0.dp))
   edgeSoftness(0.dp)
   edgeShadow(Color.Transparent)
@@ -301,6 +301,40 @@ class GlassContainerRenderTest : ContextTest() {
   }
 
   @Test
+  fun unavailableRuntime_overlappingBackgroundsDrawBackgroundAndInputOnce() = runComposeUiTest {
+    val background = Color.Green.copy(alpha = 0.5f)
+    pair(
+      gap = -40,
+      firstTint = Color.Transparent,
+      secondTint = Color.Transparent,
+      unavailable = true,
+      firstBackground = background,
+      secondBackground = background,
+      source = Color.Red.copy(alpha = 0.5f),
+    )
+    val pixels = onNodeWithTag("root").captureToImage().toPixelMap()
+    assertThat(pixels[120, 100]).isCloseTo(pixels[70, 100], tolerance = 1f / 255f)
+    assertThat(pixels[180, 100]).isCloseTo(pixels[70, 100], tolerance = 1f / 255f)
+    // The background and input visibly change the member against the translucent source.
+    assertThat(pixels[70, 100].blue).isLessThan(pixels[300, 100].blue - 0.1f)
+  }
+
+  @Test
+  fun unavailableRuntime_inputStaysOutOfMembersWithoutBackground() = runComposeUiTest {
+    pair(
+      gap = -40,
+      firstTint = Color.Transparent,
+      secondTint = Color.Transparent,
+      unavailable = true,
+      firstBackground = Color.Green.copy(alpha = 0.5f),
+      source = Color.Red.copy(alpha = 0.5f),
+    )
+    val pixels = onNodeWithTag("root").captureToImage().toPixelMap()
+    assertThat(pixels[120, 100]).isCloseTo(pixels[70, 100], tolerance = 1f / 255f)
+    assertThat(pixels[180, 100]).isCloseTo(pixels[300, 100], tolerance = 1f / 255f)
+  }
+
+  @Test
   fun unavailableRuntime_curvedOverlapHasNoSeam() = runComposeUiTest {
     val effects = List(2) { GlassRuntimeEffect() }
     effects.forEach { effect ->
@@ -381,6 +415,9 @@ class GlassContainerRenderTest : ContextTest() {
     alpha: Float = 1f,
     unavailable: Boolean = false,
     extraStyle: GlassStyle = GlassStyle { },
+    firstBackground: Color = Color.Transparent,
+    secondBackground: Color = Color.Transparent,
+    source: Color = Color.White,
   ): PairFixture {
     val first = GlassRuntimeEffect()
     val second = GlassRuntimeEffect()
@@ -392,12 +429,12 @@ class GlassContainerRenderTest : ContextTest() {
     val state = HazeState()
     setContent {
       Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
-        Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(source))
         Box(Modifier.size(360.dp, 240.dp).then(if (enabled.value) Modifier.hazeGlassContainer(40.dp) else Modifier)) {
-          Box(Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { first }, HazeInput.Sources(state), containerTestStyle(firstTint, alpha).then(extraStyle), performance, true, null)) {
+          Box(Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { first }, HazeInput.Sources(state), containerTestStyle(firstTint, alpha, firstBackground).then(extraStyle), performance, true, null)) {
             Box(Modifier.size(10.dp).background(Color.Green))
           }
-          Box(Modifier.offset((140 + gapState.value).dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { second }, HazeInput.Sources(state), containerTestStyle(secondTint, alpha).then(extraStyle), performance, true, null))
+          Box(Modifier.offset((140 + gapState.value).dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { second }, HazeInput.Sources(state), containerTestStyle(secondTint, alpha, secondBackground).then(extraStyle), performance, true, null))
         }
       }
     }

@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
@@ -16,9 +17,12 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import assertk.Assert
 import assertk.assertThat
+import assertk.assertions.containsExactly
+import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
+import assertk.assertions.isNull
 import assertk.assertions.prop
 import kotlin.test.Test
 
@@ -89,10 +93,47 @@ class FallbackGlassUnionPathTest {
     assertThat(pixels, 150, 60).isEmpty()
   }
 
+  @Test
+  fun drawMergedColours_unionWithinBudget_boundsLayerToUnion() {
+    val paths = FallbackMergedPaths(field(member(Rect(20.5f, 20f, 120f, 100f)), member(Rect(90f, 40f, 190f, 120.5f))))
+    val layers = mutableListOf<Rect>()
+    val pixels = drawColours(paths, layers)
+    assertThat(layers).containsExactly(Rect(20f, 20f, 190f, 121f))
+    // The first member's colour applies once in the overlap.
+    assertThat(pixels[105, 70]).isEqualTo(pixels[60, 60])
+  }
+
+  @Test
+  fun drawMergedColours_unionOverBudget_drawsWithoutLayer() {
+    val wide = MAX_GLASS_LAYER_DIMENSION_PX + 100f
+    val paths = FallbackMergedPaths(field(member(Rect(20f, 20f, 120f, 100f)), member(Rect(110f, 20f, wide, 100f))))
+    val layers = mutableListOf<Rect>()
+    val pixels = drawColours(paths, layers)
+    assertThat(paths.layerBounds).isNull()
+    assertThat(layers).isEmpty()
+    assertThat(pixels, 60, 60).isGreaterThan(0.4f)
+    assertThat(pixels, 200, 60).isGreaterThan(0.4f)
+  }
+
+  private fun drawColours(paths: FallbackMergedPaths, layers: MutableList<Rect>): PixelMap {
+    val image = ImageBitmap(240, 160)
+    val delegate = Canvas(image)
+    val canvas = object : Canvas by delegate {
+      override fun saveLayer(bounds: Rect, paint: Paint) {
+        layers += bounds
+        delegate.saveLayer(bounds, paint)
+      }
+    }
+    CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, canvas, Size(240f, 160f)) {
+      drawMergedColours(paths, alphaMultiplier = 1f) { it.tint }
+    }
+    return image.toPixelMap()
+  }
+
   private fun member(rect: Rect, radius: Float = 0f) = GlassMergedMember(
     rect = rect,
     cornerRadii = CornerRadii(radius, radius, radius, radius),
-    tint = Color.Blue,
+    tint = Color.Blue.copy(alpha = 0.5f),
     backgroundColor = Color.Transparent,
   )
 
