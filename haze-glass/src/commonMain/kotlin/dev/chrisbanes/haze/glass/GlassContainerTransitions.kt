@@ -93,11 +93,12 @@ internal fun resolveGlassBorrowedAnchor(member: GlassMemberSnapshot, ordered: Li
   .minByOrNull { glassMemberGap(member.layoutRect, it.layoutRect) }
 
 /**
- * Whether this member's input draws [departing]'s sources. Content inputs are distinct areas by
- * design, as for merged members, so only source-backed selections must match.
+ * Whether this member's input draws [other]'s sources, so one surface can draw both. Content
+ * inputs are distinct areas by design, as for merged members, so only source-backed selections
+ * must match.
  */
-internal fun GlassMemberSnapshot.drawsSourcesOf(departing: GlassMemberSnapshot): Boolean =
-  departing.key.input is HazeInput.Content || sourceSelection == departing.sourceSelection
+internal fun GlassMemberSnapshot.drawsSourcesOf(other: GlassMemberSnapshot): Boolean =
+  other.key.input is HazeInput.Content || sourceSelection == other.sourceSelection
 
 /** A member's glass appearing: grows out of [neighbour], or fades in when it is null. */
 internal class GlassMemberAttach(val neighbour: GlassMemberNode?) {

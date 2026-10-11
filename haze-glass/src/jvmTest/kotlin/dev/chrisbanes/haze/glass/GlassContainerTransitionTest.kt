@@ -262,6 +262,41 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun neighbourResolvingOtherSources_isNotGrownFrom() = runComposeUiTest {
+    // As above, B resolves only the root source while A also resolves the zIndex 1 source.
+    val a = GlassRuntimeEffect()
+    val b = GlassRuntimeEffect()
+    val present = mutableStateOf(false)
+    val state = HazeState()
+    val input = HazeInput.Sources(state)
+    setContent {
+      Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp, tween(300, easing = LinearEasing), GlassReducedMotionPolicy.Full)) {
+          Box(Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { a }, input, containerTestStyle(Color.Red), HazePerformanceMode.Quality, true, null))
+          Box(Modifier.offset(150.dp, 60.dp).size(100.dp, 80.dp).hazeSource(state, zIndex = 1f)) {
+            if (present.value) {
+              Box(Modifier.size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { b }, input, containerTestStyle(Color.Blue), HazePerformanceMode.Quality, true, null))
+            }
+          }
+        }
+      }
+    }
+    waitForIdle()
+    mainClock.autoAdvance = false
+    runOnIdle { present.value = true }
+    mainClock.advanceTimeBy(16)
+    waitForIdle()
+    val owner = checkNotNull(a.memberBindingForTest?.node?.container)
+    val bSnapshot = owner.model.surfaces.flatMap { it.members }.single { it.identity === b.memberBindingForTest?.node }
+    // B cannot grow out of A's sources, so it materializes in place.
+    assertThat(bSnapshot.rect).isCloseTo(Rect(150f, 60f, 250f, 140f))
+    assertThat(b.transitionAlpha).isLessThan(0.1f)
+    mainClock.advanceTimeBy(320)
+    waitForIdle()
+  }
+
+  @Test
   fun materialize_attach_fadesInPlace() = runComposeUiTest {
     val fixture = fixture(gap = 100, present = false, transition = GlassMemberTransition.Materialize)
     fixture.toggle()
