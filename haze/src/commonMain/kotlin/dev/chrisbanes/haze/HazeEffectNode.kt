@@ -18,7 +18,9 @@ import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -41,6 +43,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
 import androidx.lifecycle.Lifecycle
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -138,6 +142,9 @@ internal class HazeEffectNode(
   private var inputCaptureGeneration = 0L
   private var isDrawing = false
   private var lastKnownCoordinates: LayoutCoordinates? = null
+  internal val surface = HazeEffectSurface(this)
+  private var preparedSurfaceBackdrop: HazeEffectBackdrop? = null
+  private var surfaceBudgetFallback = false
 
   // False means a source read refresh is pending: the last observed updateEffect did not finish.
   private var observedUpdateCompleted = false
@@ -444,6 +451,7 @@ internal class HazeEffectNode(
   }
 
   override fun onDetach() {
+    surface.release()
     unregisterSourceDemand()
     stopSourceSelectionSnapshotObserver()
     trimMemoryCallbackDisposable?.dispose()
@@ -565,6 +573,7 @@ internal class HazeEffectNode(
     // Initial observed updates can exit before the effect has coordinates and drop source reads.
     // Refresh those reads even when this placement leaves the effect's own transform unchanged.
     update()
+    surface.changed()
     if (fromPlacement) {
       if (observedUpdateCompleted) recordPlacedAreas() else clearPlacementRecord()
     }
@@ -636,6 +645,21 @@ internal class HazeEffectNode(
   }
 
   override fun ContentDrawScope.draw() {
+    if (surface.owner != null) {
+      if (layerBoundsRefreshPending) refreshObservedReads()
+      isDrawing = true
+      try {
+        if (explicitInput === HazeInput.Content && size.minDimension > 0f) {
+          recordSurfaceContent()
+          withVisualEffectTransform { contentDrawArea.contentLayer?.let { drawLayer(it) } }
+        } else {
+          withVisualEffectTransform { drawContentSafely() }
+        }
+      } finally {
+        isDrawing = false
+      }
+      return
+    }
     try {
       HazeLogger.d(TAG) { "-> start draw()" }
 
@@ -706,22 +730,8 @@ internal class HazeEffectNode(
   }
 
   private fun ContentDrawScope.drawContentEffect() {
-    val contentLayer = contentDrawArea.contentLayer
-      ?.takeUnless { it.isReleased }
-      ?: requireGraphicsContext().createGraphicsLayer().also {
-        contentDrawArea.contentLayer = it
-        HazeLogger.d(TAG) { "Updated contentLayer in content HazeArea" }
-      }
-    contentLayer.record(size.toIntSize()) {
-      this@drawContentEffect.drawContentSafely()
-    }
-    val effectOnlyDraw = needsVisualEffectInvalidation &&
-      !needsPreDrawInvalidation &&
-      !needsDirtyFieldsInvalidation &&
-      !needsContentInvalidation
-    if (!effectOnlyDraw) {
-      contentDrawArea.contentVersion++
-    }
+    recordSurfaceContent()
+    val contentLayer = checkNotNull(contentDrawArea.contentLayer)
     prepareEffectDraw()
     withVisualEffectTransform {
       if (shouldDrawContentBehindEffect()) {
@@ -729,6 +739,25 @@ internal class HazeEffectNode(
       }
       drawEffect()
       drawEffectForeground()
+    }
+  }
+
+  private fun ContentDrawScope.recordSurfaceContent() {
+    val contentLayer = contentDrawArea.contentLayer
+      ?.takeUnless { it.isReleased }
+      ?: requireGraphicsContext().createGraphicsLayer().also {
+        contentDrawArea.contentLayer = it
+        HazeLogger.d(TAG) { "Updated contentLayer in content HazeArea" }
+      }
+    contentLayer.record(size.toIntSize()) {
+      this@recordSurfaceContent.drawContentSafely()
+    }
+    val effectOnlyDraw = needsVisualEffectInvalidation &&
+      !needsPreDrawInvalidation &&
+      !needsDirtyFieldsInvalidation &&
+      !needsContentInvalidation
+    if (!effectOnlyDraw) {
+      contentDrawArea.contentVersion++
     }
   }
 
@@ -783,7 +812,7 @@ internal class HazeEffectNode(
 
     val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
     val backdrop = try {
-      with(capability) { scope.backdropEffect(typedEffectStyle) }
+      preparedSurfaceBackdrop ?: with(capability) { scope.backdropEffect(typedEffectStyle) }
     } catch (exception: Exception) {
       HazeLogger.d(TAG, exception) { "Backdrop effect preparation failed" }
       activateBackdropFallback(failed = true)
@@ -1180,6 +1209,7 @@ internal class HazeEffectNode(
   }
 
   internal fun invalidateVisualEffectDraw() {
+    surface.changed()
     when {
       isDrawing && !needsNextFrameVisualEffectInvalidation -> {
         needsNextFrameVisualEffectInvalidation = true
@@ -1192,6 +1222,7 @@ internal class HazeEffectNode(
   }
 
   internal fun onForegroundContentDraw() {
+    surface.changed()
     if (!needsContentInvalidation) {
       needsContentInvalidation = true
       if (!isDrawing) {
@@ -1458,6 +1489,148 @@ internal class HazeEffectNode(
       .takeIf { it.isNotEmpty() }
       ?.let { HazeEffectInputSnapshotImpl(it, inputCaptureGeneration) }
       .also { lastInputSnapshot = it }
+  }
+
+  internal fun surfaceBounds(owner: LayoutCoordinates?): Rect? {
+    val member = lastKnownCoordinates ?: return null
+    if (!isAttached || !member.isAttached || owner?.isAttached != true || size.minDimension <= 0f) return null
+    return owner.localBoundingBoxOf(member, clipBounds = false)
+  }
+
+  private fun surfaceTransform(owner: LayoutCoordinates?): Matrix? {
+    if (surfaceBounds(owner) == null) return null
+    return Matrix().also { checkNotNull(owner).transformFrom(checkNotNull(lastKnownCoordinates), it) }
+  }
+
+  private fun <T> withSurfaceScope(scope: DrawScope, owner: LayoutCoordinates?, block: ContentDrawScope.() -> T): T? {
+    val matrix = surfaceTransform(owner) ?: return null
+    var result: T? = null
+    scope.withTransform({ transform(matrix) }) {
+      val previousSize = drawContext.size
+      drawContext.size = this@HazeEffectNode.size
+      try {
+        val relocated = object : ContentDrawScope, DrawScope by this {
+          override fun drawContent() = Unit
+        }
+        result = relocated.block()
+      } finally {
+        drawContext.size = previousSize
+      }
+    }
+    return result
+  }
+
+  internal fun surfaceFootprint(scope: DrawScope, owner: LayoutCoordinates?): HazeSurfaceFootprint? {
+    val matrix = surfaceTransform(owner) ?: return null
+    if (layerBoundsRefreshPending) refreshObservedReads()
+    if (!layerSize.isSpecified || layerSize.minDimension <= 0f) return null
+    val interaction = (typedEffectRenderer as? HazeEffectRendererInteraction)?.currentContentTransform()
+      ?: HazeEffectContentTransform.Identity
+    // The Android adapter floors/ceils these bounds before native sampling and output.
+    val layer = Rect(floor(-layerOffset.x), floor(-layerOffset.y), ceil(layerSize.width - layerOffset.x), ceil(layerSize.height - layerOffset.y))
+    var material = layer
+    // A temporary composition-budget rejection can recover without detaching the member.
+    // Real native setup/draw failures keep the existing attachment-sticky fallback policy.
+    var native = explicitInput is HazeInput.Backdrop && (!backdropBackendState.usesFallback || surfaceBudgetFallback)
+    if (native) {
+      try {
+        val renderer = backdropRenderer ?: createBackdropRenderer()?.also { backdropRenderer = it }
+        if (renderer?.isSupported(scope.drawContext.canvas) != true || typedEffectRenderer !is HazeEffectRendererBackdrop<*>) {
+          surfaceBudgetFallback = false
+          activateBackdropFallback(failed = false)
+          native = false
+        }
+      } catch (exception: Exception) {
+        surfaceBudgetFallback = false
+        HazeLogger.d(TAG, exception) { "Relocated backdrop support check failed" }
+        activateBackdropFallback(failed = true)
+        native = false
+      }
+    }
+    if (native) {
+      preparedSurfaceBackdrop = try {
+        withSurfaceScope(scope, owner) {
+          val capability = typedEffectRenderer as? HazeEffectRendererBackdrop<Any?>
+          capability?.let { with(it) { HazeEffectDrawScopeImpl(this@withSurfaceScope, this@HazeEffectNode, typedEffectSampling).backdropEffect(typedEffectStyle) } }
+        }
+      } catch (exception: Exception) {
+        surfaceBudgetFallback = false
+        HazeLogger.d(TAG, exception) { "Relocated backdrop preparation failed" }
+        activateBackdropFallback(failed = true)
+        native = false
+        null
+      }
+      preparedSurfaceBackdrop?.let { material = material.transformedBy(it.materialTransform) }
+    }
+    val output = matrix.map(layer.transformedBy(interaction))
+    val capture = if (native) {
+      // HWUI snapshots the transformed node subset with roundOut(), then filters only that image.
+      // Convert that pixel-rounded root footprint back to owner coordinates, including affine scale.
+      val inRoot = checkNotNull(lastKnownCoordinates).transformToRoot().map(material.transformedBy(interaction))
+      val rounded = Rect(floor(inRoot.left), floor(inRoot.top), ceil(inRoot.right), ceil(inRoot.bottom))
+      checkNotNull(owner).transformToRoot().also { it.invert() }.map(rounded)
+    } else {
+      null
+    }
+    return HazeSurfaceFootprint(
+      output = if (capture != null) Rect(minOf(output.left, capture.left), minOf(output.top, capture.top), maxOf(output.right, capture.right), maxOf(output.bottom, capture.bottom)) else output,
+      nativeCapture = capture,
+    )
+  }
+
+  private fun Rect.transformedBy(transform: HazeEffectContentTransform): Rect = Rect(
+    transform.pivot.x + (left - transform.pivot.x) * transform.scaleX,
+    transform.pivot.y + (top - transform.pivot.y) * transform.scaleY,
+    transform.pivot.x + (right - transform.pivot.x) * transform.scaleX,
+    transform.pivot.y + (bottom - transform.pivot.y) * transform.scaleY,
+  )
+
+  internal fun usePortableSurfaceInput(failed: Boolean = false) {
+    if (explicitInput is HazeInput.Backdrop) {
+      if (failed || !surfaceBudgetFallback) activateBackdropFallback(failed = failed)
+      surfaceBudgetFallback = !failed
+    }
+    preparedSurfaceBackdrop = null
+  }
+
+  internal fun restoreSurfaceInput() {
+    if (!isAttached || explicitInput !is HazeInput.Backdrop || !surfaceBudgetFallback) return
+    surfaceBudgetFallback = false
+    val previousSources = resolvedSourcesInput()
+    releaseBackdropRenderer()
+    backdropBackendState.attach(HazeFeatureFlags.isPlatformBackdropEnabled)
+    refreshResolvedSourcesInput(previousSources)
+    update()
+  }
+
+  internal fun drawRelocatedSurface(scope: DrawScope, owner: LayoutCoordinates?) {
+    try {
+      isDrawing = true
+      withSurfaceScope(scope, owner) {
+        for (area in areas) {
+          require(!area.isContentDrawing) {
+            "Modifier.hazeEffect nodes cannot draw an ancestor Modifier.hazeSource. " +
+              "Use HazeSourceSelection or correct source zIndex values to exclude it."
+          }
+        }
+        val prepare = shouldPrepareEffectDraw()
+        when {
+          state != null -> drawSourceBackedEffect(prepare)
+          explicitInput is HazeInput.Backdrop -> drawBackdropEffect(prepare)
+          explicitInput === HazeInput.Content && prepare -> {
+            prepareEffectDraw()
+            withVisualEffectTransform {
+              drawEffect()
+              drawEffectForeground()
+            }
+          }
+        }
+      }
+    } finally {
+      preparedSurfaceBackdrop = null
+      isDrawing = false
+      onPostDraw()
+    }
   }
 
   private companion object {
