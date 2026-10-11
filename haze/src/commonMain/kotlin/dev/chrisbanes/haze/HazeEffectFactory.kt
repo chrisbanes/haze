@@ -122,6 +122,10 @@ public interface HazeEffectRendererLifecycle<Style> {
 /** Built-in-only resources used while a renderer is attached to one modifier node. */
 @InternalHazeApi
 public interface HazeEffectLifecycleScope {
+  /** Opaque core capability used by built-ins to relocate surface output. */
+  public val surface: HazeEffectSurface
+    get() = error("Surface relocation requires an attached Haze node")
+
   /** Current size of the modifier carrying the effect. */
   public val modifierSize: Size
 
@@ -419,6 +423,7 @@ internal class HazeEffectLayoutScopeImpl(
 internal class HazeEffectLifecycleScopeImpl(
   private val node: HazeEffectNode,
 ) : HazeEffectLifecycleScope {
+  override val surface: HazeEffectSurface get() = node.surface
   override val modifierSize: Size get() = node.size
   override val coroutineScope: CoroutineScope get() = node.coroutineScope
   override fun requirePlatformContext(): PlatformContext = node.requirePlatformContext()

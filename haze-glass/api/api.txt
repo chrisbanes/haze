@@ -173,6 +173,10 @@ package dev.chrisbanes.haze.glass {
     enum_constant public static final dev.chrisbanes.haze.glass.GlassTransformTarget MaterialOnly;
   }
 
+  public final class HazeGlassContainerKt {
+    method @KotlinOnly @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.ui.Modifier hazeGlassContainer(androidx.compose.ui.Modifier, androidx.compose.ui.unit.Dp spacing, optional androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> transitionSpec, optional dev.chrisbanes.haze.glass.GlassReducedMotionPolicy reducedMotionPolicy);
+  }
+
   public final class HazeGlassKt {
     method @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.ui.Modifier hazeGlass(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeInput input, optional dev.chrisbanes.haze.glass.GlassStyle style, optional dev.chrisbanes.haze.HazePerformanceMode? performanceMode, optional boolean expandLayerBounds, optional androidx.compose.foundation.interaction.InteractionSource? interactionSource, optional dev.chrisbanes.haze.glass.GlassTransformTarget interactionTransformTarget, optional dev.chrisbanes.haze.glass.GlassTransformPivot interactionTransformPivot, optional dev.chrisbanes.haze.glass.GlassReducedMotionPolicy interactionReducedMotionPolicy);
   }

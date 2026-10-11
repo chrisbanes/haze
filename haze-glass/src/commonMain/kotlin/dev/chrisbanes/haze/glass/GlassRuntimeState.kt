@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -180,7 +181,7 @@ internal abstract class GlassRuntimeState {
   internal val surfaceProfile: SurfaceProfile get() = inheritedStyleValues.surfaceProfile
   internal val chromaticAberrationMode: ChromaticAberrationMode get() = inheritedStyleValues.chromaticAberrationMode
   internal val shape: RoundedCornerShape get() = inheritedStyleValues.shape
-  internal val alpha: Float get() = inheritedStyleValues.alpha
+  internal open val alpha: Float get() = inheritedStyleValues.alpha
   internal val contrast: Float get() = inheritedStyleValues.contrast
   internal val whitePoint: Float get() = inheritedStyleValues.whitePoint
   internal val chromaMultiplier: Float get() = inheritedStyleValues.chromaMultiplier
@@ -204,6 +205,15 @@ internal abstract class GlassRuntimeState {
       if (field != value) {
         field = value
         markDirty(GlassDirtyFields.MergedField)
+      }
+    }
+
+  /** Optics alone use the common container size; singletons retain their ordinary shader. */
+  internal var opticalSizeOverride: Size? = null
+    set(value) {
+      if (field != value) {
+        field = value
+        markDirty(GlassDirtyFields.OpticalSize)
       }
     }
 

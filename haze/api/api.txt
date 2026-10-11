@@ -4,6 +4,13 @@ package dev.chrisbanes.haze {
   @kotlin.RequiresOptIn(message="Experimental Haze API", level=kotlin.RequiresOptIn.Level.WARNING) public @interface ExperimentalHazeApi {
   }
 
+  @dev.chrisbanes.haze.InternalHazeApi public final class HazeConfiguredEffectSurface<Style> {
+    method public void dispose();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeEffectSurface getSurface();
+    method public void update(Style style, androidx.compose.ui.geometry.Rect bounds, java.util.List<dev.chrisbanes.haze.HazeEffectSurface> members);
+    property public dev.chrisbanes.haze.HazeEffectSurface surface;
+  }
+
   @dev.chrisbanes.haze.InternalHazeApi public final class HazeEffectBackdrop {
     ctor public HazeEffectBackdrop(PlatformRenderEffect platformEffect, optional float alpha, optional dev.chrisbanes.haze.HazeEffectContentTransform materialTransform);
     method @InaccessibleFromKotlin public float getAlpha();
@@ -61,6 +68,7 @@ package dev.chrisbanes.haze {
   @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectLifecycleScope {
     method public <T> T currentValueOf(androidx.compose.runtime.CompositionLocal<T> local);
     method @InaccessibleFromKotlin public kotlinx.coroutines.CoroutineScope getCoroutineScope();
+    method @InaccessibleFromKotlin public default dev.chrisbanes.haze.HazeEffectSurface getSurface();
     method public void invalidateDraw();
     method public void invalidateLayerBounds();
     method public androidx.compose.ui.unit.Density requireDensity();
@@ -68,6 +76,7 @@ package dev.chrisbanes.haze {
     method public dev.chrisbanes.haze.PlatformContext requirePlatformContext();
     property public abstract kotlinx.coroutines.CoroutineScope coroutineScope;
     property public abstract androidx.compose.ui.geometry.Size modifierSize;
+    property public default dev.chrisbanes.haze.HazeEffectSurface surface;
   }
 
   public interface HazeEffectRenderer<Style> {
@@ -111,6 +120,11 @@ package dev.chrisbanes.haze {
     method public default boolean shouldDrawRetainedOutput();
   }
 
+  @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectRendererSurfaceFallback {
+    method @InaccessibleFromKotlin public boolean getUsesMemberSurfaces();
+    property public abstract boolean usesMemberSurfaces;
+  }
+
   @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectRuntimeDrawScope extends dev.chrisbanes.haze.HazeEffectDrawScope {
     method public void drawInput(androidx.compose.ui.graphics.drawscope.DrawScope);
     method @InaccessibleFromKotlin public kotlinx.coroutines.CoroutineScope getCoroutineScope();
@@ -126,6 +140,25 @@ package dev.chrisbanes.haze {
     property public abstract androidx.compose.ui.geometry.Offset layerOffset;
     property public abstract androidx.compose.ui.geometry.Size layerSize;
     property public abstract androidx.compose.ui.geometry.Size modifierSize;
+  }
+
+  @dev.chrisbanes.haze.InternalHazeApi public final class HazeEffectSurface {
+    method public androidx.compose.ui.geometry.Rect? boundsInOwner();
+    method public <Style> dev.chrisbanes.haze.HazeConfiguredEffectSurface<Style> createConfiguredSurface(dev.chrisbanes.haze.HazeEffectFactory<Style> factory, Style style, androidx.compose.ui.geometry.Rect bounds, java.util.List<dev.chrisbanes.haze.HazeEffectSurface> members);
+    method public void relocateTo(dev.chrisbanes.haze.HazeEffectSurfaceOwner? owner);
+  }
+
+  public final class HazeEffectSurfaceKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static void drawHazeEffectSurfaces(androidx.compose.ui.graphics.drawscope.ContentDrawScope, dev.chrisbanes.haze.HazeEffectSurfaceOwner owner, java.util.List<dev.chrisbanes.haze.HazeEffectSurface> surfaces, androidx.compose.ui.graphics.layer.GraphicsLayer children);
+    method @dev.chrisbanes.haze.InternalHazeApi public static void drawHazeEffectSurfaces(androidx.compose.ui.graphics.drawscope.ContentDrawScope, dev.chrisbanes.haze.HazeEffectSurfaceOwner owner, kotlin.jvm.functions.Function0<? extends java.util.List<dev.chrisbanes.haze.HazeEffectSurface>> surfaces, androidx.compose.ui.graphics.layer.GraphicsLayer children);
+  }
+
+  @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectSurfaceOwner {
+    method public boolean canComposeNativeSurfaces(androidx.compose.ui.geometry.Rect bounds);
+    method @InaccessibleFromKotlin public androidx.compose.ui.layout.LayoutCoordinates? getSurfaceCoordinates();
+    method public void onSurfaceChanged(dev.chrisbanes.haze.HazeEffectSurface surface);
+    method public void onSurfaceReleased(dev.chrisbanes.haze.HazeEffectSurface surface);
+    property public abstract androidx.compose.ui.layout.LayoutCoordinates? surfaceCoordinates;
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeFeatureFlags {

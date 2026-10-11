@@ -36,6 +36,7 @@ import dev.chrisbanes.haze.HazeEffectRendererDrawHooks
 import dev.chrisbanes.haze.HazeEffectRendererInteraction
 import dev.chrisbanes.haze.HazeEffectRendererLifecycle
 import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
+import dev.chrisbanes.haze.HazeEffectRendererSurfaceFallback
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazePerformanceMode
@@ -135,7 +136,8 @@ internal class GlassRuntimeEffect() :
   HazeEffectRendererLifecycle<GlassNodeConfiguration>,
   HazeEffectRendererDrawHooks<GlassNodeConfiguration>,
   HazeEffectRendererRetainedOutput,
-  HazeEffectRendererInteraction {
+  HazeEffectRendererInteraction,
+  HazeEffectRendererSurfaceFallback {
 
   constructor(configuration: GlassNodeConfiguration) : this() {
     applyConfiguration(configuration)
@@ -163,6 +165,31 @@ internal class GlassRuntimeEffect() :
     ::readPlatformGlassSystemAppearance
 
   private var attachedContext: HazeEffectLifecycleScope? = null
+  private var memberBinding: GlassMemberBinding? = null
+  private var surfaceSnapshot: GlassSurfaceSnapshot? = null
+  override val alpha: Float get() = surfaceSnapshot?.material?.alpha ?: super.alpha
+  override val usesMemberSurfaces: Boolean
+    get() = mergedField != null && delegate !is RuntimeShaderGlassDelegate
+  internal val memberBindingForTest: GlassMemberBinding? get() = memberBinding
+
+  /** Re-publishes the member material at a new container optical size before reclustering. */
+  internal fun refreshMemberMaterial() {
+    val context = attachedContext ?: return
+    if (surfaceSnapshot != null) return
+    publishMemberMaterial(resolveGlassStyle(this, context.modifierSize, context.requireDensity(), context.currentValueOf(LocalLayoutDirection)))
+  }
+
+  private fun publishMemberMaterial(material: ResolvedGlassStyle) {
+    val binding = memberBinding ?: return
+    val context = attachedContext ?: return
+
+    @Suppress("DEPRECATION")
+    val quality = when (val mode = performanceMode) {
+      is HazePerformanceMode.Fixed -> mode.qualityFraction
+      HazePerformanceMode.Adaptive -> (HazePerformanceMode.Default as HazePerformanceMode.Fixed).qualityFraction
+    }
+    binding.publish(this, context.surface, material, glassMergeKey(binding.input, binding.expandLayerBounds, quality, this, material, context.currentValueOf(LocalLayoutDirection)))
+  }
 
   private fun onRuntimeConfigurationChanged(fields: Int) {
     markDirty(fields)
@@ -321,6 +348,8 @@ internal class GlassRuntimeEffect() :
   }
 
   override fun detach() {
+    memberBinding?.release(this)
+    memberBinding = null
     if (isAttached) {
       interactionController?.dispose()
       interactionController = null
@@ -365,15 +394,31 @@ internal class GlassRuntimeEffect() :
     sampling: HazeSampling,
   ) {
     val context = scope
+    // An equal binding is the same membership, already handed over by GlassMemberNode.
+    if (memberBinding != style.member) memberBinding?.release(this)
+    memberBinding = style.member
     isUpdating = true
     try {
+      val snapshot = style.surfaceSnapshot
+      if (surfaceSnapshot != snapshot) {
+        surfaceSnapshot = snapshot
+        markDirty(GlassDirtyFields.All)
+      }
       applyConfiguration(style, style.performanceMode ?: scope.currentValueOf(LocalHazePerformanceMode))
-      dirtyTrackerSignal
-      systemAppearance = appearanceReader(context)
-      compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
-      accessibilitySettings = context.currentValueOf(LocalGlassAccessibilitySettings)
-      updateStyleInteractionSlots()
-      syncInteractionController(context)
+      if (snapshot != null) {
+        // These values were evaluated in each member's observed context. Never replay a Style or
+        // composition-local appearance at the container-owned surface.
+        mergedField = snapshot.field
+        opticalSizeOverride = snapshot.opticalSize
+      } else {
+        dirtyTrackerSignal
+        systemAppearance = appearanceReader(context)
+        compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
+        accessibilitySettings = context.currentValueOf(LocalGlassAccessibilitySettings)
+        updateStyleInteractionSlots()
+        syncInteractionController(context)
+        publishMemberMaterial(resolveGlassStyle(this, scope.modifierSize, scope.requireDensity(), scope.currentValueOf(LocalLayoutDirection)))
+      }
     } finally {
       isUpdating = false
     }
@@ -712,7 +757,12 @@ internal class GlassRuntimeEffect() :
         resolvedStyleCacheLayoutDirection == layoutDirection
     }?.let { return it }
 
-    val resolvedStyle = geometrySnapshotObserver?.let { observer ->
+    val resolvedStyle = surfaceSnapshot?.let { snapshot ->
+      snapshot.material.copy(
+        mergedField = snapshot.field,
+        lightPosition = snapshot.key.lightAlignment.resolveLightPosition(context.modifierSize, layoutDirection),
+      )
+    } ?: geometrySnapshotObserver?.let { observer ->
       lateinit var observedStyle: ResolvedGlassStyle
       observer.observeReads(styleObservationScope, onObservedStyleChanged) {
         observedStyle = resolveGlassStyle(this, context.modifierSize, density, layoutDirection)
@@ -721,6 +771,7 @@ internal class GlassRuntimeEffect() :
     } ?: resolveGlassStyle(this, context.modifierSize, density, layoutDirection)
 
     return resolvedStyle.also {
+      publishMemberMaterial(it)
       resolvedStyleCache = it
       resolvedStyleCacheSize = context.modifierSize
       resolvedStyleCacheDensity = density
@@ -1060,7 +1111,7 @@ internal class GlassRuntimeEffect() :
   }
 
   internal fun calculateLayerBounds(rect: Rect, density: Density): Rect {
-    val resolvedStyle = resolveGlassStyle(
+    val resolvedStyle = surfaceSnapshot?.material ?: resolveGlassStyle(
       effect = this@GlassRuntimeEffect,
       materialSizePx = rect.size,
       density = density,

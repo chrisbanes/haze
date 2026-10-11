@@ -514,7 +514,7 @@ internal fun resolveGlassStyle(
     // A merged field's layer covers several members, so optics use its supplied optical size.
     resolvedOptics = resolveGlassOptics(
       effect.optics,
-      effect.mergedField?.opticalSize ?: materialSizePx,
+      effect.opticalSizeOverride ?: effect.mergedField?.opticalSize ?: materialSizePx,
       density,
     ),
     specularIntensity = effect.specularIntensity,
@@ -577,7 +577,7 @@ private fun ResolvedGlassStyle.withAccessibility(
   )
 }
 
-private fun Alignment.resolveLightPosition(
+internal fun Alignment.resolveLightPosition(
   materialSizePx: Size,
   layoutDirection: LayoutDirection,
 ): Offset = when (this) {
