@@ -364,6 +364,57 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun neighbourStillGrowing_isChosenAtItsCurrentShape() = runComposeUiTest {
+    // C sits 10px right of B's final rect but beyond the spacing of B's current, growing shape.
+    val fixture = fixture(present = false, cOffset = 260 to 60)
+    fixture.toggle()
+    fixture.advance(96)
+    runOnIdle { fixture.cPresent.value = true }
+    fixture.advance(16)
+    val c = fixture.owner().model.surfaces.flatMap { it.members }.single { it.identity === fixture.c.memberBindingForTest?.node }
+    assertThat(c.rect).isCloseTo(Rect(260f, 60f, 360f, 140f))
+    assertThat(fixture.c.transitionAlpha).isLessThan(0.1f)
+    fixture.settle()
+  }
+
+  @Test
+  fun neighbourStillGrowing_morphStartsFromItsCurrentShape() = runComposeUiTest {
+    // C sits below both B's current and final rects, and beyond the spacing of A.
+    val fixture = fixture(present = false, cOffset = 200 to 150)
+    fixture.toggle()
+    fixture.advance(240)
+    val bLeft = fixture.b().rect.left
+    runOnIdle { fixture.cPresent.value = true }
+    fixture.advance(16)
+    val c = fixture.owner().model.surfaces.flatMap { it.members }.single { it.identity === fixture.c.memberBindingForTest?.node }
+    // C starts on B's drawn shape, which is still left of B's final 150px edge.
+    assertThat(c.rect.left).isLessThan(148f)
+    assertThat(c.rect.left).isGreaterThan(bLeft)
+    fixture.settle()
+  }
+
+  @Test
+  fun materializeGhostsLeavingTogether_neverShareAField() = runComposeUiTest {
+    val fixture = fixture(transition = GlassMemberTransition.Materialize, cOffset = 260 to 60, cTransition = GlassMemberTransition.Materialize, cInitially = true)
+    assertThat(fixture.owner().model.surfaces.single().members).hasSize(3)
+    runOnIdle {
+      fixture.present.value = false
+      fixture.cPresent.value = false
+    }
+    var fadingFrames = 0
+    repeat(18) {
+      fixture.advance(16)
+      val ghosts = fixture.owner().model.surfaces.filter { cluster -> cluster.members.any { it.identity is GlassMemberGhost } }
+      if (ghosts.isNotEmpty()) {
+        fadingFrames++
+        assertThat(ghosts.map { it.members.size }).containsExactly(1, 1)
+      }
+    }
+    assertThat(fadingFrames).isGreaterThan(0)
+    fixture.settle()
+  }
+
+  @Test
   fun lastMemberLeaves_disappearsImmediately() = runComposeUiTest {
     val fixture = fixture(gap = 100, transition = GlassMemberTransition.Materialize, withA = false)
     fixture.toggle()
@@ -399,6 +450,8 @@ class GlassContainerTransitionTest : ContextTest() {
     val nested: MutableState<Boolean>,
     val aWidth: MutableState<Int>,
     val aState: MutableState<HazeState>,
+    val c: GlassRuntimeEffect,
+    val cPresent: MutableState<Boolean>,
   ) {
     val aNode: GlassMemberNode? = a.memberBindingForTest?.node
     lateinit var owner: GlassContainerNode
@@ -443,7 +496,12 @@ class GlassContainerTransitionTest : ContextTest() {
     bStyle: GlassStyle = GlassStyle { },
     withA: Boolean = true,
     unavailable: Boolean = false,
+    cOffset: Pair<Int, Int>? = null,
+    cTransition: GlassMemberTransition = GlassMemberTransition.MatchedGeometry,
+    cInitially: Boolean = false,
   ): Fixture {
+    val c = GlassRuntimeEffect()
+    val cPresent = mutableStateOf(cInitially)
     val a = GlassRuntimeEffect()
     val b = GlassRuntimeEffect()
     if (unavailable) {
@@ -482,12 +540,25 @@ class GlassContainerTransitionTest : ContextTest() {
               }
             }
           }
+          if (cOffset != null && cPresent.value) {
+            Box(
+              Modifier.offset(cOffset.first.dp, cOffset.second.dp).size(100.dp, 80.dp).hazeGlass(
+                HazeEffectFactory { c },
+                HazeInput.Sources(state),
+                containerTestStyle(Color.Blue),
+                HazePerformanceMode.Quality,
+                true,
+                null,
+                memberTransition = cTransition,
+              ),
+            )
+          }
         }
       }
     }
     waitForIdle()
     mainClock.autoAdvance = false
-    return Fixture(this, a, b, bPresent, aPresent, enabled, nested, aWidth, aState)
+    return Fixture(this, a, b, bPresent, aPresent, enabled, nested, aWidth, aState, c, cPresent)
   }
 
   private object NoMotion : MotionDurationScale {

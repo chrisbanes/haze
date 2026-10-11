@@ -206,9 +206,9 @@ internal class GlassContainerNode(
     refreshing = true
     try {
       if (pending.isNotEmpty()) startTransitions(liveSnapshots())
-      val current = members
-      val opticalSize = glassOpticalSize(current.mapNotNull { it.binding.surface?.boundsInOwner() })
-      current.forEach { member ->
+      val registered = members
+      val opticalSize = glassOpticalSize(registered.mapNotNull { it.binding.surface?.boundsInOwner() })
+      registered.forEach { member ->
         val runtime = member.binding.runtime ?: return@forEach
         val alpha = attaching[member]?.takeIf { it.neighbour == null }?.progress?.value?.coerceIn(0f, 1f) ?: 1f
         if (runtime.opticalSizeOverride == opticalSize && runtime.transitionAlpha == alpha) return@forEach
@@ -226,20 +226,22 @@ internal class GlassContainerNode(
         anchor == null || !anchor.layoutRect.isValidGlassMember() ||
           anchor.key.input != ghost.last.key.input || anchor.key.expandLayerBounds != ghost.last.key.expandLayerBounds
       }
+      // Morphs follow what their neighbour draws now, which may itself still be growing.
+      val drawn = mutableMapOf<Any, GlassMemberSnapshot>()
       val snapshots = registrations.mapNotNull { registration ->
         when (registration) {
           is GlassMemberNode -> live[registration]?.let { snapshot ->
             val attach = attaching[registration] ?: return@let snapshot
             // A fading member draws alone until it is opaque, even beside an equally faded member.
             if (attach.neighbour == null) return@let snapshot.copy(fading = true)
-            val neighbour = live[attach.neighbour] ?: return@let snapshot
+            val neighbour = drawn[attach.neighbour] ?: drawnSnapshot(attach.neighbour, live) ?: return@let snapshot
             val (rect, material) = snapshot.morphedFrom(neighbour, attach.progress.value)
             registration.snapshot(rect, snapshot.key, material, link = neighbour.identity)
           }
           // A ghost's neighbour is its anchor, which is live after the pruning above.
-          is GlassMemberGhost -> registration.snapshot(registration.neighbour?.let(live::getValue))
+          is GlassMemberGhost -> registration.snapshot(registration.neighbour?.let { drawn[it] ?: checkNotNull(drawnSnapshot(it, live)) })
           else -> null
-        }
+        }?.also { drawn[registration] = it }
       }
       snapshots.forEach { latest[it.identity] = it }
       // Optical size changes immediately and counts live layout rects only, never ghosts.
@@ -275,8 +277,12 @@ internal class GlassContainerNode(
     return GlassMemberSnapshot(this, rect, key, material, uniformScale && hasTranslationOnlyTransform(owner), layoutRect, link)
   }
 
+  /** What [member] draws now: a member growing out of its neighbour is at its last morphed shape. */
+  private fun drawnSnapshot(member: GlassMemberNode, live: Map<GlassMemberNode, GlassMemberSnapshot>): GlassMemberSnapshot? =
+    live[member]?.let { snapshot -> latest[member]?.takeIf { attaching[member]?.neighbour != null } ?: snapshot }
+
   private fun startTransitions(live: Map<GlassMemberNode, GlassMemberSnapshot>) {
-    val ordered = registrations.mapNotNull { if (it is GlassMemberNode) live[it] else latest[it] }
+    val ordered = registrations.mapNotNull { if (it is GlassMemberNode) drawnSnapshot(it, live) else latest[it] }
     // Members appearing in this pass are not visible yet, so none can grow out of another.
     val appearing = pending.toSet()
     for (member in pending.toList()) {
