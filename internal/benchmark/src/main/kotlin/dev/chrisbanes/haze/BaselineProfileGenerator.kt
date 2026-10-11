@@ -16,7 +16,7 @@ class BaselineProfileGenerator {
 
   @Test
   fun generate() = baselineProfileRule.collect(
-    packageName = "dev.chrisbanes.haze.sample.android",
+    packageName = TARGET_PACKAGE,
   ) {
     pressHome()
     startActivityAndWait { intent ->

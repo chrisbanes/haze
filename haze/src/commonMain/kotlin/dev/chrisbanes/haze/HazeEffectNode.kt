@@ -403,14 +403,6 @@ internal class HazeEffectNode(
       }
     }
 
-  internal var explicitExpandLayerBounds: Boolean = true
-    set(value) {
-      if (value != field) {
-        field = value
-        expandLayerBounds = value
-      }
-    }
-
   private var retainOutputWhenSourceUnavailable: Boolean = true
   private val areaPreDrawListener by lazy(LazyThreadSafetyMode.NONE) {
     OnPreDrawListener(
@@ -1452,10 +1444,7 @@ internal class HazeEffectNode(
       ?.let { return it }
     val snapshots = ArrayList<HazeEffectInputSnapshotEntry>(areas.size)
     for (area in areas) {
-      val layer = area.contentLayer
-        ?.takeUnless { it.isReleased }
-        ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
-        ?: continue
+      val layer = area.drawableContentLayer ?: continue
       val sourceTransform = Snapshot.withoutReadObservation { sourceTransformInEffect(area) }
       snapshots += HazeEffectInputSnapshotEntry(
         areaIdentity = area,
@@ -1514,10 +1503,7 @@ private class HazeEffectInputSnapshotImpl(
 
     var drawableIndex = 0
     for (area in node.areas) {
-      val layer = area.contentLayer
-        ?.takeUnless { it.isReleased }
-        ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
-        ?: continue
+      val layer = area.drawableContentLayer ?: continue
       val sourceTransform = Snapshot.withoutReadObservation { node.sourceTransformInEffect(area) }
       val entry = entries.getOrNull(drawableIndex++) ?: return false
       if (

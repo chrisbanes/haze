@@ -109,14 +109,14 @@ private class TypedHazeEffectNodeElement<Style>(
 
   override fun create(): HazeEffectNode = HazeEffectNode().also { node ->
     node.explicitInput = input
-    node.explicitExpandLayerBounds = expandLayerBounds
+    node.expandLayerBounds = expandLayerBounds
     node.updateTypedEffect(factory, style, sampling)
     node.updateLifecycle(lifecycle)
   }
 
   override fun update(node: HazeEffectNode) {
     node.explicitInput = input
-    node.explicitExpandLayerBounds = expandLayerBounds
+    node.expandLayerBounds = expandLayerBounds
     node.updateTypedEffect(factory, style, sampling)
     node.updateLifecycle(lifecycle)
     node.update()

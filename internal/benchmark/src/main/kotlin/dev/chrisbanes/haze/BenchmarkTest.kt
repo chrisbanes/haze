@@ -13,9 +13,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-private const val DEFAULT_ITERATIONS = 8
-private const val APP_PACKAGE = "dev.chrisbanes.haze.sample.android"
-
 @RunWith(AndroidJUnit4::class)
 class BenchmarkTest {
   @get:Rule
@@ -61,10 +58,10 @@ class BenchmarkTest {
   @Test
   fun scaffoldEquivalentStyleChurn() {
     benchmarkRule.measureRepeated(
-      packageName = APP_PACKAGE,
+      packageName = TARGET_PACKAGE,
       metrics = listOf(FrameTimingMetric()),
       startupMode = StartupMode.WARM,
-      iterations = DEFAULT_ITERATIONS,
+      iterations = BENCHMARK_ITERATIONS,
       setupBlock = {
         startActivityAndWait { intent ->
           intent.putExtra(FORCE_BLUR_EXTRA, true)
@@ -116,14 +113,14 @@ class BenchmarkTest {
     // All Blur profiling scenarios animate draw progress, including stable-source scenarios.
     withoutUiAutomatorIdleWait {
       benchmarkRule.measureRepeated(
-        packageName = APP_PACKAGE,
+        packageName = TARGET_PACKAGE,
         metrics = if (includeBackdropComparisonMetrics) {
           backdropComparisonMetrics(requireBackdropDraw)
         } else {
           listOf(FrameTimingMetric())
         },
         startupMode = StartupMode.WARM,
-        iterations = DEFAULT_ITERATIONS,
+        iterations = BENCHMARK_ITERATIONS,
         setupBlock = {
           startActivityAndWait { intent ->
             intent.selectBenchmarkSample(
@@ -142,12 +139,12 @@ class BenchmarkTest {
 
   private fun measureSample(
     sampleRoute: String,
-    iterations: Int = DEFAULT_ITERATIONS,
+    iterations: Int = BENCHMARK_ITERATIONS,
     awaitReady: UiDevice.() -> Unit,
     measure: UiDevice.() -> Unit,
   ) {
     benchmarkRule.measureRepeated(
-      packageName = APP_PACKAGE,
+      packageName = TARGET_PACKAGE,
       metrics = listOf(FrameTimingMetric()),
       startupMode = StartupMode.WARM,
       iterations = iterations,

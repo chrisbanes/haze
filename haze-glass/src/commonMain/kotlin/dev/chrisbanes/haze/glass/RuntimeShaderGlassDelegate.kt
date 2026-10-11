@@ -915,6 +915,10 @@ internal class RuntimeShaderGlassDelegate(
     if (!opticsRequired) clearInteractionOpticalEffectCache()
     if (!detailRequired) clearInteractionDetailEffectCache()
     if (!topology.hasLighting) clearInteractionLightingEffectCache()
+    clearPreparedRender()
+  }
+
+  private fun clearPreparedRender() {
     preparedRender = null
     preparedParams = null
     preparedRenderEffects = null
@@ -927,13 +931,8 @@ internal class RuntimeShaderGlassDelegate(
     clearRetainedMetadata()
     clearRimLayerMetadata()
     clearInteractionLayerMetadata()
-    preparedParams = null
-    preparedRender = null
-    preparedRenderEffects = null
-    preparedInteractionUniforms = null
-    preparedInteractionPatch = null
+    clearPreparedRender()
     preparedSourceAvailable = false
-    preparedStageAvailability = null
   }
 
   override fun clearRetainedOutput() {
@@ -1076,13 +1075,8 @@ internal class RuntimeShaderGlassDelegate(
       interactionOutputEffect = null
     }
     clearInteractionLayerMetadata()
-    preparedParams = null
-    preparedRender = null
-    preparedRenderEffects = null
-    preparedInteractionUniforms = null
-    preparedInteractionPatch = null
+    clearPreparedRender()
     preparedSourceAvailable = false
-    preparedStageAvailability = null
     clearRimLayerMetadata()
     clearRetainedMetadata()
   }
@@ -1157,11 +1151,7 @@ internal class RuntimeShaderGlassDelegate(
     context: HazeEffectRuntimeDrawScope,
     params: GlassRenderParams,
   ): GraphicsLayer? {
-    if (!context.hasDrawableInput) {
-      return layers.source
-        ?.takeUnless { it.isReleased }
-        ?.takeIf { retainedOutputAvailable }
-    }
+    if (!context.hasDrawableInput) return retainedSource()
 
     return createScaledContentLayer(
       context = context,
@@ -1976,9 +1966,8 @@ internal class RuntimeShaderGlassDelegate(
 
   private fun updateRimEffect(nextRimKey: GlassRimEffectKey?) {
     if (nextRimKey != rimKey) {
-      rimEffect = nextRimKey?.takeIf {
-        it.specularIntensity > 0f || it.edgeShadow.alpha > 0f
-      }?.let { key ->
+      // buildGlassPreparedRender only creates a rim key while the rim is visible.
+      rimEffect = nextRimKey?.let { key ->
         val shader = rimShader ?: traceCreateRenderEffect {
           createRetainedGlassRimRenderEffect(merged = key.mergedField != null)
         }.also { rimShader = it }
@@ -2441,30 +2430,7 @@ private val GLASS_MERGED_RIM_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
 internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
   key: GlassOpticalEffectKey,
 ) {
-  setFloatUniform(
-    "sampleSize",
-    key.coordinates.sampleSize.width,
-    key.coordinates.sampleSize.height,
-  )
-  setFloatUniform(
-    "materialOrigin",
-    key.coordinates.materialOrigin.x,
-    key.coordinates.materialOrigin.y,
-  )
-  setFloatUniform(
-    "materialSize",
-    key.coordinates.materialSize.width,
-    key.coordinates.materialSize.height,
-  )
-  setFloatUniform("sampleStep", key.sampleStepPx)
-  setFloatUniform("edgeSoftness", key.edgeSoftnessPx)
-  setFloatUniform(
-    "cornerRadii",
-    key.cornerRadii.topLeft,
-    key.cornerRadii.topRight,
-    key.cornerRadii.bottomRight,
-    key.cornerRadii.bottomLeft,
-  )
+  setCommonUniforms(key.coordinates, key.sampleStepPx, key.edgeSoftnessPx, key.cornerRadii)
   setFloatUniform("refractionStrength", key.refractionStrength)
   setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
   setFloatUniform("ambientResponse", key.ambientResponse)

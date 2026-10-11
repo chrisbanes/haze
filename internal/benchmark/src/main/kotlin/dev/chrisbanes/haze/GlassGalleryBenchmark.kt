@@ -25,11 +25,11 @@ class GlassGalleryBenchmark {
   @Test
   fun productPager() {
     benchmarkRule.measureRepeated(
-      packageName = GLASS_TARGET_PACKAGE,
+      packageName = TARGET_PACKAGE,
       metrics = glassMetrics(includeMemory = true),
       compilationMode = CompilationMode.Full(),
       startupMode = StartupMode.WARM,
-      iterations = GLASS_BENCHMARK_ITERATIONS,
+      iterations = BENCHMARK_ITERATIONS,
       setupBlock = {
         startActivityAndWait { intent ->
           intent.selectBenchmarkSample(route = "glass-product", effect = "glass")
@@ -44,14 +44,14 @@ class GlassGalleryBenchmark {
   @Test
   fun playgroundTimeline() {
     benchmarkRule.measureRepeated(
-      packageName = GLASS_TARGET_PACKAGE,
+      packageName = TARGET_PACKAGE,
       metrics = glassMetrics(
         includeMemory = true,
         includePreparationMetrics = true,
       ),
       compilationMode = CompilationMode.Full(),
       startupMode = StartupMode.WARM,
-      iterations = GLASS_BENCHMARK_ITERATIONS,
+      iterations = BENCHMARK_ITERATIONS,
       setupBlock = {
         startActivityAndWait { intent ->
           intent.selectBenchmarkSample(route = "glass-playground", effect = "glass")

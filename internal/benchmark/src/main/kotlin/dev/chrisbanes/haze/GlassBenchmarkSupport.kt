@@ -13,8 +13,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assume.assumeFalse
 import org.junit.Assume.assumeTrue
 
-internal const val GLASS_TARGET_PACKAGE = "dev.chrisbanes.haze.sample.android"
-internal const val GLASS_BENCHMARK_ITERATIONS = 8
+internal const val TARGET_PACKAGE = "dev.chrisbanes.haze.sample.android"
+internal const val BENCHMARK_ITERATIONS = 8
 internal const val GLASS_RUNTIME_DRAW_SECTION = "HazeGlass.runtimeDraw"
 internal const val GLASS_CREATE_RENDER_EFFECT_SECTION = "HazeGlass.createRenderEffect"
 internal const val GLASS_PREPARE_EFFECTS_SECTION = "HazeGlass.prepareEffects"
@@ -139,7 +139,7 @@ private fun isProbablyEmulator(): Boolean =
     Build.HARDWARE.contains("ranchu", ignoreCase = true) ||
     Build.PRODUCT.contains("sdk", ignoreCase = true)
 
-private fun isBenchmarkDryRun(): Boolean =
+internal fun isBenchmarkDryRun(): Boolean =
   InstrumentationRegistry.getArguments()
     .getString("androidx.benchmark.dryRunMode.enable")
     .toBoolean()

@@ -106,8 +106,7 @@ internal fun DrawScope.createScaledContentLayer(
   }
 
   val graphicsContext = context.requireGraphicsContext()
-  val layer = existingLayer?.takeUnless { it.isReleased }
-    ?: graphicsContext.createGraphicsLayer()
+  val layer = ensureLayer(existingLayer, graphicsContext)
 
   layer.record(size = scaledLayerSize) {
     if (backgroundShader != null) {

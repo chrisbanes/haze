@@ -19,7 +19,7 @@ class RenderScriptScrollRegressionTest {
     assumeTrue(Build.VERSION.SDK_INT == 30)
     val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     repeat(5) {
-      device.executeShellCommand("am force-stop dev.chrisbanes.haze.sample.android")
+      device.executeShellCommand("am force-stop $TARGET_PACKAGE")
       device.executeShellCommand(
         "am start -W -n dev.chrisbanes.haze.sample.android/.MainActivity " +
           "--ez $FORCE_BLUR_EXTRA true",

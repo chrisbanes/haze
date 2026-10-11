@@ -27,9 +27,6 @@ import dev.chrisbanes.haze.asBrush
 import dev.chrisbanes.haze.asComposeRenderEffect
 import dev.chrisbanes.haze.withGraphicsLayer
 
-@OptIn(InternalHazeApi::class)
-private const val USE_RUNTIME_SHADER = true
-
 internal actual fun BlurVisualEffect.invalidateRenderEffectOnInputChange() {
   if (Build.VERSION.SDK_INT == 31) {
     // API 31 can retain blurred pixels after a nested source layer changes, even when the
@@ -47,7 +44,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   context: HazeEffectRuntimeDrawScope,
   inputScale: Float,
 ) {
-  if (USE_RUNTIME_SHADER && Build.VERSION.SDK_INT >= 33) {
+  if (Build.VERSION.SDK_INT >= 33) {
     with(drawScope) {
       contentLayer.renderEffect = blurVisualEffect
         .getOrCreateRenderEffect(

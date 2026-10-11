@@ -15,6 +15,7 @@ import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
+import androidx.compose.ui.geometry.isFinite
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -506,8 +507,8 @@ internal class GlassInteractionController(
     restartForMotionPolicy: Boolean,
   ) {
     val targets = resolveGlassInteractionTargets(nextSlots, nextSignals)
-    lightingIntensity.retarget(
-      targets.lightingIntensity,
+    fun AnimatedFloatChannel.retargetTo(target: OwnedGlassResponseValue) = retarget(
+      target,
       previousSlots,
       nextSlots,
       previousSignals,
@@ -516,46 +517,11 @@ internal class GlassInteractionController(
       configuration.forceFullMotion,
       restartForMotionPolicy,
     )
-    refractionMultiplier.retarget(
-      targets.refractionMultiplier,
-      previousSlots,
-      nextSlots,
-      previousSignals,
-      nextSignals,
-      configuration.reducedMotion,
-      configuration.forceFullMotion,
-      restartForMotionPolicy,
-    )
-    whitePointDelta.retarget(
-      targets.whitePointDelta,
-      previousSlots,
-      nextSlots,
-      previousSignals,
-      nextSignals,
-      configuration.reducedMotion,
-      configuration.forceFullMotion,
-      restartForMotionPolicy,
-    )
-    scaleX.retarget(
-      targets.scaleX,
-      previousSlots,
-      nextSlots,
-      previousSignals,
-      nextSignals,
-      configuration.reducedMotion,
-      configuration.forceFullMotion,
-      restartForMotionPolicy,
-    )
-    scaleY.retarget(
-      targets.scaleY,
-      previousSlots,
-      nextSlots,
-      previousSignals,
-      nextSignals,
-      configuration.reducedMotion,
-      configuration.forceFullMotion,
-      restartForMotionPolicy,
-    )
+    lightingIntensity.retargetTo(targets.lightingIntensity)
+    refractionMultiplier.retargetTo(targets.refractionMultiplier)
+    whitePointDelta.retargetTo(targets.whitePointDelta)
+    scaleX.retargetTo(targets.scaleX)
+    scaleY.retargetTo(targets.scaleY)
   }
 
   private fun snapActiveTargetsForReducedMotion() {
@@ -692,7 +658,7 @@ private object FullMotionDurationScale : MotionDurationScale {
   override val scaleFactor: Float = 1f
 }
 
-private fun Offset.validOrNull(): Offset? = takeIf { x.isFinite() && y.isFinite() }
+private fun Offset.validOrNull(): Offset? = takeIf { isFinite }
 
 // Accepted spring targets can overshoot; constrain derived samples without changing authored validation.
 internal fun Float.validScaleForRender(): Float = when {

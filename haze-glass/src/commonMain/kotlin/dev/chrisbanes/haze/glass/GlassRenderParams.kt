@@ -9,6 +9,7 @@ import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
+import androidx.compose.ui.geometry.isFinite
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -438,7 +439,7 @@ internal data class ResolvedGlassInteraction(
     val materialCenter = coordinates.materialOrigin + coordinates.materialSize.center
     val scaledPosition = position * coordinates.scaleFactor + coordinates.materialOrigin
     return GlassInteractionUniforms(
-      position = scaledPosition.takeIf { it.x.isFinite() && it.y.isFinite() } ?: materialCenter,
+      position = scaledPosition.takeIf { it.isFinite } ?: materialCenter,
       radiusPx = (coordinates.materialSize.minDimension * radiusFraction).finiteOrZero()
         .coerceAtLeast(0f),
       lightingIntensity = lightingIntensity,
