@@ -57,7 +57,7 @@ internal data class GlassMemberSnapshot(
   val rect: Rect,
   val key: GlassMergeKey,
   val material: ResolvedGlassStyle,
-  val translationOnly: Boolean = true,
+  val translationOnly: Boolean,
 )
 
 @Poko

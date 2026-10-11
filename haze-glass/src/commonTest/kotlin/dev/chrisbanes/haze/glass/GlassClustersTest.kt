@@ -28,6 +28,7 @@ class GlassClustersTest {
     Rect(left, top, left + 100f, top + 40f),
     key,
     material,
+    translationOnly = true,
   )
 
   @Test
