@@ -146,7 +146,11 @@ internal class SharedRuntimeShader(sksl: String) {
   private val intUniformNames = HashSet<String>()
   private val floatUniformSizes = HashMap<String, Int>()
   private val colorUniforms = HashSet<String>()
+  private val zeroArrays = HashMap<Int, FloatArray>()
   private val childNames = HashSet<String>()
+
+  /** A zero array of [size], shared because [RuntimeShader] copies it; callers must not write to it. */
+  internal fun zeroFloats(size: Int): FloatArray = zeroArrays.getOrPut(size) { FloatArray(size) }
 
   @Synchronized
   fun createEffect(
@@ -158,7 +162,7 @@ internal class SharedRuntimeShader(sksl: String) {
       if (name !in uniforms.ints) shader.setIntUniform(name, 0)
     }
     for ((name, size) in floatUniformSizes) {
-      if (name !in uniforms.floats) shader.setFloatUniform(name, FloatArray(size))
+      if (name !in uniforms.floats) shader.setFloatUniform(name, zeroFloats(size))
     }
     for (name in colorUniforms) {
       if (name !in uniforms.colors) shader.setColorUniform(name, 0)
