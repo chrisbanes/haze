@@ -113,7 +113,13 @@ internal class GlassContainerNode(
     try {
       val rects = members.mapNotNull { it.binding.surface?.boundsInOwner() }
       val opticalSize = glassOpticalSize(rects)
-      members.forEach { it.binding.runtime?.opticalSizeOverride = opticalSize }
+      members.forEach { member ->
+        val runtime = member.binding.runtime ?: return@forEach
+        if (runtime.opticalSizeOverride == opticalSize) return@forEach
+        runtime.opticalSizeOverride = opticalSize
+        // Snapshots below must not use material resolved at the previous optical size.
+        runtime.refreshMemberMaterial()
+      }
       val snapshots = members.mapNotNull { member ->
         val binding = member.binding
         val rect = binding.surface?.boundsInOwner() ?: return@mapNotNull null

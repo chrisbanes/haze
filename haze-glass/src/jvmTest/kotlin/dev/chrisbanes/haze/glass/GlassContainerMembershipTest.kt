@@ -28,6 +28,7 @@ import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
@@ -239,5 +240,27 @@ class GlassContainerMembershipTest : ContextTest() {
     val binding = checkNotNull(runtimes.last().memberBindingForTest)
     assertThat(checkNotNull(binding.node).binding).isSameInstanceAs(binding)
     assertThat(binding.node?.container).isSameInstanceAs(container(runtimes.last()))
+  }
+
+  @Test
+  fun membership_opticalSizeChangeRepublishesMaterialBeforeReclustering() = runComposeUiTest {
+    val card = GlassRuntimeEffect()
+    val pill = GlassRuntimeEffect()
+    setContent {
+      Row(Modifier.hazeGlassContainer(40.dp)) {
+        Member(card, Modifier.size(300.dp, 180.dp))
+        Member(pill, Modifier.size(140.dp, 64.dp))
+      }
+    }
+    waitForIdle()
+    runOnIdle {
+      val container = container(pill)
+      val before = checkNotNull(pill.memberBindingForTest?.material).resolvedOptics
+      container.remove(checkNotNull(card.memberBindingForTest?.node))
+      val context = checkNotNull(pill.attachedContextForTest)
+      val expected = resolveGlassStyle(pill, context.modifierSize, context.requireDensity(), LayoutDirection.Ltr).resolvedOptics
+      assertThat(expected).isNotEqualTo(before)
+      assertThat(container.model.surfaces.single().members.single().material.resolvedOptics).isEqualTo(expected)
+    }
   }
 }

@@ -172,6 +172,13 @@ internal class GlassRuntimeEffect() :
     get() = mergedField != null && delegate !is RuntimeShaderGlassDelegate
   internal val memberBindingForTest: GlassMemberBinding? get() = memberBinding
 
+  /** Re-publishes the member material at a new container optical size before reclustering. */
+  internal fun refreshMemberMaterial() {
+    val context = attachedContext ?: return
+    if (surfaceSnapshot != null) return
+    publishMemberMaterial(resolveGlassStyle(this, context.modifierSize, context.requireDensity(), context.currentValueOf(LocalLayoutDirection)))
+  }
+
   private fun publishMemberMaterial(material: ResolvedGlassStyle) {
     val binding = memberBinding ?: return
     val context = attachedContext ?: return
