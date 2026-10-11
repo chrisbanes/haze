@@ -50,8 +50,9 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
         nodes.single().binding.runtime?.let { runtimes += members.single().layoutRect to it }
         continue
       }
-      // Pressed members only shrink within their layout rects, so the surface keeps its bounds.
-      val bounds = members.map { it.layoutRect }.reduce { a, b ->
+      // Pressed members shrink within their layout rects, keeping the surface stable; a spring
+      // overshoot past scale 1 briefly grows the bounds instead of clipping the member.
+      val bounds = members.flatMap { listOf(it.layoutRect, it.rect) }.reduce { a, b ->
         Rect(minOf(a.left, b.left), minOf(a.top, b.top), maxOf(a.right, b.right), maxOf(a.bottom, b.bottom))
       }.inflate(spacing)
       val opticalSize = checkNotNull(model.opticalSize)

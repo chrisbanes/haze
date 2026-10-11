@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -31,6 +32,7 @@ import assertk.assertions.containsExactly
 import assertk.assertions.hasSize
 import assertk.assertions.isCloseTo
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isLessThan
 import assertk.assertions.isTrue
 import assertk.assertions.prop
@@ -136,6 +138,29 @@ class GlassContainerInteractionTest : ContextTest() {
     assertThat(member.lightRadius).isCloseTo(72f * fixture.first.interactionLightRadiusFraction, 0.01f)
   }
 
+  @Test
+  fun releaseOvershoot_staysInsideClusterSurface() = runComposeUiTest {
+    // Abutting members with a 2px spacing: a 4% overshoot pushes A's outer edge past the spacing.
+    val bouncy = GlassStyle { pressed { animate(spring(dampingRatio = 0.5f, stiffness = 200f), spring(dampingRatio = 0.5f, stiffness = 200f)) { scale(0.5f) } } }
+    val fixture = cluster(gap = 0, spacing = 2, pressed = bouncy)
+    val press = fixture.press(fixture.firstSource)
+    mainClock.autoAdvance = false
+    runBlocking { fixture.firstSource.emit(PressInteraction.Release(press)) }
+    var overshot = false
+    var minLeft = Float.POSITIVE_INFINITY
+    repeat(120) {
+      mainClock.advanceTimeByFrame()
+      waitForIdle()
+      overshot = overshot || fixture.first.currentInteractionState.scaleX > 1.04f
+      val field = fixture.owner().renderer.runtimeSurfaces.singleOrNull()?.mergedField ?: return@repeat
+      minLeft = minOf(minLeft, field.members.minOf { it.rect.left })
+    }
+    assertThat(overshot).isTrue()
+    assertThat(minLeft, "merged field observed").isLessThan(Float.POSITIVE_INFINITY)
+    // Field rects are relative to the surface bounds, so a negative edge is clipped.
+    assertThat(minLeft).isGreaterThanOrEqualTo(0f)
+  }
+
   private val lit = GlassStyle { pressed { lightingIntensity(1f) } }
 
   private class ClusterFixture(
@@ -163,6 +188,7 @@ class GlassContainerInteractionTest : ContextTest() {
 
   private fun ComposeUiTest.cluster(
     gap: Int = 10,
+    spacing: Int = 40,
     pressed: GlassStyle = GlassStyle { pressed { scale(0.9f) } },
     policy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.Full,
     pivot: GlassTransformPivot = GlassTransformPivot.Center,
@@ -175,7 +201,7 @@ class GlassContainerInteractionTest : ContextTest() {
     setContent {
       Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
         Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
-        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp)) {
+        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(spacing.dp)) {
           Box(
             Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).then(firstModifier).hazeGlass(
               HazeEffectFactory { first }, HazeInput.Sources(state), containerTestStyle(Color.Red).then(pressed),
