@@ -260,7 +260,9 @@ class GlassContainerMembershipTest : ContextTest() {
       val context = checkNotNull(pill.attachedContextForTest)
       val expected = resolveGlassStyle(pill, context.modifierSize, context.requireDensity(), LayoutDirection.Ltr).resolvedOptics
       assertThat(expected).isNotEqualTo(before)
-      assertThat(container.model.surfaces.single().members.single().material.resolvedOptics).isEqualTo(expected)
+      // The removed card's glass may still retract into the pill, so find the pill's own snapshot.
+      val snapshot = container.model.surfaces.flatMap { it.members }.single { it.identity === pill.memberBindingForTest?.node }
+      assertThat(snapshot.material.resolvedOptics).isEqualTo(expected)
     }
   }
 

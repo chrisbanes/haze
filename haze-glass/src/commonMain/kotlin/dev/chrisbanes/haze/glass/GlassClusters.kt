@@ -61,6 +61,7 @@ internal fun glassMergeKey(
  * does a member whose interaction scale is currently non-uniform.
  * [rect] includes the member's interaction transform and drives clustering; [layoutRect] does not,
  * so surface bounds and optics stay put while a member is pressed.
+ * A member with a [link] is transitioning with that member and stays connected to it at any gap.
  */
 internal data class GlassMemberSnapshot(
   val identity: Any,
@@ -69,6 +70,7 @@ internal data class GlassMemberSnapshot(
   val material: ResolvedGlassStyle,
   val translationOnly: Boolean,
   val layoutRect: Rect,
+  val link: Any? = null,
 )
 
 @Poko
@@ -99,9 +101,11 @@ internal fun glassMemberGap(a: Rect, b: Rect): Float = hypot(
   maxOf(a.top - b.bottom, b.top - a.bottom, 0f),
 )
 
+/** [opticalSize] defaults to every member's layout rect; a container passes its live members' only. */
 internal fun clusterGlassMembers(
   members: List<GlassMemberSnapshot>,
   spacingPx: Float,
+  opticalSize: Size? = glassOpticalSize(members.filter { it.rect.isValidGlassMember() }.map { it.layoutRect }),
 ): GlassClusterModel {
   require(spacingPx.isFinite() && spacingPx >= 0f)
   val valid = members.filter { it.rect.isValidGlassMember() }
@@ -119,7 +123,11 @@ internal fun clusterGlassMembers(
         val candidate = valid[index]
         if (
           member.translationOnly && candidate.translationOnly &&
-          member.key == candidate.key && glassMemberGap(member.rect, candidate.rect) < spacingPx / 2f
+          member.key == candidate.key &&
+          (
+            glassMemberGap(member.rect, candidate.rect) < spacingPx / 2f ||
+              member.link === candidate.identity || candidate.link === member.identity
+            )
         ) {
           component += index
           iterator.remove()
@@ -149,7 +157,7 @@ internal fun clusterGlassMembers(
   // An intervening singleton must retain registration order relative to disjoint components.
   return GlassClusterModel(
     surfaces.sortedBy { surface -> valid.indexOf(surface.members.first()) },
-    glassOpticalSize(valid.map { it.layoutRect }),
+    opticalSize,
     overflow,
   )
 }

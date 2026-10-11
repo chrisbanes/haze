@@ -181,7 +181,7 @@ internal abstract class GlassRuntimeState {
   internal val surfaceProfile: SurfaceProfile get() = inheritedStyleValues.surfaceProfile
   internal val chromaticAberrationMode: ChromaticAberrationMode get() = inheritedStyleValues.chromaticAberrationMode
   internal val shape: RoundedCornerShape get() = inheritedStyleValues.shape
-  internal open val alpha: Float get() = inheritedStyleValues.alpha
+  internal open val alpha: Float get() = inheritedStyleValues.alpha * transitionAlpha
   internal val contrast: Float get() = inheritedStyleValues.contrast
   internal val whitePoint: Float get() = inheritedStyleValues.whitePoint
   internal val chromaMultiplier: Float get() = inheritedStyleValues.chromaMultiplier
@@ -214,6 +214,15 @@ internal abstract class GlassRuntimeState {
       if (field != value) {
         field = value
         markDirty(GlassDirtyFields.OpticalSize)
+      }
+    }
+
+  /** A container's Materialize fade multiplier; 1 outside a transition. */
+  internal var transitionAlpha: Float = 1f
+    set(value) {
+      if (field != value) {
+        field = value
+        markDirty(GlassDirtyFields.Alpha)
       }
     }
 

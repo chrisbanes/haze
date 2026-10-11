@@ -131,6 +131,7 @@ internal class GlassMemberNode(
     }
     this.binding.surface?.relocateTo(null)
     this.binding.runtime?.opticalSizeOverride = null
+    this.binding.runtime?.transitionAlpha = 1f
     this.binding.node = null
     this.binding = binding
     if (isAttached) {
@@ -144,6 +145,7 @@ internal class GlassMemberNode(
     container = null
     binding.surface?.relocateTo(null)
     binding.runtime?.opticalSizeOverride = null
+    binding.runtime?.transitionAlpha = 1f
     binding.node = null
   }
 }
