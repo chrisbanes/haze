@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import assertk.Assert
 import assertk.all
 import assertk.assertThat
+import assertk.assertions.containsExactly
 import assertk.assertions.hasSize
 import assertk.assertions.isCloseTo
 import assertk.assertions.isEmpty
@@ -319,6 +320,50 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun anchorCollapses_endsGhostWithoutCrashing() = runComposeUiTest {
+    val fixture = fixture(gap = 100, transition = GlassMemberTransition.Materialize)
+    fixture.toggle()
+    fixture.advance(48)
+    runOnIdle { fixture.aWidth.value = 0 }
+    fixture.advance(16)
+    assertThat(fixture.owner().model.surfaces).isEmpty()
+    fixture.settle()
+  }
+
+  @Test
+  fun anchorChangesInput_endsGhost() = runComposeUiTest {
+    val fixture = fixture(gap = 100, transition = GlassMemberTransition.Materialize)
+    fixture.toggle()
+    fixture.advance(48)
+    // The departing glass must never draw the anchor's new input.
+    runOnIdle { fixture.aState.value = HazeState() }
+    fixture.advance(16)
+    assertThat(fixture.owner().model.surfaces.flatMap { it.members }.map { it.identity }).containsExactly(fixture.aNode)
+    fixture.settle()
+  }
+
+  @Test
+  fun materializeMembersFadingTogether_neverShareAField() = runComposeUiTest {
+    val fixture = fixture(present = false, withA = false, transition = GlassMemberTransition.Materialize)
+    runOnIdle {
+      fixture.aPresent.value = true
+      fixture.present.value = true
+    }
+    var fadingFrames = 0
+    repeat(18) {
+      fixture.advance(16)
+      val owner = checkNotNull(fixture.b.memberBindingForTest?.node?.container)
+      if (fixture.a.transitionAlpha < 1f && fixture.b.transitionAlpha < 1f) {
+        fadingFrames++
+        assertThat(owner.model.surfaces.map { it.members.size }).containsExactly(1, 1)
+      }
+    }
+    assertThat(fadingFrames).isGreaterThan(0)
+    fixture.settle()
+    assertThat(checkNotNull(fixture.b.memberBindingForTest?.node?.container).model.surfaces.single().members).hasSize(2)
+  }
+
+  @Test
   fun lastMemberLeaves_disappearsImmediately() = runComposeUiTest {
     val fixture = fixture(gap = 100, transition = GlassMemberTransition.Materialize, withA = false)
     fixture.toggle()
@@ -352,6 +397,8 @@ class GlassContainerTransitionTest : ContextTest() {
     val aPresent: MutableState<Boolean>,
     val enabled: MutableState<Boolean>,
     val nested: MutableState<Boolean>,
+    val aWidth: MutableState<Int>,
+    val aState: MutableState<HazeState>,
   ) {
     val aNode: GlassMemberNode? = a.memberBindingForTest?.node
     lateinit var owner: GlassContainerNode
@@ -409,12 +456,14 @@ class GlassContainerTransitionTest : ContextTest() {
     val enabled = mutableStateOf(true)
     val nested = mutableStateOf(false)
     val state = HazeState()
+    val aWidth = mutableStateOf(100)
+    val aState = mutableStateOf(state)
     setContent {
       Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
         Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
         Box(Modifier.size(360.dp, 240.dp).then(if (enabled.value) Modifier.hazeGlassContainer(40.dp, spec, policy) else Modifier)) {
           if (aPresent.value) {
-            Box(Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(state), containerTestStyle(Color.Red), HazePerformanceMode.Quality, true, null))
+            Box(Modifier.offset(40.dp, 60.dp).size(aWidth.value.dp, 80.dp).hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(aState.value), containerTestStyle(Color.Red), HazePerformanceMode.Quality, true, null))
           }
           Box(Modifier.size(360.dp, 240.dp).then(if (nested.value) Modifier.hazeGlassContainer(40.dp) else Modifier)) {
             if (bPresent.value) {
@@ -438,7 +487,7 @@ class GlassContainerTransitionTest : ContextTest() {
     }
     waitForIdle()
     mainClock.autoAdvance = false
-    return Fixture(this, a, b, bPresent, aPresent, enabled, nested)
+    return Fixture(this, a, b, bPresent, aPresent, enabled, nested, aWidth, aState)
   }
 
   private object NoMotion : MotionDurationScale {

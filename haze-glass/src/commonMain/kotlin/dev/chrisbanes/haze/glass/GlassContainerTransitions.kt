@@ -114,7 +114,6 @@ internal class GlassMemberGhost(val last: GlassMemberSnapshot, val neighbour: Gl
       return GlassMemberSnapshot(this, rect, neighbourSnapshot.key, merged, true, rect, link = neighbour)
     }
     val alpha = last.material.alpha * progress.value.coerceIn(0f, 1f)
-    // Alpha is part of the merge key, so a fading ghost never shares a field.
-    return GlassMemberSnapshot(this, last.layoutRect, last.key.copy(alpha = alpha), last.material.copy(alpha = alpha), true, last.layoutRect)
+    return GlassMemberSnapshot(this, last.layoutRect, last.key, last.material.copy(alpha = alpha), true, last.layoutRect, fading = true)
   }
 }

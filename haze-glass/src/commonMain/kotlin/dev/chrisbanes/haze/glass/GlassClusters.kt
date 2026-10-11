@@ -62,6 +62,7 @@ internal fun glassMergeKey(
  * [rect] includes the member's interaction transform and drives clustering; [layoutRect] does not,
  * so surface bounds and optics stay put while a member is pressed.
  * A member with a [link] is transitioning with that member and stays connected to it at any gap.
+ * A [fading] member's alpha differs from any field it could join, so it never merges.
  */
 internal data class GlassMemberSnapshot(
   val identity: Any,
@@ -71,6 +72,7 @@ internal data class GlassMemberSnapshot(
   val translationOnly: Boolean,
   val layoutRect: Rect,
   val link: Any? = null,
+  val fading: Boolean = false,
 )
 
 @Poko
@@ -122,7 +124,7 @@ internal fun clusterGlassMembers(
         val index = iterator.next()
         val candidate = valid[index]
         if (
-          member.translationOnly && candidate.translationOnly &&
+          member.translationOnly && candidate.translationOnly && !member.fading && !candidate.fading &&
           member.key == candidate.key &&
           (
             glassMemberGap(member.rect, candidate.rect) < spacingPx / 2f ||

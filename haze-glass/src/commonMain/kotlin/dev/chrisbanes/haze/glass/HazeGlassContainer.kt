@@ -151,12 +151,7 @@ internal class GlassContainerNode(
     // to its own shape and a ghost drawn through the leaving member disappears.
     attaching.values.filter { it.neighbour === member }.forEach { it.job?.cancel() }
     attaching.values.removeAll { it.neighbour === member }
-    val ended = registrations.filterIsInstance<GlassMemberGhost>().filter { it.anchor === member }
-    ended.forEach {
-      it.job?.cancel()
-      latest.remove(it)
-    }
-    registrations.removeAll(ended)
+    endGhosts { it.anchor === member }
     member.binding.runtime?.let {
       it.opticalSizeOverride = null
       it.transitionAlpha = 1f
@@ -168,6 +163,15 @@ internal class GlassContainerNode(
       if (ghost != null) registrations[index] = ghost else registrations.removeAt(index)
     }
     memberChanged()
+  }
+
+  private fun endGhosts(predicate: (GlassMemberGhost) -> Boolean) {
+    val ended = registrations.filterIsInstance<GlassMemberGhost>().filter(predicate)
+    ended.forEach {
+      it.job?.cancel()
+      latest.remove(it)
+    }
+    registrations.removeAll(ended)
   }
 
   private fun ghostOf(member: GlassMemberNode, last: GlassMemberSnapshot): GlassMemberGhost? {
@@ -214,14 +218,26 @@ internal class GlassContainerNode(
         runtime.refreshMemberMaterial()
       }
       val live = liveSnapshots()
+      // A ghost draws through its anchor's surface, so it ends once that anchor cannot draw it: the
+      // anchor collapsed, left the layout or changed input. A valid anchor also keeps the model's
+      // optical size non-null while ghosts remain.
+      endGhosts { ghost ->
+        val anchor = live[ghost.anchor]
+        anchor == null || !anchor.layoutRect.isValidGlassMember() ||
+          anchor.key.input != ghost.last.key.input || anchor.key.expandLayerBounds != ghost.last.key.expandLayerBounds
+      }
       val snapshots = registrations.mapNotNull { registration ->
         when (registration) {
           is GlassMemberNode -> live[registration]?.let { snapshot ->
-            val neighbour = attaching[registration]?.neighbour?.let(live::get) ?: return@let snapshot
-            val (rect, material) = snapshot.morphedFrom(neighbour, checkNotNull(attaching[registration]).progress.value)
+            val attach = attaching[registration] ?: return@let snapshot
+            // A fading member draws alone until it is opaque, even beside an equally faded member.
+            if (attach.neighbour == null) return@let snapshot.copy(fading = true)
+            val neighbour = live[attach.neighbour] ?: return@let snapshot
+            val (rect, material) = snapshot.morphedFrom(neighbour, attach.progress.value)
             registration.snapshot(rect, snapshot.key, material, link = neighbour.identity)
           }
-          is GlassMemberGhost -> registration.snapshot(registration.neighbour?.let { live[it] ?: return@mapNotNull null })
+          // A ghost's neighbour is its anchor, which is live after the pruning above.
+          is GlassMemberGhost -> registration.snapshot(registration.neighbour?.let(live::getValue))
           else -> null
         }
       }
