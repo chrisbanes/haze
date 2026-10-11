@@ -139,6 +139,26 @@ class MergedGlassFieldShaderTest {
   }
 
   @Test
+  fun mergedLighting_staysOnLitMember() {
+    val field = mergedField(
+      mergedMember(0f, 0f, 100f, 40f, lightPosition = Offset(50f, 20f), lightRadius = 40f, lightIntensity = 1f),
+      mergedMember(110f, 0f, 100f, 40f),
+    )
+    assertThat(lightAt(field, Offset(50f, 20f))).isGreaterThan(0.5f)
+    assertThat(lightAt(field, Offset(160f, 20f))).isEqualTo(0f)
+  }
+
+  @Test
+  fun mergedLighting_twoLightsLightTwoMembers() {
+    val field = mergedField(
+      mergedMember(0f, 0f, 100f, 40f, lightPosition = Offset(50f, 20f), lightRadius = 40f, lightIntensity = 1f),
+      mergedMember(110f, 0f, 100f, 40f, lightPosition = Offset(160f, 20f), lightRadius = 40f, lightIntensity = 1f),
+    )
+    assertThat(lightAt(field, Offset(50f, 20f))).isGreaterThan(0.5f)
+    assertThat(lightAt(field, Offset(160f, 20f))).isGreaterThan(0.5f)
+  }
+
+  @Test
   fun mergedSources_compile() {
     listOf(
       GlassShaders.buildFused(merged = true),
@@ -148,6 +168,7 @@ class MergedGlassFieldShaderTest {
       GlassShaders.buildRefractionDetail(coverageOnly = true, merged = true),
       GlassShaders.buildRim(merged = true),
       GlassShaders.buildMergedBackground(),
+      GlassShaders.buildInteractionLighting(merged = true),
     ).forEach { RuntimeEffect.makeForShader(it).close() }
   }
 
@@ -205,6 +226,24 @@ class MergedGlassFieldShaderTest {
       restore()
     }
     return image.toPixelMap()[0, 0]
+  }
+
+  /** Evaluates the merged lighting stage's per-member light at [point], encoded in red. */
+  private fun lightAt(field: GlassMergedField, point: Offset): Float {
+    val prefix = GlassShaders.buildInteractionLighting(merged = true).substringBefore("vec4 main(vec2 coord)")
+    val shader = createRuntimeEffect(prefix + "\nuniform float2 probe;\nvec4 main(vec2 coord) { return vec4(memberLight(probe), 0.0, 0.0, 1.0); }")
+    val filter = createRuntimeShaderRenderEffect(shader, arrayOf("content"), arrayOf(null)) {
+      setMergedFieldUniforms(field, includeLighting = true)
+      setFloatUniform("probe", point.x, point.y)
+    }
+    val image = ImageBitmap(1, 1)
+    with(Canvas(image)) {
+      val bounds = Rect(0f, 0f, 1f, 1f)
+      saveLayer(bounds, Paint().apply { skiaPaint.imageFilter = filter })
+      drawRect(bounds, Paint().apply { color = Color.Black })
+      restore()
+    }
+    return image.toPixelMap()[0, 0].red
   }
 
   private fun assertColor(actual: Color, expected: Color) {

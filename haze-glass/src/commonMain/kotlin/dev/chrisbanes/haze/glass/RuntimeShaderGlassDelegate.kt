@@ -365,6 +365,7 @@ internal class RuntimeShaderGlassDelegate(
           coordinates = patch.coordinates,
           edgeSoftnessPx = params.edgeSoftnessPx,
           cornerRadii = params.cornerRadii,
+          mergedField = params.mergedField,
         ),
         patch = patch,
       ) ?: return null
@@ -426,6 +427,7 @@ internal class RuntimeShaderGlassDelegate(
           coordinates = patch.coordinates,
           edgeSoftnessPx = params.edgeSoftnessPx,
           cornerRadii = params.cornerRadii,
+          mergedField = params.mergedField,
         ),
         uniforms = patch.uniforms,
       )
@@ -555,6 +557,7 @@ internal class RuntimeShaderGlassDelegate(
                     coordinates = interactionPatch.coordinates,
                     edgeSoftnessPx = params.edgeSoftnessPx,
                     cornerRadii = params.cornerRadii,
+                    mergedField = params.mergedField,
                   ),
                   patch = interactionPatch,
                 )
@@ -782,6 +785,7 @@ internal class RuntimeShaderGlassDelegate(
                   coordinates = interactionPatch.coordinates,
                   edgeSoftnessPx = params.edgeSoftnessPx,
                   cornerRadii = params.cornerRadii,
+                  mergedField = params.mergedField,
                 ),
                 patch = interactionPatch,
               )
@@ -1696,7 +1700,7 @@ internal class RuntimeShaderGlassDelegate(
     if (interactionLightingEffect != null) return
     interactionLightingEffect = traceCreateRenderEffect {
       createMutableRuntimeShaderRenderEffect(
-        effect = GLASS_INTERACTION_LIGHTING_EFFECT,
+        effect = if (stageShadersMerged) GLASS_MERGED_INTERACTION_LIGHTING_EFFECT else GLASS_INTERACTION_LIGHTING_EFFECT,
         shaderNames = arrayOf("content"),
         inputs = arrayOf(null),
       )
@@ -1856,6 +1860,8 @@ internal class RuntimeShaderGlassDelegate(
     refractionDetailShader = null
     refractionDetailCoverageShader = null
     rimShader = null
+    interactionLightingEffect = null
+    clearInteractionLightingEffectCache()
     stageShadersMerged = merged
   }
 
@@ -2426,6 +2432,9 @@ private val GLASS_MERGED_REFRACTION_DETAIL_COVERAGE_EFFECT by lazy(LazyThreadSaf
 private val GLASS_MERGED_RIM_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildRim(merged = true))
 }
+private val GLASS_MERGED_INTERACTION_LIGHTING_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
+  createRuntimeEffect(GlassShaders.buildInteractionLighting(merged = true))
+}
 
 internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
   key: GlassOpticalEffectKey,
@@ -2527,8 +2536,13 @@ internal fun RuntimeShaderUniformProvider.setInteractionLightingUniforms(
     key.cornerRadii.bottomRight,
     key.cornerRadii.bottomLeft,
   )
-  setInteractionPositionUniforms(uniforms)
-  setFloatUniform("interactionLightingIntensity", uniforms.lightingIntensity)
+  val field = key.mergedField
+  if (field != null) {
+    setMergedFieldUniforms(field, includeLighting = true)
+  } else {
+    setInteractionPositionUniforms(uniforms)
+    setFloatUniform("interactionLightingIntensity", uniforms.lightingIntensity)
+  }
 }
 
 private fun RuntimeShaderUniformProvider.setInteractionOutputUniforms(

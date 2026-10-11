@@ -105,7 +105,20 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
   }
 }
 
+/** Maps member-local values through the member's draw-time interaction scale, as it draws alone. */
 private fun GlassMemberSnapshot.toMergedMember(origin: Offset): GlassMergedMember {
-  val scale = minOf(rect.width / layoutRect.width, rect.height / layoutRect.height)
-  return GlassMergedMember(rect.translate(-origin), material.cornerRadii * scale, material.tint, material.backgroundColor)
+  val scaleX = rect.width / layoutRect.width
+  val scaleY = rect.height / layoutRect.height
+  val runtime = (identity as GlassMemberNode).binding.runtime
+  val light = runtime?.let { resolveGlassInteraction(it.currentInteractionState, it.interactionLightRadiusFraction) }
+  val topLeft = rect.topLeft - origin
+  return GlassMergedMember(
+    rect = Rect(topLeft, rect.size),
+    cornerRadii = material.cornerRadii * minOf(scaleX, scaleY),
+    tint = material.tint,
+    backgroundColor = material.backgroundColor,
+    lightPosition = light?.position?.takeIf { it.x.isFinite() && it.y.isFinite() }?.let { topLeft + Offset(it.x * scaleX, it.y * scaleY) } ?: topLeft,
+    lightRadius = (rect.minDimension * (light?.radiusFraction ?: 0f)).takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f,
+    lightIntensity = light?.lightingIntensity ?: 0f,
+  )
 }

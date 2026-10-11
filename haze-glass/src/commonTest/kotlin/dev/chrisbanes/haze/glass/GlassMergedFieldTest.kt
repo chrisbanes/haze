@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -27,11 +28,17 @@ internal fun mergedMember(
   radius: Float = 0f,
   tint: Color = Color.Transparent,
   backgroundColor: Color = Color.Transparent,
+  lightPosition: Offset = Offset.Zero,
+  lightRadius: Float = 0f,
+  lightIntensity: Float = 0f,
 ) = GlassMergedMember(
   rect = Rect(left, top, left + width, top + height),
   cornerRadii = CornerRadii(radius, radius, radius, radius),
   tint = tint,
   backgroundColor = backgroundColor,
+  lightPosition = lightPosition,
+  lightRadius = lightRadius,
+  lightIntensity = lightIntensity,
 )
 
 internal fun mergedField(
@@ -134,28 +141,7 @@ class GlassMergedFieldTest {
   @Test
   fun setMergedFieldUniforms_padsUnusedSlots() {
     val recorded = mutableMapOf<String, List<Float>>()
-    val provider = object : RuntimeShaderUniformProvider {
-      override fun setColorUniform(name: String, color: Color) {
-        recorded[name] = listOf(color.red, color.green, color.blue, color.alpha)
-      }
-
-      override fun setFloatUniform(name: String, value: Float) {
-        recorded[name] = listOf(value)
-      }
-
-      override fun setFloatUniform(name: String, value1: Float, value2: Float) = error(name)
-
-      override fun setFloatUniform(name: String, value1: Float, value2: Float, value3: Float, value4: Float) =
-        error(name)
-
-      override fun setFloatUniform(name: String, values: FloatArray) {
-        recorded[name] = values.toList()
-      }
-
-      override fun setIntUniform(name: String, value: Int) = error(name)
-
-      override fun setChildShader(name: String, shader: Shader) = error(name)
-    }
+    val provider = recordingUniforms(recorded)
     provider.setMergedFieldUniforms(
       mergedField(mergedMember(1f, 2f, 3f, 4f, radius = 5f, tint = Color.Red)),
       includeTint = true,
@@ -169,4 +155,52 @@ class GlassMergedFieldTest {
     assertThat(recorded.getValue("memberTint3")).containsExactly(0f, 0f, 0f, 0f)
     assertThat(recorded.getValue("memberBackground1")).containsExactly(0f, 0f, 0f, 0f)
   }
+
+  @Test
+  fun setMergedFieldUniforms_padsLightingArrays() {
+    val recorded = mutableMapOf<String, List<Float>>()
+    recordingUniforms(recorded).setMergedFieldUniforms(
+      mergedField(
+        mergedMember(0f, 0f, 10f, 10f, lightPosition = Offset(3f, 4f), lightRadius = 5f, lightIntensity = 1f),
+        mergedMember(20f, 0f, 10f, 10f),
+      ),
+      includeLighting = true,
+    )
+    assertThat(recorded.getValue("memberLightPositions")).isEqualTo(listOf(3f, 4f) + List(6) { 0f })
+    assertThat(recorded.getValue("memberLightRadii")).isEqualTo(listOf(5f, 0f, 0f, 0f))
+    assertThat(recorded.getValue("memberLightIntensities")).isEqualTo(listOf(1f, 0f, 0f, 0f))
+  }
+
+  @Test
+  fun scaled_scalesLightPositionAndRadius() {
+    val member = mergedField(
+      mergedMember(0f, 0f, 10f, 10f, lightPosition = Offset(4f, 6f), lightRadius = 8f, lightIntensity = 0.5f),
+    ).scaled(0.5f).members.single()
+    assertThat(member.lightPosition).isEqualTo(Offset(2f, 3f))
+    assertThat(member.lightRadius).isEqualTo(4f)
+    assertThat(member.lightIntensity).isEqualTo(0.5f)
+  }
+}
+
+private fun recordingUniforms(recorded: MutableMap<String, List<Float>>) = object : RuntimeShaderUniformProvider {
+  override fun setColorUniform(name: String, color: Color) {
+    recorded[name] = listOf(color.red, color.green, color.blue, color.alpha)
+  }
+
+  override fun setFloatUniform(name: String, value: Float) {
+    recorded[name] = listOf(value)
+  }
+
+  override fun setFloatUniform(name: String, value1: Float, value2: Float) = error(name)
+
+  override fun setFloatUniform(name: String, value1: Float, value2: Float, value3: Float, value4: Float) =
+    error(name)
+
+  override fun setFloatUniform(name: String, values: FloatArray) {
+    recorded[name] = values.toList()
+  }
+
+  override fun setIntUniform(name: String, value: Int) = error(name)
+
+  override fun setChildShader(name: String, shader: Shader) = error(name)
 }

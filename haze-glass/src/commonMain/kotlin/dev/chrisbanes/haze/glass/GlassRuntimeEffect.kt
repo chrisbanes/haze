@@ -846,9 +846,8 @@ internal class GlassRuntimeEffect() :
     }
     val style = resolvePreparedStyle(context)
     val interaction = resolvePreparedInteraction(context)
-    // Budget for the layers buildGlassPreparedRender keeps, which drops interaction while merged.
-    val interactionTopology =
-      if (style.mergedField != null) MergedInteractionTopology else interactionTopologySnapshot
+    // Budget for the layers buildGlassPreparedRender keeps, which merges only interaction lighting.
+    val interactionTopology = style.mergedField?.interactionTopology ?: interactionTopologySnapshot
     val optics = style.resolvedOptics
     val allowNativeWideBlur = optics.progressive == null
     val buildPlan: (Float) -> GlassRetainedLayerPlan = buildPlan@{ scaleFactor ->
@@ -868,7 +867,11 @@ internal class GlassRuntimeEffect() :
       val outputSize = context.modifierSize.roundToIntSize()
       val interactionPatchSize = calculateGlassInteractionPatchSize(
         buildGlassRenderParams(style, coordinates),
-        radiusFraction = interaction.radiusFraction,
+        radiusFraction = if (interactionTopology === MergedLightingTopology) {
+          coordinates.mergedLightingRadiusFraction()
+        } else {
+          interaction.radiusFraction
+        },
         topology = interactionTopology,
       )
       val interactionLayersActive =

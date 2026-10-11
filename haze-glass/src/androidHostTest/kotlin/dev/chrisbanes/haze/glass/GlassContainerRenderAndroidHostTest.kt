@@ -6,14 +6,19 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
@@ -29,6 +34,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.math.roundToInt
+import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLog
@@ -71,6 +77,47 @@ class GlassContainerRenderAndroidHostTest : ScreenshotTest() {
     assertThat(checkNotNull(params.mergedField).members.size).isEqualTo(2)
     assertThat(params.coordinates.scaleFactor).isEqualTo(HazePerformanceMode.Balanced.resolveGlassInputScale())
     assertThat((runtime.delegate as RuntimeShaderGlassDelegate).layers.source?.isReleased).isEqualTo(false)
+  }
+
+  @Test
+  @Config(sdk = [35])
+  fun sdk35_pressedMergedMembers_drawPerMemberLighting() = assertPressedLighting()
+
+  @Test
+  @Config(sdk = [37])
+  fun sdk37_pressedMergedMembers_drawPerMemberLighting() = assertPressedLighting()
+
+  private fun assertPressedLighting() = runScreenshotTest(size = Size(360f, 240f)) {
+    val state = HazeState()
+    val sources = List(2) { MutableInteractionSource() }
+    val effects = List(2) { GlassRuntimeEffect() }
+    val lit = style(Color.Green).then(GlassStyle { pressed { lightingIntensity(1f) } })
+    setContent {
+      Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp)) {
+          effects.forEachIndexed { index, effect ->
+            Box(
+              Modifier.offset((40 + index * 110).dp, 60.dp).size(100.dp, 80.dp)
+                .hazeGlass(HazeEffectFactory { effect }, HazeInput.Sources(state), lit, HazePerformanceMode.Quality, true, sources[index]),
+            )
+          }
+        }
+      }
+    }
+    val bounds = onNodeWithTag("root").fetchSemanticsNode().boundsInRoot
+    fun PixelMap.at(x: Float) = this[(bounds.left + x * bounds.width / 360f).roundToInt(), (bounds.top + 100f * bounds.height / 240f).roundToInt()]
+    val rest = captureRootPixels()
+    sources.forEach { source ->
+      runBlocking { source.emit(PressInteraction.Press(Offset(50f, 40f))) }
+      waitForIdle()
+    }
+    val pressed = captureRootPixels()
+    val owner = checkNotNull(effects.first().memberBindingForTest?.node?.container)
+    assertThat(owner.renderer.runtimeSurfaces.size).isEqualTo(1)
+    for (x in listOf(90f, 200f)) {
+      assertThat(pressed.at(x).luminance(), "luminance at x=$x").isGreaterThan(rest.at(x).luminance())
+    }
   }
 
   @Test

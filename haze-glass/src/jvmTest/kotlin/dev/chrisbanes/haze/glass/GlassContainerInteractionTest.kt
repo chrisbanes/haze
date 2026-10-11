@@ -16,6 +16,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.captureToImage
@@ -25,8 +27,12 @@ import androidx.compose.ui.unit.dp
 import assertk.Assert
 import assertk.all
 import assertk.assertThat
+import assertk.assertions.containsExactly
 import assertk.assertions.hasSize
 import assertk.assertions.isCloseTo
+import assertk.assertions.isGreaterThan
+import assertk.assertions.isLessThan
+import assertk.assertions.isTrue
 import assertk.assertions.prop
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
@@ -34,6 +40,7 @@ import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
+import kotlin.math.abs
 import kotlin.test.Test
 import kotlinx.coroutines.runBlocking
 
@@ -84,6 +91,33 @@ class GlassContainerInteractionTest : ContextTest() {
     assertThat(fixture.owner().model.surfaces).hasSize(2)
   }
 
+  @Test
+  fun pressOneMember_populatesItsLightOnly() = runComposeUiTest {
+    val fixture = cluster(pressed = lit)
+    val rest = fixture.capture()
+    fixture.press(fixture.firstSource)
+    val members = fixture.field().members
+    assertThat(members.map { it.lightIntensity }).containsExactly(1f, 0f)
+    assertThat(members[0].rect.contains(members[0].lightPosition)).isTrue()
+    val pressed = fixture.capture()
+    assertThat(pressed[90, 100].luminance()).isGreaterThan(rest[90, 100].luminance())
+    assertThat(abs(pressed[200, 100].luminance() - rest[200, 100].luminance())).isLessThan(1f / 255f)
+  }
+
+  @Test
+  fun pressBothMembers_lightsBoth() = runComposeUiTest {
+    val fixture = cluster(pressed = lit)
+    val rest = fixture.capture()
+    fixture.press(fixture.firstSource)
+    fixture.press(fixture.secondSource)
+    assertThat(fixture.field().members.map { it.lightIntensity }).containsExactly(1f, 1f)
+    val pressed = fixture.capture()
+    assertThat(pressed[90, 100].luminance()).isGreaterThan(rest[90, 100].luminance())
+    assertThat(pressed[200, 100].luminance()).isGreaterThan(rest[200, 100].luminance())
+  }
+
+  private val lit = GlassStyle { pressed { lightingIntensity(1f) } }
+
   private class ClusterFixture(
     val test: ComposeUiTest,
     val first: GlassRuntimeEffect,
@@ -92,6 +126,7 @@ class GlassContainerInteractionTest : ContextTest() {
   ) {
     fun owner() = checkNotNull(first.memberBindingForTest?.node?.container)
     fun field() = checkNotNull(owner().renderer.runtimeSurfaces.single().mergedField)
+    fun capture() = test.onNodeWithTag("root").captureToImage().toPixelMap()
 
     fun press(source: MutableInteractionSource, position: Offset = Offset(50f, 40f)): PressInteraction.Press {
       val press = PressInteraction.Press(position)
