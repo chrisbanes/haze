@@ -97,6 +97,8 @@ internal class HazeEffectNode(
     }
 
   private val backdropBackendState = HazeBackdropBackendState()
+  private val configuredSurfaces = mutableSetOf<HazeConfiguredSurfaceDraw>()
+  private var backdropEnabledAtAttach = false
   private var backdropRenderer: HazeBackdropRenderer? = null
   private val captureConsumer = Any()
   private var captureDemandAreas: List<HazeArea> = emptyList()
@@ -436,7 +438,8 @@ internal class HazeEffectNode(
 
   override fun onAttach() {
     val previousSources = resolvedSourcesInput()
-    backdropBackendState.attach(HazeFeatureFlags.isPlatformBackdropEnabled)
+    backdropEnabledAtAttach = HazeFeatureFlags.isPlatformBackdropEnabled
+    backdropBackendState.attach(backdropEnabledAtAttach)
     refreshResolvedSourcesInput(previousSources)
     val typedRenderer = typedEffectRenderer ?: createTypedRenderer?.invoke()?.also {
       typedEffectRenderer = it
@@ -1200,6 +1203,7 @@ internal class HazeEffectNode(
 
   private fun dispatchTrimMemory(level: TrimMemoryLevel) {
     typedEffectRenderer?.onTrimMemory(level)
+    configuredSurfaces.toList().forEach { it.onTrimMemory(level) }
   }
 
   internal fun invalidateVisualEffectLayerBounds() {
@@ -1497,6 +1501,26 @@ internal class HazeEffectNode(
     return owner.localBoundingBoxOf(member, clipBounds = false)
   }
 
+  internal fun surfaceLifecycleScope(): HazeEffectLifecycleScope = HazeEffectLifecycleScopeImpl(this)
+  internal fun registerConfiguredSurface(surface: HazeConfiguredSurfaceDraw) {
+    configuredSurfaces += surface
+  }
+  internal fun unregisterConfiguredSurface(surface: HazeConfiguredSurfaceDraw) {
+    configuredSurfaces -= surface
+  }
+  internal fun completeSurfaceDraw() = onPostDraw()
+  internal fun surfaceNativeEligible(): Boolean = !backdropBackendState.usesFallback || surfaceBudgetFallback
+
+  internal fun surfaceInputEntries(owner: LayoutCoordinates?): List<HazeSurfaceInputEntry> {
+    val transform = surfaceTransform(owner) ?: return emptyList()
+    return areas.mapNotNull { area ->
+      val layer = area.drawableContentLayer ?: return@mapNotNull null
+      require(!area.isContentDrawing) { "A relocated effect cannot sample its drawing ancestor source" }
+      val source = Snapshot.withoutReadObservation { sourceTransformInEffect(area) }
+      HazeSurfaceInputEntry(area, layer, Matrix(transform.values.copyOf()).also { it *= source })
+    }
+  }
+
   private fun surfaceTransform(owner: LayoutCoordinates?): Matrix? {
     if (surfaceBounds(owner) == null) return null
     return Matrix().also { checkNotNull(owner).transformFrom(checkNotNull(lastKnownCoordinates), it) }
@@ -1562,6 +1586,9 @@ internal class HazeEffectNode(
       }
       preparedSurfaceBackdrop?.let { material = material.transformedBy(it.materialTransform) }
     }
+    if (!native && shouldPrepareEffectDraw()) {
+      withSurfaceScope(scope, owner) { prepareEffectDraw() }
+    }
     val output = matrix.map(layer.transformedBy(interaction))
     val capture = if (native) {
       // HWUI snapshots the transformed node subset with roundOut(), then filters only that image.
@@ -1598,7 +1625,7 @@ internal class HazeEffectNode(
     surfaceBudgetFallback = false
     val previousSources = resolvedSourcesInput()
     releaseBackdropRenderer()
-    backdropBackendState.attach(HazeFeatureFlags.isPlatformBackdropEnabled)
+    backdropBackendState.attach(backdropEnabledAtAttach)
     refreshResolvedSourcesInput(previousSources)
     update()
   }
@@ -1629,7 +1656,6 @@ internal class HazeEffectNode(
     } finally {
       preparedSurfaceBackdrop = null
       isDrawing = false
-      onPostDraw()
     }
   }
 

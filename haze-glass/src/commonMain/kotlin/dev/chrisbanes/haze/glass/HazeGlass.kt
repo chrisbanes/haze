@@ -110,6 +110,7 @@ internal class GlassNodeConfiguration(
   val interactionTransformPivot: GlassTransformPivot = GlassTransformPivot.Pointer,
   val interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
   val member: GlassMemberBinding? = null,
+  val surfaceSnapshot: GlassSurfaceSnapshot? = null,
 )
 
 internal object GlassHazeEffectFactory : HazeEffectFactory<GlassNodeConfiguration> {

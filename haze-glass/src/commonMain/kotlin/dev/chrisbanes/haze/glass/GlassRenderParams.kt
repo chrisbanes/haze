@@ -577,7 +577,7 @@ private fun ResolvedGlassStyle.withAccessibility(
   )
 }
 
-private fun Alignment.resolveLightPosition(
+internal fun Alignment.resolveLightPosition(
   materialSizePx: Size,
   layoutDirection: LayoutDirection,
 ): Offset = when (this) {

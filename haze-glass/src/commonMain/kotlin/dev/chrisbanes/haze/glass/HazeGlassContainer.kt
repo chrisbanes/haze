@@ -22,14 +22,12 @@ import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectSurface
 import dev.chrisbanes.haze.HazeEffectSurfaceOwner
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.drawHazeEffectSurfaces
-import kotlin.math.ceil
 
 /**
  * Groups nearby, compatible Glass members belonging to this nearest container.
@@ -87,6 +85,8 @@ internal class GlassContainerNode(
   private var children: GraphicsLayer? = null
   private var refreshing = false
   private var overflow = emptyList<GlassClusterOverflow>()
+  internal val renderer = GlassContainerRenderer(this)
+  internal val spacingPx: Float get() = with(requireDensity()) { spacing.toPx() }
   internal var model = GlassClusterModel(emptyList(), null, emptyList())
     private set
 
@@ -102,6 +102,7 @@ internal class GlassContainerNode(
     memberChanged()
   }
   fun remove(member: GlassMemberNode) {
+    renderer.releaseMember(member)
     members.remove(member)
     member.binding.runtime?.opticalSizeOverride = null
     memberChanged()
@@ -120,7 +121,7 @@ internal class GlassContainerNode(
         val material = binding.material ?: return@mapNotNull null
         GlassMemberSnapshot(member, rect, key, material)
       }
-      model = clusterGlassMembers(snapshots, with(requireDensity()) { spacing.toPx() })
+      model = clusterGlassMembers(snapshots, spacingPx)
       if (model.overflow != overflow) {
         overflow = model.overflow
         overflow.forEach { component ->
@@ -134,16 +135,14 @@ internal class GlassContainerNode(
   }
   override fun onSurfaceChanged(surface: HazeEffectSurface) = memberChanged()
   override fun onSurfaceReleased(surface: HazeEffectSurface) = memberChanged()
-  override fun canComposeNativeSurfaces(bounds: Rect): Boolean = IntSize(
-    ceil(bounds.width).toInt(),
-    ceil(bounds.height).toInt(),
-  ).fitsGlassLayerBudget()
+  override fun canComposeNativeSurfaces(bounds: Rect): Boolean = renderer.canComposeNativeSurfaces(bounds)
 
   override fun ContentDrawScope.draw() {
-    drawHazeEffectSurfaces(this@GlassContainerNode, members.mapNotNull { it.binding.surface }, checkNotNull(children))
+    drawHazeEffectSurfaces(this@GlassContainerNode, { renderer.reconcile() }, checkNotNull(children))
   }
 
   override fun onDetach() {
+    renderer.release()
     members.toList().forEach {
       it.binding.surface?.relocateTo(null)
       it.binding.runtime?.opticalSizeOverride = null

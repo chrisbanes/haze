@@ -32,7 +32,10 @@ public interface HazeEffectSurfaceOwner {
 
 /** Opaque core-owned surface. Source selection, capture, retention and native policy stay in core. */
 @InternalHazeApi
-public class HazeEffectSurface internal constructor(private val node: HazeEffectNode) {
+public class HazeEffectSurface internal constructor(
+  internal val node: HazeEffectNode,
+  private val configured: HazeConfiguredSurfaceDraw? = null,
+) {
   internal var owner: HazeEffectSurfaceOwner? = null
     private set
 
@@ -41,23 +44,41 @@ public class HazeEffectSurface internal constructor(private val node: HazeEffect
     if (this.owner === owner) return
     this.owner?.onSurfaceReleased(this)
     this.owner = owner
-    if (owner == null) node.restoreSurfaceInput()
+    if (owner == null) useNativeInput()
     node.invalidateVisualEffectDraw()
     owner?.onSurfaceChanged(this)
   }
 
   /** Member bounds in the owner's coordinates, or null before valid placement. */
-  public fun boundsInOwner(): Rect? = node.surfaceBounds(owner?.surfaceCoordinates)
+  public fun boundsInOwner(): Rect? = configured?.bounds ?: node.surfaceBounds(owner?.surfaceCoordinates)
+
+  /** Creates an independently owned renderer over these members' core-selected input captures. */
+  public fun <Style> createConfiguredSurface(
+    factory: HazeEffectFactory<Style>,
+    style: Style,
+    bounds: Rect,
+    members: List<HazeEffectSurface>,
+  ): HazeConfiguredEffectSurface<Style> = HazeConfiguredEffectSurface(this, factory, style, bounds, members)
 
   internal fun changed() = owner?.onSurfaceChanged(this)
   internal fun release() = relocateTo(null)
-  internal fun footprint(scope: DrawScope): HazeSurfaceFootprint? = node.surfaceFootprint(scope, owner?.surfaceCoordinates)
-  internal fun draw(scope: DrawScope) = node.drawRelocatedSurface(scope, owner?.surfaceCoordinates)
-  internal fun usePortableInput(failed: Boolean = false) = node.usePortableSurfaceInput(failed)
-  internal fun useNativeInput() = node.restoreSurfaceInput()
+  internal fun footprint(scope: DrawScope): HazeSurfaceFootprint? =
+    if (configured != null) configured.footprint(scope, owner) else node.surfaceFootprint(scope, owner?.surfaceCoordinates)
+  internal fun draw(scope: DrawScope) {
+    if (configured != null) configured.draw(scope, owner) else node.drawRelocatedSurface(scope, owner?.surfaceCoordinates)
+  }
+  internal fun completeDraw() {
+    if (configured != null) configured.completeDraw() else node.completeSurfaceDraw()
+  }
+  internal fun usePortableInput(failed: Boolean = false) {
+    if (configured != null) configured.usePortableInput(failed) else node.usePortableSurfaceInput(failed)
+  }
+  internal fun useNativeInput() {
+    if (configured != null) configured.useNativeInput() else node.restoreSurfaceInput()
+  }
 }
 
-internal class HazeSurfaceFootprint(val output: Rect, val nativeCapture: Rect?)
+internal class HazeSurfaceFootprint(val output: Rect, val nativeCapture: Rect?, val needsIsolation: Boolean = false)
 
 /**
  * Records children once, draws material output, then replays children once above every surface.
@@ -70,10 +91,20 @@ public fun ContentDrawScope.drawHazeEffectSurfaces(
   surfaces: List<HazeEffectSurface>,
   children: GraphicsLayer,
 ) {
+  drawHazeEffectSurfaces(owner, { surfaces }, children)
+}
+
+/** Resolves surface topology after child recording has refreshed member captures and snapshots. */
+@InternalHazeApi
+public fun ContentDrawScope.drawHazeEffectSurfaces(
+  owner: HazeEffectSurfaceOwner,
+  surfaces: () -> List<HazeEffectSurface>,
+  children: GraphicsLayer,
+) {
   children.record(size = drawContext.size.toIntSize()) {
     this@drawHazeEffectSurfaces.drawContent()
   }
-  val current = surfaces.filter { it.owner === owner }
+  val current = surfaces().filter { it.owner === owner }
   val footprints = current.map { it.footprint(this) }
   val remaining = current.indices.filter { footprints[it] != null }.toMutableList()
   val components = mutableListOf<List<Int>>()
@@ -99,7 +130,8 @@ public fun ContentDrawScope.drawHazeEffectSurfaces(
     components += component.sorted()
   }
   for (component in components) {
-    val isolate = component.size > 1 && component.any { footprints[it]?.nativeCapture != null }
+    val isolate = component.any { footprints[it]?.needsIsolation == true } ||
+      (component.size > 1 && component.any { footprints[it]?.nativeCapture != null })
     val bounds = component.map { checkNotNull(footprints[it]).output }.reduce { a, b ->
       Rect(minOf(a.left, b.left), minOf(a.top, b.top), maxOf(a.right, b.right), maxOf(a.bottom, b.bottom))
     }
@@ -127,5 +159,6 @@ public fun ContentDrawScope.drawHazeEffectSurfaces(
       component.forEach { current[it].draw(this) }
     }
   }
+  current.forEach { it.completeDraw() }
   drawLayer(children)
 }

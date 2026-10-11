@@ -36,6 +36,7 @@ import dev.chrisbanes.haze.HazeEffectRendererDrawHooks
 import dev.chrisbanes.haze.HazeEffectRendererInteraction
 import dev.chrisbanes.haze.HazeEffectRendererLifecycle
 import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
+import dev.chrisbanes.haze.HazeEffectRendererSurfaceFallback
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazePerformanceMode
@@ -135,7 +136,8 @@ internal class GlassRuntimeEffect() :
   HazeEffectRendererLifecycle<GlassNodeConfiguration>,
   HazeEffectRendererDrawHooks<GlassNodeConfiguration>,
   HazeEffectRendererRetainedOutput,
-  HazeEffectRendererInteraction {
+  HazeEffectRendererInteraction,
+  HazeEffectRendererSurfaceFallback {
 
   constructor(configuration: GlassNodeConfiguration) : this() {
     applyConfiguration(configuration)
@@ -164,6 +166,10 @@ internal class GlassRuntimeEffect() :
 
   private var attachedContext: HazeEffectLifecycleScope? = null
   private var memberBinding: GlassMemberBinding? = null
+  private var surfaceSnapshot: GlassSurfaceSnapshot? = null
+  override val alpha: Float get() = surfaceSnapshot?.material?.alpha ?: super.alpha
+  override val usesMemberSurfaces: Boolean
+    get() = mergedField != null && delegate !is RuntimeShaderGlassDelegate
   internal val memberBindingForTest: GlassMemberBinding? get() = memberBinding
 
   private fun publishMemberMaterial(material: ResolvedGlassStyle) {
@@ -387,14 +393,26 @@ internal class GlassRuntimeEffect() :
     }
     isUpdating = true
     try {
+      val snapshot = style.surfaceSnapshot
+      if (surfaceSnapshot != snapshot) {
+        surfaceSnapshot = snapshot
+        markDirty(GlassDirtyFields.All)
+      }
       applyConfiguration(style, style.performanceMode ?: scope.currentValueOf(LocalHazePerformanceMode))
-      dirtyTrackerSignal
-      systemAppearance = appearanceReader(context)
-      compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
-      accessibilitySettings = context.currentValueOf(LocalGlassAccessibilitySettings)
-      updateStyleInteractionSlots()
-      syncInteractionController(context)
-      publishMemberMaterial(resolveGlassStyle(this, scope.modifierSize, scope.requireDensity(), scope.currentValueOf(LocalLayoutDirection)))
+      if (snapshot != null) {
+        // These values were evaluated in each member's observed context. Never replay a Style or
+        // composition-local appearance at the container-owned surface.
+        mergedField = snapshot.field
+        opticalSizeOverride = snapshot.opticalSize
+      } else {
+        dirtyTrackerSignal
+        systemAppearance = appearanceReader(context)
+        compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
+        accessibilitySettings = context.currentValueOf(LocalGlassAccessibilitySettings)
+        updateStyleInteractionSlots()
+        syncInteractionController(context)
+        publishMemberMaterial(resolveGlassStyle(this, scope.modifierSize, scope.requireDensity(), scope.currentValueOf(LocalLayoutDirection)))
+      }
     } finally {
       isUpdating = false
     }
@@ -733,7 +751,12 @@ internal class GlassRuntimeEffect() :
         resolvedStyleCacheLayoutDirection == layoutDirection
     }?.let { return it }
 
-    val resolvedStyle = geometrySnapshotObserver?.let { observer ->
+    val resolvedStyle = surfaceSnapshot?.let { snapshot ->
+      snapshot.material.copy(
+        mergedField = snapshot.field,
+        lightPosition = snapshot.key.lightAlignment.resolveLightPosition(context.modifierSize, layoutDirection),
+      )
+    } ?: geometrySnapshotObserver?.let { observer ->
       lateinit var observedStyle: ResolvedGlassStyle
       observer.observeReads(styleObservationScope, onObservedStyleChanged) {
         observedStyle = resolveGlassStyle(this, context.modifierSize, density, layoutDirection)
@@ -1082,7 +1105,7 @@ internal class GlassRuntimeEffect() :
   }
 
   internal fun calculateLayerBounds(rect: Rect, density: Density): Rect {
-    val resolvedStyle = resolveGlassStyle(
+    val resolvedStyle = surfaceSnapshot?.material ?: resolveGlassStyle(
       effect = this@GlassRuntimeEffect,
       materialSizePx = rect.size,
       density = density,

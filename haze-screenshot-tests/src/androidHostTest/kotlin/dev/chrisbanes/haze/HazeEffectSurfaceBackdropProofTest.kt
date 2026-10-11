@@ -10,7 +10,9 @@ import android.graphics.ColorMatrixColorFilter
 import android.graphics.RenderEffect
 import android.graphics.RenderNode
 import android.graphics.Shader
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -34,6 +36,11 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isTrue
+import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.OpticalSizeValue
+import dev.chrisbanes.haze.glass.hazeGlass
+import dev.chrisbanes.haze.glass.hazeGlassContainer
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.math.roundToInt
@@ -42,7 +49,7 @@ import org.junit.Before
 import org.junit.Test
 import org.robolectric.annotation.Config
 
-/** Bounded adapter probe: no public container or production bridge is implemented by this test. */
+/** Native adapter, attached core boundary and public Glass container pixel qualification. */
 @Config(sdk = [37])
 class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
   private var previousBackdropEnabled = false
@@ -56,6 +63,80 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
   @After
   fun restoreBackdrop() {
     HazeFeatureFlags.isPlatformBackdropEnabled = previousBackdropEnabled
+  }
+
+  @Test
+  fun nativeBackdrop_actualConfiguredGlassClusters_shareEarlierPixels() = assertGlassContainer()
+
+  @Test
+  fun nativeBackdrop_actualConfiguredGlassClusters_disabledLeavesSharpPixels() {
+    HazeFeatureFlags.isPlatformBackdropEnabled = false
+    assertGlassContainer(expectNative = false)
+  }
+
+  @Test
+  @Config(sdk = [36])
+  fun nativeBackdrop_actualConfiguredGlassClusters_unsupportedLeavesSharpPixels() = assertGlassContainer(expectNative = false)
+
+  private fun assertGlassContainer(expectNative: Boolean = true) = runScreenshotTest {
+    val emptyFallback = HazeState()
+    fun style(tint: Color, exponent: Float) = GlassStyle {
+      optics(GlassOptics(refractionStrength = 0f, refractionDisplacement = 0.dp, refractionDetailIntensity = 0f, depth = OpticalSizeValue.Fixed(1f), blurRadius = OpticalSizeValue.Fixed(14.dp)))
+      tint(tint)
+      backgroundColor(Color.Transparent)
+      edgeShadow(Color.Transparent)
+      edgeSoftness(0.dp)
+      specularIntensity(0f)
+      specularExponent(exponent)
+      ambientResponse(0f)
+      chromaticAberrationStrength(0f)
+      contrast(0f)
+      whitePoint(0f)
+      chromaMultiplier(1f)
+    }
+    val first = style(Color.Red, 2f)
+    val second = style(Color.Blue.copy(alpha = 0.25f), 4f)
+    setContent {
+      Box(Modifier.size(300.dp, 160.dp).testTag("probe")) {
+        Box(
+          Modifier.size(300.dp, 160.dp).drawWithContent {
+            val stripe = 4.dp.toPx()
+            var x = 0f
+            var index = 0
+            while (x < size.width) {
+              drawRect(if (index++ % 2 == 0) Color.Red else Color.Blue, Offset(x, 0f), androidx.compose.ui.geometry.Size(stripe, size.height))
+              x += stripe
+            }
+            drawContent()
+          },
+        )
+        Box(Modifier.size(300.dp, 160.dp).hazeGlassContainer(40.dp)) {
+          // Two members in each of two incompatible clusters, with overlapping material/capture.
+          // There is no source anywhere, so unavailable native cannot pass the filtered assertion.
+          Box(Modifier.offset(20.dp, 20.dp).size(100.dp, 100.dp).hazeGlass(HazeInput.Backdrop(emptyFallback), first, HazePerformanceMode.Quality))
+          Box(Modifier.offset(120.dp, 20.dp).size(100.dp, 100.dp).hazeGlass(HazeInput.Backdrop(emptyFallback), first, HazePerformanceMode.Quality))
+          Box(Modifier.offset(40.dp, 30.dp).size(100.dp, 100.dp).hazeGlass(HazeInput.Backdrop(emptyFallback), second, HazePerformanceMode.Quality))
+          Box(Modifier.offset(140.dp, 30.dp).size(100.dp, 100.dp).hazeGlass(HazeInput.Backdrop(emptyFallback), second, HazePerformanceMode.Quality))
+          Box(Modifier.offset(50.dp, 40.dp).size(12.dp, 100.dp).background(Color.Green))
+        }
+      }
+    }
+    composeTestRule.runOnIdle { composeTestRule.activity.window.decorView.invalidate() }
+    waitForIdle()
+    val pixels = captureRootPixels()
+    val bounds = onNodeWithTag("probe").fetchSemanticsNode().boundsInRoot
+    fun pixel(x: Float, y: Float) = pixels[(bounds.left + x * bounds.width / 300f).roundToInt(), (bounds.top + y * bounds.height / 160f).roundToInt()]
+    val sample = pixel(100f, 80f)
+    println("backdrop-proof configured-glass native=$expectNative pixel=$sample")
+    if (expectNative) {
+      assertThat(sample.blue).isGreaterThan(0.5f)
+      assertThat(sample.red).isGreaterThan(0.1f)
+      assertThat(sample.red).isLessThan(0.65f)
+      assertThat(sample.green).isLessThan(0.05f)
+    } else {
+      assertThat(sample == Color.Red || sample == Color.Blue, "empty fallback preserves sharp earlier pixels: $sample").isTrue()
+    }
+    assertThat(pixel(56f, 80f).green).isGreaterThan(0.95f)
   }
 
   @Test

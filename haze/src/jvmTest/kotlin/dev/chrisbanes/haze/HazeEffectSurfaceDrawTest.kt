@@ -39,6 +39,91 @@ import kotlin.test.Test
 
 class HazeEffectSurfaceDrawTest {
   @Test
+  fun configuredContent_combinesDistinctRecordingsAtNonzeroOffsetsOnce() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val red = SurfaceFactory(owner)
+    val blue = SurfaceFactory(owner)
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    var created = 0
+    var disposed = 0
+    val factory = HazeEffectFactory<Unit> {
+      created++
+      object : HazeEffectRenderer<Unit> {
+        override fun HazeEffectDrawScope.draw(style: Unit) {
+          translate(left = 60f) { this@draw.drawInput() }
+        }
+        override fun dispose() {
+          disposed++
+        }
+      }
+    }
+    owner.resolveSurfaces = {
+      configured = configured ?: red.surface.createConfiguredSurface(factory, Unit, Rect(10f, 15f, 30f, 95f), listOf(red.surface, blue.surface))
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      Box(Modifier.size(180.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.offset(20.dp, 10.dp).size(160.dp).then(OwnerElement(owner))) {
+          Box(Modifier.offset(10.dp, 15.dp).size(20.dp).hazeEffect(red, HazeInput.Content, Unit).background(Color.Red))
+          Box(Modifier.offset(10.dp, 75.dp).size(20.dp).hazeEffect(blue, HazeInput.Content, Unit).background(Color.Blue))
+        }
+      }
+    }
+    val pixels = onNodeWithTag("root").captureToImage().toPixelMap()
+    assertThat(pixels[95, 30]).isEqualTo(Color.Red)
+    assertThat(pixels[95, 90]).isEqualTo(Color.Blue)
+    assertThat(pixels[95, 60]).isEqualTo(Color.White)
+    assertThat(created).isEqualTo(1)
+    runOnIdle {
+      configured?.dispose()
+      configured?.dispose()
+      owner.resolveSurfaces = null
+    }
+    assertThat(disposed).isEqualTo(1)
+  }
+
+  @Test
+  fun configuredSources_deduplicatesSharedSelectedCaptureAlpha() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val first = SurfaceFactory(owner)
+    val second = SurfaceFactory(owner)
+    val state = HazeState()
+    val input = HazeInput.Sources(state, HazeSourceSelection.All.where { it.key == "selected" })
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    owner.resolveSurfaces = {
+      configured = configured ?: first.surface.createConfiguredSurface(
+        HazeEffectFactory {
+          object : HazeEffectRenderer<Unit> {
+            override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
+          }
+        },
+        Unit, Rect(10f, 15f, 80f, 45f), listOf(first.surface, second.surface),
+      )
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      Box(Modifier.size(160.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(160.dp).hazeSource(state, key = "selected").background(Color.Red.copy(alpha = 0.5f)))
+        Box(Modifier.size(160.dp).hazeSource(state, key = "ignored").background(Color.Blue))
+        Box(Modifier.size(160.dp).background(Color.White))
+        Box(Modifier.offset(20.dp, 10.dp).size(120.dp).then(OwnerElement(owner))) {
+          Box(Modifier.offset(10.dp, 15.dp).size(30.dp).hazeEffect(first, input, Unit))
+          Box(Modifier.offset(50.dp, 15.dp).size(30.dp).hazeEffect(second, input, Unit))
+        }
+      }
+    }
+    val pixel = onNodeWithTag("root").captureToImage().toPixelMap()[65, 35]
+    assertThat(pixel.red).isGreaterThan(0.95f)
+    assertThat(pixel.green).isGreaterThan(0.45f)
+    assertThat(pixel.green).isLessThan(0.55f)
+    assertThat(pixel.blue).isGreaterThan(0.45f)
+    runOnIdle {
+      configured?.dispose()
+      owner.resolveSurfaces = null
+    }
+  }
+
+  @Test
   fun relocatedSources_drawBehindChildren_andRestoreOnRelease() = runComposeUiTest {
     val owner = SurfaceOwnerNode()
     val factory = SurfaceFactory(owner)
@@ -219,6 +304,7 @@ class HazeEffectSurfaceDrawTest {
     var releases = 0
     var beforeRecord: () -> Unit = {}
     var afterRecord: () -> Unit = {}
+    var resolveSurfaces: (() -> List<HazeEffectSurface>)? = null
     override fun onAttach() {
       children = requireGraphicsContext().createGraphicsLayer()
     }
@@ -241,7 +327,7 @@ class HazeEffectSurfaceDrawTest {
     override fun canComposeNativeSurfaces(bounds: Rect): Boolean = true
     override fun ContentDrawScope.draw() {
       beforeRecord()
-      drawHazeEffectSurfaces(this@SurfaceOwnerNode, surfaces.toList(), children)
+      drawHazeEffectSurfaces(this@SurfaceOwnerNode, { resolveSurfaces?.invoke() ?: surfaces.toList() }, children)
       afterRecord()
     }
   }
