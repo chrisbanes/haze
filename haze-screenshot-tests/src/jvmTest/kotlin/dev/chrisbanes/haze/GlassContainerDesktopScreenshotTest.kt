@@ -21,5 +21,9 @@ class GlassContainerDesktopScreenshotTest : ScreenshotTest() {
 
   @Test fun nestedContainersOwnNearestMembers() = runScreenshotTest(Size(360f, 240f)) { assertGlassContainerScene(GlassContainerScene.Nested) }
 
+  @Test fun interactiveClusterRest() = runScreenshotTest(Size(360f, 240f)) { assertGlassContainerScene(GlassContainerScene.InteractiveRest) }
+
+  @Test fun interactiveClusterPressed() = runScreenshotTest(Size(360f, 240f)) { assertGlassContainerScene(GlassContainerScene.InteractivePressed) }
+
   @Test fun removalRestoresOutsideContainerPixels() = runScreenshotTest(Size(360f, 240f)) { assertGlassContainerRemovalRestoresOutsidePixels() }
 }

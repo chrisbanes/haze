@@ -22,5 +22,9 @@ class GlassContainerAndroidScreenshotTest : ScreenshotTest() {
 
   @Test fun nestedContainersOwnNearestMembers() = runScreenshotTest { assertGlassContainerScene(GlassContainerScene.Nested) }
 
+  @Test fun interactiveClusterRest() = runScreenshotTest { assertGlassContainerScene(GlassContainerScene.InteractiveRest) }
+
+  @Test fun interactiveClusterPressed() = runScreenshotTest { assertGlassContainerScene(GlassContainerScene.InteractivePressed) }
+
   @Test fun removalRestoresOutsideContainerPixels() = runScreenshotTest { assertGlassContainerRemovalRestoresOutsidePixels() }
 }
