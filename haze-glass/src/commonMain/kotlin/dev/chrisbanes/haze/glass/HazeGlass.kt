@@ -85,18 +85,19 @@ internal fun Modifier.hazeGlass(
   interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
 ): Modifier {
   val member = GlassMemberBinding(input)
-  return then(GlassMemberElement(member)).hazeEffect(
+  val configuration = GlassNodeConfiguration(
+    style = style,
+    performanceMode = performanceMode,
+    interactionSource = interactionSource,
+    interactionTransformTarget = interactionTransformTarget,
+    interactionTransformPivot = interactionTransformPivot,
+    interactionReducedMotionPolicy = interactionReducedMotionPolicy,
+    member = member,
+  )
+  return then(GlassMemberElement(member, configuration, factory)).hazeEffect(
     factory = factory,
     input = input,
-    style = GlassNodeConfiguration(
-      style = style,
-      performanceMode = performanceMode,
-      interactionSource = interactionSource,
-      interactionTransformTarget = interactionTransformTarget,
-      interactionTransformPivot = interactionTransformPivot,
-      interactionReducedMotionPolicy = interactionReducedMotionPolicy,
-      member = member,
-    ),
+    style = configuration,
     expandLayerBounds = expandLayerBounds,
   )
 }

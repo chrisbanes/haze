@@ -13,13 +13,14 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.node.requireLayoutCoordinates
 import androidx.compose.ui.platform.InspectorInfo
+import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectSurface
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.Poko
 
 /**
  * Connects the adjacent traversal and effect nodes without giving Glass a core node handle.
- * Equal by [input] only, so re-created modifiers keep the attached instance instead of reconnecting.
+ * Equal by [input] only: a re-created modifier hands over the live connection instead of reconnecting.
  */
 @Poko
 internal class GlassMemberBinding(val input: HazeInput) {
@@ -40,6 +41,19 @@ internal class GlassMemberBinding(val input: HazeInput) {
     node?.connect()
   }
 
+  fun adopt(previous: GlassMemberBinding) {
+    node = previous.node
+    runtime = runtime ?: previous.runtime
+    surface = surface ?: previous.surface
+    material = material ?: previous.material
+    key = key ?: previous.key
+    previous.node = null
+    previous.runtime = null
+    previous.surface = null
+    previous.material = null
+    previous.key = null
+  }
+
   fun release(runtime: GlassRuntimeEffect) {
     if (this.runtime !== runtime) return
     surface?.relocateTo(null)
@@ -51,8 +65,13 @@ internal class GlassMemberBinding(val input: HazeInput) {
   }
 }
 
+/** Updates whenever the effect configuration does, so both nodes always hold the same binding. */
 @Poko
-internal class GlassMemberElement(val binding: GlassMemberBinding) : ModifierNodeElement<GlassMemberNode>() {
+internal class GlassMemberElement(
+  val binding: GlassMemberBinding,
+  val configuration: GlassNodeConfiguration,
+  val factory: HazeEffectFactory<GlassNodeConfiguration>,
+) : ModifierNodeElement<GlassMemberNode>() {
   override fun create() = GlassMemberNode(binding)
   override fun update(node: GlassMemberNode) = node.update(binding)
   override fun InspectorInfo.inspectableProperties() {
@@ -98,6 +117,11 @@ internal class GlassMemberNode(var binding: GlassMemberBinding) : Modifier.Node(
 
   fun update(binding: GlassMemberBinding) {
     if (this.binding === binding) return
+    if (this.binding == binding) {
+      binding.adopt(this.binding)
+      this.binding = binding
+      return
+    }
     this.binding.surface?.relocateTo(null)
     this.binding.runtime?.opticalSizeOverride = null
     this.binding.node = null

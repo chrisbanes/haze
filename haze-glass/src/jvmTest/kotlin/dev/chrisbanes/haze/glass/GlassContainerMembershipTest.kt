@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReusableContentHost
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
@@ -213,5 +214,30 @@ class GlassContainerMembershipTest : ContextTest() {
     }
     waitForIdle()
     assertThat(container(first).model.surfaces.size).isEqualTo(2)
+  }
+
+  @Test
+  fun membership_styleChangeThenReactivationKeepsMemberConnected() = runComposeUiTest {
+    val runtimes = mutableListOf<GlassRuntimeEffect>()
+    val factory = HazeEffectFactory { GlassRuntimeEffect().also { runtimes += it } }
+    val style = mutableStateOf(GlassStyle { alpha(1f) })
+    val active = mutableStateOf(true)
+    setContent {
+      Box(Modifier.hazeGlassContainer(40.dp)) {
+        ReusableContentHost(active.value) {
+          Box(Modifier.size(100.dp, 40.dp).hazeGlass(factory, HazeInput.Content, style.value, null, true, null))
+        }
+      }
+    }
+    waitForIdle()
+    runOnIdle { style.value = GlassStyle { alpha(0.5f) } }
+    waitForIdle()
+    runOnIdle { active.value = false }
+    waitForIdle()
+    runOnIdle { active.value = true }
+    waitForIdle()
+    val binding = checkNotNull(runtimes.last().memberBindingForTest)
+    assertThat(checkNotNull(binding.node).binding).isSameInstanceAs(binding)
+    assertThat(binding.node?.container).isSameInstanceAs(container(runtimes.last()))
   }
 }
