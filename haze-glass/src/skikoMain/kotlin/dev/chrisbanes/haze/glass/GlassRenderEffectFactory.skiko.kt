@@ -61,6 +61,8 @@ private class GlassRimUniformProvider(private val builder: RuntimeShaderBuilder)
   override fun setFloatUniform(name: String, value1: Float, value2: Float, value3: Float, value4: Float) =
     builder.uniform(name, value1, value2, value3, value4)
 
+  override fun setFloatUniform(name: String, values: FloatArray) = builder.uniform(name, values)
+
   override fun setIntUniform(name: String, value: Int) = builder.uniform(name, value)
 
   override fun setChildShader(name: String, shader: Shader) = builder.child(name, shader.skiaShader)

@@ -777,6 +777,10 @@ class GlassShadersTest {
       values[name] = listOf(value1, value2, value3, value4)
     }
 
+    override fun setFloatUniform(name: String, values: FloatArray) {
+      this.values[name] = values.toList()
+    }
+
     override fun setIntUniform(name: String, value: Int) = error("Unexpected int uniform: $name")
 
     override fun setChildShader(name: String, shader: Shader) = error("Unexpected child: $name")

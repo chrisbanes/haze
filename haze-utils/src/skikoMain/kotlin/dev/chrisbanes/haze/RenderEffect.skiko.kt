@@ -224,6 +224,10 @@ private value class SkikoRuntimeShaderUniformProvider(
     builder.uniform(name, value1, value2, value3, value4)
   }
 
+  override fun setFloatUniform(name: String, values: FloatArray) {
+    builder.uniform(name, values)
+  }
+
   override fun setIntUniform(name: String, value: Int) {
     builder.uniform(name, value)
   }

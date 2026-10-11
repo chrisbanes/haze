@@ -122,6 +122,11 @@ public interface RuntimeShaderUniformProvider {
   public fun setFloatUniform(name: String, value1: Float, value2: Float, value3: Float, value4: Float)
 
   /**
+   * Sets a float array uniform, such as `uniform float4 values[4]`, from consecutive [values].
+   */
+  public fun setFloatUniform(name: String, values: FloatArray)
+
+  /**
    * Sets an int uniform.
    */
   public fun setIntUniform(name: String, value: Int)
