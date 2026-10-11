@@ -403,6 +403,24 @@ class GlassRenderEffectKeysTest {
   }
 
   @Test
+  fun retainedLayerPlan_detailLayersFollowActiveRefractionDetailKey() {
+    val idle = GlassInteractionUniforms(Offset.Zero, 0f, 0f, 1f, 0f)
+
+    listOf(0f to false, .008f to false, .009f to true).forEach { (strength, expectedActive) ->
+      val params = params().copy(refractionStrength = strength)
+      val kinds = buildGlassRetainedLayerPlan(params, idle).layers.map { it.kind }
+
+      assertThat(params.activeRefractionDetailEffectKey(params.refractionDetailIntensity) != null)
+        .isEqualTo(expectedActive)
+      listOf(
+        GlassRetainedLayerKind.RefractionDetail,
+        GlassRetainedLayerKind.RefractionDetailCoverage,
+        GlassRetainedLayerKind.RefractionComposite,
+      ).forEach { kind -> assertThat(kinds.contains(kind)).isEqualTo(expectedActive) }
+    }
+  }
+
+  @Test
   fun preparedRender_rimKeyFollowsRimActivity() {
     val base = params()
 

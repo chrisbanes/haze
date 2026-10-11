@@ -861,8 +861,9 @@ internal class GlassRuntimeEffect() :
         return@buildPlan GlassRetainedLayerPlan(emptyList())
       }
       val outputSize = context.modifierSize.roundToIntSize()
+      val params = buildGlassRenderParams(style, coordinates)
       val interactionPatchSize = calculateGlassInteractionPatchSize(
-        buildGlassRenderParams(style, coordinates),
+        params,
         radiusFraction = if (interactionTopology === MergedLightingTopology) {
           coordinates.mergedLightingRadiusFraction()
         } else {
@@ -875,7 +876,7 @@ internal class GlassRuntimeEffect() :
       if (backdrop) {
         buildGlassBackdropLayerPlan(
           sampleSize = coordinates.sampleSize.roundToIntSize(),
-          rimActive = hasGlassRim(style.specularIntensity, style.edgeShadow),
+          rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow),
           interactionPatchSize = interactionPatchSize,
           interactionLightingActive = interactionTopology.hasLighting,
         )
@@ -888,22 +889,12 @@ internal class GlassRuntimeEffect() :
             interactionLayersActive = interactionLayersActive,
             interactionTopology = interactionTopology,
           ),
-          blurRadiusPx = optics.blurRadiusPx * scaleFactor,
-          depth = optics.depth,
+          blurRadiusPx = params.blurRadiusPx,
+          depth = params.depth,
           allowNativeWideBlur = allowNativeWideBlur,
-          refractionDetailActive = isGlassRefractionDetailActive(
-            refractionStrength = optics.refractionStrength,
-            refractionScalePx = optics.refractionScalePx * scaleFactor,
-            refractionHeightPx = if (optics.edgeRefractionWidthPx >= 0f) {
-              optics.edgeRefractionWidthPx * scaleFactor
-            } else {
-              optics.refractionHeightPx * scaleFactor
-            },
-            edgeSoftnessPx = style.edgeSoftnessPx * scaleFactor,
-            sampleStepPx = 2f * scaleFactor,
-            detailIntensity = optics.refractionDetailIntensity,
-          ),
-          rimActive = hasGlassRim(style.specularIntensity, style.edgeShadow),
+          refractionDetailActive =
+          params.activeRefractionDetailEffectKey(params.refractionDetailIntensity) != null,
+          rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow),
           interactionPatchSize = interactionPatchSize,
           interactionOpticsActive = interactionTopology.hasOptics,
           interactionLightingActive = interactionTopology.hasLighting,

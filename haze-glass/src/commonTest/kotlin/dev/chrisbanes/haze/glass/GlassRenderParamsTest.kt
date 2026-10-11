@@ -1109,6 +1109,61 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun buildGlassRenderParams_clampsAreNoOpsForValidatedOptics() {
+    val materialSize = Size(100f, 80f)
+    listOf(
+      GlassOptics(),
+      GlassOptics(
+        refractionStrength = 1f,
+        refractionHeightFraction = 1f,
+        refractionDisplacement = 40.dp,
+        refractionDetailIntensity = 1f,
+        depth = OpticalSizeValue.Fixed(1f),
+        blurRadius = OpticalSizeValue.Fixed(24.dp),
+      ),
+      GlassOptics(refractionProfile = RefractionProfile.Edge(12.dp)),
+      GlassOptics(
+        refractionStrength = 0f,
+        refractionDisplacement = 0.dp,
+        depth = OpticalSizeValue.Fixed(0f),
+        blurRadius = OpticalSizeValue.Fixed(0.dp),
+      ),
+    ).forEach { optics ->
+      val effect = GlassRuntimeEffect().apply {
+        style = style.then { optics(optics) }
+      }
+      val style = resolveGlassStyle(
+        effect = effect,
+        materialSizePx = materialSize,
+        density = Density(1f),
+        layoutDirection = LayoutDirection.Ltr,
+      )
+      val resolved = style.resolvedOptics
+
+      listOf(1f, 0.5f).forEach { scaleFactor ->
+        val params = buildGlassRenderParams(
+          style = style,
+          coordinates = GlassCoordinates(materialSize, Offset.Zero, materialSize, scaleFactor),
+        )
+
+        assertThat(params.refractionStrength).isEqualTo(resolved.refractionStrength)
+        assertThat(params.refractionScalePx).isEqualTo(resolved.refractionScalePx * scaleFactor)
+        assertThat(params.refractionHeightPx).isEqualTo(resolved.refractionHeightPx * scaleFactor)
+        assertThat(params.edgeRefractionWidthPx).isEqualTo(
+          if (resolved.edgeRefractionWidthPx >= 0f) {
+            resolved.edgeRefractionWidthPx * scaleFactor
+          } else {
+            -1f
+          },
+        )
+        assertThat(params.blurRadiusPx).isEqualTo(resolved.blurRadiusPx * scaleFactor)
+        assertThat(params.depth).isEqualTo(resolved.depth)
+        assertThat(params.sampleStepPx).isEqualTo(2f * scaleFactor)
+      }
+    }
+  }
+
+  @Test
   fun renderParams_deriveBlurSigmaFromScaledRadius() {
     val effect = GlassRuntimeEffect().apply {
       style = style.then { optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(20.dp))) }
