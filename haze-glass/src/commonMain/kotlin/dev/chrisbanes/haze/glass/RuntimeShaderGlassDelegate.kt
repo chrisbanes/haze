@@ -1890,15 +1890,7 @@ internal class RuntimeShaderGlassDelegate(
     )
     if (nextFusedEffectKey != fusedEffectKey || fusedEffect == null) {
       fusedEffect = nextFusedEffectKey.let { key ->
-        val nextInputKey = GlassDepthInputKey(
-          blur = key.blur,
-          depth = key.depth,
-          interactionOptics = render.interactionTopology.hasOptics,
-          sharpDetail = key.detail != null,
-          backdropBackground = key.backdropBackground,
-          backdropMergedBackground = key.backdropMergedBackground,
-          merged = key.optical.mergedField != null,
-        )
+        val nextInputKey = key.depthInputKey(interactionOptics = render.interactionTopology.hasOptics)
         val previousInputKey = fusedInputKey
         val inputChanged = previousInputKey != nextInputKey
         val topologyChanged = previousInputKey == null ||
@@ -2188,7 +2180,7 @@ internal data class GlassRenderEffects(
 )
 
 @Poko
-private class GlassFusedEffectKey(
+internal class GlassFusedEffectKey(
   val blur: GlassBlurEffectKey?,
   val depth: Float,
   val optical: GlassOpticalEffectKey,
@@ -2199,14 +2191,27 @@ private class GlassFusedEffectKey(
 )
 
 @Poko
-private class GlassDepthInputKey(
+internal class GlassDepthInputKey(
   val blur: GlassBlurEffectKey?,
   val depth: Float,
   val interactionOptics: Boolean = false,
   val sharpDetail: Boolean = false,
   val backdropBackground: Color? = null,
   val backdropMergedBackground: GlassMergedField? = null,
+  /** The merged backdrop background samples the field relative to this origin. */
+  val backdropMergedOrigin: Offset? = null,
   val merged: Boolean = false,
+)
+
+internal fun GlassFusedEffectKey.depthInputKey(interactionOptics: Boolean) = GlassDepthInputKey(
+  blur = blur,
+  depth = depth,
+  interactionOptics = interactionOptics,
+  sharpDetail = detail != null,
+  backdropBackground = backdropBackground,
+  backdropMergedBackground = backdropMergedBackground,
+  backdropMergedOrigin = backdropMergedBackground?.let { optical.coordinates.materialOrigin },
+  merged = optical.mergedField != null,
 )
 
 private class FusedDepthInputShaders(

@@ -63,7 +63,8 @@ internal object GlassDirtyFields {
       MergedField
 
   const val LayerBoundsFlags: Int =
-    Optics or ChromaticAberration or EdgeSoftness or Shape or InteractionLayerBounds or Accessibility
+    Optics or ChromaticAberration or EdgeSoftness or Shape or InteractionLayerBounds or Accessibility or
+      MergedField
 
   const val All: Int = InvalidateFlags or LayerBoundsFlags
 

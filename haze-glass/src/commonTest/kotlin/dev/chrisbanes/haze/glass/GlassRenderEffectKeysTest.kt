@@ -379,6 +379,29 @@ class GlassRenderEffectKeysTest {
     assertThat(merged.blurKey).isSameInstanceAs(first.blurKey)
   }
 
+  @Test
+  fun depthInputKey_mergedBackdropBackgroundTracksMaterialOrigin() {
+    val field = mergedField(mergedMember(0f, 0f, 100f, 40f, backgroundColor = Color.White))
+    val base = params().copy(mergedField = field)
+    val moved = base.copy(coordinates = base.coordinates.copy(materialOrigin = Offset(20f, 12f)))
+    fun fusedKey(params: GlassRenderParams, backdrop: Boolean) = GlassFusedEffectKey(
+      blur = params.blurEffectKey(),
+      depth = params.depth,
+      optical = params.opticalEffectKey(),
+      detail = null,
+      interaction = null,
+      backdropBackground = null,
+      backdropMergedBackground = params.mergedBackground.takeIf { backdrop },
+    )
+    // The background shader samples the field from the material origin, so moving it rebuilds
+    // the backdrop input even though blur, depth and the field are unchanged.
+    assertThat(fusedKey(moved, backdrop = true).depthInputKey(interactionOptics = false))
+      .isNotEqualTo(fusedKey(base, backdrop = true).depthInputKey(interactionOptics = false))
+    // Without a backdrop background, the origin is not an input.
+    assertThat(fusedKey(moved, backdrop = false).depthInputKey(interactionOptics = false))
+      .isEqualTo(fusedKey(base, backdrop = false).depthInputKey(interactionOptics = false))
+  }
+
   private fun preparedRender(params: GlassRenderParams, previous: GlassPreparedRender? = null) =
     buildGlassPreparedRender(
       params = params,
