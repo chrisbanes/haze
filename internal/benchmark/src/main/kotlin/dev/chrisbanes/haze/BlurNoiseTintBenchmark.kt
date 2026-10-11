@@ -49,7 +49,7 @@ class BlurNoiseTintBenchmark {
     val scenario = "noise_tint_${property}_$nodes"
     withoutUiAutomatorIdleWait {
       benchmarkRule.measureRepeated(
-        packageName = "dev.chrisbanes.haze.sample.android",
+        packageName = TARGET_PACKAGE,
         metrics = listOf(
           FrameTimingMetric(),
           TraceSectionMetric("HazeBlur.combinedNoiseTint", TraceSectionMetric.Mode.Count, "combinedNoiseTint"),
@@ -70,7 +70,7 @@ class BlurNoiseTintBenchmark {
         } else {
           device.startNoiseTintRun()
           check(device.waitForObjectOrNull(By.res("blur_profiling_phase_complete"), 8.seconds) != null) {
-            "Noise/tint workload did not complete: " + device.findObjects(By.pkg(GLASS_TARGET_PACKAGE)).map {
+            "Noise/tint workload did not complete: " + device.findObjects(By.pkg(TARGET_PACKAGE)).map {
               "${it.resourceName}:${it.text}:${it.visibleBounds}"
             }
           }
@@ -94,9 +94,9 @@ class BlurNoiseTintBenchmark {
   private fun verifyFrozenApks() {
     val instrumentation = InstrumentationRegistry.getInstrumentation()
     val arguments = InstrumentationRegistry.getArguments()
-    val dryRun = arguments.getString("androidx.benchmark.dryRunMode.enable").toBoolean()
+    val dryRun = isBenchmarkDryRun()
     val device = UiDevice.getInstance(instrumentation)
-    for ((role, packageName) in listOf("target" to GLASS_TARGET_PACKAGE, "benchmark" to instrumentation.context.packageName)) {
+    for ((role, packageName) in listOf("target" to TARGET_PACKAGE, "benchmark" to instrumentation.context.packageName)) {
       val expected = arguments.getString("haze.${role}Sha256")
       if (dryRun && expected == null) continue
       require(expected != null && expected.matches(Regex("[a-f0-9]{64}"))) {

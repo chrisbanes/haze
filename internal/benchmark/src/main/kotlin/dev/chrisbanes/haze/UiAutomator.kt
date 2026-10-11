@@ -178,7 +178,7 @@ private fun UiDevice.waitForProfilingObject(
   ?: error(
     "$effectName profiling timeout: scenario=$scenarioId, phase=$expectedPhase, " +
       "selector=$selector, timeout=$timeout, visibleNodes=" +
-      findObjects(By.pkg(GLASS_TARGET_PACKAGE))
+      findObjects(By.pkg(TARGET_PACKAGE))
         .map { node ->
           "${node.resourceName}:${node.text}:${node.contentDescription}"
         },

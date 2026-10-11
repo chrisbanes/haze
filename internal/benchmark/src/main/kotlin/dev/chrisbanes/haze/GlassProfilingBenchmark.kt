@@ -237,7 +237,7 @@ class GlassProfilingBenchmark {
     // Stable-source scenarios still animate draw progress throughout the measured window.
     withoutUiAutomatorIdleWait(enabled = continuouslyAnimating) {
       benchmarkRule.measureRepeated(
-        packageName = GLASS_TARGET_PACKAGE,
+        packageName = TARGET_PACKAGE,
         metrics = glassMetrics(
           includeMemory = includeMemory,
           requireRuntimeMarker = requireRuntimeMarker,
@@ -247,7 +247,7 @@ class GlassProfilingBenchmark {
         ),
         compilationMode = CompilationMode.Full(),
         startupMode = StartupMode.WARM,
-        iterations = GLASS_BENCHMARK_ITERATIONS,
+        iterations = BENCHMARK_ITERATIONS,
         setupBlock = {
           startActivityAndWait { intent ->
             intent.selectBenchmarkSample(
