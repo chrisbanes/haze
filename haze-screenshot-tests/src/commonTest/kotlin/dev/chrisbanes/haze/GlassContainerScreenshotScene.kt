@@ -7,6 +7,8 @@ package dev.chrisbanes.haze
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
@@ -20,6 +22,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -28,17 +31,25 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.GlassTransformPivot
 import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.glass.hazeGlassContainer
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 
-internal enum class GlassContainerScene { Merged, Separate, MixedColours, MixedKeys, Overflow, Nested }
+internal enum class GlassContainerScene { Merged, Separate, MixedColours, MixedKeys, Overflow, Nested, InteractiveRest, InteractivePressed }
 
 internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerScene) {
-  setContent { GlassContainerScreenshotScene(scene) }
+  val interactionSource = MutableInteractionSource()
+  setContent { GlassContainerScreenshotScene(scene, interactionSource = interactionSource) }
   waitForIdle()
+  val rest = if (scene == GlassContainerScene.InteractivePressed) captureRootPixels() else null
+  if (rest != null) {
+    interactionSource.tryEmit(PressInteraction.Press(Offset(50f, 40f)))
+    waitForIdle()
+  }
   val pixels = captureRootPixels()
   when (scene) {
     GlassContainerScene.Merged, GlassContainerScene.MixedColours -> {
@@ -57,6 +68,17 @@ internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerSce
     GlassContainerScene.Nested -> {
       assertThat(pixels[145, 110]).isEqualTo(sceneBackground(145, 110))
       assertThat(pixels[200, 110].green).isLessThan(0.5f)
+    }
+    GlassContainerScene.InteractiveRest, GlassContainerScene.InteractivePressed -> {
+      val bridge = pixels[144, 110]
+      assertThat(bridge.red).isGreaterThan(0.3f)
+      assertThat(bridge.blue).isGreaterThan(0.3f)
+      if (rest != null) {
+        assertThat(pixels[90, 100].luminance()).isGreaterThan(rest[90, 100].luminance())
+        for ((x, y) in listOf(200 to 100, 248 to 110, 200 to 62)) assertThat(pixels[x, y], "B at ($x, $y)").isEqualTo(rest[x, y])
+        // Inside A's layout rect but outside its 0.95 scaled rect, A's tint gives way to the backdrop.
+        assertThat(pixels[41, 110]).isEqualTo(sceneBackground(41, 110))
+      }
     }
   }
   // Opaque label strokes are replayed above the entire material phase.
@@ -101,7 +123,11 @@ private fun sceneStyle(tint: Color, background: Color = Color.Transparent, clear
 
 /** Separate regression scene: shared platform geometry, no matrix catalog enrollment. */
 @Composable
-private fun GlassContainerScreenshotScene(scene: GlassContainerScene, enabled: Boolean = true) {
+private fun GlassContainerScreenshotScene(
+  scene: GlassContainerScene,
+  enabled: Boolean = true,
+  interactionSource: MutableInteractionSource? = null,
+) {
   CompositionLocalProvider(LocalDensity provides Density(1f)) {
     val state = remember { HazeState() }
     Box(Modifier.size(360.dp, 240.dp).background(Color.White)) {
@@ -123,6 +149,17 @@ private fun GlassContainerScreenshotScene(scene: GlassContainerScene, enabled: B
               GlassContainerSceneMember(state, 55, 0, 45, 80, sceneStyle(Color.Red))
             }
           }
+          GlassContainerScene.InteractiveRest, GlassContainerScene.InteractivePressed -> {
+            // A 10px gap stays under the 20px bridge threshold while A is pressed to 0.95.
+            val pressed = GlassStyle {
+              pressed {
+                scale(0.95f)
+                lightingIntensity(1f)
+              }
+            }
+            GlassContainerSceneMember(state, 40, 60, 100, 80, sceneStyle(Color.Red).then(pressed), interactionSource)
+            GlassContainerSceneMember(state, 150, 60, 100, 80, sceneStyle(Color.Blue).then(pressed))
+          }
           else -> {
             val mixed = scene == GlassContainerScene.MixedColours
             GlassContainerSceneMember(state, 40, 60, 100, 80, sceneStyle(if (mixed) Color.Red.copy(alpha = 0.65f) else Color.Red, if (mixed) Color(0xFFFFCC99) else Color.Transparent))
@@ -135,8 +172,25 @@ private fun GlassContainerScreenshotScene(scene: GlassContainerScene, enabled: B
 }
 
 @Composable
-private fun GlassContainerSceneMember(state: HazeState, x: Int, y: Int, width: Int, height: Int, style: GlassStyle) {
-  Box(Modifier.offset(x.dp, y.dp).size(width.dp, height.dp).hazeGlass(HazeInput.Sources(state), style, HazePerformanceMode.Quality)) {
+private fun GlassContainerSceneMember(
+  state: HazeState,
+  x: Int,
+  y: Int,
+  width: Int,
+  height: Int,
+  style: GlassStyle,
+  interactionSource: MutableInteractionSource? = null,
+) {
+  Box(
+    Modifier.offset(x.dp, y.dp).size(width.dp, height.dp).hazeGlass(
+      input = HazeInput.Sources(state),
+      style = style,
+      performanceMode = HazePerformanceMode.Quality,
+      interactionSource = interactionSource,
+      interactionTransformPivot = GlassTransformPivot.Center,
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+    ),
+  ) {
     // Small opaque label marks leave the interior and inter-member bridge observable.
     Box(Modifier.offset(6.dp, 6.dp).size(12.dp, 4.dp).background(Color.White))
     Box(Modifier.offset(6.dp, 12.dp).size(18.dp, 4.dp).background(Color.White))

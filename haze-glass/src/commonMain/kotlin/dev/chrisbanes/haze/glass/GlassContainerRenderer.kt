@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntSize
@@ -46,15 +47,17 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
       if (inputs.size != nodes.size) continue
       if (members.size == 1) {
         output += inputs.single()
-        nodes.single().binding.runtime?.let { runtimes += members.single().rect to it }
+        nodes.single().binding.runtime?.let { runtimes += members.single().layoutRect to it }
         continue
       }
-      val bounds = members.map { it.rect }.reduce { a, b ->
+      // Pressed members shrink within their layout rects, keeping the surface stable; a spring
+      // overshoot past scale 1 briefly grows the bounds instead of clipping the member.
+      val bounds = members.flatMap { listOf(it.layoutRect, it.rect) }.reduce { a, b ->
         Rect(minOf(a.left, b.left), minOf(a.top, b.top), maxOf(a.right, b.right), maxOf(a.bottom, b.bottom))
       }.inflate(spacing)
       val opticalSize = checkNotNull(model.opticalSize)
       val field = GlassMergedField(
-        members.map { GlassMergedMember(it.rect.translate(-bounds.topLeft), it.material.cornerRadii, it.material.tint, it.material.backgroundColor) },
+        members.map { it.toMergedMember(bounds.topLeft) },
         spacing,
         opticalSize,
       )
@@ -101,4 +104,23 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
   fun releaseMember(member: GlassMemberNode) {
     slots.keys.filter { member in it }.forEach { slots.remove(it)?.handle?.dispose() }
   }
+}
+
+/** Maps member-local values through the member's draw-time interaction scale, as it draws alone. */
+private fun GlassMemberSnapshot.toMergedMember(origin: Offset): GlassMergedMember {
+  val scaleX = rect.width / layoutRect.width
+  val scaleY = rect.height / layoutRect.height
+  val runtime = (identity as GlassMemberNode).binding.runtime
+  val light = runtime?.let { resolveGlassInteraction(it.currentInteractionState, it.interactionLightRadiusFraction) }
+  val topLeft = rect.topLeft - origin
+  val fieldRect = Rect(topLeft, rect.size)
+  return GlassMergedMember(
+    rect = fieldRect,
+    cornerRadii = material.cornerRadii * minOf(scaleX, scaleY),
+    tint = material.tint,
+    backgroundColor = material.backgroundColor,
+    lightPosition = light?.position?.takeIf { it.x.isFinite() && it.y.isFinite() }?.let { topLeft + Offset(it.x * scaleX, it.y * scaleY) } ?: fieldRect.center,
+    lightRadius = (rect.minDimension * (light?.radiusFraction ?: 0f)).takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f,
+    lightIntensity = light?.lightingIntensity ?: 0f,
+  )
 }

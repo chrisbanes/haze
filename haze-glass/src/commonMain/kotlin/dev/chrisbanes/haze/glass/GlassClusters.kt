@@ -57,7 +57,10 @@ internal fun glassMergeKey(
 
 /**
  * Registration identity survives geometry updates; ordering is the input list's ordering.
- * Merged fields only model translated, axis-aligned rects, so other transforms never merge.
+ * Merged fields only model translated, axis-aligned rects, so other transforms never merge; neither
+ * does a member whose interaction scale is currently non-uniform.
+ * [rect] includes the member's interaction transform and drives clustering; [layoutRect] does not,
+ * so surface bounds and optics stay put while a member is pressed.
  */
 internal data class GlassMemberSnapshot(
   val identity: Any,
@@ -65,6 +68,7 @@ internal data class GlassMemberSnapshot(
   val key: GlassMergeKey,
   val material: ResolvedGlassStyle,
   val translationOnly: Boolean,
+  val layoutRect: Rect,
 )
 
 @Poko
@@ -145,7 +149,7 @@ internal fun clusterGlassMembers(
   // An intervening singleton must retain registration order relative to disjoint components.
   return GlassClusterModel(
     surfaces.sortedBy { surface -> valid.indexOf(surface.members.first()) },
-    glassOpticalSize(valid.map { it.rect }),
+    glassOpticalSize(valid.map { it.layoutRect }),
     overflow,
   )
 }

@@ -23,13 +23,9 @@ class GlassClustersTest {
   private val material = resolveGlassStyle(effect, Size(100f, 40f), Density(1f), LayoutDirection.Ltr)
   private val key = glassMergeKey(HazeInput.Content, true, 0.5f, effect, material, LayoutDirection.Ltr)
 
-  private fun member(index: Int, left: Float = index * 110f, top: Float = 0f) = GlassMemberSnapshot(
-    index,
-    Rect(left, top, left + 100f, top + 40f),
-    key,
-    material,
-    translationOnly = true,
-  )
+  private fun member(index: Int, left: Float = index * 110f, top: Float = 0f) = member(index, Rect(left, top, left + 100f, top + 40f))
+
+  private fun member(index: Int, rect: Rect) = GlassMemberSnapshot(index, rect, key, material, translationOnly = true, layoutRect = rect)
 
   @Test
   fun cluster_strictThresholdAndDiagonalGap() {
@@ -142,12 +138,12 @@ class GlassClustersTest {
 
   @Test
   fun cluster_mixedKeysShareOpticalSizeAndInvalidMembersAreDeferred() {
-    val card = member(0).copy(rect = Rect(0f, 0f, 300f, 180f))
-    val pill = member(1).copy(rect = Rect(310f, 0f, 450f, 64f), key = key.copy(alpha = 0.5f))
+    val card = member(0, Rect(0f, 0f, 300f, 180f))
+    val pill = member(1, Rect(310f, 0f, 450f, 64f)).copy(key = key.copy(alpha = 0.5f))
     assertThat(clusterGlassMembers(listOf(card, pill), 40f).opticalSize).isEqualTo(Size(180f, 180f))
     assertThat(clusterGlassMembers(listOf(pill), 40f).opticalSize).isEqualTo(Size(64f, 64f))
     val invalid = listOf(Rect.Zero, Rect(Float.NaN, 0f, 10f, 10f), Rect(10f, 0f, 0f, 10f))
-      .map { member(0).copy(rect = it) }
+      .map { member(0, it) }
     val result = clusterGlassMembers(invalid, 40f)
     assertThat(result.surfaces).isEmpty()
     assertThat(result.opticalSize).isNull()

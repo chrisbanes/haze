@@ -488,26 +488,26 @@ internal object GlassShaders {
     }
   """
 
-  fun buildInteractionLighting(): String = """
+  fun buildInteractionLighting(merged: Boolean = false): String = """
     uniform shader content;
     uniform float2 materialOrigin;
     uniform float2 materialSize;
     uniform vec4 cornerRadii;
     uniform float edgeSoftness;
-    ${interactionUniforms(includeRefraction = false, includeWhitePoint = false, includeLighting = true)}
+    ${if (merged) "" else interactionUniforms(includeRefraction = false, includeWhitePoint = false, includeLighting = true)}
 
-    ${sdfHelpers()}
+    ${sdfHelpers()}${if (merged) MERGED_FIELD_HELPERS + MERGED_LIGHTING_HELPERS else ""}
 
-    ${interactionFalloffHelper()}
+    ${if (merged) "" else interactionFalloffHelper()}
 
     vec4 main(vec2 coord) {
       vec2 localCoord = coord - materialOrigin;
-      float sd = sdRoundedRect(localCoord, materialSize, cornerRadii);
+      float sd = ${shapeSd(merged, "localCoord")};
       if (sd > 0.0) return vec4(0.0);
       float shapeMask = edgeSoftness <= 0.0
         ? 1.0
         : smootherstep(clamp(max(-sd, 0.0) / max(edgeSoftness, 0.0001), 0.0, 1.0));
-      float light = interactionFalloff(coord) * interactionLightingIntensity * shapeMask;
+      float light = ${if (merged) "memberLight(localCoord)" else "interactionFalloff(coord) * interactionLightingIntensity"} * shapeMask;
       float contentAlpha = content.eval(coord).a;
       float alpha = light * 0.32 * contentAlpha;
       return vec4(vec3(alpha), alpha);
@@ -1237,6 +1237,27 @@ internal object GlassShaders {
         }
       }
       return rect;
+    }
+    """
+
+  /**
+   * Each member's light, weighted by that member's share of the field, so a highlight stays on its
+   * own member and blends across a bridge. Positions and radii are in material-local pixels.
+   */
+  private const val MERGED_LIGHTING_HELPERS = """
+    uniform float2 memberLightPositions[4];
+    uniform float memberLightRadii[4];
+    uniform float memberLightIntensities[4];
+
+    float memberLight(vec2 localCoord) {
+      vec4 w = memberWeights(localCoord);
+      float light = 0.0;
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        float normalized = distance(localCoord, memberLightPositions[i]) / max(memberLightRadii[i], 0.0001);
+        light += w[i] * memberLightIntensities[i] * (1.0 - smootherstep(clamp(normalized, 0.0, 1.0)));
+      }
+      return light;
     }
     """
 

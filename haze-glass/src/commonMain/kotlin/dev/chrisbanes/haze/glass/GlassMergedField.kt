@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -15,7 +16,8 @@ import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 internal const val MAX_GLASS_MERGED_MEMBERS = 4
 
 /**
- * One rounded-rectangle member of a [GlassMergedField], in material-local pixels.
+ * One rounded-rectangle member of a [GlassMergedField], in material-local pixels, with its own
+ * interaction light. An idle member has zero [lightIntensity].
  */
 @Poko
 internal class GlassMergedMember(
@@ -23,6 +25,9 @@ internal class GlassMergedMember(
   val cornerRadii: CornerRadii,
   val tint: Color,
   val backgroundColor: Color,
+  val lightPosition: Offset = Offset.Zero,
+  val lightRadius: Float = 0f,
+  val lightIntensity: Float = 0f,
 ) {
   init {
     require(
@@ -31,7 +36,12 @@ internal class GlassMergedMember(
         rect.width > 0f && rect.height > 0f,
     ) { "rect must be finite with a positive size: $rect" }
     require(cornerRadii.isFiniteAndNonNegative()) { "cornerRadii must be finite and non-negative" }
+    require(lightPosition.x.isFinite() && lightPosition.y.isFinite()) { "lightPosition must be finite" }
+    require(lightRadius.isFinite() && lightRadius >= 0f) { "lightRadius must be finite and non-negative" }
+    require(lightIntensity.isFinite() && lightIntensity >= 0f) { "lightIntensity must be finite and non-negative" }
   }
+
+  val hasLighting: Boolean get() = lightIntensity > 0f && lightRadius > 0f
 }
 
 /**
@@ -61,6 +71,20 @@ internal class GlassMergedField(
   val isBackgroundOpaque: Boolean get() = members.all { it.backgroundColor.alpha == 1f }
 
   val hasBackground: Boolean get() = members.any { it.backgroundColor.alpha > 0f }
+
+  val hasInteractionLighting: Boolean get() = members.any { it.hasLighting }
+
+  /**
+   * This field with idle member lights. Stages that read only shape and colour key on it, so a
+   * light-only change re-records just the lighting stage.
+   */
+  val withoutLights: GlassMergedField by lazy(LazyThreadSafetyMode.NONE) {
+    if (members.all { it.lightPosition == Offset.Zero && it.lightRadius == 0f && it.lightIntensity == 0f }) {
+      this
+    } else {
+      GlassMergedField(members.map { GlassMergedMember(it.rect, it.cornerRadii, it.tint, it.backgroundColor) }, spacingPx, opticalSize)
+    }
+  }
 
   /**
    * The smoothing radius for each member, which the shader applies as
@@ -98,6 +122,9 @@ internal class GlassMergedField(
         cornerRadii = member.cornerRadii * scaleFactor,
         tint = member.tint,
         backgroundColor = member.backgroundColor,
+        lightPosition = member.lightPosition * scaleFactor,
+        lightRadius = member.lightRadius * scaleFactor,
+        lightIntensity = member.lightIntensity,
       )
     },
     spacingPx = spacingPx * scaleFactor,
@@ -110,6 +137,7 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
   field: GlassMergedField,
   includeTint: Boolean = false,
   includeBackground: Boolean = false,
+  includeLighting: Boolean = false,
 ) {
   val rects = FloatArray(MAX_GLASS_MERGED_MEMBERS * 4)
   val radii = FloatArray(MAX_GLASS_MERGED_MEMBERS * 4)
@@ -128,6 +156,20 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
   setFloatUniform("memberRadii", radii)
   setFloatUniform("memberSmoothing", field.memberSmoothingPx().copyOf(MAX_GLASS_MERGED_MEMBERS))
   setFloatUniform("memberCount", field.members.size.toFloat())
+  if (includeLighting) {
+    val positions = FloatArray(MAX_GLASS_MERGED_MEMBERS * 2)
+    val lightRadii = FloatArray(MAX_GLASS_MERGED_MEMBERS)
+    val intensities = FloatArray(MAX_GLASS_MERGED_MEMBERS)
+    field.members.forEachIndexed { index, member ->
+      positions[index * 2] = member.lightPosition.x
+      positions[index * 2 + 1] = member.lightPosition.y
+      lightRadii[index] = member.lightRadius
+      intensities[index] = member.lightIntensity
+    }
+    setFloatUniform("memberLightPositions", positions)
+    setFloatUniform("memberLightRadii", lightRadii)
+    setFloatUniform("memberLightIntensities", intensities)
+  }
   for (index in 0 until MAX_GLASS_MERGED_MEMBERS) {
     val member = field.members.getOrNull(index)
     if (includeTint) setColorUniform("memberTint$index", member?.tint ?: Color.Transparent)
