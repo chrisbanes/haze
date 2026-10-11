@@ -45,8 +45,8 @@ internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerSce
   val interactionSource = MutableInteractionSource()
   setContent { GlassContainerScreenshotScene(scene, interactionSource = interactionSource) }
   waitForIdle()
-  val rest = captureRootPixels()
-  if (scene == GlassContainerScene.InteractivePressed) {
+  val rest = if (scene == GlassContainerScene.InteractivePressed) captureRootPixels() else null
+  if (rest != null) {
     interactionSource.tryEmit(PressInteraction.Press(Offset(50f, 40f)))
     waitForIdle()
   }
@@ -73,7 +73,7 @@ internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerSce
       val bridge = pixels[144, 110]
       assertThat(bridge.red).isGreaterThan(0.3f)
       assertThat(bridge.blue).isGreaterThan(0.3f)
-      if (scene == GlassContainerScene.InteractivePressed) {
+      if (rest != null) {
         assertThat(pixels[90, 100].luminance()).isGreaterThan(rest[90, 100].luminance())
         for ((x, y) in listOf(200 to 100, 248 to 110, 200 to 62)) assertThat(pixels[x, y], "B at ($x, $y)").isEqualTo(rest[x, y])
         // Inside A's layout rect but outside its 0.95 scaled rect, A's tint gives way to the backdrop.

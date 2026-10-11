@@ -272,7 +272,7 @@ internal val GlassRenderParams.sourceBackgroundColor: Color
 
 /** The merged field whose member background colours fill the source, when any is visible. */
 internal val GlassRenderParams.mergedBackground: GlassMergedField?
-  get() = mergedField?.takeIf { it.hasBackground }
+  get() = mergedField?.withoutLights?.takeIf { it.hasBackground }
 
 internal data class GlassOpticalEffectKey(
   val coordinates: GlassCoordinates,
@@ -318,7 +318,7 @@ internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
   cornerRadii = cornerRadii,
   sampleStepPx = sampleStepPx,
   edgeRefractionWidthPx = edgeRefractionWidthPx,
-  mergedField = mergedField,
+  mergedField = mergedField?.withoutLights,
 )
 
 internal data class GlassRefractionDetailEffectKey(
@@ -367,7 +367,7 @@ internal fun GlassRenderParams.refractionDetailEffectKey(
     refractionScalePx = refractionScalePx,
     sampleStepPx = sampleStepPx,
   ),
-  mergedField = mergedField,
+  mergedField = mergedField?.withoutLights,
 )
 
 internal fun GlassRenderParams.activeRefractionDetailEffectKey(
@@ -403,7 +403,7 @@ internal fun GlassRenderParams.rimEffectKey() = GlassRimEffectKey(
   cornerRadii = cornerRadii,
   lightPosition = lightPosition,
   sampleStepPx = sampleStepPx,
-  mergedField = mergedField,
+  mergedField = mergedField?.withoutLights,
 )
 
 internal data class GlassInteractionLightingKey(
@@ -899,15 +899,10 @@ internal fun buildGlassPreparedRender(
 ): GlassPreparedRender {
   val topology = params.mergedField?.interactionTopology ?: interactionTopology
   // Merged lights live in the field; these uniforms only size a patch covering the whole layer.
-  val uniforms = if (topology === MergedLightingTopology) {
-    params.coordinates.mergedLightingUniforms()
+  val (uniforms, radiusFraction) = if (topology === MergedLightingTopology) {
+    params.coordinates.mergedLightingUniforms() to params.coordinates.mergedLightingRadiusFraction()
   } else {
-    interactionUniforms
-  }
-  val radiusFraction = if (topology === MergedLightingTopology) {
-    params.coordinates.mergedLightingRadiusFraction()
-  } else {
-    interactionRadiusFraction
+    interactionUniforms to interactionRadiusFraction
   }
   val interactionPatchSize = if (
     supportsFusedGlassRenderEffect && !topology.hasLighting
@@ -1018,7 +1013,10 @@ internal val MergedLightingTopology = MergedInteractionTopology.copy(hasLighting
 internal val GlassMergedField.interactionTopology: GlassInteractionTopology
   get() = if (hasInteractionLighting) MergedLightingTopology else MergedInteractionTopology
 
-/** A radius spanning the sample makes one lighting patch, and its composite, cover the whole layer. */
+/**
+ * A radius spanning the sample makes one lighting patch, and its composite, cover the whole layer.
+ * The non-zero intensity is what enables the delegate's lighting stage; the field holds the lights.
+ */
 internal fun GlassCoordinates.mergedLightingUniforms(): GlassInteractionUniforms = GlassInteractionUniforms(
   position = materialOrigin + materialSize.center,
   radiusPx = sampleSize.maxDimension,
@@ -1055,7 +1053,7 @@ private fun GlassRenderParams.hasSameOpticalEffectInputs(other: GlassRenderParam
     contentNormalBlend == other.contentNormalBlend &&
     fresnelExponent == other.fresnelExponent &&
     cornerRadii == other.cornerRadii &&
-    mergedField == other.mergedField &&
+    mergedField?.withoutLights == other.mergedField?.withoutLights &&
     sampleStepPx == other.sampleStepPx
 
 private fun GlassRenderParams.hasSameRefractionDetailEffectInputs(
@@ -1071,7 +1069,7 @@ private fun GlassRenderParams.hasSameRefractionDetailEffectInputs(
     surfaceProfile == other.surfaceProfile &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
     cornerRadii == other.cornerRadii &&
-    mergedField == other.mergedField &&
+    mergedField?.withoutLights == other.mergedField?.withoutLights &&
     refractionDetailIntensity == other.refractionDetailIntensity
 
 private fun GlassRenderParams.hasSameRimEffectInputs(other: GlassRenderParams): Boolean =
@@ -1081,7 +1079,7 @@ private fun GlassRenderParams.hasSameRimEffectInputs(other: GlassRenderParams): 
     specularExponent == other.specularExponent &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
     cornerRadii == other.cornerRadii &&
-    mergedField == other.mergedField &&
+    mergedField?.withoutLights == other.mergedField?.withoutLights &&
     lightPosition == other.lightPosition &&
     sampleStepPx == other.sampleStepPx
 

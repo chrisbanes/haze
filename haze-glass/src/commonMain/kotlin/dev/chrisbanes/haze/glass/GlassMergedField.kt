@@ -75,6 +75,18 @@ internal class GlassMergedField(
   val hasInteractionLighting: Boolean get() = members.any { it.hasLighting }
 
   /**
+   * This field with idle member lights. Stages that read only shape and colour key on it, so a
+   * light-only change re-records just the lighting stage.
+   */
+  val withoutLights: GlassMergedField by lazy(LazyThreadSafetyMode.NONE) {
+    if (members.all { it.lightPosition == Offset.Zero && it.lightRadius == 0f && it.lightIntensity == 0f }) {
+      this
+    } else {
+      GlassMergedField(members.map { GlassMergedMember(it.rect, it.cornerRadii, it.tint, it.backgroundColor) }, spacingPx, opticalSize)
+    }
+  }
+
+  /**
    * The smoothing radius for each member, which the shader applies as
    * `d = smin(d, d_i, k_i)` in index order. Member 0 starts the field, so its value is unused.
    *

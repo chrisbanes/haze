@@ -116,6 +116,26 @@ class GlassContainerInteractionTest : ContextTest() {
     assertThat(pressed[200, 100].luminance()).isGreaterThan(rest[200, 100].luminance())
   }
 
+  @Test
+  fun pressedPointerPivot_lightStaysUnderPointer() = runComposeUiTest {
+    val fixture = cluster(
+      pressed = GlassStyle {
+        pressed {
+          scale(0.9f)
+          lightingIntensity(1f)
+        }
+      },
+      pivot = GlassTransformPivot.Pointer,
+    )
+    fixture.press(fixture.firstSource, Offset(20f, 30f))
+    val member = fixture.field().members[0]
+    // A's field-local layout origin is (40, 40); a pointer pivot keeps the pressed point fixed.
+    assertThat(member.rect).isCloseTo(Rect(42f, 43f, 132f, 115f))
+    assertThat(member.lightPosition.x).isCloseTo(60f, 0.01f)
+    assertThat(member.lightPosition.y).isCloseTo(70f, 0.01f)
+    assertThat(member.lightRadius).isCloseTo(72f * fixture.first.interactionLightRadiusFraction, 0.01f)
+  }
+
   private val lit = GlassStyle { pressed { lightingIntensity(1f) } }
 
   private class ClusterFixture(
@@ -145,6 +165,7 @@ class GlassContainerInteractionTest : ContextTest() {
     gap: Int = 10,
     pressed: GlassStyle = GlassStyle { pressed { scale(0.9f) } },
     policy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+    pivot: GlassTransformPivot = GlassTransformPivot.Center,
     firstModifier: Modifier = Modifier,
   ): ClusterFixture {
     val first = GlassRuntimeEffect()
@@ -158,13 +179,13 @@ class GlassContainerInteractionTest : ContextTest() {
           Box(
             Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).then(firstModifier).hazeGlass(
               HazeEffectFactory { first }, HazeInput.Sources(state), containerTestStyle(Color.Red).then(pressed),
-              HazePerformanceMode.Quality, true, firstSource, GlassTransformTarget.MaterialOnly, GlassTransformPivot.Center, policy,
+              HazePerformanceMode.Quality, true, firstSource, GlassTransformTarget.MaterialOnly, pivot, policy,
             ),
           )
           Box(
             Modifier.offset((140 + gap).dp, 60.dp).size(100.dp, 80.dp).hazeGlass(
               HazeEffectFactory { GlassRuntimeEffect() }, HazeInput.Sources(state), containerTestStyle(Color.Blue).then(pressed),
-              HazePerformanceMode.Quality, true, secondSource, GlassTransformTarget.MaterialOnly, GlassTransformPivot.Center, policy,
+              HazePerformanceMode.Quality, true, secondSource, GlassTransformTarget.MaterialOnly, pivot, policy,
             ),
           )
         }

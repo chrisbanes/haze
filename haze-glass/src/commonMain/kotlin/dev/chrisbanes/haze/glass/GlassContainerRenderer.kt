@@ -112,12 +112,13 @@ private fun GlassMemberSnapshot.toMergedMember(origin: Offset): GlassMergedMembe
   val runtime = (identity as GlassMemberNode).binding.runtime
   val light = runtime?.let { resolveGlassInteraction(it.currentInteractionState, it.interactionLightRadiusFraction) }
   val topLeft = rect.topLeft - origin
+  val fieldRect = Rect(topLeft, rect.size)
   return GlassMergedMember(
-    rect = Rect(topLeft, rect.size),
+    rect = fieldRect,
     cornerRadii = material.cornerRadii * minOf(scaleX, scaleY),
     tint = material.tint,
     backgroundColor = material.backgroundColor,
-    lightPosition = light?.position?.takeIf { it.x.isFinite() && it.y.isFinite() }?.let { topLeft + Offset(it.x * scaleX, it.y * scaleY) } ?: topLeft,
+    lightPosition = light?.position?.takeIf { it.x.isFinite() && it.y.isFinite() }?.let { topLeft + Offset(it.x * scaleX, it.y * scaleY) } ?: fieldRect.center,
     lightRadius = (rect.minDimension * (light?.radiusFraction ?: 0f)).takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f,
     lightIntensity = light?.lightingIntensity ?: 0f,
   )

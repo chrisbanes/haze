@@ -8,6 +8,9 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.containsExactly
@@ -16,6 +19,8 @@ import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
+import assertk.assertions.isNotEqualTo
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 import kotlin.test.Test
@@ -179,6 +184,33 @@ class GlassMergedFieldTest {
     assertThat(member.lightPosition).isEqualTo(Offset(2f, 3f))
     assertThat(member.lightRadius).isEqualTo(4f)
     assertThat(member.lightIntensity).isEqualTo(0.5f)
+  }
+
+  @Test
+  fun buildGlassPreparedRender_lightOnlyChangeKeepsStageKeys() {
+    val size = Size(240f, 80f)
+    val style = resolveGlassStyle(GlassRuntimeEffect(), size, Density(1f), LayoutDirection.Ltr)
+    val coordinates = GlassCoordinates(size, Offset.Zero, size, 1f)
+    fun prepare(intensity: Float, previous: GlassPreparedRender? = null): GlassPreparedRender {
+      val field = mergedField(
+        mergedMember(20f, 20f, 100f, 40f, backgroundColor = Color.White, lightPosition = Offset(70f, 40f), lightRadius = 20f, lightIntensity = intensity),
+        mergedMember(130f, 20f, 100f, 40f),
+      )
+      return buildGlassPreparedRender(
+        params = buildGlassRenderParams(style.copy(mergedField = field), coordinates),
+        interactionUniforms = GlassInteractionUniforms(Offset.Zero, 0f, 0f, 1f, 0f),
+        alpha = 1f,
+        outputSize = IntSize(240, 80),
+        previous = previous,
+      )
+    }
+    val dim = prepare(0.5f)
+    val bright = prepare(1f, previous = dim)
+    assertThat(bright.opticalKey).isSameInstanceAs(dim.opticalKey)
+    assertThat(bright.refractionDetailKey).isSameInstanceAs(dim.refractionDetailKey)
+    assertThat(bright.rimKey).isSameInstanceAs(dim.rimKey)
+    assertThat(bright.params.mergedBackground).isEqualTo(dim.params.mergedBackground)
+    assertThat(bright.params.mergedField).isNotEqualTo(dim.params.mergedField)
   }
 }
 
