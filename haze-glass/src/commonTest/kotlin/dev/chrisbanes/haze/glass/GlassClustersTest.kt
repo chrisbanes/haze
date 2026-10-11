@@ -21,7 +21,7 @@ import kotlin.test.Test
 class GlassClustersTest {
   private val effect = GlassRuntimeEffect()
   private val material = resolveGlassStyle(effect, Size(100f, 40f), Density(1f), LayoutDirection.Ltr)
-  private val key = glassMergeKey(HazeInput.Content, 0.5f, effect, material)
+  private val key = glassMergeKey(HazeInput.Content, 0.5f, effect, material, LayoutDirection.Ltr)
 
   private fun member(index: Int, left: Float = index * 110f, top: Float = 0f) = GlassMemberSnapshot(
     index,
@@ -80,6 +80,7 @@ class GlassClustersTest {
       key.copy(contentNormalBlend = 0.123f),
       key.copy(fresnelExponent = key.fresnelExponent + 1f),
       key.copy(lightAlignment = Alignment.BottomEnd),
+      key.copy(layoutDirection = LayoutDirection.Rtl),
       key.copy(alpha = 0.4f),
     )
     alternatives.forEachIndexed { index, alternative ->
@@ -98,14 +99,14 @@ class GlassClustersTest {
       cornerRadii = CornerRadii(4f, 5f, 6f, 7f),
       lightPosition = androidx.compose.ui.geometry.Offset(200f, 300f),
     )
-    val otherKey = glassMergeKey(HazeInput.Content, 0.5f, effect, changed)
+    val otherKey = glassMergeKey(HazeInput.Content, 0.5f, effect, changed, LayoutDirection.Ltr)
     assertThat(
       clusterGlassMembers(listOf(member(0), member(1).copy(key = otherKey, material = changed)), 40f)
         .surfaces.size,
     ).isEqualTo(1)
     val clear = GlassRuntimeEffect().apply { style = GlassStyle.clear }
     val clearMaterial = resolveGlassStyle(clear, Size(100f, 40f), Density(1f), LayoutDirection.Ltr)
-    val clearKey = glassMergeKey(HazeInput.Content, 0.5f, clear, clearMaterial)
+    val clearKey = glassMergeKey(HazeInput.Content, 0.5f, clear, clearMaterial, LayoutDirection.Ltr)
     assertThat(clusterGlassMembers(listOf(member(0), member(1).copy(key = clearKey)), 40f).surfaces.size)
       .isEqualTo(2)
   }

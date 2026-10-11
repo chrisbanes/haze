@@ -181,7 +181,7 @@ internal class GlassRuntimeEffect() :
       is HazePerformanceMode.Fixed -> mode.qualityFraction
       HazePerformanceMode.Adaptive -> (HazePerformanceMode.Default as HazePerformanceMode.Fixed).qualityFraction
     }
-    binding.publish(this, context.surface, material, glassMergeKey(binding.input, quality, this, material))
+    binding.publish(this, context.surface, material, glassMergeKey(binding.input, quality, this, material, context.currentValueOf(LocalLayoutDirection)))
   }
 
   private fun onRuntimeConfigurationChanged(fields: Int) {

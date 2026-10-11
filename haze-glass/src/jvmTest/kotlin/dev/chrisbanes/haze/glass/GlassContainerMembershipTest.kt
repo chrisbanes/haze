@@ -14,11 +14,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
@@ -195,5 +198,20 @@ class GlassContainerMembershipTest : ContextTest() {
     assertThat(compositions).isEqualTo(before + 1)
     assertThat(effect.memberBindingForTest).isSameInstanceAs(binding)
     assertThat(binding.node?.container).isSameInstanceAs(container(effect))
+  }
+
+  @Test
+  fun membership_directionalLightUnderDifferentLayoutDirectionsStaysSeparate() = runComposeUiTest {
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    val style = GlassStyle { lightPosition(Alignment.TopStart) }
+    setContent {
+      Row(Modifier.hazeGlassContainer(40.dp)) {
+        Member(first, style = style)
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) { Member(second, style = style) }
+      }
+    }
+    waitForIdle()
+    assertThat(container(first).model.surfaces.size).isEqualTo(2)
   }
 }

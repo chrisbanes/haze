@@ -7,6 +7,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.LayoutDirection
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.Poko
 import kotlin.math.hypot
@@ -31,6 +32,8 @@ internal data class GlassMergeKey(
   val contentNormalBlend: Float,
   val fresnelExponent: Float,
   val lightAlignment: Alignment,
+  /** Start/End light alignments resolve to opposite sides under different directions. */
+  val layoutDirection: LayoutDirection,
   val alpha: Float,
 )
 
@@ -39,13 +42,14 @@ internal fun glassMergeKey(
   qualityFraction: Float,
   effect: GlassRuntimeEffect,
   material: ResolvedGlassStyle,
+  layoutDirection: LayoutDirection,
 ): GlassMergeKey = GlassMergeKey(
   input, qualityFraction, effect.optics, material.resolvedOptics,
   material.surfaceProfile, material.specularIntensity, material.specularExponent,
   material.edgeShadow, material.edgeSoftnessPx, material.ambientResponse,
   material.chromaticAberrationStrength, material.chromaticAberrationMode,
   material.contrast, material.whitePoint, material.chromaMultiplier,
-  material.contentNormalBlend, material.fresnelExponent, effect.lightPosition, material.alpha,
+  material.contentNormalBlend, material.fresnelExponent, effect.lightPosition, layoutDirection, material.alpha,
 )
 
 /**
