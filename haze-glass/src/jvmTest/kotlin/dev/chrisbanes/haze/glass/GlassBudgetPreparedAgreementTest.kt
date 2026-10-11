@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -20,6 +21,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
+import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
@@ -40,8 +42,8 @@ class GlassBudgetPreparedAgreementTest {
     val below = detailStyle(refractionStrength = .008f)
     val above = detailStyle(refractionStrength = .009f)
 
-    assertThat(isDetailActive(below)).isFalse()
-    assertThat(isDetailActive(above)).isTrue()
+    assertThat(activeDetailKey(below)).isNull()
+    assertThat(activeDetailKey(above)).isNotNull()
     assertThat(budgetPlan(below).hasKind(GlassRetainedLayerKind.RefractionDetail)).isFalse()
     assertThat(budgetPlan(above).hasKind(GlassRetainedLayerKind.RefractionDetail)).isTrue()
     assertThat(budgetPlan(below).layers).isEqualTo(preparedPlan(below).layers)
@@ -52,8 +54,20 @@ class GlassBudgetPreparedAgreementTest {
   fun budgetAndPreparedPlans_agreeWhenInputScaleIsReduced() {
     val style = detailStyle(refractionStrength = .009f)
 
+    assertThat(budgetPlan(style, scale = 0.5f).hasKind(GlassRetainedLayerKind.RefractionDetail))
+      .isTrue()
     assertThat(budgetPlan(style, scale = 0.5f).layers)
       .isEqualTo(preparedPlan(style, scale = 0.5f).layers)
+  }
+
+  @Test
+  fun budgetAndPreparedPlans_agreeWithBlurAndDepth() {
+    val style = detailStyle(refractionStrength = .009f, depth = 0.5f)
+
+    listOf(1f, 0.5f).forEach { scale ->
+      assertThat(budgetPlan(style, scale).hasKind(GlassRetainedLayerKind.DepthMixed)).isTrue()
+      assertThat(budgetPlan(style, scale).layers).isEqualTo(preparedPlan(style, scale).layers)
+    }
   }
 
   @Test
@@ -75,6 +89,7 @@ class GlassBudgetPreparedAgreementTest {
 
   private fun detailStyle(
     refractionStrength: Float,
+    depth: Float = 0f,
     extra: GlassStyleScope.() -> Unit = {},
   ): GlassStyle = GlassRuntimeEffect().style.then {
     optics(
@@ -83,14 +98,14 @@ class GlassBudgetPreparedAgreementTest {
         refractionHeightFraction = 0.2f,
         refractionDisplacement = 20.dp,
         refractionDetailIntensity = 0.76f,
-        depth = OpticalSizeValue.Fixed(0f),
+        depth = OpticalSizeValue.Fixed(depth),
       ),
     )
     edgeSoftness(4.dp)
     extra()
   }
 
-  private fun isDetailActive(style: GlassStyle): Boolean {
+  private fun activeDetailKey(style: GlassStyle): GlassRefractionDetailEffectKey? {
     val resolved = resolveGlassStyle(
       effect = effectWith(style),
       materialSizePx = MaterialSize,
@@ -101,7 +116,7 @@ class GlassBudgetPreparedAgreementTest {
       resolved,
       GlassCoordinates(MaterialSize, Offset.Zero, MaterialSize, 1f),
     )
-    return params.activeRefractionDetailEffectKey(params.refractionDetailIntensity) != null
+    return params.activeRefractionDetailEffectKey(params.refractionDetailIntensity)
   }
 
   /** The plan from the budget lambda, which `runtimeShaderSupported = true` would validate away. */
@@ -155,7 +170,10 @@ private class AgreementContext(
   override fun requireDensity(): Density = Density(1f)
 
   @Suppress("UNCHECKED_CAST")
-  override fun <T> currentValueOf(local: CompositionLocal<T>): T = LayoutDirection.Ltr as T
+  override fun <T> currentValueOf(local: CompositionLocal<T>): T {
+    check(local === LocalLayoutDirection) { "Unexpected composition local: $local" }
+    return LayoutDirection.Ltr as T
+  }
 
   override fun requireGraphicsContext(): GraphicsContext = error("Unused")
 

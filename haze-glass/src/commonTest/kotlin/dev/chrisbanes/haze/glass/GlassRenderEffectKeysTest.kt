@@ -8,6 +8,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntSize
 import assertk.assertThat
+import assertk.assertions.contains
+import assertk.assertions.doesNotContain
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
@@ -410,13 +412,15 @@ class GlassRenderEffectKeysTest {
       val params = params().copy(refractionStrength = strength)
       val kinds = buildGlassRetainedLayerPlan(params, idle).layers.map { it.kind }
 
-      assertThat(params.activeRefractionDetailEffectKey(params.refractionDetailIntensity) != null)
-        .isEqualTo(expectedActive)
+      val key = assertThat(params.activeRefractionDetailEffectKey(params.refractionDetailIntensity))
+      if (expectedActive) key.isNotNull() else key.isNull()
       listOf(
         GlassRetainedLayerKind.RefractionDetail,
         GlassRetainedLayerKind.RefractionDetailCoverage,
         GlassRetainedLayerKind.RefractionComposite,
-      ).forEach { kind -> assertThat(kinds.contains(kind)).isEqualTo(expectedActive) }
+      ).forEach { kind ->
+        if (expectedActive) assertThat(kinds).contains(kind) else assertThat(kinds).doesNotContain(kind)
+      }
     }
   }
 
