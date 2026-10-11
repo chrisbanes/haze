@@ -602,6 +602,10 @@ internal class GlassRuntimeEffect() :
     return resolveTransform(size, GlassTransformTarget.MaterialOnly)
   }
 
+  /** The active interaction transform of either target, which scales this member's material. */
+  internal fun currentInteractionTransform(size: Size): HazeEffectContentTransform =
+    resolveTransform(size, interactionTransformTarget)
+
   override fun shouldDrawContentBehind(): Boolean {
     return delegate is FallbackGlassDelegate
   }

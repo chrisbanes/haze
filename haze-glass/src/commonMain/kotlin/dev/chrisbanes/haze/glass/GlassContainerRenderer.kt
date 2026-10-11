@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntSize
@@ -46,15 +47,16 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
       if (inputs.size != nodes.size) continue
       if (members.size == 1) {
         output += inputs.single()
-        nodes.single().binding.runtime?.let { runtimes += members.single().rect to it }
+        nodes.single().binding.runtime?.let { runtimes += members.single().layoutRect to it }
         continue
       }
-      val bounds = members.map { it.rect }.reduce { a, b ->
+      // Pressed members only shrink within their layout rects, so the surface keeps its bounds.
+      val bounds = members.map { it.layoutRect }.reduce { a, b ->
         Rect(minOf(a.left, b.left), minOf(a.top, b.top), maxOf(a.right, b.right), maxOf(a.bottom, b.bottom))
       }.inflate(spacing)
       val opticalSize = checkNotNull(model.opticalSize)
       val field = GlassMergedField(
-        members.map { GlassMergedMember(it.rect.translate(-bounds.topLeft), it.material.cornerRadii, it.material.tint, it.material.backgroundColor) },
+        members.map { it.toMergedMember(bounds.topLeft) },
         spacing,
         opticalSize,
       )
@@ -101,4 +103,9 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
   fun releaseMember(member: GlassMemberNode) {
     slots.keys.filter { member in it }.forEach { slots.remove(it)?.handle?.dispose() }
   }
+}
+
+private fun GlassMemberSnapshot.toMergedMember(origin: Offset): GlassMergedMember {
+  val scale = minOf(rect.width / layoutRect.width, rect.height / layoutRect.height)
+  return GlassMergedMember(rect.translate(-origin), material.cornerRadii * scale, material.tint, material.backgroundColor)
 }

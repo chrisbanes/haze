@@ -23,6 +23,7 @@ import androidx.compose.ui.node.requireGraphicsContext
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectContentTransform
 import dev.chrisbanes.haze.HazeEffectSurface
 import dev.chrisbanes.haze.HazeEffectSurfaceOwner
 import dev.chrisbanes.haze.HazeLogger
@@ -122,11 +123,14 @@ internal class GlassContainerNode(
       }
       val snapshots = members.mapNotNull { member ->
         val binding = member.binding
-        val rect = binding.surface?.boundsInOwner() ?: return@mapNotNull null
+        val layoutRect = binding.surface?.boundsInOwner() ?: return@mapNotNull null
         val key = binding.key ?: return@mapNotNull null
         val material = binding.material ?: return@mapNotNull null
         val owner = checkNotNull(surfaceCoordinates)
-        GlassMemberSnapshot(member, rect, key, material, member.hasTranslationOnlyTransform(owner))
+        // Interaction transforms are draw-time scales, so they move the member within the field.
+        val transform = binding.runtime?.currentInteractionTransform(layoutRect.size)
+        val rect = transform?.let { layoutRect.transformedBy(it) } ?: layoutRect
+        GlassMemberSnapshot(member, rect, key, material, member.hasTranslationOnlyTransform(owner), layoutRect)
       }
       model = clusterGlassMembers(snapshots, spacingPx)
       if (model.overflow != overflow) {
@@ -159,4 +163,15 @@ internal class GlassContainerNode(
     children = null
     surfaceCoordinates = null
   }
+}
+
+/** Scales this rect about the transform's pivot, which is relative to the rect's top-left. */
+private fun Rect.transformedBy(transform: HazeEffectContentTransform): Rect {
+  val pivot = topLeft + transform.pivot
+  return Rect(
+    left = pivot.x + (left - pivot.x) * transform.scaleX,
+    top = pivot.y + (top - pivot.y) * transform.scaleY,
+    right = pivot.x + (right - pivot.x) * transform.scaleX,
+    bottom = pivot.y + (bottom - pivot.y) * transform.scaleY,
+  )
 }
