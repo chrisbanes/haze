@@ -498,11 +498,7 @@ private fun Surface.drawGraphicsLayer(
 }
 
 private inline fun Surface.withSurfaceCanvas(block: android.graphics.Canvas.() -> Unit) {
-  val canvas = if (Build.VERSION.SDK_INT >= 23) {
-    lockHardwareCanvas()
-  } else {
-    lockCanvas(null)
-  }
+  val canvas = lockHardwareCanvas()
   try {
     block(canvas)
   } finally {
