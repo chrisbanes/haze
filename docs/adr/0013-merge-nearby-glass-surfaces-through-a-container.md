@@ -30,6 +30,9 @@ its own children. A member's own style still sets its shape, input and appearanc
   arrays. Beyond four, the extra members draw on their own without a bridge, in a deterministic
   order. Where an extra member overlaps the cluster, blur and tint apply twice in the overlap,
   which is the visible cost of the cap.
+- A cluster draws at one z-position, so only members registered consecutively share a surface. A
+  member registered between two compatible neighbours splits them, even when it is far away, so
+  merging never reorders members.
 - Members can merge only when their input, performance mode and material values are equal:
   optics, surface profile, specular and edge response, chromatic aberration, tone, light position
   and alpha. Values that belong to each member are excluded from that comparison: `shape`,
