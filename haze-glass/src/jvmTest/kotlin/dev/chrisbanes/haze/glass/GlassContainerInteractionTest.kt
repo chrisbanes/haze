@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -152,20 +153,24 @@ class GlassContainerInteractionTest : ContextTest() {
   @Test
   fun releaseOvershoot_staysInsideClusterSurface() = runComposeUiTest {
     // Abutting members with a 2px spacing: a 4% overshoot pushes A's outer edge past the spacing.
-    val bouncy = GlassStyle { pressed { animate(spring(dampingRatio = 0.5f, stiffness = 200f), spring(dampingRatio = 0.5f, stiffness = 200f)) { scale(0.5f) } } }
+    // The press snaps so only the bouncy release is animated, keeping the wall-clock time short.
+    val bouncy = GlassStyle { pressed { animate(snap(), spring(dampingRatio = 0.5f, stiffness = 400f)) { scale(0.5f) } } }
     val fixture = cluster(gap = 0, spacing = 2, pressed = bouncy)
     val press = fixture.press(fixture.firstSource)
     mainClock.autoAdvance = false
     runBlocking { fixture.firstSource.emit(PressInteraction.Release(press)) }
     var overshot = false
     var minLeft = Float.POSITIVE_INFINITY
-    repeat(120) {
+    repeat(60) {
       mainClock.advanceTimeByFrame()
       waitForIdle()
       overshot = overshot || fixture.first.currentInteractionState.scaleX > 1.04f
       val field = fixture.owner().renderer.runtimeSurfaces.singleOrNull()?.mergedField ?: return@repeat
       minLeft = minOf(minLeft, field.members.minOf { it.rect.left })
     }
+    // Let every animation settle so no frame-awaiting coroutine outlives the test body.
+    mainClock.autoAdvance = true
+    waitForIdle()
     assertThat(overshot).isTrue()
     assertThat(minLeft, "merged field observed").isLessThan(Float.POSITIVE_INFINITY)
     // Field rects are relative to the surface bounds, so a negative edge is clipped.
