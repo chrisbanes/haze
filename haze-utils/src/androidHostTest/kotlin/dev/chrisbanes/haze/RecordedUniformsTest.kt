@@ -4,10 +4,12 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.colorspace.ColorSpace
 import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.toAndroidColorSpace
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
@@ -81,15 +83,45 @@ class RecordedUniformsTest {
 
   @Test
   fun colorLong_decodesToTheSameAndroidColorAsTheComponents() {
-    val spaces = listOf(
+    assertDecodesLikeComponents(
       ColorSpaces.Srgb,
       ColorSpaces.DisplayP3,
       ColorSpaces.ExtendedSrgb,
       ColorSpaces.LinearSrgb,
       ColorSpaces.Bt2020,
+      // Compose numbers these differently from Android, so Color.value is not a valid ColorLong.
+      ColorSpaces.Bt2020Hlg,
+      ColorSpaces.Bt2020Pq,
     )
+  }
+
+  @Test
+  fun colorSetter_recordsUnspecifiedAsTransparentBlack() {
+    val uniforms = RecordedUniforms()
+
+    uniforms.setColorUniform("c", Color.Unspecified)
+
+    val decoded = android.graphics.Color.valueOf(uniforms.colors.getValue("c").packed)
+    assertThat(decoded.alpha()).isEqualTo(0f)
+  }
+
+  @Test
+  @Config(sdk = [33])
+  fun colorLong_decodesOklabLikeTheComponentsOnAnSdkWithoutIt() {
+    // The SDK has no Oklab, so the colour is stored as 8-bit sRGB: equal to within one step.
+    assertDecodesLikeComponents(ColorSpaces.Oklab, tolerance = 1f / 255f)
+  }
+
+  @Test
+  @Config(sdk = [36])
+  fun colorLong_decodesOklabLikeTheComponents() {
+    assertDecodesLikeComponents(ColorSpaces.Oklab)
+  }
+
+  private fun assertDecodesLikeComponents(vararg spaces: ColorSpace, tolerance: Float = 0f) {
     for (space in spaces) {
       val color = Color(0.2f, 0.4f, 0.6f, 0.8f, space)
+      val recorded = RecordedUniforms().apply { setColorUniform("c", color) }.colors.getValue("c")
       val fromComponents = android.graphics.Color.valueOf(
         color.red,
         color.green,
@@ -97,8 +129,12 @@ class RecordedUniformsTest {
         color.alpha,
         space.toAndroidColorSpace(),
       )
-      val fromLong = android.graphics.Color.valueOf(color.value.toLong())
-      assertThat(fromLong, space.name).isEqualTo(fromComponents)
+      val decoded = android.graphics.Color.valueOf(recorded.packed)
+      assertThat(decoded.colorSpace, space.name).isEqualTo(fromComponents.colorSpace)
+      for (i in 0..3) {
+        assertThat(decoded.getComponent(i), "${space.name}[$i]")
+          .isCloseTo(fromComponents.getComponent(i), tolerance)
+      }
     }
   }
 }

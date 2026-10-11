@@ -12,6 +12,8 @@ import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.graphics.isUnspecified
+import androidx.compose.ui.graphics.toAndroidColorSpace
 
 /**
  * On Android, we use RuntimeShader directly rather than a RuntimeEffect.
@@ -200,7 +202,7 @@ private val EmptyChildShader: android.graphics.Shader by lazy {
   )
 }
 
-/** A colour uniform recorded as its packed `ColorLong`, which Compose's [Color.value] already is. */
+/** A colour uniform recorded as an Android `ColorLong`, ready for `RuntimeShader.setColorUniform`. */
 internal class RecordedColor {
   var packed: Long = 0L
 }
@@ -226,7 +228,7 @@ internal class RecordedUniforms : RuntimeShaderUniformProvider {
   }
 
   override fun setColorUniform(name: String, color: Color) {
-    colors.getOrPut(name) { RecordedColor() }.packed = color.value.toLong()
+    colors.getOrPut(name) { RecordedColor() }.packed = color.toAndroidColorLong()
   }
 
   override fun setFloatUniform(name: String, value: Float) {
@@ -260,4 +262,15 @@ internal class RecordedUniforms : RuntimeShaderUniformProvider {
   override fun setChildShader(name: String, shader: Shader) {
     children[name] = shader
   }
+}
+
+/**
+ * Compose's [Color.value] is already an Android `ColorLong` for colour spaces with IDs up to 15. It
+ * numbers the others (BT.2020 HLG and PQ, Oklab, ...) differently, and its own `toColorLong` returns an
+ * invalid value for some of them on older SDKs, so those take the platform's pack function.
+ */
+private fun Color.toAndroidColorLong(): Long = when {
+  isUnspecified -> 0L // Transparent black, as the shader has always received for Color.Unspecified.
+  (value and 63u).toInt() <= 15 -> value.toLong()
+  else -> android.graphics.Color.pack(red, green, blue, alpha, colorSpace.toAndroidColorSpace())
 }
