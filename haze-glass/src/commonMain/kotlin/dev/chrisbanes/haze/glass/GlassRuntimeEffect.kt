@@ -387,7 +387,8 @@ internal class GlassRuntimeEffect() :
     sampling: HazeSampling,
   ) {
     val context = scope
-    if (memberBinding !== style.member) {
+    // An equal binding from a re-created modifier is the same membership; keep the attached one.
+    if (memberBinding != style.member) {
       memberBinding?.release(this)
       memberBinding = style.member
     }

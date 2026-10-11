@@ -17,7 +17,11 @@ import dev.chrisbanes.haze.HazeEffectSurface
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.Poko
 
-/** Connects the adjacent traversal and effect nodes without giving Glass a core node handle. */
+/**
+ * Connects the adjacent traversal and effect nodes without giving Glass a core node handle.
+ * Equal by [input] only, so re-created modifiers keep the attached instance instead of reconnecting.
+ */
+@Poko
 internal class GlassMemberBinding(val input: HazeInput) {
   var node: GlassMemberNode? = null
   var runtime: GlassRuntimeEffect? = null

@@ -173,4 +173,27 @@ class GlassContainerMembershipTest : ContextTest() {
     waitForIdle()
     assertThat(container(first).model.surfaces.size).isEqualTo(1)
   }
+
+  @Test
+  fun membership_unrelatedRecompositionKeepsMemberBinding() = runComposeUiTest {
+    val effect = GlassRuntimeEffect()
+    val factory = HazeEffectFactory { effect }
+    val counter = mutableStateOf(0)
+    var compositions = 0
+    setContent {
+      Box(Modifier.hazeGlassContainer(40.dp)) {
+        SideEffect { compositions++ }
+        counter.value
+        Box(Modifier.size(100.dp, 40.dp).hazeGlass(factory, HazeInput.Content, GlassStyle, null, true, null))
+      }
+    }
+    waitForIdle()
+    val binding = checkNotNull(effect.memberBindingForTest)
+    val before = compositions
+    runOnIdle { counter.value++ }
+    waitForIdle()
+    assertThat(compositions).isEqualTo(before + 1)
+    assertThat(effect.memberBindingForTest).isSameInstanceAs(binding)
+    assertThat(binding.node?.container).isSameInstanceAs(container(effect))
+  }
 }
