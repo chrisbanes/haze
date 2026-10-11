@@ -84,7 +84,7 @@ internal fun Modifier.hazeGlass(
   interactionTransformPivot: GlassTransformPivot = GlassTransformPivot.Pointer,
   interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
 ): Modifier {
-  val member = GlassMemberBinding(input)
+  val member = GlassMemberBinding(input, expandLayerBounds)
   val configuration = GlassNodeConfiguration(
     style = style,
     performanceMode = performanceMode,

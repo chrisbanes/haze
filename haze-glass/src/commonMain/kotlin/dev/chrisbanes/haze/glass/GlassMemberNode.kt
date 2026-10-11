@@ -20,10 +20,10 @@ import dev.chrisbanes.haze.Poko
 
 /**
  * Connects the adjacent traversal and effect nodes without giving Glass a core node handle.
- * Equal by [input] only: a re-created modifier hands over the live connection instead of reconnecting.
+ * Equal by [input] and [expandLayerBounds] only: a re-created modifier hands over the live connection instead of reconnecting.
  */
 @Poko
-internal class GlassMemberBinding(val input: HazeInput) {
+internal class GlassMemberBinding(val input: HazeInput, val expandLayerBounds: Boolean) {
   var node: GlassMemberNode? = null
   var runtime: GlassRuntimeEffect? = null
   var surface: HazeEffectSurface? = null

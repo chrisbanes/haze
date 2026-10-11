@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
@@ -168,6 +169,51 @@ class HazeEffectSurfaceDrawTest {
       configured?.dispose()
       owner.resolveSurfaces = null
     }
+  }
+
+  @Test
+  fun configuredSurface_respectsMembersDisabledLayerExpansion() {
+    for (expand in listOf(true, false)) {
+      assertThat(configuredLayerOrigin(expand), "expandLayerBounds=$expand")
+        .isEqualTo(if (expand) Offset(-10f, -10f) else Offset.Zero)
+    }
+  }
+
+  private fun configuredLayerOrigin(expand: Boolean): Offset? {
+    var origin: Offset? = null
+    runComposeUiTest {
+      val owner = SurfaceOwnerNode()
+      val first = SurfaceFactory(owner)
+      val second = SurfaceFactory(owner)
+      var configured: HazeConfiguredEffectSurface<Unit>? = null
+      owner.resolveSurfaces = {
+        configured = configured ?: first.surface.createConfiguredSurface(
+          HazeEffectFactory {
+            object : HazeEffectRenderer<Unit> {
+              override fun HazeEffectLayoutScope.calculateLayerBounds(style: Unit): Rect = modifierBounds.inflate(10f)
+              override fun HazeEffectDrawScope.draw(style: Unit) {
+                // The runtime scope reports the layer origin relative to the configured bounds.
+                origin = Offset.Zero - modifierBounds.topLeft
+              }
+            }
+          },
+          Unit, Rect(0f, 0f, 60f, 30f), listOf(first.surface, second.surface),
+        )
+        listOf(checkNotNull(configured).surface)
+      }
+      setContent {
+        Box(Modifier.size(100.dp).then(OwnerElement(owner))) {
+          Box(Modifier.size(30.dp).hazeEffect(first, HazeInput.Content, Unit, expandLayerBounds = expand))
+          Box(Modifier.offset(x = 30.dp).size(30.dp).hazeEffect(second, HazeInput.Content, Unit, expandLayerBounds = expand))
+        }
+      }
+      waitForIdle()
+      runOnIdle {
+        configured?.dispose()
+        owner.resolveSurfaces = null
+      }
+    }
+    return origin
   }
 
   @Test

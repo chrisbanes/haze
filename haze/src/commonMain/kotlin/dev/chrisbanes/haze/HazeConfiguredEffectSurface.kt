@@ -197,7 +197,12 @@ private class ConfiguredSurface<Style>(
       override val modifierBounds: Rect get() = Rect(Offset.Zero, bounds.size)
       override fun <T> currentValueOf(local: CompositionLocal<T>): T = context.currentValueOf(local)
     }
-    layerBounds = with(renderer) { layoutScope.calculateLayerBounds(style) }
+    // Like each member's own node, never expand beyond the configured bounds unless every member allows it.
+    layerBounds = if (members.all { it.node.expandLayerBounds }) {
+      with(renderer) { layoutScope.calculateLayerBounds(style) }
+    } else {
+      layoutScope.modifierBounds
+    }
     layerSize = layerBounds.size
     layerOffset = Offset.Zero - layerBounds.topLeft
     if (layerSize.minDimension <= 0f || !layerSize.width.isFinite() || !layerSize.height.isFinite()) return null

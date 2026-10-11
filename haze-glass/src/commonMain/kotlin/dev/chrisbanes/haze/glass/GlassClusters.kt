@@ -15,6 +15,8 @@ import kotlin.math.hypot
 /** Value key deliberately excludes member geometry, colours and interaction declarations. */
 internal data class GlassMergeKey(
   val input: HazeInput,
+  /** Members that disabled layer expansion only merge with each other, keeping their bounds. */
+  val expandLayerBounds: Boolean,
   val qualityFraction: Float,
   val optics: GlassOptics,
   val resolvedOptics: ResolvedGlassOptics,
@@ -39,12 +41,13 @@ internal data class GlassMergeKey(
 
 internal fun glassMergeKey(
   input: HazeInput,
+  expandLayerBounds: Boolean,
   qualityFraction: Float,
   effect: GlassRuntimeEffect,
   material: ResolvedGlassStyle,
   layoutDirection: LayoutDirection,
 ): GlassMergeKey = GlassMergeKey(
-  input, qualityFraction, effect.optics, material.resolvedOptics,
+  input, expandLayerBounds, qualityFraction, effect.optics, material.resolvedOptics,
   material.surfaceProfile, material.specularIntensity, material.specularExponent,
   material.edgeShadow, material.edgeSoftnessPx, material.ambientResponse,
   material.chromaticAberrationStrength, material.chromaticAberrationMode,
