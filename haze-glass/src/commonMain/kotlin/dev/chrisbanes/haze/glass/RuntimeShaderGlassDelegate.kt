@@ -25,6 +25,7 @@ import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.MutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.PlatformRenderEffect
+import dev.chrisbanes.haze.PlatformRuntimeEffect
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
@@ -85,42 +86,28 @@ internal class RuntimeShaderGlassDelegate(
   private var fusedInputKey: GlassDepthInputKey? = null
   private var fusedDepthInputShaders: FusedDepthInputShaders? = null
   private var fusedEffect: PlatformRenderEffect? = null
-  private var interactionOpticalEffect: MutableRuntimeShaderRenderEffect? = null
-  private var interactionDetailEffect: MutableRuntimeShaderRenderEffect? = null
-  private var interactionDetailCoverageEffect: MutableRuntimeShaderRenderEffect? = null
-  private var interactionLightingEffect: MutableRuntimeShaderRenderEffect? = null
-  private var interactionOpticalEffectKey: GlassOpticalEffectKey? = null
-  private var interactionOpticalEffectUniforms: GlassInteractionUniforms? = null
-  private var interactionOpticalPlatformEffect: PlatformRenderEffect? = null
-  private var interactionOpticalComposeEffect: RenderEffect? = null
-  private var interactionOpticalEffectLayer: GraphicsLayer? = null
+  internal val interactionOptical = interactionSlot<GlassOpticalEffectKey> {
+    GLASS_INTERACTION_OPTICAL_EFFECT
+  }
+  internal val interactionDetail = interactionSlot<GlassRefractionDetailEffectKey> {
+    GLASS_INTERACTION_REFRACTION_DETAIL_EFFECT
+  }
+  internal val interactionDetailCoverage = interactionSlot<GlassRefractionDetailEffectKey> {
+    GLASS_INTERACTION_REFRACTION_DETAIL_COVERAGE_EFFECT
+  }
+  internal val interactionLighting = interactionSlot<GlassInteractionLightingKey> {
+    if (stageShadersMerged) GLASS_MERGED_INTERACTION_LIGHTING_EFFECT else GLASS_INTERACTION_LIGHTING_EFFECT
+  }
   internal var interactionOutputEffect: MutableRuntimeShaderRenderEffect? = null
     private set
   private var interactionOutputInput: PlatformRenderEffect? = null
   private var interactionOutputUniforms: GlassInteractionUniforms? = null
   private var interactionOutputFeatherWidth: Float = Float.NaN
   private var interactionOutputComposeEffect: RenderEffect? = null
-  private var interactionDetailEffectKey: GlassRefractionDetailEffectKey? = null
-  private var interactionDetailEffectUniforms: GlassInteractionUniforms? = null
-  private var interactionDetailComposeEffect: RenderEffect? = null
-  private var interactionDetailEffectLayer: GraphicsLayer? = null
-  private var interactionDetailCoverageEffectKey: GlassRefractionDetailEffectKey? = null
-  private var interactionDetailCoverageEffectUniforms: GlassInteractionUniforms? = null
-  private var interactionDetailCoverageComposeEffect: RenderEffect? = null
-  private var interactionDetailCoverageEffectLayer: GraphicsLayer? = null
-  private var interactionLightingEffectKey: GlassInteractionLightingKey? = null
-  private var interactionLightingEffectUniforms: GlassInteractionUniforms? = null
-  private var interactionLightingComposeEffect: RenderEffect? = null
-  private var interactionLightingEffectLayer: GraphicsLayer? = null
-  private var recordedInteractionOpticalLayer: GraphicsLayer? = null
-  private var recordedInteractionOpticalInput: GraphicsLayer? = null
-  private var recordedInteractionOpticalKey: GlassOpticalEffectKey? = null
-  private var recordedInteractionDetailLayer: GraphicsLayer? = null
-  private var recordedInteractionDetailInput: GraphicsLayer? = null
-  private var recordedInteractionDetailKey: GlassRefractionDetailEffectKey? = null
-  private var recordedInteractionDetailCoverageLayer: GraphicsLayer? = null
-  private var recordedInteractionDetailCoverageInput: GraphicsLayer? = null
-  private var recordedInteractionDetailCoverageKey: GlassRefractionDetailEffectKey? = null
+  internal val recordedInteractionOptical = RecordedInteractionLayer<GlassOpticalEffectKey>()
+  internal val recordedInteractionDetail = RecordedInteractionLayer<GlassRefractionDetailEffectKey>()
+  internal val recordedInteractionDetailCoverage =
+    RecordedInteractionLayer<GlassRefractionDetailEffectKey>()
   private var recordedInteractionCompositeLayer: GraphicsLayer? = null
   private var recordedInteractionCompositeOptical: GraphicsLayer? = null
   private var recordedInteractionCompositeDetail: GraphicsLayer? = null
@@ -391,11 +378,7 @@ internal class RuntimeShaderGlassDelegate(
       )
       val detail = effects.refractionDetail
       val outputLayer = if (detail != null) {
-        val localDetailKey = detail.key.copy(
-          sampleSize = patch.coordinates.sampleSize,
-          materialOrigin = patch.coordinates.materialOrigin,
-          materialSize = patch.coordinates.materialSize,
-        )
+        val localDetailKey = detail.key.localTo(patch.coordinates)
         updateInteractionDetailEffect(
           checkNotNull(layers.interactionRefractionDetail),
           localDetailKey,
@@ -412,7 +395,7 @@ internal class RuntimeShaderGlassDelegate(
       }
       updateInteractionOutputEffect(
         layer = outputLayer,
-        input = if (detail == null) checkNotNull(interactionOpticalPlatformEffect) else null,
+        input = if (detail == null) checkNotNull(interactionOptical.platformEffect) else null,
         patch = patch,
         featherWidth = calculateGlassInteractionOutputFeatherWidth(
           radiusPx = patch.uniforms.radiusPx,
@@ -686,7 +669,7 @@ internal class RuntimeShaderGlassDelegate(
           },
           ::clearRetainedOutput,
         ) ?: return
-        val interactionOptical = if (
+        val interactionOpticalLayer = if (
           interactionUniforms.hasOptics && interactionPatch != null
         ) {
           requireRetainedStage(
@@ -743,7 +726,7 @@ internal class RuntimeShaderGlassDelegate(
           null
         }
         val completedInteractionOutput = if (
-          interactionOptical != null &&
+          interactionOpticalLayer != null &&
           interactionRefractionDetail != null &&
           interactionRefractionDetailCoverage != null &&
           interactionPatch != null
@@ -751,7 +734,7 @@ internal class RuntimeShaderGlassDelegate(
           requireRetainedStage(
             trace(GlassTraceSection.InteractionDetail) {
               recordInteractionRefractionComposite(
-                optical = interactionOptical,
+                optical = interactionOpticalLayer,
                 detail = interactionRefractionDetail,
                 coverage = interactionRefractionDetailCoverage,
                 patch = interactionPatch,
@@ -760,13 +743,13 @@ internal class RuntimeShaderGlassDelegate(
             ::clearRetainedOutput,
           ) ?: return
         } else {
-          interactionOptical
+          interactionOpticalLayer
         }
         if (completedInteractionOutput != null && interactionPatch != null) {
           updateInteractionOutputEffect(
             layer = completedInteractionOutput,
-            input = if (completedInteractionOutput === interactionOptical) {
-              checkNotNull(interactionOpticalPlatformEffect)
+            input = if (completedInteractionOutput === interactionOpticalLayer) {
+              checkNotNull(interactionOptical.platformEffect)
             } else {
               null
             },
@@ -960,11 +943,12 @@ internal class RuntimeShaderGlassDelegate(
   }
 
   private fun clearInteractionOpticalEffectCache() {
-    interactionOpticalEffectKey = null
-    interactionOpticalEffectUniforms = null
-    interactionOpticalPlatformEffect = null
-    interactionOpticalComposeEffect = null
+    interactionOptical.clear()
     // Its shader still holds the previous optical input, which the detail path never replaces.
+    clearInteractionOutputEffectCache()
+  }
+
+  private fun clearInteractionOutputEffectCache() {
     interactionOutputEffect = null
     interactionOutputInput = null
     interactionOutputUniforms = null
@@ -973,34 +957,22 @@ internal class RuntimeShaderGlassDelegate(
   }
 
   private fun clearInteractionDetailEffectCache() {
-    interactionDetailEffectKey = null
-    interactionDetailEffectUniforms = null
-    interactionDetailComposeEffect = null
-    interactionDetailCoverageEffectKey = null
-    interactionDetailCoverageEffectUniforms = null
-    interactionDetailCoverageComposeEffect = null
+    interactionDetail.clear()
+    interactionDetailCoverage.clear()
   }
 
   private fun clearInteractionLightingEffectCache() {
-    interactionLightingEffectKey = null
-    interactionLightingEffectUniforms = null
-    interactionLightingComposeEffect = null
+    interactionLighting.clear()
   }
 
   private fun clearInteractionOpticalLayerMetadata() {
-    recordedInteractionOpticalLayer = null
-    recordedInteractionOpticalInput = null
-    recordedInteractionOpticalKey = null
-    interactionOpticalEffectLayer = null
+    recordedInteractionOptical.clear()
+    interactionOptical.clearLayer()
   }
 
   private fun clearInteractionRefractionLayerMetadata() {
-    recordedInteractionDetailLayer = null
-    recordedInteractionDetailInput = null
-    recordedInteractionDetailKey = null
-    recordedInteractionDetailCoverageLayer = null
-    recordedInteractionDetailCoverageInput = null
-    recordedInteractionDetailCoverageKey = null
+    recordedInteractionDetail.clear()
+    recordedInteractionDetailCoverage.clear()
     recordedInteractionCompositeLayer = null
     recordedInteractionCompositeOptical = null
     recordedInteractionCompositeDetail = null
@@ -1008,14 +980,14 @@ internal class RuntimeShaderGlassDelegate(
     recordedInteractionCompositeSize = null
     recordedInteractionCompositeOpticalRecordCount = -1
     recordedInteractionCompositeDetailRecordCount = -1
-    interactionDetailEffectLayer = null
-    interactionDetailCoverageEffectLayer = null
+    interactionDetail.clearLayer()
+    interactionDetailCoverage.clearLayer()
   }
 
   private fun clearInteractionLightingLayerMetadata() {
     recordedInteractionLightingLayer = null
     recordedInteractionLightingSize = null
-    interactionLightingEffectLayer = null
+    interactionLighting.clearLayer()
   }
 
   private fun clearRimLayerMetadata() {
@@ -1072,10 +1044,10 @@ internal class RuntimeShaderGlassDelegate(
       fusedShader = null
       fusedInputKey = null
       fusedDepthInputShaders = null
-      interactionOpticalEffect = null
-      interactionDetailEffect = null
-      interactionDetailCoverageEffect = null
-      interactionLightingEffect = null
+      interactionOptical.releaseShader()
+      interactionDetail.releaseShader()
+      interactionDetailCoverage.releaseShader()
+      interactionLighting.releaseShader()
       interactionOutputEffect = null
     }
     clearInteractionLayerMetadata()
@@ -1103,11 +1075,8 @@ internal class RuntimeShaderGlassDelegate(
     source: GraphicsLayer,
     blurred: GraphicsLayer,
     depth: Float,
-  ): GraphicsLayer? = when {
-    depth <= 0f || blurred === source -> source
-    depth >= 1f -> blurred
-    else -> layers.depthMixed?.takeUnless { it.isReleased }
-  }
+  ): GraphicsLayer? = depthPassThrough(source, blurred, depth)
+    ?: layers.depthMixed?.takeUnless { it.isReleased }
 
   private fun retainedRim(effects: GlassRenderEffects): Unit? = when {
     effects.rim == null -> Unit
@@ -1224,25 +1193,20 @@ internal class RuntimeShaderGlassDelegate(
     blurred: GraphicsLayer,
     depth: Float,
   ): GraphicsLayer? {
-    return when {
-      depth <= 0f || blurred === source -> source
-      depth >= 1f -> blurred
-      else -> {
-        val layer = layers.depthMixed?.takeUnless { it.isReleased } ?: return null
-        val scaledSize = layers.scaledSize ?: return null
-        layer.also {
-          it.alpha = 1f
-          it.renderEffect = null
-          recordDepthMix(
-            layer = it,
-            size = scaledSize,
-            source = source,
-            blurred = blurred,
-            depth = depth,
-          )
-          depthRecordCount++
-        }
-      }
+    depthPassThrough(source, blurred, depth)?.let { return it }
+    val layer = layers.depthMixed?.takeUnless { it.isReleased } ?: return null
+    val scaledSize = layers.scaledSize ?: return null
+    return layer.also {
+      it.alpha = 1f
+      it.renderEffect = null
+      recordDepthMix(
+        layer = it,
+        size = scaledSize,
+        source = source,
+        blurred = blurred,
+        depth = depth,
+      )
+      depthRecordCount++
     }
   }
 
@@ -1387,18 +1351,15 @@ internal class RuntimeShaderGlassDelegate(
     layer.alpha = 1f
     updateInteractionOpticalEffect(layer, localKey, patch.uniforms, outputTargetsLayer)
     if (
-      layer !== recordedInteractionOpticalLayer ||
-      input !== recordedInteractionOpticalInput ||
-      localKey != recordedInteractionOpticalKey ||
-      inputContentChanged
+      recordInteractionInput(
+        layer = layer,
+        input = input,
+        key = localKey,
+        patch = patch,
+        recorded = recordedInteractionOptical,
+        inputContentChanged = inputContentChanged,
+      )
     ) {
-      val origin = patch.bounds.topLeft
-      recordGlassLayer(layer, patch.bounds.size) {
-        translate(Offset(-origin.x.toFloat(), -origin.y.toFloat())) { drawLayer(input) }
-      }
-      recordedInteractionOpticalLayer = layer
-      recordedInteractionOpticalInput = input
-      recordedInteractionOpticalKey = localKey
       interactionOpticalRecordCount++
     }
   }
@@ -1415,25 +1376,18 @@ internal class RuntimeShaderGlassDelegate(
       input.blendMode = BlendMode.SrcOver
       layer.alpha = 1f
       layer.blendMode = BlendMode.SrcOver
-      val localKey = key.copy(
-        sampleSize = patch.coordinates.sampleSize,
-        materialOrigin = patch.coordinates.materialOrigin,
-        materialSize = patch.coordinates.materialSize,
-      )
+      val localKey = key.localTo(patch.coordinates)
       updateInteractionDetailEffect(layer, localKey, patch.uniforms)
       if (
-        layer !== recordedInteractionDetailLayer ||
-        input !== recordedInteractionDetailInput ||
-        localKey != recordedInteractionDetailKey ||
-        inputContentChanged
+        recordInteractionInput(
+          layer = layer,
+          input = input,
+          key = localKey,
+          patch = patch,
+          recorded = recordedInteractionDetail,
+          inputContentChanged = inputContentChanged,
+        )
       ) {
-        val origin = patch.bounds.topLeft
-        recordGlassLayer(layer, patch.bounds.size) {
-          translate(Offset(-origin.x.toFloat(), -origin.y.toFloat())) { drawLayer(input) }
-        }
-        recordedInteractionDetailLayer = layer
-        recordedInteractionDetailInput = input
-        recordedInteractionDetailKey = localKey
         interactionDetailRecordCount++
       }
     }
@@ -1450,32 +1404,39 @@ internal class RuntimeShaderGlassDelegate(
       input.blendMode = BlendMode.SrcOver
       layer.alpha = 1f
       layer.blendMode = BlendMode.SrcOver
-      val localKey = key.copy(
-        sampleSize = patch.coordinates.sampleSize,
-        materialOrigin = patch.coordinates.materialOrigin,
-        materialSize = patch.coordinates.materialSize,
-      )
-      updateInteractionDetailCoverageEffect(
-        layer,
-        localKey,
-        patch.uniforms,
-      )
+      val localKey = key.localTo(patch.coordinates)
+      updateInteractionDetailCoverageEffect(layer, localKey, patch.uniforms)
       if (
-        layer !== recordedInteractionDetailCoverageLayer ||
-        input !== recordedInteractionDetailCoverageInput ||
-        localKey != recordedInteractionDetailCoverageKey ||
-        inputContentChanged
+        recordInteractionInput(
+          layer = layer,
+          input = input,
+          key = localKey,
+          patch = patch,
+          recorded = recordedInteractionDetailCoverage,
+          inputContentChanged = inputContentChanged,
+        )
       ) {
-        val origin = patch.bounds.topLeft
-        recordGlassLayer(layer, patch.bounds.size) {
-          translate(Offset(-origin.x.toFloat(), -origin.y.toFloat())) { drawLayer(input) }
-        }
-        recordedInteractionDetailCoverageLayer = layer
-        recordedInteractionDetailCoverageInput = input
-        recordedInteractionDetailCoverageKey = localKey
         interactionDetailRecordCount++
       }
     }
+
+  /** Records [input] into [layer] when it changed since [recorded], and reports whether it did. */
+  private fun <K : Any> DrawScope.recordInteractionInput(
+    layer: GraphicsLayer,
+    input: GraphicsLayer,
+    key: K,
+    patch: GlassInteractionPatch,
+    recorded: RecordedInteractionLayer<K>,
+    inputContentChanged: Boolean,
+  ): Boolean {
+    if (!recorded.needsRecord(layer, input, key, inputContentChanged)) return false
+    val origin = patch.bounds.topLeft
+    recordGlassLayer(layer, patch.bounds.size) {
+      translate(Offset(-origin.x.toFloat(), -origin.y.toFloat())) { drawLayer(input) }
+    }
+    recorded.update(layer, input, key)
+    return true
+  }
 
   private fun DrawScope.recordInteractionRefractionComposite(
     optical: GraphicsLayer,
@@ -1543,33 +1504,10 @@ internal class RuntimeShaderGlassDelegate(
     uniforms: GlassInteractionUniforms,
     outputTargetsLayer: Boolean,
   ) {
-    val needsUpdate = key != interactionOpticalEffectKey ||
-      uniforms != interactionOpticalEffectUniforms || interactionOpticalComposeEffect == null
-    if (interactionOpticalEffect == null) {
-      interactionOpticalEffect = traceCreateRenderEffect {
-        createMutableRuntimeShaderRenderEffect(
-          effect = GLASS_INTERACTION_OPTICAL_EFFECT,
-          shaderNames = arrayOf("content"),
-          inputs = arrayOf(null),
-        )
-      }
-    }
-    if (needsUpdate) {
-      interactionOpticalPlatformEffect = checkNotNull(interactionOpticalEffect).updateUniforms {
-        setOpticalUniforms(key)
-        setInteractionOpticalUniforms(uniforms)
-      }
-      interactionOpticalComposeEffect =
-        checkNotNull(interactionOpticalPlatformEffect).asComposeRenderEffect()
-      interactionOpticalEffectKey = key
-      interactionOpticalEffectUniforms = uniforms
-    }
-    if (outputTargetsLayer) {
-      // The output effect replaces this layer's effect, so the optical effect is no longer on it.
-      interactionOpticalEffectLayer = null
-    } else if (needsUpdate || layer !== interactionOpticalEffectLayer) {
-      layer.renderEffect = checkNotNull(interactionOpticalComposeEffect)
-      interactionOpticalEffectLayer = layer
+    // The output effect replaces this layer's effect, so the optical effect is not attached.
+    interactionOptical.bind(layer, key, uniforms, attach = !outputTargetsLayer) {
+      setOpticalUniforms(key)
+      setInteractionOpticalUniforms(uniforms)
     }
   }
 
@@ -1578,28 +1516,9 @@ internal class RuntimeShaderGlassDelegate(
     key: GlassRefractionDetailEffectKey,
     uniforms: GlassInteractionUniforms,
   ) {
-    val needsUpdate = key != interactionDetailEffectKey ||
-      uniforms != interactionDetailEffectUniforms || interactionDetailComposeEffect == null
-    if (interactionDetailEffect == null) {
-      interactionDetailEffect = traceCreateRenderEffect {
-        createMutableRuntimeShaderRenderEffect(
-          effect = GLASS_INTERACTION_REFRACTION_DETAIL_EFFECT,
-          shaderNames = arrayOf("content"),
-          inputs = arrayOf(null),
-        )
-      }
-    }
-    if (needsUpdate) {
-      interactionDetailComposeEffect = checkNotNull(interactionDetailEffect).updateUniforms {
-        setRefractionDetailUniforms(key)
-        setInteractionDetailUniforms(uniforms)
-      }.asComposeRenderEffect()
-      interactionDetailEffectKey = key
-      interactionDetailEffectUniforms = uniforms
-    }
-    if (needsUpdate || layer !== interactionDetailEffectLayer) {
-      layer.renderEffect = checkNotNull(interactionDetailComposeEffect)
-      interactionDetailEffectLayer = layer
+    interactionDetail.bind(layer, key, uniforms) {
+      setRefractionDetailUniforms(key)
+      setInteractionDetailUniforms(uniforms)
     }
   }
 
@@ -1608,30 +1527,9 @@ internal class RuntimeShaderGlassDelegate(
     key: GlassRefractionDetailEffectKey,
     uniforms: GlassInteractionUniforms,
   ) {
-    val needsUpdate = key != interactionDetailCoverageEffectKey ||
-      uniforms != interactionDetailCoverageEffectUniforms ||
-      interactionDetailCoverageComposeEffect == null
-    if (interactionDetailCoverageEffect == null) {
-      interactionDetailCoverageEffect = traceCreateRenderEffect {
-        createMutableRuntimeShaderRenderEffect(
-          effect = GLASS_INTERACTION_REFRACTION_DETAIL_COVERAGE_EFFECT,
-          shaderNames = arrayOf("content"),
-          inputs = arrayOf(null),
-        )
-      }
-    }
-    if (needsUpdate) {
-      interactionDetailCoverageComposeEffect = checkNotNull(interactionDetailCoverageEffect)
-        .updateUniforms {
-          setRefractionDetailUniforms(key)
-          setInteractionDetailUniforms(uniforms)
-        }.asComposeRenderEffect()
-      interactionDetailCoverageEffectKey = key
-      interactionDetailCoverageEffectUniforms = uniforms
-    }
-    if (needsUpdate || layer !== interactionDetailCoverageEffectLayer) {
-      layer.renderEffect = checkNotNull(interactionDetailCoverageComposeEffect)
-      interactionDetailCoverageEffectLayer = layer
+    interactionDetailCoverage.bind(layer, key, uniforms) {
+      setRefractionDetailUniforms(key)
+      setInteractionDetailUniforms(uniforms)
     }
   }
 
@@ -1640,19 +1538,8 @@ internal class RuntimeShaderGlassDelegate(
     key: GlassInteractionLightingKey,
     uniforms: GlassInteractionUniforms,
   ) {
-    val needsUpdate = key != interactionLightingEffectKey ||
-      uniforms != interactionLightingEffectUniforms || interactionLightingComposeEffect == null
-    ensureInteractionLightingEffect()
-    if (needsUpdate) {
-      interactionLightingComposeEffect = checkNotNull(interactionLightingEffect).updateUniforms {
-        setInteractionLightingUniforms(key, uniforms)
-      }.asComposeRenderEffect()
-      interactionLightingEffectKey = key
-      interactionLightingEffectUniforms = uniforms
-    }
-    if (needsUpdate || layer !== interactionLightingEffectLayer) {
-      layer.renderEffect = checkNotNull(interactionLightingComposeEffect)
-      interactionLightingEffectLayer = layer
+    interactionLighting.bind(layer, key, uniforms) {
+      setInteractionLightingUniforms(key, uniforms)
     }
   }
 
@@ -1694,17 +1581,6 @@ internal class RuntimeShaderGlassDelegate(
       interactionOutputFeatherWidth = featherWidth
     }
     layer.renderEffect = checkNotNull(interactionOutputComposeEffect)
-  }
-
-  private fun ensureInteractionLightingEffect() {
-    if (interactionLightingEffect != null) return
-    interactionLightingEffect = traceCreateRenderEffect {
-      createMutableRuntimeShaderRenderEffect(
-        effect = if (stageShadersMerged) GLASS_MERGED_INTERACTION_LIGHTING_EFFECT else GLASS_INTERACTION_LIGHTING_EFFECT,
-        shaderNames = arrayOf("content"),
-        inputs = arrayOf(null),
-      )
-    }
   }
 
   private fun DrawScope.drawCompletedLayer(
@@ -1818,7 +1694,11 @@ internal class RuntimeShaderGlassDelegate(
     ) {
       refractionDetailEffect = nextRefractionDetailKey?.let { key ->
         val shader = refractionDetailShader ?: traceCreateRenderEffect {
-          createRetainedRefractionDetailRenderEffect(merged = key.mergedField != null)
+          createRefractionDetailRenderEffect(
+            interactive = false,
+            coverageOnly = false,
+            merged = key.mergedField != null,
+          )
         }.also {
           refractionDetailShader = it
         }
@@ -1827,7 +1707,11 @@ internal class RuntimeShaderGlassDelegate(
       refractionDetailCoverageEffect = nextRefractionDetailKey?.let { key ->
         val shader = refractionDetailCoverageShader
           ?: traceCreateRenderEffect {
-            createRetainedRefractionDetailCoverageRenderEffect(merged = key.mergedField != null)
+            createRefractionDetailRenderEffect(
+              interactive = false,
+              coverageOnly = true,
+              merged = key.mergedField != null,
+            )
           }.also {
             refractionDetailCoverageShader = it
           }
@@ -1860,7 +1744,7 @@ internal class RuntimeShaderGlassDelegate(
     refractionDetailShader = null
     refractionDetailCoverageShader = null
     rimShader = null
-    interactionLightingEffect = null
+    interactionLighting.releaseShader()
     clearInteractionLightingEffectCache()
     stageShadersMerged = merged
   }
@@ -2073,31 +1957,35 @@ internal class RuntimeShaderGlassDelegate(
     val progressive = key.progressive != null
     val horizontalShader = if (progressive) {
       progressiveBlurHorizontalShader ?: traceCreateRenderEffect {
-        createRetainedGlassBlurRenderEffect(
+        createGlassBlurRenderEffectWithInput(
           horizontal = true,
           progressive = true,
+          input = null,
         )
       }.also { progressiveBlurHorizontalShader = it }
     } else {
       blurHorizontalShader ?: traceCreateRenderEffect {
-        createRetainedGlassBlurRenderEffect(
+        createGlassBlurRenderEffectWithInput(
           horizontal = true,
           progressive = false,
+          input = null,
         )
       }.also { blurHorizontalShader = it }
     }
     val verticalShader = if (progressive) {
       progressiveBlurVerticalShader ?: traceCreateRenderEffect {
-        createRetainedGlassBlurRenderEffect(
+        createGlassBlurRenderEffectWithInput(
           horizontal = false,
           progressive = true,
+          input = null,
         )
       }.also { progressiveBlurVerticalShader = it }
     } else {
       blurVerticalShader ?: traceCreateRenderEffect {
-        createRetainedGlassBlurRenderEffect(
+        createGlassBlurRenderEffectWithInput(
           horizontal = false,
           progressive = false,
+          input = null,
         )
       }.also { blurVerticalShader = it }
     }
@@ -2127,6 +2015,17 @@ internal class RuntimeShaderGlassDelegate(
       vertical = vertical,
     )
   }
+
+  private fun <K : Any> interactionSlot(effect: () -> PlatformRuntimeEffect) =
+    InteractionEffectSlot<K> {
+      traceCreateRenderEffect {
+        createMutableRuntimeShaderRenderEffect(
+          effect = effect(),
+          shaderNames = arrayOf("content"),
+          inputs = arrayOf(null),
+        )
+      }
+    }
 
   private fun traceCreateRenderEffect(
     block: () -> MutableRuntimeShaderRenderEffect,
@@ -2281,15 +2180,6 @@ internal fun createGlassBlurRenderEffectWithInput(
 
 internal expect val supportsFusedGlassRenderEffect: Boolean
 
-internal fun createRetainedGlassBlurRenderEffect(
-  horizontal: Boolean,
-  progressive: Boolean,
-): MutableRuntimeShaderRenderEffect = createGlassBlurRenderEffectWithInput(
-  horizontal = horizontal,
-  progressive = progressive,
-  input = null,
-)
-
 internal fun createRetainedGlassOpticalRenderEffect(
   merged: Boolean = false,
 ): MutableRuntimeShaderRenderEffect =
@@ -2298,16 +2188,6 @@ internal fun createRetainedGlassOpticalRenderEffect(
     shaderNames = arrayOf("content"),
     inputs = arrayOf(null),
   )
-
-internal fun createRetainedRefractionDetailRenderEffect(
-  merged: Boolean = false,
-): MutableRuntimeShaderRenderEffect =
-  createRefractionDetailRenderEffect(interactive = false, coverageOnly = false, merged = merged)
-
-internal fun createRetainedRefractionDetailCoverageRenderEffect(
-  merged: Boolean = false,
-): MutableRuntimeShaderRenderEffect =
-  createRefractionDetailRenderEffect(interactive = false, coverageOnly = true, merged = merged)
 
 private fun createRefractionDetailRenderEffect(
   interactive: Boolean,
@@ -2461,17 +2341,13 @@ internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
 internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
   key: GlassRefractionDetailEffectKey,
 ) {
-  setFloatUniform("sampleSize", key.sampleSize.width, key.sampleSize.height)
-  setFloatUniform("materialOrigin", key.materialOrigin.x, key.materialOrigin.y)
-  setFloatUniform("materialSize", key.materialSize.width, key.materialSize.height)
-  setFloatUniform("sampleStep", key.sampleStepPx)
-  setFloatUniform("edgeSoftness", key.edgeSoftnessPx)
-  setFloatUniform(
-    "cornerRadii",
-    key.cornerRadii.topLeft,
-    key.cornerRadii.topRight,
-    key.cornerRadii.bottomRight,
-    key.cornerRadii.bottomLeft,
+  setCommonUniforms(
+    key.sampleSize,
+    key.materialOrigin,
+    key.materialSize,
+    key.sampleStepPx,
+    key.edgeSoftnessPx,
+    key.cornerRadii,
   )
   setFloatUniform("refractionStrength", key.refractionStrength)
   setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
@@ -2566,21 +2442,27 @@ private fun RuntimeShaderUniformProvider.setCommonUniforms(
   edgeSoftnessPx: Float,
   cornerRadii: CornerRadii,
 ) {
-  setFloatUniform(
-    "sampleSize",
-    coordinates.sampleSize.width,
-    coordinates.sampleSize.height,
+  setCommonUniforms(
+    coordinates.sampleSize,
+    coordinates.materialOrigin,
+    coordinates.materialSize,
+    sampleStepPx,
+    edgeSoftnessPx,
+    cornerRadii,
   )
-  setFloatUniform(
-    "materialOrigin",
-    coordinates.materialOrigin.x,
-    coordinates.materialOrigin.y,
-  )
-  setFloatUniform(
-    "materialSize",
-    coordinates.materialSize.width,
-    coordinates.materialSize.height,
-  )
+}
+
+private fun RuntimeShaderUniformProvider.setCommonUniforms(
+  sampleSize: Size,
+  materialOrigin: Offset,
+  materialSize: Size,
+  sampleStepPx: Float,
+  edgeSoftnessPx: Float,
+  cornerRadii: CornerRadii,
+) {
+  setFloatUniform("sampleSize", sampleSize.width, sampleSize.height)
+  setFloatUniform("materialOrigin", materialOrigin.x, materialOrigin.y)
+  setFloatUniform("materialSize", materialSize.width, materialSize.height)
   setFloatUniform("sampleStep", sampleStepPx)
   setFloatUniform("edgeSoftness", edgeSoftnessPx)
   setFloatUniform(
@@ -2590,6 +2472,24 @@ private fun RuntimeShaderUniformProvider.setCommonUniforms(
     cornerRadii.bottomRight,
     cornerRadii.bottomLeft,
   )
+}
+
+private fun GlassRefractionDetailEffectKey.localTo(
+  coordinates: GlassCoordinates,
+): GlassRefractionDetailEffectKey = copy(
+  sampleSize = coordinates.sampleSize,
+  materialOrigin = coordinates.materialOrigin,
+  materialSize = coordinates.materialSize,
+)
+
+private fun depthPassThrough(
+  source: GraphicsLayer,
+  blurred: GraphicsLayer,
+  depth: Float,
+): GraphicsLayer? = when {
+  depth <= 0f || blurred === source -> source
+  depth >= 1f -> blurred
+  else -> null
 }
 
 internal inline fun <T : Any> requireRetainedStage(
