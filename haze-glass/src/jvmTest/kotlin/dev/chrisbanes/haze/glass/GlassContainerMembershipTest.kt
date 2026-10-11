@@ -1,0 +1,141 @@
+// Copyright 2026, Christopher Banes and the Haze project contributors
+// SPDX-License-Identifier: Apache-2.0
+
+@file:OptIn(androidx.compose.ui.test.ExperimentalTestApi::class, dev.chrisbanes.haze.ExperimentalHazeApi::class)
+
+package dev.chrisbanes.haze.glass
+
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.dp
+import assertk.assertFailure
+import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotSameInstanceAs
+import assertk.assertions.isNull
+import assertk.assertions.isSameInstanceAs
+import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.test.ContextTest
+import kotlin.test.Test
+
+class GlassContainerMembershipTest : ContextTest() {
+  @Composable
+  private fun Member(effect: GlassRuntimeEffect, modifier: Modifier = Modifier.size(100.dp, 40.dp), style: GlassStyle = GlassStyle) {
+    Box(modifier.hazeGlass(HazeEffectFactory { effect }, HazeInput.Content, style, null, true, null))
+  }
+
+  private fun container(effect: GlassRuntimeEffect) = checkNotNull(effect.memberBindingForTest?.node?.container)
+
+  @Test
+  fun spacing_rejectsInvalidValuesAndStoresTimingWithoutAnimation() {
+    for (value in listOf(-1f, Float.NaN, Float.POSITIVE_INFINITY)) {
+      assertFailure { Modifier.hazeGlassContainer(value.dp) }.isInstanceOf<IllegalArgumentException>()
+    }
+    val spec = tween<Float>(321)
+    val element = Modifier.hazeGlassContainer(0.dp, spec, GlassReducedMotionPolicy.Reduced)
+      .foldIn<GlassContainerElement?>(null) { _, item -> item as? GlassContainerElement }
+    assertThat(checkNotNull(element).spacing).isEqualTo(0.dp)
+    assertThat(element.transitionSpec).isSameInstanceAs(spec)
+    assertThat(element.reducedMotionPolicy).isEqualTo(GlassReducedMotionPolicy.Reduced)
+  }
+
+  @Test
+  fun membership_nearestNestedAndSiblingContainersStaySeparate() = runComposeUiTest {
+    val outer = GlassRuntimeEffect()
+    val inner = GlassRuntimeEffect()
+    val sibling = GlassRuntimeEffect()
+    setContent {
+      Row {
+        Box(Modifier.hazeGlassContainer(40.dp)) {
+          Member(outer)
+          Box(Modifier.hazeGlassContainer(40.dp)) { Member(inner) }
+        }
+        Box(Modifier.hazeGlassContainer(40.dp)) { Member(sibling) }
+      }
+    }
+    waitForIdle()
+    assertThat(container(outer)).isNotSameInstanceAs(container(inner))
+    assertThat(container(outer)).isNotSameInstanceAs(container(sibling))
+    for (effect in listOf(outer, inner, sibling)) {
+      assertThat(container(effect).model.surfaces.single().members.single().identity)
+        .isSameInstanceAs(effect.memberBindingForTest?.node)
+    }
+  }
+
+  @Test
+  fun membership_resizeRemoveAndAncestorReplacementRestoreOpticalSize() = runComposeUiTest {
+    val card = GlassRuntimeEffect()
+    val pill = GlassRuntimeEffect()
+    val showCard = mutableStateOf(true)
+    val width = mutableStateOf(180)
+    val enabled = mutableStateOf(true)
+    setContent {
+      Row(if (enabled.value) Modifier.hazeGlassContainer(40.dp) else Modifier) {
+        if (showCard.value) Member(card, Modifier.size(300.dp, width.value.dp))
+        Member(pill, Modifier.size(140.dp, 64.dp))
+      }
+    }
+    waitForIdle()
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(180f, 180f))
+    runOnIdle { width.value = 100 }
+    waitForIdle()
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+    runOnIdle { showCard.value = false }
+    waitForIdle()
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(64f, 64f))
+    runOnIdle { enabled.value = false }
+    waitForIdle()
+    assertThat(pill.memberBindingForTest?.node?.container).isNull()
+    assertThat(pill.opticalSizeOverride).isNull()
+    runOnIdle { enabled.value = true }
+    waitForIdle()
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(64f, 64f))
+  }
+
+  @Test
+  fun style_snapshotUpdatesReclusterWithoutRecompositionAndKeepMemberLocals() = runComposeUiTest {
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    val alpha = mutableStateOf(1f)
+    val radius = mutableStateOf(4)
+    val style = GlassStyle {
+      alpha(alpha.value)
+      shape(RoundedCornerShape(radius.value.dp))
+    }
+    var compositions = 0
+    setContent {
+      SideEffect { compositions++ }
+      Row(Modifier.hazeGlassContainer(40.dp)) {
+        CompositionLocalProvider(LocalGlassStyle provides GlassStyle { tint(Color.Red) }) { Member(first, style = style) }
+        CompositionLocalProvider(LocalGlassStyle provides GlassStyle { tint(Color.Blue) }) { Member(second) }
+      }
+    }
+    waitForIdle()
+    val before = compositions
+    assertThat(container(first).model.surfaces.size).isEqualTo(1)
+    assertThat(first.memberBindingForTest?.material?.tint).isEqualTo(Color.Red)
+    assertThat(second.memberBindingForTest?.material?.tint).isEqualTo(Color.Blue)
+    runOnIdle {
+      alpha.value = 0.5f
+      radius.value = 12
+    }
+    waitForIdle()
+    assertThat(compositions).isEqualTo(before)
+    assertThat(first.memberBindingForTest?.material?.alpha).isEqualTo(0.5f)
+    assertThat(first.memberBindingForTest?.material?.cornerRadii).isEqualTo(CornerRadii(12f, 12f, 12f, 12f))
+    assertThat(container(first).model.surfaces.size).isEqualTo(2)
+  }
+}

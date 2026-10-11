@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -204,6 +205,15 @@ internal abstract class GlassRuntimeState {
       if (field != value) {
         field = value
         markDirty(GlassDirtyFields.MergedField)
+      }
+    }
+
+  /** Optics alone use the common container size; singletons retain their ordinary shader. */
+  internal var opticalSizeOverride: Size? = null
+    set(value) {
+      if (field != value) {
+        field = value
+        markDirty(GlassDirtyFields.OpticalSize)
       }
     }
 

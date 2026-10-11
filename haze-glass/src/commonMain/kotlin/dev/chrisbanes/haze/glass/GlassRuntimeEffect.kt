@@ -163,6 +163,20 @@ internal class GlassRuntimeEffect() :
     ::readPlatformGlassSystemAppearance
 
   private var attachedContext: HazeEffectLifecycleScope? = null
+  private var memberBinding: GlassMemberBinding? = null
+  internal val memberBindingForTest: GlassMemberBinding? get() = memberBinding
+
+  private fun publishMemberMaterial(material: ResolvedGlassStyle) {
+    val binding = memberBinding ?: return
+    val context = attachedContext ?: return
+
+    @Suppress("DEPRECATION")
+    val quality = when (val mode = performanceMode) {
+      is HazePerformanceMode.Fixed -> mode.qualityFraction
+      HazePerformanceMode.Adaptive -> (HazePerformanceMode.Default as HazePerformanceMode.Fixed).qualityFraction
+    }
+    binding.publish(this, context.surface, material, glassMergeKey(binding.input, quality, this, material))
+  }
 
   private fun onRuntimeConfigurationChanged(fields: Int) {
     markDirty(fields)
@@ -321,6 +335,8 @@ internal class GlassRuntimeEffect() :
   }
 
   override fun detach() {
+    memberBinding?.release(this)
+    memberBinding = null
     if (isAttached) {
       interactionController?.dispose()
       interactionController = null
@@ -365,6 +381,10 @@ internal class GlassRuntimeEffect() :
     sampling: HazeSampling,
   ) {
     val context = scope
+    if (memberBinding !== style.member) {
+      memberBinding?.release(this)
+      memberBinding = style.member
+    }
     isUpdating = true
     try {
       applyConfiguration(style, style.performanceMode ?: scope.currentValueOf(LocalHazePerformanceMode))
@@ -374,6 +394,7 @@ internal class GlassRuntimeEffect() :
       accessibilitySettings = context.currentValueOf(LocalGlassAccessibilitySettings)
       updateStyleInteractionSlots()
       syncInteractionController(context)
+      publishMemberMaterial(resolveGlassStyle(this, scope.modifierSize, scope.requireDensity(), scope.currentValueOf(LocalLayoutDirection)))
     } finally {
       isUpdating = false
     }
@@ -721,6 +742,7 @@ internal class GlassRuntimeEffect() :
     } ?: resolveGlassStyle(this, context.modifierSize, density, layoutDirection)
 
     return resolvedStyle.also {
+      publishMemberMaterial(it)
       resolvedStyleCache = it
       resolvedStyleCacheSize = context.modifierSize
       resolvedStyleCacheDensity = density

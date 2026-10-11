@@ -29,6 +29,8 @@ import dev.chrisbanes.haze.hazeEffect
  * and redraws on the next frame without recomposition. Styles compare by identity, so `remember` or
  * hoist [style]. Invalid values throw [IllegalArgumentException] when the block runs. Built-in
  * Regular and Clear material responses update when the Compose host's system appearance changes.
+ * Inside [hazeGlassContainer], material output sits behind all container children and Backdrop
+ * samples only drawing before that container. Each member still evaluates its own style here.
  *
  * [input], [performanceMode], [expandLayerBounds], [interactionSource], [interactionTransformTarget],
  * [interactionTransformPivot], and [interactionReducedMotionPolicy] are node-owned modifier
@@ -81,19 +83,23 @@ internal fun Modifier.hazeGlass(
   interactionTransformTarget: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
   interactionTransformPivot: GlassTransformPivot = GlassTransformPivot.Pointer,
   interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
-): Modifier = hazeEffect(
-  factory = factory,
-  input = input,
-  style = GlassNodeConfiguration(
-    style = style,
-    performanceMode = performanceMode,
-    interactionSource = interactionSource,
-    interactionTransformTarget = interactionTransformTarget,
-    interactionTransformPivot = interactionTransformPivot,
-    interactionReducedMotionPolicy = interactionReducedMotionPolicy,
-  ),
-  expandLayerBounds = expandLayerBounds,
-)
+): Modifier {
+  val member = GlassMemberBinding(input)
+  return then(GlassMemberElement(member)).hazeEffect(
+    factory = factory,
+    input = input,
+    style = GlassNodeConfiguration(
+      style = style,
+      performanceMode = performanceMode,
+      interactionSource = interactionSource,
+      interactionTransformTarget = interactionTransformTarget,
+      interactionTransformPivot = interactionTransformPivot,
+      interactionReducedMotionPolicy = interactionReducedMotionPolicy,
+      member = member,
+    ),
+    expandLayerBounds = expandLayerBounds,
+  )
+}
 
 @Poko
 internal class GlassNodeConfiguration(
@@ -103,6 +109,7 @@ internal class GlassNodeConfiguration(
   val interactionTransformTarget: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
   val interactionTransformPivot: GlassTransformPivot = GlassTransformPivot.Pointer,
   val interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
+  val member: GlassMemberBinding? = null,
 )
 
 internal object GlassHazeEffectFactory : HazeEffectFactory<GlassNodeConfiguration> {
