@@ -127,6 +127,6 @@ internal fun cupertinoMaterialValues(
   ),
 )
 
-private fun Color(color: Int, alpha: Float): Color {
+internal fun Color(color: Int, alpha: Float): Color {
   return Color(color).copy(alpha = alpha)
 }

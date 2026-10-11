@@ -298,7 +298,3 @@ public object FluentMaterials {
     noiseFactor = 0f,
   )
 }
-
-private fun Color(color: Int, alpha: Float): Color {
-  return Color(color).copy(alpha = alpha)
-}
