@@ -410,7 +410,7 @@ internal class GlassRuntimeEffect() :
         needsDelegateSelection = true
       }
       trace(GlassTraceSection.SelectDelegate) {
-        selectDelegateForDraw(context)
+        selectDelegateForDraw()
       }
       trace(GlassTraceSection.DelegatePrepare) {
         val selectedDelegate = delegate
@@ -441,7 +441,7 @@ internal class GlassRuntimeEffect() :
       if (previousBudget::class != preparedRenderBudget::class) {
         needsDelegateSelection = true
       }
-      with(context as DrawScope) { selectDelegateForDraw(context) }
+      selectDelegateForDraw()
       val runtimeDelegate = delegate as? RuntimeShaderGlassDelegate ?: return null
       val platformEffect = with(context as DrawScope) {
         with(runtimeDelegate) { prepareBackdrop(context) }
@@ -506,7 +506,7 @@ internal class GlassRuntimeEffect() :
   override fun HazeEffectDrawScope.draw(style: GlassNodeConfiguration) {
     val context = this as HazeEffectRuntimeDrawScope
     try {
-      selectDelegateForDraw(context)
+      selectDelegateForDraw()
       val selectedDelegate = delegate
       try {
         withMaterialTransform(context) {
@@ -1109,7 +1109,7 @@ internal class GlassRuntimeEffect() :
     }
   }
 
-  private fun DrawScope.selectDelegateForDraw(context: HazeEffectRuntimeDrawScope) {
+  private fun selectDelegateForDraw() {
     if (needsDelegateSelection) {
       delegate = updateDelegate()
       needsDelegateSelection = false
