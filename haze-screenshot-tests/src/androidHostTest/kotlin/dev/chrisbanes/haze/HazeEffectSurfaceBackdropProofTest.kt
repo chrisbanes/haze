@@ -14,6 +14,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
@@ -42,6 +43,7 @@ import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.glass.hazeGlassContainer
 import dev.chrisbanes.haze.test.ScreenshotTest
+import dev.chrisbanes.haze.test.ScreenshotUiTest
 import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.math.roundToInt
 import org.junit.After
@@ -147,6 +149,187 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
 
   @Test
   fun nativeBackdrop_attachedBridge_recoversWhenGroupBudgetBecomesViable() = assertAttachedBridge(expectNative = false, allowGroup = false, recoverGroup = true)
+
+  @Test
+  fun nativeBackdrop_failedOrdinarySurface_staysFailedAfterBudgetRecoveryAndRelease() = assertStickyFailure(configured = false, sourceFallback = true)
+
+  @Test
+  fun nativeBackdrop_failedOrdinarySurface_withoutFallbackStaysUnchangedAfterBudgetRecoveryAndRelease() = assertStickyFailure(configured = false, sourceFallback = false)
+
+  @Test
+  fun nativeBackdrop_failedConfiguredSurface_andMembersStayFailedAfterBudgetRecoveryAndRelease() = assertStickyFailure(configured = true, sourceFallback = true)
+
+  @Test
+  fun nativeBackdrop_unavailableConfiguredRenderer_keepsMembersUnavailableAfterBudgetRecoveryAndRelease() = assertStickyFailure(configured = true, sourceFallback = true, unavailable = true)
+
+  @Test
+  fun nativeBackdrop_unavailableOrdinaryRenderer_staysUnavailableAfterBudgetRecoveryAndRelease() = assertStickyFailure(configured = false, sourceFallback = true, unavailable = true)
+
+  @Test
+  fun nativeBackdrop_temporaryBudgetFallback_recoversWhenInterferenceEnds() = assertTemporaryRecovery(release = false)
+
+  @Test
+  fun nativeBackdrop_temporaryBudgetFallback_recoversWhenOwnershipEnds() = assertTemporaryRecovery(release = true)
+
+  @Test
+  fun nativeBackdrop_temporaryConfiguredBudgetFallback_recoversWhenBudgetBecomesViable() =
+    assertTemporaryRecovery(configured = true, budgetViable = true)
+
+  @Test
+  fun nativeBackdrop_temporaryConfiguredBudgetFallback_recoversWhenInterferenceEnds() = assertTemporaryRecovery(configured = true)
+
+  @Test
+  fun nativeBackdrop_temporaryConfiguredBudgetFallback_recoversWhenOwnershipEnds() = assertTemporaryRecovery(configured = true, release = true)
+
+  private fun assertTemporaryRecovery(release: Boolean = false, configured: Boolean = false, budgetViable: Boolean = false) = runScreenshotTest {
+    val owner = BridgeOwner(allowGroup = false)
+    val offset = mutableStateOf(60)
+    val input = HazeInput.Backdrop(HazeState())
+    val first = BridgeFactory(owner, ::redEffect)
+    val sibling = BridgeFactory(owner, ::blueBlurEffect)
+    var cluster: HazeConfiguredEffectSurface<Unit>? = null
+    if (configured) {
+      owner.resolveSurfaces = {
+        cluster = cluster ?: first.surface.createConfiguredSurface(
+          HazeEffectFactory {
+            object : HazeEffectRenderer<Unit>, HazeEffectRendererBackdrop<Unit> {
+              override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
+              override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit) = HazeEffectBackdrop(redEffect())
+            }
+          },
+          Unit, checkNotNull(first.surface.boundsInOwner()), listOf(first.surface),
+        )
+        listOf(checkNotNull(cluster).surface, sibling.surface)
+      }
+    }
+    setContent {
+      Box(Modifier.size(200.dp, 100.dp).testTag("probe").background(Color.White)) {
+        Box(Modifier.size(200.dp, 100.dp).then(BridgeOwnerElement(owner))) {
+          Box(Modifier.size(100.dp, 80.dp).hazeEffect(first, input, Unit))
+          Box(Modifier.offset(x = offset.value.dp).size(100.dp, 80.dp).hazeEffect(sibling, input, Unit))
+        }
+      }
+    }
+    refreshNativeFrame()
+    val bounds = onNodeWithTag("probe").fetchSemanticsNode().boundsInRoot
+    val x = (bounds.left + bounds.width * 30f / 200f).roundToInt()
+    val y = (bounds.top + bounds.height * 50f / 100f).roundToInt()
+    assertThat(captureRootPixels()[x, y]).isEqualTo(Color.White)
+    assertThat(owner.groups).isGreaterThan(0)
+    composeTestRule.runOnIdle {
+      if (release) {
+        owner.resolveSurfaces = null
+        cluster?.dispose()
+        first.surface.relocateTo(null)
+      } else if (budgetViable) {
+        owner.allowGroup = true
+      } else {
+        offset.value = 120
+      }
+      owner.invalidateDraw()
+    }
+    refreshNativeFrame()
+    assertThat(captureRootPixels()[x, y], "genuine temporary rejection restores native output without detach").isEqualTo(Color.Red)
+  }
+
+  private fun assertStickyFailure(configured: Boolean, sourceFallback: Boolean, unavailable: Boolean = false) = runScreenshotTest {
+    val owner = BridgeOwner()
+    val source = HazeState()
+    val empty = HazeState()
+    var failedPreparations = 0
+    var memberPreparations = 0
+    val failingEffect = {
+      failedPreparations++
+      if (unavailable && !configured && failedPreparations <= 2) {
+        null
+      } else {
+        check(unavailable || failedPreparations != 1) { "real native preparation failure" }
+        redEffect()
+      }
+    }
+    val memberEffect: () -> RenderEffect? = {
+      memberPreparations++
+      redEffect()
+    }
+    val first = BridgeFactory(owner, if (configured) memberEffect else failingEffect)
+    val additional = BridgeFactory(owner, memberEffect)
+    val sibling = BridgeFactory(owner, ::blueBlurEffect)
+    var cluster: HazeConfiguredEffectSurface<Unit>? = null
+    if (configured) {
+      owner.resolveSurfaces = {
+        val a = checkNotNull(first.surface.boundsInOwner())
+        val b = checkNotNull(additional.surface.boundsInOwner())
+        cluster = cluster ?: first.surface.createConfiguredSurface(
+          HazeEffectFactory {
+            if (unavailable) {
+              object : HazeEffectRenderer<Unit> {
+                override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
+              }
+            } else {
+              object : HazeEffectRenderer<Unit>, HazeEffectRendererBackdrop<Unit> {
+                override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
+                override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit) = failingEffect()?.let(::HazeEffectBackdrop)
+              }
+            }
+          },
+          Unit, Rect(a.left, a.top, a.right, b.bottom),
+          listOf(first.surface, additional.surface),
+        )
+        listOf(checkNotNull(cluster).surface, sibling.surface)
+      }
+    }
+    val input = if (sourceFallback) HazeInput.Backdrop(source) else HazeInput.Backdrop()
+    setContent {
+      Box(Modifier.size(200.dp, 100.dp).testTag("probe")) {
+        if (sourceFallback) Box(Modifier.size(200.dp, 100.dp).hazeSource(source).background(Color.Green))
+        Box(Modifier.size(200.dp, 100.dp).background(Color.White))
+        Box(Modifier.size(200.dp, 100.dp).then(BridgeOwnerElement(owner))) {
+          Box(Modifier.size(100.dp, if (configured) 40.dp else 80.dp).hazeEffect(first, input, Unit))
+          if (configured) Box(Modifier.offset(y = 40.dp).size(100.dp, 40.dp).hazeEffect(additional, input, Unit))
+          Box(Modifier.offset(x = 60.dp).size(100.dp, 80.dp).hazeEffect(sibling, HazeInput.Backdrop(empty), Unit))
+        }
+      }
+    }
+    refreshNativeFrame()
+    fun assertFallback() {
+      val bounds = onNodeWithTag("probe").fetchSemanticsNode().boundsInRoot
+      val pixel = captureRootPixels()[(bounds.left + bounds.width * 30f / 200f).roundToInt(), (bounds.top + bounds.height * 50f / 100f).roundToInt()]
+      assertThat(pixel).isEqualTo(if (sourceFallback) Color.Green else Color.White)
+      val expectedPreparations = if (unavailable) (if (configured) 0 else 2) else 1
+      assertThat(failedPreparations, "a real failure or unavailable capability must stay attachment-sticky").isEqualTo(expectedPreparations)
+    }
+    assertFallback()
+    val groupsBefore = owner.groups
+    composeTestRule.runOnIdle {
+      owner.allowGroup = false
+      owner.invalidateDraw()
+    }
+    refreshNativeFrame()
+    assertThat(owner.groups, "the failed surface participates in its native sibling's rejected interference group").isGreaterThan(groupsBefore)
+    assertFallback()
+    composeTestRule.runOnIdle {
+      owner.allowGroup = true
+      owner.invalidateDraw()
+    }
+    refreshNativeFrame()
+    assertFallback()
+    composeTestRule.runOnIdle {
+      owner.resolveSurfaces = null
+      cluster?.dispose()
+      first.surface.relocateTo(null)
+      if (configured) additional.surface.relocateTo(null)
+      owner.invalidateDraw()
+    }
+    refreshNativeFrame()
+    assertFallback()
+    if (configured) assertThat(memberPreparations, "configured failure also stays sticky in each released member backend").isEqualTo(0)
+  }
+
+  private fun ScreenshotUiTest.refreshNativeFrame() {
+    waitForIdle()
+    composeTestRule.runOnIdle { composeTestRule.activity.window.decorView.invalidate() }
+    waitForIdle()
+  }
 
   @Test
   fun nativeBackdrop_attachedBridge_disabledFlagPreservesEarlierSharpPixels() {
@@ -378,21 +561,24 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
     }
   }
 
-  private class BridgeFactory(private val owner: BridgeOwner, private val effect: () -> RenderEffect) : HazeEffectFactory<Unit> {
+  private class BridgeFactory(private val owner: BridgeOwner, private val effect: () -> RenderEffect?) : HazeEffectFactory<Unit> {
+    lateinit var surface: HazeEffectSurface
     override fun createRenderer(): HazeEffectRenderer<Unit> = object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit>, HazeEffectRendererBackdrop<Unit> {
       override fun attach(scope: HazeEffectLifecycleScope) {
+        surface = scope.surface
         scope.surface.relocateTo(owner)
       }
       override fun HazeEffectDrawScope.draw(style: Unit) {
         drawInput()
       }
-      override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit): HazeEffectBackdrop = HazeEffectBackdrop(effect())
+      override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit): HazeEffectBackdrop? = effect()?.let(::HazeEffectBackdrop)
     }
   }
 
   private class BridgeOwner(var allowGroup: Boolean = true) : Modifier.Node(), HazeEffectSurfaceOwner, DrawModifierNode, LayoutAwareModifierNode {
     override var surfaceCoordinates: LayoutCoordinates? = null
     val surfaces = mutableListOf<HazeEffectSurface>()
+    var resolveSurfaces: (() -> List<HazeEffectSurface>)? = null
     lateinit var children: GraphicsLayer
     var groups = 0
     override fun onAttach() {
@@ -417,7 +603,7 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
       groups++
       return allowGroup
     }
-    override fun ContentDrawScope.draw() = drawHazeEffectSurfaces(this@BridgeOwner, surfaces.toList(), children)
+    override fun ContentDrawScope.draw() = drawHazeEffectSurfaces(this@BridgeOwner, { resolveSurfaces?.invoke() ?: surfaces.toList() }, children)
   }
 
   private data class BridgeOwnerElement(val owner: BridgeOwner) : ModifierNodeElement<BridgeOwner>() {

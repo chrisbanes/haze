@@ -70,8 +70,8 @@ public class HazeEffectSurface internal constructor(
   internal fun completeDraw() {
     if (configured != null) configured.completeDraw() else node.completeSurfaceDraw()
   }
-  internal fun usePortableInput(failed: Boolean = false) {
-    if (configured != null) configured.usePortableInput(failed) else node.usePortableSurfaceInput(failed)
+  internal fun usePortableInput(failed: Boolean = false, temporary: Boolean = true) {
+    if (configured != null) configured.usePortableInput(failed, temporary) else node.usePortableSurfaceInput(failed, temporary)
   }
   internal fun useNativeInput() {
     if (configured != null) configured.useNativeInput() else node.restoreSurfaceInput()

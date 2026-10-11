@@ -1612,10 +1612,13 @@ internal class HazeEffectNode(
     transform.pivot.y + (bottom - transform.pivot.y) * transform.scaleY,
   )
 
-  internal fun usePortableSurfaceInput(failed: Boolean = false) {
+  internal fun usePortableSurfaceInput(failed: Boolean = false, temporary: Boolean = true) {
     if (explicitInput is HazeInput.Backdrop) {
+      // A group may include already failed/unavailable neighbours. Budget rejection cannot make
+      // their attachment-sticky fallback recoverable.
+      val recoverable = temporary && !failed && (surfaceBudgetFallback || !backdropBackendState.usesFallback)
       if (failed || !surfaceBudgetFallback) activateBackdropFallback(failed = failed)
-      surfaceBudgetFallback = !failed
+      surfaceBudgetFallback = recoverable
     }
     preparedSurfaceBackdrop = null
   }

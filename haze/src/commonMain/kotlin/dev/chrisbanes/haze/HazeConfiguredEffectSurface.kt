@@ -61,7 +61,7 @@ internal interface HazeConfiguredSurfaceDraw {
   val bounds: Rect
   fun footprint(scope: DrawScope, owner: HazeEffectSurfaceOwner?): HazeSurfaceFootprint?
   fun draw(scope: DrawScope, owner: HazeEffectSurfaceOwner?)
-  fun usePortableInput(failed: Boolean)
+  fun usePortableInput(failed: Boolean, temporary: Boolean)
   fun useNativeInput()
   fun completeDraw()
   fun onTrimMemory(level: TrimMemoryLevel)
@@ -203,17 +203,16 @@ private class ConfiguredSurface<Style>(
       try {
         nativeRenderer = nativeRenderer ?: createHazeBackdropRenderer()
         if (nativeRenderer?.isSupported(scope.drawContext.canvas) != true || renderer !is HazeEffectRendererBackdrop<*>) {
-          usePortableInput(false)
-          temporaryFallback = false
+          usePortableInput(false, temporary = false)
           native = false
         }
       } catch (exception: Exception) {
         HazeLogger.d("HazeEffectSurface", exception) { "Configured native support failed" }
-        usePortableInput(true)
+        usePortableInput(true, temporary = false)
         native = false
       }
     } else if (input is HazeInput.Backdrop && backend.usesFallback) {
-      members.forEach { it.usePortableInput(backend.selection == HazeBackdropBackendSelection.FallbackFailed) }
+      members.forEach { it.usePortableInput(backend.selection == HazeBackdropBackendSelection.FallbackFailed, temporary = temporaryFallback) }
     }
     resolveEntries(owner.surfaceCoordinates)
     inSurface(scope) {
@@ -223,7 +222,7 @@ private class ConfiguredSurface<Style>(
           with(renderer as HazeEffectRendererBackdrop<Style>) { runtime.backdropEffect(style) }
         } catch (exception: Exception) {
           HazeLogger.d("HazeEffectSurface", exception) { "Configured native preparation failed" }
-          usePortableInput(true)
+          usePortableInput(true, temporary = false)
           native = false
           null
         }
@@ -301,7 +300,7 @@ private class ConfiguredSurface<Style>(
           backend.resolve(true)
           hooks?.let { with(it) { runtime.drawForeground(style) } }
         } else {
-          usePortableInput(true)
+          usePortableInput(true, temporary = false)
         }
       } else if (input !is HazeInput.Backdrop || backend.usesFallback) {
         with(renderer) { runtime.draw(style) }
@@ -312,13 +311,14 @@ private class ConfiguredSurface<Style>(
     preparedBackdrop = null
   }
 
-  override fun usePortableInput(failed: Boolean) {
+  override fun usePortableInput(failed: Boolean, temporary: Boolean) {
     if (input !is HazeInput.Backdrop) return
+    val recoverable = temporary && !failed && (temporaryFallback || !backend.usesFallback)
     if (failed) backend.fail() else backend.resolve(false)
-    temporaryFallback = !failed
+    temporaryFallback = recoverable
     nativeRenderer?.release()
     nativeRenderer = null
-    members.forEach { it.usePortableInput(failed) }
+    members.forEach { it.usePortableInput(failed, temporary = recoverable) }
     preparedBackdrop = null
   }
 
