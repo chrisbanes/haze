@@ -124,6 +124,53 @@ class HazeEffectSurfaceDrawTest {
   }
 
   @Test
+  fun configuredSources_differentResolvedSelectionsDrawMembersSeparately() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val first = SurfaceFactory(owner)
+    val second = SurfaceFactory(owner)
+    val state = HazeState()
+    // Equal Behind inputs select different sources under differently ordered ancestors.
+    val input = HazeInput.Sources(state)
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    var clusterDraws = 0
+    owner.resolveSurfaces = {
+      configured = configured ?: first.surface.createConfiguredSurface(
+        HazeEffectFactory {
+          object : HazeEffectRenderer<Unit> {
+            override fun HazeEffectDrawScope.draw(style: Unit) {
+              clusterDraws++
+              drawInput()
+            }
+          }
+        },
+        Unit, Rect(0f, 0f, 110f, 30f), listOf(first.surface, second.surface),
+      )
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      Box(Modifier.size(160.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(160.dp).hazeSource(state, zIndex = 0f).background(Color.Red))
+        Box(Modifier.size(160.dp).then(OwnerElement(owner))) {
+          Box(Modifier.size(80.dp).hazeSource(state, zIndex = 1f)) {
+            Box(Modifier.size(30.dp).hazeEffect(first, input, Unit))
+          }
+          Box(Modifier.offset(x = 80.dp).size(80.dp).hazeSource(state, zIndex = 2f)) {
+            Box(Modifier.size(30.dp).hazeEffect(second, input, Unit))
+          }
+        }
+      }
+    }
+    waitForIdle()
+    assertThat(clusterDraws).isEqualTo(0)
+    assertThat(first.draws).isGreaterThan(0)
+    assertThat(second.draws).isGreaterThan(0)
+    runOnIdle {
+      configured?.dispose()
+      owner.resolveSurfaces = null
+    }
+  }
+
+  @Test
   fun relocatedSources_drawBehindChildren_andRestoreOnRelease() = runComposeUiTest {
     val owner = SurfaceOwnerNode()
     val factory = SurfaceFactory(owner)

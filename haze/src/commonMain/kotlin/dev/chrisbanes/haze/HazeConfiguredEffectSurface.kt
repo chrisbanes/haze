@@ -100,6 +100,7 @@ private class ConfiguredSurface<Style>(
   private var layerSize = Size.Zero
   private var layerOffset = Offset.Zero
   private var fallbackMembers = false
+  private var mixedSelection = false
   private var renderedSource = false
   private var input: HazeInput = checkNotNull(anchor.node.explicitInput)
   private val context = object : HazeEffectLifecycleScope by anchor.node.surfaceLifecycleScope() {
@@ -141,8 +142,10 @@ private class ConfiguredSurface<Style>(
   private fun resolveEntries(owner: LayoutCoordinates?) {
     // Core members already enforce selection, demand, window boundaries and source ordering.
     // Equal Content inputs still represent distinct areas; Sources shared by members are deduped.
-    entries = members.flatMap { it.node.surfaceInputEntries(owner) }
-      .distinctBy { it.area }.sortedBy { it.area.zIndex }
+    val selections = members.map { it.node.surfaceInputEntries(owner) }
+    // Equal Sources can still resolve differently (Behind ancestors); never draw one member's exclusions.
+    mixedSelection = input !is HazeInput.Content && selections.map { it.mapTo(mutableSetOf()) { entry -> entry.area } }.distinct().size > 1
+    entries = selections.flatten().distinctBy { it.area }.sortedBy { it.area.zIndex }
     snapshot = entries.takeIf { it.isNotEmpty() }?.let { input ->
       SurfaceInputSnapshot(input.map { SurfaceInputVersion(it.area, it.layer, it.area.contentVersion, it.transform.values.toList(), it.area.size) })
     }
@@ -215,23 +218,29 @@ private class ConfiguredSurface<Style>(
       members.forEach { it.usePortableInput(backend.selection == HazeBackdropBackendSelection.FallbackFailed, temporary = temporaryFallback) }
     }
     resolveEntries(owner.surfaceCoordinates)
-    inSurface(scope) {
-      val runtime = runtimeScope(this)
-      preparedBackdrop = if (native) {
-        try {
-          with(renderer as HazeEffectRendererBackdrop<Style>) { runtime.backdropEffect(style) }
-        } catch (exception: Exception) {
-          HazeLogger.d("HazeEffectSurface", exception) { "Configured native preparation failed" }
-          usePortableInput(true, temporary = false)
-          native = false
+    if (!mixedSelection) {
+      inSurface(scope) {
+        val runtime = runtimeScope(this)
+        preparedBackdrop = if (native) {
+          try {
+            with(renderer as HazeEffectRendererBackdrop<Style>) { runtime.backdropEffect(style) }
+          } catch (exception: Exception) {
+            HazeLogger.d("HazeEffectSurface", exception) { "Configured native preparation failed" }
+            usePortableInput(true, temporary = false)
+            native = false
+            null
+          }
+        } else {
+          hooks?.let { with(it) { runtime.prepareDraw(style) } }
           null
         }
-      } else {
-        hooks?.let { with(it) { runtime.prepareDraw(style) } }
-        null
       }
     }
-    fallbackMembers = (renderer as? HazeEffectRendererSurfaceFallback)?.usesMemberSurfaces == true
+    // Members draw individually through their own input policy when the cluster cannot be drawn:
+    // mixed selections, a renderer declining the field, or a declined native effect.
+    fallbackMembers = mixedSelection ||
+      (native && preparedBackdrop == null) ||
+      (renderer as? HazeEffectRendererSurfaceFallback)?.usesMemberSurfaces == true
     if (fallbackMembers) {
       val footprints = members.mapNotNull { it.footprint(scope) }
       if (footprints.isEmpty()) return null

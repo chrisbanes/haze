@@ -181,6 +181,53 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
   @Test
   fun nativeBackdrop_temporaryConfiguredBudgetFallback_recoversWhenOwnershipEnds() = assertTemporaryRecovery(configured = true, release = true)
 
+  @Test
+  fun nativeBackdrop_declinedConfiguredSurface_drawsMemberSurfaces() = runScreenshotTest {
+    val owner = BridgeOwner()
+    val first = BridgeFactory(owner, ::redEffect)
+    val second = BridgeFactory(owner, ::redEffect)
+    var declined = 0
+    var cluster: HazeConfiguredEffectSurface<Unit>? = null
+    owner.resolveSurfaces = {
+      val a = checkNotNull(first.surface.boundsInOwner())
+      val b = checkNotNull(second.surface.boundsInOwner())
+      cluster = cluster ?: first.surface.createConfiguredSurface(
+        HazeEffectFactory {
+          object : HazeEffectRenderer<Unit>, HazeEffectRendererBackdrop<Unit> {
+            override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
+            override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit): HazeEffectBackdrop? {
+              declined++
+              return null
+            }
+          }
+        },
+        Unit, Rect(a.left, a.top, a.right, b.bottom), listOf(first.surface, second.surface),
+      )
+      listOf(checkNotNull(cluster).surface)
+    }
+    val input = HazeInput.Backdrop()
+    setContent {
+      Box(Modifier.size(200.dp, 100.dp).testTag("probe").background(Color.White)) {
+        Box(Modifier.size(200.dp, 100.dp).then(BridgeOwnerElement(owner))) {
+          Box(Modifier.size(100.dp, 40.dp).hazeEffect(first, input, Unit))
+          Box(Modifier.offset(y = 40.dp).size(100.dp, 40.dp).hazeEffect(second, input, Unit))
+        }
+      }
+    }
+    refreshNativeFrame()
+    val bounds = onNodeWithTag("probe").fetchSemanticsNode().boundsInRoot
+    val pixels = captureRootPixels()
+    for (y in listOf(20f, 60f)) {
+      val pixel = pixels[(bounds.left + bounds.width * 30f / 200f).roundToInt(), (bounds.top + bounds.height * y / 100f).roundToInt()]
+      assertThat(pixel, "a declined cluster draws each member's native surface").isEqualTo(Color.Red)
+    }
+    assertThat(declined).isGreaterThan(0)
+    composeTestRule.runOnIdle {
+      owner.resolveSurfaces = null
+      cluster?.dispose()
+    }
+  }
+
   private fun assertTemporaryRecovery(release: Boolean = false, configured: Boolean = false, budgetViable: Boolean = false) = runScreenshotTest {
     val owner = BridgeOwner(allowGroup = false)
     val offset = mutableStateOf(60)
