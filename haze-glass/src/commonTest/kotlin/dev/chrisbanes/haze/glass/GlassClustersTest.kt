@@ -54,6 +54,14 @@ class GlassClustersTest {
   }
 
   @Test
+  fun cluster_interveningSurfaceSplitsClusterToPreserveOrder() {
+    val other = member(1, 0f, 100f).copy(key = key.copy(alpha = 0.4f))
+    val result = clusterGlassMembers(listOf(member(0, 0f), other, member(2, 100f)), 40f)
+    assertThat(result.surfaces.map { surface -> surface.members.map { it.identity } })
+      .containsExactly(listOf(0), listOf(1), listOf(2))
+  }
+
+  @Test
   fun cluster_chainUsesConnectedComponents() {
     val result = clusterGlassMembers(List(3) { member(it) }, 40f)
     assertThat(result.surfaces.single().members.map { it.identity }).containsExactly(0, 1, 2)

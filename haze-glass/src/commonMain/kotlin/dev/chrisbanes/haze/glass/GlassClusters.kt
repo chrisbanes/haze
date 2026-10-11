@@ -119,8 +119,19 @@ internal fun clusterGlassMembers(
         }
       }
     }
-    val ordered = component.sorted().map(valid::get)
-    surfaces += GlassCluster(ordered.take(MAX_GLASS_MERGED_MEMBERS))
+    val sorted = component.sorted()
+    val ordered = sorted.map(valid::get)
+    // A merged surface draws at one z-position, so only consecutive registrations may share one;
+    // an intervening surface splits the capped members (ADR-0013: merging never reorders members).
+    var run = mutableListOf<Int>()
+    for (index in sorted.take(MAX_GLASS_MERGED_MEMBERS)) {
+      if (run.isNotEmpty() && run.last() != index - 1) {
+        surfaces += GlassCluster(run.map(valid::get))
+        run = mutableListOf()
+      }
+      run += index
+    }
+    surfaces += GlassCluster(run.map(valid::get))
     ordered.drop(MAX_GLASS_MERGED_MEMBERS).forEach { surfaces += GlassCluster(listOf(it)) }
     if (ordered.size > MAX_GLASS_MERGED_MEMBERS) {
       overflow += GlassClusterOverflow(ordered.map { it.identity }, ordered.size - MAX_GLASS_MERGED_MEMBERS)
