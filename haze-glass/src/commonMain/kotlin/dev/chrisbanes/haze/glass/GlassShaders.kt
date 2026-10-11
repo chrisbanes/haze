@@ -931,7 +931,7 @@ internal object GlassShaders {
         float profile = exp(-t / 0.225) * cutoff * cutoff;
         float magnitude = foldedRefractionHeightNorm(profile, opticalDistance) * min(
           effectiveRefractionStrength * refractionScale,
-          ${if (merged) "mergeMaxDisplacement()" else "min(materialSize.x, materialSize.y) * 0.5"}
+          ${if (merged) "mergeMaxDisplacement(localCoord)" else "min(materialSize.x, materialSize.y) * 0.5"}
         );
         ${if (merged) MERGED_EDGE_GRADIENT else "vec2 gradient = edgeRefractionGradient(localCoord);"}
         float gradientLength = length(gradient);
@@ -1264,13 +1264,17 @@ internal object GlassShaders {
       );
     }
 
-    float mergeMaxDisplacement() {
-      float size = min(memberRects[0].z, memberRects[0].w);
-      for (int i = 1; i < 4; i++) {
+    // Each member caps displacement at half its own shortest side. Blending those caps by the
+    // members' field weights keeps a large member's cap away from a small one, and stays
+    // continuous across a bridge.
+    float mergeMaxDisplacement(vec2 localCoord) {
+      vec4 w = memberWeights(localCoord);
+      float cap = 0.0;
+      for (int i = 0; i < 4; i++) {
         if (float(i) >= memberCount) break;
-        size = min(size, min(memberRects[i].z, memberRects[i].w));
+        cap += w[i] * min(memberRects[i].z, memberRects[i].w) * 0.5;
       }
-      return size * 0.5;
+      return cap;
     }
     """
 

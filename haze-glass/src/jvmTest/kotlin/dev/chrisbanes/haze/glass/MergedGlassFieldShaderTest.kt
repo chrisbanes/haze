@@ -89,6 +89,19 @@ class MergedGlassFieldShaderTest {
   }
 
   @Test
+  fun refractionCap_usesLocalMemberSize() {
+    // A 300x160 panel caps displacement at 80 px and a 40x40 control at 20 px. The 47.6 px
+    // displacement at the panel's top edge must not be clamped to the control's cap.
+    val panel = mergedMember(0f, 0f, 300f, 160f)
+    val control = mergedMember(320f, 10f, 40f, 40f)
+    val edge = Offset(100f, 0.5f)
+    val merged = refractionAt(mergedField(panel, control), edge).getDistance()
+    val alone = refractionAt(mergedField(panel), edge).getDistance()
+    assertThat(abs(merged - alone), "panel edge refraction merged vs alone").isLessThan(1f)
+    assertThat(merged, "panel edge refraction").isGreaterThan(20f * 1.25f)
+  }
+
+  @Test
   fun bridgeColour_blendsByShare() {
     val field = mergedField(
       mergedMember(0f, 0f, 100f, 40f, tint = Color.Red),
