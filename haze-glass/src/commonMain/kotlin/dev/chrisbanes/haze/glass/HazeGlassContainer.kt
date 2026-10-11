@@ -38,6 +38,10 @@ import kotlin.math.abs
  * the container. [spacing] is finite and non-negative; zero disables bridges. Members use the
  * largest member's shortest side for optics, retaining their own styles and shape/colour values.
  *
+ * Without RuntimeShader support, or when a cluster exceeds the render budget, each cluster draws
+ * as one surface clipped to the hard union of its members, with no bridge. Members keep their own
+ * tint and background; where members overlap, the earlier registered member's colours apply.
+ *
  * [transitionSpec] and [reducedMotionPolicy] are stored for the transitions feature; membership
  * changes currently take effect immediately. Cap diagnostics follow [HazeLogger.enabled].
  */

@@ -36,7 +36,6 @@ import dev.chrisbanes.haze.HazeEffectRendererDrawHooks
 import dev.chrisbanes.haze.HazeEffectRendererInteraction
 import dev.chrisbanes.haze.HazeEffectRendererLifecycle
 import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
-import dev.chrisbanes.haze.HazeEffectRendererSurfaceFallback
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazePerformanceMode
@@ -136,8 +135,7 @@ internal class GlassRuntimeEffect() :
   HazeEffectRendererLifecycle<GlassNodeConfiguration>,
   HazeEffectRendererDrawHooks<GlassNodeConfiguration>,
   HazeEffectRendererRetainedOutput,
-  HazeEffectRendererInteraction,
-  HazeEffectRendererSurfaceFallback {
+  HazeEffectRendererInteraction {
 
   constructor(configuration: GlassNodeConfiguration) : this() {
     applyConfiguration(configuration)
@@ -168,8 +166,6 @@ internal class GlassRuntimeEffect() :
   private var memberBinding: GlassMemberBinding? = null
   private var surfaceSnapshot: GlassSurfaceSnapshot? = null
   override val alpha: Float get() = surfaceSnapshot?.material?.alpha ?: super.alpha
-  override val usesMemberSurfaces: Boolean
-    get() = mergedField != null && delegate !is RuntimeShaderGlassDelegate
   internal val memberBindingForTest: GlassMemberBinding? get() = memberBinding
 
   /** Re-publishes the member material at a new container optical size before reclustering. */

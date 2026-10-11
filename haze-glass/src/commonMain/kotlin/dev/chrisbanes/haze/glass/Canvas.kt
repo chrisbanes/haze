@@ -62,7 +62,7 @@ internal fun DrawScope.recordDepthMix(
   }
 }
 
-private inline fun DrawScope.withLayerPaint(
+internal inline fun DrawScope.withLayerPaint(
   alpha: Float,
   blendMode: BlendMode,
   block: DrawScope.() -> Unit,
