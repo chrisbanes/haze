@@ -66,12 +66,13 @@ internal fun resolveGlassNeighbour(
   return ordered
     .filter { candidate ->
       candidate.identity is GlassMemberNode && candidate.identity !== member.identity &&
-        candidate.translationOnly && candidate.key == member.key &&
+        // A leaving member's key was resolved at the optical size it set, so ignore that value.
+        candidate.translationOnly && candidate.key == member.key.copy(resolvedOptics = candidate.key.resolvedOptics) &&
         glassMemberGap(member.layoutRect, candidate.layoutRect) < spacingPx
     }
     .filter { candidate ->
       val probe = ordered.map {
-        if (it.identity === member.identity) it.copy(rect = candidate.rect, layoutRect = candidate.layoutRect, link = candidate.identity) else it
+        if (it.identity === member.identity) it.copy(rect = candidate.rect, layoutRect = candidate.layoutRect, key = candidate.key, link = candidate.identity) else it
       }
       clusterGlassMembers(probe, spacingPx).surfaces.any { cluster ->
         cluster.members.any { it.identity === member.identity } && cluster.members.any { it.identity === candidate.identity }
@@ -105,8 +106,10 @@ internal class GlassMemberGhost(val last: GlassMemberSnapshot, val neighbour: Gl
 
   fun snapshot(neighbourSnapshot: GlassMemberSnapshot?): GlassMemberSnapshot {
     if (neighbourSnapshot != null) {
+      // The neighbour's live key and material keep the link as the optical size changes.
       val (rect, material) = last.morphedFrom(neighbourSnapshot, progress.value)
-      return GlassMemberSnapshot(this, rect, last.key, material, true, rect, link = neighbour)
+      val merged = neighbourSnapshot.material.copy(cornerRadii = material.cornerRadii, tint = material.tint, backgroundColor = material.backgroundColor)
+      return GlassMemberSnapshot(this, rect, neighbourSnapshot.key, merged, true, rect, link = neighbour)
     }
     val alpha = last.material.alpha * progress.value.coerceIn(0f, 1f)
     // Alpha is part of the merge key, so a fading ghost never shares a field.

@@ -108,6 +108,11 @@ class GlassContainerTransitionTest : ContextTest() {
     fixture.toggle()
     assertThat(fixture.b().identity).isInstanceOf<GlassMemberGhost>()
     assertThat(fixture.owner().model.opticalSize).isEqualTo(Size(80f, 80f))
+    // B set the optical size it was resolved at, yet it still retracts into A's field.
+    assertThat(fixture.owner().model.surfaces.single().members).hasSize(2)
+    fixture.advance(150)
+    assertThat(fixture.b().rect.left).isCloseTo(150f - 110f * 144f / 300f, 1f)
+    assertThat(fixture.b().material.alpha).isEqualTo(1f)
     fixture.settle()
   }
 
@@ -124,6 +129,19 @@ class GlassContainerTransitionTest : ContextTest() {
     runOnIdle { fixture.enabled.value = true }
     fixture.settle()
     assertThat(fixture.owner().model.surfaces.single().members.single().identity).isEqualTo(fixture.aNode)
+  }
+
+  @Test
+  fun containerDetachMidFade_resetsMemberOverrides() = runComposeUiTest {
+    val fixture = fixture(gap = 100, present = false, transition = GlassMemberTransition.Materialize)
+    fixture.toggle()
+    fixture.advance(100)
+    runOnIdle { fixture.enabled.value = false }
+    fixture.advance(16)
+    for (effect in listOf(fixture.a, fixture.b)) {
+      assertThat(effect.transitionAlpha).isEqualTo(1f)
+      assertThat(effect.opticalSizeOverride).isNull()
+    }
   }
 
   @Test
@@ -260,9 +278,12 @@ class GlassContainerTransitionTest : ContextTest() {
     fixture.toggle()
     fixture.advance(100)
     assertThat(fixture.b.transitionAlpha).isLessThan(1f)
+    val outer = fixture.owner()
     runOnIdle { fixture.nested.value = true }
     fixture.advance(16)
     assertThat(fixture.b.transitionAlpha).isEqualTo(1f)
+    // B stays visible in its new container, so the old one draws no ghost of it.
+    assertThat(outer.model.surfaces.single().members.single().identity).isEqualTo(fixture.aNode)
     fixture.settle()
   }
 

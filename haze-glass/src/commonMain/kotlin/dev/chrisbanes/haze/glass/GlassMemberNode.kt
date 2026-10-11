@@ -101,7 +101,7 @@ internal class GlassMemberNode(
     if (!isAttached) return
     val nearest = findNearestAncestor(GlassContainerTraversalKey) as? GlassContainerNode
     if (container !== nearest) {
-      container?.remove(this)
+      container?.remove(this, leaving = false)
       container = nearest
       nearest?.add(this)
     }

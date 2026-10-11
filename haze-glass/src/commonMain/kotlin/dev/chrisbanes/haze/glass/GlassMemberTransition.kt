@@ -25,8 +25,8 @@ public enum class GlassMemberTransition {
   MatchedGeometry,
 
   /**
-   * The glass fades in or out where it is. A fading member draws on its own and joins a nearby
-   * member's merged shape once it is fully opaque.
+   * The glass fades in or out where it is. A fading member draws on its own: it joins a nearby
+   * member's merged shape once it is fully opaque, and leaves it as soon as it starts to fade out.
    */
   Materialize,
 

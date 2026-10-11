@@ -53,7 +53,10 @@ import kotlinx.coroutines.launch
  * resolved by [reducedMotionPolicy], the transition keeps its morph with a critically damped
  * spring, even when the system removes animations. A detached member's glass is drawn by the
  * container through a live member with the same input until its animation ends; when no such
- * member remains, for example when the last member leaves, the glass disappears immediately.
+ * member remains, for example when the last member leaves, the glass disappears immediately, as
+ * it does for a member that is rotated or scaled. A transition ends without animating when the
+ * member it grows from, retracts into or is drawn through leaves. A member moving to another
+ * container appears there immediately.
  * Leaving members never count towards the shared optical size. Haze animates only the glass, so
  * callers animate member content themselves, for example with `AnimatedVisibility`. Cap
  * diagnostics follow [HazeLogger.enabled].
@@ -136,7 +139,9 @@ internal class GlassContainerNode(
     }
     memberChanged()
   }
-  fun remove(member: GlassMemberNode) {
+
+  /** [leaving] is false when the member moves to another container, where it stays visible. */
+  fun remove(member: GlassMemberNode, leaving: Boolean = true) {
     renderer.releaseMember(member)
     pending -= member
     attaching.remove(member)?.job?.cancel()
@@ -157,7 +162,7 @@ internal class GlassContainerNode(
     val last = latest.remove(member)
     val index = registrations.indexOf(member)
     if (index >= 0) {
-      val ghost = last?.let { ghostOf(member, it) }
+      val ghost = last?.takeIf { leaving }?.let { ghostOf(member, it) }
       if (ghost != null) registrations[index] = ghost else registrations.removeAt(index)
     }
     memberChanged()
@@ -195,8 +200,9 @@ internal class GlassContainerNode(
     refreshing = true
     try {
       if (pending.isNotEmpty()) startTransitions(liveSnapshots())
-      val opticalSize = glassOpticalSize(members.mapNotNull { it.binding.surface?.boundsInOwner() })
-      members.forEach { member ->
+      val current = members
+      val opticalSize = glassOpticalSize(current.mapNotNull { it.binding.surface?.boundsInOwner() })
+      current.forEach { member ->
         val runtime = member.binding.runtime ?: return@forEach
         val alpha = attaching[member]?.takeIf { it.neighbour == null }?.progress?.value?.coerceIn(0f, 1f) ?: 1f
         if (runtime.opticalSizeOverride == opticalSize && runtime.transitionAlpha == alpha) return@forEach
@@ -274,6 +280,9 @@ internal class GlassContainerNode(
   }
 
   override fun onDetach() {
+    // Releasing member surfaces below reclusters; without coordinates that pass returns early
+    // instead of restoring the overrides this resets.
+    surfaceCoordinates = null
     renderer.release()
     // Detaching cancels coroutineScope, so transitions end here without completing.
     members.forEach {
@@ -288,7 +297,6 @@ internal class GlassContainerNode(
     settled = false
     children?.let { requireGraphicsContext().releaseGraphicsLayer(it) }
     children = null
-    surfaceCoordinates = null
   }
 }
 
