@@ -149,7 +149,9 @@ class GlassContainerRenderTest : ContextTest() {
     val runtime = fixture.owner().renderer.runtimeSurfaces.single()
     assertThat(runtime.preparedRenderBudget).isInstanceOf<GlassRenderBudgetDecision.Fallback>()
     assertThat(runtime.delegate).isInstanceOf<FallbackGlassDelegate>()
-    assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[145, 100]).isEqualTo(Color.White)
+    val fallbackPixels = onNodeWithTag("root").captureToImage().toPixelMap()
+    assertThat(fallbackPixels[145, 100]).isEqualTo(Color.White)
+    assertThat(fallbackPixels[80, 100].red).isGreaterThan(0.8f)
     runOnIdle { displacement.value = 0 }
     waitForIdle()
     assertThat(fixture.owner().renderer.runtimeSurfaces.single()).isSameInstanceAs(runtime)

@@ -3,10 +3,9 @@
 
 package dev.chrisbanes.haze.glass
 
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.translate
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -378,32 +377,26 @@ private fun DrawScope.drawMergedBase(
 /** A merged field's member paths and unions, rebuilt only when its shapes or colours change. */
 private class FallbackMergedPaths(val field: GlassMergedField) {
   val members: List<Path> = field.members.map { it.fallbackPath() }
-  val union: Path = field.fallbackUnionPath()
-  val backgroundUnion: Path? = if (field.hasBackground) {
-    field.fallbackUnionPath { it.backgroundColor.alpha > 0f }
-  } else {
-    null
+  val union: Path = unionOf(members)
+  val backgroundUnion: Path? = when {
+    !field.hasBackground -> null
+    field.members.all { it.backgroundColor.alpha > 0f } -> union
+    else -> unionOf(members.filterIndexed { index, _ -> field.members[index].backgroundColor.alpha > 0f })
   }
 }
 
-internal fun GlassMergedMember.fallbackPath(): Path = Path().apply {
-  addRoundRect(
-    RoundRect(
-      rect = rect,
-      topLeft = CornerRadius(cornerRadii.topLeft),
-      topRight = CornerRadius(cornerRadii.topRight),
-      bottomRight = CornerRadius(cornerRadii.bottomRight),
-      bottomLeft = CornerRadius(cornerRadii.bottomLeft),
-    ),
-  )
+private fun GlassMergedMember.fallbackPath(): Path = Path().apply {
+  addRoundRect(cornerRadii.toRoundRect(rect.size).translate(rect.topLeft))
 }
 
 /** The hard union of the [include]d members' rounded rects, with no bridge between them. */
 internal fun GlassMergedField.fallbackUnionPath(
   include: (GlassMergedMember) -> Boolean = { true },
-): Path = members.filter(include).fold(Path()) { union, member ->
-  Path().apply { op(union, member.fallbackPath(), PathOperation.Union) }
-}
+): Path = unionOf(members.filter(include).map { it.fallbackPath() })
+
+private fun unionOf(paths: List<Path>): Path = paths.reduceOrNull { union, path ->
+  Path().apply { op(union, path, PathOperation.Union) }
+} ?: Path()
 
 internal fun fallbackEdgeAlpha(ambientResponse: Float): Float = 0.18f * ambientResponse
 
