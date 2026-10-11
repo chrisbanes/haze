@@ -38,6 +38,7 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
+import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.prop
 import dev.chrisbanes.haze.HazeEffectFactory
@@ -290,6 +291,30 @@ class GlassContainerTransitionTest : ContextTest() {
     fixture.advance(16)
     assertThat(fixture.b()).prop(GlassMemberSnapshot::rect).isCloseTo(Rect(240f, 60f, 340f, 140f))
     assertThat(fixture.b.transitionAlpha).isEqualTo(1f)
+    fixture.settle()
+  }
+
+  @Test
+  fun membersAppearingTogether_materializeInsteadOfGrowingFromEachOther() = runComposeUiTest {
+    val fixture = fixture()
+    val owner = fixture.owner()
+    val nodes = listOf(fixture.a, fixture.b).map { checkNotNull(it.memberBindingForTest?.node) }
+    runOnIdle {
+      // Both members become ready for their first snapshot in the same pass.
+      nodes.forEach { owner.remove(it, leaving = false) }
+      val materials = nodes.map { it.binding.material }
+      nodes.forEach { it.binding.material = null }
+      nodes.forEach { owner.add(it) }
+      nodes.zip(materials).forEach { (node, material) -> node.binding.material = material }
+      owner.memberChanged()
+    }
+    fixture.advance(16)
+    val rects: Map<Any, Rect> = owner.model.surfaces.flatMap { it.members }.associate { it.identity to it.rect }
+    // Neither member was visible yet, so neither can grow out of the other.
+    assertThat(rects[nodes[0]]).isNotNull().isCloseTo(Rect(40f, 60f, 140f, 140f))
+    assertThat(rects[nodes[1]]).isNotNull().isCloseTo(Rect(150f, 60f, 250f, 140f))
+    assertThat(fixture.a.transitionAlpha).isLessThan(0.1f)
+    assertThat(fixture.b.transitionAlpha).isLessThan(0.1f)
     fixture.settle()
   }
 

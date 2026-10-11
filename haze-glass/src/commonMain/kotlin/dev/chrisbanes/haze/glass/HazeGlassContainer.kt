@@ -261,11 +261,13 @@ internal class GlassContainerNode(
 
   private fun startTransitions(live: Map<GlassMemberNode, GlassMemberSnapshot>) {
     val ordered = registrations.mapNotNull { if (it is GlassMemberNode) live[it] else latest[it] }
+    // Members appearing in this pass are not visible yet, so none can grow out of another.
+    val appearing = pending.toSet()
     for (member in pending.toList()) {
       val snapshot = live[member] ?: continue
       pending -= member
       if (!settled || member.transition == GlassMemberTransition.None) continue
-      val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(snapshot, ordered, spacingPx) else null
+      val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(snapshot, ordered, spacingPx, excluded = appearing) else null
       val attach = GlassMemberAttach(neighbour?.identity as GlassMemberNode?)
       attaching[member] = attach
       attach.job = animate(attach.progress, 1f) { attaching.remove(member) }

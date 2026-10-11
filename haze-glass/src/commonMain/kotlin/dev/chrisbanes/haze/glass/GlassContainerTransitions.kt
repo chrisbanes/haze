@@ -53,19 +53,21 @@ internal fun GlassMemberSnapshot.morphedFrom(from: GlassMemberSnapshot, fraction
 /**
  * The nearest live member that [member] can grow out of or retract into, or null.
  *
- * [ordered] is every registration's snapshot, with [member] at its registration position. A
- * neighbour must be translation-only with an equal key, within the full spacing, and must share a
- * cluster with [member] placed on it, so the consecutive-run and cap rules still hold.
+ * [ordered] is every registration's snapshot, with [member] at its registration position;
+ * [excluded] members are not visible yet. A neighbour must be translation-only with an equal key,
+ * within the full spacing, and must share a cluster with [member] placed on it, so the
+ * consecutive-run and cap rules still hold.
  */
 internal fun resolveGlassNeighbour(
   member: GlassMemberSnapshot,
   ordered: List<GlassMemberSnapshot>,
   spacingPx: Float,
+  excluded: Set<Any> = emptySet(),
 ): GlassMemberSnapshot? {
   if (!member.translationOnly) return null
   return ordered
     .filter { candidate ->
-      candidate.identity is GlassMemberNode && candidate.identity !== member.identity &&
+      candidate.identity is GlassMemberNode && candidate.identity !== member.identity && candidate.identity !in excluded &&
         // A leaving member's key was resolved at the optical size it set, so ignore that value.
         candidate.translationOnly && candidate.key == member.key.copy(resolvedOptics = candidate.key.resolvedOptics) &&
         glassMemberGap(member.layoutRect, candidate.layoutRect) < spacingPx
