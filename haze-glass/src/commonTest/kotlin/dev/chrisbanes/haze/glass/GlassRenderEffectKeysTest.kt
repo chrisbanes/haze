@@ -15,6 +15,7 @@ import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeProgressive
 import kotlin.test.Test
@@ -363,10 +364,10 @@ class GlassRenderEffectKeysTest {
     val base = params()
     val first = preparedRender(base)
     val unchanged = preparedRender(base.copy(), previous = first)
-    assertThat(unchanged.opticalKey === first.opticalKey).isTrue()
-    assertThat(unchanged.refractionDetailKey === first.refractionDetailKey).isTrue()
-    assertThat(unchanged.rimKey === first.rimKey).isTrue()
-    assertThat(unchanged.blurKey === first.blurKey).isTrue()
+    assertThat(unchanged.opticalKey).isSameInstanceAs(first.opticalKey)
+    assertThat(unchanged.refractionDetailKey).isSameInstanceAs(first.refractionDetailKey)
+    assertThat(unchanged.rimKey).isSameInstanceAs(first.rimKey)
+    assertThat(unchanged.blurKey).isSameInstanceAs(first.blurKey)
 
     val merged = preparedRender(
       base.copy(mergedField = mergedField(mergedMember(0f, 0f, 100f, 40f))),
@@ -375,7 +376,7 @@ class GlassRenderEffectKeysTest {
     assertThat(merged.opticalKey.mergedField).isNotNull()
     assertThat(merged.refractionDetailKey?.mergedField).isNotNull()
     assertThat(merged.rimKey?.mergedField).isNotNull()
-    assertThat(merged.blurKey === first.blurKey).isTrue()
+    assertThat(merged.blurKey).isSameInstanceAs(first.blurKey)
   }
 
   private fun preparedRender(params: GlassRenderParams, previous: GlassPreparedRender? = null) =

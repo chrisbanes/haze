@@ -22,6 +22,7 @@ import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotNull
+import assertk.assertions.isNull
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
@@ -53,6 +54,14 @@ class MergedGlassFusedAndroidHostTest : ContextTest() {
   @Config(sdk = [37])
   fun sdk37_bridgeCoversMidpointOnlyBelowHalfSpacing() = assertBridgeCoverage()
 
+  @Test
+  @Config(sdk = [37])
+  fun sdk37_unsettingFieldRestoresSingleSurface() {
+    val restored = midpointColor(gapDp = 6f, unsetAfterwards = true)
+    // The single surface uses its own transparent-tinted style, so the green member tint is gone.
+    assertThat(restored.red, "restored red: $restored").isGreaterThan(0.5f)
+  }
+
   private fun assertBridgeCoverage() {
     // A bridged midpoint shows the members' opaque green tint, darkened slightly by refraction
     // detail. A separate midpoint is outside the glass, so no tint reaches it.
@@ -63,7 +72,7 @@ class MergedGlassFusedAndroidHostTest : ContextTest() {
     assertThat(separate.red, "separate red: $separate").isGreaterThan(0.5f)
   }
 
-  private fun midpointColor(gapDp: Float): Color {
+  private fun midpointColor(gapDp: Float, unsetAfterwards: Boolean = false): Color {
     var color = Color.Unspecified
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = GlassRuntimeEffect().apply {
@@ -103,9 +112,15 @@ class MergedGlassFusedAndroidHostTest : ContextTest() {
         )
       }
       waitForIdle()
-      val pixels = onNodeWithTag(TAG).captureToImage().toPixelMap()
-      assertThat(effect.delegate as? RuntimeShaderGlassDelegate).isNotNull()
+      onNodeWithTag(TAG).captureToImage()
+      assertThat((effect.delegate as? RuntimeShaderGlassDelegate)?.fusedShader).isNotNull()
       assertThat(effect.preparedRender?.opticalKey?.mergedField).isNotNull()
+      if (unsetAfterwards) {
+        runOnIdle { effect.mergedField = null }
+        waitForIdle()
+        assertThat(effect.preparedRender?.opticalKey?.mergedField).isNull()
+      }
+      val pixels = onNodeWithTag(TAG).captureToImage().toPixelMap()
       color = pixels[pixels.width / 2, pixels.height / 2]
     }
     return color

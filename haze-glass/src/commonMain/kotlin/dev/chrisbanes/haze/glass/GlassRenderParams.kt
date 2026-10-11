@@ -993,7 +993,7 @@ internal fun buildGlassPreparedRender(
   )
 }
 
-private val MergedInteractionTopology = GlassInteractionTopology(
+internal val MergedInteractionTopology = GlassInteractionTopology(
   hasOptics = false,
   hasLighting = false,
   maxRefractionMultiplier = 1f,

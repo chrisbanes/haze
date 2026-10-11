@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
-import assertk.assertions.isNotNull
 import dev.chrisbanes.haze.HazePerformanceMode
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -60,13 +59,10 @@ class MergedGlassRenderTest {
       mergedMember(131f, 20f, 100f, 40f, backgroundColor = Color.Blue),
       spacingPx = SPACING,
     )
-    val provider = createGlassMergedBackgroundShaderProvider()
-    assertThat(provider).isNotNull()
-    val shader = provider!!(Offset.Zero, field)
-    assertThat(shader).isNotNull()
+    val shader = checkNotNull(createGlassMergedBackgroundShaderProvider()).invoke(Offset.Zero, field)
     val image = ImageBitmap(SAMPLE_SIZE.width.toInt(), SAMPLE_SIZE.height.toInt())
     CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, Canvas(image), SAMPLE_SIZE) {
-      drawRect(ShaderBrush(shader!!))
+      drawRect(ShaderBrush(checkNotNull(shader)))
     }
     val pixels = image.toPixelMap()
     assertColor(pixels.colorAt(Offset(70f, 40f)), Color.Red)
