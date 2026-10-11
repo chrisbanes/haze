@@ -385,9 +385,7 @@ internal class HazeEffectDrawScopeImpl(
           owner.sourceTransformInEffect(area)
         }
         withTransform({ transform(sourceTransform) }) {
-          val layer = area.contentLayer
-            ?.takeUnless { it.isReleased }
-            ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
+          val layer = area.drawableContentLayer
           if (layer != null) {
             drawLayer(layer)
           }

@@ -229,6 +229,12 @@ internal class HazeArea {
   internal var contentLayer: GraphicsLayer? by mutableStateOf(null)
     internal set
 
+  /** [contentLayer] when it can be drawn: not released and with a non-empty size. */
+  internal val drawableContentLayer: GraphicsLayer?
+    get() = contentLayer
+      ?.takeUnless { it.isReleased }
+      ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
+
   internal var contentDrawing: Boolean = false
 
   /**
