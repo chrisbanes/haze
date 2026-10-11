@@ -13,6 +13,7 @@ import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -1523,6 +1524,22 @@ class GlassRenderParamsTest {
       edgeSoftnessPx = with(density) { effect.edgeSoftness.toPx() },
       foregroundOutsetPx = 0f,
     )
+  }
+
+  @Test
+  fun hasGlassRim_isFalseWithoutSpecularOrShadow() {
+    assertThat(hasGlassRim(0f, Color.Transparent)).isFalse()
+    assertThat(hasGlassRim(0f, Color.Black.copy(alpha = 0f))).isFalse()
+  }
+
+  @Test
+  fun hasGlassRim_isTrueForSpecularOnly() {
+    assertThat(hasGlassRim(0.5f, Color.Transparent)).isTrue()
+  }
+
+  @Test
+  fun hasGlassRim_isTrueForShadowOnly() {
+    assertThat(hasGlassRim(0f, Color.Black.copy(alpha = 0.14f))).isTrue()
   }
 
   private fun testRenderParams(

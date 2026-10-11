@@ -113,8 +113,8 @@ private fun ResolvedGlassStyle.hasSameBudgetParams(other: ResolvedGlassStyle): B
     resolvedOptics.refractionDetailIntensity == other.resolvedOptics.refractionDetailIntensity &&
     chromaticAberrationStrength == other.chromaticAberrationStrength &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
-    (specularIntensity > 0f || edgeShadow.alpha > 0f) ==
-    (other.specularIntensity > 0f || other.edgeShadow.alpha > 0f)
+    hasGlassRim(specularIntensity, edgeShadow) ==
+    hasGlassRim(other.specularIntensity, other.edgeShadow)
 
 private val IdleInteractionState = GlassInteractionRenderState(Offset.Zero)
 private val IdleInteractionSignals = GlassInteractionSignals()
@@ -875,7 +875,7 @@ internal class GlassRuntimeEffect() :
       if (backdrop) {
         buildGlassBackdropLayerPlan(
           sampleSize = coordinates.sampleSize.roundToIntSize(),
-          rimActive = style.specularIntensity > 0f || style.edgeShadow.alpha > 0f,
+          rimActive = hasGlassRim(style.specularIntensity, style.edgeShadow),
           interactionPatchSize = interactionPatchSize,
           interactionLightingActive = interactionTopology.hasLighting,
         )
@@ -903,7 +903,7 @@ internal class GlassRuntimeEffect() :
             sampleStepPx = 2f * scaleFactor,
             detailIntensity = optics.refractionDetailIntensity,
           ),
-          rimActive = style.specularIntensity > 0f || style.edgeShadow.alpha > 0f,
+          rimActive = hasGlassRim(style.specularIntensity, style.edgeShadow),
           interactionPatchSize = interactionPatchSize,
           interactionOpticsActive = interactionTopology.hasOptics,
           interactionLightingActive = interactionTopology.hasLighting,

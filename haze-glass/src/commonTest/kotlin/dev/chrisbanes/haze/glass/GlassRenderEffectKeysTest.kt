@@ -402,6 +402,23 @@ class GlassRenderEffectKeysTest {
       .isEqualTo(fusedKey(base, backdrop = false).depthInputKey(interactionOptics = false))
   }
 
+  @Test
+  fun preparedRender_rimKeyFollowsRimActivity() {
+    val base = params()
+
+    assertThat(
+      preparedRender(base.copy(specularIntensity = 0f, edgeShadow = Color.Transparent)).rimKey,
+    ).isNull()
+    assertThat(
+      preparedRender(base.copy(specularIntensity = 0.5f, edgeShadow = Color.Transparent)).rimKey,
+    ).isNotNull()
+    assertThat(
+      preparedRender(
+        base.copy(specularIntensity = 0f, edgeShadow = Color.Black.copy(alpha = 0.14f)),
+      ).rimKey,
+    ).isNotNull()
+  }
+
   private fun preparedRender(params: GlassRenderParams, previous: GlassPreparedRender? = null) =
     buildGlassPreparedRender(
       params = params,

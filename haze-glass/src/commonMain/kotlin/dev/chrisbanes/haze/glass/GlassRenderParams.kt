@@ -394,6 +394,9 @@ internal data class GlassRimEffectKey(
   val mergedField: GlassMergedField? = null,
 )
 
+internal fun hasGlassRim(specularIntensity: Float, edgeShadow: Color): Boolean =
+  specularIntensity > 0f || edgeShadow.alpha > 0f
+
 internal fun GlassRenderParams.rimEffectKey() = GlassRimEffectKey(
   coordinates = coordinates,
   specularIntensity = specularIntensity,
@@ -682,7 +685,7 @@ internal fun buildGlassRetainedLayerPlan(
     nativeBlurActive = blurPlan?.usesNativeWideBlur == true,
     depthMixActive = blurActive && params.depth < 1f,
     refractionDetailActive = params.isRefractionDetailActive(),
-    rimActive = params.specularIntensity > 0f || params.edgeShadow.alpha > 0f,
+    rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow),
     interactionPatchSize = interactionPatchSize,
     interactionOpticsActive = interactionLayersActive && interactionTopology.hasOptics,
     interactionLightingActive = interactionLayersActive && interactionTopology.hasLighting,
@@ -946,9 +949,7 @@ internal fun buildGlassPreparedRender(
   val rimKey = if (previous != null && previous.params.hasSameRimEffectInputs(params)) {
     previous.rimKey
   } else {
-    params.rimEffectKey().takeIf {
-      params.specularIntensity > 0f || params.edgeShadow.alpha > 0f
-    }
+    params.rimEffectKey().takeIf { hasGlassRim(params.specularIntensity, params.edgeShadow) }
   }
   val plan = if (
     previous != null && previous.hasSameRetainedLayerPlanInputs(
