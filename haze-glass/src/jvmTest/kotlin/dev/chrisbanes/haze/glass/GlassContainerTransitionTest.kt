@@ -285,6 +285,12 @@ class GlassContainerTransitionTest : ContextTest() {
     // B stays visible in its new container, so the old one draws no ghost of it.
     assertThat(outer.model.surfaces.single().members.single().identity).isEqualTo(fixture.aNode)
     fixture.settle()
+    // Moving back into the drawn outer container shows B in place, without a transition.
+    runOnIdle { fixture.nested.value = false }
+    fixture.advance(16)
+    assertThat(fixture.b()).prop(GlassMemberSnapshot::rect).isCloseTo(Rect(240f, 60f, 340f, 140f))
+    assertThat(fixture.b.transitionAlpha).isEqualTo(1f)
+    fixture.settle()
   }
 
   @Test

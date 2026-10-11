@@ -132,10 +132,12 @@ internal class GlassContainerNode(
     surfaceCoordinates = coordinates
     memberChanged()
   }
-  fun add(member: GlassMemberNode) {
+
+  /** [appearing] is false when the member moves from another container, where it was visible. */
+  fun add(member: GlassMemberNode, appearing: Boolean = true) {
     if (member !in registrations) {
       registrations += member
-      pending += member
+      if (appearing) pending += member
     }
     memberChanged()
   }
