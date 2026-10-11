@@ -197,13 +197,25 @@ private val EmptyChildShader: android.graphics.Shader by lazy {
   )
 }
 
-/** Uniforms set by one effect, applied to its [SharedRuntimeShader] each time it creates an effect. */
+/**
+ * Uniforms set by one effect, applied to its [SharedRuntimeShader] each time it creates an effect.
+ *
+ * Float entries are rewritten in place when a name is set again with the same size, so
+ * a long-lived effect that updates its uniforms every frame does not allocate. That is safe because
+ * [RuntimeShader] copies the values it is given.
+ */
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal class RecordedUniforms : RuntimeShaderUniformProvider {
   val ints = HashMap<String, Int>()
   val floats = HashMap<String, FloatArray>()
   val colors = HashMap<String, android.graphics.Color>()
   val children = HashMap<String, Shader>()
+
+  private fun floatsFor(name: String, size: Int): FloatArray {
+    val existing = floats[name]
+    if (existing != null && existing.size == size) return existing
+    return FloatArray(size).also { floats[name] = it }
+  }
 
   override fun setColorUniform(name: String, color: Color) {
     colors[name] = android.graphics.Color.valueOf(
@@ -216,19 +228,27 @@ internal class RecordedUniforms : RuntimeShaderUniformProvider {
   }
 
   override fun setFloatUniform(name: String, value: Float) {
-    floats[name] = floatArrayOf(value)
+    floatsFor(name, 1)[0] = value
   }
 
   override fun setFloatUniform(name: String, value1: Float, value2: Float) {
-    floats[name] = floatArrayOf(value1, value2)
+    floatsFor(name, 2).apply {
+      this[0] = value1
+      this[1] = value2
+    }
   }
 
   override fun setFloatUniform(name: String, value1: Float, value2: Float, value3: Float, value4: Float) {
-    floats[name] = floatArrayOf(value1, value2, value3, value4)
+    floatsFor(name, 4).apply {
+      this[0] = value1
+      this[1] = value2
+      this[2] = value3
+      this[3] = value4
+    }
   }
 
   override fun setFloatUniform(name: String, values: FloatArray) {
-    floats[name] = values.copyOf()
+    values.copyInto(floatsFor(name, values.size))
   }
 
   override fun setIntUniform(name: String, value: Int) {
