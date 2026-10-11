@@ -27,4 +27,8 @@ class GlassContainerAndroidScreenshotTest : ScreenshotTest() {
   @Test fun interactiveClusterPressed() = runScreenshotTest { assertGlassContainerScene(GlassContainerScene.InteractivePressed) }
 
   @Test fun removalRestoresOutsideContainerPixels() = runScreenshotTest { assertGlassContainerRemovalRestoresOutsidePixels() }
+
+  @Test fun memberGrowsOutOfNeighbour() = runScreenshotTest { assertGlassContainerTransitionSequence(grow = true) }
+
+  @Test fun memberRetractsIntoNeighbour() = runScreenshotTest { assertGlassContainerTransitionSequence(grow = false) }
 }

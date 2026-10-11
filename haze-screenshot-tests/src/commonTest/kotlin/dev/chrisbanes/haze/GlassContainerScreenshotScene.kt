@@ -5,6 +5,10 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -30,6 +34,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
+import assertk.assertions.isNotEqualTo
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
@@ -116,6 +121,57 @@ internal fun ScreenshotUiTest.assertGlassContainerRemovalRestoresOutsidePixels()
   assertThat(captureRootPixels().colours()).isEqualTo(outside)
 }
 
+/** Grows B out of A ([grow]) or retracts it into A, capturing the first, middle and settled frames. */
+internal fun ScreenshotUiTest.assertGlassContainerTransitionSequence(grow: Boolean) {
+  val present = mutableStateOf(!grow)
+  setContent { GlassContainerScreenshotScene(GlassContainerScene.Merged, secondPresent = present.value, transitionSpec = tween(300, easing = LinearEasing)) }
+  waitForIdle()
+  mainClock.autoAdvance = false
+  present.value = grow
+  mainClock.advanceTimeByFrame()
+  waitForIdle()
+  var pixels = captureRootPixels()
+  if (grow) {
+    assertThat(pixels[220, 110].blue - pixels[220, 110].red).isLessThan(0.05f)
+    assertThat(pixels[80, 110].red).isGreaterThan(pixels[80, 110].blue)
+  } else {
+    assertMerged(pixels)
+  }
+  captureRoot("frame0")
+  // Whole 16ms frames: 144ms of the 300ms transition.
+  mainClock.advanceTimeBy(150)
+  waitForIdle()
+  pixels = captureRootPixels()
+  // B's tint is mid-interpolation from A's red, so it is mixed rather than blue-dominant.
+  assertThat(pixels[190, 110].blue).isGreaterThan(0.3f)
+  assertThat(pixels[190, 110]).isNotEqualTo(sceneBackground(190, 110))
+  if (grow) {
+    assertThat(pixels[149, 110]).isNotEqualTo(sceneBackground(149, 110))
+  } else {
+    assertThat(pixels[240, 110]).isEqualTo(sceneBackground(240, 110))
+  }
+  captureRoot("frame150")
+  mainClock.advanceTimeBy(320)
+  waitForIdle()
+  pixels = captureRootPixels()
+  if (grow) {
+    assertMerged(pixels)
+  } else {
+    assertThat(pixels[220, 110]).isEqualTo(sceneBackground(220, 110))
+    assertThat(pixels[80, 110].red).isGreaterThan(pixels[80, 110].blue)
+  }
+  captureRoot("settled")
+}
+
+private fun assertMerged(pixels: PixelMap) {
+  val bridge = pixels[149, 110]
+  assertThat(bridge.red).isGreaterThan(0.3f)
+  assertThat(bridge.blue).isGreaterThan(0.3f)
+  assertThat(bridge.green).isLessThan(0.8f)
+  assertThat(pixels[80, 110].red).isGreaterThan(pixels[80, 110].blue)
+  assertThat(pixels[220, 110].blue).isGreaterThan(pixels[220, 110].red)
+}
+
 private fun PixelMap.colours(): List<Color> = List(width * height) { this[it % width, it / width] }
 
 private fun sceneBackground(x: Int, y: Int): Color =
@@ -143,6 +199,8 @@ private fun GlassContainerScreenshotScene(
   scene: GlassContainerScene,
   enabled: Boolean = true,
   interactionSource: MutableInteractionSource? = null,
+  secondPresent: Boolean = true,
+  transitionSpec: FiniteAnimationSpec<Float> = spring(),
 ) {
   CompositionLocalProvider(LocalDensity provides Density(1f)) {
     val state = remember { HazeState() }
@@ -153,7 +211,7 @@ private fun GlassContainerScreenshotScene(
           drawRect(colour, Offset(x.toFloat(), y.toFloat()), Size(12f, 12f))
         }
       }
-      Box(Modifier.size(360.dp, 240.dp).then(if (enabled) Modifier.hazeGlassContainer(40.dp) else Modifier)) {
+      Box(Modifier.size(360.dp, 240.dp).then(if (enabled) Modifier.hazeGlassContainer(40.dp, transitionSpec) else Modifier)) {
         when (scene) {
           GlassContainerScene.Overflow -> repeat(6) { index ->
             GlassContainerSceneMember(state, 20 + index * 34, 60, 30, 80, sceneStyle(if (index % 2 == 0) Color.Red else Color.Blue))
@@ -183,7 +241,7 @@ private fun GlassContainerScreenshotScene(
           else -> {
             val mixed = scene == GlassContainerScene.MixedColours
             GlassContainerSceneMember(state, 40, 60, 100, 80, sceneStyle(if (mixed) Color.Red.copy(alpha = 0.65f) else Color.Red, if (mixed) Color(0xFFFFCC99) else Color.Transparent))
-            GlassContainerSceneMember(state, if (scene == GlassContainerScene.Separate) 160 else 159, 60, 100, 80, sceneStyle(if (mixed) Color.Blue.copy(alpha = 0.65f) else Color.Blue, if (mixed) Color(0xFF99CCFF) else Color.Transparent, scene == GlassContainerScene.MixedKeys))
+            if (secondPresent) GlassContainerSceneMember(state, if (scene == GlassContainerScene.Separate) 160 else 159, 60, 100, 80, sceneStyle(if (mixed) Color.Blue.copy(alpha = 0.65f) else Color.Blue, if (mixed) Color(0xFF99CCFF) else Color.Transparent, scene == GlassContainerScene.MixedKeys))
           }
         }
       }
