@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
@@ -137,5 +138,39 @@ class GlassContainerMembershipTest : ContextTest() {
     assertThat(first.memberBindingForTest?.material?.alpha).isEqualTo(0.5f)
     assertThat(first.memberBindingForTest?.material?.cornerRadii).isEqualTo(CornerRadii(12f, 12f, 12f, 12f))
     assertThat(container(first).model.surfaces.size).isEqualTo(2)
+  }
+
+  @Test
+  fun membership_rotatedOrScaledMembersStaySeparate() = runComposeUiTest {
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    val rotation = mutableStateOf(0f)
+    val scale = mutableStateOf(1f)
+    setContent {
+      Row(Modifier.hazeGlassContainer(40.dp)) {
+        Member(first)
+        Member(
+          second,
+          Modifier.graphicsLayer {
+            rotationZ = rotation.value
+            scaleX = scale.value
+          }.size(100.dp, 40.dp),
+        )
+      }
+    }
+    waitForIdle()
+    assertThat(container(first).model.surfaces.size).isEqualTo(1)
+    runOnIdle { rotation.value = 10f }
+    waitForIdle()
+    assertThat(container(first).model.surfaces.size).isEqualTo(2)
+    runOnIdle {
+      rotation.value = 0f
+      scale.value = 0.5f
+    }
+    waitForIdle()
+    assertThat(container(first).model.surfaces.size).isEqualTo(2)
+    runOnIdle { scale.value = 1f }
+    waitForIdle()
+    assertThat(container(first).model.surfaces.size).isEqualTo(1)
   }
 }

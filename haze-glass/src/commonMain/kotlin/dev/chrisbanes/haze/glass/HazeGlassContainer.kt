@@ -119,7 +119,8 @@ internal class GlassContainerNode(
         val rect = binding.surface?.boundsInOwner() ?: return@mapNotNull null
         val key = binding.key ?: return@mapNotNull null
         val material = binding.material ?: return@mapNotNull null
-        GlassMemberSnapshot(member, rect, key, material)
+        val owner = checkNotNull(surfaceCoordinates)
+        GlassMemberSnapshot(member, rect, key, material, member.hasTranslationOnlyTransform(owner))
       }
       model = clusterGlassMembers(snapshots, spacingPx)
       if (model.overflow != overflow) {

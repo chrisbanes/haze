@@ -6,10 +6,12 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.findNearestAncestor
+import androidx.compose.ui.node.requireLayoutCoordinates
 import androidx.compose.ui.platform.InspectorInfo
 import dev.chrisbanes.haze.HazeEffectSurface
 import dev.chrisbanes.haze.HazeInput
@@ -78,6 +80,16 @@ internal class GlassMemberNode(var binding: GlassMemberBinding) : Modifier.Node(
 
   fun changed() {
     container?.memberChanged()
+  }
+
+  /** Rotation, scale or skew relative to [owner] cannot be represented by a merged field rect. */
+  fun hasTranslationOnlyTransform(owner: LayoutCoordinates): Boolean {
+    val matrix = Matrix()
+    owner.transformFrom(requireLayoutCoordinates(), matrix)
+    matrix[3, 0] = 0f
+    matrix[3, 1] = 0f
+    matrix[3, 2] = 0f
+    return matrix.values.contentEquals(Matrix().values)
   }
 
   fun update(binding: GlassMemberBinding) {

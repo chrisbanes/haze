@@ -48,12 +48,16 @@ internal fun glassMergeKey(
   material.contentNormalBlend, material.fresnelExponent, effect.lightPosition, material.alpha,
 )
 
-/** Registration identity survives geometry updates; ordering is the input list's ordering. */
+/**
+ * Registration identity survives geometry updates; ordering is the input list's ordering.
+ * Merged fields only model translated, axis-aligned rects, so other transforms never merge.
+ */
 internal data class GlassMemberSnapshot(
   val identity: Any,
   val rect: Rect,
   val key: GlassMergeKey,
   val material: ResolvedGlassStyle,
+  val translationOnly: Boolean = true,
 )
 
 @Poko
@@ -102,7 +106,10 @@ internal fun clusterGlassMembers(
       while (iterator.hasNext()) {
         val index = iterator.next()
         val candidate = valid[index]
-        if (member.key == candidate.key && glassMemberGap(member.rect, candidate.rect) < spacingPx / 2f) {
+        if (
+          member.translationOnly && candidate.translationOnly &&
+          member.key == candidate.key && glassMemberGap(member.rect, candidate.rect) < spacingPx / 2f
+        ) {
           component += index
           iterator.remove()
         }

@@ -45,6 +45,14 @@ class GlassClustersTest {
   }
 
   @Test
+  fun cluster_nonTranslationTransformKeepsMemberSeparate() {
+    val rotated = member(1, 100f).copy(translationOnly = false)
+    val result = clusterGlassMembers(listOf(member(0), rotated, member(2, 200f)), 40f)
+    assertThat(result.surfaces.map { surface -> surface.members.map { it.identity } })
+      .containsExactly(listOf(0), listOf(1), listOf(2))
+  }
+
+  @Test
   fun cluster_chainUsesConnectedComponents() {
     val result = clusterGlassMembers(List(3) { member(it) }, 40f)
     assertThat(result.surfaces.single().members.map { it.identity }).containsExactly(0, 1, 2)
