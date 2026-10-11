@@ -752,6 +752,41 @@ class GlassShadersTest {
     assertThat(GlassShaders.buildRim()).contains("layout(color) uniform vec4 edgeShadow;")
   }
 
+  @Test
+  fun mergedSources_declareMemberArraysAndDisableTheDome() {
+    listOf(
+      GlassShaders.buildFused(merged = true),
+      GlassShaders.buildFused(sharpDetail = false, merged = true),
+      GlassShaders.buildOptical(merged = true),
+      GlassShaders.buildRefractionDetail(merged = true),
+      GlassShaders.buildRefractionDetail(coverageOnly = true, merged = true),
+      GlassShaders.buildRim(merged = true),
+    ).forEach { shader ->
+      assertThat(shader).contains("uniform float4 memberRects[4];")
+      assertThat(shader).contains("uniform float4 memberRadii[4];")
+      assertThat(shader).doesNotContain("= opticalFieldWeight()")
+    }
+    assertThat(GlassShaders.buildOptical(merged = true)).contains("layout(color) uniform vec4 memberTint3;")
+    assertThat(GlassShaders.buildMergedBackground()).contains("layout(color) uniform vec4 memberBackground3;")
+  }
+
+  @Test
+  fun singleSurfaceSources_haveNoMemberIdentifiers() {
+    listOf(
+      GlassShaders.buildFused(),
+      GlassShaders.buildFused(sharpDetail = false),
+      GlassShaders.buildFused(interactionOptics = true),
+      GlassShaders.buildFused(interactionOptics = true, sharpDetail = false),
+      GlassShaders.buildOptical(),
+      GlassShaders.buildOptical(interactive = true),
+      GlassShaders.buildRefractionDetail(),
+      GlassShaders.buildRefractionDetail(coverageOnly = true),
+      GlassShaders.buildRefractionDetail(interactive = true),
+      GlassShaders.buildRefractionDetail(interactive = true, coverageOnly = true),
+      GlassShaders.buildRim(),
+    ).forEach { shader -> assertThat(shader).doesNotContain("member") }
+  }
+
   private class RecordingUniformProvider : RuntimeShaderUniformProvider {
     val values = mutableMapOf<String, List<Float>>()
 
