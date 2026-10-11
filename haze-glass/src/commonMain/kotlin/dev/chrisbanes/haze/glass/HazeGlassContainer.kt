@@ -179,10 +179,9 @@ internal class GlassContainerNode(
     if (!isAttached || !settled || member.transition == GlassMemberTransition.None || !last.translationOnly) return null
     val ordered = registrations.mapNotNull { if (it === member) last else latest[it] }
     // A ghost draws through its anchor's input, so the anchor must resolve the same sources.
-    val unlike = ordered.filterNot { it.drawsSourcesOf(last) }.mapTo(mutableSetOf()) { it.identity }
-    val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(last, ordered, spacingPx, unlike) else null
+    val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(last, ordered, spacingPx) else null
     // A detached member has released its own renderer, so a live member with the same input draws it.
-    val anchor = neighbour ?: resolveGlassBorrowedAnchor(last, ordered.filter { it.identity !in unlike }) ?: return null
+    val anchor = neighbour ?: resolveGlassBorrowedAnchor(last, ordered.filter { it.drawsSourcesOf(last) }) ?: return null
     val ghost = GlassMemberGhost(last, neighbour?.identity as GlassMemberNode?, anchor.identity as GlassMemberNode)
     ghost.job = animate(ghost.progress, 0f) {
       registrations.remove(ghost)
@@ -220,13 +219,26 @@ internal class GlassContainerNode(
         runtime.refreshMemberMaterial()
       }
       val live = liveSnapshots()
+      // A grow ends, snapping to the member's own shape, once its neighbour is no longer live or
+      // could no longer have been chosen: the start conditions hold on every pass.
+      val broken = attaching.filter { (member, attach) ->
+        val neighbour = attach.neighbour ?: return@filter false
+        val snapshot = live[member] ?: return@filter false
+        live[neighbour]?.let(snapshot::canTransitionWith) != true
+      }
+      broken.forEach { (member, attach) ->
+        attach.job?.cancel()
+        attaching.remove(member)
+      }
       // A ghost draws through its anchor's surface, so it ends once that anchor cannot draw it: the
-      // anchor collapsed, left the layout, or changed input or resolved sources. A valid anchor also keeps the model's
-      // optical size non-null while ghosts remain.
+      // anchor collapsed, left the layout, or changed input or resolved sources. A valid anchor
+      // also keeps the model's optical size non-null while ghosts remain. A retracting ghost also
+      // needs a translation-only neighbour; it takes the neighbour's key, so keys always match.
       endGhosts { ghost ->
         val anchor = live[ghost.anchor]
         anchor == null || !anchor.layoutRect.isValidGlassMember() || !anchor.drawsSourcesOf(ghost.last) ||
-          anchor.key.input != ghost.last.key.input || anchor.key.expandLayerBounds != ghost.last.key.expandLayerBounds
+          anchor.key.input != ghost.last.key.input || anchor.key.expandLayerBounds != ghost.last.key.expandLayerBounds ||
+          (ghost.neighbour != null && !anchor.translationOnly)
       }
       // Morphs follow what their neighbour draws now, which may itself still be growing.
       val drawn = mutableMapOf<Any, GlassMemberSnapshot>()
@@ -285,14 +297,13 @@ internal class GlassContainerNode(
 
   private fun startTransitions(live: Map<GlassMemberNode, GlassMemberSnapshot>) {
     val ordered = registrations.mapNotNull { if (it is GlassMemberNode) drawnSnapshot(it, live) else latest[it] }
-    // Members appearing in this pass are not visible yet, so none can grow out of another; a
-    // neighbour resolving other sources would draw both members separately, so it is not one.
+    // Members appearing in this pass are not visible yet, so none can grow out of another.
     val appearing = pending.toSet()
     for (member in pending.toList()) {
       val snapshot = live[member] ?: continue
       pending -= member
       if (!settled || member.transition == GlassMemberTransition.None) continue
-      val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(snapshot, ordered, spacingPx, excluded = appearing + ordered.filterNot { it.drawsSourcesOf(snapshot) }.map { it.identity }) else null
+      val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(snapshot, ordered, spacingPx, excluded = appearing) else null
       val attach = GlassMemberAttach(neighbour?.identity as GlassMemberNode?)
       attaching[member] = attach
       attach.job = animate(attach.progress, 1f) { attaching.remove(member) }

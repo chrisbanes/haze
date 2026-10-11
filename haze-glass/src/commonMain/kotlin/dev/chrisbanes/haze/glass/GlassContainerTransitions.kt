@@ -55,9 +55,9 @@ internal fun GlassMemberSnapshot.morphedFrom(from: GlassMemberSnapshot, fraction
  * The nearest live member that [member] can grow out of or retract into, or null.
  *
  * [ordered] is every registration's snapshot, with [member] at its registration position;
- * [excluded] members are not visible yet. A neighbour must be translation-only with an equal key,
- * within the full spacing, and must share a cluster with [member] placed on it, so the
- * consecutive-run and cap rules still hold.
+ * [excluded] members are not visible yet. A neighbour must satisfy [canTransitionWith], be within
+ * the full spacing, and share a cluster with [member] placed on it, so the consecutive-run and cap
+ * rules still hold.
  */
 internal fun resolveGlassNeighbour(
   member: GlassMemberSnapshot,
@@ -65,13 +65,10 @@ internal fun resolveGlassNeighbour(
   spacingPx: Float,
   excluded: Set<Any> = emptySet(),
 ): GlassMemberSnapshot? {
-  if (!member.translationOnly) return null
   return ordered
     .filter { candidate ->
       candidate.identity is GlassMemberNode && candidate.identity !== member.identity && candidate.identity !in excluded &&
-        // A leaving member's key was resolved at the optical size it set, so ignore that value.
-        candidate.translationOnly && candidate.key == member.key.copy(resolvedOptics = candidate.key.resolvedOptics) &&
-        glassMemberGap(member.layoutRect, candidate.layoutRect) < spacingPx
+        member.canTransitionWith(candidate) && glassMemberGap(member.layoutRect, candidate.layoutRect) < spacingPx
     }
     .filter { candidate ->
       val probe = ordered.map {
@@ -91,6 +88,19 @@ internal fun resolveGlassBorrowedAnchor(member: GlassMemberSnapshot, ordered: Li
       it.key.input == member.key.input && it.key.expandLayerBounds == member.key.expandLayerBounds
   }
   .minByOrNull { glassMemberGap(member.layoutRect, it.layoutRect) }
+
+/**
+ * Whether this member can grow out of or retract into [neighbour] as one merged surface. The
+ * container checks it when a transition starts and on every pass while it runs.
+ */
+internal fun GlassMemberSnapshot.canTransitionWith(neighbour: GlassMemberSnapshot): Boolean =
+  // Morphs interpolate both layout rects, so a collapsed member cannot take part.
+  layoutRect.isValidGlassMember() && neighbour.layoutRect.isValidGlassMember() &&
+    translationOnly && neighbour.translationOnly &&
+    // A leaving member's key was resolved at the optical size it set, so ignore that value.
+    neighbour.key == key.copy(resolvedOptics = neighbour.key.resolvedOptics) &&
+    // A surface resolving other sources would draw both members separately.
+    neighbour.drawsSourcesOf(this)
 
 /**
  * Whether this member's input draws [other]'s sources, so one surface can draw both. Content

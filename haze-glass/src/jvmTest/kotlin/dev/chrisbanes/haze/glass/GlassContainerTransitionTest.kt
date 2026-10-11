@@ -20,6 +20,7 @@ import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ComposeUiTest
@@ -516,6 +517,56 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun growingMember_endsWhenNeighbourResolvesOtherSources() = assertGrowEnds { bSourced.value = true }
+
+  @Test
+  fun growingMember_endsWhenKeysDiverge() = assertGrowEnds { bExtra.value = GlassStyle { contrast(0.5f) } }
+
+  @Test
+  fun growingMember_endsWhenNoLongerTranslationOnly() = assertGrowEnds { bRotation.value = 10f }
+
+  @Test
+  fun growingMember_endsWhenNeighbourStopsBeingLive() = runComposeUiTest {
+    val fixture = fixture(present = false)
+    fixture.toggle()
+    fixture.advance(96)
+    runOnIdle { fixture.aWidth.value = 0 }
+    fixture.advance(16)
+    runOnIdle { fixture.aWidth.value = 100 }
+    fixture.advance(16)
+    // The grow ended while A was collapsed, so it does not resume from A afterwards.
+    assertThat(fixture.b()).prop(GlassMemberSnapshot::rect).isCloseTo(Rect(150f, 60f, 250f, 140f))
+    fixture.settle()
+  }
+
+  @Test
+  fun retractingGhost_endsWhenNeighbourStopsBeingTranslationOnly() = runComposeUiTest {
+    val fixture = fixture()
+    fixture.toggle()
+    assertThat(fixture.b().identity).isInstanceOf<GlassMemberGhost>()
+    runOnIdle { fixture.aRotation.value = 10f }
+    fixture.advance(16)
+    assertThat(fixture.owner().model.surfaces.flatMap { it.members }.map { it.identity }).containsExactly(fixture.aNode)
+    fixture.settle()
+  }
+
+  /** Starts B growing out of A, breaks one start condition, and expects B to snap to its own rect. */
+  private fun assertGrowEnds(change: Fixture.() -> Unit) = runComposeUiTest {
+    val fixture = fixture(present = false)
+    fixture.toggle()
+    fixture.advance(96)
+    assertThat(fixture.b().link).isEqualTo(fixture.aNode)
+    runOnIdle { fixture.change() }
+    fixture.advance(16)
+    val layout = checkNotNull(fixture.b.memberBindingForTest?.surface?.boundsInOwner())
+    assertThat(fixture.b()).all {
+      prop(GlassMemberSnapshot::link).isNull()
+      prop(GlassMemberSnapshot::layoutRect).isCloseTo(layout)
+    }
+    fixture.settle()
+  }
+
+  @Test
   fun lastMemberLeaves_disappearsImmediately() = runComposeUiTest {
     val fixture = fixture(gap = 100, transition = GlassMemberTransition.Materialize, withA = false)
     fixture.toggle()
@@ -554,7 +605,13 @@ class GlassContainerTransitionTest : ContextTest() {
     val c: GlassRuntimeEffect,
     val cPresent: MutableState<Boolean>,
   ) {
-    val aNode: GlassMemberNode? = a.memberBindingForTest?.node
+    /** Extra style applied to B, its rotation, A's rotation, and whether B sits under a zIndex 1 source. */
+    val bExtra = mutableStateOf(GlassStyle { })
+    val bRotation = mutableStateOf(0f)
+    val aRotation = mutableStateOf(0f)
+    val bSourced = mutableStateOf(false)
+
+    val aNode: GlassMemberNode? by lazy { a.memberBindingForTest?.node }
     lateinit var owner: GlassContainerNode
 
     fun owner(): GlassContainerNode = (aNode?.container ?: b.memberBindingForTest?.node?.container)?.also { owner = it } ?: owner
@@ -617,20 +674,25 @@ class GlassContainerTransitionTest : ContextTest() {
     val state = HazeState()
     val aWidth = mutableStateOf(100)
     val aState = mutableStateOf(state)
+    val fixture = Fixture(this, a, b, bPresent, aPresent, enabled, nested, aWidth, aState, c, cPresent)
     setContent {
       Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
         Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
         Box(Modifier.size(360.dp, 240.dp).then(if (enabled.value) Modifier.hazeGlassContainer(40.dp, spec, policy) else Modifier)) {
           if (aPresent.value) {
-            Box(Modifier.offset(40.dp, 60.dp).size(aWidth.value.dp, 80.dp).hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(aState.value), containerTestStyle(Color.Red), HazePerformanceMode.Quality, true, null))
+            Box(Modifier.offset(40.dp, 60.dp).size(aWidth.value.dp, 80.dp).graphicsLayer { rotationZ = fixture.aRotation.value }.hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(aState.value), containerTestStyle(Color.Red), HazePerformanceMode.Quality, true, null))
           }
-          Box(Modifier.size(360.dp, 240.dp).then(if (nested.value) Modifier.hazeGlassContainer(40.dp) else Modifier)) {
+          Box(
+            Modifier.size(360.dp, 240.dp)
+              .then(if (fixture.bSourced.value) Modifier.hazeSource(state, zIndex = 1f) else Modifier)
+              .then(if (nested.value) Modifier.hazeGlassContainer(40.dp) else Modifier),
+          ) {
             if (bPresent.value) {
               Box(
-                Modifier.offset((140 + gap).dp, 60.dp).size(bSize.width.dp, bSize.height.dp).hazeGlass(
+                Modifier.offset((140 + gap).dp, 60.dp).size(bSize.width.dp, bSize.height.dp).graphicsLayer { rotationZ = fixture.bRotation.value }.hazeGlass(
                   HazeEffectFactory { b },
                   HazeInput.Sources(state),
-                  containerTestStyle(bTint).then(bStyle),
+                  containerTestStyle(bTint).then(bStyle).then(fixture.bExtra.value),
                   HazePerformanceMode.Quality,
                   true,
                   null,
@@ -659,7 +721,8 @@ class GlassContainerTransitionTest : ContextTest() {
     }
     waitForIdle()
     mainClock.autoAdvance = false
-    return Fixture(this, a, b, bPresent, aPresent, enabled, nested, aWidth, aState, c, cPresent)
+    fixture.aNode
+    return fixture
   }
 
   private object NoMotion : MotionDurationScale {
