@@ -227,6 +227,10 @@ internal class RecordedUniforms : RuntimeShaderUniformProvider {
     floats[name] = floatArrayOf(value1, value2, value3, value4)
   }
 
+  override fun setFloatUniform(name: String, values: FloatArray) {
+    floats[name] = values.copyOf()
+  }
+
   override fun setIntUniform(name: String, value: Int) {
     ints[name] = value
   }

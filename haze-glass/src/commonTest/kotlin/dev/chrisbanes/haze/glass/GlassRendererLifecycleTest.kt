@@ -4,6 +4,8 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.runtime.CompositionLocal
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
@@ -14,6 +16,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -40,6 +43,28 @@ class GlassRendererLifecycleTest {
     assertThat(first).isInstanceOf<GlassRuntimeEffect>()
     assertThat(second).isInstanceOf<GlassRuntimeEffect>()
     assertThat(first).isNotSameInstanceAs(second)
+  }
+
+  @Test
+  fun mergedFieldOpticalSizeChange_invalidatesLayerBoundsAndPadding() {
+    val renderer = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
+    val scope = TrackingLifecycleScope()
+    renderer.attach(scope)
+    fun field(opticalSide: Float) = mergedField(
+      mergedMember(0f, 0f, 40f, 40f),
+      opticalSize = Size(opticalSide, opticalSide),
+    )
+    val rect = Rect(Offset.Zero, scope.modifierSize)
+
+    renderer.mergedField = field(opticalSide = 20f)
+    val invalidations = scope.layerBoundsInvalidations
+    val smallBounds = renderer.calculateLayerBounds(rect, Density(1f))
+    // The node keeps its bounds; only the optical size, and so the size-dependent padding, changes.
+    renderer.mergedField = field(opticalSide = 400f)
+
+    assertThat(scope.layerBoundsInvalidations).isEqualTo(invalidations + 1)
+    assertThat(renderer.calculateLayerBounds(rect, Density(1f))).isNotEqualTo(smallBounds)
+    renderer.detach()
   }
 
   @Test
@@ -156,9 +181,14 @@ private class TrackingLifecycleScope(
     else -> error("Unused composition local")
   } as T
 
+  var layerBoundsInvalidations = 0
+    private set
+
   override fun invalidateDraw() = Unit
 
-  override fun invalidateLayerBounds() = Unit
+  override fun invalidateLayerBounds() {
+    layerBoundsInvalidations++
+  }
 }
 
 @OptIn(InternalHazeApi::class)

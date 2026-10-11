@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.RenderEffect
+import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -72,6 +73,10 @@ internal class RuntimeShaderGlassDelegate(
   internal var rimBrushProvider: GlassRimBrushProvider? = null
     private set
   private var rimBrushProviderInitialized = false
+  private var rimBrushProviderMerged = false
+  private var mergedBackgroundShaderProvider: GlassMergedBackgroundShaderProvider? = null
+  private var mergedBackgroundShaderProviderInitialized = false
+  private var stageShadersMerged = false
   internal var rimEffect: PlatformRenderEffect? = null
     private set
   private var fusedEffectKey: GlassFusedEffectKey? = null
@@ -480,12 +485,15 @@ internal class RuntimeShaderGlassDelegate(
         )
         val sourceState = context.resolveGlassRuntimeSourceState(
           captureScale = params.coordinates.scaleFactor,
-          backgroundColor = params.backgroundColor,
+          backgroundColor = params.sourceBackgroundColor,
           previousSnapshot = lastSuccessfulSourceSnapshot,
+          mergedBackground = params.mergedBackground,
         )
         if (
-          !sourceState.hasDrawableSource &&
-          lastSuccessfulSourceSnapshot?.backgroundColor != params.backgroundColor
+          !sourceState.hasDrawableSource && (
+            lastSuccessfulSourceSnapshot?.backgroundColor != params.sourceBackgroundColor ||
+              lastSuccessfulSourceSnapshot?.mergedBackground != params.mergedBackground
+            )
         ) {
           clearRetainedOutput()
           return
@@ -1056,6 +1064,8 @@ internal class RuntimeShaderGlassDelegate(
       rimShader = null
       rimBrushProvider = null
       rimBrushProviderInitialized = false
+      mergedBackgroundShaderProvider = null
+      mergedBackgroundShaderProviderInitialized = false
       fusedShader = null
       fusedInputKey = null
       fusedDepthInputShaders = null
@@ -1158,11 +1168,22 @@ internal class RuntimeShaderGlassDelegate(
       scaleFactor = params.coordinates.scaleFactor,
       layerSize = context.layerSize,
       existingLayer = layers.source,
-      backgroundColor = params.backgroundColor,
+      backgroundColor = params.sourceBackgroundColor,
+      backgroundShader = params.mergedBackground?.let {
+        mergedBackgroundShader(params.coordinates.materialOrigin, it)
+      },
     )?.also {
       layers.source = it
       sourceRecordCount++
     }
+  }
+
+  private fun mergedBackgroundShader(materialOrigin: Offset, field: GlassMergedField): Shader? {
+    if (!mergedBackgroundShaderProviderInitialized) {
+      mergedBackgroundShaderProvider = createGlassMergedBackgroundShaderProvider()
+      mergedBackgroundShaderProviderInitialized = true
+    }
+    return mergedBackgroundShaderProvider?.invoke(materialOrigin, field)
   }
 
   private fun DrawScope.recordBlurredIfNeeded(
@@ -1336,9 +1357,11 @@ internal class RuntimeShaderGlassDelegate(
       key != recordedRimKey ||
       supportsDirectDrawing != recordedRimSupportsDirectDrawing
     ) {
-      if (!rimBrushProviderInitialized) {
-        rimBrushProvider = createGlassRimBrushProvider()
+      val merged = key.mergedField != null
+      if (!rimBrushProviderInitialized || rimBrushProviderMerged != merged) {
+        rimBrushProvider = createGlassRimBrushProvider(merged)
         rimBrushProviderInitialized = true
+        rimBrushProviderMerged = merged
       }
       val brush = rimBrushProvider?.invoke(key)
       var drawnDirectly = false
@@ -1777,6 +1800,7 @@ internal class RuntimeShaderGlassDelegate(
     if (supportsFusedGlassRenderEffect) {
       return getFusedRenderEffects(render)
     }
+    invalidateStageShadersOnMergeChange(render)
     val nextBlurKey = render.blurKey
     if (nextBlurKey != blurKey) {
       blurEffects = nextBlurKey?.let(::updateBlurRenderEffects)
@@ -1785,7 +1809,7 @@ internal class RuntimeShaderGlassDelegate(
     val nextOpticalKey = render.opticalKey
     if (nextOpticalKey != opticalKey || opticalEffect == null) {
       val shader = opticalShader ?: traceCreateRenderEffect {
-        createRetainedGlassOpticalRenderEffect()
+        createRetainedGlassOpticalRenderEffect(merged = nextOpticalKey.mergedField != null)
       }.also {
         opticalShader = it
       }
@@ -1800,7 +1824,7 @@ internal class RuntimeShaderGlassDelegate(
     ) {
       refractionDetailEffect = nextRefractionDetailKey?.let { key ->
         val shader = refractionDetailShader ?: traceCreateRenderEffect {
-          createRetainedRefractionDetailRenderEffect()
+          createRetainedRefractionDetailRenderEffect(merged = key.mergedField != null)
         }.also {
           refractionDetailShader = it
         }
@@ -1809,7 +1833,7 @@ internal class RuntimeShaderGlassDelegate(
       refractionDetailCoverageEffect = nextRefractionDetailKey?.let { key ->
         val shader = refractionDetailCoverageShader
           ?: traceCreateRenderEffect {
-            createRetainedRefractionDetailCoverageRenderEffect()
+            createRetainedRefractionDetailCoverageRenderEffect(merged = key.mergedField != null)
           }.also {
             refractionDetailCoverageShader = it
           }
@@ -1834,14 +1858,27 @@ internal class RuntimeShaderGlassDelegate(
     )
   }
 
+  /** Merged variants declare extra uniforms, so changing variant recreates the stage shaders. */
+  private fun invalidateStageShadersOnMergeChange(render: GlassPreparedRender) {
+    val merged = render.params.mergedField != null
+    if (merged == stageShadersMerged) return
+    opticalShader = null
+    refractionDetailShader = null
+    refractionDetailCoverageShader = null
+    rimShader = null
+    stageShadersMerged = merged
+  }
+
   private fun getFusedRenderEffects(
     render: GlassPreparedRender,
     backdrop: Boolean = false,
   ): GlassRenderEffects {
+    invalidateStageShadersOnMergeChange(render)
     updateRimEffect(render.rimKey)
-    val backdropBackground = render.params.backgroundColor.takeIf {
+    val backdropBackground = render.params.sourceBackgroundColor.takeIf {
       backdrop && it.alpha > 0f
     }
+    val backdropMergedBackground = render.params.mergedBackground.takeIf { backdrop }
     val nextFusedEffectKey = GlassFusedEffectKey(
       blur = render.blurKey,
       depth = render.params.depth,
@@ -1849,28 +1886,25 @@ internal class RuntimeShaderGlassDelegate(
       detail = render.refractionDetailKey,
       interaction = render.interactionUniforms.takeIf { render.interactionTopology.hasOptics },
       backdropBackground = backdropBackground,
+      backdropMergedBackground = backdropMergedBackground,
     )
     if (nextFusedEffectKey != fusedEffectKey || fusedEffect == null) {
       fusedEffect = nextFusedEffectKey.let { key ->
-        val nextInputKey = GlassDepthInputKey(
-          blur = key.blur,
-          depth = key.depth,
-          interactionOptics = render.interactionTopology.hasOptics,
-          sharpDetail = key.detail != null,
-          backdropBackground = key.backdropBackground,
-        )
+        val nextInputKey = key.depthInputKey(interactionOptics = render.interactionTopology.hasOptics)
         val previousInputKey = fusedInputKey
         val inputChanged = previousInputKey != nextInputKey
         val topologyChanged = previousInputKey == null ||
           previousInputKey.interactionOptics != nextInputKey.interactionOptics ||
-          previousInputKey.sharpDetail != nextInputKey.sharpDetail
+          previousInputKey.sharpDetail != nextInputKey.sharpDetail ||
+          previousInputKey.merged != nextInputKey.merged
         val nextInput = if (inputChanged) {
-          val backdropInput = key.backdropBackground?.let { color ->
-            createGlassBackdropInputRenderEffect(
-              backgroundColor = color,
-              sampleSize = key.optical.coordinates.sampleSize,
-            )
+          val sampleSize = key.optical.coordinates.sampleSize
+          val backdropBackgroundShader = key.backdropMergedBackground?.let { field ->
+            mergedBackgroundShader(key.optical.coordinates.materialOrigin, field)
+          } ?: key.backdropBackground?.let { color ->
+            (Brush.linearGradient(listOf(color, color)) as ShaderBrush).createShader(sampleSize)
           }
+          val backdropInput = backdropBackgroundShader?.let(::createGlassBackdropInputRenderEffect)
           updateFusedDepthInputRenderEffect(
             blur = key.blur,
             depth = key.depth,
@@ -1887,6 +1921,7 @@ internal class RuntimeShaderGlassDelegate(
               input = nextInput,
               interactionOptics = nextInputKey.interactionOptics,
               sharpDetail = nextInputKey.sharpDetail,
+              merged = nextInputKey.merged,
             )
           }
           refractionDetailShader = null
@@ -1911,6 +1946,7 @@ internal class RuntimeShaderGlassDelegate(
           createRefractionDetailRenderEffect(
             interactive = nextInputKey.interactionOptics,
             coverageOnly = false,
+            merged = nextInputKey.merged,
           )
         }.also {
           refractionDetailShader = it
@@ -1944,7 +1980,7 @@ internal class RuntimeShaderGlassDelegate(
         it.specularIntensity > 0f || it.edgeShadow.alpha > 0f
       }?.let { key ->
         val shader = rimShader ?: traceCreateRenderEffect {
-          createRetainedGlassRimRenderEffect()
+          createRetainedGlassRimRenderEffect(merged = key.mergedField != null)
         }.also { rimShader = it }
         shader.updateUniforms { setRimUniforms(key) }
       }
@@ -2010,12 +2046,7 @@ internal class RuntimeShaderGlassDelegate(
     )
   }
 
-  private fun createGlassBackdropInputRenderEffect(
-    backgroundColor: Color,
-    sampleSize: Size,
-  ): PlatformRenderEffect {
-    val backgroundBrush = Brush.linearGradient(listOf(backgroundColor, backgroundColor))
-    val backgroundShader = (backgroundBrush as ShaderBrush).createShader(sampleSize)
+  private fun createGlassBackdropInputRenderEffect(backgroundShader: Shader): PlatformRenderEffect {
     val background = createShaderRenderEffect(
       backgroundShader,
     )
@@ -2149,22 +2180,38 @@ internal data class GlassRenderEffects(
 )
 
 @Poko
-private class GlassFusedEffectKey(
+internal class GlassFusedEffectKey(
   val blur: GlassBlurEffectKey?,
   val depth: Float,
   val optical: GlassOpticalEffectKey,
   val detail: GlassRefractionDetailEffectKey?,
   val interaction: GlassInteractionUniforms?,
   val backdropBackground: Color?,
+  val backdropMergedBackground: GlassMergedField?,
 )
 
 @Poko
-private class GlassDepthInputKey(
+internal class GlassDepthInputKey(
   val blur: GlassBlurEffectKey?,
   val depth: Float,
   val interactionOptics: Boolean = false,
   val sharpDetail: Boolean = false,
   val backdropBackground: Color? = null,
+  val backdropMergedBackground: GlassMergedField? = null,
+  /** The merged backdrop background samples the field relative to this origin. */
+  val backdropMergedOrigin: Offset? = null,
+  val merged: Boolean = false,
+)
+
+internal fun GlassFusedEffectKey.depthInputKey(interactionOptics: Boolean) = GlassDepthInputKey(
+  blur = blur,
+  depth = depth,
+  interactionOptics = interactionOptics,
+  sharpDetail = detail != null,
+  backdropBackground = backdropBackground,
+  backdropMergedBackground = backdropMergedBackground,
+  backdropMergedOrigin = backdropMergedBackground?.let { optical.coordinates.materialOrigin },
+  merged = optical.mergedField != null,
 )
 
 private class FusedDepthInputShaders(
@@ -2198,8 +2245,9 @@ internal fun createFusedGlassRenderEffect(
   input: PlatformRenderEffect? = null,
   interactionOptics: Boolean = false,
   sharpDetail: Boolean = true,
+  merged: Boolean = false,
 ): MutableRuntimeShaderRenderEffect = createMutableRuntimeShaderRenderEffect(
-  effect = fusedGlassRuntimeEffect(interactionOptics, sharpDetail),
+  effect = fusedGlassRuntimeEffect(interactionOptics, sharpDetail, merged),
   shaderNames = arrayOf("content"),
   inputs = arrayOf(input),
 )
@@ -2207,7 +2255,11 @@ internal fun createFusedGlassRenderEffect(
 private fun fusedGlassRuntimeEffect(
   interactionOptics: Boolean,
   sharpDetail: Boolean,
+  merged: Boolean,
 ) = when {
+  // Interaction optics are not merged, so a merged field always uses the non-interactive variants.
+  merged && sharpDetail -> GLASS_MERGED_FUSED_EFFECT
+  merged -> GLASS_MERGED_NO_DETAIL_FUSED_EFFECT
   interactionOptics && sharpDetail -> GLASS_INTERACTION_OPTICS_FUSED_EFFECT
   interactionOptics -> GLASS_INTERACTION_OPTICS_NO_DETAIL_FUSED_EFFECT
   sharpDetail -> GLASS_FUSED_EFFECT
@@ -2243,25 +2295,35 @@ internal fun createRetainedGlassBlurRenderEffect(
   input = null,
 )
 
-internal fun createRetainedGlassOpticalRenderEffect(): MutableRuntimeShaderRenderEffect =
+internal fun createRetainedGlassOpticalRenderEffect(
+  merged: Boolean = false,
+): MutableRuntimeShaderRenderEffect =
   createMutableRuntimeShaderRenderEffect(
-    effect = GLASS_OPTICAL_EFFECT,
+    effect = if (merged) GLASS_MERGED_OPTICAL_EFFECT else GLASS_OPTICAL_EFFECT,
     shaderNames = arrayOf("content"),
     inputs = arrayOf(null),
   )
 
-internal fun createRetainedRefractionDetailRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createRefractionDetailRenderEffect(interactive = false, coverageOnly = false)
+internal fun createRetainedRefractionDetailRenderEffect(
+  merged: Boolean = false,
+): MutableRuntimeShaderRenderEffect =
+  createRefractionDetailRenderEffect(interactive = false, coverageOnly = false, merged = merged)
 
-internal fun createRetainedRefractionDetailCoverageRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createRefractionDetailRenderEffect(interactive = false, coverageOnly = true)
+internal fun createRetainedRefractionDetailCoverageRenderEffect(
+  merged: Boolean = false,
+): MutableRuntimeShaderRenderEffect =
+  createRefractionDetailRenderEffect(interactive = false, coverageOnly = true, merged = merged)
 
 private fun createRefractionDetailRenderEffect(
   interactive: Boolean,
   coverageOnly: Boolean,
+  merged: Boolean = false,
 ): MutableRuntimeShaderRenderEffect =
   createMutableRuntimeShaderRenderEffect(
     effect = when {
+      // Interaction stages are not merged, so a merged field uses the non-interactive variants.
+      merged && coverageOnly -> GLASS_MERGED_REFRACTION_DETAIL_COVERAGE_EFFECT
+      merged -> GLASS_MERGED_REFRACTION_DETAIL_EFFECT
       interactive && coverageOnly -> GLASS_INTERACTION_REFRACTION_DETAIL_COVERAGE_EFFECT
       interactive -> GLASS_INTERACTION_REFRACTION_DETAIL_EFFECT
       coverageOnly -> GLASS_REFRACTION_DETAIL_COVERAGE_EFFECT
@@ -2271,9 +2333,11 @@ private fun createRefractionDetailRenderEffect(
     inputs = arrayOf(null),
   )
 
-internal fun createRetainedGlassRimRenderEffect(): MutableRuntimeShaderRenderEffect =
+internal fun createRetainedGlassRimRenderEffect(
+  merged: Boolean = false,
+): MutableRuntimeShaderRenderEffect =
   createMutableRuntimeShaderRenderEffect(
-    effect = GLASS_RIM_EFFECT,
+    effect = if (merged) GLASS_MERGED_RIM_EFFECT else GLASS_RIM_EFFECT,
     shaderNames = arrayOf("content"),
     inputs = arrayOf(null),
   )
@@ -2355,6 +2419,24 @@ private val GLASS_INTERACTION_OUTPUT_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
 private val GLASS_RIM_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildRim())
 }
+private val GLASS_MERGED_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
+  createRuntimeEffect(GlassShaders.buildFused(merged = true))
+}
+private val GLASS_MERGED_NO_DETAIL_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
+  createRuntimeEffect(GlassShaders.buildFused(sharpDetail = false, merged = true))
+}
+private val GLASS_MERGED_OPTICAL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
+  createRuntimeEffect(GlassShaders.buildOptical(merged = true))
+}
+private val GLASS_MERGED_REFRACTION_DETAIL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
+  createRuntimeEffect(GlassShaders.buildRefractionDetail(merged = true))
+}
+private val GLASS_MERGED_REFRACTION_DETAIL_COVERAGE_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
+  createRuntimeEffect(GlassShaders.buildRefractionDetail(coverageOnly = true, merged = true))
+}
+private val GLASS_MERGED_RIM_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
+  createRuntimeEffect(GlassShaders.buildRim(merged = true))
+}
 
 internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
   key: GlassOpticalEffectKey,
@@ -2398,6 +2480,7 @@ internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
   setFloatUniform("contentNormalBlend", key.contentNormalBlend)
   setFloatUniform("fresnelExponent", key.fresnelExponent)
   setColorUniform("tintColor", key.tint)
+  key.mergedField?.let { setMergedFieldUniforms(it, includeTint = true) }
 }
 
 internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
@@ -2424,6 +2507,7 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
   setFloatUniform("detailWidth", key.detailWidthPx)
   setFloatUniform("detailIntensity", key.detailIntensity)
   setFloatUniform("detailVisibility", key.detailVisibility)
+  key.mergedField?.let { setMergedFieldUniforms(it) }
 }
 
 internal fun RuntimeShaderUniformProvider.setRimUniforms(
@@ -2438,6 +2522,7 @@ internal fun RuntimeShaderUniformProvider.setRimUniforms(
     key.lightPosition.x,
     key.lightPosition.y,
   )
+  key.mergedField?.let { setMergedFieldUniforms(it) }
 }
 
 internal fun RuntimeShaderUniformProvider.setInteractionOpticalUniforms(

@@ -97,8 +97,10 @@ instead of the spring, so it doesn't overshoot. `reducedMotionPolicy` uses the e
   members share a surface, but renderer selection still doesn't depend on member or sibling count.
 - **The renderer gains shader inputs and new uniform plumbing.** The new shader inputs are the
   merged field, per-member colours, interaction transforms and lights, which needs an array setter
-  for runtime-shader uniforms. Merged silhouettes must stay full resolution in reduced-quality modes,
-  like single surfaces ([#1339](https://github.com/chrisbanes/haze/issues/1339)).
+  for runtime-shader uniforms. In reduced-quality modes, merged silhouettes follow single surfaces
+  and render at the reduced input scale. Full-resolution silhouettes are
+  [out of scope](https://github.com/chrisbanes/haze/blob/main/.out-of-scope/full-resolution-glass-silhouettes-in-reduced-modes.md)
+  ([#1339](https://github.com/chrisbanes/haze/issues/1339)).
 - **The dome term is disabled for clusters.** It is defined only for a single rounded rectangle.
 - **The fallback renderer draws no bridge.** It renders each cluster as one surface clipped to the
   hard union of the member shapes, so overlapping members of a cluster never double their blur or

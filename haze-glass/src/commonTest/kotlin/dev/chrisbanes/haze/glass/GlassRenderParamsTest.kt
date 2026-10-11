@@ -638,6 +638,60 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun mergedField_resolvesOpticsFromOpticalSizeAndScalesWithInput() {
+    val field = mergedField(
+      mergedMember(10f, 20f, 100f, 40f, radius = 20f),
+      mergedMember(130f, 20f, 100f, 40f, radius = 20f),
+      opticalSize = Size(100f, 40f),
+    )
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle { optics(GlassOptics(refractionHeightFraction = 0.5f)) }
+      mergedField = field
+    }
+    val materialSize = Size(260f, 120f)
+    val style = resolveGlassStyle(effect, materialSize, Density(1f), LayoutDirection.Ltr)
+    val memberSized = resolveGlassStyle(
+      GlassRuntimeEffect().apply { this.style = effect.style },
+      Size(100f, 40f),
+      Density(1f),
+      LayoutDirection.Ltr,
+    )
+    val layerSized = resolveGlassStyle(
+      GlassRuntimeEffect().apply { this.style = effect.style },
+      materialSize,
+      Density(1f),
+      LayoutDirection.Ltr,
+    )
+    assertThat(style.resolvedOptics).isEqualTo(memberSized.resolvedOptics)
+    assertThat(style.resolvedOptics.refractionHeightPx).isLessThan(layerSized.resolvedOptics.refractionHeightPx)
+
+    val params = buildGlassRenderParams(
+      style,
+      GlassCoordinates(materialSize * 0.5f, Offset.Zero, materialSize * 0.5f, 0.5f),
+    )
+    assertThat(params.mergedField).isEqualTo(field.scaled(0.5f))
+  }
+
+  @Test
+  fun mergedField_preparedRenderDropsInteractionLayers() {
+    val field = mergedField(mergedMember(0f, 0f, 100f, 80f))
+    val coordinates = GlassCoordinates(Size(100f, 80f), Offset.Zero, Size(100f, 80f), 1f)
+    val params = testRenderParams(depth = 0.5f, blurRadiusPx = 12f).copy(
+      coordinates = coordinates,
+      mergedField = field,
+    )
+    val interaction = GlassInteractionUniforms(Offset(50f, 40f), 30f, 1f, 1.5f, 0.2f)
+    val prepared = buildGlassPreparedRender(
+      params = params,
+      interactionUniforms = interaction,
+      alpha = 1f,
+      outputSize = IntSize(100, 80),
+    )
+    assertThat(prepared.interactionTopology.hasAnyLayer).isFalse()
+    assertThat(prepared.interactionPatchSize).isEqualTo(IntSize.Zero)
+  }
+
+  @Test
   fun preparedRender_carriesValidatedAlphaForRuntimeDrawing() {
     val effect = GlassRuntimeEffect().apply {
       style = GlassStyle { alpha(1f) }

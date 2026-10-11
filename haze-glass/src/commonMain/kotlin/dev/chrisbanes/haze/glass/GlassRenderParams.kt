@@ -230,6 +230,8 @@ internal data class GlassRenderParams(
   val refractionDetailIntensity: Float = GLASS_REFRACTION_DETAIL_INTENSITY,
   /** Negative selects Surface; zero disables Edge refraction. */
   val edgeRefractionWidthPx: Float = -1f,
+  /** Merged members in material-local working pixels, which replace the single rounded rect. */
+  val mergedField: GlassMergedField? = null,
 )
 
 internal data class GlassBlurEffectKey(
@@ -256,9 +258,20 @@ internal fun GlassRenderParams.blurEffectKey(): GlassBlurEffectKey {
     maskOrigin = if (progressive != null) coordinates.materialOrigin else Offset.Zero,
     maskSize = if (progressive != null) coordinates.materialSize / coordinates.scaleFactor else Size.Zero,
     maskCoordinateScale = if (progressive != null) 1f / coordinates.scaleFactor else 1f,
-    sourceIsOpaque = backgroundColor.alpha == 1f,
+    sourceIsOpaque = isSourceOpaque,
   )
 }
+
+private val GlassRenderParams.isSourceOpaque: Boolean
+  get() = mergedField?.isBackgroundOpaque ?: (backgroundColor.alpha == 1f)
+
+/** The solid colour under the source. A merged field fills it with [mergedBackground] instead. */
+internal val GlassRenderParams.sourceBackgroundColor: Color
+  get() = if (mergedField != null) Color.Transparent else backgroundColor
+
+/** The merged field whose member background colours fill the source, when any is visible. */
+internal val GlassRenderParams.mergedBackground: GlassMergedField?
+  get() = mergedField?.takeIf { it.hasBackground }
 
 internal data class GlassOpticalEffectKey(
   val coordinates: GlassCoordinates,
@@ -281,6 +294,7 @@ internal data class GlassOpticalEffectKey(
   val sampleStepPx: Float,
   /** Negative selects Surface; zero disables Edge refraction. */
   val edgeRefractionWidthPx: Float = -1f,
+  val mergedField: GlassMergedField? = null,
 )
 
 internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
@@ -303,6 +317,7 @@ internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
   cornerRadii = cornerRadii,
   sampleStepPx = sampleStepPx,
   edgeRefractionWidthPx = edgeRefractionWidthPx,
+  mergedField = mergedField,
 )
 
 internal data class GlassRefractionDetailEffectKey(
@@ -322,6 +337,7 @@ internal data class GlassRefractionDetailEffectKey(
   val detailVisibility: Float,
   /** Negative selects Surface; zero disables Edge refraction. */
   val edgeRefractionWidthPx: Float = -1f,
+  val mergedField: GlassMergedField? = null,
 )
 
 internal fun GlassRenderParams.refractionDetailEffectKey(
@@ -350,6 +366,7 @@ internal fun GlassRenderParams.refractionDetailEffectKey(
     refractionScalePx = refractionScalePx,
     sampleStepPx = sampleStepPx,
   ),
+  mergedField = mergedField,
 )
 
 internal fun GlassRenderParams.activeRefractionDetailEffectKey(
@@ -373,6 +390,7 @@ internal data class GlassRimEffectKey(
   val cornerRadii: CornerRadii,
   val lightPosition: Offset,
   val sampleStepPx: Float,
+  val mergedField: GlassMergedField? = null,
 )
 
 internal fun GlassRenderParams.rimEffectKey() = GlassRimEffectKey(
@@ -384,6 +402,7 @@ internal fun GlassRenderParams.rimEffectKey() = GlassRimEffectKey(
   cornerRadii = cornerRadii,
   lightPosition = lightPosition,
   sampleStepPx = sampleStepPx,
+  mergedField = mergedField,
 )
 
 internal data class GlassInteractionLightingKey(
@@ -465,6 +484,7 @@ internal data class ResolvedGlassStyle(
   val specularExponent: Float,
   val fresnelExponent: Float,
   val cornerRadii: CornerRadii,
+  val mergedField: GlassMergedField? = null,
 )
 
 internal fun resolveGlassStyle(
@@ -490,7 +510,12 @@ internal fun resolveGlassStyle(
     layoutDirection = layoutDirection,
   )
   return ResolvedGlassStyle(
-    resolvedOptics = resolveGlassOptics(effect.optics, materialSizePx, density),
+    // A merged field's layer covers several members, so optics use its supplied optical size.
+    resolvedOptics = resolveGlassOptics(
+      effect.optics,
+      effect.mergedField?.opticalSize ?: materialSizePx,
+      density,
+    ),
     specularIntensity = effect.specularIntensity,
     edgeShadow = effect.edgeShadow,
     ambientResponse = effect.ambientResponse,
@@ -511,6 +536,7 @@ internal fun resolveGlassStyle(
     specularExponent = effect.specularExponent,
     fresnelExponent = effect.fresnelExponent,
     cornerRadii = cornerRadii,
+    mergedField = effect.mergedField,
   ).withAccessibility(
     settings = effect.accessibilitySettings,
     minimumBorderSoftnessPx = defaultEdgeSoftnessPx,
@@ -617,6 +643,7 @@ internal fun buildGlassRenderParams(
     specularExponent = style.specularExponent,
     fresnelExponent = style.fresnelExponent,
     cornerRadii = style.cornerRadii * scaleFactor,
+    mergedField = style.mergedField?.scaled(scaleFactor),
     lightPosition = style.lightPosition * scaleFactor,
     sampleStepPx = 2f * scaleFactor,
     refractionDetailIntensity = resolvedOptics.refractionDetailIntensity,
@@ -867,15 +894,17 @@ internal fun buildGlassPreparedRender(
   outputSize: IntSize,
   previous: GlassPreparedRender? = null,
 ): GlassPreparedRender {
+  // Interaction stages are not merged yet, so a merged field draws without them.
+  val topology = if (params.mergedField != null) MergedInteractionTopology else interactionTopology
   val interactionPatchSize = if (
-    supportsFusedGlassRenderEffect && !interactionTopology.hasLighting
+    supportsFusedGlassRenderEffect && !topology.hasLighting
   ) {
     IntSize.Zero
   } else {
     calculateGlassInteractionPatchSize(
       params = params,
       radiusFraction = interactionRadiusFraction,
-      topology = interactionTopology,
+      topology = topology,
     )
   }
   val interactionLayersActive = interactionPatchSize.width > 0 && interactionPatchSize.height > 0
@@ -883,7 +912,7 @@ internal fun buildGlassPreparedRender(
     outputSize = outputSize,
     alpha = alpha,
     interactionLayersActive = interactionLayersActive,
-    interactionTopology = interactionTopology,
+    interactionTopology = topology,
   )
   val blurKey = if (params.depth > 0f && params.blurRadiusPx > 0f) {
     if (previous != null && previous.params.hasSameBlurEffectInputs(params)) {
@@ -916,7 +945,7 @@ internal fun buildGlassPreparedRender(
   val plan = if (
     previous != null && previous.hasSameRetainedLayerPlanInputs(
       params = params,
-      interactionTopology = interactionTopology,
+      interactionTopology = topology,
       interactionPatchSize = interactionPatchSize,
       blurKey = blurKey,
       refractionDetailKey = refractionDetailKey,
@@ -931,7 +960,7 @@ internal fun buildGlassPreparedRender(
         sampleSize = params.coordinates.sampleSize.roundToIntSize(),
         rimActive = rimKey != null,
         interactionPatchSize = interactionPatchSize,
-        interactionLightingActive = interactionLayersActive && interactionTopology.hasLighting,
+        interactionLightingActive = interactionLayersActive && topology.hasLighting,
         groupCompositeSize = groupCompositeSize,
       )
     } else {
@@ -943,8 +972,8 @@ internal fun buildGlassPreparedRender(
         refractionDetailActive = refractionDetailKey != null,
         rimActive = rimKey != null,
         interactionPatchSize = interactionPatchSize,
-        interactionOpticsActive = interactionLayersActive && interactionTopology.hasOptics,
-        interactionLightingActive = interactionLayersActive && interactionTopology.hasLighting,
+        interactionOpticsActive = interactionLayersActive && topology.hasOptics,
+        interactionLightingActive = interactionLayersActive && topology.hasLighting,
         groupCompositeSize = groupCompositeSize,
       )
     }
@@ -952,7 +981,7 @@ internal fun buildGlassPreparedRender(
   return GlassPreparedRender(
     params = params,
     interactionUniforms = interactionUniforms,
-    interactionTopology = interactionTopology,
+    interactionTopology = topology,
     interactionPatchSize = interactionPatchSize,
     plan = plan,
     alpha = alpha,
@@ -964,11 +993,17 @@ internal fun buildGlassPreparedRender(
   )
 }
 
+internal val MergedInteractionTopology = GlassInteractionTopology(
+  hasOptics = false,
+  hasLighting = false,
+  maxRefractionMultiplier = 1f,
+)
+
 private fun GlassRenderParams.hasSameBlurEffectInputs(other: GlassRenderParams): Boolean =
   coordinates == other.coordinates &&
     blurRadiusPx == other.blurRadiusPx &&
     blurSigmaPx == other.blurSigmaPx &&
-    (backgroundColor.alpha == 1f) == (other.backgroundColor.alpha == 1f) &&
+    isSourceOpaque == other.isSourceOpaque &&
     progressive == other.progressive
 
 private fun GlassRenderParams.hasSameOpticalEffectInputs(other: GlassRenderParams): Boolean =
@@ -990,6 +1025,7 @@ private fun GlassRenderParams.hasSameOpticalEffectInputs(other: GlassRenderParam
     contentNormalBlend == other.contentNormalBlend &&
     fresnelExponent == other.fresnelExponent &&
     cornerRadii == other.cornerRadii &&
+    mergedField == other.mergedField &&
     sampleStepPx == other.sampleStepPx
 
 private fun GlassRenderParams.hasSameRefractionDetailEffectInputs(
@@ -1005,6 +1041,7 @@ private fun GlassRenderParams.hasSameRefractionDetailEffectInputs(
     surfaceProfile == other.surfaceProfile &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
     cornerRadii == other.cornerRadii &&
+    mergedField == other.mergedField &&
     refractionDetailIntensity == other.refractionDetailIntensity
 
 private fun GlassRenderParams.hasSameRimEffectInputs(other: GlassRenderParams): Boolean =
@@ -1014,6 +1051,7 @@ private fun GlassRenderParams.hasSameRimEffectInputs(other: GlassRenderParams): 
     specularExponent == other.specularExponent &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
     cornerRadii == other.cornerRadii &&
+    mergedField == other.mergedField &&
     lightPosition == other.lightPosition &&
     sampleStepPx == other.sampleStepPx
 

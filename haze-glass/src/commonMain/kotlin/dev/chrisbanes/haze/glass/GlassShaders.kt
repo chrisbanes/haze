@@ -7,6 +7,7 @@ internal object GlassShaders {
   fun buildFused(
     interactionOptics: Boolean = false,
     sharpDetail: Boolean = true,
+    merged: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -61,9 +62,9 @@ internal object GlassShaders {
       return clamp(coord, vec2(0.0), materialSize);
     }
 
-    ${sdfHelpers()}
+    ${sdfHelpers()}${mergedShapeHelpers(merged, tint = true)}
 
-    ${surfaceAndDisplacementHelpers()}
+    ${surfaceAndDisplacementHelpers(merged)}
 
     ${if (interactionOptics) interactionFalloffHelper() else ""}
 
@@ -77,7 +78,7 @@ internal object GlassShaders {
       vec2 localCoord = materialCoord(coord);
       vec2 halfSize = materialSize * 0.5;
       vec2 centeredCoord = localCoord - halfSize;
-      float outputSd = sdRoundedRect(localCoord, materialSize, cornerRadii);
+      float outputSd = ${shapeSd(merged, "localCoord")};
       float coverage = shapeCoverage(outputSd, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
 
@@ -103,7 +104,7 @@ internal object GlassShaders {
   } else {
     ""
   }}
-      float fieldWeight = opticalFieldWeight();
+      float fieldWeight = ${fieldWeight(merged)};
       float opticalDistance =
         opticalDistanceFromSignedDistance(localCoord, outputSd, fieldWeight);
       float heightNorm = surfaceHeightNormFromOpticalDistance(opticalDistance);
@@ -116,9 +117,7 @@ internal object GlassShaders {
       );
       vec2 refractCoord = clampSample(coord + displacement);
 
-      float cornerWeight = abs(
-        (centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 0.001)
-      );
+      float cornerWeight = ${cornerWeight(merged)};
       vec2 chromaOffset =
         displacement * chromaticAberrationStrength * 0.5 * cornerWeight;
       vec4 refractedCenter = sampleDepth(refractCoord);
@@ -151,7 +150,7 @@ internal object GlassShaders {
         ${if (interactionOptics) "localizedWhitePoint" else "whitePoint"}
       );
       gradedColor = clamp(gradedColor, 0.0, 1.0);
-      vec3 tintedColor = mix(gradedColor, tintColor.rgb, tintColor.a);
+      ${tintedColor(merged)}
       vec4 opticalColor = premultiply(applyAmbient(tintedColor, ambient), refractedCenter.a);
       if (shapeMask < 1.0) {
         opticalColor = mix(sampleDepth(coord), opticalColor, shapeMask);
@@ -170,7 +169,7 @@ internal object GlassShaders {
       );
       if (outputDistToEdge <= detailWidth + maxPossibleDisplacement) {
         vec2 refractedLocalCoord = localCoord + displacement;
-        float refractedSd = sdRoundedRect(refractedLocalCoord, materialSize, cornerRadii);
+        float refractedSd = ${shapeSd(merged, "refractedLocalCoord")};
         float sourceDistToEdge = max(-refractedSd, 0.0);
         float sourceShapeMask = edgeSoftness <= 0.0
           ? 1.0
@@ -248,6 +247,7 @@ internal object GlassShaders {
 
   fun buildOptical(
     interactive: Boolean = false,
+    merged: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -285,9 +285,9 @@ internal object GlassShaders {
       return clamp(coord, vec2(0.0), materialSize);
     }
 
-    ${sdfHelpers()}
+    ${sdfHelpers()}${mergedShapeHelpers(merged, tint = true)}
 
-    ${surfaceAndDisplacementHelpers()}
+    ${surfaceAndDisplacementHelpers(merged)}
 
     ${if (interactive) interactionFalloffHelper() else ""}
 
@@ -301,7 +301,7 @@ internal object GlassShaders {
       vec2 localCoord = materialCoord(coord);
       vec2 halfSize = materialSize * 0.5;
       vec2 centeredCoord = localCoord - halfSize;
-      float sd = sdRoundedRect(localCoord, materialSize, cornerRadii);
+      float sd = ${shapeSd(merged, "localCoord")};
       float coverage = shapeCoverage(sd, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
 
@@ -324,7 +324,7 @@ internal object GlassShaders {
     ""
   }}
 
-      float fieldWeight = opticalFieldWeight();
+      float fieldWeight = ${fieldWeight(merged)};
       float opticalDistance =
         opticalDistanceFromSignedDistance(localCoord, sd, fieldWeight);
       float heightNorm = surfaceHeightNormFromOpticalDistance(opticalDistance);
@@ -337,9 +337,7 @@ internal object GlassShaders {
       );
       vec2 refractCoord = clampSample(coord + displacement);
 
-      float cornerWeight = abs(
-        (centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 0.001)
-      );
+      float cornerWeight = ${cornerWeight(merged)};
       vec2 chromaOffset = displacement * chromaticAberrationStrength * 0.5 * cornerWeight;
       vec4 refractedCenterSample = sampleDepth(refractCoord);
       vec3 refractedStraightColor =
@@ -371,7 +369,7 @@ internal object GlassShaders {
         ${if (interactive) "localizedWhitePoint" else "whitePoint"}
       );
       gradedColor = clamp(gradedColor, 0.0, 1.0);
-      vec3 tintedColor = mix(gradedColor, tintColor.rgb, tintColor.a);
+      ${tintedColor(merged)}
       vec3 finalStraightColor = applyAmbient(tintedColor, ambient);
       vec4 processedColor = premultiply(finalStraightColor, refractedCenterSample.a);
       if (shapeMask >= 1.0) {
@@ -386,6 +384,7 @@ internal object GlassShaders {
   fun buildRefractionDetail(
     interactive: Boolean = false,
     coverageOnly: Boolean = false,
+    merged: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -418,15 +417,15 @@ internal object GlassShaders {
     """
   }}
 
-    ${sdfHelpers()}
+    ${sdfHelpers()}${mergedShapeHelpers(merged)}
 
-    ${surfaceAndDisplacementHelpers()}
+    ${surfaceAndDisplacementHelpers(merged)}
 
     ${if (interactive) interactionFalloffHelper() else ""}
 
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
-      float outputSd = sdRoundedRect(localCoord, materialSize, cornerRadii);
+      float outputSd = ${shapeSd(merged, "localCoord")};
       float coverage = shapeCoverage(outputSd, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
 
@@ -447,7 +446,7 @@ internal object GlassShaders {
       );
       if (outputDistToEdge > detailWidth + maxPossibleDisplacement) return vec4(0.0);
 
-      float fieldWeight = opticalFieldWeight();
+      float fieldWeight = ${fieldWeight(merged)};
       float opticalDistance =
         opticalDistanceFromSignedDistance(localCoord, outputSd, fieldWeight);
       float heightNorm = surfaceHeightNormFromOpticalDistance(opticalDistance);
@@ -460,7 +459,7 @@ internal object GlassShaders {
       );
       ${if (coverageOnly) "" else "vec2 refractCoord = clampSample(coord + displacement);"}
       vec2 refractedLocalCoord = localCoord + displacement;
-      float refractedSd = sdRoundedRect(refractedLocalCoord, materialSize, cornerRadii);
+      float refractedSd = ${shapeSd(merged, "refractedLocalCoord")};
       float sourceDistToEdge = max(-refractedSd, 0.0);
       float sourceShapeMask = edgeSoftness <= 0.0
         ? 1.0
@@ -531,7 +530,7 @@ internal object GlassShaders {
     }
   """
 
-  fun buildRim(): String = """
+  fun buildRim(merged: Boolean = false): String = """
     uniform shader content;
     uniform float2 sampleSize;
     uniform float2 materialOrigin;
@@ -550,17 +549,17 @@ internal object GlassShaders {
       return clamp(coord, vec2(0.0), materialSize);
     }
 
-    ${sdfShapeHelpers()}
+    ${sdfShapeHelpers()}${mergedShapeHelpers(merged)}
 
     float materialSdf(vec2 localCoord) {
-      return sdRoundedRect(localCoord, materialSize, cornerRadii);
+      return ${shapeSd(merged, "localCoord")};
     }
 
     vec2 sdfGradient(vec2 localCoord) {
-      float left = materialSdf(clampMaterial(localCoord - vec2(sampleStep, 0.0)));
-      float right = materialSdf(clampMaterial(localCoord + vec2(sampleStep, 0.0)));
-      float up = materialSdf(clampMaterial(localCoord - vec2(0.0, sampleStep)));
-      float down = materialSdf(clampMaterial(localCoord + vec2(0.0, sampleStep)));
+      float left = materialSdf(${clampMaterial(merged, "localCoord - vec2(sampleStep, 0.0)")});
+      float right = materialSdf(${clampMaterial(merged, "localCoord + vec2(sampleStep, 0.0)")});
+      float up = materialSdf(${clampMaterial(merged, "localCoord - vec2(0.0, sampleStep)")});
+      float down = materialSdf(${clampMaterial(merged, "localCoord + vec2(0.0, sampleStep)")});
       return vec2(right - left, down - up) * (0.5 / max(sampleStep, 0.0001));
     }
 
@@ -584,6 +583,29 @@ internal object GlassShaders {
       float alpha = specularAlpha + shadowAlpha * (1.0 - specularAlpha);
       vec3 color = vec3(specularAlpha) + edgeShadow.rgb * shadowAlpha * (1.0 - specularAlpha);
       return alpha > 0.0 ? vec4(color, alpha) * coverage : vec4(0.0);
+    }
+  """
+
+  /** Fills the source with each merged member's background colour, blended across bridges. */
+  fun buildMergedBackground(): String = """
+    uniform float2 materialOrigin;
+    layout(color) uniform vec4 memberBackground0;
+    layout(color) uniform vec4 memberBackground1;
+    layout(color) uniform vec4 memberBackground2;
+    layout(color) uniform vec4 memberBackground3;
+
+    ${sdfShapeHelpers()}
+    $MERGED_FIELD_HELPERS
+
+    vec4 main(vec2 coord) {
+      vec4 color = blendMemberColors(
+        memberWeights(coord - materialOrigin),
+        memberBackground0,
+        memberBackground1,
+        memberBackground2,
+        memberBackground3
+      );
+      return vec4(color.rgb * color.a, color.a);
     }
   """
 
@@ -702,7 +724,7 @@ internal object GlassShaders {
 
   """
 
-  private fun surfaceAndDisplacementHelpers(): String = """
+  private fun surfaceAndDisplacementHelpers(merged: Boolean = false): String = """
     float circleMap(float x) {
       return 1.0 - sqrt(max(0.0, 1.0 - x * x));
     }
@@ -786,7 +808,7 @@ internal object GlassShaders {
       if (fieldWeight >= 1.0) {
         return surfaceHeightFromOpticalDistance(domeDistance(localCoord));
       }
-      float sd = sdRoundedRect(localCoord, materialSize, customRadii);
+      float sd = ${if (merged) "shapeSd(localCoord)" else "sdRoundedRect(localCoord, materialSize, customRadii)"};
       float opticalDistance = opticalDistanceFromSignedDistance(localCoord, sd, fieldWeight);
       return surfaceHeightFromOpticalDistance(opticalDistance);
     }
@@ -814,12 +836,16 @@ internal object GlassShaders {
         );
       }
       float normalBlendWidth = max(refractionHeight, 1.0);
-      vec2 boundaryGradient = gradSdRoundedRect(
+      vec2 boundaryGradient = ${if (merged) {
+    "shapeGradient(localCoord)"
+  } else {
+    """gradSdRoundedRect(
         localCoord,
         materialSize,
         cornerRadii,
         normalBlendWidth
-      );
+      )"""
+  }};
       if (fieldWeight <= 0.0) return boundaryGradient;
       vec2 normalizedCoord = normalizedMaterialCoord(localCoord);
       vec2 squaredCoord = normalizedCoord * normalizedCoord;
@@ -888,7 +914,7 @@ internal object GlassShaders {
       );
     }
 
-    vec2 refractionDisplacement(
+    ${if (merged) MERGED_REFRACTION_GRADIENT else ""}vec2 refractionDisplacement(
       vec2 localCoord,
       float heightNorm,
       float opticalDistance,
@@ -905,9 +931,9 @@ internal object GlassShaders {
         float profile = exp(-t / 0.225) * cutoff * cutoff;
         float magnitude = foldedRefractionHeightNorm(profile, opticalDistance) * min(
           effectiveRefractionStrength * refractionScale,
-          min(materialSize.x, materialSize.y) * 0.5
+          ${if (merged) "mergeMaxDisplacement(localCoord)" else "min(materialSize.x, materialSize.y) * 0.5"}
         );
-        vec2 gradient = edgeRefractionGradient(localCoord);
+        ${if (merged) MERGED_EDGE_GRADIENT else "vec2 gradient = edgeRefractionGradient(localCoord);"}
         float gradientLength = length(gradient);
         float centerFade = smootherstep(clamp(gradientLength / 0.5, 0.0, 1.0));
         return -gradient / max(gradientLength, 0.0001) * centerFade * magnitude;
@@ -1076,6 +1102,181 @@ internal object GlassShaders {
       return color;
     }
   """
+
+  private fun shapeSd(merged: Boolean, coord: String): String =
+    if (merged) "shapeSd($coord)" else "sdRoundedRect($coord, materialSize, cornerRadii)"
+
+  // Chroma is strongest at a member's corners, so merged fields weight by the nearest member.
+  private fun cornerWeight(merged: Boolean): String = if (merged) {
+    "memberCornerWeight(localCoord)"
+  } else {
+    "abs(\n        (centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 0.001)\n      )"
+  }
+
+  // The dome is defined over one material rectangle, so merged fields disable it.
+  private fun fieldWeight(merged: Boolean): String =
+    if (merged) "0.0" else "opticalFieldWeight()"
+
+  // The container contains the merged field, so merged gradients sample without clamping.
+  private fun clampMaterial(merged: Boolean, coord: String): String =
+    if (merged) coord else "clampMaterial($coord)"
+
+  // A central difference over half the refraction width smooths the merged refraction direction
+  // where it turns across a bridge's saddle.
+  private const val MERGED_REFRACTION_GRADIENT = """vec2 shapeRefractionGradient(vec2 localCoord) {
+      return shapeGradientOver(localCoord, max(sampleStep, edgeRefractionWidth * 0.5));
+    }
+
+    // 1 where the glass is at least a refraction width deep along the inward normal, falling to 0
+    // where a thin bridge would carry the sample across to its opposite edge.
+    float shapeThicknessWeight(vec2 localCoord, vec2 gradient) {
+      float width = max(edgeRefractionWidth, 0.0001);
+      vec2 inward = -safeNormalize(gradient, vec2(0.0));
+      float depthAhead = -shapeSd(localCoord + inward * width);
+      return smootherstep(clamp(depthAhead / width, 0.0, 1.0));
+    }
+
+    """
+
+  // A bridge thinner than the refraction width would pull content across its midline from both
+  // edges, folding it into a crease, so merged refraction fades where the glass is that thin.
+  private const val MERGED_EDGE_GRADIENT = """vec2 gradient = shapeRefractionGradient(localCoord);
+        magnitude *= shapeThicknessWeight(localCoord, gradient);"""
+
+  private fun tintedColor(merged: Boolean): String = if (merged) {
+    "vec4 mergedTint = blendMemberColors(memberWeights(localCoord), memberTint0, memberTint1, memberTint2, memberTint3);\n" +
+      "      vec3 tintedColor = mix(gradedColor, mergedTint.rgb, mergedTint.a);"
+  } else {
+    "vec3 tintedColor = mix(gradedColor, tintColor.rgb, tintColor.a);"
+  }
+
+  private fun mergedShapeHelpers(merged: Boolean, tint: Boolean = false): String = when {
+    !merged -> ""
+    tint -> MERGED_MEMBER_TINTS + MERGED_FIELD_HELPERS + MERGED_OPTICS_HELPERS
+    else -> MERGED_FIELD_HELPERS + MERGED_OPTICS_HELPERS
+  }
+
+  private const val MERGED_MEMBER_TINTS = """
+    layout(color) uniform vec4 memberTint0;
+    layout(color) uniform vec4 memberTint1;
+    layout(color) uniform vec4 memberTint2;
+    layout(color) uniform vec4 memberTint3;
+    """
+
+  /**
+   * Up to four rounded members joined by a polynomial smooth minimum (ADR-0013). The midpoint
+   * field of two members is `gap / 2 - k / 4`, so `k = spacing` bridges while the gap is under half
+   * the spacing. `memberSmoothing[i]` already fades to zero as member i overlaps an earlier member.
+   */
+  private const val MERGED_FIELD_HELPERS = """
+    uniform float4 memberRects[4];
+    uniform float4 memberRadii[4];
+    uniform float memberSmoothing[4];
+    // Declared as float because AGSL does not support int uniforms.
+    uniform float memberCount;
+
+    float smoothMin(float a, float b, float k) {
+      if (k <= 0.0) return min(a, b);
+      float h = max(k - abs(a - b), 0.0) / k;
+      return min(a, b) - h * h * k * 0.25;
+    }
+
+    float memberSd(vec2 localCoord, float4 rect, float4 radii) {
+      return sdRoundedRect(localCoord - rect.xy, rect.zw, radii);
+    }
+
+    float shapeSd(vec2 localCoord) {
+      float d = memberSd(localCoord, memberRects[0], memberRadii[0]);
+      for (int i = 1; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        d = smoothMin(d, memberSd(localCoord, memberRects[i], memberRadii[i]), memberSmoothing[i]);
+      }
+      return d;
+    }
+
+    // Each member's share of the smooth minimum, independent of member order: members within the
+    // largest smoothing radius of the nearest one share it, and otherwise the nearest one wins.
+    vec4 memberWeights(vec2 localCoord) {
+      vec4 d = vec4(0.0);
+      float nearest = memberSd(localCoord, memberRects[0], memberRadii[0]);
+      float k = 0.001;
+      d[0] = nearest;
+      for (int i = 1; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        d[i] = memberSd(localCoord, memberRects[i], memberRadii[i]);
+        nearest = min(nearest, d[i]);
+        k = max(k, memberSmoothing[i]);
+      }
+      vec4 w = vec4(0.0);
+      float total = 0.0;
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        float share = max(k - (d[i] - nearest), 0.0);
+        w[i] = share * share;
+        total += w[i];
+      }
+      return w / max(total, 0.000001);
+    }
+
+    // Blends unpremultiplied colours in premultiplied space, so a transparent member fades out.
+    vec4 blendMemberColors(vec4 w, vec4 c0, vec4 c1, vec4 c2, vec4 c3) {
+      vec4 p = w.x * vec4(c0.rgb * c0.a, c0.a) + w.y * vec4(c1.rgb * c1.a, c1.a) +
+        w.z * vec4(c2.rgb * c2.a, c2.a) + w.w * vec4(c3.rgb * c3.a, c3.a);
+      return p.a > 0.0001 ? vec4(p.rgb / p.a, p.a) : vec4(0.0);
+    }
+
+    float4 nearestMemberRect(vec2 localCoord) {
+      float4 rect = memberRects[0];
+      float nearest = memberSd(localCoord, memberRects[0], memberRadii[0]);
+      for (int i = 1; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        float d = memberSd(localCoord, memberRects[i], memberRadii[i]);
+        if (d < nearest) {
+          nearest = d;
+          rect = memberRects[i];
+        }
+      }
+      return rect;
+    }
+    """
+
+  private const val MERGED_OPTICS_HELPERS = """
+    vec2 shapeGradientOver(vec2 localCoord, float step) {
+      float delta = max(step, 0.0001);
+      vec2 dx = vec2(delta, 0.0);
+      vec2 dy = vec2(0.0, delta);
+      return vec2(
+        shapeSd(localCoord + dx) - shapeSd(localCoord - dx),
+        shapeSd(localCoord + dy) - shapeSd(localCoord - dy)
+      ) * (0.5 / delta);
+    }
+
+    vec2 shapeGradient(vec2 localCoord) {
+      return shapeGradientOver(localCoord, sampleStep);
+    }
+
+    float memberCornerWeight(vec2 localCoord) {
+      float4 member = nearestMemberRect(localCoord);
+      vec2 memberHalfSize = member.zw * 0.5;
+      vec2 memberCentered = localCoord - member.xy - memberHalfSize;
+      return abs(
+        (memberCentered.x * memberCentered.y) / max(memberHalfSize.x * memberHalfSize.y, 0.001)
+      );
+    }
+
+    // Each member caps displacement at half its own shortest side. Blending those caps by the
+    // members' field weights keeps a large member's cap away from a small one, and stays
+    // continuous across a bridge.
+    float mergeMaxDisplacement(vec2 localCoord) {
+      vec4 w = memberWeights(localCoord);
+      float cap = 0.0;
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        cap += w[i] * min(memberRects[i].z, memberRects[i].w) * 0.5;
+      }
+      return cap;
+    }
+    """
 
   private fun interactionUniforms(
     includeRefraction: Boolean,

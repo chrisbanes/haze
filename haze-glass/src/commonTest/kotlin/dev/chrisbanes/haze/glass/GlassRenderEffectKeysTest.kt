@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.IntSize
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -14,6 +15,7 @@ import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeProgressive
 import kotlin.test.Test
@@ -318,6 +320,99 @@ class GlassRenderEffectKeysTest {
       ),
     ).isEqualTo(1f)
   }
+
+  @Test
+  fun mergedField_invalidatesOpticalDetailAndRimKeysButNotBlur() {
+    val base = params()
+    val field = mergedField(mergedMember(0f, 0f, 100f, 40f), mergedMember(110f, 0f, 100f, 40f))
+    val merged = base.copy(mergedField = field)
+    val moved = base.copy(
+      mergedField = mergedField(mergedMember(0f, 0f, 100f, 40f), mergedMember(115f, 0f, 100f, 40f)),
+    )
+    for (next in listOf(merged, moved)) {
+      val previous = if (next === merged) base else merged
+      assertThat(previous.opticalEffectKey()).isNotEqualTo(next.opticalEffectKey())
+      assertThat(previous.refractionDetailEffectKey()).isNotEqualTo(next.refractionDetailEffectKey())
+      assertThat(previous.rimEffectKey()).isNotEqualTo(next.rimEffectKey())
+      assertThat(previous.blurEffectKey()).isEqualTo(next.blurEffectKey())
+    }
+  }
+
+  @Test
+  fun mergedField_blurKeyTracksOnlyMemberBackgroundOpacity() {
+    val opaque = params().copy(
+      backgroundColor = Color.White,
+      mergedField = mergedField(
+        mergedMember(0f, 0f, 100f, 40f, backgroundColor = Color.White),
+        mergedMember(110f, 0f, 100f, 40f, backgroundColor = Color.Black),
+      ),
+    )
+    assertThat(opaque.blurEffectKey().sourceIsOpaque).isTrue()
+    val translucent = opaque.copy(
+      mergedField = mergedField(
+        mergedMember(0f, 0f, 100f, 40f, backgroundColor = Color.White),
+        mergedMember(110f, 0f, 100f, 40f, backgroundColor = Color.Black.copy(alpha = 0.5f)),
+      ),
+    )
+    // The members' backgrounds replace the single background colour.
+    assertThat(translucent.blurEffectKey().sourceIsOpaque).isFalse()
+    assertThat(opaque.blurEffectKey()).isNotEqualTo(translucent.blurEffectKey())
+  }
+
+  @Test
+  fun mergedField_preparedRenderReusesKeysOnlyWhileFieldIsUnchanged() {
+    val base = params()
+    val first = preparedRender(base)
+    val unchanged = preparedRender(base.copy(), previous = first)
+    assertThat(unchanged.opticalKey).isSameInstanceAs(first.opticalKey)
+    assertThat(unchanged.refractionDetailKey).isSameInstanceAs(first.refractionDetailKey)
+    assertThat(unchanged.rimKey).isSameInstanceAs(first.rimKey)
+    assertThat(unchanged.blurKey).isSameInstanceAs(first.blurKey)
+
+    val merged = preparedRender(
+      base.copy(mergedField = mergedField(mergedMember(0f, 0f, 100f, 40f))),
+      previous = first,
+    )
+    assertThat(merged.opticalKey.mergedField).isNotNull()
+    assertThat(merged.refractionDetailKey?.mergedField).isNotNull()
+    assertThat(merged.rimKey?.mergedField).isNotNull()
+    assertThat(merged.blurKey).isSameInstanceAs(first.blurKey)
+  }
+
+  @Test
+  fun depthInputKey_mergedBackdropBackgroundTracksMaterialOrigin() {
+    val field = mergedField(mergedMember(0f, 0f, 100f, 40f, backgroundColor = Color.White))
+    val base = params().copy(mergedField = field)
+    val moved = base.copy(coordinates = base.coordinates.copy(materialOrigin = Offset(20f, 12f)))
+    fun fusedKey(params: GlassRenderParams, backdrop: Boolean) = GlassFusedEffectKey(
+      blur = params.blurEffectKey(),
+      depth = params.depth,
+      optical = params.opticalEffectKey(),
+      detail = null,
+      interaction = null,
+      backdropBackground = null,
+      backdropMergedBackground = params.mergedBackground.takeIf { backdrop },
+    )
+    // The background shader samples the field from the material origin, so moving it rebuilds
+    // the backdrop input even though blur, depth and the field are unchanged.
+    assertThat(fusedKey(moved, backdrop = true).depthInputKey(interactionOptics = false))
+      .isNotEqualTo(fusedKey(base, backdrop = true).depthInputKey(interactionOptics = false))
+    // Without a backdrop background, the origin is not an input.
+    assertThat(fusedKey(moved, backdrop = false).depthInputKey(interactionOptics = false))
+      .isEqualTo(fusedKey(base, backdrop = false).depthInputKey(interactionOptics = false))
+  }
+
+  private fun preparedRender(params: GlassRenderParams, previous: GlassPreparedRender? = null) =
+    buildGlassPreparedRender(
+      params = params,
+      interactionUniforms = resolveGlassInteraction(
+        state = GlassInteractionRenderState(Offset.Zero),
+        radiusFraction = 0f,
+      ).uniforms(params.coordinates),
+      alpha = 1f,
+      outputSize = IntSize(640, 480),
+      previous = previous,
+    )
 
   private fun params() = GlassRenderParams(
     coordinates = GlassCoordinates(Size(640f, 480f), Offset(8f, 4f), Size(320f, 240f), 1f),

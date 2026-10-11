@@ -85,6 +85,7 @@ internal class GlassRuntimeSourceSnapshot(
   val layerOffset: Offset,
   val inputSnapshot: HazeEffectInputSnapshot,
   val backgroundColor: Color = Color.Transparent,
+  val mergedBackground: GlassMergedField? = null,
 )
 
 internal data class GlassRuntimeSourceState(
@@ -96,6 +97,7 @@ internal fun HazeEffectRuntimeDrawScope.resolveGlassRuntimeSourceState(
   captureScale: Float,
   backgroundColor: Color,
   previousSnapshot: GlassRuntimeSourceSnapshot? = null,
+  mergedBackground: GlassMergedField? = null,
 ): GlassRuntimeSourceState = resolveGlassRuntimeSourceState(
   captureScale = captureScale,
   layerSize = layerSize,
@@ -104,6 +106,7 @@ internal fun HazeEffectRuntimeDrawScope.resolveGlassRuntimeSourceState(
   inputSnapshot = inputSnapshot,
   backgroundColor = backgroundColor,
   previousSnapshot = previousSnapshot,
+  mergedBackground = mergedBackground,
 )
 
 internal fun resolveGlassRuntimeSourceState(
@@ -114,6 +117,7 @@ internal fun resolveGlassRuntimeSourceState(
   inputSnapshot: HazeEffectInputSnapshot?,
   backgroundColor: Color = Color.Transparent,
   previousSnapshot: GlassRuntimeSourceSnapshot? = null,
+  mergedBackground: GlassMergedField? = null,
 ): GlassRuntimeSourceState {
   if (!hasDrawableInput) return GlassRuntimeSourceState(false, null)
   val currentInputSnapshot = inputSnapshot ?: return GlassRuntimeSourceState(true, null)
@@ -123,6 +127,7 @@ internal fun resolveGlassRuntimeSourceState(
     layerOffset = layerOffset,
     inputSnapshot = currentInputSnapshot,
     backgroundColor = backgroundColor,
+    mergedBackground = mergedBackground,
   )
   return GlassRuntimeSourceState(
     hasDrawableSource = true,

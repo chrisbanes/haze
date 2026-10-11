@@ -33,6 +33,7 @@ internal object GlassDirtyFields {
   const val RuntimeEffectFactory: Int = Interaction shl 1
   const val PerformanceMode: Int = RuntimeEffectFactory shl 1
   const val Accessibility: Int = PerformanceMode shl 1
+  const val MergedField: Int = Accessibility shl 1
 
   const val InvalidateFlags: Int =
     Optics or
@@ -58,10 +59,12 @@ internal object GlassDirtyFields {
       Interaction or
       RuntimeEffectFactory or
       PerformanceMode or
-      Accessibility
+      Accessibility or
+      MergedField
 
   const val LayerBoundsFlags: Int =
-    Optics or ChromaticAberration or EdgeSoftness or Shape or InteractionLayerBounds or Accessibility
+    Optics or ChromaticAberration or EdgeSoftness or Shape or InteractionLayerBounds or Accessibility or
+      MergedField
 
   const val All: Int = InvalidateFlags or LayerBoundsFlags
 

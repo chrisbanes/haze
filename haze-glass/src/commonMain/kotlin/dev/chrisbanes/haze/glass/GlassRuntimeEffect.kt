@@ -98,7 +98,8 @@ private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): B
     contentNormalBlend == other.contentNormalBlend &&
     specularExponent == other.specularExponent &&
     fresnelExponent == other.fresnelExponent &&
-    cornerRadii == other.cornerRadii
+    cornerRadii == other.cornerRadii &&
+    mergedField == other.mergedField
 
 private fun ResolvedGlassStyle.hasSameBudgetParams(other: ResolvedGlassStyle): Boolean =
   requiresGlassGroupAlpha(alpha) == requiresGlassGroupAlpha(other.alpha) &&
@@ -788,7 +789,9 @@ internal class GlassRuntimeEffect() :
     }
     val style = resolvePreparedStyle(context)
     val interaction = resolvePreparedInteraction(context)
-    val interactionTopology = interactionTopologySnapshot
+    // Budget for the layers buildGlassPreparedRender keeps, which drops interaction while merged.
+    val interactionTopology =
+      if (style.mergedField != null) MergedInteractionTopology else interactionTopologySnapshot
     val optics = style.resolvedOptics
     val allowNativeWideBlur = optics.progressive == null
     val buildPlan: (Float) -> GlassRetainedLayerPlan = buildPlan@{ scaleFactor ->
