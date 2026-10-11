@@ -394,6 +394,28 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun ghostRetractingIntoGrowingNeighbour_followsItsDrawnShape() = runComposeUiTest {
+    // B grows up out of C, whose final rect is beyond A's spacing; A then leaves while B's drawn
+    // shape still overlaps it, so A retracts into B rather than into C.
+    val fixture = fixture(gap = 50, present = false, cOffset = 90 to 150, cInitially = true)
+    fixture.toggle()
+    fixture.advance(96)
+    val aNode = checkNotNull(fixture.aNode)
+    runOnIdle { fixture.aPresent.value = false }
+    fixture.advance(150)
+    val ghost = fixture.owner().model.surfaces.flatMap { it.members }.single { it.identity is GlassMemberGhost }
+    val identity = ghost.identity as GlassMemberGhost
+    assertThat(identity.last.identity).isEqualTo(aNode)
+    assertThat(identity.neighbour).isEqualTo(fixture.b.memberBindingForTest?.node)
+    // B is still below and left of its final rect (190, 60). Retracting towards that rect keeps the
+    // ghost's top at 60px and its left edge near 104px; following B's drawn shape moves both.
+    assertThat(fixture.b().rect.top).isGreaterThan(62f)
+    assertThat(ghost.rect.top).isGreaterThan(62f)
+    assertThat(ghost.rect.left).isLessThan(100f)
+    fixture.settle()
+  }
+
+  @Test
   fun materializeGhostsLeavingTogether_neverShareAField() = runComposeUiTest {
     val fixture = fixture(transition = GlassMemberTransition.Materialize, cOffset = 260 to 60, cTransition = GlassMemberTransition.Materialize, cInitially = true)
     assertThat(fixture.owner().model.surfaces.single().members).hasSize(3)
