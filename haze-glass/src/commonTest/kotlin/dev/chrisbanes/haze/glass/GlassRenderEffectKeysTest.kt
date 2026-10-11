@@ -8,6 +8,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntSize
 import assertk.assertThat
+import assertk.assertions.contains
+import assertk.assertions.doesNotContain
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
@@ -400,6 +402,43 @@ class GlassRenderEffectKeysTest {
     // Without a backdrop background, the origin is not an input.
     assertThat(fusedKey(moved, backdrop = false).depthInputKey(interactionOptics = false))
       .isEqualTo(fusedKey(base, backdrop = false).depthInputKey(interactionOptics = false))
+  }
+
+  @Test
+  fun retainedLayerPlan_detailLayersFollowActiveRefractionDetailKey() {
+    val idle = GlassInteractionUniforms(Offset.Zero, 0f, 0f, 1f, 0f)
+
+    listOf(0f to false, .008f to false, .009f to true).forEach { (strength, expectedActive) ->
+      val params = params().copy(refractionStrength = strength)
+      val kinds = buildGlassRetainedLayerPlan(params, idle).layers.map { it.kind }
+
+      val key = assertThat(params.activeRefractionDetailEffectKey(params.refractionDetailIntensity))
+      if (expectedActive) key.isNotNull() else key.isNull()
+      listOf(
+        GlassRetainedLayerKind.RefractionDetail,
+        GlassRetainedLayerKind.RefractionDetailCoverage,
+        GlassRetainedLayerKind.RefractionComposite,
+      ).forEach { kind ->
+        if (expectedActive) assertThat(kinds).contains(kind) else assertThat(kinds).doesNotContain(kind)
+      }
+    }
+  }
+
+  @Test
+  fun preparedRender_rimKeyFollowsRimActivity() {
+    val base = params()
+
+    assertThat(
+      preparedRender(base.copy(specularIntensity = 0f, edgeShadow = Color.Transparent)).rimKey,
+    ).isNull()
+    assertThat(
+      preparedRender(base.copy(specularIntensity = 0.5f, edgeShadow = Color.Transparent)).rimKey,
+    ).isNotNull()
+    assertThat(
+      preparedRender(
+        base.copy(specularIntensity = 0f, edgeShadow = Color.Black.copy(alpha = 0.14f)),
+      ).rimKey,
+    ).isNotNull()
   }
 
   private fun preparedRender(params: GlassRenderParams, previous: GlassPreparedRender? = null) =
