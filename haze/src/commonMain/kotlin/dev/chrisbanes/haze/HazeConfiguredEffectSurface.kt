@@ -22,13 +22,6 @@ import androidx.compose.ui.node.requireDensity
 import kotlin.math.ceil
 import kotlin.math.floor
 
-/** A configured renderer which may decline a cluster and request ordinary member surfaces. */
-@InternalHazeApi
-public interface HazeEffectRendererSurfaceFallback {
-  /** Evaluated after preparation; never paint a merged field through a single-shape fallback. */
-  public val usesMemberSurfaces: Boolean
-}
-
 /** Independently owned, configured surface; member input selection/capture stays in core. */
 @InternalHazeApi
 public class HazeConfiguredEffectSurface<Style> internal constructor(
@@ -242,10 +235,8 @@ private class ConfiguredSurface<Style>(
       }
     }
     // Members draw individually through their own input policy when the cluster cannot be drawn:
-    // mixed selections, a renderer declining the field, or a declined native effect.
-    fallbackMembers = mixedSelection ||
-      (native && preparedBackdrop == null) ||
-      (renderer as? HazeEffectRendererSurfaceFallback)?.usesMemberSurfaces == true
+    // mixed selections or a declined native effect.
+    fallbackMembers = mixedSelection || (native && preparedBackdrop == null)
     if (fallbackMembers) {
       val footprints = members.mapNotNull { it.footprint(scope) }
       if (footprints.isEmpty()) return null

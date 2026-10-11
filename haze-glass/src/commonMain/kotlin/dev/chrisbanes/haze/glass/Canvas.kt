@@ -62,9 +62,10 @@ internal fun DrawScope.recordDepthMix(
   }
 }
 
-private inline fun DrawScope.withLayerPaint(
+internal inline fun DrawScope.withLayerPaint(
   alpha: Float,
   blendMode: BlendMode,
+  bounds: Rect = Rect(Offset.Zero, size),
   block: DrawScope.() -> Unit,
 ) {
   val canvas = drawContext.canvas
@@ -72,7 +73,7 @@ private inline fun DrawScope.withLayerPaint(
     this.alpha = alpha
     this.blendMode = blendMode
   }
-  canvas.saveLayer(Rect(Offset.Zero, size), paint)
+  canvas.saveLayer(bounds, paint)
   try {
     block()
   } finally {

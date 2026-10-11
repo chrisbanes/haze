@@ -21,6 +21,7 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
+import assertk.Assert
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -31,6 +32,8 @@ import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
+import assertk.assertions.support.expected
+import assertk.assertions.support.show
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
@@ -39,13 +42,14 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
+import kotlin.math.abs
 import kotlin.test.Test
 import kotlinx.coroutines.runBlocking
 
-internal fun containerTestStyle(tint: Color, alpha: Float = 1f): GlassStyle = GlassStyle {
+internal fun containerTestStyle(tint: Color, alpha: Float = 1f, background: Color = Color.Transparent): GlassStyle = GlassStyle {
   optics(GlassOptics(refractionStrength = 0f, refractionDisplacement = 0.dp, refractionDetailIntensity = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp)))
   tint(tint)
-  backgroundColor(Color.Transparent)
+  backgroundColor(background)
   shape(RoundedCornerShape(0.dp))
   edgeSoftness(0.dp)
   edgeShadow(Color.Transparent)
@@ -135,7 +139,7 @@ class GlassContainerRenderTest : ContextTest() {
   }
 
   @Test
-  fun overBudgetCluster_fallsBackIndividuallyAndRecoversWithoutDetach() = runComposeUiTest {
+  fun overBudgetCluster_drawsHardUnionAndRecoversWithoutDetach() = runComposeUiTest {
     val displacement = mutableStateOf(16_384)
     val fixture = pair(
       extraStyle = GlassStyle {
@@ -144,13 +148,15 @@ class GlassContainerRenderTest : ContextTest() {
     )
     val runtime = fixture.owner().renderer.runtimeSurfaces.single()
     assertThat(runtime.preparedRenderBudget).isInstanceOf<GlassRenderBudgetDecision.Fallback>()
-    assertThat(runtime.usesMemberSurfaces).isTrue()
-    assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[145, 100]).isEqualTo(Color.White)
+    assertThat(runtime.delegate).isInstanceOf<FallbackGlassDelegate>()
+    val fallbackPixels = onNodeWithTag("root").captureToImage().toPixelMap()
+    assertThat(fallbackPixels[145, 100]).isEqualTo(Color.White)
+    assertThat(fallbackPixels[80, 100].red).isGreaterThan(0.8f)
     runOnIdle { displacement.value = 0 }
     waitForIdle()
     assertThat(fixture.owner().renderer.runtimeSurfaces.single()).isSameInstanceAs(runtime)
     assertThat(runtime.preparedRenderBudget).isInstanceOf<GlassRenderBudgetDecision.Runtime>()
-    assertThat(runtime.usesMemberSurfaces).isFalse()
+    assertThat(runtime.delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
     assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[145, 100].green).isLessThan(0.2f)
   }
 
@@ -254,15 +260,122 @@ class GlassContainerRenderTest : ContextTest() {
   }
 
   @Test
-  fun unavailableRuntime_drawsIndividualFallbackShapesWithoutBridge() = runComposeUiTest {
+  fun unavailableRuntime_drawsClusterAsHardUnionWithoutBridge() = runComposeUiTest {
     val fixture = pair(gap = 10, unavailable = true)
-    val runtime = fixture.owner().renderer.runtimeSurfaces.single()
-    assertThat(runtime.usesMemberSurfaces).isTrue()
+    val renderer = fixture.owner().renderer
+    assertThat(renderer.surfaceCount).isEqualTo(1)
+    assertThat(renderer.runtimeSurfaces.single().delegate).isInstanceOf<FallbackGlassDelegate>()
     val pixels = onNodeWithTag("root").captureToImage().toPixelMap()
     assertThat(pixels[145, 100]).isEqualTo(Color.White)
     assertThat(pixels[80, 100].red).isGreaterThan(0.8f)
     assertThat(pixels[210, 100].blue).isGreaterThan(0.8f)
     assertThat(fixture.first.opticalSizeOverride).isEqualTo(fixture.second.opticalSizeOverride)
+  }
+
+  @Test
+  fun unavailableRuntime_overlappingMembersDrawTintOnce() = runComposeUiTest {
+    val tint = Color.Blue.copy(alpha = 0.5f)
+    pair(gap = -40, firstTint = tint, secondTint = tint, unavailable = true)
+    val pixels = onNodeWithTag("root").captureToImage().toPixelMap()
+    assertThat(pixels[120, 100]).isCloseTo(pixels[70, 100], tolerance = 1f / 255f)
+    assertThat(pixels[120, 100].green).isGreaterThan(0.45f)
+    assertThat(pixels[120, 100].green).isLessThan(0.55f)
+  }
+
+  @Test
+  fun unavailableRuntime_overlapUsesFirstMemberColours() = runComposeUiTest {
+    pair(gap = -40, firstTint = Color.Red.copy(alpha = 0.5f), secondTint = Color.Blue.copy(alpha = 0.5f), unavailable = true)
+    val pixels = onNodeWithTag("root").captureToImage().toPixelMap()
+    assertThat(pixels[120, 100]).isCloseTo(pixels[70, 100], tolerance = 1f / 255f)
+    assertThat(pixels[180, 100].blue).isGreaterThan(pixels[180, 100].red)
+  }
+
+  @Test
+  fun unavailableRuntime_fractionalAlphaOverlapCompositesOnce() = runComposeUiTest {
+    val fixture = pair(gap = -40, firstTint = Color.Blue, secondTint = Color.Blue, alpha = 0.5f, unavailable = true)
+    assertThat(fixture.owner().renderer.surfaceCount).isEqualTo(1)
+    val pixel = onNodeWithTag("root").captureToImage().toPixelMap()[120, 100]
+    assertThat(pixel.blue).isGreaterThan(0.95f)
+    assertThat(pixel.green).isGreaterThan(0.45f)
+    assertThat(pixel.green).isLessThan(0.55f)
+  }
+
+  @Test
+  fun unavailableRuntime_overlappingBackgroundsDrawBackgroundAndInputOnce() = runComposeUiTest {
+    val background = Color.Green.copy(alpha = 0.5f)
+    pair(
+      gap = -40,
+      firstTint = Color.Transparent,
+      secondTint = Color.Transparent,
+      unavailable = true,
+      firstBackground = background,
+      secondBackground = background,
+      source = Color.Red.copy(alpha = 0.5f),
+    )
+    val pixels = onNodeWithTag("root").captureToImage().toPixelMap()
+    assertThat(pixels[120, 100]).isCloseTo(pixels[70, 100], tolerance = 1f / 255f)
+    assertThat(pixels[180, 100]).isCloseTo(pixels[70, 100], tolerance = 1f / 255f)
+    // The background and input visibly change the member against the translucent source.
+    assertThat(pixels[70, 100].blue).isLessThan(pixels[300, 100].blue - 0.1f)
+  }
+
+  @Test
+  fun unavailableRuntime_inputStaysOutOfMembersWithoutBackground() = runComposeUiTest {
+    pair(
+      gap = -40,
+      firstTint = Color.Transparent,
+      secondTint = Color.Transparent,
+      unavailable = true,
+      firstBackground = Color.Green.copy(alpha = 0.5f),
+      source = Color.Red.copy(alpha = 0.5f),
+    )
+    val pixels = onNodeWithTag("root").captureToImage().toPixelMap()
+    assertThat(pixels[120, 100]).isCloseTo(pixels[70, 100], tolerance = 1f / 255f)
+    assertThat(pixels[180, 100]).isCloseTo(pixels[300, 100], tolerance = 1f / 255f)
+  }
+
+  @Test
+  fun unavailableRuntime_earlierMemberWithoutBackgroundKeepsInputOutOfOverlap() = runComposeUiTest {
+    pair(
+      gap = -40,
+      firstTint = Color.Transparent,
+      secondTint = Color.Transparent,
+      unavailable = true,
+      secondBackground = Color.Green.copy(alpha = 0.5f),
+      source = Color.Red.copy(alpha = 0.5f),
+    )
+    val pixels = onNodeWithTag("root").captureToImage().toPixelMap()
+    // The first member wins the overlap, and it has no background, so no input is drawn there.
+    assertThat(pixels[120, 100]).isCloseTo(pixels[300, 100], tolerance = 1f / 255f)
+    assertThat(pixels[180, 100].blue).isLessThan(pixels[300, 100].blue - 0.1f)
+  }
+
+  @Test
+  fun unavailableRuntime_curvedOverlapHasNoSeam() = runComposeUiTest {
+    val effects = List(2) { GlassRuntimeEffect() }
+    effects.forEach { effect ->
+      effect.runtimeEffectFactory = GlassRuntimeEffectFactory { throw RuntimeShaderRenderEffectException(IllegalStateException("test unavailable runtime")) }
+    }
+    val style = containerTestStyle(Color.Blue.copy(alpha = 0.5f)).then(GlassStyle { shape(RoundedCornerShape(12.dp)) })
+    val state = HazeState()
+    setContent {
+      Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp)) {
+          Box(Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { effects[0] }, HazeInput.Sources(state), style, HazePerformanceMode.Quality, true, null))
+          Box(Modifier.offset(100.dp, 80.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { effects[1] }, HazeInput.Sources(state), style, HazePerformanceMode.Quality, true, null))
+        }
+      }
+    }
+    waitForIdle()
+    val pixels = onNodeWithTag("root").captureToImage().toPixelMap()
+    // The first member's bottom-right arc lies inside the second member; it must leave no seam.
+    val interior = pixels[120, 110]
+    for (x in 128..139) {
+      for (y in 128..139) {
+        assertThat(pixels[x, y]).isCloseTo(interior, tolerance = 2f / 255f)
+      }
+    }
   }
 
   @Test
@@ -293,6 +406,17 @@ class GlassContainerRenderTest : ContextTest() {
     assertThat(pixels[555, 90]).isEqualTo(Color.White)
   }
 
+  private fun Assert<Color>.isCloseTo(expected: Color, tolerance: Float) = given { actual ->
+    val difference = maxOf(
+      abs(actual.red - expected.red),
+      abs(actual.green - expected.green),
+      abs(actual.blue - expected.blue),
+      abs(actual.alpha - expected.alpha),
+    )
+    if (difference <= tolerance) return@given
+    expected("to be within $tolerance of ${show(expected)} but was ${show(actual)}")
+  }
+
   private class PairFixture(val first: GlassRuntimeEffect, val second: GlassRuntimeEffect) {
     fun owner() = checkNotNull(first.memberBindingForTest?.node?.container)
   }
@@ -307,6 +431,9 @@ class GlassContainerRenderTest : ContextTest() {
     alpha: Float = 1f,
     unavailable: Boolean = false,
     extraStyle: GlassStyle = GlassStyle { },
+    firstBackground: Color = Color.Transparent,
+    secondBackground: Color = Color.Transparent,
+    source: Color = Color.White,
   ): PairFixture {
     val first = GlassRuntimeEffect()
     val second = GlassRuntimeEffect()
@@ -318,12 +445,12 @@ class GlassContainerRenderTest : ContextTest() {
     val state = HazeState()
     setContent {
       Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
-        Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(source))
         Box(Modifier.size(360.dp, 240.dp).then(if (enabled.value) Modifier.hazeGlassContainer(40.dp) else Modifier)) {
-          Box(Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { first }, HazeInput.Sources(state), containerTestStyle(firstTint, alpha).then(extraStyle), performance, true, null)) {
+          Box(Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { first }, HazeInput.Sources(state), containerTestStyle(firstTint, alpha, firstBackground).then(extraStyle), performance, true, null)) {
             Box(Modifier.size(10.dp).background(Color.Green))
           }
-          Box(Modifier.offset((140 + gapState.value).dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { second }, HazeInput.Sources(state), containerTestStyle(secondTint, alpha).then(extraStyle), performance, true, null))
+          Box(Modifier.offset((140 + gapState.value).dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { second }, HazeInput.Sources(state), containerTestStyle(secondTint, alpha, secondBackground).then(extraStyle), performance, true, null))
         }
       }
     }

@@ -38,10 +38,12 @@ import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.glass.hazeGlassContainer
 import dev.chrisbanes.haze.test.ScreenshotUiTest
+import kotlin.math.abs
 
-internal enum class GlassContainerScene { Merged, Separate, MixedColours, MixedKeys, Overflow, Nested, InteractiveRest, InteractivePressed }
+internal enum class GlassContainerScene { Merged, Separate, MixedColours, MixedKeys, Overflow, Nested, InteractiveRest, InteractivePressed, Overlap }
 
-internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerScene) {
+/** [fallback] asserts the fallback renderer's hard union, which draws no bridge. */
+internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerScene, fallback: Boolean = false) {
   val interactionSource = MutableInteractionSource()
   setContent { GlassContainerScreenshotScene(scene, interactionSource = interactionSource) }
   waitForIdle()
@@ -54,9 +56,13 @@ internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerSce
   when (scene) {
     GlassContainerScene.Merged, GlassContainerScene.MixedColours -> {
       val bridge = pixels[149, 110]
-      assertThat(bridge.red).isGreaterThan(0.3f)
-      assertThat(bridge.blue).isGreaterThan(0.3f)
-      assertThat(bridge.green).isLessThan(0.8f)
+      if (fallback) {
+        assertThat(abs(bridge.red - bridge.blue)).isLessThan(2f / 255f)
+      } else {
+        assertThat(bridge.red).isGreaterThan(0.3f)
+        assertThat(bridge.blue).isGreaterThan(0.3f)
+        assertThat(bridge.green).isLessThan(0.8f)
+      }
       assertThat(pixels[80, 110].red).isGreaterThan(pixels[80, 110].blue)
       assertThat(pixels[220, 110].blue).isGreaterThan(pixels[220, 110].red)
     }
@@ -68,6 +74,16 @@ internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerSce
     GlassContainerScene.Nested -> {
       assertThat(pixels[145, 110]).isEqualTo(sceneBackground(145, 110))
       assertThat(pixels[200, 110].green).isLessThan(0.5f)
+    }
+    GlassContainerScene.Overlap -> {
+      // Both pixels sit on the same checker colour; the overlap shows the first member's tint once.
+      val overlap = pixels[120, 110]
+      val firstOnly = pixels[72, 110]
+      for ((actual, expected) in listOf(overlap.red to firstOnly.red, overlap.green to firstOnly.green, overlap.blue to firstOnly.blue)) {
+        assertThat(abs(actual - expected)).isLessThan(2f / 255f)
+      }
+      assertThat(pixels[190, 150].blue).isGreaterThan(pixels[190, 150].red)
+      assertThat(pixels[150, 70]).isEqualTo(sceneBackground(150, 70))
     }
     GlassContainerScene.InteractiveRest, GlassContainerScene.InteractivePressed -> {
       val bridge = pixels[144, 110]
@@ -159,6 +175,10 @@ private fun GlassContainerScreenshotScene(
             }
             GlassContainerSceneMember(state, 40, 60, 100, 80, sceneStyle(Color.Red).then(pressed), interactionSource)
             GlassContainerSceneMember(state, 150, 60, 100, 80, sceneStyle(Color.Blue).then(pressed))
+          }
+          GlassContainerScene.Overlap -> {
+            GlassContainerSceneMember(state, 40, 60, 100, 80, sceneStyle(Color.Red.copy(alpha = 0.5f)))
+            GlassContainerSceneMember(state, 110, 80, 100, 80, sceneStyle(Color.Blue.copy(alpha = 0.5f)))
           }
           else -> {
             val mixed = scene == GlassContainerScene.MixedColours

@@ -4,22 +4,29 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.translate
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.trace
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.max
 
 @OptIn(ExperimentalHazeApi::class)
@@ -42,8 +49,12 @@ internal class FallbackGlassDelegate(
     )
     val previous = preparedDraw
     if (previous?.size != size || previous.style != style || previous.interaction != interaction) {
-      val shapePath = previous
-        ?.takeIf { it.size == size && it.style.cornerRadii == style.cornerRadii }
+      // Lights are not drawn here, so a light-only change keeps the member paths.
+      val mergedPaths = style.mergedField?.withoutLights?.let { field ->
+        previous?.mergedPaths?.takeIf { it.field == field } ?: FallbackMergedPaths(field)
+      }
+      val shapePath = mergedPaths?.union ?: previous
+        ?.takeIf { it.size == size && it.mergedPaths == null && it.style.cornerRadii == style.cornerRadii }
         ?.shapePath
         ?: style.cornerRadii.takeUnless { it.isZero() }
           ?.toRoundRect(size)
@@ -138,6 +149,7 @@ internal class FallbackGlassDelegate(
         size = size,
         style = style,
         shapePath = shapePath,
+        mergedPaths = mergedPaths,
         highlightAlpha = highlightAlpha,
         highlightRadius = highlightRadius,
         highlightBrush = highlightBrush,
@@ -179,8 +191,9 @@ internal class FallbackGlassDelegate(
     if (style.alpha <= 0f) return
     trace(GlassTraceSection.FallbackDraw) {
       val shapePath = prepared.shapePath
+      val mergedPaths = prepared.mergedPaths
 
-      if (forceInput && backgroundColor.alpha <= 0f) {
+      if (forceInput && mergedPaths == null && backgroundColor.alpha <= 0f) {
         drawInputWithAlpha(context, alpha = 1f)
       }
 
@@ -197,10 +210,10 @@ internal class FallbackGlassDelegate(
           }
         }
 
-        if (shapePath != null) {
-          clipPath(shapePath) { drawBase() }
-        } else {
-          drawBase()
+        when {
+          mergedPaths != null -> drawMergedBase(context, mergedPaths, alphaMultiplier, forceInput)
+          shapePath != null -> clipPath(shapePath) { drawBase() }
+          else -> drawBase()
         }
 
         // The edge falloff is part of the base material and remains behind child content.
@@ -333,6 +346,100 @@ private fun DrawScope.drawFallbackEdge(
   }
 }
 
+/** Draws a merged field's members as one surface, without a bridge. */
+private fun DrawScope.drawMergedBase(
+  context: HazeEffectRuntimeDrawScope,
+  paths: FallbackMergedPaths,
+  alphaMultiplier: Float,
+  forceInput: Boolean,
+) {
+  val members = paths.field.members
+  if (paths.field.hasBackground) drawMergedColours(paths, alphaMultiplier) { it.backgroundColor }
+  // Input appears only where the winning member has a background, or everywhere on the downgrade frame.
+  val inputPath = if (forceInput) paths.union else paths.inputMask
+  inputPath?.let { clipPath(it) { drawInputWithAlpha(context, alphaMultiplier) } }
+  if (members.any { it.tint.alpha > 0f }) drawMergedColours(paths, alphaMultiplier) { it.tint }
+}
+
+/**
+ * Draws one colour stage in a layer bounded by the union, in which members paint with
+ * [BlendMode.Src] from last to first. Where members overlap the earliest member's colour applies
+ * once, and anti-aliased edges never composite twice.
+ */
+internal fun DrawScope.drawMergedColours(
+  paths: FallbackMergedPaths,
+  alphaMultiplier: Float,
+  color: (GlassMergedMember) -> Color,
+) {
+  val members = paths.field.members
+  val layerBounds = paths.layerBounds
+  if (layerBounds == null) {
+    // ponytail: without a layer each member fills only what earlier members leave uncovered, so
+    // overlaps composite once, but curved internal edges show a faint anti-aliasing seam.
+    members.forEachIndexed { index, member ->
+      val memberColor = color(member)
+      drawPath(paths.exclusive[index], memberColor.copy(alpha = memberColor.alpha * alphaMultiplier))
+    }
+    return
+  }
+  withLayerPaint(alpha = 1f, blendMode = BlendMode.SrcOver, bounds = layerBounds) {
+    for (index in members.indices.reversed()) {
+      val memberColor = color(members[index])
+      drawPath(
+        path = paths.members[index],
+        color = memberColor.copy(alpha = memberColor.alpha * alphaMultiplier),
+        blendMode = BlendMode.Src,
+      )
+    }
+  }
+}
+
+/** A merged field's member paths and unions, rebuilt only when its shapes or colours change. */
+internal class FallbackMergedPaths(val field: GlassMergedField) {
+  val members: List<Path> = field.members.map { it.fallbackPath() }
+  val union: Path = unionOf(members)
+
+  /**
+   * Where the winning member has a visible background. Built as one path from the last member to
+   * the first, so an earlier member without a background removes input from what it covers.
+   */
+  val inputMask: Path? = when {
+    !field.hasBackground -> null
+    field.members.all { it.backgroundColor.alpha > 0f } -> union
+    else -> members.indices.reversed().fold(Path()) { mask, index ->
+      val operation = if (field.members[index].backgroundColor.alpha > 0f) PathOperation.Union else PathOperation.Difference
+      Path().apply { op(mask, members[index], operation) }
+    }
+  }
+
+  /** Each member minus every earlier member, for drawing without a layer. */
+  val exclusive: List<Path> by lazy(LazyThreadSafetyMode.NONE) {
+    var covered = Path()
+    members.map { path ->
+      Path().apply { op(path, covered, PathOperation.Difference) }
+        .also { covered = Path().apply { op(covered, path, PathOperation.Union) } }
+    }
+  }
+
+  /** The pixel-aligned union bounds for a colour layer, or null when they exceed the layer budget. */
+  val layerBounds: Rect? = union.getBounds().let { bounds ->
+    Rect(floor(bounds.left), floor(bounds.top), ceil(bounds.right), ceil(bounds.bottom))
+  }.takeIf { IntSize(it.width.toInt(), it.height.toInt()).fitsGlassLayerBudget() }
+}
+
+private fun GlassMergedMember.fallbackPath(): Path = Path().apply {
+  addRoundRect(cornerRadii.toRoundRect(rect.size).translate(rect.topLeft))
+}
+
+/** The hard union of the [include]d members' rounded rects, with no bridge between them. */
+internal fun GlassMergedField.fallbackUnionPath(
+  include: (GlassMergedMember) -> Boolean = { true },
+): Path = unionOf(members.filter(include).map { it.fallbackPath() })
+
+private fun unionOf(paths: List<Path>): Path = paths.reduceOrNull { union, path ->
+  Path().apply { op(union, path, PathOperation.Union) }
+} ?: Path()
+
 internal fun fallbackEdgeAlpha(ambientResponse: Float): Float = 0.18f * ambientResponse
 
 private const val FALLBACK_HARD_EDGE_SOFTNESS_PX = 2f
@@ -341,6 +448,7 @@ private data class FallbackGlassPreparedDraw(
   val size: Size,
   val style: ResolvedGlassStyle,
   val shapePath: Path?,
+  val mergedPaths: FallbackMergedPaths?,
   val highlightAlpha: Float,
   val highlightRadius: Float,
   val highlightBrush: Brush?,

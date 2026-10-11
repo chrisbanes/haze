@@ -120,11 +120,6 @@ package dev.chrisbanes.haze {
     method public default boolean shouldDrawRetainedOutput();
   }
 
-  @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectRendererSurfaceFallback {
-    method @InaccessibleFromKotlin public boolean getUsesMemberSurfaces();
-    property public abstract boolean usesMemberSurfaces;
-  }
-
   @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectRuntimeDrawScope extends dev.chrisbanes.haze.HazeEffectDrawScope {
     method public void drawInput(androidx.compose.ui.graphics.drawscope.DrawScope);
     method @InaccessibleFromKotlin public kotlinx.coroutines.CoroutineScope getCoroutineScope();
