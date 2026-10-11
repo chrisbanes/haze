@@ -165,6 +165,8 @@ internal class GlassRuntimeEffect() :
 
   private fun onRuntimeConfigurationChanged(fields: Int) {
     markDirty(fields)
+    // update() syncs and invalidates once from dirtyTracker after resolving every slot.
+    if (isUpdating) return
     val context = attachedContext ?: return
     if ((fields and GlassDirtyFields.Interaction) != 0) {
       syncInteractionController(context)
