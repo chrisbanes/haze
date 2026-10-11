@@ -29,6 +29,7 @@ import dev.chrisbanes.haze.HazeEffectSurfaceOwner
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.drawHazeEffectSurfaces
+import kotlin.math.abs
 
 /**
  * Groups nearby, compatible Glass members belonging to this nearest container.
@@ -130,7 +131,9 @@ internal class GlassContainerNode(
         // Interaction transforms are draw-time scales, so they move the member within the field.
         val transform = binding.runtime?.currentInteractionTransform(layoutRect.size)
         val rect = transform?.let { layoutRect.transformedBy(it) } ?: layoutRect
-        GlassMemberSnapshot(member, rect, key, material, member.hasTranslationOnlyTransform(owner), layoutRect)
+        // A merged member is one rounded rect with one circular light, so unequal axes draw standalone.
+        val uniformScale = transform == null || abs(transform.scaleX - transform.scaleY) < 1e-4f
+        GlassMemberSnapshot(member, rect, key, material, uniformScale && member.hasTranslationOnlyTransform(owner), layoutRect)
       }
       model = clusterGlassMembers(snapshots, spacingPx)
       if (model.overflow != overflow) {

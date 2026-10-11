@@ -88,6 +88,17 @@ class GlassContainerInteractionTest : ContextTest() {
   }
 
   @Test
+  fun anisotropicPress_drawsStandaloneAndReleaseRemerges() = runComposeUiTest {
+    // A 0.9 horizontal press widens the gap to 15px, still bridged, but a merged rounded rect cannot
+    // represent unequal axes, so the member draws standalone while pressed.
+    val fixture = cluster(pressed = GlassStyle { pressed { scale(0.9f, 1f) } })
+    val press = fixture.press(fixture.firstSource)
+    assertThat(fixture.owner().model.surfaces).hasSize(2)
+    fixture.release(fixture.firstSource, press)
+    assertThat(fixture.owner().model.surfaces).hasSize(1)
+  }
+
+  @Test
   fun graphicsLayerScale_stillNeverMerges() = runComposeUiTest {
     val fixture = cluster(firstModifier = Modifier.graphicsLayer { scaleX = 0.9f })
     assertThat(fixture.owner().model.surfaces).hasSize(2)
