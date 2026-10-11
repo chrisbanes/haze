@@ -59,6 +59,9 @@ class GlassClustersTest {
     val result = clusterGlassMembers(listOf(member(0, 0f), other, member(2, 100f)), 40f)
     assertThat(result.surfaces.map { surface -> surface.members.map { it.identity } })
       .containsExactly(listOf(0), listOf(1), listOf(2))
+    val capped = listOf(member(0), member(1), member(2), other.copy(identity = 3), member(4, 330f), member(5, 440f))
+    assertThat(clusterGlassMembers(capped, 40f).surfaces.map { surface -> surface.members.map { it.identity } })
+      .containsExactly(listOf(0, 1, 2), listOf(3), listOf(4), listOf(5))
   }
 
   @Test

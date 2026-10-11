@@ -123,6 +123,8 @@ internal fun clusterGlassMembers(
     val ordered = sorted.map(valid::get)
     // A merged surface draws at one z-position, so only consecutive registrations may share one;
     // an intervening surface splits the capped members (ADR-0013: merging never reorders members).
+    // ponytail: a run linked only through members outside it still shares one field (no false bridge,
+    // but no dome); split runs by direct edges if that ever shows.
     var run = mutableListOf<Int>()
     for (index in sorted.take(MAX_GLASS_MERGED_MEMBERS)) {
       if (run.isNotEmpty() && run.last() != index - 1) {
