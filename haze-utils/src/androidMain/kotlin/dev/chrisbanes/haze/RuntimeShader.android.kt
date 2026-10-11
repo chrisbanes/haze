@@ -12,7 +12,6 @@ import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
-import androidx.compose.ui.graphics.toAndroidColorSpace
 
 /**
  * On Android, we use RuntimeShader directly rather than a RuntimeEffect.
@@ -173,7 +172,7 @@ internal class SharedRuntimeShader(sksl: String) {
       floatUniformSizes[name] = values.size
     }
     for ((name, color) in uniforms.colors) {
-      shader.setColorUniform(name, color)
+      shader.setColorUniform(name, color.packed)
       colorUniforms += name
     }
     for ((name, child) in uniforms.children) {
@@ -197,10 +196,15 @@ private val EmptyChildShader: android.graphics.Shader by lazy {
   )
 }
 
+/** A colour uniform recorded as its packed `ColorLong`, which Compose's [Color.value] already is. */
+internal class RecordedColor {
+  var packed: Long = 0L
+}
+
 /**
  * Uniforms set by one effect, applied to its [SharedRuntimeShader] each time it creates an effect.
  *
- * Float entries are rewritten in place when a name is set again with the same size, so
+ * Float and colour entries are rewritten in place when a name is set again with the same size, so
  * a long-lived effect that updates its uniforms every frame does not allocate. That is safe because
  * [RuntimeShader] copies the values it is given.
  */
@@ -208,7 +212,7 @@ private val EmptyChildShader: android.graphics.Shader by lazy {
 internal class RecordedUniforms : RuntimeShaderUniformProvider {
   val ints = HashMap<String, Int>()
   val floats = HashMap<String, FloatArray>()
-  val colors = HashMap<String, android.graphics.Color>()
+  val colors = HashMap<String, RecordedColor>()
   val children = HashMap<String, Shader>()
 
   private fun floatsFor(name: String, size: Int): FloatArray {
@@ -218,13 +222,7 @@ internal class RecordedUniforms : RuntimeShaderUniformProvider {
   }
 
   override fun setColorUniform(name: String, color: Color) {
-    colors[name] = android.graphics.Color.valueOf(
-      color.red,
-      color.green,
-      color.blue,
-      color.alpha,
-      color.colorSpace.toAndroidColorSpace(),
-    )
+    colors.getOrPut(name) { RecordedColor() }.packed = color.value.toLong()
   }
 
   override fun setFloatUniform(name: String, value: Float) {

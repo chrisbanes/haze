@@ -3,8 +3,12 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
+import androidx.compose.ui.graphics.toAndroidColorSpace
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.isEqualTo
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
 import org.junit.Test
@@ -61,5 +65,40 @@ class RecordedUniformsTest {
 
     uniforms.setFloatUniform("v", 7f)
     assertThat(uniforms.floats.getValue("v").toList()).containsExactly(7f)
+  }
+
+  @Test
+  fun colorSetter_reusesEntryAndPacksColorLong() {
+    val uniforms = RecordedUniforms()
+    uniforms.setColorUniform("c", Color.Red)
+    val entry = uniforms.colors.getValue("c")
+
+    uniforms.setColorUniform("c", Color.Blue)
+
+    assertThat(uniforms.colors.getValue("c")).isSameInstanceAs(entry)
+    assertThat(entry.packed).isEqualTo(Color.Blue.value.toLong())
+  }
+
+  @Test
+  fun colorLong_decodesToTheSameAndroidColorAsTheComponents() {
+    val spaces = listOf(
+      ColorSpaces.Srgb,
+      ColorSpaces.DisplayP3,
+      ColorSpaces.ExtendedSrgb,
+      ColorSpaces.LinearSrgb,
+      ColorSpaces.Bt2020,
+    )
+    for (space in spaces) {
+      val color = Color(0.2f, 0.4f, 0.6f, 0.8f, space)
+      val fromComponents = android.graphics.Color.valueOf(
+        color.red,
+        color.green,
+        color.blue,
+        color.alpha,
+        space.toAndroidColorSpace(),
+      )
+      val fromLong = android.graphics.Color.valueOf(color.value.toLong())
+      assertThat(fromLong, space.name).isEqualTo(fromComponents)
+    }
   }
 }
