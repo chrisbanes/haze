@@ -13,7 +13,6 @@ import android.graphics.BitmapShader
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
-import android.graphics.RenderEffect as AndroidRenderEffect
 import android.graphics.RuntimeShader
 import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
@@ -29,9 +28,11 @@ import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.createBlendRenderEffect
+import dev.chrisbanes.haze.createColorFilterRenderEffect
 import dev.chrisbanes.haze.createRuntimeEffect
 import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.createShaderRenderEffect
+import dev.chrisbanes.haze.then
 import dev.chrisbanes.haze.trace
 import kotlin.math.abs
 
@@ -179,7 +180,7 @@ internal actual fun createCombinedNoiseTintRenderEffectOrNull(
       // Keep the packed sRGB tint that the per-effect RuntimeShader received.
       setColorUniform("tintColor", Color(tintColor.toArgb()))
     }
-    AndroidRenderEffect.createChainEffect(postProcess, input)
+    input.then(postProcess)
   }
 }
 
@@ -194,10 +195,10 @@ internal actual fun createNoiseEffect(
 ): PlatformRenderEffect {
   // Apply scaling through the shader matrix so we can reuse the decoded bitmap.
   val noiseAlpha = noiseFactor.coerceIn(0f, 1f)
-  val baseNoiseEffect = AndroidRenderEffect.createShaderEffect(context.createNoiseShader(scale))
+  val baseNoiseEffect = createShaderRenderEffect(context.createNoiseShader(scale))
   val noiseEffect = if (noiseAlpha < 1f) {
     val matrix = ColorMatrix().apply { setScale(1f, 1f, 1f, noiseAlpha) }
-    AndroidRenderEffect.createColorFilterEffect(ColorMatrixColorFilter(matrix), baseNoiseEffect)
+    createColorFilterRenderEffect(ColorMatrixColorFilter(matrix), baseNoiseEffect)
   } else {
     baseNoiseEffect
   }

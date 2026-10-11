@@ -5,13 +5,12 @@
 
 package dev.chrisbanes.haze.glass
 
-import android.graphics.BlendMode
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
-import android.graphics.RenderEffect
 import android.graphics.RuntimeShader
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
@@ -21,6 +20,8 @@ import androidx.compose.ui.graphics.toAndroidColorSpace
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
+import dev.chrisbanes.haze.createBlendRenderEffect
+import dev.chrisbanes.haze.createColorFilterRenderEffect
 
 @RequiresApi(Build.VERSION_CODES.S)
 internal actual fun createGlassDepthInputRenderEffect(
@@ -32,25 +33,20 @@ internal actual fun createGlassDepthInputRenderEffect(
   if (depth >= 0.9999f) return blur
 
   return wrapGlassRuntimeEffectConstruction {
-    fun scaledInput(scale: Float, input: RenderEffect? = null): RenderEffect {
+    fun scaledInput(scale: Float, input: PlatformRenderEffect?): PlatformRenderEffect {
       val matrix = ColorMatrix().apply {
         // Color filters operate on straight RGB and premultiply the result. Scaling both RGB and
         // alpha would therefore apply the factor twice to premultiplied color. Scale alpha only to
         // match Canvas layer alpha, which scales premultiplied RGBA once.
         setScale(1f, 1f, 1f, scale)
       }
-      val filter = ColorMatrixColorFilter(matrix)
-      return if (input != null) {
-        RenderEffect.createColorFilterEffect(filter, input)
-      } else {
-        RenderEffect.createColorFilterEffect(filter)
-      }
+      return createColorFilterRenderEffect(ColorMatrixColorFilter(matrix), input)
     }
 
-    RenderEffect.createBlendModeEffect(
-      scaledInput(1f - depth, sharp),
-      scaledInput(depth, blur),
-      BlendMode.PLUS,
+    createBlendRenderEffect(
+      blendMode = BlendMode.Plus,
+      background = scaledInput(1f - depth, sharp),
+      foreground = scaledInput(depth, blur),
     )
   }
 }
