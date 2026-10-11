@@ -218,6 +218,50 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun anchorResolvingOtherSources_isNotBorrowed() = runComposeUiTest {
+    // Equal Behind inputs resolve differently: B sits under a zIndex 1 source of the same state,
+    // so it selects only the root source while A also selects that zIndex 1 source.
+    val a = GlassRuntimeEffect()
+    val b = GlassRuntimeEffect()
+    val present = mutableStateOf(true)
+    val state = HazeState()
+    val input = HazeInput.Sources(state)
+    setContent {
+      Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp, tween(300, easing = LinearEasing), GlassReducedMotionPolicy.Full)) {
+          Box(Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { a }, input, containerTestStyle(Color.Red), HazePerformanceMode.Quality, true, null))
+          Box(Modifier.offset(240.dp, 60.dp).size(100.dp, 80.dp).hazeSource(state, zIndex = 1f)) {
+            if (present.value) {
+              Box(
+                Modifier.size(100.dp, 80.dp).hazeGlass(
+                  HazeEffectFactory { b },
+                  input,
+                  containerTestStyle(Color.Blue),
+                  HazePerformanceMode.Quality,
+                  true,
+                  null,
+                  memberTransition = GlassMemberTransition.Materialize,
+                ),
+              )
+            }
+          }
+        }
+      }
+    }
+    waitForIdle()
+    mainClock.autoAdvance = false
+    val owner = checkNotNull(a.memberBindingForTest?.node?.container)
+    val selections = owner.model.surfaces.flatMap { it.members }.map { it.sourceSelection.size }
+    assertThat(selections).containsExactly(2, 1)
+    runOnIdle { present.value = false }
+    mainClock.advanceTimeBy(16)
+    waitForIdle()
+    // B's glass cannot be drawn through A's sources, so it leaves immediately.
+    assertThat(owner.model.surfaces.flatMap { it.members }.map { it.identity }).containsExactly(a.memberBindingForTest?.node)
+  }
+
+  @Test
   fun materialize_attach_fadesInPlace() = runComposeUiTest {
     val fixture = fixture(gap = 100, present = false, transition = GlassMemberTransition.Materialize)
     fixture.toggle()

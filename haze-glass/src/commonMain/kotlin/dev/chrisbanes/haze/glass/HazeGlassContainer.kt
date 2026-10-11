@@ -52,8 +52,8 @@ import kotlinx.coroutines.launch
  * member's [GlassMemberTransition] declares, timed by [transitionSpec]. Under reduced motion, as
  * resolved by [reducedMotionPolicy], the transition keeps its morph with a critically damped
  * spring, even when the system removes animations. A detached member's glass is drawn by the
- * container through a live member with the same input until its animation ends; when no such
- * member remains, for example when the last member leaves, the glass disappears immediately, as
+ * container through a live member with the same input, resolving the same sources, until its
+ * animation ends; when no such member remains, for example when the last member leaves, the glass disappears immediately, as
  * it does for a member that is rotated or scaled. A transition ends without animating when the
  * member it grows from, retracts into or is drawn through leaves. A member moving to another
  * container appears there immediately.
@@ -178,9 +178,11 @@ internal class GlassContainerNode(
     // An axis-aligned field rect cannot draw a rotated or scaled member's glass.
     if (!isAttached || !settled || member.transition == GlassMemberTransition.None || !last.translationOnly) return null
     val ordered = registrations.mapNotNull { if (it === member) last else latest[it] }
-    val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(last, ordered, spacingPx) else null
+    // A ghost draws through its anchor's input, so the anchor must resolve the same sources.
+    val unlike = ordered.filterNot { it.drawsSourcesOf(last) }.mapTo(mutableSetOf()) { it.identity }
+    val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(last, ordered, spacingPx, unlike) else null
     // A detached member has released its own renderer, so a live member with the same input draws it.
-    val anchor = neighbour ?: resolveGlassBorrowedAnchor(last, ordered) ?: return null
+    val anchor = neighbour ?: resolveGlassBorrowedAnchor(last, ordered.filter { it.identity !in unlike }) ?: return null
     val ghost = GlassMemberGhost(last, neighbour?.identity as GlassMemberNode?, anchor.identity as GlassMemberNode)
     ghost.job = animate(ghost.progress, 0f) {
       registrations.remove(ghost)
@@ -219,11 +221,11 @@ internal class GlassContainerNode(
       }
       val live = liveSnapshots()
       // A ghost draws through its anchor's surface, so it ends once that anchor cannot draw it: the
-      // anchor collapsed, left the layout or changed input. A valid anchor also keeps the model's
+      // anchor collapsed, left the layout, or changed input or resolved sources. A valid anchor also keeps the model's
       // optical size non-null while ghosts remain.
       endGhosts { ghost ->
         val anchor = live[ghost.anchor]
-        anchor == null || !anchor.layoutRect.isValidGlassMember() ||
+        anchor == null || !anchor.layoutRect.isValidGlassMember() || !anchor.drawsSourcesOf(ghost.last) ||
           anchor.key.input != ghost.last.key.input || anchor.key.expandLayerBounds != ghost.last.key.expandLayerBounds
       }
       // Morphs follow what their neighbour draws now, which may itself still be growing.
@@ -236,7 +238,7 @@ internal class GlassContainerNode(
             if (attach.neighbour == null) return@let snapshot.copy(fading = true)
             val neighbour = drawn[attach.neighbour] ?: drawnSnapshot(attach.neighbour, live) ?: return@let snapshot
             val (rect, material) = snapshot.morphedFrom(neighbour, attach.progress.value)
-            registration.snapshot(rect, snapshot.key, material, link = neighbour.identity)
+            registration.snapshot(rect, snapshot.key, material, link = neighbour.identity).copy(sourceSelection = snapshot.sourceSelection)
           }
           // A ghost's neighbour is its anchor, which is live after the pruning above.
           is GlassMemberGhost -> registration.snapshot(registration.neighbour?.let { drawn[it] ?: checkNotNull(drawnSnapshot(it, live)) })
@@ -263,7 +265,7 @@ internal class GlassContainerNode(
     val layoutRect = binding.surface?.boundsInOwner() ?: return@mapNotNull null
     val key = binding.key ?: return@mapNotNull null
     val material = binding.material ?: return@mapNotNull null
-    member to member.snapshot(layoutRect, key, material)
+    member to member.snapshot(layoutRect, key, material).copy(sourceSelection = checkNotNull(binding.surface).inputSelection())
   }.toMap()
 
   /** [layoutRect] is the member's layout rect, or its transition rect while it animates. */

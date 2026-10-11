@@ -10,6 +10,7 @@ import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.spring
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.lerp
+import dev.chrisbanes.haze.HazeInput
 import kotlinx.coroutines.Job
 
 /** Reduced motion keeps the morph but removes its elasticity (ADR-0013, Transitions). */
@@ -90,6 +91,13 @@ internal fun resolveGlassBorrowedAnchor(member: GlassMemberSnapshot, ordered: Li
       it.key.input == member.key.input && it.key.expandLayerBounds == member.key.expandLayerBounds
   }
   .minByOrNull { glassMemberGap(member.layoutRect, it.layoutRect) }
+
+/**
+ * Whether this member's input draws [departing]'s sources. Content inputs are distinct areas by
+ * design, as for merged members, so only source-backed selections must match.
+ */
+internal fun GlassMemberSnapshot.drawsSourcesOf(departing: GlassMemberSnapshot): Boolean =
+  departing.key.input is HazeInput.Content || sourceSelection == departing.sourceSelection
 
 /** A member's glass appearing: grows out of [neighbour], or fades in when it is null. */
 internal class GlassMemberAttach(val neighbour: GlassMemberNode?) {
