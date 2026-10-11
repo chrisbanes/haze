@@ -335,6 +335,22 @@ class GlassContainerRenderTest : ContextTest() {
   }
 
   @Test
+  fun unavailableRuntime_earlierMemberWithoutBackgroundKeepsInputOutOfOverlap() = runComposeUiTest {
+    pair(
+      gap = -40,
+      firstTint = Color.Transparent,
+      secondTint = Color.Transparent,
+      unavailable = true,
+      secondBackground = Color.Green.copy(alpha = 0.5f),
+      source = Color.Red.copy(alpha = 0.5f),
+    )
+    val pixels = onNodeWithTag("root").captureToImage().toPixelMap()
+    // The first member wins the overlap, and it has no background, so no input is drawn there.
+    assertThat(pixels[120, 100]).isCloseTo(pixels[300, 100], tolerance = 1f / 255f)
+    assertThat(pixels[180, 100].blue).isLessThan(pixels[300, 100].blue - 0.1f)
+  }
+
+  @Test
   fun unavailableRuntime_curvedOverlapHasNoSeam() = runComposeUiTest {
     val effects = List(2) { GlassRuntimeEffect() }
     effects.forEach { effect ->

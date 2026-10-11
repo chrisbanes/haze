@@ -115,6 +115,20 @@ class FallbackGlassUnionPathTest {
     assertThat(pixels, 200, 60).isGreaterThan(0.4f)
   }
 
+  @Test
+  fun drawMergedColours_unionOverBudget_overlapUsesFirstMemberOnce() {
+    val wide = MAX_GLASS_LAYER_DIMENSION_PX + 100f
+    val paths = FallbackMergedPaths(
+      field(
+        member(Rect(20f, 20f, 120f, 100f), tint = Color.Red.copy(alpha = 0.5f)),
+        member(Rect(100f, 20f, wide, 100f), tint = Color.Blue.copy(alpha = 0.5f)),
+      ),
+    )
+    val pixels = drawColours(paths, mutableListOf())
+    assertThat(pixels[110, 60]).isEqualTo(pixels[60, 60])
+    assertThat(pixels[200, 60].blue).isGreaterThan(pixels[200, 60].red)
+  }
+
   private fun drawColours(paths: FallbackMergedPaths, layers: MutableList<Rect>): PixelMap {
     val image = ImageBitmap(240, 160)
     val delegate = Canvas(image)
@@ -130,10 +144,10 @@ class FallbackGlassUnionPathTest {
     return image.toPixelMap()
   }
 
-  private fun member(rect: Rect, radius: Float = 0f) = GlassMergedMember(
+  private fun member(rect: Rect, radius: Float = 0f, tint: Color = Color.Blue.copy(alpha = 0.5f)) = GlassMergedMember(
     rect = rect,
     cornerRadii = CornerRadii(radius, radius, radius, radius),
-    tint = Color.Blue.copy(alpha = 0.5f),
+    tint = tint,
     backgroundColor = Color.Transparent,
   )
 

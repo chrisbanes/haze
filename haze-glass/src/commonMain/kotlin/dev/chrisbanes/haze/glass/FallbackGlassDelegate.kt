@@ -355,8 +355,8 @@ private fun DrawScope.drawMergedBase(
 ) {
   val members = paths.field.members
   if (paths.field.hasBackground) drawMergedColours(paths, alphaMultiplier) { it.backgroundColor }
-  // Input appears only under a visible background, or under every member on the downgrade frame.
-  val inputPath = if (forceInput) paths.union else paths.backgroundUnion
+  // Input appears only where the winning member has a background, or everywhere on the downgrade frame.
+  val inputPath = if (forceInput) paths.union else paths.inputMask
   inputPath?.let { clipPath(it) { drawInputWithAlpha(context, alphaMultiplier) } }
   if (members.any { it.tint.alpha > 0f }) drawMergedColours(paths, alphaMultiplier) { it.tint }
 }
@@ -374,11 +374,11 @@ internal fun DrawScope.drawMergedColours(
   val members = paths.field.members
   val layerBounds = paths.layerBounds
   if (layerBounds == null) {
-    // ponytail: a union over the layer budget skips the layer, so overlaps composite twice.
-    // Upgrade to a per-member clip if clusters this large need exact overlap colours.
+    // ponytail: without a layer each member fills only what earlier members leave uncovered, so
+    // overlaps composite once, but curved internal edges show a faint anti-aliasing seam.
     members.forEachIndexed { index, member ->
       val memberColor = color(member)
-      drawPath(paths.members[index], memberColor.copy(alpha = memberColor.alpha * alphaMultiplier))
+      drawPath(paths.exclusive[index], memberColor.copy(alpha = memberColor.alpha * alphaMultiplier))
     }
     return
   }
@@ -398,10 +398,27 @@ internal fun DrawScope.drawMergedColours(
 internal class FallbackMergedPaths(val field: GlassMergedField) {
   val members: List<Path> = field.members.map { it.fallbackPath() }
   val union: Path = unionOf(members)
-  val backgroundUnion: Path? = when {
+
+  /**
+   * Where the winning member has a visible background. Built as one path from the last member to
+   * the first, so an earlier member without a background removes input from what it covers.
+   */
+  val inputMask: Path? = when {
     !field.hasBackground -> null
     field.members.all { it.backgroundColor.alpha > 0f } -> union
-    else -> unionOf(members.filterIndexed { index, _ -> field.members[index].backgroundColor.alpha > 0f })
+    else -> members.indices.reversed().fold(Path()) { mask, index ->
+      val operation = if (field.members[index].backgroundColor.alpha > 0f) PathOperation.Union else PathOperation.Difference
+      Path().apply { op(mask, members[index], operation) }
+    }
+  }
+
+  /** Each member minus every earlier member, for drawing without a layer. */
+  val exclusive: List<Path> by lazy(LazyThreadSafetyMode.NONE) {
+    var covered = Path()
+    members.map { path ->
+      Path().apply { op(path, covered, PathOperation.Difference) }
+        .also { covered = Path().apply { op(covered, path, PathOperation.Union) } }
+    }
   }
 
   /** The pixel-aligned union bounds for a colour layer, or null when they exceed the layer budget. */
