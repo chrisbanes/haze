@@ -570,6 +570,44 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun mergedField_rendersWithoutInteractionStagesAndUnsetRestoresSingleSurface() = runComposeUiTest {
+    val effect = runtimeInteractiveEffect()
+    val field = mergedField(
+      mergedMember(4f, 4f, 40f, 40f, radius = 8f, tint = Color.Red, backgroundColor = Color.Blue),
+      mergedMember(50f, 4f, 40f, 40f, radius = 8f, tint = Color.Blue, backgroundColor = Color.Blue),
+      spacingPx = 16f,
+    )
+    setContent { RuntimeGlassTestContent(effect, tag = "glass") }
+    waitForIdle()
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
+    val single = checkNotNull(runtime(effect).preparedRender)
+
+    runOnIdle { effect.mergedField = field }
+    waitForIdle()
+    // Pressing requests interaction optics, detail and lighting, which a merged field skips.
+    onNodeWithTag("glass").performTouchInput { down(Offset(20f, 20f)) }
+    mainClock.advanceTimeBy(500)
+    waitForIdle()
+    val merged = checkNotNull(runtime(effect).preparedRender)
+    assertThat(merged.opticalKey.mergedField).isNotNull()
+    assertThat(merged.rimKey?.mergedField).isNotNull()
+    assertThat(merged.interactionTopology.hasAnyLayer).isFalse()
+    assertThat(delegate.layers.interactionOptical).isNull()
+    assertThat(delegate.layers.interactionLighting).isNull()
+    assertThat(effect.canDrawRetainedOutput()).isTrue()
+
+    val before = delegate.stageRecordCounts
+    runOnIdle { effect.mergedField = null }
+    waitForIdle()
+    val restored = checkNotNull(runtime(effect).preparedRender)
+    assertThat(restored.opticalKey).isEqualTo(single.opticalKey.copy(coordinates = restored.opticalKey.coordinates))
+    assertThat(restored.opticalKey.mergedField).isNull()
+    assertThat(delegate.stageRecordCounts.source).isGreaterThan(before.source)
+    assertThat(delegate.stageRecordCounts.optical).isGreaterThan(before.optical)
+    assertThat(effect.canDrawRetainedOutput()).isTrue()
+  }
+
+  @Test
   fun edgeWidthChange_refreshesBothSamplingPassesAndZeroReleasesDetail() = runComposeUiTest {
     val effect = runtimeInteractiveEffect()
     val optics = GlassStyle.clearOptics

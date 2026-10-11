@@ -61,13 +61,26 @@ internal actual fun DrawScope.supportsGlassRimBrush(): Boolean =
   drawContext.canvas.nativeCanvas.isHardwareAccelerated
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createGlassRimBrushProvider(): GlassRimBrushProvider? {
-  val shader = runCatchingGlassRim { RuntimeShader(GlassShaders.buildRim()) }.getOrNull() ?: return null
+internal actual fun createGlassRimBrushProvider(merged: Boolean): GlassRimBrushProvider? {
+  val shader = runCatchingGlassRim { RuntimeShader(GlassShaders.buildRim(merged)) }.getOrNull() ?: return null
   val brush = ShaderBrush(shader)
   val uniforms = GlassRimUniformProvider(shader)
   return GlassRimBrushProvider { key ->
     uniforms.setRimUniforms(key)
     brush
+  }
+}
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+internal actual fun createGlassMergedBackgroundShaderProvider(): GlassMergedBackgroundShaderProvider? {
+  val shader = runCatchingGlassRim { RuntimeShader(GlassShaders.buildMergedBackground()) }.getOrNull()
+    ?: return null
+  val uniforms = GlassRimUniformProvider(shader)
+  return GlassMergedBackgroundShaderProvider { materialOrigin, field ->
+    // Recording or wrapping the shader snapshots its uniforms, as for the rim brush.
+    uniforms.setFloatUniform("materialOrigin", materialOrigin.x, materialOrigin.y)
+    uniforms.setMergedFieldUniforms(field, includeBackground = true)
+    shader
   }
 }
 

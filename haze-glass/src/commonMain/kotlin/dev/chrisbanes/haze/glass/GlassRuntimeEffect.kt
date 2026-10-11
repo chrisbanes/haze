@@ -98,7 +98,8 @@ private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): B
     contentNormalBlend == other.contentNormalBlend &&
     specularExponent == other.specularExponent &&
     fresnelExponent == other.fresnelExponent &&
-    cornerRadii == other.cornerRadii
+    cornerRadii == other.cornerRadii &&
+    mergedField == other.mergedField
 
 private fun ResolvedGlassStyle.hasSameBudgetParams(other: ResolvedGlassStyle): Boolean =
   requiresGlassGroupAlpha(alpha) == requiresGlassGroupAlpha(other.alpha) &&

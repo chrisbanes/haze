@@ -6,6 +6,8 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -366,6 +368,48 @@ class GlassStageInvalidationTest {
     )
   }
 
+  @Test
+  fun calculateStageInvalidation_mergedGeometryChangeRedrawsOpticalDetailAndRimButReusesBlur() {
+    val previous = mergedStageInputs(gap = 10f)
+    val current = mergedStageInputs(gap = 30f)
+
+    assertThat(calculateStageInvalidation(previous, current, sourceChanged = false))
+      .isEqualTo(
+        GlassStageInvalidation(
+          blur = false,
+          depth = false,
+          optical = true,
+          detail = true,
+          rim = true,
+        ),
+      )
+  }
+
+  @Test
+  fun resolveGlassRuntimeSourceState_mergedBackgroundChangeRecapturesSource() {
+    val red = mergedField(mergedMember(0f, 0f, 40f, 40f, backgroundColor = Color.Red))
+    val blue = mergedField(mergedMember(0f, 0f, 40f, 40f, backgroundColor = Color.Blue))
+    val first = snapshot(mergedBackground = red)
+    assertThat(snapshot(mergedBackground = red)).isEqualTo(first)
+    assertThat(snapshot(mergedBackground = blue)).isNotEqualTo(first)
+  }
+
+  private fun mergedStageInputs(gap: Float): GlassStageInputs {
+    val size = Size(300f, 100f)
+    val effect = GlassRuntimeEffect().apply {
+      mergedField = mergedField(mergedMember(0f, 0f, 100f, 40f), mergedMember(100f + gap, 0f, 100f, 40f))
+    }
+    val style = resolveGlassStyle(effect, size, Density(1f), LayoutDirection.Ltr)
+    val params = buildGlassRenderParams(style, GlassCoordinates(size, Offset.Zero, size, 1f))
+    return GlassStageInputs(
+      blur = params.blurEffectKey(),
+      depth = params.depth,
+      optical = params.opticalEffectKey(),
+      detail = params.refractionDetailEffectKey(),
+      rim = params.rimEffectKey(),
+    )
+  }
+
   private fun inputs() = GlassStageInputs(
     blur = Any(),
     depth = 1f,
@@ -380,6 +424,7 @@ class GlassStageInvalidationTest {
     layerOffset: Offset = Offset.Zero,
     inputSnapshot: HazeEffectInputSnapshot = TestInputSnapshot(1),
     backgroundColor: Color = Color.Transparent,
+    mergedBackground: GlassMergedField? = null,
   ) = resolveGlassRuntimeSourceState(
     captureScale = captureScale,
     layerSize = layerSize,
@@ -387,6 +432,7 @@ class GlassStageInvalidationTest {
     hasDrawableInput = true,
     inputSnapshot = inputSnapshot,
     backgroundColor = backgroundColor,
+    mergedBackground = mergedBackground,
   ).snapshot!!
 
   private data class TestInputSnapshot(val value: Int) : HazeEffectInputSnapshot

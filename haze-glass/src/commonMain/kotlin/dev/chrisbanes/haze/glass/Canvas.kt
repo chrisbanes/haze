@@ -9,6 +9,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
@@ -95,6 +97,7 @@ internal fun DrawScope.createScaledContentLayer(
   scaleFactor: Float,
   layerSize: Size,
   existingLayer: GraphicsLayer? = null,
+  backgroundShader: Shader? = null,
 ): GraphicsLayer? {
   val scaledLayerSize = (layerSize * scaleFactor).roundToIntSize()
 
@@ -107,7 +110,9 @@ internal fun DrawScope.createScaledContentLayer(
     ?: graphicsContext.createGraphicsLayer()
 
   layer.record(size = scaledLayerSize) {
-    if (backgroundColor.alpha > 0f) {
+    if (backgroundShader != null) {
+      drawRect(ShaderBrush(backgroundShader))
+    } else if (backgroundColor.alpha > 0f) {
       drawRect(backgroundColor)
     }
 

@@ -198,6 +198,15 @@ internal abstract class GlassRuntimeState {
       }
     }
 
+  /** Members drawn as one surface by a Glass container (ADR-0013), or null for one surface. */
+  internal var mergedField: GlassMergedField? = null
+    set(value) {
+      if (field != value) {
+        field = value
+        markDirty(GlassDirtyFields.MergedField)
+      }
+    }
+
   internal var systemAppearance: GlassSystemAppearance = GlassSystemAppearance.Light
     set(value) {
       if (field != value) {

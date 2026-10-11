@@ -26,9 +26,9 @@ internal actual fun createGlassDepthInputRenderEffect(
 
 internal actual val supportsFusedGlassRenderEffect: Boolean = false
 
-internal actual fun createGlassRimBrushProvider(): GlassRimBrushProvider? {
+internal actual fun createGlassRimBrushProvider(merged: Boolean): GlassRimBrushProvider? {
   val builder = runCatchingGlassRim {
-    RuntimeShaderBuilder(RuntimeEffect.makeForShader(GlassShaders.buildRim()))
+    RuntimeShaderBuilder(RuntimeEffect.makeForShader(GlassShaders.buildRim(merged)))
   }.getOrNull() ?: return null
   val uniforms = GlassRimUniformProvider(builder)
   return GlassRimBrushProvider { key ->
@@ -41,6 +41,18 @@ internal actual fun createGlassRimBrushProvider(): GlassRimBrushProvider? {
 }
 
 internal actual fun DrawScope.supportsGlassRimBrush(): Boolean = true
+
+internal actual fun createGlassMergedBackgroundShaderProvider(): GlassMergedBackgroundShaderProvider? {
+  val builder = runCatchingGlassRim {
+    RuntimeShaderBuilder(RuntimeEffect.makeForShader(GlassShaders.buildMergedBackground()))
+  }.getOrNull() ?: return null
+  val uniforms = GlassRimUniformProvider(builder)
+  return GlassMergedBackgroundShaderProvider { materialOrigin, field ->
+    uniforms.setFloatUniform("materialOrigin", materialOrigin.x, materialOrigin.y)
+    uniforms.setMergedFieldUniforms(field, includeBackground = true)
+    runCatchingGlassRim { builder.makeShader().asComposeShader() }.getOrNull()
+  }
+}
 
 private class GlassRimUniformProvider(private val builder: RuntimeShaderBuilder) : RuntimeShaderUniformProvider {
   override fun setColorUniform(name: String, color: Color) {
