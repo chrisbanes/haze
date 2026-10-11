@@ -87,6 +87,19 @@ class GlassBudgetPreparedAgreementTest {
     }
   }
 
+  @Test
+  fun agreementContext_givesBudgetAndPreparedBuildersTheSameMaterialSize() {
+    val context = AgreementContext()
+    val effect = effectWith(detailStyle(refractionStrength = .009f))
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true, requestedScaleOverride = 1f)
+
+    // The budget builder reads modifierSize and the prepared builder reads DrawScope.size.
+    assertThat(context.size).isEqualTo(MaterialSize)
+    assertThat(context.modifierSize).isEqualTo(MaterialSize)
+    assertThat(checkNotNull(effect.preparedRender).params.coordinates.materialSize)
+      .isEqualTo(MaterialSize)
+  }
+
   private fun detailStyle(
     refractionStrength: Float,
     depth: Float = 0f,
@@ -154,7 +167,7 @@ class GlassBudgetPreparedAgreementTest {
 
 @OptIn(InternalComposeUiApi::class, InternalHazeApi::class)
 private class AgreementContext(
-  size: Size = Size(200f, 100f),
+  override val size: Size = Size(200f, 100f),
 ) : HazeEffectRuntimeDrawScope,
   DrawScope by CanvasDrawScope() {
   override val modifierSize: Size = size
