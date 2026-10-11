@@ -1111,9 +1111,9 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       waitForIdle()
 
       val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
-      val opticalEffect = delegate.interactionShaderHandle("interactionOpticalEffect")
-      val detailEffect = delegate.interactionShaderHandle("interactionDetailEffect")
-      val lightingEffect = delegate.interactionShaderHandle("interactionLightingEffect")
+      val opticalEffect = checkNotNull(delegate.interactionOptical.shader)
+      val detailEffect = checkNotNull(delegate.interactionDetail.shader)
+      val lightingEffect = checkNotNull(delegate.interactionLighting.shader)
 
       runtime(effect).setPressedForTest(Offset(80f, 60f))
       mainClock.advanceTimeBy(16)
@@ -1124,20 +1124,63 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       }
       waitForIdle()
 
-      assertThat(delegate.interactionShaderHandle("interactionOpticalEffect"))
-        .isSameInstanceAs(opticalEffect)
-      assertThat(delegate.interactionShaderHandle("interactionDetailEffect"))
-        .isSameInstanceAs(detailEffect)
-      assertThat(delegate.interactionShaderHandle("interactionLightingEffect"))
-        .isSameInstanceAs(lightingEffect)
+      assertThat(delegate.interactionOptical.shader).isSameInstanceAs(opticalEffect)
+      assertThat(delegate.interactionDetail.shader).isSameInstanceAs(detailEffect)
+      assertThat(delegate.interactionLighting.shader).isSameInstanceAs(lightingEffect)
 
       assertThat(delegate.rimBrushProvider).isNotNull()
       runtime(effect).onTrimMemory(TrimMemoryLevel.UI_HIDDEN)
       assertThat(delegate.rimBrushProvider).isNull()
-      assertThat(delegate.interactionShaderHandleOrNull("interactionOpticalEffect")).isNull()
-      assertThat(delegate.interactionShaderHandleOrNull("interactionDetailEffect")).isNull()
-      assertThat(delegate.interactionShaderHandleOrNull("interactionLightingEffect")).isNull()
+      assertThat(delegate.interactionOptical.shader).isNull()
+      assertThat(delegate.interactionDetail.shader).isNull()
+      assertThat(delegate.interactionLighting.shader).isNull()
     }
+
+  @Test
+  fun invalidateRetainedOutput_clearsInteractionEffectCachesAndKeepsShaders() = runComposeUiTest {
+    val effect = runtimeInteractiveEffect()
+    setContent { RuntimeGlassTestContent(effect, tag = "glass") }
+    waitForIdle()
+
+    onNodeWithTag("glass").performTouchInput { down(Offset(20f, 20f)) }
+    mainClock.advanceTimeBy(500)
+    waitForIdle()
+
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
+    val slots = listOf(
+      delegate.interactionOptical,
+      delegate.interactionDetail,
+      delegate.interactionDetailCoverage,
+      delegate.interactionLighting,
+    )
+    val shaders = slots.map { checkNotNull(it.shader) }
+    slots.forEach { slot ->
+      assertThat(slot.key).isNotNull()
+      assertThat(slot.uniforms).isNotNull()
+      assertThat(slot.platformEffect).isNotNull()
+      assertThat(slot.composeEffect).isNotNull()
+      assertThat(slot.layer).isNotNull()
+    }
+    assertThat(delegate.recordedInteractionOptical.layer).isNotNull()
+    assertThat(delegate.recordedInteractionDetail.layer).isNotNull()
+    assertThat(delegate.recordedInteractionDetailCoverage.layer).isNotNull()
+    assertThat(delegate.interactionOutputEffect).isNotNull()
+
+    delegate.invalidateRetainedOutput()
+
+    slots.forEachIndexed { index, slot ->
+      assertThat(slot.key).isNull()
+      assertThat(slot.uniforms).isNull()
+      assertThat(slot.platformEffect).isNull()
+      assertThat(slot.composeEffect).isNull()
+      assertThat(slot.layer).isNull()
+      assertThat(slot.shader).isSameInstanceAs(shaders[index])
+    }
+    assertThat(delegate.recordedInteractionOptical.layer).isNull()
+    assertThat(delegate.recordedInteractionDetail.layer).isNull()
+    assertThat(delegate.recordedInteractionDetailCoverage.layer).isNull()
+    assertThat(delegate.interactionOutputEffect).isNull()
+  }
 
   @Test
   fun runtimeConstructionFailure_preparesFallbackBeforeContentBehindDecision() = runComposeUiTest {
@@ -1883,16 +1926,6 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope): Nothing {
       throw RuntimeShaderRenderEffectException(IllegalArgumentException("draw failure"))
     }
-  }
-
-  private fun RuntimeShaderGlassDelegate.interactionShaderHandle(fieldName: String): Any {
-    return checkNotNull(interactionShaderHandleOrNull(fieldName))
-  }
-
-  private fun RuntimeShaderGlassDelegate.interactionShaderHandleOrNull(fieldName: String): Any? {
-    val field = RuntimeShaderGlassDelegate::class.java.getDeclaredField(fieldName)
-    field.isAccessible = true
-    return field.get(this)
   }
 
   @Composable
