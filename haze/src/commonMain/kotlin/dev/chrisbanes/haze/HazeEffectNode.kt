@@ -723,19 +723,20 @@ internal class HazeEffectNode(
     } else {
       hasDrawableSourceLayers
     }
-    if (shouldDrawEffect) {
-      prepareEffectDraw()
+    val scope = if (shouldDrawEffect) effectDrawScope() else null
+    if (scope != null) {
+      prepareEffectDraw(scope)
     }
     withVisualEffectTransform {
-      if (shouldDrawEffect) {
-        drawEffect()
+      if (scope != null) {
+        drawEffect(scope)
         if (typedEffectRenderer != null && hasDrawableSourceLayers) {
           hasRenderedTypedSourceOutput = true
         }
       }
       drawContentSafely()
-      if (shouldDrawEffect) {
-        drawEffectForeground()
+      if (scope != null) {
+        drawEffectForeground(scope)
       }
     }
   }
@@ -743,13 +744,14 @@ internal class HazeEffectNode(
   private fun ContentDrawScope.drawContentEffect() {
     recordSurfaceContent()
     val contentLayer = checkNotNull(contentDrawArea.contentLayer)
-    prepareEffectDraw()
+    val scope = effectDrawScope()
+    prepareEffectDraw(scope)
     withVisualEffectTransform {
       if (shouldDrawContentBehindEffect()) {
         drawLayer(contentLayer)
       }
-      drawEffect()
-      drawEffectForeground()
+      drawEffect(scope)
+      drawEffectForeground(scope)
     }
   }
 
@@ -821,7 +823,7 @@ internal class HazeEffectNode(
       return
     }
 
-    val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
+    val scope = effectDrawScope()
     val backdrop = try {
       preparedSurfaceBackdrop ?: with(capability) { scope.backdropEffect(typedEffectStyle) }
     } catch (exception: Exception) {
@@ -875,7 +877,7 @@ internal class HazeEffectNode(
       }
       drawContentSafely()
       if (backdropDrawn) {
-        drawEffectForeground()
+        drawEffectForeground(scope)
       }
     }
   }
@@ -917,24 +919,25 @@ internal class HazeEffectNode(
   }
 
   @OptIn(InternalHazeApi::class)
-  private fun ContentDrawScope.prepareEffectDraw() {
+  private fun prepareEffectDraw(scope: HazeEffectDrawScopeImpl) {
     val renderer = typedEffectRenderer ?: return
     val hooks = renderer as? HazeEffectRendererDrawHooks<Any?> ?: return
-    val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
     with(hooks) { scope.prepareDraw(typedEffectStyle) }
   }
 
-  private fun ContentDrawScope.drawEffect() {
+  // One scope per draw: every hook on a path runs on the same ContentDrawScope receiver.
+  private fun ContentDrawScope.effectDrawScope() =
+    HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
+
+  private fun drawEffect(scope: HazeEffectDrawScopeImpl) {
     val renderer = typedEffectRenderer ?: return
-    val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
     with(renderer) { scope.draw(typedEffectStyle) }
   }
 
   @OptIn(InternalHazeApi::class)
-  private fun ContentDrawScope.drawEffectForeground() {
+  private fun drawEffectForeground(scope: HazeEffectDrawScopeImpl) {
     val renderer = typedEffectRenderer ?: return
     val hooks = renderer as? HazeEffectRendererDrawHooks<Any?> ?: return
-    val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
     with(hooks) { scope.drawForeground(typedEffectStyle) }
   }
 
@@ -1597,7 +1600,7 @@ internal class HazeEffectNode(
       preparedSurfaceBackdrop?.let { material = material.transformedBy(it.materialTransform) }
     }
     if (!native && shouldPrepareEffectDraw()) {
-      withSurfaceScope(scope, owner) { prepareEffectDraw() }
+      withSurfaceScope(scope, owner) { prepareEffectDraw(effectDrawScope()) }
     }
     val output = matrix.map(layer.transformedBy(interaction))
     val capture = if (native) {
@@ -1658,10 +1661,11 @@ internal class HazeEffectNode(
           state != null -> drawSourceBackedEffect(prepare)
           explicitInput is HazeInput.Backdrop -> drawBackdropEffect(prepare)
           explicitInput === HazeInput.Content && prepare -> {
-            prepareEffectDraw()
+            val effectScope = effectDrawScope()
+            prepareEffectDraw(effectScope)
             withVisualEffectTransform {
-              drawEffect()
-              drawEffectForeground()
+              drawEffect(effectScope)
+              drawEffectForeground(effectScope)
             }
           }
         }

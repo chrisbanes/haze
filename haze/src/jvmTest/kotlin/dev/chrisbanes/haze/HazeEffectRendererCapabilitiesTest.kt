@@ -25,6 +25,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.test.ContextTest
@@ -32,6 +33,25 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class HazeEffectRendererCapabilitiesTest : ContextTest() {
+
+  @Test
+  fun contentDraw_passesOneDrawScopeToEveryHook() = runComposeUiTest {
+    val factory = RecordingCapabilityFactory()
+
+    setContent {
+      Box(
+        Modifier
+          .size(10.dp)
+          .hazeEffect(factory = factory, input = HazeInput.Content, style = "transparent")
+          .background(Color.Red),
+      )
+    }
+    waitForIdle()
+
+    val lastDraw = factory.renderers.single().hookScopes.takeLast(3)
+    assertThat(lastDraw.map { it.first }).containsExactly("prepareDraw", "draw", "drawForeground")
+    assertThat(lastDraw.map { it.second }.distinct()).hasSize(1)
+  }
 
   @Test
   fun closedPreparationGate_drawsContentWithoutInvokingRendererHooks() = runComposeUiTest {
@@ -140,6 +160,7 @@ private class RecordingCapabilityRenderer(
   var prepareDrawCalls = 0
   var drawCalls = 0
   var drawForegroundCalls = 0
+  val hookScopes = mutableListOf<Pair<String, Any>>()
   var pointerEventCalls = 0
   var cancelPointerInputCalls = 0
   var detachCalls = 0
@@ -160,16 +181,19 @@ private class RecordingCapabilityRenderer(
 
   override fun HazeEffectRuntimeDrawScope.prepareDraw(style: String) {
     prepareDrawCalls++
+    hookScopes += "prepareDraw" to this
   }
 
   override fun shouldPrepareDraw(style: String): Boolean = shouldPrepareDraw
 
   override fun HazeEffectDrawScope.draw(style: String) {
     drawCalls++
+    hookScopes += "draw" to this
   }
 
   override fun HazeEffectRuntimeDrawScope.drawForeground(style: String) {
     drawForegroundCalls++
+    hookScopes += "drawForeground" to this
   }
 
   override fun HazeEffectLayoutScope.calculateLayerBounds(style: String): Rect = modifierBounds
