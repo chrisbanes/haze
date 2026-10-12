@@ -81,20 +81,20 @@ class DialogBlurInputRefreshInstrumentationTest {
     }
     composeTestRule.waitForIdle()
 
-    val before = composeTestRule.captureDialogCenterPixel()
+    val before = composeTestRule.awaitDialogCenterPixel { it.red > it.blue }
     assertThat(before.red, "initial dialog red channel").isGreaterThan(before.blue)
 
     composeTestRule.mainClock.autoAdvance = false
     composeTestRule.runOnIdle { overlayAlpha.floatValue = 0f }
     composeTestRule.advanceCrossWindowFrames()
 
-    val after = composeTestRule.captureDialogCenterPixel()
+    val after = composeTestRule.awaitDialogCenterPixel { it.blue > it.red }
     assertThat(after.blue, "updated dialog blue channel").isGreaterThan(after.red)
 
     composeTestRule.runOnIdle { overlayAlpha.floatValue = 1f }
     composeTestRule.advanceCrossWindowFrames()
 
-    val restored = composeTestRule.captureDialogCenterPixel()
+    val restored = composeTestRule.awaitDialogCenterPixel { it.red > it.blue }
     assertThat(restored.red, "restored dialog red channel").isGreaterThan(restored.blue)
 
     composeTestRule.runOnIdle { showDialog.value = false }
@@ -114,7 +114,23 @@ class DialogBlurInputRefreshInstrumentationTest {
     return pixels[pixels.width / 2, pixels.height / 2]
   }
 
+  // RenderScript blur publishes its output asynchronously after the frames advanced by the test.
+  private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.awaitDialogCenterPixel(
+    predicate: (Color) -> Boolean,
+  ): Color {
+    var pixel = captureDialogCenterPixel()
+    repeat(MAX_POLLS) {
+      if (predicate(pixel)) return pixel
+      Thread.sleep(POLL_INTERVAL_MS)
+      advanceCrossWindowFrames()
+      pixel = captureDialogCenterPixel()
+    }
+    return pixel
+  }
+
   private companion object {
     const val DIALOG_EFFECT_TAG = "dialog_effect"
+    const val MAX_POLLS = 40
+    const val POLL_INTERVAL_MS = 50L
   }
 }
