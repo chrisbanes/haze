@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.test
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.test.MainTestClock
 import androidx.compose.ui.test.SemanticsNodeInteraction
 
 expect abstract class ScreenshotTest()
@@ -17,6 +18,9 @@ expect fun ScreenshotTest.runScreenshotTest(
 
 interface ScreenshotUiTest {
   val supportsRuntimeBlur: Boolean
+
+  /** Steps animations explicitly when [MainTestClock.autoAdvance] is off. */
+  val mainClock: MainTestClock
   fun setContent(content: @Composable () -> Unit)
   fun captureRoot(
     nameSuffix: String? = null,

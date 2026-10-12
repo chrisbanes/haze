@@ -260,7 +260,39 @@ class GlassContainerMembershipTest : ContextTest() {
       val context = checkNotNull(pill.attachedContextForTest)
       val expected = resolveGlassStyle(pill, context.modifierSize, context.requireDensity(), LayoutDirection.Ltr).resolvedOptics
       assertThat(expected).isNotEqualTo(before)
-      assertThat(container.model.surfaces.single().members.single().material.resolvedOptics).isEqualTo(expected)
+      // The removed card's glass may still retract into the pill, so find the pill's own snapshot.
+      val snapshot = container.model.surfaces.flatMap { it.members }.single { it.identity === pill.memberBindingForTest?.node }
+      assertThat(snapshot.material.resolvedOptics).isEqualTo(expected)
     }
+  }
+
+  @Test
+  fun memberTransition_defaultsToMatchedGeometryAndUpdatesInPlace() = runComposeUiTest {
+    val effect = GlassRuntimeEffect()
+    val factory = HazeEffectFactory { effect }
+    val transition = mutableStateOf<GlassMemberTransition?>(null)
+    setContent {
+      Box(Modifier.hazeGlassContainer(40.dp)) {
+        val modifier = Modifier.size(100.dp, 40.dp)
+        Box(
+          transition.value?.let { modifier.hazeGlass(factory, HazeInput.Content, GlassStyle, null, true, null, memberTransition = it) }
+            ?: modifier.hazeGlass(factory, HazeInput.Content, GlassStyle, null, true, null),
+        )
+      }
+    }
+    waitForIdle()
+    val element = Modifier.hazeGlass(HazeInput.Content)
+      .foldIn<GlassMemberElement?>(null) { found, item -> found ?: item as? GlassMemberElement }
+    assertThat(checkNotNull(element).configuration.memberTransition).isEqualTo(GlassMemberTransition.MatchedGeometry)
+    val node = checkNotNull(effect.memberBindingForTest?.node)
+    val binding = node.binding
+    assertThat(node.transition).isEqualTo(GlassMemberTransition.MatchedGeometry)
+    runOnIdle { transition.value = GlassMemberTransition.None }
+    waitForIdle()
+    assertThat(effect.memberBindingForTest?.node).isSameInstanceAs(node)
+    assertThat(node.transition).isEqualTo(GlassMemberTransition.None)
+    // An equal binding hands over the live connection rather than reconnecting.
+    assertThat(node.binding).isEqualTo(binding)
+    assertThat(effect.memberBindingForTest).isSameInstanceAs(node.binding)
   }
 }

@@ -50,6 +50,7 @@ actual fun ScreenshotTest.runScreenshotTest(
 @OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class, InternalRoborazziApi::class)
 private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiTest {
   override val supportsRuntimeBlur: Boolean = true
+  override val mainClock get() = this@createScreenshotUiTest.mainClock
 
   override fun setContent(content: @Composable () -> Unit) {
     this@createScreenshotUiTest.setContent {

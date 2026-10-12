@@ -75,6 +75,12 @@ package dev.chrisbanes.haze.glass {
     method public void whitePointDelta(float delta);
   }
 
+  @dev.chrisbanes.haze.ExperimentalHazeApi public enum GlassMemberTransition {
+    enum_constant public static final dev.chrisbanes.haze.glass.GlassMemberTransition MatchedGeometry;
+    enum_constant public static final dev.chrisbanes.haze.glass.GlassMemberTransition Materialize;
+    enum_constant public static final dev.chrisbanes.haze.glass.GlassMemberTransition None;
+  }
+
   @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassOptics {
     ctor public GlassOptics();
     ctor @KotlinOnly public GlassOptics(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> depth, optional dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength, optional float refractionDetailIntensity, optional dev.chrisbanes.haze.glass.RefractionProfile refractionProfile);
@@ -178,7 +184,7 @@ package dev.chrisbanes.haze.glass {
   }
 
   public final class HazeGlassKt {
-    method @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.ui.Modifier hazeGlass(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeInput input, optional dev.chrisbanes.haze.glass.GlassStyle style, optional dev.chrisbanes.haze.HazePerformanceMode? performanceMode, optional boolean expandLayerBounds, optional androidx.compose.foundation.interaction.InteractionSource? interactionSource, optional dev.chrisbanes.haze.glass.GlassTransformTarget interactionTransformTarget, optional dev.chrisbanes.haze.glass.GlassTransformPivot interactionTransformPivot, optional dev.chrisbanes.haze.glass.GlassReducedMotionPolicy interactionReducedMotionPolicy);
+    method @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.ui.Modifier hazeGlass(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeInput input, optional dev.chrisbanes.haze.glass.GlassStyle style, optional dev.chrisbanes.haze.HazePerformanceMode? performanceMode, optional boolean expandLayerBounds, optional androidx.compose.foundation.interaction.InteractionSource? interactionSource, optional dev.chrisbanes.haze.glass.GlassTransformTarget interactionTransformTarget, optional dev.chrisbanes.haze.glass.GlassTransformPivot interactionTransformPivot, optional dev.chrisbanes.haze.glass.GlassReducedMotionPolicy interactionReducedMotionPolicy, optional dev.chrisbanes.haze.glass.GlassMemberTransition memberTransition);
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class OpticalSizePoint<T> {

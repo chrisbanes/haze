@@ -72,14 +72,21 @@ internal class GlassMemberElement(
   val configuration: GlassNodeConfiguration,
   val factory: HazeEffectFactory<GlassNodeConfiguration>,
 ) : ModifierNodeElement<GlassMemberNode>() {
-  override fun create() = GlassMemberNode(binding)
-  override fun update(node: GlassMemberNode) = node.update(binding)
+  override fun create() = GlassMemberNode(binding, configuration.memberTransition)
+  override fun update(node: GlassMemberNode) {
+    node.transition = configuration.memberTransition
+    node.update(binding)
+  }
   override fun InspectorInfo.inspectableProperties() {
     name = "hazeGlassMember"
   }
 }
 
-internal class GlassMemberNode(var binding: GlassMemberBinding) : Modifier.Node(), LayoutAwareModifierNode {
+/** [transition] is read by the container when this member's glass appears and when it leaves. */
+internal class GlassMemberNode(
+  var binding: GlassMemberBinding,
+  var transition: GlassMemberTransition,
+) : Modifier.Node(), LayoutAwareModifierNode {
   var container: GlassContainerNode? = null
     private set
 
@@ -94,9 +101,10 @@ internal class GlassMemberNode(var binding: GlassMemberBinding) : Modifier.Node(
     if (!isAttached) return
     val nearest = findNearestAncestor(GlassContainerTraversalKey) as? GlassContainerNode
     if (container !== nearest) {
-      container?.remove(this)
+      val moving = container != null
+      container?.remove(this, leaving = false)
       container = nearest
-      nearest?.add(this)
+      nearest?.add(this, appearing = !moving)
     }
     binding.surface?.relocateTo(nearest)
   }
@@ -124,6 +132,7 @@ internal class GlassMemberNode(var binding: GlassMemberBinding) : Modifier.Node(
     }
     this.binding.surface?.relocateTo(null)
     this.binding.runtime?.opticalSizeOverride = null
+    this.binding.runtime?.transitionAlpha = 1f
     this.binding.node = null
     this.binding = binding
     if (isAttached) {
@@ -137,6 +146,7 @@ internal class GlassMemberNode(var binding: GlassMemberBinding) : Modifier.Node(
     container = null
     binding.surface?.relocateTo(null)
     binding.runtime?.opticalSizeOverride = null
+    binding.runtime?.transitionAlpha = 1f
     binding.node = null
   }
 }

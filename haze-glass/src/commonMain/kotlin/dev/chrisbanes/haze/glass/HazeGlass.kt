@@ -49,6 +49,9 @@ import dev.chrisbanes.haze.hazeEffect
  * @param interactionTransformTarget Visual layers that receive the interaction scale transform.
  * @param interactionTransformPivot Pivot used by the interaction scale transform.
  * @param interactionReducedMotionPolicy Motion policy for this node's Style responses.
+ * @param memberTransition How this member's glass enters and leaves its [hazeGlassContainer]. It
+ * is ignored outside a container. Haze animates only the glass, so animate member content
+ * yourself, for example with `AnimatedVisibility`.
  */
 @Stable
 @ExperimentalHazeApi
@@ -61,6 +64,7 @@ public fun Modifier.hazeGlass(
   interactionTransformTarget: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
   interactionTransformPivot: GlassTransformPivot = GlassTransformPivot.Pointer,
   interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
+  memberTransition: GlassMemberTransition = GlassMemberTransition.MatchedGeometry,
 ): Modifier = hazeGlass(
   factory = GlassHazeEffectFactory,
   input = input,
@@ -71,6 +75,7 @@ public fun Modifier.hazeGlass(
   interactionTransformTarget = interactionTransformTarget,
   interactionTransformPivot = interactionTransformPivot,
   interactionReducedMotionPolicy = interactionReducedMotionPolicy,
+  memberTransition = memberTransition,
 )
 
 internal fun Modifier.hazeGlass(
@@ -83,6 +88,7 @@ internal fun Modifier.hazeGlass(
   interactionTransformTarget: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
   interactionTransformPivot: GlassTransformPivot = GlassTransformPivot.Pointer,
   interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
+  memberTransition: GlassMemberTransition = GlassMemberTransition.MatchedGeometry,
 ): Modifier {
   val member = GlassMemberBinding(input, expandLayerBounds)
   val configuration = GlassNodeConfiguration(
@@ -93,6 +99,7 @@ internal fun Modifier.hazeGlass(
     interactionTransformPivot = interactionTransformPivot,
     interactionReducedMotionPolicy = interactionReducedMotionPolicy,
     member = member,
+    memberTransition = memberTransition,
   )
   return then(GlassMemberElement(member, configuration, factory)).hazeEffect(
     factory = factory,
@@ -112,6 +119,8 @@ internal class GlassNodeConfiguration(
   val interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
   val member: GlassMemberBinding? = null,
   val surfaceSnapshot: GlassSurfaceSnapshot? = null,
+  // Read by the member node; here so both nodes always update together with one binding.
+  val memberTransition: GlassMemberTransition = GlassMemberTransition.MatchedGeometry,
 )
 
 internal object GlassHazeEffectFactory : HazeEffectFactory<GlassNodeConfiguration> {
