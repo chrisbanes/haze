@@ -4,3 +4,5 @@
 package dev.chrisbanes.haze
 
 internal actual fun invalidateOnHazeAreaPreDraw(): Boolean = false
+
+internal actual fun observesSameWindowSourceSnapshots(): Boolean = false

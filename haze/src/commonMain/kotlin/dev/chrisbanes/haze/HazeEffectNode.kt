@@ -1803,6 +1803,17 @@ private val HazeArea.observedLayoutCoordinates: LayoutCoordinates?
 
 internal expect fun invalidateOnHazeAreaPreDraw(): Boolean
 
+/**
+ * Whether effects in the same window as their source also invalidate their input capture when a
+ * snapshot is applied, as cross-window effects always do.
+ *
+ * API 31 keeps showing old RenderEffect output when a source's children move without the source
+ * redrawing, such as items in a scrolling lazy list. Invalidating the capture gives the effect a
+ * fresh RenderEffect. The observer sees every snapshot apply in the app, so on API 31 any running
+ * animation recaptures attached effects once per frame.
+ */
+internal expect fun observesSameWindowSourceSnapshots(): Boolean
+
 internal fun HazeEffectNode.shouldClipToAreaBounds(): Boolean {
   return (typedEffectRenderer as? HazeEffectRendererDrawHooks<Any?>)
     ?.shouldPreferClipToInputBounds() == true

@@ -290,7 +290,8 @@ internal class OnPreDrawListener(
   private val effectWindowId: () -> Any?,
   private val onPreDraw: (invalidateInputCapture: Boolean) -> Unit,
 ) {
-  fun needsSnapshotApplyObservation(area: HazeArea): Boolean = area.windowId != effectWindowId()
+  fun needsSnapshotApplyObservation(area: HazeArea): Boolean =
+    area.windowId != effectWindowId() || observesSameWindowSourceSnapshots()
 
   operator fun invoke(invalidateInputCapture: Boolean) = onPreDraw(invalidateInputCapture)
 }
