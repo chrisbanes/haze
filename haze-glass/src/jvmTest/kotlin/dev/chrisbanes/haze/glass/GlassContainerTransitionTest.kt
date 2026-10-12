@@ -764,6 +764,26 @@ class GlassContainerTransitionTest : ContextTest() {
     fixture.settle()
   }
 
+  @Test
+  fun undrawableRegistration_doesNotBlockRetract() = runComposeUiTest {
+    // B's key differs and sits between A and C in registration order. While B cannot draw (its
+    // material is unpublished, as during a binding swap), its stale snapshot must not split A and C.
+    val fixture = fixture(bStyle = GlassStyle { contrast(0.5f) }, cOffset = 40 to 150, cInitially = true)
+    val owner = fixture.owner()
+    val bBinding = checkNotNull(fixture.b.memberBindingForTest?.node).binding
+    val cNode = checkNotNull(fixture.c.memberBindingForTest?.node)
+    lateinit var ghost: GlassMemberGhost
+    runOnIdle {
+      val material = bBinding.material
+      bBinding.material = null
+      owner.remove(cNode)
+      ghost = owner.model.surfaces.flatMap { it.members }.single { it.identity is GlassMemberGhost }.identity as GlassMemberGhost
+      bBinding.material = material
+    }
+    assertThat(ghost.neighbour).isEqualTo(fixture.aNode)
+    fixture.settle()
+  }
+
   /** Starts B growing out of A, breaks one start condition, and expects B to snap to its own rect. */
   private fun assertGrowEnds(change: Fixture.() -> Unit) = runComposeUiTest {
     val fixture = fixture(present = false)
