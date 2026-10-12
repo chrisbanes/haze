@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -99,7 +100,10 @@ internal fun DrawScope.drawInputWithAlpha(
   alpha: Float,
 ) {
   withLayerPaint(alpha = alpha, blendMode = BlendMode.SrcOver) {
-    with(context) { this@drawInputWithAlpha.drawInput() }
+    // drawInput() draws in expanded-layer space, but this draw is in effect space.
+    translate(-context.layerOffset.x, -context.layerOffset.y) {
+      with(context) { this@translate.drawInput() }
+    }
   }
 }
 

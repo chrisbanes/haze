@@ -341,7 +341,11 @@ public interface HazeEffectRuntimeDrawScope : HazeEffectDrawScope {
   /** Schedules a redraw of the effect. */
   public fun invalidateDraw()
 
-  /** Draws the selected input into this [DrawScope]. */
+  /**
+   * Draws the selected input into this [DrawScope], in the coordinate space of the expanded effect
+   * layer, where the modifier sits at [layerOffset]. A caller drawing in modifier space must
+   * translate by `-layerOffset` first.
+   */
   public fun DrawScope.drawInput()
 }
 
