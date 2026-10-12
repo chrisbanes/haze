@@ -100,6 +100,24 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun unchangedSourceRedraw_reusesStageInputsAndSourceSnapshot() = runComposeUiTest {
+    val effect = GlassRuntimeEffect()
+    setContent { SourceBackedGlassTestContent(effect, style = GlassStyle.regular) }
+    waitForIdle()
+
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
+    val stageInputs = checkNotNull(delegate.lastSuccessfulStageInputs)
+    val sourceSnapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
+    repeat(3) {
+      runOnIdle { checkNotNull(effect.attachedContextForTest).invalidateDraw() }
+      waitForIdle()
+
+      assertThat(delegate.lastSuccessfulStageInputs).isSameInstanceAs(stageInputs)
+      assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(sourceSnapshot)
+    }
+  }
+
+  @Test
   fun growAndShrink_balancedRetainsLayersAndMatchesFreshPixels() = assertResizeMatchesFreshPixels(HazePerformanceMode.Balanced)
 
   @Test

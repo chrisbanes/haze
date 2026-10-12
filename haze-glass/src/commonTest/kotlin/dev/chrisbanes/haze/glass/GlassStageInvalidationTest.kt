@@ -12,6 +12,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
@@ -289,6 +290,159 @@ class GlassStageInvalidationTest {
   }
 
   @Test
+  fun calculateStageInvalidation_unchangedFrameSharesNone() {
+    val inputs = inputs()
+
+    assertThat(calculateStageInvalidation(inputs, inputs, sourceChanged = false))
+      .isSameInstanceAs(GlassStageInvalidation.None)
+    assertThat(
+      calculateRequiredStageInvalidation(
+        previous = inputs,
+        current = inputs,
+        sourceChanged = false,
+        availability = GlassStageAvailability(
+          blur = true,
+          depth = true,
+          optical = true,
+          detail = true,
+          rim = true,
+        ),
+      ),
+    ).isSameInstanceAs(GlassStageInvalidation.None)
+  }
+
+  @Test
+  fun calculateStageInvalidation_interactionUniformChangeInvalidatesOpticalOnly() {
+    val previous = inputs().copy(opticalInteraction = interactionUniforms())
+    val current = previous.copy(opticalInteraction = interactionUniforms().copy(radiusPx = 90f))
+
+    assertThat(calculateStageInvalidation(previous, current, sourceChanged = false))
+      .isEqualTo(GlassStageInvalidation.None.copy(optical = true))
+    assertThat(
+      calculateStageInvalidation(previous, previous.copy(opticalInteraction = null), sourceChanged = false),
+    ).isEqualTo(GlassStageInvalidation.None.copy(optical = true))
+  }
+
+  @Test
+  fun resolveGlassStageInputs_equalInputsReusePreviousInstance() {
+    val blur = TestKey(1)
+    val previous = resolveGlassStageInputs(
+      previous = null,
+      blur = blur,
+      depth = 1f,
+      optical = TestKey(2),
+      opticalInteraction = interactionUniforms(),
+      detail = TestKey(3),
+      rim = TestKey(4),
+    )
+
+    val resolved = resolveGlassStageInputs(
+      previous = previous,
+      blur = TestKey(1),
+      depth = 1f,
+      optical = TestKey(2),
+      opticalInteraction = interactionUniforms(),
+      detail = TestKey(3),
+      rim = TestKey(4),
+    )
+
+    assertThat(resolved).isSameInstanceAs(previous)
+  }
+
+  @Test
+  fun resolveGlassStageInputs_changedInputBuildsNewInstance() {
+    val previous = GlassStageInputs(
+      blur = TestKey(1),
+      depth = 1f,
+      optical = TestKey(2),
+      detail = TestKey(3),
+      rim = TestKey(4),
+      opticalInteraction = interactionUniforms(),
+    )
+    listOf(
+      previous.copy(blur = TestKey(10)),
+      previous.copy(blur = null),
+      previous.copy(depth = 2f),
+      previous.copy(optical = TestKey(20)),
+      previous.copy(opticalInteraction = interactionUniforms().copy(radiusPx = 90f)),
+      previous.copy(opticalInteraction = null),
+      previous.copy(detail = TestKey(30)),
+      previous.copy(rim = TestKey(40)),
+      previous.copy(rim = null),
+    ).forEach { expected ->
+      val resolved = resolveGlassStageInputs(
+        previous = previous,
+        blur = expected.blur,
+        depth = expected.depth,
+        optical = expected.optical,
+        opticalInteraction = expected.opticalInteraction,
+        detail = expected.detail,
+        rim = expected.rim,
+      )
+
+      assertThat(resolved).isNotSameInstanceAs(previous)
+      assertThat(resolved).isEqualTo(expected)
+    }
+  }
+
+  @Test
+  fun resolveGlassStageInputs_nullPreviousBuildsInstance() {
+    val resolved = resolveGlassStageInputs(
+      previous = null,
+      blur = null,
+      depth = 1f,
+      optical = TestKey(2),
+      opticalInteraction = null,
+      detail = null,
+      rim = null,
+    )
+
+    assertThat(resolved).isEqualTo(
+      GlassStageInputs(blur = null, depth = 1f, optical = TestKey(2), detail = null, rim = null),
+    )
+  }
+
+  @Test
+  fun resolveGlassStageInputs_depthEqualityMatchesDataClassEquality() {
+    fun resolve(previous: GlassStageInputs, depth: Float) = resolveGlassStageInputs(
+      previous = previous,
+      blur = previous.blur,
+      depth = depth,
+      optical = previous.optical,
+      opticalInteraction = null,
+      detail = previous.detail,
+      rim = previous.rim,
+    )
+    val nan = inputs().copy(depth = Float.NaN)
+    val zero = inputs().copy(depth = 0f)
+
+    assertThat(resolve(nan, Float.NaN)).isSameInstanceAs(nan)
+    assertThat(resolve(zero, -0f)).isNotSameInstanceAs(zero)
+    assertThat(nan.hasSameBaseAs(nan.copy())).isTrue()
+    assertThat(zero.hasSameBaseAs(zero.copy(depth = -0f))).isFalse()
+  }
+
+  @Test
+  fun hasSameBaseAs_ignoresOnlyRim() {
+    val base = GlassStageInputs(
+      blur = TestKey(1),
+      depth = 1f,
+      optical = TestKey(2),
+      detail = TestKey(3),
+      rim = TestKey(4),
+      opticalInteraction = interactionUniforms(),
+    )
+
+    assertThat(base.hasSameBaseAs(base.copy(rim = TestKey(40)))).isTrue()
+    assertThat(base.hasSameBaseAs(base.copy(rim = null))).isTrue()
+    assertThat(base.hasSameBaseAs(base.copy(blur = TestKey(10)))).isFalse()
+    assertThat(base.hasSameBaseAs(base.copy(depth = 2f))).isFalse()
+    assertThat(base.hasSameBaseAs(base.copy(optical = TestKey(20)))).isFalse()
+    assertThat(base.hasSameBaseAs(base.copy(opticalInteraction = null))).isFalse()
+    assertThat(base.hasSameBaseAs(base.copy(detail = TestKey(30)))).isFalse()
+  }
+
+  @Test
   fun resolveGlassRuntimeSourceState_drawableInputWithoutSnapshotForcesRecapture() {
     val state = resolveGlassRuntimeSourceState(
       captureScale = .5f,
@@ -434,6 +588,16 @@ class GlassStageInvalidationTest {
     backgroundColor = backgroundColor,
     mergedBackground = mergedBackground,
   ).snapshot!!
+
+  private fun interactionUniforms() = GlassInteractionUniforms(
+    position = Offset(20f, 20f),
+    radiusPx = 70f,
+    lightingIntensity = 0f,
+    refractionMultiplier = 1f,
+    whitePointDelta = 0f,
+  )
+
+  private data class TestKey(val value: Int)
 
   private data class TestInputSnapshot(val value: Int) : HazeEffectInputSnapshot
 }

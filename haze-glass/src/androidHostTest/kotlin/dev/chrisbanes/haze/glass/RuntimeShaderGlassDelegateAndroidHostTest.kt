@@ -921,6 +921,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.layers.interactionRefractionDetail).isNull()
       assertThat(delegate.layers.interactionRefractionDetailCoverage).isNull()
       assertThat(delegate.layers.interactionLighting).isNotNull()
+      val stageInputs = checkNotNull(delegate.lastSuccessfulStageInputs)
+      assertThat(stageInputs.opticalInteraction).isNotNull()
 
       drawFrame()
 
@@ -931,6 +933,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.layers.interactionRefractionDetail).isNull()
       assertThat(delegate.layers.interactionRefractionDetailCoverage).isNull()
       assertThat(delegate.layers.interactionLighting).isNotNull()
+      assertThat(delegate.lastSuccessfulStageInputs).isSameInstanceAs(stageInputs)
     }
 
   @Test

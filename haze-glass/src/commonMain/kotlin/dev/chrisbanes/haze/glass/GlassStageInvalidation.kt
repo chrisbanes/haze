@@ -17,7 +17,40 @@ internal data class GlassStageInputs(
   val optical: Any,
   val detail: Any?,
   val rim: Any?,
-)
+  /** Interaction uniforms folded into the fused optical effect, or null when they are not. */
+  val opticalInteraction: GlassInteractionUniforms? = null,
+) {
+  /** Whether every input except [rim] equals [other]'s, with the same equality as [equals]. */
+  fun hasSameBaseAs(other: GlassStageInputs): Boolean = blur == other.blur &&
+    depth.compareTo(other.depth) == 0 &&
+    optical == other.optical &&
+    opticalInteraction == other.opticalInteraction &&
+    detail == other.detail
+}
+
+/** Returns [previous] when it already holds these inputs, so an unchanged frame builds nothing. */
+internal fun resolveGlassStageInputs(
+  previous: GlassStageInputs?,
+  blur: Any?,
+  depth: Float,
+  optical: Any,
+  opticalInteraction: GlassInteractionUniforms?,
+  detail: Any?,
+  rim: Any?,
+): GlassStageInputs {
+  if (
+    previous != null &&
+    previous.blur == blur &&
+    previous.depth.compareTo(depth) == 0 &&
+    previous.optical == optical &&
+    previous.opticalInteraction == opticalInteraction &&
+    previous.detail == detail &&
+    previous.rim == rim
+  ) {
+    return previous
+  }
+  return GlassStageInputs(blur, depth, optical, detail, rim, opticalInteraction)
+}
 
 /** Retained stages that need to be re-recorded. */
 internal data class GlassStageInvalidation(
@@ -57,10 +90,11 @@ internal fun calculateStageInvalidation(
   val depth = sourceChanged || blurInputChanged || previous?.depth != current.depth
   val optical = previous == null ||
     depth ||
-    previous.optical != current.optical
+    previous.optical != current.optical ||
+    previous.opticalInteraction != current.opticalInteraction
   val detail = current.detail != null && (sourceChanged || previous?.detail != current.detail)
   val rim = current.rim != null && previous?.rim != current.rim
-  return GlassStageInvalidation(blur, depth, optical, detail, rim)
+  return stageInvalidation(blur, depth, optical, detail, rim)
 }
 
 internal fun calculateRequiredStageInvalidation(
@@ -75,7 +109,20 @@ internal fun calculateRequiredStageInvalidation(
   val optical = changed.optical || depth || !availability.optical
   val detail = changed.detail || current.detail != null && !availability.detail
   val rim = changed.rim || current.rim != null && !availability.rim
-  return GlassStageInvalidation(blur, depth, optical, detail, rim)
+  return stageInvalidation(blur, depth, optical, detail, rim)
+}
+
+/** Shares [GlassStageInvalidation.None] when nothing is invalidated, so unchanged frames build nothing. */
+private fun stageInvalidation(
+  blur: Boolean,
+  depth: Boolean,
+  optical: Boolean,
+  detail: Boolean,
+  rim: Boolean,
+): GlassStageInvalidation = if (blur || depth || optical || detail || rim) {
+  GlassStageInvalidation(blur, depth, optical, detail, rim)
+} else {
+  GlassStageInvalidation.None
 }
 
 @Poko

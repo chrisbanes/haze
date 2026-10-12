@@ -453,17 +453,18 @@ internal class RuntimeShaderGlassDelegate(
       requireDrawableMaterialSize(params.coordinates.materialSize, ::clearRetainedOutput) ?: return
       var completed = false
       try {
-        val currentInputs = GlassStageInputs(
+        val previousInputs = lastSuccessfulStageInputs
+        val currentInputs = resolveGlassStageInputs(
+          previous = previousInputs,
           blur = if (supportsFusedGlassRenderEffect) {
             render.blurKey
           } else {
             render.blurKey?.takeIf { shouldBlur(params, effects) }
           },
           depth = params.depth,
-          optical = if (supportsFusedGlassRenderEffect && render.interactionTopology.hasOptics) {
-            render.opticalKey to interactionUniforms
-          } else {
-            render.opticalKey
+          optical = render.opticalKey,
+          opticalInteraction = interactionUniforms.takeIf {
+            supportsFusedGlassRenderEffect && render.interactionTopology.hasOptics
           },
           detail = render.refractionDetailKey,
           rim = render.rimKey,
@@ -498,14 +499,13 @@ internal class RuntimeShaderGlassDelegate(
           ::clearRetainedOutput,
         ) ?: return
         val invalidation = calculateRequiredStageInvalidation(
-          previous = lastSuccessfulStageInputs,
+          previous = previousInputs,
           current = currentInputs,
           sourceChanged = shouldRecordSource,
           availability = preparedStageAvailability ?: stageAvailability(params, effects),
         )
         if (supportsFusedGlassRenderEffect) {
-          val previousBaseInputs = lastSuccessfulStageInputs?.copy(rim = currentInputs.rim)
-          val baseInputsChanged = previousBaseInputs != currentInputs
+          val baseInputsChanged = previousInputs == null || !previousInputs.hasSameBaseAs(currentInputs)
           val completedOptical = requireRetainedStage(
             if (
               shouldRecordSource ||
