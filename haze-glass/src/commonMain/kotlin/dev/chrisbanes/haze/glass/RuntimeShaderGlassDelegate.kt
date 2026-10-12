@@ -36,8 +36,11 @@ import dev.chrisbanes.haze.createBlurRenderEffect
 import dev.chrisbanes.haze.createMutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.createOffsetRenderEffect
 import dev.chrisbanes.haze.createRuntimeEffect
+import dev.chrisbanes.haze.createScaledContentLayer
 import dev.chrisbanes.haze.createShaderRenderEffect
+import dev.chrisbanes.haze.drawScaledContent
 import dev.chrisbanes.haze.trace
+import dev.chrisbanes.haze.translate
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RuntimeShaderGlassDelegate(
