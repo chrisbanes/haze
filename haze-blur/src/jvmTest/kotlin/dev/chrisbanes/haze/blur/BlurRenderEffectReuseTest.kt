@@ -23,6 +23,7 @@ import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.PlatformRenderEffect
+import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
 import kotlin.test.Test
 
@@ -225,7 +226,8 @@ class BlurRenderEffectReuseTest {
     }
   }
 
-  private data class Counts(val cache: Int, val wraps: Int, val assigns: Int) {
+  @Poko
+  private class Counts(val cache: Int, val wraps: Int, val assigns: Int) {
     operator fun minus(other: Counts) = Counts(cache - other.cache, wraps - other.wraps, assigns - other.assigns)
   }
 

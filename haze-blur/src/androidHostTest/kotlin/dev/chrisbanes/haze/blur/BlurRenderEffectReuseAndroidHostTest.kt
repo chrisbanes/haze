@@ -28,6 +28,7 @@ import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.asBrush
 import dev.chrisbanes.haze.hazeEffect
@@ -250,7 +251,8 @@ class BlurRenderEffectReuseAndroidHostTest : ScreenshotTest() {
   }
 }
 
-private data class Counts(
+@Poko
+private class Counts(
   val cache: Int,
   val wraps: Int,
   val assigns: Int,
