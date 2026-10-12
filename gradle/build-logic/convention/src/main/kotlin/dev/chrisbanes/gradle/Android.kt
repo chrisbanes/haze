@@ -34,6 +34,8 @@ fun Project.configureAndroidApplication() {
 }
 
 fun Project.configureKotlinMultiplatformAndroidLibrary() {
+  configureRobolectricRuntime()
+
   tasks.withType<Test>().matching { it.name == "testAndroidHostTest" }.configureEach {
     // Robolectric 4.17 accesses FileDescriptor internals through SharedSecrets on Java 17+.
     jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED")
