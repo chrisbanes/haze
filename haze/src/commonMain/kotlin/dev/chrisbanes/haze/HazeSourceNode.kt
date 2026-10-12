@@ -366,11 +366,7 @@ internal class HazeSourceNode(
   }
 
   internal fun HazeArea.releaseLayer() {
-    contentLayer?.let { layer ->
-      HazeLogger.d(TAG) { "Releasing content layer: $layer" }
-      currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(layer)
-    }
-    contentLayer = null
+    releaseContentLayer(currentValueOf(LocalGraphicsContext))
   }
 
   private companion object {
