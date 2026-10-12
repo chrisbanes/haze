@@ -62,8 +62,8 @@ as it is attached. Each member chooses a transition:
 A morph starts or ends on the neighbour's drawn outline: its rect after its interaction transform,
 with its corners scaled as they are drawn. A pressed neighbour therefore stays continuous with the
 member growing out of it or retracting into it. Spacing and neighbour checks still ignore
-interaction transforms. A growing neighbour is measured at its current morph or its layout,
-whichever is nearer.
+interaction transforms. A member chooses a growing neighbour by its current morph, and keeps that
+link while either the morph or the neighbour's layout is within the spacing.
 
 A member with `HazeInput.Content` input leaves immediately, without a ghost, because the content
 its glass samples leaves with it
