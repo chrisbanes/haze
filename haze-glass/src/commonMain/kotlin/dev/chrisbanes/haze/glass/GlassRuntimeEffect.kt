@@ -266,6 +266,20 @@ internal class GlassRuntimeEffect() :
 
   private var resolvedStyleCacheLayoutDirection: LayoutDirection? = null
 
+  // Sample padding for calculateLayerBounds. Invalidated by LayerBoundsFlags in markDirty rather
+  // than keyed on dirtyTrackerVersion, which does not bump on repeat changes before a draw.
+  // The explicit flag avoids a Size sentinel: NaN sizes are bit-equal to Size.Unspecified. Density
+  // is keyed by value: layout passes a fresh Density delegate on every call, so == never matches.
+  private var layerPaddingCacheValid: Boolean = false
+  private var layerPaddingCacheSize: Size = Size.Unspecified
+  private var layerPaddingCacheDensity: Float = 0f
+  private var layerPaddingCacheFontScale: Float = 0f
+  private var layerPaddingCacheRefractionMultiplier: Float = 0f
+  private var layerPaddingCache: Float = 0f
+
+  internal var layerPaddingResolveCountForTest: Int = 0
+    private set
+
   private var geometrySnapshotObserver: SnapshotStateObserver? = null
   private var geometryObserverGeneration: Int = 0
   private var geometryInvalidationJob: Job? = null
@@ -337,6 +351,7 @@ internal class GlassRuntimeEffect() :
         }
       }.also { it.start() }
       resolvedStyleCache = null
+      layerPaddingCacheValid = false
       shouldClipToNodeBoundsCacheValid = false
       syncInteractionController(context)
       delegate.attach()
@@ -1105,24 +1120,45 @@ internal class GlassRuntimeEffect() :
   }
 
   internal fun calculateLayerBounds(rect: Rect, density: Density): Rect {
-    val resolvedStyle = surfaceSnapshot?.material ?: resolveGlassStyle(
-      effect = this@GlassRuntimeEffect,
-      materialSizePx = rect.size,
-      density = density,
-      layoutDirection = LayoutDirection.Ltr,
-    )
-    val resolved = resolvedStyle.resolvedOptics
-    val paddingPx = calculateGlassSamplePaddingPx(
+    val multiplier = maximumInteractionRefractionMultiplier()
+    // Containers draw the snapshot material, so there is nothing of ours to cache.
+    surfaceSnapshot?.let { return rect.inflate(samplePaddingPx(it.material, multiplier)) }
+    if (
+      !layerPaddingCacheValid ||
+      layerPaddingCacheSize != rect.size ||
+      layerPaddingCacheDensity != density.density ||
+      layerPaddingCacheFontScale != density.fontScale ||
+      layerPaddingCacheRefractionMultiplier != multiplier
+    ) {
+      layerPaddingResolveCountForTest++
+      layerPaddingCache = samplePaddingPx(
+        resolveGlassStyle(
+          effect = this@GlassRuntimeEffect,
+          materialSizePx = rect.size,
+          density = density,
+          layoutDirection = LayoutDirection.Ltr,
+        ),
+        multiplier,
+      )
+      layerPaddingCacheSize = rect.size
+      layerPaddingCacheDensity = density.density
+      layerPaddingCacheFontScale = density.fontScale
+      layerPaddingCacheRefractionMultiplier = multiplier
+      layerPaddingCacheValid = true
+    }
+    return rect.inflate(layerPaddingCache)
+  }
+
+  private fun samplePaddingPx(style: ResolvedGlassStyle, refractionMultiplier: Float): Float {
+    val resolved = style.resolvedOptics
+    return calculateGlassSamplePaddingPx(
       blurRadiusPx = if (resolved.depth <= 0f) 0f else resolved.blurRadiusPx,
       refractionScale = resolved.refractionScalePx,
-      refractionStrength = (
-        resolved.refractionStrength * maximumInteractionRefractionMultiplier()
-        ).coerceIn(0f, 1f),
-      chromaticAberrationStrength = resolvedStyle.chromaticAberrationStrength,
-      edgeSoftnessPx = resolvedStyle.edgeSoftnessPx,
+      refractionStrength = (resolved.refractionStrength * refractionMultiplier).coerceIn(0f, 1f),
+      chromaticAberrationStrength = style.chromaticAberrationStrength,
+      edgeSoftnessPx = style.edgeSoftnessPx,
       foregroundOutsetPx = 0f,
     )
-    return rect.inflate(paddingPx)
   }
 
   override fun shouldPreferClipToInputBounds(): Boolean = !shouldClipToNodeBounds()
@@ -1153,6 +1189,9 @@ internal class GlassRuntimeEffect() :
     }
     if (fields and GlassDirtyFields.StyleResolutionFlags != 0) {
       resolvedStyleCache = null
+    }
+    if (fields and GlassDirtyFields.LayerBoundsFlags != 0) {
+      layerPaddingCacheValid = false
     }
     if (fields and GlassDirtyFields.ClipDecisionFlags != 0) {
       shouldClipToNodeBoundsCacheValid = false
