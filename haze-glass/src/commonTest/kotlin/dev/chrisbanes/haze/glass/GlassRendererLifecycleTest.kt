@@ -3,7 +3,10 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.CompositionLocal
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -19,6 +22,7 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
@@ -31,6 +35,8 @@ import dev.chrisbanes.haze.TrimMemoryLevel
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.test.TestScope
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 class GlassRendererLifecycleTest {
@@ -129,6 +135,115 @@ class GlassRendererLifecycleTest {
   }
 
   @Test
+  fun interactionConfigurationOutsideUpdate_invalidatesDrawAndReachesController() {
+    val renderer = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
+    val testScope = TestScope()
+    val scope = TrackingLifecycleScope(coroutineScope = testScope)
+    renderer.attach(scope)
+    val configuration = GlassNodeConfiguration(
+      style = GlassStyle { pressed { scale(0.9f) } },
+      interactionSource = null,
+    )
+    var observedChanges = 0
+    val observer = SnapshotStateObserver { it() }
+    val onChanged: (GlassRuntimeEffect) -> Unit = { observedChanges++ }
+    observer.start()
+    try {
+      observer.observeReads(renderer, onChanged) {
+        renderer.update(scope, configuration, HazeSampling.Default)
+      }
+      Snapshot.sendApplyNotifications()
+      observedChanges = 0
+
+      // With the Interaction bit pending, draw invalidation, not the observed update, delivers
+      // each change.
+      val before = scope.drawInvalidations
+      renderer.interactionSource = MutableInteractionSource()
+      renderer.interactionTransformTarget = GlassTransformTarget.MaterialAndContent
+      renderer.interactionTransformPivot = GlassTransformPivot.Center
+      renderer.interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
+      assertThat(scope.drawInvalidations).isEqualTo(before + 4)
+      assertThat(checkNotNull(renderer.interactionControllerForTest).configurationForTest.reducedMotion)
+        .isTrue()
+
+      // An equal value is not a change.
+      renderer.interactionTransformTarget = GlassTransformTarget.MaterialAndContent
+      assertThat(scope.drawInvalidations).isEqualTo(before + 4)
+
+      // After a draw resets the tracker, the next change re-runs the observed update once.
+      Snapshot.sendApplyNotifications()
+      observedChanges = 0
+      renderer.resetDirtyTracker()
+      renderer.interactionTransformPivot = GlassTransformPivot.Pointer
+      Snapshot.sendApplyNotifications()
+      assertThat(observedChanges).isEqualTo(1)
+    } finally {
+      observer.stop()
+      renderer.detach()
+      testScope.cancel()
+    }
+  }
+
+  @Test
+  fun observedUpdate_interactionConfigurationChange_doesNotInvalidateItsObservation() {
+    val renderer = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
+    val testScope = TestScope()
+    val scope = TrackingLifecycleScope(coroutineScope = testScope)
+    renderer.attach(scope)
+    val style = GlassStyle { pressed { scale(0.9f) } }
+    fun configuration(
+      source: MutableInteractionSource? = null,
+      target: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
+      pivot: GlassTransformPivot = GlassTransformPivot.Pointer,
+      policy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
+    ) = GlassNodeConfiguration(
+      style = style,
+      interactionSource = source,
+      interactionTransformTarget = target,
+      interactionTransformPivot = pivot,
+      interactionReducedMotionPolicy = policy,
+    )
+    val source = MutableInteractionSource()
+    val changes = listOf(
+      configuration(source = source),
+      configuration(source = source, target = GlassTransformTarget.MaterialAndContent),
+      configuration(
+        source = source,
+        target = GlassTransformTarget.MaterialAndContent,
+        pivot = GlassTransformPivot.Center,
+      ),
+      configuration(
+        source = source,
+        target = GlassTransformTarget.MaterialAndContent,
+        pivot = GlassTransformPivot.Center,
+        policy = GlassReducedMotionPolicy.Full,
+      ),
+    )
+    var invalidations = 0
+    val observer = SnapshotStateObserver { it() }
+    val onChanged: (GlassRuntimeEffect) -> Unit = { invalidations++ }
+    observer.start()
+    try {
+      fun observedUpdate(configuration: GlassNodeConfiguration): Int {
+        invalidations = 0
+        observer.observeReads(renderer, onChanged) {
+          renderer.update(scope, configuration, HazeSampling.Default)
+        }
+        Snapshot.sendApplyNotifications()
+        return invalidations
+      }
+      observedUpdate(configuration())
+
+      // update() applies each changed value, and must not invalidate the observation it runs in.
+      assertThat(changes.map(::observedUpdate)).isEqualTo(listOf(0, 0, 0, 0))
+    } finally {
+      observer.stop()
+      renderer.detach()
+      testScope.cancel()
+    }
+  }
+
+  @Test
   fun detach_releasesOwnedResourcesExactlyOnce() {
     val renderer = GlassRuntimeEffect()
     val delegate = CountingGlassDelegate()
@@ -163,9 +278,8 @@ private class TrackingLifecycleScope(
   override val modifierSize: Size = Size(100f, 100f),
   var localStyle: GlassStyle = GlassStyle,
   var accessibilitySettings: GlassAccessibilitySettings = GlassAccessibilitySettings(),
+  override val coroutineScope: CoroutineScope = CoroutineScope(EmptyCoroutineContext),
 ) : HazeEffectLifecycleScope {
-  override val coroutineScope: CoroutineScope = CoroutineScope(EmptyCoroutineContext)
-
   override fun requirePlatformContext(): PlatformContext = error("Unused in lifecycle test")
 
   override fun requireGraphicsContext(): GraphicsContext = error("Unused in lifecycle test")
@@ -184,7 +298,12 @@ private class TrackingLifecycleScope(
   var layerBoundsInvalidations = 0
     private set
 
-  override fun invalidateDraw() = Unit
+  var drawInvalidations = 0
+    private set
+
+  override fun invalidateDraw() {
+    drawInvalidations++
+  }
 
   override fun invalidateLayerBounds() {
     layerBoundsInvalidations++
