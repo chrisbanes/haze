@@ -6,10 +6,6 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.referentialEqualityPolicy
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -18,11 +14,15 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.InternalHazeApi
 
-/** Mutable style and interaction state owned by one [GlassRuntimeEffect]. */
+/**
+ * Mutable style and interaction state owned by one [GlassRuntimeEffect].
+ *
+ * Fields are plain, not snapshot state: update() writes and reads them in one observed pass, so
+ * dirtyTrackerSignal is the only observed signal.
+ */
 @ExperimentalHazeApi
 @Stable
 @OptIn(InternalHazeApi::class)
-@Suppress("ktlint:standard:property-naming")
 internal abstract class GlassRuntimeState {
   protected constructor()
 
@@ -56,17 +56,11 @@ internal abstract class GlassRuntimeState {
   internal open val observesPointerEvents: Boolean
     get() = interactionSlotsSnapshot.hovered != null || interactionSlotsSnapshot.pressed != null
 
-  internal var _interactionSource: InteractionSource? by mutableStateOf(
-    null,
-    referentialEqualityPolicy(),
-  )
-
-  public var interactionSource: InteractionSource?
-    get() = _interactionSource
+  public var interactionSource: InteractionSource? = null
     set(value) {
-      if (_interactionSource !== value) {
-        HazeLogger.d(TAG) { "interactionSource changed. Current: $_interactionSource. New: $value" }
-        _interactionSource = value
+      if (field !== value) {
+        HazeLogger.d(TAG) { "interactionSource changed. Current: $field. New: $value" }
+        field = value
         onInteractionConfigurationChanged()
       }
     }
@@ -74,30 +68,20 @@ internal abstract class GlassRuntimeState {
   internal val interactionLightRadiusFraction: Float
     get() = inheritedStyleValues.interactionLightRadiusFraction
 
-  internal var _interactionTransformTarget: GlassTransformTarget by mutableStateOf(
-    GlassTransformTarget.MaterialOnly,
-  )
-
-  public var interactionTransformTarget: GlassTransformTarget
-    get() = _interactionTransformTarget
+  public var interactionTransformTarget: GlassTransformTarget = GlassTransformTarget.MaterialOnly
     set(value) {
-      if (_interactionTransformTarget != value) {
-        HazeLogger.d(TAG) { "interactionTransformTarget changed. Current: $_interactionTransformTarget. New: $value" }
-        _interactionTransformTarget = value
+      if (field != value) {
+        HazeLogger.d(TAG) { "interactionTransformTarget changed. Current: $field. New: $value" }
+        field = value
         onInteractionConfigurationChanged()
       }
     }
 
-  internal var _interactionTransformPivot: GlassTransformPivot by mutableStateOf(
-    GlassTransformPivot.Pointer,
-  )
-
-  public var interactionTransformPivot: GlassTransformPivot
-    get() = _interactionTransformPivot
+  public var interactionTransformPivot: GlassTransformPivot = GlassTransformPivot.Pointer
     set(value) {
-      if (_interactionTransformPivot != value) {
-        HazeLogger.d(TAG) { "interactionTransformPivot changed. Current: $_interactionTransformPivot. New: $value" }
-        _interactionTransformPivot = value
+      if (field != value) {
+        HazeLogger.d(TAG) { "interactionTransformPivot changed. Current: $field. New: $value" }
+        field = value
         onInteractionConfigurationChanged()
       }
     }
@@ -105,16 +89,11 @@ internal abstract class GlassRuntimeState {
   internal val interactionPositionAnimationSpec
     get() = inheritedStyleValues.interactionPositionAnimationSpec
 
-  internal var _interactionReducedMotionPolicy: GlassReducedMotionPolicy by mutableStateOf(
-    GlassReducedMotionPolicy.System,
-  )
-
-  public var interactionReducedMotionPolicy: GlassReducedMotionPolicy
-    get() = _interactionReducedMotionPolicy
+  public var interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System
     set(value) {
-      if (_interactionReducedMotionPolicy != value) {
-        HazeLogger.d(TAG) { "interactionReducedMotionPolicy changed. Current: $_interactionReducedMotionPolicy. New: $value" }
-        _interactionReducedMotionPolicy = value
+      if (field != value) {
+        HazeLogger.d(TAG) { "interactionReducedMotionPolicy changed. Current: $field. New: $value" }
+        field = value
         onInteractionConfigurationChanged()
       }
     }

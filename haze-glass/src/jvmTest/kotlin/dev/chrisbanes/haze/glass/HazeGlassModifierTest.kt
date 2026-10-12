@@ -765,6 +765,58 @@ class HazeGlassModifierTest : ContextTest() {
       .isEqualTo(HazeEffectContentTransform(0.9f, 0.9f, size.center))
   }
 
+  @Test
+  fun interactionConfigurationChange_costsNoMoreUpdatesThanOtherModifierChanges() = runComposeUiTest {
+    val performanceMode = mutableStateOf(HazePerformanceMode.Default)
+    val source = mutableStateOf<InteractionSource?>(null)
+    val target = mutableStateOf(GlassTransformTarget.MaterialOnly)
+    val pivot = mutableStateOf(GlassTransformPivot.Pointer)
+    val policy = mutableStateOf(GlassReducedMotionPolicy.System)
+    val factory = RecordingGlassFactory()
+
+    setContent {
+      Spacer(
+        Modifier
+          .size(100.dp)
+          .hazeGlass(
+            factory = factory,
+            input = HazeInput.Content,
+            style = remember { GlassStyle { pressed { scale(0.9f) } } },
+            performanceMode = performanceMode.value,
+            expandLayerBounds = true,
+            interactionSource = source.value,
+            interactionTransformTarget = target.value,
+            interactionTransformPivot = pivot.value,
+            interactionReducedMotionPolicy = policy.value,
+          ),
+      )
+    }
+    waitForIdle()
+    mainClock.autoAdvance = false
+    val effect = factory.effects.single()
+
+    fun updatesInFrame(change: () -> Unit): Int {
+      effect.updateCalls = 0
+      change()
+      mainClock.advanceTimeByFrame()
+      return effect.updateCalls
+    }
+
+    // The core node adds an update of its own to every modifier change; Glass must add none.
+    val control = updatesInFrame { performanceMode.value = HazePerformanceMode.Quality }
+    val interactionUpdates = listOf(
+      updatesInFrame { source.value = MutableInteractionSource() },
+      updatesInFrame { target.value = GlassTransformTarget.MaterialAndContent },
+      updatesInFrame { pivot.value = GlassTransformPivot.Center },
+      updatesInFrame { policy.value = GlassReducedMotionPolicy.Full },
+    )
+    val idle = updatesInFrame { }
+
+    assertThat(control).isGreaterThan(0)
+    assertThat(interactionUpdates).isEqualTo(List(4) { control })
+    assertThat(idle).isEqualTo(0)
+  }
+
   /** Prepared radii are in the render's input-scaled coordinates. */
   private fun uniformRadii(radiusPx: Float, prepared: GlassPreparedRender): CornerRadii =
     CornerRadii(radiusPx, radiusPx, radiusPx, radiusPx) * prepared.params.coordinates.scaleFactor

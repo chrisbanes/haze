@@ -188,6 +188,64 @@ class GlassRendererLifecycleTest {
   }
 
   @Test
+  fun observedUpdate_interactionConfigurationChange_doesNotInvalidateItsObservation() {
+    val renderer = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
+    val testScope = TestScope()
+    val scope = TrackingLifecycleScope(coroutineScope = testScope)
+    renderer.attach(scope)
+    fun configuration(
+      source: MutableInteractionSource? = null,
+      target: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
+      pivot: GlassTransformPivot = GlassTransformPivot.Pointer,
+      policy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
+    ) = GlassNodeConfiguration(
+      style = GlassStyle { pressed { scale(0.9f) } },
+      interactionSource = source,
+      interactionTransformTarget = target,
+      interactionTransformPivot = pivot,
+      interactionReducedMotionPolicy = policy,
+    )
+    val source = MutableInteractionSource()
+    val changes = listOf(
+      configuration(source = source),
+      configuration(source = source, target = GlassTransformTarget.MaterialAndContent),
+      configuration(
+        source = source,
+        target = GlassTransformTarget.MaterialAndContent,
+        pivot = GlassTransformPivot.Center,
+      ),
+      configuration(
+        source = source,
+        target = GlassTransformTarget.MaterialAndContent,
+        pivot = GlassTransformPivot.Center,
+        policy = GlassReducedMotionPolicy.Full,
+      ),
+    )
+    var invalidations = 0
+    val observer = SnapshotStateObserver { it() }
+    val onChanged: (GlassRuntimeEffect) -> Unit = { invalidations++ }
+    observer.start()
+    try {
+      fun observedUpdate(configuration: GlassNodeConfiguration): Int {
+        invalidations = 0
+        observer.observeReads(renderer, onChanged) {
+          renderer.update(scope, configuration, HazeSampling.Default)
+        }
+        Snapshot.sendApplyNotifications()
+        return invalidations
+      }
+      observedUpdate(configuration())
+
+      // update() applies each changed value, and must not invalidate the observation it runs in.
+      assertThat(changes.map(::observedUpdate)).isEqualTo(listOf(0, 0, 0, 0))
+    } finally {
+      observer.stop()
+      renderer.detach()
+      testScope.cancel()
+    }
+  }
+
+  @Test
   fun detach_releasesOwnedResourcesExactlyOnce() {
     val renderer = GlassRuntimeEffect()
     val delegate = CountingGlassDelegate()
