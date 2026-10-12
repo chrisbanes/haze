@@ -201,10 +201,18 @@ class GlassProfilingBenchmark {
   )
 
   @Test
-  fun sourceUpdateIndependent2() = measureScenario("source_update_independent_2", includeMemory = true)
+  fun sourceUpdateIndependent2() = measureScenario(
+    scenarioId = "source_update_independent_2",
+    includeMemory = true,
+    includeRedrawMetrics = true,
+  )
 
   @Test
-  fun sourceUpdateContainer2() = measureScenario("source_update_container_2", includeMemory = true)
+  fun sourceUpdateContainer2() = measureScenario(
+    scenarioId = "source_update_container_2",
+    includeMemory = true,
+    includeRedrawMetrics = true,
+  )
 
   private fun measureColdInitializationScenario(scenarioId: String) {
     measureScenario(
@@ -239,6 +247,7 @@ class GlassProfilingBenchmark {
     includePreparationMetrics: Boolean = false,
     includeBackdropComparisonMetrics: Boolean = false,
     requireBackdropDraw: Boolean = false,
+    includeRedrawMetrics: Boolean = false,
   ) {
     // Stable-source scenarios still animate draw progress throughout the measured window.
     withoutUiAutomatorIdleWait(enabled = continuouslyAnimating) {
@@ -250,6 +259,7 @@ class GlassProfilingBenchmark {
           includePreparationMetrics = includePreparationMetrics,
           includeBackdropComparisonMetrics = includeBackdropComparisonMetrics,
           requireBackdropDraw = requireBackdropDraw,
+          includeRedrawMetrics = includeRedrawMetrics,
         ),
         compilationMode = CompilationMode.Full(),
         startupMode = StartupMode.WARM,

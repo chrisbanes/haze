@@ -140,14 +140,27 @@ parameter except the container:
 `source_update_container_2` wraps the grid in `hazeGlassContainer(spacing = 32.dp)`. The 12 dp gap
 is less than half of the spacing, so the two surfaces form one two-member cluster.
 
-Both use the changing-source workload, not the steady one, so that container-owned glass is
-expected to redraw every frame. The steady workload invalidates only each member's own draw, and the container draws
-its members' glass. A source change is expected to reach the container through the same
-invalidation as any other surface, but confirm it for each run: `hazeGlassRuntimeDrawCount` is
-expected to be roughly half per frame in the container row, because one cluster draws once where
-two independent surfaces draw twice. It must be positive and continuous in both rows. If the
-container row does not redraw continuously, the workload does not exercise the cluster and the
-comparison is invalid.
+Both use the changing-source workload, not the steady one. `HazeSource.record` re-records the same
+source layer every frame, but that does not re-enter the Glass draw: the Glass layers were recorded
+once, and HWUI re-renders them on the RenderThread each frame. `hazeGlassRuntimeDrawCount` (the
+`HazeGlass.runtimeDraw` marker) therefore counts UI-thread recording, not rendered frames. It is
+1-2 per iteration in both rows, and only confirms that the modern runtime delegate was selected.
+
+The per-frame signal is HWUI's `drawLayer [graphicsLayer] <width> x <height>` slice, which marks
+each damaged offscreen layer that is re-rendered. The benchmark records it as
+`graphicsLayerDrawCount`, next to `hazeSourceRecordCount`. Divide each by `frameCount` for the same
+iteration:
+
+| Row | `graphicsLayerDrawCount` per frame | `hazeSourceRecordCount` per frame | `hazeGlassRuntimeDrawCount` |
+| --- | --- | --- | --- |
+| `source_update_independent_2` | 1.8-2.2 (two layers) | 0.9-1.1 | at least 1 every iteration |
+| `source_update_container_2` | 0.9-1.1 (one cluster layer) | 0.9-1.1 | at least 1 every iteration |
+
+The slice is named by the platform and counts any offscreen Compose layer, so the bands are
+row-specific. They also detect a cluster that failed to form: a container row that shows two layers
+per frame does not exercise the cluster, and the comparison is invalid. `archive_result.py` enforces
+these bands with `--per-frame` and `--positive`, and fails any archive in which a single-value
+metric has fewer runs than iterations.
 
 CPU frame time does not measure GPU shader cost. Compare the container row's layer, which covers
 both members and the bridge between them, with the two independent layers using peak GPU memory and
@@ -319,14 +332,63 @@ instrumentation work, which can change device state or mix artifact output with 
 
 Run each method individually. Dry-run first, with
 `-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true`, and check
-that each XML result names its method; do not archive a dry run as a measurement. Then run the two
-measured passes, the second in the opposite order, so that order and thermal drift do not favour
-one row. The loop archives each method with `archive_result.py`, which checks the eight measured
-iterations, a passing XML testcase, and eight distinct traces.
+that each XML result names its method; do not archive a dry run as a measurement. A dry run writes
+only XML, so it cannot check the gates below. Run a three-iteration diagnostic for that, then the
+two measured passes, the second in the opposite order, so that order and thermal drift do not
+favour one row. Each loop archives every method with `archive_result.py`, which checks the
+iteration count, a passing XML testcase, distinct traces, a full set of runs for every single-value
+metric, and the per-method gates from [Glass container comparison](#glass-container-comparison).
 
-Before each pass, record the device model and Android build, the refresh rate, the thermal status
-and the battery temperature. Record the build identity of the installed APKs and the run order with
-the results.
+Define the per-method gates once in the shell that runs the loops:
+
+```bash
+gates_for() {
+  gates=(--per-frame hazeSourceRecordCount=0.9:1.1 --positive hazeGlassRuntimeDrawCount)
+  case "$1" in
+    sourceUpdateIndependent2) gates+=(--per-frame graphicsLayerDrawCount=1.8:2.2) ;;
+    sourceUpdateContainer2) gates+=(--per-frame graphicsLayerDrawCount=0.9:1.1) ;;
+  esac
+}
+```
+
+### Run the gated diagnostic
+
+Run each method once with three iterations. This is the quick diagnostic signal from the
+repository guidance; it proves that the gates pass on the installed APKs, and is never published.
+
+```bash
+(
+set -e
+trap 'adb shell cmd power set-fixed-performance-mode-enabled false' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+adb shell cmd power set-fixed-performance-mode-enabled true
+mkdir -p internal/benchmark/build/benchmark-results
+results_dir=$(mktemp -d internal/benchmark/build/benchmark-results/container.XXXXXX)
+echo "Results: $results_dir"
+for method in sourceUpdateIndependent2 sourceUpdateContainer2; do
+  if adb shell dumpsys window | grep -q "isKeyguardShowing=true"; then
+    echo "Keyguard showing before $method; unlock the device and restart"
+    exit 3
+  fi
+  gates_for "$method"
+  ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
+    -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.iterations=3 \
+    -Pandroid.testInstrumentationRunnerArguments.class="dev.chrisbanes.haze.GlassProfilingBenchmark#${method}"
+  python3 internal/benchmark/archive_result.py \
+    --method "dev.chrisbanes.haze.GlassProfilingBenchmark#${method}" \
+    --iterations 3 "${gates[@]}" \
+    --destination "$results_dir/diagnostic/$method"
+done
+)
+```
+
+### Run the measured passes
+
+Before each pass, record the device model and Android build, the refresh rate (`vsyncRate`), the
+thermal status and the battery temperature and level. Record the SHA-256 of the installed APKs and
+the run order with the results. Check for the keyguard before each method: a locked device
+interrupts the run, so restart that method into a fresh archive directory.
 
 ```bash
 (
@@ -343,22 +405,66 @@ pass_two=(sourceUpdateContainer2 sourceUpdateIndependent2)
 for pass in one two; do
   methods=("${pass_one[@]}")
   if [ "$pass" = two ]; then methods=("${pass_two[@]}"); fi
-  adb shell dumpsys thermalservice | head -n 20
-  adb shell dumpsys battery | grep -i temperature
+  {
+    echo "== pass $pass: ${methods[*]}"
+    adb shell getprop ro.product.model
+    adb shell getprop ro.build.fingerprint
+    adb shell dumpsys thermalservice | grep -E "Thermal Status|mName=(battery|soc_therm|VIRTUAL-SKIN)"
+    adb shell dumpsys battery | grep -E "temperature|level|AC powered"
+    adb shell dumpsys SurfaceFlinger | grep -m1 -oE "vsyncRate=[0-9.]+ Hz"
+    shasum -a 256 \
+      sample/android/build/outputs/apk/benchmarkRelease/android-benchmarkRelease.apk \
+      internal/benchmark/build/outputs/apk/benchmarkRelease/benchmark-benchmarkRelease.apk
+  } | tee -a "$results_dir/conditions.txt"
   for method in "${methods[@]}"; do
+    if adb shell dumpsys window | grep -q "isKeyguardShowing=true"; then
+      echo "Keyguard showing before $pass/$method; unlock the device and restart" | tee -a "$results_dir/conditions.txt"
+      exit 3
+    fi
+    gates_for "$method"
     ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
       -Pandroid.testInstrumentationRunnerArguments.class="dev.chrisbanes.haze.GlassProfilingBenchmark#${method}"
     python3 internal/benchmark/archive_result.py \
       --method "dev.chrisbanes.haze.GlassProfilingBenchmark#${method}" \
+      "${gates[@]}" \
       --destination "$results_dir/$pass/$method"
   done
 done
 )
 ```
 
-Check `hazeGlassRuntimeDrawCount` in every archived JSON as described above before comparing
-frame durations. If Perfetto stalls waiting for the `track_event` data source, force-stop the
-Google app as described in [Prepare the device](#prepare-the-device) and restart the pass.
+If Perfetto stalls waiting for the `track_event` data source, force-stop the Google app as
+described in [Prepare the device](#prepare-the-device) and restart the pass.
+
+### Report CPU placement per iteration
+
+Report main-thread and RenderThread placement for every archived iteration, as described in
+[Check CPU placement before attributing a regression](#check-cpu-placement-before-attributing-a-regression).
+Save this query as `placement.sql`. It totals the running time per CPU of the app's main thread and
+RenderThread inside the `measureBlock` slice of one trace:
+
+```sql
+with w as (select ts, ts + dur as te from slice where name = 'measureBlock' limit 1)
+select thread.name as thread, sched.cpu as cpu,
+  round(sum(min(sched.ts + sched.dur, w.te) - max(sched.ts, w.ts)) / 1e6, 1) as running_ms
+from sched join thread using(utid) join process using(upid), w
+where process.name = 'dev.chrisbanes.haze.sample.android'
+  and (thread.tid = process.pid or thread.name = 'RenderThread')
+  and sched.ts < w.te and sched.ts + sched.dur > w.ts
+group by thread.name, sched.cpu order by thread.name, sched.cpu;
+```
+
+Run it over each trace with Perfetto's `trace_processor_shell`, one iteration per trace. This
+covers both methods in both measured passes (32 traces). The loops above run in subshells, so set
+`results_dir` to the path they printed after `Results:`:
+
+```bash
+results_dir=internal/benchmark/build/benchmark-results/container.XXXXXX  # replace XXXXXX with the printed suffix
+find "$results_dir/one" "$results_dir/two" -name '*.perfetto-trace' | sort | while read -r trace; do
+  echo "== $trace"
+  trace_processor_shell -q placement.sql "$trace"
+done
+```
 
 ## Run a profile
 
@@ -426,7 +532,9 @@ internal/benchmark/build/outputs/connected_android_test_additional_output/
 
 Use `frameOverrunMs` for deadline misses and `frameDurationCpuMs` for UI-thread and RenderThread
 cost. A positive `hazeGlassRuntimeDrawCount` confirms that a Glass scenario used the modern runtime
-delegate. The no-Glass control intentionally omits that metric.
+delegate. It counts UI-thread recording, not rendered frames: with source input, a changing source
+re-renders retained Glass layers on the RenderThread, so use `graphicsLayerDrawCount` for per-frame
+layer rendering. The no-Glass control intentionally omits that metric.
 
 Open representative traces in Android Studio or Perfetto. Application markers describe CPU-side
 preparation, recording, and submission; they do not directly measure GPU shader duration. Inspect
@@ -485,7 +593,7 @@ The paired Quality workloads are:
 | Glass updating | `sourceUpdateQuality` | `backdropSourceUpdateQuality` |
 | Nine Glass nodes updating | `sourceUpdate9` | `backdropSourceUpdate9` |
 
-Each row records `FrameTimingMetric`, max `MemoryUsageMetric`, `HazeBackdrop.draw` count, and
+Each row records `FrameTimingMetric`, max `MemoryUsageMetric` (GPU and RSS counters), `HazeBackdrop.draw` count, and
 `HazeSource.record` count. A healthy backdrop result has native backdrop draws and zero source
 records; its source control has source records and no required backdrop draw.
 
