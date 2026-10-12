@@ -179,6 +179,17 @@ class FallbackGlassUnionPathTest {
   }
 
   @Test
+  fun drawMergedInteractionLighting_withinBudget_unlitFirstMemberClearsLaterLightInOverlap() {
+    // Member 0 spans x 20..120 and member 1 x 90..190; only member 1 is lit, centred on (105, 60).
+    val paths = FallbackMergedPaths(field(member(Rect(20f, 20f, 120f, 100f)), member(Rect(90f, 20f, 190f, 100f))))
+    val secondOnly = drawLights(paths, listOf(null, light()), mutableListOf())
+    // Unlit member 0 owns the overlap, so it shows no light there.
+    assertThat(secondOnly, 105, 30).isEmpty()
+    // (135, 60) is only in member 1, 30 px from the centre.
+    assertThat(secondOnly[135, 60].alpha).isGreaterThan(0.1f)
+  }
+
+  @Test
   fun drawMergedInteractionLighting_visibleOverBudget_usesExclusivePaths() {
     val wide = MAX_GLASS_LAYER_DIMENSION_PX + 100f
     val paths = FallbackMergedPaths(field(member(Rect(20f, 20f, 120f, 100f)), member(Rect(90f, 20f, wide, 100f))))
