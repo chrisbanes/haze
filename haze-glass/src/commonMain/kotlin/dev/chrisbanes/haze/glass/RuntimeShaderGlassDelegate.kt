@@ -27,7 +27,6 @@ import dev.chrisbanes.haze.MutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.PlatformRuntimeEffect
 import dev.chrisbanes.haze.Poko
-import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.asComposeRenderEffect
@@ -36,8 +35,12 @@ import dev.chrisbanes.haze.createBlurRenderEffect
 import dev.chrisbanes.haze.createMutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.createOffsetRenderEffect
 import dev.chrisbanes.haze.createRuntimeEffect
+import dev.chrisbanes.haze.createScaledContentLayer
 import dev.chrisbanes.haze.createShaderRenderEffect
+import dev.chrisbanes.haze.drawScaledContent
 import dev.chrisbanes.haze.trace
+import dev.chrisbanes.haze.translate
+import dev.chrisbanes.haze.wrapRuntimeShaderConstruction
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RuntimeShaderGlassDelegate(
@@ -1839,7 +1842,7 @@ internal class RuntimeShaderGlassDelegate(
           setRefractionDetailUniforms(detailKey)
           key.interaction?.let(::setInteractionDetailUniforms)
         }
-        wrapGlassRuntimeEffectConstruction {
+        wrapRuntimeShaderConstruction {
           createBlendRenderEffect(
             blendMode = BlendMode.Plus,
             background = optical,
@@ -1882,7 +1885,7 @@ internal class RuntimeShaderGlassDelegate(
     if (plan.usesNativeWideBlur) {
       return createGlassDepthInputRenderEffect(
         sharp = input,
-        blur = wrapGlassRuntimeEffectConstruction {
+        blur = wrapRuntimeShaderConstruction {
           createBlurRenderEffect(
             radiusX = plan.effectiveRadiusPx,
             radiusY = plan.effectiveRadiusPx,
@@ -1945,7 +1948,7 @@ internal class RuntimeShaderGlassDelegate(
     if (key.plan.usesNativeWideBlur) {
       return GlassBlurRenderEffects(
         key = key,
-        native = wrapGlassRuntimeEffectConstruction {
+        native = wrapRuntimeShaderConstruction {
           checkNotNull(
             createBlurRenderEffect(
               radiusX = key.plan.effectiveRadiusPx,
@@ -2037,15 +2040,6 @@ internal class RuntimeShaderGlassDelegate(
     trace(GlassTraceSection.CreateRenderEffect) {
       runtimeEffectFactory.create(block)
     }
-}
-
-@OptIn(InternalHazeApi::class)
-internal inline fun <T> wrapGlassRuntimeEffectConstruction(block: () -> T): T = try {
-  block()
-} catch (failure: RuntimeShaderRenderEffectException) {
-  throw failure
-} catch (failure: RuntimeException) {
-  throw RuntimeShaderRenderEffectException(failure)
 }
 
 internal fun interface GlassRuntimeEffectFactory {

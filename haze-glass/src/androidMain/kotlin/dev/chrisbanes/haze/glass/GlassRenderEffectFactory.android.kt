@@ -16,12 +16,13 @@ import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toAndroidColorSpace
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 import dev.chrisbanes.haze.createBlendRenderEffect
 import dev.chrisbanes.haze.createColorFilterRenderEffect
+import dev.chrisbanes.haze.toAndroidColorLong
+import dev.chrisbanes.haze.wrapRuntimeShaderConstruction
 
 @RequiresApi(Build.VERSION_CODES.S)
 internal actual fun createGlassDepthInputRenderEffect(
@@ -32,7 +33,7 @@ internal actual fun createGlassDepthInputRenderEffect(
   if (blur == null || depth <= 0.0001f) return null
   if (depth >= 0.9999f) return blur
 
-  return wrapGlassRuntimeEffectConstruction {
+  return wrapRuntimeShaderConstruction {
     fun scaledInput(scale: Float, input: PlatformRenderEffect?): PlatformRenderEffect {
       val matrix = ColorMatrix().apply {
         // Color filters operate on straight RGB and premultiply the result. Scaling both RGB and
@@ -82,18 +83,7 @@ internal actual fun createGlassMergedBackgroundShaderProvider(): GlassMergedBack
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 private class GlassRimUniformProvider(private val shader: RuntimeShader) : RuntimeShaderUniformProvider {
-  override fun setColorUniform(name: String, color: Color) {
-    shader.setColorUniform(
-      name,
-      android.graphics.Color.valueOf(
-        color.red,
-        color.green,
-        color.blue,
-        color.alpha,
-        color.colorSpace.toAndroidColorSpace(),
-      ),
-    )
-  }
+  override fun setColorUniform(name: String, color: Color) = shader.setColorUniform(name, color.toAndroidColorLong())
 
   override fun setFloatUniform(name: String, value: Float) = shader.setFloatUniform(name, value)
 

@@ -32,6 +32,7 @@ import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
+import dev.chrisbanes.haze.translate
 import kotlin.test.Test
 import kotlinx.coroutines.CoroutineScope
 

@@ -5,28 +5,17 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.Shader
-import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.InternalHazeApi
-import kotlin.math.ceil
-import kotlin.math.max
 
 internal fun DrawScope.recordDepthMix(
   layer: GraphicsLayer,
@@ -114,60 +103,6 @@ internal fun DrawScope.drawInputWithAlpha(
   }
 }
 
-@OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
-internal fun DrawScope.createScaledContentLayer(
-  context: HazeEffectRuntimeDrawScope,
-  backgroundColor: Color,
-  scaleFactor: Float,
-  layerSize: Size,
-  existingLayer: GraphicsLayer? = null,
-  backgroundShader: Shader? = null,
-): GraphicsLayer? {
-  val scaledLayerSize = (layerSize * scaleFactor).roundToIntSize()
-
-  if (scaledLayerSize.width <= 0 || scaledLayerSize.height <= 0) {
-    return null
-  }
-
-  val graphicsContext = context.requireGraphicsContext()
-  val layer = ensureLayer(existingLayer, graphicsContext)
-
-  layer.record(size = scaledLayerSize) {
-    if (backgroundShader != null) {
-      drawRect(ShaderBrush(backgroundShader))
-    } else if (backgroundColor.alpha > 0f) {
-      drawRect(backgroundColor)
-    }
-
-    scale(scale = scaleFactor, pivot = Offset.Zero) {
-      with(context) { this@record.drawInput() }
-    }
-  }
-
-  // Round the outline outward separately from the capture allocation, preserving the last
-  // output row/column when fractional input scaling is expanded back to output space.
-  val outlineSize = layerSize * scaleFactor
-  layer.setRectOutline(size = Size(ceil(outlineSize.width), ceil(outlineSize.height)))
-
-  return layer
-}
-
-internal fun DrawScope.drawScaledContent(
-  offset: Offset,
-  scaledSize: Size,
-  clip: Boolean = true,
-  block: DrawScope.() -> Unit,
-) {
-  val scaleFactor = max(size.width / scaledSize.width, size.height / scaledSize.height)
-  withTransform({ if (clip) clipRect() }) {
-    translate(offset) {
-      scale(scale = scaleFactor, pivot = Offset.Zero) {
-        block()
-      }
-    }
-  }
-}
-
 internal inline fun DrawScope.recordAndDrawGlassGroupAlpha(
   layer: GraphicsLayer,
   alpha: Float,
@@ -180,17 +115,6 @@ internal inline fun DrawScope.recordAndDrawGlassGroupAlpha(
   layer.renderEffect = null
   recordGlassLayer(layer, size) { block() }
   drawLayer(layer)
-}
-
-internal inline fun DrawScope.translate(
-  offset: Offset,
-  block: DrawScope.() -> Unit,
-) {
-  if (offset != Offset.Zero) {
-    translate(offset.x, offset.y, block)
-  } else {
-    block()
-  }
 }
 
 // GraphicsLayer caches its outline independently of its recording size. Refresh it for retained

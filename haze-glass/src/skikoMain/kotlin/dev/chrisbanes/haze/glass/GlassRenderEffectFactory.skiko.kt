@@ -5,16 +5,12 @@
 
 package dev.chrisbanes.haze.glass
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeShader
-import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.skiaShader
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformRenderEffect
-import dev.chrisbanes.haze.RuntimeShaderUniformProvider
+import dev.chrisbanes.haze.asUniformProvider
 import org.jetbrains.skia.RuntimeEffect
 import org.jetbrains.skia.RuntimeShaderBuilder
 
@@ -30,7 +26,7 @@ internal actual fun createGlassRimBrushProvider(merged: Boolean): GlassRimBrushP
   val builder = runCatchingGlassRim {
     RuntimeShaderBuilder(RuntimeEffect.makeForShader(GlassShaders.buildRim(merged)))
   }.getOrNull() ?: return null
-  val uniforms = GlassRimUniformProvider(builder)
+  val uniforms = builder.asUniformProvider()
   return GlassRimBrushProvider { key ->
     uniforms.setRimUniforms(key)
     runCatchingGlassRim {
@@ -46,36 +42,10 @@ internal actual fun createGlassMergedBackgroundShaderProvider(): GlassMergedBack
   val builder = runCatchingGlassRim {
     RuntimeShaderBuilder(RuntimeEffect.makeForShader(GlassShaders.buildMergedBackground()))
   }.getOrNull() ?: return null
-  val uniforms = GlassRimUniformProvider(builder)
+  val uniforms = builder.asUniformProvider()
   return GlassMergedBackgroundShaderProvider { materialOrigin, field ->
     uniforms.setFloatUniform("materialOrigin", materialOrigin.x, materialOrigin.y)
     uniforms.setMergedFieldUniforms(field, includeBackground = true)
     runCatchingGlassRim { builder.makeShader().asComposeShader() }.getOrNull()
   }
-}
-
-private class GlassRimUniformProvider(private val builder: RuntimeShaderBuilder) : RuntimeShaderUniformProvider {
-  override fun setColorUniform(name: String, color: Color) {
-    val extendedSrgb = color.convert(ColorSpaces.ExtendedSrgb)
-    builder.uniform(
-      name,
-      extendedSrgb.red,
-      extendedSrgb.green,
-      extendedSrgb.blue,
-      extendedSrgb.alpha,
-    )
-  }
-
-  override fun setFloatUniform(name: String, value: Float) = builder.uniform(name, value)
-
-  override fun setFloatUniform(name: String, value1: Float, value2: Float) = builder.uniform(name, value1, value2)
-
-  override fun setFloatUniform(name: String, value1: Float, value2: Float, value3: Float, value4: Float) =
-    builder.uniform(name, value1, value2, value3, value4)
-
-  override fun setFloatUniform(name: String, values: FloatArray) = builder.uniform(name, values)
-
-  override fun setIntUniform(name: String, value: Int) = builder.uniform(name, value)
-
-  override fun setChildShader(name: String, shader: Shader) = builder.child(name, shader.skiaShader)
 }
