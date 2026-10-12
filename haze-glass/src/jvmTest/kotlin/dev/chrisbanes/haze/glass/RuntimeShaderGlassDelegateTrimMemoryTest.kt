@@ -402,6 +402,23 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   }
 
   @Test
+  fun draw_failureFromDelegateThatCannotRecover_rethrows() {
+    val effect = GlassRuntimeEffect()
+    val context = RecordingVisualEffectContext(size = Size(100f, 100f), layerSize = Size(100f, 100f))
+    effect.attach(context)
+    effect.prepareDrawForTest(context)
+    val failing = FailingGlassDelegate(usesRuntimeShader = false)
+    effect.delegate = failing
+
+    assertFailure {
+      with(effect) { context.draw(effect.configuration()) }
+    }.isInstanceOf<RuntimeShaderRenderEffectException>()
+    assertThat(effect.delegate).isSameInstanceAs(failing)
+    assertThat(effect.runtimeShaderIncompatible).isFalse()
+    effect.detach()
+  }
+
+  @Test
   fun prepareDraw_failureFromRuntimeShaderDelegate_downgradesToFallback() {
     val effect = GlassRuntimeEffect()
     val context = RecordingVisualEffectContext(size = Size(100f, 100f), layerSize = Size(100f, 100f))
@@ -1006,7 +1023,9 @@ private class FailingGlassDelegate(
     throw RuntimeShaderRenderEffectException(IllegalStateException("backdrop failed"))
   }
 
-  override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) = Unit
+  override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) {
+    throw RuntimeShaderRenderEffectException(IllegalStateException("draw failed"))
+  }
 }
 
 @OptIn(InternalComposeUiApi::class, InternalHazeApi::class)

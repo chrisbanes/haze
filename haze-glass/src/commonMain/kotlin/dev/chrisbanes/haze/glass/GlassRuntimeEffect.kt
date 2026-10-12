@@ -554,6 +554,7 @@ internal class GlassRuntimeEffect() :
           with(selectedDelegate) { draw(context) }
         }
       } catch (failure: RuntimeShaderRenderEffectException) {
+        if (!selectedDelegate.usesRuntimeShader) throw failure
         val fallback = downgradeRuntimeDelegate(context, failure)
         withMaterialTransform(context) {
           with(fallback) { draw(context, forceInput = true) }

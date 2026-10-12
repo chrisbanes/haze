@@ -1939,6 +1939,8 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   )
 
   private class FailingRuntimeShaderGlassDelegate : GlassRuntimeEffect.Delegate {
+    override val usesRuntimeShader: Boolean get() = true
+
     override fun DrawScope.prepareDraw(context: HazeEffectRuntimeDrawScope) = Unit
 
     override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope): Nothing {
