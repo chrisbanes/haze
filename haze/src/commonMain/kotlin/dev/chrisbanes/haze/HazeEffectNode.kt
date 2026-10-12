@@ -1571,7 +1571,8 @@ internal class HazeEffectNode(
       val layer = area.drawableContentLayer ?: return@mapNotNull null
       require(!area.isContentDrawing) { "A relocated effect cannot sample its drawing ancestor source" }
       val source = Snapshot.withoutReadObservation { sourceTransformInEffect(area) }
-      HazeSurfaceInputEntry(area, layer, Matrix(transform.values.copyOf()).also { it *= source })
+      // Apply source-to-member followed by member-to-owner, keeping both matrices unchanged.
+      HazeSurfaceInputEntry(area, layer, Matrix(source.values.copyOf()).also { it *= transform })
     }
   }
 

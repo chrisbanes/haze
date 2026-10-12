@@ -12,16 +12,22 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
@@ -35,6 +41,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.isBetween
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
@@ -428,7 +435,141 @@ class HazeEffectSurfaceDrawTest {
     assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[50, 50]).isEqualTo(Color.White)
   }
 
-  private class SurfaceFactory(val owner: SurfaceOwnerNode, val spill: Boolean = false, val retainedColor: Color? = null) : HazeEffectFactory<Unit> {
+  @Test
+  fun configuredSources_translationOrder_matchesDirectCoordinatesAndPixels() = configuredSourceOrderProof(HazePositionStrategy.Local, transformed = false)
+
+  @Test
+  fun configuredSources_noncommutingLocalOrder_matchesDirectCoordinates() = configuredSourceOrderProof(HazePositionStrategy.Local, transformed = true)
+
+  @Test
+  fun configuredSources_noncommutingScreenOrder_matchesDirectCoordinates() = configuredSourceOrderProof(HazePositionStrategy.Screen, transformed = true)
+
+  @Test
+  fun configuredSources_noncommutingLocalOrder_drawsFeaturesAtDirectPositions() = configuredSourceOrderProof(HazePositionStrategy.Local, transformed = true, verifyCoordinates = false)
+
+  @Test
+  fun configuredSources_noncommutingScreenOrder_drawsFeaturesAtDirectPositions() = configuredSourceOrderProof(HazePositionStrategy.Screen, transformed = true, verifyCoordinates = false)
+
+  private fun configuredSourceOrderProof(strategy: HazePositionStrategy, transformed: Boolean, verifyCoordinates: Boolean = true) = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val first = SurfaceFactory(owner)
+    val second = SurfaceFactory(owner)
+    val standalone = SurfaceFactory(owner, relocate = false)
+    val state = HazeState().also { it.positionStrategy = strategy }
+    val input = HazeInput.Sources(state, HazeSourceSelection.All.where { it.key == "selected" })
+    var sourceCoordinates: LayoutCoordinates? = null
+    var standaloneCoordinates: LayoutCoordinates? = null
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    val bounds = Rect(10f, 15f, 600f, 420f)
+    val features = listOf(Rect(280f, 210f, 320f, 250f), Rect(370f, 270f, 390f, 330f), Rect(720f, 190f, 740f, 220f))
+    owner.resolveSurfaces = {
+      configured = configured ?: first.surface.createConfiguredSurface(
+        HazeEffectFactory {
+          object : HazeEffectRenderer<Unit> {
+            override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
+          }
+        },
+        Unit, bounds, listOf(first.surface, second.surface),
+      )
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      Box(Modifier.size(900.dp, 600.dp).testTag("root").background(Color.White)) {
+        Box(
+          Modifier.size(900.dp, 600.dp).onGloballyPositioned { sourceCoordinates = it }.hazeSource(state, key = "selected").drawBehind {
+            drawRect(Color.Black)
+            features.forEach { drawRect(Color.Red, it.topLeft, it.size) }
+          },
+        )
+        Box(Modifier.fillMaxSize().background(Color.White))
+        Box(
+          Modifier.offset(100.dp, 70.dp).size(650.dp, 450.dp).graphicsLayer {
+            transformOrigin = TransformOrigin(0f, 0f)
+            if (transformed) {
+              scaleX = .75f
+              scaleY = .9f
+              rotationZ = 12f
+            }
+          }.then(OwnerElement(owner)),
+        ) {
+          Box(
+            Modifier.offset(50.dp, 40.dp).size(400.dp, 300.dp).graphicsLayer {
+              transformOrigin = TransformOrigin(0f, 0f)
+              if (transformed) {
+                scaleX = .8f
+                scaleY = .65f
+                rotationZ = -17f
+              }
+            }.hazeEffect(first, input, Unit),
+          )
+          Box(Modifier.offset(80.dp, 60.dp).size(400.dp, 300.dp).hazeEffect(second, input, Unit))
+        }
+        Box(Modifier.offset(680.dp, 150.dp).size(160.dp, 180.dp).clipToBounds().onGloballyPositioned { standaloneCoordinates = it }.hazeEffect(standalone, input, Unit))
+      }
+    }
+    val actualPixels = onNodeWithTag("root").captureToImage().toPixelMap()
+    val source = checkNotNull(sourceCoordinates)
+    val ownerCoordinates = checkNotNull(owner.surfaceCoordinates)
+    val direct = Matrix().also { ownerCoordinates.transformFrom(source, it) }
+    val points = features.take(2).flatMap { listOf(it.topLeft, it.topRight, it.bottomLeft, it.bottomRight, it.center) }
+    var maximumError = 0f
+    for (factory in listOf(first, second)) {
+      val node = factory.surface.node
+      val sourceToMember = node.sourceTransformInEffect(node.areas.single())
+      val retained = sourceToMember.values.copyOf()
+      val entry = node.surfaceInputEntries(ownerCoordinates).single()
+      for (point in points) {
+        val expected = direct.map(point)
+        val error = (entry.transform.map(point) - expected).getDistance()
+        maximumError = maxOf(maximumError, error)
+      }
+      assertThat(sourceToMember.values.toList(), "entry resolution retains cached source transform").isEqualTo(retained.toList())
+      val repeated = node.surfaceInputEntries(ownerCoordinates).single()
+      assertThat(repeated.transform.values.toList(), "consecutive entry resolution retains composed transform").isEqualTo(entry.transform.values.toList())
+      assertThat(sourceToMember.values.toList(), "consecutive entry resolution retains source").isEqualTo(retained.toList())
+    }
+    val standaloneNode = standalone.surface.node
+    val area = standaloneNode.areas.single()
+    val standaloneOracle = Matrix().also { checkNotNull(standaloneCoordinates).transformFrom(source, it) }
+    for (point in points) {
+      assertThat((standaloneNode.sourceTransformInEffect(area).map(point) - standaloneOracle.map(point)).getDistance(), "standalone transform").isBetween(0f, .01f)
+    }
+    assertFeaturePixels(actualPixels, features.last(), "standalone")
+    val actualRed = features.take(2).sumOf { redFeatureCount(actualPixels, it) }
+    println("ORDER strategy=$strategy transformed=$transformed actualMaxError=$maximumError actualFeaturePixels=$actualRed direct=${direct.values.toList()}")
+    if (verifyCoordinates) assertThat(maximumError, "$strategy actual source-to-owner coordinate error").isBetween(0f, .01f)
+    features.take(2).forEach { assertFeaturePixels(actualPixels, it, "$strategy actual configured drawInput") }
+    runOnIdle {
+      configured?.dispose()
+      owner.resolveSurfaces = null
+    }
+  }
+
+  private fun assertFeaturePixels(pixels: PixelMap, feature: Rect, label: String) {
+    // Root-space source coordinates are independent of both owner and member transforms. The direct
+    // source-to-owner oracle above maps these same corners; drawing through the owner cancels it.
+    for (point in listOf(feature.topLeft + Offset(2f, 2f), feature.topRight + Offset(-3f, 2f), feature.bottomLeft + Offset(2f, -3f), feature.bottomRight - Offset(3f, 3f), feature.center)) {
+      val pixel = pixels[point.x.toInt(), point.y.toInt()]
+      assertThat(pixel.red - pixel.green, "$label interior $point").isGreaterThan(.8f)
+    }
+    for (point in listOf(feature.center.copy(x = feature.left - 2f), feature.center.copy(x = feature.right + 1f), feature.center.copy(y = feature.top - 2f), feature.center.copy(y = feature.bottom + 1f))) {
+      val pixel = pixels[point.x.toInt(), point.y.toInt()]
+      assertThat(pixel.red - pixel.green, "$label exterior $point").isLessThan(.1f)
+    }
+    assertThat(redFeatureCount(pixels, feature), "$label feature area").isBetween((feature.width * feature.height).toInt() - 4, (feature.width * feature.height).toInt() + 4)
+  }
+
+  private fun redFeatureCount(pixels: PixelMap, feature: Rect): Int {
+    var count = 0
+    for (y in feature.top.toInt() - 2 until feature.bottom.toInt() + 2) {
+      for (x in feature.left.toInt() - 2 until feature.right.toInt() + 2) {
+        if (pixels[x, y].red - pixels[x, y].green > .5f) count++
+      }
+    }
+    return count
+  }
+
+  private class SurfaceFactory(val owner: SurfaceOwnerNode, val spill: Boolean = false, val retainedColor: Color? = null, val relocate: Boolean = true) : HazeEffectFactory<Unit> {
     lateinit var surface: HazeEffectSurface
     var draws = 0
     override fun createRenderer(): HazeEffectRenderer<Unit> = object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit>, HazeEffectRendererRetainedOutput {
@@ -439,7 +580,7 @@ class HazeEffectSurfaceDrawTest {
       }
       override fun attach(scope: HazeEffectLifecycleScope) {
         surface = scope.surface
-        surface.relocateTo(owner)
+        if (relocate) surface.relocateTo(owner)
       }
       override fun HazeEffectDrawScope.draw(style: Unit) {
         draws++
