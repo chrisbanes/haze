@@ -496,6 +496,7 @@ internal class GlassRuntimeEffect() :
         materialTransform = currentMaterialTransform(context.modifierSize),
       )
     } catch (failure: RuntimeShaderRenderEffectException) {
+      if (!delegate.usesRuntimeShader) throw failure
       recordRuntimeShaderFailure(failure, "Runtime shader backdrop rendering failed; using source fallback")
       context.invalidateDraw()
       null

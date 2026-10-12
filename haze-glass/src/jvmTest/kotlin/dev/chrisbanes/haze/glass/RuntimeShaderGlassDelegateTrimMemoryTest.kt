@@ -387,6 +387,21 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   }
 
   @Test
+  fun backdropEffect_failureFromDelegateThatCannotRecover_rethrows() {
+    val effect = GlassRuntimeEffect()
+    val context = RecordingVisualEffectContext(size = Size(100f, 100f), layerSize = Size(100f, 100f))
+    effect.attach(context)
+    effect.prepareDrawForTest(context)
+    effect.delegate = FailingGlassDelegate(usesRuntimeShader = false)
+
+    assertFailure {
+      with(effect) { with(context) { backdropEffect(effect.configuration()) } }
+    }.isInstanceOf<RuntimeShaderRenderEffectException>()
+    assertThat(effect.runtimeShaderIncompatible).isFalse()
+    effect.detach()
+  }
+
+  @Test
   fun prepareDraw_failureFromRuntimeShaderDelegate_downgradesToFallback() {
     val effect = GlassRuntimeEffect()
     val context = RecordingVisualEffectContext(size = Size(100f, 100f), layerSize = Size(100f, 100f))
