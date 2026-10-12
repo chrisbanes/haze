@@ -8,12 +8,14 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReusableContentHost
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,10 +24,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
+import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotEqualTo
@@ -79,6 +83,30 @@ class GlassContainerMembershipTest : ContextTest() {
       assertThat(container(effect).model.surfaces.single().members.single().identity)
         .isSameInstanceAs(effect.memberBindingForTest?.node)
     }
+  }
+
+  @Test
+  fun membership_memberMoveWithoutResizeReclustersWithoutMemberUpdate() = runComposeUiTest {
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    val secondX = mutableIntStateOf(300)
+    setContent {
+      Box(Modifier.size(500.dp, 100.dp).hazeGlassContainer(40.dp)) {
+        Member(first)
+        Member(second, Modifier.offset { IntOffset(secondX.intValue.dp.roundToPx(), 0) }.size(100.dp, 40.dp))
+      }
+    }
+    waitForIdle()
+    assertThat(container(first).model.surfaces).hasSize(2)
+    first.updateCallsForTest = 0
+    second.updateCallsForTest = 0
+
+    // Placement only: the member's bounds in the container change, its configuration does not.
+    runOnIdle { secondX.intValue = 110 }
+    waitForIdle()
+
+    assertThat(container(first).model.surfaces).hasSize(1)
+    assertThat(second.updateCallsForTest).isEqualTo(0)
   }
 
   @Test
@@ -142,6 +170,25 @@ class GlassContainerMembershipTest : ContextTest() {
     assertThat(compositions).isEqualTo(before)
     assertThat(first.memberBindingForTest?.material?.alpha).isEqualTo(0.5f)
     assertThat(first.memberBindingForTest?.material?.cornerRadii).isEqualTo(CornerRadii(12f, 12f, 12f, 12f))
+    assertThat(container(first).model.surfaces.size).isEqualTo(2)
+  }
+
+  @Test
+  fun membership_rotationKeepingBoundsSeparatesMember() = runComposeUiTest {
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    val rotation = mutableStateOf(0f)
+    setContent {
+      Row(Modifier.hazeGlassContainer(40.dp)) {
+        Member(first, Modifier.size(60.dp))
+        // A quarter turn of a square leaves its bounding box unchanged.
+        Member(second, Modifier.graphicsLayer { rotationZ = rotation.value }.size(60.dp))
+      }
+    }
+    waitForIdle()
+    assertThat(container(first).model.surfaces.size).isEqualTo(1)
+    runOnIdle { rotation.value = 90f }
+    waitForIdle()
     assertThat(container(first).model.surfaces.size).isEqualTo(2)
   }
 
