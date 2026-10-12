@@ -180,10 +180,13 @@ internal class GlassContainerNode(
     // An axis-aligned field rect cannot draw a rotated or scaled member's glass.
     if (!isAttached || !settled || member.transition == GlassMemberTransition.None || !last.translationOnly) return null
     val ordered = registrations.mapNotNull { if (it === member) last else latest[it] }
+    // Only members that can draw now may carry a ghost; a collapsed member keeps a stale snapshot.
+    val live = liveSnapshots().keys
+    val undrawable = ordered.mapNotNullTo(mutableSetOf()) { snapshot -> snapshot.identity.takeIf { it is GlassMemberNode && it !in live } }
     // A ghost draws through its anchor's input, so the anchor must resolve the same sources.
-    val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(last, ordered, spacingPx) else null
+    val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(last, ordered, spacingPx, undrawable) else null
     // A detached member has released its own renderer, so a live member with the same input draws it.
-    val anchor = neighbour ?: resolveGlassBorrowedAnchor(last, ordered.filter { it.drawsSourcesOf(last) }) ?: return null
+    val anchor = neighbour ?: resolveGlassBorrowedAnchor(last, ordered.filter { it.identity !in undrawable && it.drawsSourcesOf(last) }) ?: return null
     val ghost = GlassMemberGhost(last, neighbour?.identity as GlassMemberNode?, anchor.identity as GlassMemberNode)
     ghost.job = animate(ghost.progress, 0f) {
       registrations.remove(ghost)

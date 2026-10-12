@@ -412,6 +412,26 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun undrawableMember_isNotBorrowedAsAnchor() = runComposeUiTest {
+    // A is nearer B than C, but cannot draw when B leaves (its material is unpublished, as during
+    // a binding swap), so only its last snapshot remains; C must carry the ghost.
+    val fixture = fixture(gap = 100, transition = GlassMemberTransition.Materialize, cOffset = 40 to 150, cInitially = true)
+    val owner = fixture.owner()
+    val aBinding = checkNotNull(fixture.aNode).binding
+    val bNode = checkNotNull(fixture.b.memberBindingForTest?.node)
+    lateinit var ghost: GlassMemberGhost
+    runOnIdle {
+      val material = aBinding.material
+      aBinding.material = null
+      owner.remove(bNode)
+      ghost = owner.model.surfaces.flatMap { it.members }.single { it.identity is GlassMemberGhost }.identity as GlassMemberGhost
+      aBinding.material = material
+    }
+    assertThat(ghost.anchor).isEqualTo(fixture.c.memberBindingForTest?.node)
+    fixture.settle()
+  }
+
+  @Test
   fun anchorChangesInput_endsGhost() = runComposeUiTest {
     val fixture = fixture(gap = 100, transition = GlassMemberTransition.Materialize)
     fixture.toggle()
