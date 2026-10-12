@@ -58,9 +58,10 @@ private const val TRANSITION_MILLIS = 150
  * Pixel values assume a density of 1, as in the desktop test environment, and a positive
  * `dispatchRawDelta` scrolls towards later items.
  *
- * The tests use 6px per frame because that rate keeps item 5's grow running for its whole
- * duration. They characterise the first item only: later items depend on whether their neighbour
- * is still animating.
+ * The existing tests use 6px per frame because that rate keeps item 5's grow running for its whole
+ * duration. The 8px regression test reaches the spacing transiently during partial placement.
+ * These tests characterise the first item only: later items depend on whether their neighbour is
+ * still animating.
  *
  * The container animates over [TRANSITION_MILLIS] milliseconds, about 10 frames. Each frame
  * draws the glass on the CPU, which takes a few hundred milliseconds in the desktop tests.
@@ -98,6 +99,24 @@ class GlassContainerLazyLayoutTest : ContextTest() {
 
     fixture.settle()
     assertThat(fixture.ghosts()).isEmpty()
+    assertThat(checkNotNull(fixture.member(5)).rect).isEqualTo(fixture.contentBounds(5))
+  }
+
+  @Test
+  fun lazyItem_matchedGeometry_keepsGrowingWhenScrollAndGapReachSpacing() = runComposeUiTest {
+    val fixture = lazyFixture(GlassMemberTransition.MatchedGeometry)
+
+    fixture.frames(2, scrollPerFrame = 8f)
+    assertThat(checkNotNull(fixture.member(5)).link).isNotNull()
+
+    // The 8px scroll and 8px item gap reach 16dp spacing during partial placement only.
+    fixture.frames(5, scrollPerFrame = 8f)
+    val growing = checkNotNull(fixture.member(5))
+    assertThat(growing.link).isNotNull()
+    assertThat(growing.fading).isFalse()
+    assertThat(growing.material.alpha).isEqualTo(1f)
+
+    fixture.settle()
     assertThat(checkNotNull(fixture.member(5)).rect).isEqualTo(fixture.contentBounds(5))
   }
 

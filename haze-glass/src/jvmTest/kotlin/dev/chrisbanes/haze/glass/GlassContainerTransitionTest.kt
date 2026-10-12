@@ -598,6 +598,9 @@ class GlassContainerTransitionTest : ContextTest() {
   fun growingMember_endsWhenSpacingNoLongerReachesNeighbour() = assertGrowEnds { spacing.value = 0 }
 
   @Test
+  fun growingMember_endsWhenNeighbourLayoutMovesBeyondSpacing() = assertGrowEnds { aWidth.value = 40 }
+
+  @Test
   fun retractingGhost_endsWhenSpacingNoLongerReachesNeighbour() = runComposeUiTest {
     val fixture = fixture()
     fixture.toggle()
