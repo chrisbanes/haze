@@ -10,6 +10,7 @@ import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.spring
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Rect
@@ -216,80 +217,84 @@ internal class GlassContainerNode(
     if (!isAttached || refreshing || surfaceCoordinates == null) return
     refreshing = true
     try {
-      if (pending.isNotEmpty()) startTransitions(liveSnapshots())
-      val registered = members
-      val opticalSize = glassOpticalSize(registered.mapNotNull { it.binding.surface?.boundsInOwner() })
-      registered.forEach { member ->
-        val runtime = member.binding.runtime ?: return@forEach
-        val alpha = attaching[member]?.takeIf { it.neighbour == null }?.progress?.value?.coerceIn(0f, 1f) ?: 1f
-        if (runtime.opticalSizeOverride == opticalSize && runtime.transitionAlpha == alpha) return@forEach
-        runtime.opticalSizeOverride = opticalSize
-        runtime.transitionAlpha = alpha
-        // Snapshots below must not use material resolved at the previous optical size or alpha.
-        runtime.refreshMemberMaterial()
-      }
-      val live = liveSnapshots()
-      // A grow ends, snapping to the member's own shape, once its neighbour is no longer live or
-      // could no longer have been chosen: the start conditions, including the current spacing,
-      // hold on every pass.
-      val broken = attaching.filter { (member, attach) ->
-        val neighbour = attach.neighbour ?: return@filter false
-        val snapshot = live[member] ?: return@filter false
-        // The gap is measured to what the neighbour draws, as when it was chosen.
-        live[neighbour]?.let { snapshot.canTransitionWith(it) && snapshot.isWithinSpacingOf(neighbour, live) } != true
-      }
-      broken.forEach { (member, attach) ->
-        attach.job?.cancel()
-        attaching.remove(member)
-      }
-      // A ghost draws through its anchor's surface, so it ends once that anchor cannot draw it: the
-      // anchor collapsed, left the layout, or changed input or resolved sources. A valid anchor
-      // also keeps the model's optical size non-null while ghosts remain. A retracting ghost also
-      // needs a neighbour it could still have chosen: compatible and within the current spacing.
-      endGhosts { ghost ->
-        val anchor = live[ghost.anchor]
-        anchor == null || !anchor.layoutRect.isValidGlassMember() || !anchor.drawsSourcesOf(ghost.last) ||
-          anchor.key.input != ghost.last.key.input || anchor.key.expandLayerBounds != ghost.last.key.expandLayerBounds ||
-          (ghost.neighbour != null && (!ghost.last.canTransitionWith(anchor) || !ghost.last.isWithinSpacingOf(ghost.anchor, live)))
-      }
-      // A transition's link only draws when it shares its neighbour's cluster, which can stop
-      // holding when registrations between them change (for example a fading ghost splits a run).
-      // Such a transition ends, like any other broken start condition, and the pass reclusters.
-      while (true) {
-        // Morphs follow what their neighbour draws now, which may itself still be growing.
-        val drawn = mutableMapOf<Any, GlassMemberSnapshot>()
-        val snapshots = registrations.mapNotNull { registration ->
-          when (registration) {
-            is GlassMemberNode -> live[registration]?.let { snapshot ->
-              val attach = attaching[registration] ?: return@let snapshot
-              // A fading member draws alone until it is opaque, even beside an equally faded member.
-              if (attach.neighbour == null) return@let snapshot.copy(fading = true)
-              val neighbour = drawn[attach.neighbour] ?: drawnSnapshot(attach.neighbour, live) ?: return@let snapshot
-              val (rect, material) = snapshot.morphedFrom(neighbour, attach.progress.value)
-              registration.snapshot(rect, snapshot.key, material, link = neighbour.identity).copy(sourceSelection = snapshot.sourceSelection)
-            }
-            // A ghost's neighbour is its anchor, which is live after the pruning above.
-            is GlassMemberGhost -> registration.snapshot(registration.neighbour?.let { drawn[it] ?: checkNotNull(drawnSnapshot(it, live)) })
-            else -> null
-          }?.also { drawn[registration] = it }
+      // Reached synchronously from a member's observed update(): the animated interaction and
+      // transition reads below must not re-run that update every frame.
+      Snapshot.withoutReadObservation {
+        if (pending.isNotEmpty()) startTransitions(liveSnapshots())
+        val registered = members
+        val opticalSize = glassOpticalSize(registered.mapNotNull { it.binding.surface?.boundsInOwner() })
+        registered.forEach { member ->
+          val runtime = member.binding.runtime ?: return@forEach
+          val alpha = attaching[member]?.takeIf { it.neighbour == null }?.progress?.value?.coerceIn(0f, 1f) ?: 1f
+          if (runtime.opticalSizeOverride == opticalSize && runtime.transitionAlpha == alpha) return@forEach
+          runtime.opticalSizeOverride = opticalSize
+          runtime.transitionAlpha = alpha
+          // Snapshots below must not use material resolved at the previous optical size or alpha.
+          runtime.refreshMemberMaterial()
         }
-        snapshots.forEach { latest[it.identity] = it }
-        // Optical size changes immediately and counts live layout rects only, never ghosts.
-        model = clusterGlassMembers(snapshots, spacingPx, glassOpticalSize(live.values.map { it.layoutRect }))
-        val split = model.surfaces.flatMap { cluster ->
-          cluster.members.filter { member -> member.link != null && cluster.members.none { it.identity === member.link } }
-        }.map { it.identity }
-        if (split.isEmpty()) break
-        split.filterIsInstance<GlassMemberNode>().forEach { attaching.remove(it)?.job?.cancel() }
-        endGhosts { it in split }
-      }
-      if (model.overflow != overflow) {
-        overflow = model.overflow
-        overflow.forEach { component ->
-          HazeLogger.d("GlassContainer") { "Glass component exceeds cap $MAX_GLASS_MERGED_MEMBERS by ${component.excessCount}" }
+        val live = liveSnapshots()
+        // A grow ends, snapping to the member's own shape, once its neighbour is no longer live or
+        // could no longer have been chosen: the start conditions, including the current spacing,
+        // hold on every pass.
+        val broken = attaching.filter { (member, attach) ->
+          val neighbour = attach.neighbour ?: return@filter false
+          val snapshot = live[member] ?: return@filter false
+          // The gap is measured to what the neighbour draws, as when it was chosen.
+          live[neighbour]?.let { snapshot.canTransitionWith(it) && snapshot.isWithinSpacingOf(neighbour, live) } != true
         }
+        broken.forEach { (member, attach) ->
+          attach.job?.cancel()
+          attaching.remove(member)
+        }
+        // A ghost draws through its anchor's surface, so it ends once that anchor cannot draw it: the
+        // anchor collapsed, left the layout, or changed input or resolved sources. A valid anchor
+        // also keeps the model's optical size non-null while ghosts remain. A retracting ghost also
+        // needs a neighbour it could still have chosen: compatible and within the current spacing.
+        endGhosts { ghost ->
+          val anchor = live[ghost.anchor]
+          anchor == null || !anchor.layoutRect.isValidGlassMember() || !anchor.drawsSourcesOf(ghost.last) ||
+            anchor.key.input != ghost.last.key.input || anchor.key.expandLayerBounds != ghost.last.key.expandLayerBounds ||
+            (ghost.neighbour != null && (!ghost.last.canTransitionWith(anchor) || !ghost.last.isWithinSpacingOf(ghost.anchor, live)))
+        }
+        // A transition's link only draws when it shares its neighbour's cluster, which can stop
+        // holding when registrations between them change (for example a fading ghost splits a run).
+        // Such a transition ends, like any other broken start condition, and the pass reclusters.
+        while (true) {
+          // Morphs follow what their neighbour draws now, which may itself still be growing.
+          val drawn = mutableMapOf<Any, GlassMemberSnapshot>()
+          val snapshots = registrations.mapNotNull { registration ->
+            when (registration) {
+              is GlassMemberNode -> live[registration]?.let { snapshot ->
+                val attach = attaching[registration] ?: return@let snapshot
+                // A fading member draws alone until it is opaque, even beside an equally faded member.
+                if (attach.neighbour == null) return@let snapshot.copy(fading = true)
+                val neighbour = drawn[attach.neighbour] ?: drawnSnapshot(attach.neighbour, live) ?: return@let snapshot
+                val (rect, material) = snapshot.morphedFrom(neighbour, attach.progress.value)
+                registration.snapshot(rect, snapshot.key, material, link = neighbour.identity).copy(sourceSelection = snapshot.sourceSelection)
+              }
+              // A ghost's neighbour is its anchor, which is live after the pruning above.
+              is GlassMemberGhost -> registration.snapshot(registration.neighbour?.let { drawn[it] ?: checkNotNull(drawnSnapshot(it, live)) })
+              else -> null
+            }?.also { drawn[registration] = it }
+          }
+          snapshots.forEach { latest[it.identity] = it }
+          // Optical size changes immediately and counts live layout rects only, never ghosts.
+          model = clusterGlassMembers(snapshots, spacingPx, glassOpticalSize(live.values.map { it.layoutRect }))
+          val split = model.surfaces.flatMap { cluster ->
+            cluster.members.filter { member -> member.link != null && cluster.members.none { it.identity === member.link } }
+          }.map { it.identity }
+          if (split.isEmpty()) break
+          split.filterIsInstance<GlassMemberNode>().forEach { attaching.remove(it)?.job?.cancel() }
+          endGhosts { it in split }
+        }
+        if (model.overflow != overflow) {
+          overflow = model.overflow
+          overflow.forEach { component ->
+            HazeLogger.d("GlassContainer") { "Glass component exceeds cap $MAX_GLASS_MERGED_MEMBERS by ${component.excessCount}" }
+          }
+        }
+        invalidateDraw()
       }
-      invalidateDraw()
     } finally {
       refreshing = false
     }
