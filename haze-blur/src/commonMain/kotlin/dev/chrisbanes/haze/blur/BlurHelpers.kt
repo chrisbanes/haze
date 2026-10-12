@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.toIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.withGraphicsLayer
 import kotlin.math.max
 
 @OptIn(InternalHazeApi::class)
@@ -40,21 +39,22 @@ import kotlin.math.max
  * @param expandedSize Size for drawing (defaults to canvas size)
  * @param mask Optional brush mask to apply to the effect
  * @param progressiveMask Optional progressive alpha mask, multiplied with [mask]
+ * @param maskedLayer Holder for the layer a masked tint is recorded into; released when unmasked
  */
-internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffectRuntimeDrawScope, offset: Offset = Offset.Zero, expandedSize: Size = this.size, mask: Brush? = null, progressiveMask: Brush? = null) {
+internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffectRuntimeDrawScope, offset: Offset = Offset.Zero, expandedSize: Size = this.size, mask: Brush? = null, progressiveMask: Brush? = null, maskedLayer: RetainedGraphicsLayer? = null) {
   val masked = mask != null || progressiveMask != null
+  if (!masked) maskedLayer?.release()
   when (colorEffect) {
     is TintBrushHazeColorEffect -> {
       if (masked) {
-        context.withGraphicsLayer { layer ->
-          layer.compositingStrategy = CompositingStrategy.Offscreen
-          layer.record(size = size.toIntSize()) {
-            drawRect(brush = colorEffect.brush, blendMode = colorEffect.blendMode)
-            drawMasks(progressiveMask, mask)
-          }
-          translate(offset) {
-            drawLayer(layer)
-          }
+        val layer = checkNotNull(maskedLayer).acquire(context.requireGraphicsContext())
+        layer.compositingStrategy = CompositingStrategy.Offscreen
+        layer.record(size = size.toIntSize()) {
+          drawRect(brush = colorEffect.brush, blendMode = colorEffect.blendMode)
+          drawMasks(progressiveMask, mask)
+        }
+        translate(offset) {
+          drawLayer(layer)
         }
       } else {
         // Translate rather than offset the rect, so the brush stays node-local like the masked branch.
@@ -66,15 +66,14 @@ internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffe
     is TintColorHazeColorEffect -> {
       if (masked) {
         // When we have a mask, combine the tint color with the mask
-        context.withGraphicsLayer { layer ->
-          layer.compositingStrategy = CompositingStrategy.Offscreen
-          layer.record(size = size.toIntSize()) {
-            drawRect(color = colorEffect.color, blendMode = colorEffect.blendMode)
-            drawMasks(progressiveMask, mask)
-          }
-          translate(offset) {
-            drawLayer(layer)
-          }
+        val layer = checkNotNull(maskedLayer).acquire(context.requireGraphicsContext())
+        layer.compositingStrategy = CompositingStrategy.Offscreen
+        layer.record(size = size.toIntSize()) {
+          drawRect(color = colorEffect.color, blendMode = colorEffect.blendMode)
+          drawMasks(progressiveMask, mask)
+        }
+        translate(offset) {
+          drawLayer(layer)
         }
       } else {
         drawRect(
@@ -86,20 +85,19 @@ internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffe
     }
     is ColorFilterHazeColorEffect -> {
       if (masked) {
-        context.withGraphicsLayer { layer ->
-          layer.compositingStrategy = CompositingStrategy.Offscreen
-          layer.record(size = size.toIntSize()) {
-            drawRect(color = Color.White, colorFilter = colorEffect.colorFilter)
-            drawMasks(progressiveMask, mask)
-          }
-          translate(offset) {
-            val canvas = drawContext.canvas
-            val paint = Paint().apply { blendMode = colorEffect.blendMode }
-            val bounds = Rect(Offset.Zero, size)
-            canvas.saveLayer(bounds, paint)
-            drawLayer(layer)
-            canvas.restore()
-          }
+        val layer = checkNotNull(maskedLayer).acquire(context.requireGraphicsContext())
+        layer.compositingStrategy = CompositingStrategy.Offscreen
+        layer.record(size = size.toIntSize()) {
+          drawRect(color = Color.White, colorFilter = colorEffect.colorFilter)
+          drawMasks(progressiveMask, mask)
+        }
+        translate(offset) {
+          val canvas = drawContext.canvas
+          val paint = Paint().apply { blendMode = colorEffect.blendMode }
+          val bounds = Rect(Offset.Zero, size)
+          canvas.saveLayer(bounds, paint)
+          drawLayer(layer)
+          canvas.restore()
         }
       } else {
         drawRect(

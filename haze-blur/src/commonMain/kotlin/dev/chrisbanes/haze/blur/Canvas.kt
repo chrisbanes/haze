@@ -10,7 +10,6 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.drawLayer
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
-import dev.chrisbanes.haze.withGraphicsLayer
 
 internal inline fun DrawScope.translate(
   offset: Offset,
@@ -26,16 +25,17 @@ internal inline fun DrawScope.translate(
 @OptIn(ExperimentalHazeApi::class)
 internal inline fun DrawScope.withAlpha(
   alpha: Float,
+  retainedLayer: RetainedGraphicsLayer,
   context: HazeEffectRuntimeDrawScope,
   crossinline block: DrawScope.() -> Unit,
 ) {
   if (alpha < 1f) {
-    context.withGraphicsLayer { layer ->
-      layer.alpha = alpha
-      layer.record { block() }
-      drawLayer(layer)
-    }
+    val layer = retainedLayer.acquire(context.requireGraphicsContext())
+    layer.alpha = alpha
+    layer.record { block() }
+    drawLayer(layer)
   } else {
+    retainedLayer.release()
     block()
   }
 }
