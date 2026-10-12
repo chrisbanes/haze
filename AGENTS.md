@@ -45,8 +45,7 @@ Share application infrastructure, fixtures, or abstractions that are themselves 
   Macrobenchmarks. Use a physical device, keep it plugged in, awake, and unlocked for the complete
   run, and restore temporary device settings such as fixed-performance mode afterward.
 - Use eight measured iterations for comparable Blur and Glass results. Use dry-run mode for one
-  automation-validation iteration, or override `androidx.benchmark.iterations` to three for a quick
-  diagnostic signal; do not publish either as benchmark evidence.
+  automation-validation iteration; do not publish dry-run results as benchmark evidence.
 - Launch measured samples and profiling scenarios directly through their benchmark intent extras.
   Do not scroll through the sample list in per-iteration setup. Disable UiAutomator's idle wait only
   around continuously animating profiling scenarios and restore its previous timeout afterward.

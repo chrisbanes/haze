@@ -333,7 +333,7 @@ instrumentation work, which can change device state or mix artifact output with 
 Run each method individually. Dry-run first, with
 `-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true`, and check
 that each XML result names its method; do not archive a dry run as a measurement. A dry run writes
-only XML, so it cannot check the gates below. Run a three-iteration diagnostic for that, then the
+only XML, so it cannot check the gates below. Run a gated diagnostic for that, then the
 two measured passes, the second in the opposite order, so that order and thermal drift do not
 favour one row. Each loop archives every method with `archive_result.py`, which checks the
 iteration count, a passing XML testcase, distinct traces, a full set of runs for every single-value
@@ -353,8 +353,9 @@ gates_for() {
 
 ### Run the gated diagnostic
 
-Run each method once with three iterations. This is the quick diagnostic signal from the
-repository guidance; it proves that the gates pass on the installed APKs, and is never published.
+Run each method once at the standard eight iterations, about 70 s per method. The diagnostic proves
+that the gates pass on the installed APKs. It is never published, because the measured passes add the
+recorded device conditions and the reversed order.
 
 ```bash
 (
@@ -373,11 +374,10 @@ for method in sourceUpdateIndependent2 sourceUpdateContainer2; do
   fi
   gates_for "$method"
   ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
-    -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.iterations=3 \
     -Pandroid.testInstrumentationRunnerArguments.class="dev.chrisbanes.haze.GlassProfilingBenchmark#${method}"
   python3 internal/benchmark/archive_result.py \
     --method "dev.chrisbanes.haze.GlassProfilingBenchmark#${method}" \
-    --iterations 3 "${gates[@]}" \
+    "${gates[@]}" \
     --destination "$results_dir/diagnostic/$method"
 done
 )
