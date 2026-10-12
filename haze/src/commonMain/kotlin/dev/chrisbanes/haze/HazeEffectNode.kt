@@ -649,7 +649,7 @@ internal class HazeEffectNode(
       size = rootLayoutCoords.size.toSize(),
     )
 
-    HazeLogger.d(TAG) {
+    logDebug(TAG) {
       "$source: position=$position, size=$size"
     }
   }
@@ -1275,7 +1275,7 @@ internal class HazeEffectNode(
     val invalidateRequired =
       dirtyTracker.any(DirtyFields.InvalidateFlags)
 
-    HazeLogger.d(TAG) {
+    logDebug(TAG) {
       "invalidateRequired=$invalidateRequired. " +
         "Dirty params=${DirtyFields.stringify(dirtyTracker)}"
     }
