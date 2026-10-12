@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.isEmpty
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -24,7 +25,7 @@ class HazePreDrawListenerAndroidTest {
   @Config(sdk = [30, 32, 36])
   fun snapshotApply_skipsSameWindowListener_offApi31() {
     val (same, cross) = notifySnapshotApply()
-    assertThat(same).containsExactly()
+    assertThat(same).isEmpty()
     assertThat(cross).containsExactly(true)
   }
 

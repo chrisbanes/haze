@@ -18,7 +18,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
 import androidx.test.filters.SdkSuppress
@@ -43,9 +46,10 @@ class RenderEffectScrollInstrumentationTest {
     val hazeState = HazeState()
     val listState = LazyListState()
     val activity = composeTestRule.activity
+    var barCenter = Offset.Zero
     composeTestRule.setContent {
       Box(Modifier.fillMaxSize()) {
-        // Every item stays composed and is only moved, as in a fling, so the source never redraws.
+        // Visible items are only moved, as in a fling, so the source itself doesn't redraw.
         LazyColumn(Modifier.fillMaxSize().hazeSource(hazeState), state = listState) {
           items(40) { index ->
             Box(
@@ -63,6 +67,7 @@ class RenderEffectScrollInstrumentationTest {
             .align(Alignment.Center)
             .fillMaxWidth()
             .height(32.dp)
+            .onGloballyPositioned { barCenter = it.boundsInWindow().center }
             .hazeBlur(
               input = HazeInput.Sources(hazeState),
               style = HazeBlurStyle {
@@ -76,31 +81,32 @@ class RenderEffectScrollInstrumentationTest {
       }
     }
 
-    val initial = activity.awaitCenterPixel { true }
+    // Wait for the first blurred frame: both item colours have a strong blue channel, black doesn't.
+    val initial = activity.awaitPixel(barCenter) { AndroidColor.blue(it) > 180 }
     val initialIsBlue = initial.isBlue()
     val itemPx = with(composeTestRule.density) { 200.dp.toPx() }
 
     composeTestRule.runOnUiThread { listState.dispatchRawDelta(itemPx) }
     composeTestRule.waitForIdle()
-    val scrolled = activity.awaitCenterPixel { it.isBlue() != initialIsBlue }
+    val scrolled = activity.awaitPixel(barCenter) { it.isBlue() != initialIsBlue }
     assertThat(scrolled.isBlue(), "blur after one item pixel=#${Integer.toHexString(scrolled)}")
       .isEqualTo(!initialIsBlue)
 
     composeTestRule.runOnUiThread { listState.dispatchRawDelta(-itemPx) }
     composeTestRule.waitForIdle()
     assertThat(listState.firstVisibleItemScrollOffset, "source back at the top").isEqualTo(0)
-    val returned = activity.awaitCenterPixel { it.isBlue() == initialIsBlue }
+    val returned = activity.awaitPixel(barCenter) { it.isBlue() == initialIsBlue }
     assertThat(returned.isBlue(), "blur after scrolling back pixel=#${Integer.toHexString(returned)}")
       .isEqualTo(initialIsBlue)
   }
 
   private fun Int.isBlue(): Boolean = AndroidColor.blue(this) > 180 && AndroidColor.red(this) < 80
 
-  private fun ComponentActivity.awaitCenterPixel(predicate: (Int) -> Boolean): Int {
+  private fun ComponentActivity.awaitPixel(position: Offset, predicate: (Int) -> Boolean): Int {
     var pixel = 0
     repeat(40) {
       val screenshot = copyWindow()
-      pixel = screenshot.getPixel(screenshot.width / 2, screenshot.height / 2)
+      pixel = screenshot.getPixel(position.x.toInt(), position.y.toInt())
       screenshot.recycle()
       if (predicate(pixel)) return pixel
       CountDownLatch(1).await(100, TimeUnit.MILLISECONDS)
