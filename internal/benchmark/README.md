@@ -454,9 +454,11 @@ where process.name = 'dev.chrisbanes.haze.sample.android'
 group by thread.name, sched.cpu order by thread.name, sched.cpu;
 ```
 
-Run it over each trace with Perfetto's `trace_processor_shell`, one iteration per trace:
+Run it over each trace with Perfetto's `trace_processor_shell`, one iteration per trace. The loops
+above run in subshells, so set `results_dir` to the path they printed after `Results:`:
 
 ```bash
+results_dir=internal/benchmark/build/benchmark-results/container.XXXXXX
 find "$results_dir/one/sourceUpdateContainer2" -name '*.perfetto-trace' | sort | while read -r trace; do
   echo "== $trace"
   trace_processor_shell -q placement.sql "$trace"
@@ -590,7 +592,7 @@ The paired Quality workloads are:
 | Glass updating | `sourceUpdateQuality` | `backdropSourceUpdateQuality` |
 | Nine Glass nodes updating | `sourceUpdate9` | `backdropSourceUpdate9` |
 
-Each row records `FrameTimingMetric`, max `MemoryUsageMetric`, `HazeBackdrop.draw` count, and
+Each row records `FrameTimingMetric`, max `MemoryUsageMetric` (GPU and RSS counters), `HazeBackdrop.draw` count, and
 `HazeSource.record` count. A healthy backdrop result has native backdrop draws and zero source
 records; its source control has source records and no required backdrop draw.
 
