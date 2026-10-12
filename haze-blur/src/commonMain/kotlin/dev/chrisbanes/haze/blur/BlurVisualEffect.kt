@@ -30,11 +30,14 @@ import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.TrimMemoryLevel
+import dev.chrisbanes.haze.asBrush
 
 /** Node-owned Blur renderer configured by [BlurConfiguration]. */
 @Stable
 @OptIn(InternalHazeApi::class)
-internal class BlurVisualEffect :
+internal class BlurVisualEffect(
+  private val progressiveBrushFactory: (HazeProgressive) -> Brush = { it.asBrush() },
+) :
   HazeEffectRenderer<BlurConfiguration>,
   HazeEffectRendererBackdrop<BlurConfiguration>,
   HazeEffectRendererLifecycle<BlurConfiguration>,
@@ -47,6 +50,8 @@ internal class BlurVisualEffect :
   private var needsLayerBoundsInvalidation: Boolean = false
   internal val renderEffectCache =
     LruCache<RenderEffectCacheKey, PlatformRenderEffect>(maxSize = 50)
+
+  private var progressiveBrushMemo: Brush? = null
 
   /** Whether the resolved style changed since the last draw. */
   internal var styleChanged: Boolean = false
@@ -202,6 +207,15 @@ internal class BlurVisualEffect :
   internal val blurredEdgeTreatment: BlurredEdgeTreatment
     get() = resolvedStyle.blurredEdgeTreatment
 
+  /** The brush for [progressive], built once per progressive configuration. */
+  internal val progressiveBrush: Brush?
+    get() {
+      val progressive = progressive ?: return null
+      return progressiveBrushMemo ?: progressiveBrushFactory(progressive).also {
+        progressiveBrushMemo = it
+      }
+    }
+
   internal fun resolveInputScaleFactor(): Float = constrainInputScaleForBrushes(performanceMode.resolveBlurInputScale())
 
   private var compositionLocalStyle: HazeBlurStyle = HazeBlurStyle
@@ -253,6 +267,9 @@ internal class BlurVisualEffect :
     new: ResolvedHazeBlurStyle,
   ) {
     styleChanged = true
+    if (old.progressive != new.progressive) {
+      progressiveBrushMemo = null
+    }
     if (
       old.blurRadius != new.blurRadius ||
       old.backgroundColor.prefersClipToAreaBounds() !=

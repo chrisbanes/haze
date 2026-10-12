@@ -43,7 +43,6 @@ import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
-import dev.chrisbanes.haze.asBrush
 import dev.chrisbanes.haze.trace
 import dev.chrisbanes.haze.traceAsync
 import dev.chrisbanes.haze.withGraphicsLayer
@@ -157,7 +156,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
       layer.alpha = blurVisualEffect.alpha
       layer.clip = blurVisualEffect.shouldClipToNodeBounds()
 
-      val progressiveMask = blurVisualEffect.progressive?.asBrush()
+      val progressiveMask = blurVisualEffect.progressiveBrush
       val userMask = blurVisualEffect.mask
       if (progressiveMask != null || userMask != null) {
         // If we have a mask, this needs to be drawn offscreen

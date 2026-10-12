@@ -22,7 +22,6 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.asBrush
 import dev.chrisbanes.haze.asComposeRenderEffect
 import dev.chrisbanes.haze.withGraphicsLayer
 
@@ -76,7 +75,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
         .getOrCreateRenderEffect(
           context = context,
           inputScale = inputScale,
-          progressiveMask = progressive.asBrush(),
+          progressiveMask = checkNotNull(blurVisualEffect.progressiveBrush),
           retainInputWhenMasked = progressive is RootHazeProgressive.LinearGradient,
         )
         .asComposeRenderEffect()

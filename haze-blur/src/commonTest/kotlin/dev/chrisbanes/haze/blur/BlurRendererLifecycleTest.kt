@@ -160,7 +160,7 @@ private class RecordingBlurDelegate(
   }
 }
 
-private data object BlurTestLifecycleScope : HazeEffectLifecycleScope {
+internal data object BlurTestLifecycleScope : HazeEffectLifecycleScope {
   override val modifierSize: Size = Size.Zero
   override val coroutineScope: CoroutineScope = CoroutineScope(EmptyCoroutineContext)
   override fun requirePlatformContext(): PlatformContext = error("Unused")
