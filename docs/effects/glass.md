@@ -441,6 +441,7 @@ Fallback rendering keeps the material recognizable but may simplify advanced opt
 | Fixed or responsive refraction, blur, and progressive optics | Preserved | Omitted |
 | Chromatic aberration, surface profile, and advanced color adjustments | Preserved | Omitted |
 | Interaction refraction and white-point deltas | Preserved | Omitted |
+| [Glass container](#containers) clusters | Members merge into one shape with smooth bridges | One surface per cluster, clipped to the hard union of the member shapes, with no bridge |
 
 Do not make essential meaning depend on refraction or chromatic aberration alone, because those
 details may be omitted by a fallback.
@@ -536,6 +537,131 @@ content. `interactionTransformPivot` selects `Pointer` or `Center`. Omit a state
 replacement Style to remove it.
 `GlassReducedMotionPolicy.System` follows the available system duration scale, `Reduced` snaps
 lighting and optics while suppressing transforms, and `Full` forces motion.
+
+## Containers
+
+!!! warning "Experimental"
+
+    `Modifier.hazeGlassContainer` is marked `@ExperimentalHazeApi`. Its behaviour may change
+    before it is stabilised.
+
+A Glass container draws its Glass members' surfaces together, so that nearby members merge into
+one shape. Use it for controls that should read as one object, such as a toolbar or a segmented
+control, and for surfaces that appear next to an existing one and should grow out of it.
+
+### Container and members
+
+```kotlin
+Row(
+  modifier = Modifier.hazeGlassContainer(spacing = 16.dp),
+  horizontalArrangement = Arrangement.spacedBy(4.dp),
+) {
+  repeat(3) {
+    Box(
+      Modifier
+        .size(48.dp)
+        .hazeGlass(
+          input = HazeInput.Sources(hazeState),
+          style = GlassStyle.regular.then { shape(CircleShape) },
+        ),
+    )
+  }
+}
+```
+
+`spacing` is required, finite and not negative. A spacing of zero disables bridges. Optionally
+pass `transitionSpec` and `reducedMotionPolicy`, which are described under
+[Transitions](#transitions).
+
+Every `hazeGlass` modifier below the container becomes a Glass member of its nearest container. A
+member keeps its own style, shape, colours and interaction response. A `hazeGlass` modifier
+outside a container is unchanged.
+
+### Merge rule
+
+Members join a Glass cluster when the gap between them is less than half of the spacing. The
+container draws each cluster as one surface, with smooth bridges between the members. A member
+that joins no cluster draws as a separate surface.
+
+- A cluster holds at most four members. Extra members draw separately, without a bridge. Where
+  an extra member overlaps the cluster, blur and tint apply twice in the overlap.
+- Only members that register consecutively share a cluster. A member registered between two
+  compatible neighbours splits them, even when it is far away, so merging never reorders members.
+- Members merge only when their input, resolved sources, performance mode and material values
+  are equal: optics, surface profile, specular and edge response, chromatic aberration, tone,
+  light position and alpha. Shape, tint, background colour and interaction responses are not
+  compared, so members with different shapes and tints still merge and their colours blend across
+  the bridge. Regular and Clear surfaces never merge.
+- Members with a rotation or scale transform never merge. Translation and alpha do not stop a
+  member from merging.
+- The dome term is disabled for clusters.
+- In reduced-quality performance modes, merged silhouettes render at the reduced input scale.
+
+### Optical size
+
+A container resolves one optical size: the largest shortest side among its members. Every member
+evaluates its optics at that size, whether or not it is in a cluster. A small member next to a
+large one takes on the large member's diffusion, even when the two do not merge.
+
+The size changes immediately, without animation, when a member is added, removed or resized. A
+member that is leaving does not count.
+
+### Where Glass samples from
+
+A container draws all of its members' Glass behind all of its children. With
+`HazeInput.Backdrop`, the glass samples only content drawn before the container. Joining or
+leaving a cluster never changes a member's z-order. With `HazeInput.Sources`, the glass samples
+the captured sources as usual, so use one `hazeState` for every member that should merge.
+
+### Interaction
+
+Per-member interaction transforms and lighting apply to that member's part of the merged shape.
+Pressing one member enlarges it within the cluster, and only that member brightens. A cluster has
+one static light, because members merge only when their light position is equal.
+
+### Transitions
+
+A member that attaches or detaches after the container's first draw animates its glass. Choose
+the transition with `hazeGlass(memberTransition = ...)`:
+
+- `GlassMemberTransition.MatchedGeometry` is the default. A member that attaches within the
+  spacing of another member grows out of it, and a member that detaches retracts into it. Beyond
+  the spacing, it falls back to `Materialize`.
+- `GlassMemberTransition.Materialize` fades the glass in or out where it is.
+- `GlassMemberTransition.None` applies no transition.
+
+`transitionSpec` times the animation. Under reduced motion, as `reducedMotionPolicy` resolves it,
+the morph is kept but uses a critically damped animation, so it does not overshoot. Changes to
+`transitionSpec` and `reducedMotionPolicy` apply from the next transition.
+
+Haze animates only the glass. Animate member content yourself, for example with
+`AnimatedVisibility` and fades. A scale animation makes a member non-translation-only, so it stops
+merging and transitioning.
+
+Some members leave without a transition, and their glass disappears immediately:
+
+- members that use `HazeInput.Content`;
+- rotated or scaled members;
+- members whose resolved sources differ from every remaining member.
+
+A member that moves to another container appears there immediately. When the last compatible
+member leaves, the glass disappears immediately. A running transition ends without animating when
+the member it grows from, retracts into or is drawn through leaves, or when it is no longer within
+the spacing of that member.
+
+### Fallback
+
+Without `RuntimeShader` support, or when a cluster exceeds the render budget, each cluster draws
+as one surface clipped to the hard union of the member shapes, with no bridge. Members keep their
+own tint and background colour, and the earlier registered member's colours apply where members
+overlap. Per-member press lights are still drawn. See [Fallbacks](#fallbacks).
+
+### Sample
+
+The `Glass — Container` sample shows a merging toolbar, two draggable members with a spacing
+control, a member added and removed with `AnimatedVisibility`, and a cluster of members with
+different tints. Its source is in
+[`GlassContainerSample.kt`](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerSample.kt).
 
 ## Usage
 
