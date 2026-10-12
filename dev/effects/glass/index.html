@@ -850,6 +850,111 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Containers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Containers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#container-and-members" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container and members
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#merge-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Merge rule
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optical-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optical size
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#where-glass-samples-from" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where Glass samples from
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interaction_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interaction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transitions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fallback
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sample" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sample
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#usage" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1512,6 +1617,111 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Containers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Containers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#container-and-members" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container and members
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#merge-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Merge rule
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optical-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optical size
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#where-glass-samples-from" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where Glass samples from
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interaction_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interaction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transitions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fallback
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sample" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sample
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#usage" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1933,6 +2143,11 @@ applications do not need capability checks or a second fallback Style.</p>
 <td>Preserved</td>
 <td>Omitted</td>
 </tr>
+<tr>
+<td><a href="#containers">Glass container</a> clusters</td>
+<td>Members merge into one shape with smooth bridges</td>
+<td>One surface per cluster, clipped to the hard union of the member shapes, with no bridge</td>
+</tr>
 </tbody>
 </table>
 <p>Do not make essential meaning depend on refraction or chromatic aberration alone, because those
@@ -2014,6 +2229,111 @@ content. <code>interactionTransformPivot</code> selects <code>Pointer</code> or 
 replacement Style to remove it.
 <code>GlassReducedMotionPolicy.System</code> follows the available system duration scale, <code>Reduced</code> snaps
 lighting and optics while suppressing transforms, and <code>Full</code> forces motion.</p>
+<h2 id="containers">Containers<a class="headerlink" href="#containers" title="Permanent link">¶</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Experimental</p>
+<p><code>Modifier.hazeGlassContainer</code> is marked <code>@ExperimentalHazeApi</code>. Its behaviour may change
+before it is stabilised.</p>
+</div>
+<p>A Glass container draws its Glass members' surfaces together, so that nearby members merge into
+one shape. Use it for controls that should read as one object, such as a toolbar or a segmented
+control, and for surfaces that appear next to an existing one and should grow out of it.</p>
+<h3 id="container-and-members">Container and members<a class="headerlink" href="#container-and-members" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1">// Styles compare by identity, so remember the style.</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">shape</span><span class="p">(</span><span class="n">CircleShape</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+
+<span class="n">Row</span><span class="p">(</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlassContainer</span><span class="p">(</span><span class="n">spacing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">16.</span><span class="n">dp</span><span class="p">),</span>
+<span class="w">  </span><span class="n">horizontalArrangement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arrangement</span><span class="p">.</span><span class="na">spacedBy</span><span class="p">(</span><span class="m">4.</span><span class="n">dp</span><span class="p">),</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">repeat</span><span class="p">(</span><span class="m">3</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Box</span><span class="p">(</span>
+<span class="w">      </span><span class="n">Modifier</span>
+<span class="w">        </span><span class="p">.</span><span class="na">size</span><span class="p">(</span><span class="m">48.</span><span class="n">dp</span><span class="p">)</span>
+<span class="w">        </span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span><span class="w"> </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">),</span>
+<span class="w">    </span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><code>spacing</code> is required, finite and not negative. A spacing of zero disables bridges. Optionally
+pass <code>transitionSpec</code> and <code>reducedMotionPolicy</code>, which are described under
+<a href="#transitions">Transitions</a>.</p>
+<p>Every <code>hazeGlass</code> modifier below the container becomes a Glass member of its nearest container. A
+member keeps its own style, shape, colours and interaction response. A <code>hazeGlass</code> modifier
+outside a container is unchanged.</p>
+<h3 id="merge-rule">Merge rule<a class="headerlink" href="#merge-rule" title="Permanent link">¶</a></h3>
+<p>Members join a Glass cluster when the gap between them is less than half of the spacing. The
+container draws each cluster as one surface, with smooth bridges between the members. A member
+that joins no cluster draws as a separate surface.</p>
+<ul>
+<li>A cluster holds at most four members. Extra members draw separately, without a bridge. Where
+  an extra member overlaps the cluster, blur and tint apply twice in the overlap.</li>
+<li>Only members that register consecutively share a cluster. Members register in the order they
+  attach, which follows composition order. A member registered between two compatible neighbours
+  splits them, even when it is far away, so merging never reorders members.</li>
+<li>Members merge only when their input, performance mode and material values are equal: optics, surface profile, specular and edge response, chromatic aberration, tone,
+  light position and alpha. Shape, tint, background colour and interaction responses are not
+  compared, so members with different shapes and tints still merge and their colours blend across
+  the bridge. Regular and Clear surfaces never merge.</li>
+<li>Members with a rotation or scale transform never merge. A translation does not stop a member
+  from merging, and neither does a Compose layer alpha on the member, such as an
+  <code>AnimatedVisibility</code> fade. A style <code>alpha</code> that differs between members does.</li>
+<li>The dome term is disabled for clusters.</li>
+<li>In reduced-quality performance modes, merged silhouettes render at the reduced input scale.</li>
+</ul>
+<h3 id="optical-size">Optical size<a class="headerlink" href="#optical-size" title="Permanent link">¶</a></h3>
+<p>A container resolves one optical size: the largest shortest side among its members. Every member
+evaluates its optics at that size, whether or not it is in a cluster. A small member next to a
+large one takes on the large member's diffusion, even when the two do not merge.</p>
+<p>The size changes immediately, without animation, when a member is added, removed or resized. A
+member that is leaving does not count.</p>
+<h3 id="where-glass-samples-from">Where Glass samples from<a class="headerlink" href="#where-glass-samples-from" title="Permanent link">¶</a></h3>
+<p>A container draws all of its members' Glass behind all of its children. With
+<code>HazeInput.Backdrop</code>, the glass samples only content drawn before the container. Joining or
+leaving a cluster never changes a member's z-order. With <code>HazeInput.Sources</code>, the glass samples
+the captured sources as usual, so use one <code>hazeState</code> for every member that should merge.</p>
+<h3 id="interaction_1">Interaction<a class="headerlink" href="#interaction_1" title="Permanent link">¶</a></h3>
+<p>Per-member interaction transforms and lighting apply to that member's part of the merged shape.
+Pressing a member applies its pressed response, such as <code>scale</code>, to that member's part of the
+cluster, and only that member brightens. A cluster has one static light, because members merge only
+when their light position is equal.</p>
+<h3 id="transitions">Transitions<a class="headerlink" href="#transitions" title="Permanent link">¶</a></h3>
+<p>A member that attaches or detaches after the container's first draw animates its glass. Choose
+the transition with <code>hazeGlass(memberTransition = ...)</code>:</p>
+<ul>
+<li><code>GlassMemberTransition.MatchedGeometry</code> is the default. A member that attaches within the
+  spacing of another member grows out of it, and a member that detaches retracts into it. Beyond
+  the spacing, it falls back to <code>Materialize</code>.</li>
+<li><code>GlassMemberTransition.Materialize</code> fades the glass in or out where it is. A fading member draws
+  on its own until it is fully opaque.</li>
+<li><code>GlassMemberTransition.None</code> applies no transition.</li>
+</ul>
+<p><code>transitionSpec</code> times the animation. Under reduced motion, as <code>reducedMotionPolicy</code> resolves it,
+the morph is kept but uses a critically damped animation, so it does not overshoot. Changes to
+<code>transitionSpec</code> and <code>reducedMotionPolicy</code> apply from the next transition.</p>
+<p>Haze animates only the glass. Animate member content yourself, for example with
+<code>AnimatedVisibility</code> and fades. A scale animation makes a member non-translation-only, so it stops
+merging and matched-geometry transitions.</p>
+<p>Some members leave without a transition, and their glass disappears immediately:</p>
+<ul>
+<li>members that use <code>HazeInput.Content</code>;</li>
+<li>rotated or scaled members;</li>
+<li>members whose resolved sources differ from every remaining member.</li>
+</ul>
+<p>A member that moves to another container appears there immediately. When the last compatible
+member leaves, the glass disappears immediately. A running transition ends without animating when
+the member it grows from, retracts into or is drawn through leaves, or when it is no longer within
+the spacing of that member.</p>
+<h3 id="fallback">Fallback<a class="headerlink" href="#fallback" title="Permanent link">¶</a></h3>
+<p>Without <code>RuntimeShader</code> support, or when a cluster exceeds the render budget, each cluster draws
+as one surface clipped to the hard union of the member shapes, with no bridge. Members keep their
+own tint and background colour, and the earlier registered member's colours apply where members
+overlap. Per-member press lights are still drawn. See <a href="#fallbacks">Fallbacks</a>.</p>
+<h3 id="sample">Sample<a class="headerlink" href="#sample" title="Permanent link">¶</a></h3>
+<p>The <code>Glass — Container</code> sample shows a merging toolbar, two draggable members with a spacing
+control, a member added and removed with <code>AnimatedVisibility</code>, and a cluster of members with
+different tints. Its source is in
+<a href="https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerSample.kt"><code>GlassContainerSample.kt</code></a>.</p>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">¶</a></h2>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
 <span class="w">  </span><span class="n">Modifier</span>
