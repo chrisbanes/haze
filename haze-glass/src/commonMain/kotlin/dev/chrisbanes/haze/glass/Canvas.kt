@@ -75,11 +75,6 @@ internal inline fun DrawScope.withLayerPaint(
   }
 }
 
-/**
- * Paints for [withLayerPaint], one per nesting depth. A layer keeps its paint for the whole
- * block, so an inner layer takes the next paint instead of changing an enclosing layer's alpha or
- * blend mode. Drawing is single-threaded, so this is not thread-safe, like haze-blur's `PaintPool`.
- */
 /** Receives every [withLayerPaint] bound before its `saveLayer`, so tests can check layer sizes. */
 internal var glassLayerBoundsForTest: ((Rect) -> Unit)? = null
 
@@ -94,6 +89,11 @@ internal fun Rect.visiblePart(visible: Rect?): Rect {
   return Rect(floor(part.left), floor(part.top), ceil(part.right), ceil(part.bottom))
 }
 
+/**
+ * Paints for [withLayerPaint], one per nesting depth. A layer keeps its paint for the whole
+ * block, so an inner layer takes the next paint instead of changing an enclosing layer's alpha or
+ * blend mode. Drawing is single-threaded, so this is not thread-safe, like haze-blur's `PaintPool`.
+ */
 internal object LayerPaints {
   private val paints = ArrayList<Paint>()
   private var depth = 0

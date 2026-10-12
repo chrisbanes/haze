@@ -183,7 +183,8 @@ internal class GlassRuntimeEffect() :
    * layout space, scaled by its interaction transform.
    */
   // ponytail: window bounds only, not ancestor clips such as a scrolling viewport, because only
-  // the window cannot cut on-screen output. Tighten if window-sized layers prove costly.
+  // the window cannot cut on-screen output. Tighten if window-sized layers prove costly. The root
+  // is the ComposeView, so glass drawn past it through a parent's clipChildren=false is cut.
   internal fun windowBoundsInEffect(): Rect? {
     val owner = surfaceOwner
     val bounds = if (owner != null) {
@@ -192,19 +193,7 @@ internal class GlassRuntimeEffect() :
       val node = memberBinding?.node?.takeIf { it.isAttached } ?: return null
       val size = attachedContext?.modifierSize ?: return null
       val window = node.requireLayoutCoordinates().windowBounds() ?: return null
-      val transform = currentInteractionTransform(size)
-      if (transform == HazeEffectContentTransform.Identity) {
-        window
-      } else {
-        // The effect draws at pivot + scale * (p - pivot), so invert that.
-        val pivot = transform.pivot
-        Rect(
-          left = pivot.x + (window.left - pivot.x) / transform.scaleX,
-          top = pivot.y + (window.top - pivot.y) / transform.scaleY,
-          right = pivot.x + (window.right - pivot.x) / transform.scaleX,
-          bottom = pivot.y + (window.bottom - pivot.y) / transform.scaleY,
-        )
-      }
+      currentInteractionTransform(size).unmap(window)
     }
     return bounds?.takeIf { it.left.isFinite() && it.top.isFinite() && it.right.isFinite() && it.bottom.isFinite() }
   }
@@ -1317,3 +1306,15 @@ private fun Float.isSquareCorner(): Boolean = isFinite() && this <= 0f
 /** The root's bounds in these coordinates; under rotation or skew, their bounding box. */
 private fun LayoutCoordinates.windowBounds(): Rect? =
   takeIf { it.isAttached }?.let { it.localBoundingBoxOf(it.findRootCoordinates(), clipBounds = false) }
+
+/** Maps [rect] from the space this transform draws into back to the space drawn in. */
+internal fun HazeEffectContentTransform.unmap(rect: Rect): Rect {
+  if (this == HazeEffectContentTransform.Identity) return rect
+  // A point p draws at pivot + scale * (p - pivot). Scales are positive, so edges keep their order.
+  return Rect(
+    left = pivot.x + (rect.left - pivot.x) / scaleX,
+    top = pivot.y + (rect.top - pivot.y) / scaleY,
+    right = pivot.x + (rect.right - pivot.x) / scaleX,
+    bottom = pivot.y + (rect.bottom - pivot.y) / scaleY,
+  )
+}

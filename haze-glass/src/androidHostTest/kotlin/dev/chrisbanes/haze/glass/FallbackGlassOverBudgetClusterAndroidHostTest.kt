@@ -27,10 +27,10 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.each
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
-import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEmpty
 import assertk.assertions.prop
 import dev.chrisbanes.haze.HazeEffectFactory
@@ -107,7 +107,9 @@ class FallbackGlassOverBudgetClusterAndroidHostTest : ScreenshotTest() {
   fun standaloneOverBudgetMember_requestsInputLayerBoundedByWindow() = runScreenshotTest {
     val state = HazeState()
     val effect = GlassRuntimeEffect()
+    var density = 0f
     setContent {
+      density = LocalDensity.current.density
       Root(state) {
         Box(Modifier.offset(120.dp, 100.dp).wideMember(2000.dp).hazeGlass(effect, state, style(RoundedCornerShape(60.dp))))
       }
@@ -117,8 +119,10 @@ class FallbackGlassOverBudgetClusterAndroidHostTest : ScreenshotTest() {
     val rootWidth = captureRootPixels().width
     glassLayerBoundsForTest = null
 
+    // The member starts 120 dp into the root, so the window cuts its own bounds that much short.
+    val expected = Rect(0f, 0f, rootWidth - floor(120 * density), ceil(120 * density))
     assertThat(layers).isNotEmpty()
-    assertThat(layers).each { it.prop(Rect::width).isLessThanOrEqualTo(rootWidth.toFloat()) }
+    assertThat(layers).each { it.isEqualTo(expected) }
   }
 
   @Test
@@ -144,6 +148,73 @@ class FallbackGlassOverBudgetClusterAndroidHostTest : ScreenshotTest() {
 
     // Inside member 1, outside the layer ancestor, on screen.
     assertThat(pixels[px(250.dp, density), px(160.dp, density)].red, "red").isLessThan(0.9f)
+  }
+
+  @Test
+  fun standaloneMemberMovedOnScreenByLayer_drawsInputInRevealedPart() = runScreenshotTest {
+    val state = HazeState()
+    val effect = GlassRuntimeEffect()
+    val shift = mutableStateOf(0f)
+    var density = 0f
+    setContent {
+      density = LocalDensity.current.density
+      Box(Modifier.fillMaxSize().testTag("root").background(Color.White)) {
+        // The source moves with the member, so only the member's window position changes.
+        Box(Modifier.fillMaxSize().graphicsLayer { translationX = shift.value }) {
+          Box(Modifier.wrapContentSize(Alignment.TopStart, unbounded = true).requiredSize(1000.dp, 400.dp).hazeSource(state).background(Color.Red))
+          // Opaque white, so the red input is the only red inside the member.
+          Box(
+            Modifier.offset(250.dp, 100.dp).size(300.dp, 120.dp)
+              .hazeGlass(effect, state, GlassStyle { backgroundColor(Color.White) }),
+          )
+        }
+      }
+    }
+    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    // 250 dp into the member: past the window's right edge before the move.
+    val x = px(300.dp, density)
+    val y = px(160.dp, density)
+    captureRootPixels()
+    shift.value = -200 * density
+    waitForIdle()
+    val moved = captureRootPixels()[x, y]
+    assertThat(moved.red - moved.green, "red over green").isGreaterThan(0.3f)
+  }
+
+  @Test
+  fun standaloneContentMemberMovedOnScreenByLayer_drawsInputInRevealedPart() = runScreenshotTest {
+    val effect = GlassRuntimeEffect()
+    val shift = mutableStateOf(0f)
+    var density = 0f
+    setContent {
+      density = LocalDensity.current.density
+      Box(Modifier.fillMaxSize().testTag("root").background(Color.White)) {
+        Box(Modifier.fillMaxSize().graphicsLayer { translationX = shift.value }) {
+          // Opaque white over red content, so red inside the member comes only from the input.
+          Box(
+            Modifier.offset(250.dp, 100.dp).size(300.dp, 120.dp)
+              .hazeGlass(
+                factory = HazeEffectFactory { effect },
+                input = HazeInput.Content,
+                style = GlassStyle { backgroundColor(Color.White) },
+                performanceMode = null,
+                expandLayerBounds = true,
+                interactionSource = null,
+              ),
+          ) {
+            Box(Modifier.fillMaxSize().background(Color.Red))
+          }
+        }
+      }
+    }
+    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    val x = px(300.dp, density)
+    val y = px(160.dp, density)
+    captureRootPixels()
+    shift.value = -200 * density
+    waitForIdle()
+    val moved = captureRootPixels()[x, y]
+    assertThat(moved.red - moved.green, "red over green").isGreaterThan(0.3f)
   }
 
   private class ClusterScene(val effects: List<GlassRuntimeEffect>) {
