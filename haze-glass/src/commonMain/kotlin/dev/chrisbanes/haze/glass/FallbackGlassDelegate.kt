@@ -209,9 +209,11 @@ internal class FallbackGlassDelegate(
     trace(GlassTraceSection.FallbackDraw) {
       val shapePath = prepared.shapePath
       val mergedPaths = prepared.mergedPaths
+      val visible = effect.windowBoundsInEffect()
+      val inputBounds = Rect(Offset.Zero, size).visiblePart(visible)
 
-      if (forceInput && mergedPaths == null && backgroundColor.alpha <= 0f) {
-        drawInputWithAlpha(context, alpha = 1f)
+      if (forceInput && mergedPaths == null && backgroundColor.alpha <= 0f && !inputBounds.isEmpty) {
+        drawInputWithAlpha(context, alpha = 1f, bounds = inputBounds)
       }
 
       fun DrawScope.drawFallback(alphaMultiplier: Float) {
@@ -220,7 +222,7 @@ internal class FallbackGlassDelegate(
             drawRect(
               color = backgroundColor.copy(alpha = backgroundColor.alpha * alphaMultiplier),
             )
-            this@drawBase.drawInputWithAlpha(context, alphaMultiplier)
+            if (!inputBounds.isEmpty) this@drawBase.drawInputWithAlpha(context, alphaMultiplier, inputBounds)
           }
           if (tint.alpha > 0f) {
             drawRect(color = tint.copy(alpha = tint.alpha * alphaMultiplier))
@@ -228,7 +230,7 @@ internal class FallbackGlassDelegate(
         }
 
         when {
-          mergedPaths != null -> drawMergedBase(context, mergedPaths, alphaMultiplier, forceInput)
+          mergedPaths != null -> drawMergedBase(context, mergedPaths, alphaMultiplier, forceInput, visible)
           shapePath != null -> clipPath(shapePath) { drawBase() }
           else -> drawBase()
         }
@@ -272,8 +274,9 @@ internal class FallbackGlassDelegate(
 
       val mergedPaths = prepared.mergedPaths
       if (mergedPaths != null) {
-        // Read exclusive only for a lit cluster: building it costs a Path.op per member.
-        prepared.memberLightBrushes?.let { drawMergedInteractionLighting(mergedPaths.exclusive, it) }
+        prepared.memberLightBrushes?.let {
+          drawMergedInteractionLighting(mergedPaths, it, effect.windowBoundsInEffect())
+        }
       } else {
         drawInteractionLighting(
           interaction = prepared.interaction,
@@ -355,14 +358,30 @@ private fun DrawScope.drawInteractionLighting(
   }
 }
 
-/** Draws each member's light over the part of it that no earlier member covers. */
-private fun DrawScope.drawMergedInteractionLighting(
-  exclusive: List<Path>,
+/**
+ * Draws each member's light over its shape where no earlier member covers it, like
+ * [drawMergedColours]: in a layer when the visible union fits, otherwise over exclusive paths.
+ */
+internal fun DrawScope.drawMergedInteractionLighting(
+  paths: FallbackMergedPaths,
   brushes: List<Brush?>,
+  visible: Rect?,
 ) {
-  brushes.forEachIndexed { index, brush ->
-    // The gradient is transparent beyond its radius, so filling the whole region is equivalent.
-    if (brush != null) drawPath(exclusive[index], brush)
+  if (paths.unionBounds.visiblePart(visible).isEmpty) return
+  val layerBounds = paths.layerBounds(visible)
+  if (layerBounds == null) {
+    brushes.forEachIndexed { index, brush ->
+      // The gradient is transparent beyond its radius, so filling the whole region is equivalent.
+      if (brush != null) drawPath(paths.exclusive[index], brush)
+    }
+    return
+  }
+  withLayerPaint(alpha = 1f, blendMode = BlendMode.SrcOver, bounds = layerBounds) {
+    for (index in brushes.indices.reversed()) {
+      // An unlit member still clears what it covers: the earliest member owns the overlap.
+      drawPath(paths.members[index], Color.Black, blendMode = BlendMode.DstOut)
+      brushes[index]?.let { drawPath(paths.members[index], it, blendMode = BlendMode.Plus) }
+    }
   }
 }
 
@@ -386,31 +405,39 @@ private fun DrawScope.drawMergedBase(
   paths: FallbackMergedPaths,
   alphaMultiplier: Float,
   forceInput: Boolean,
+  visible: Rect?,
 ) {
   val members = paths.field.members
-  if (paths.field.hasBackground) drawMergedColours(paths, alphaMultiplier) { it.backgroundColor }
+  if (paths.field.hasBackground) drawMergedColours(paths, alphaMultiplier, visible) { it.backgroundColor }
   // Input appears only where the winning member has a background, or everywhere on the downgrade frame.
   val inputPath = if (forceInput) paths.union else paths.inputMask
-  inputPath?.let { clipPath(it) { drawInputWithAlpha(context, alphaMultiplier) } }
-  if (members.any { it.tint.alpha > 0f }) drawMergedColours(paths, alphaMultiplier) { it.tint }
+  // Both masks lie within the union, so its visible bounds hold the input.
+  val inputBounds = paths.unionBounds.visiblePart(visible)
+  if (!inputBounds.isEmpty) {
+    inputPath?.let { clipPath(it) { drawInputWithAlpha(context, alphaMultiplier, inputBounds) } }
+  }
+  if (members.any { it.tint.alpha > 0f }) drawMergedColours(paths, alphaMultiplier, visible) { it.tint }
 }
 
 /**
- * Draws one colour stage in a layer bounded by the union, in which each member clears its own
- * shape with [BlendMode.DstOut] and then adds its colour with [BlendMode.Plus], from last to first.
- * Where members overlap the earliest member's colour applies once, and anti-aliased edges never
- * composite twice.
+ * Draws one colour stage in a layer bounded by the union within [visible], in which each member
+ * clears its own shape with [BlendMode.DstOut] and then adds its colour with [BlendMode.Plus], from
+ * last to first. Where members overlap the earliest member's colour applies once, and anti-aliased
+ * edges never composite twice. A null [visible] bounds the layer by the whole union.
  */
 internal fun DrawScope.drawMergedColours(
   paths: FallbackMergedPaths,
   alphaMultiplier: Float,
+  visible: Rect? = null,
   color: (GlassMergedMember) -> Color,
 ) {
   val members = paths.field.members
-  val layerBounds = paths.layerBounds
+  if (paths.unionBounds.visiblePart(visible).isEmpty) return
+  val layerBounds = paths.layerBounds(visible)
   if (layerBounds == null) {
-    // ponytail: without a layer each member fills only what earlier members leave uncovered, so
-    // overlaps composite once, but curved internal edges show a faint anti-aliasing seam.
+    // ponytail: only when the visible union exceeds the layer budget (over 4096 px on a side, or
+    // over 16,777,216 px on screen). Each member then fills only what earlier members leave
+    // uncovered, so overlaps composite once, but curved internal edges show a faint seam.
     members.forEachIndexed { index, member ->
       val memberColor = color(member)
       drawPath(paths.exclusive[index], memberColor.copy(alpha = memberColor.alpha * alphaMultiplier))
@@ -459,10 +486,14 @@ internal class FallbackMergedPaths(val field: GlassMergedField) {
     }
   }
 
-  /** The pixel-aligned union bounds for a colour layer, or null when they exceed the layer budget. */
-  val layerBounds: Rect? = union.getBounds().let { bounds ->
+  /** The pixel-aligned union bounds. */
+  val unionBounds: Rect = union.getBounds().let { bounds ->
     Rect(floor(bounds.left), floor(bounds.top), ceil(bounds.right), ceil(bounds.bottom))
-  }.takeIf { IntSize(it.width.toInt(), it.height.toInt()).fitsGlassLayerBudget() }
+  }
+
+  /** The union bounds within [visible] for a layer, or null when they exceed the layer budget. */
+  fun layerBounds(visible: Rect?): Rect? = unionBounds.visiblePart(visible)
+    .takeIf { IntSize(it.width.toInt(), it.height.toInt()).fitsGlassLayerBudget() }
 }
 
 private fun GlassMergedMember.fallbackPath(): Path = Path().apply {

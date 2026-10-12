@@ -235,7 +235,7 @@ class GlassContainerInteractionTest : ContextTest() {
   }
 
   @Test
-  fun unavailableRuntime_exclusivePathsBuiltOnlyWhileLit_andLightOnlyChangeKeepsPaths() = runComposeUiTest {
+  fun unavailableRuntime_withinBudgetLitCluster_skipsExclusivePaths_andLightOnlyChangeKeepsPaths() = runComposeUiTest {
     val fixture = cluster(pressed = instantLit, unavailable = true)
     fixture.assertFallback()
     fixture.capture()
@@ -244,7 +244,7 @@ class GlassContainerInteractionTest : ContextTest() {
     fixture.press(fixture.firstSource)
     fixture.capture()
     val litPaths = fixture.mergedPaths()
-    assertThat(litPaths.exclusiveBuilt()).isTrue()
+    assertThat(litPaths.exclusiveBuilt()).isFalse()
     assertThat(litPaths).isSameInstanceAs(idlePaths)
   }
 
@@ -367,7 +367,7 @@ class GlassContainerInteractionTest : ContextTest() {
   }
 }
 
-private fun FallbackMergedPaths.exclusiveBuilt(): Boolean = javaClass.getDeclaredField("exclusive\$delegate").run {
+internal fun FallbackMergedPaths.exclusiveBuilt(): Boolean = javaClass.getDeclaredField("exclusive\$delegate").run {
   isAccessible = true
   (get(this@exclusiveBuilt) as Lazy<*>).isInitialized()
 }

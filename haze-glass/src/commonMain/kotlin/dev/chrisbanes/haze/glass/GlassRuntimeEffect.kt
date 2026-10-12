@@ -18,6 +18,9 @@ import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.findRootCoordinates
+import androidx.compose.ui.node.requireLayoutCoordinates
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -169,6 +172,31 @@ internal class GlassRuntimeEffect() :
   override val alpha: Float get() = surfaceSnapshot?.material?.alpha ?: super.alpha
   internal val memberBindingForTest: GlassMemberBinding? get() = memberBinding
   internal var updateCallsForTest = 0
+
+  /** The container whose surface this cluster runtime draws in, and the cluster's origin there. */
+  internal var surfaceOwner: GlassContainerNode? = null
+  internal var surfaceOrigin: Offset = Offset.Zero
+
+  /**
+   * The window (root) bounds in the space this effect draws in, or null when unresolved. A cluster
+   * draws in its container's surface translated by [surfaceOrigin]; a member draws in its own
+   * layout space, scaled by its interaction transform.
+   */
+  // ponytail: window bounds only, not ancestor clips such as a scrolling viewport, because only
+  // the window cannot cut on-screen output. Tighten if window-sized layers prove costly. The root
+  // is the ComposeView, so glass drawn past it through a parent's clipChildren=false is cut.
+  internal fun windowBoundsInEffect(): Rect? {
+    val owner = surfaceOwner
+    val bounds = if (owner != null) {
+      owner.surfaceCoordinates?.windowBounds()?.translate(-surfaceOrigin)
+    } else {
+      val node = memberBinding?.node?.takeIf { it.isAttached } ?: return null
+      val size = attachedContext?.modifierSize ?: return null
+      val window = node.requireLayoutCoordinates().windowBounds() ?: return null
+      currentInteractionTransform(size).unmap(window)
+    }
+    return bounds?.takeIf { it.left.isFinite() && it.top.isFinite() && it.right.isFinite() && it.bottom.isFinite() }
+  }
 
   /** Re-publishes the member material at a new container optical size before reclustering. */
   internal fun refreshMemberMaterial() {
@@ -1274,3 +1302,19 @@ internal fun reducedMotion(
 }
 
 private fun Float.isSquareCorner(): Boolean = isFinite() && this <= 0f
+
+/** The root's bounds in these coordinates; under rotation or skew, their bounding box. */
+private fun LayoutCoordinates.windowBounds(): Rect? =
+  takeIf { it.isAttached }?.let { it.localBoundingBoxOf(it.findRootCoordinates(), clipBounds = false) }
+
+/** Maps [rect] from the space this transform draws into back to the space drawn in. */
+internal fun HazeEffectContentTransform.unmap(rect: Rect): Rect {
+  if (this == HazeEffectContentTransform.Identity) return rect
+  // A point p draws at pivot + scale * (p - pivot). Scales are positive, so edges keep their order.
+  return Rect(
+    left = pivot.x + (rect.left - pivot.x) / scaleX,
+    top = pivot.y + (rect.top - pivot.y) / scaleY,
+    right = pivot.x + (rect.right - pivot.x) / scaleX,
+    bottom = pivot.y + (rect.bottom - pivot.y) / scaleY,
+  )
+}
