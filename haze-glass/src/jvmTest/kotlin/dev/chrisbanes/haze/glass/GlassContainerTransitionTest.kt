@@ -432,6 +432,20 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun collapsedMember_isNotBorrowedAsAnchor() = runComposeUiTest {
+    // A is scaled to zero height, so its bounds are non-null but empty (at the origin). They are
+    // nearer B at (0, 60) than C is, but A cannot carry B's ghost; C must.
+    val fixture = fixture(gap = -140, transition = GlassMemberTransition.Materialize, cOffset = 260 to 160, cInitially = true)
+    runOnIdle { fixture.aScaleY.value = 0f }
+    fixture.advance(16)
+    fixture.toggle()
+    fixture.advance(16)
+    val ghost = fixture.owner().model.surfaces.flatMap { it.members }.single { it.identity is GlassMemberGhost }.identity as GlassMemberGhost
+    assertThat(ghost.anchor).isEqualTo(fixture.c.memberBindingForTest?.node)
+    fixture.settle()
+  }
+
+  @Test
   fun anchorChangesInput_endsGhost() = runComposeUiTest {
     val fixture = fixture(gap = 100, transition = GlassMemberTransition.Materialize)
     fixture.toggle()
@@ -666,6 +680,7 @@ class GlassContainerTransitionTest : ContextTest() {
     val bExtra = mutableStateOf(GlassStyle { })
     val bRotation = mutableStateOf(0f)
     val aRotation = mutableStateOf(0f)
+    val aScaleY = mutableStateOf(1f)
     val bSourced = mutableStateOf(false)
     val spacing = mutableStateOf(40)
 
@@ -738,7 +753,12 @@ class GlassContainerTransitionTest : ContextTest() {
         Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
         Box(Modifier.size(360.dp, 240.dp).then(if (enabled.value) Modifier.hazeGlassContainer(fixture.spacing.value.dp, spec, policy) else Modifier)) {
           if (aPresent.value) {
-            Box(Modifier.offset(40.dp, 60.dp).size(aWidth.value.dp, 80.dp).graphicsLayer { rotationZ = fixture.aRotation.value }.hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(aState.value), containerTestStyle(Color.Red), HazePerformanceMode.Quality, true, null))
+            Box(
+              Modifier.offset(40.dp, 60.dp).size(aWidth.value.dp, 80.dp).graphicsLayer {
+                rotationZ = fixture.aRotation.value
+                scaleY = fixture.aScaleY.value
+              }.hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(aState.value), containerTestStyle(Color.Red), HazePerformanceMode.Quality, true, null),
+            )
           }
           Box(
             Modifier.size(360.dp, 240.dp)

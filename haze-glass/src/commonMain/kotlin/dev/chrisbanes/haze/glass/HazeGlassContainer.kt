@@ -181,7 +181,7 @@ internal class GlassContainerNode(
     if (!isAttached || !settled || member.transition == GlassMemberTransition.None || !last.translationOnly) return null
     val ordered = registrations.mapNotNull { if (it === member) last else latest[it] }
     // Only members that can draw now may carry a ghost; a collapsed member keeps a stale snapshot.
-    val live = liveSnapshots().keys
+    val live = liveSnapshots().filterValues { it.layoutRect.isValidGlassMember() }.keys
     val undrawable = ordered.mapNotNullTo(mutableSetOf()) { snapshot -> snapshot.identity.takeIf { it is GlassMemberNode && it !in live } }
     // A ghost draws through its anchor's input, so the anchor must resolve the same sources.
     val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(last, ordered, spacingPx, undrawable) else null
