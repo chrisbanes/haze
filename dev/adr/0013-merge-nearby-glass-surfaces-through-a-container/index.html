@@ -1162,7 +1162,8 @@ its own children. A member's own style still sets its shape, input and appearanc
   changes because a member was added, removed or resized, it changes immediately and is not
   animated. A member that is leaving does not count.</li>
 <li>Each member's interaction transform and interaction lighting apply to that member's part of the
-  field. Pressing one member enlarges it within the merged shape, and only that member brightens.</li>
+  field. Pressing one member can shrink it within the merged shape (interaction scales are at most
+  1), and only that member brightens.</li>
 </ul>
 <h2 id="transitions">Transitions<a class="headerlink" href="#transitions" title="Permanent link">¶</a></h2>
 <p>Members have no identifiers, because a Compose modifier node already keeps one identity for as long
@@ -1175,6 +1176,14 @@ as it is attached. Each member chooses a transition:</p>
   beyond the spacing.</li>
 <li><strong><code>None</code></strong> applies no transition.</li>
 </ul>
+<p>A morph starts or ends on the neighbour's drawn outline: its rect after its interaction transform,
+with its corners scaled as they are drawn. A pressed neighbour therefore stays continuous with the
+member growing out of it or retracting into it. Spacing and neighbour checks still ignore
+interaction transforms. A member chooses a growing neighbour by its current morph, and keeps that
+link while either the morph or the neighbour's layout is within the spacing.</p>
+<p>A member with <code>HazeInput.Content</code> input leaves immediately, without a ghost, because the content
+its glass samples leaves with it
+(<a href="https://github.com/chrisbanes/haze/issues/1485">#1485</a>).</p>
 <p>Haze doesn't animate member content, so callers fade content themselves.</p>
 <p>Under reduced motion, the transition keeps its morph but uses a critically damped animation
 instead of the spring, so it doesn't overshoot. <code>reducedMotionPolicy</code> uses the existing
@@ -1223,10 +1232,20 @@ instead of the spring, so it doesn't overshoot. <code>reducedMotionPolicy</code>
 <li><strong>The fallback renderer draws no bridge.</strong> It renders each cluster as one surface clipped to the
   hard union of the member shapes, so overlapping members of a cluster never double their blur or
   tint. Members beyond the cap still draw separately.</li>
+<li><strong>A system animation-scale change applies from the next transition.</strong> A transition that is
+  already running continues as it started.</li>
+<li><strong>A retract into a neighbour whose style alpha the caller animates ends immediately.</strong> Alpha is
+  part of the merge key, so the neighbour is no longer compatible once its alpha changes.</li>
 <li><strong>Merging costs extra GPU work.</strong> On a Pixel 8a, two merged pills finished frames about 1.2–1.5 ms
   later at P50 and P90 than the same pills drawn independently, with a layer about three times the
   area. CPU frame time was within noise. These were single sessions, and CPU frame time does not
   measure GPU shader cost.</li>
+<li><strong>Lazy layouts animate as they scroll.</strong> Compose gives a modifier no signal that tells a
+  scroll-driven attach from a state-driven one, so members of a <code>LazyRow</code> or <code>LazyColumn</code> animate as
+  they scroll in and out. The default stays <code>MatchedGeometry</code>
+  (<a href="https://github.com/chrisbanes/haze/issues/1485">#1485</a>), and lazy items set
+  <code>GlassMemberTransition.None</code> (<a href="https://github.com/chrisbanes/haze/issues/1512">#1512</a>). Detecting
+  scroll-driven appearances is deferred.</li>
 </ul></div>
 
 
