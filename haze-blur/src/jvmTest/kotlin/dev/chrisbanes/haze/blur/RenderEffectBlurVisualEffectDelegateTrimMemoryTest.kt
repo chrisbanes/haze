@@ -33,6 +33,7 @@ import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
+import dev.chrisbanes.haze.HazeEffectBackdrop
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeSampling
@@ -350,7 +351,7 @@ class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
     val context = RecordingDrawContext(recordedSize = Size(100f, 100f))
     val configuration = BlurConfiguration(HazeBlurStyle { blurEnabled(false) }, HazePerformanceMode.Quality)
     effect.update(BlurLifecycleScope, configuration, HazeSampling.FullResolution)
-    var backdrop: dev.chrisbanes.haze.HazeEffectBackdrop? = null
+    var backdrop: HazeEffectBackdrop? = null
 
     context.render {
       backdrop = with(effect) { with(context) { backdropEffect(configuration) } }

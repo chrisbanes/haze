@@ -387,6 +387,21 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   }
 
   @Test
+  fun prepareDraw_failureFromRuntimeShaderDelegate_downgradesToFallback() {
+    val effect = GlassRuntimeEffect()
+    val context = RecordingVisualEffectContext(size = Size(100f, 100f), layerSize = Size(100f, 100f))
+    effect.attach(context)
+    effect.prepareDrawForTest(context)
+    effect.delegate = FailingGlassDelegate(usesRuntimeShader = true)
+
+    effect.prepareDrawForTest(context)
+
+    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(effect.runtimeShaderIncompatible).isTrue()
+    effect.detach()
+  }
+
+  @Test
   fun prepareDraw_failureFromDelegateThatCannotRecover_rethrows() {
     val effect = GlassRuntimeEffect()
     val context = RecordingVisualEffectContext(size = Size(100f, 100f), layerSize = Size(100f, 100f))
@@ -965,7 +980,6 @@ private fun RuntimeShaderGlassDelegate.seedRetainedOutputAvailable() {
   }
 }
 
-@OptIn(InternalComposeUiApi::class, InternalHazeApi::class)
 private class FailingGlassDelegate(
   override val usesRuntimeShader: Boolean,
 ) : GlassRuntimeEffect.Delegate {
@@ -980,6 +994,7 @@ private class FailingGlassDelegate(
   override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) = Unit
 }
 
+@OptIn(InternalComposeUiApi::class, InternalHazeApi::class)
 private class RecordingVisualEffectContext(
   override val size: Size = Size.Zero,
   override val layerSize: Size = Size.Zero,
