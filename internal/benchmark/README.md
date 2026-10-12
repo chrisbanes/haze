@@ -140,8 +140,8 @@ parameter except the container:
 `source_update_container_2` wraps the grid in `hazeGlassContainer(spacing = 32.dp)`. The 12 dp gap
 is less than half of the spacing, so the two surfaces form one two-member cluster.
 
-Both use the changing-source workload, not the steady one, so that container-owned glass redraws
-every frame. The steady workload invalidates only each member's own draw, and the container draws
+Both use the changing-source workload, not the steady one, so that container-owned glass is
+expected to redraw every frame. The steady workload invalidates only each member's own draw, and the container draws
 its members' glass. A source change is expected to reach the container through the same
 invalidation as any other surface, but confirm it for each run: `hazeGlassRuntimeDrawCount` is
 expected to be roughly half per frame in the container row, because one cluster draws once where

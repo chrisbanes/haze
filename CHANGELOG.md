@@ -19,20 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ([#1487](https://github.com/chrisbanes/haze/pull/1487)). `GlassMemberTransition` and
   `hazeGlass(memberTransition = ...)` animate members as they join or leave a container
   ([#1482](https://github.com/chrisbanes/haze/pull/1482)).
-- Added the `Glass — Container` sample, Glass container documentation and performance guidance, and
-  a paired benchmark scenario for comparing a merged cluster with independent surfaces.
+- Added the `Glass — Container` sample and Glass container documentation and performance guidance.
 
 ### Changed
 
 - Documented that `HazeSourceRetention.KeepLastFrame` does not guarantee frozen pixels: on Android,
   retained Glass output can redraw from live or changed source content after its source is lost
   ([#1432](https://github.com/chrisbanes/haze/pull/1432)).
-
-### Fixed
-
-- Restored layout coordinates when Compose reactivates an effect node with an unchanged layout, so
-  reused content no longer drops its Glass container members from their cluster
-  ([#1489](https://github.com/chrisbanes/haze/pull/1489)).
 
 ## 2.0.1 <small>2026-09-29</small> { id="2.0.1" }
 

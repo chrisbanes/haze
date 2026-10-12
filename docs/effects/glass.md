@@ -552,6 +552,9 @@ control, and for surfaces that appear next to an existing one and should grow ou
 ### Container and members
 
 ```kotlin
+// Styles compare by identity, so remember the style.
+val style = remember { GlassStyle.regular.then { shape(CircleShape) } }
+
 Row(
   modifier = Modifier.hazeGlassContainer(spacing = 16.dp),
   horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -560,10 +563,7 @@ Row(
     Box(
       Modifier
         .size(48.dp)
-        .hazeGlass(
-          input = HazeInput.Sources(hazeState),
-          style = GlassStyle.regular.then { shape(CircleShape) },
-        ),
+        .hazeGlass(input = HazeInput.Sources(hazeState), style = style),
     )
   }
 }
@@ -585,15 +585,16 @@ that joins no cluster draws as a separate surface.
 
 - A cluster holds at most four members. Extra members draw separately, without a bridge. Where
   an extra member overlaps the cluster, blur and tint apply twice in the overlap.
-- Only members that register consecutively share a cluster. A member registered between two
-  compatible neighbours splits them, even when it is far away, so merging never reorders members.
-- Members merge only when their input, resolved sources, performance mode and material values
-  are equal: optics, surface profile, specular and edge response, chromatic aberration, tone,
+- Only members that register consecutively share a cluster. Members register in the order they
+  attach, which follows composition order. A member registered between two compatible neighbours
+  splits them, even when it is far away, so merging never reorders members.
+- Members merge only when their input, performance mode and material values are equal: optics, surface profile, specular and edge response, chromatic aberration, tone,
   light position and alpha. Shape, tint, background colour and interaction responses are not
   compared, so members with different shapes and tints still merge and their colours blend across
   the bridge. Regular and Clear surfaces never merge.
-- Members with a rotation or scale transform never merge. Translation and alpha do not stop a
-  member from merging.
+- Members with a rotation or scale transform never merge. A translation does not stop a member
+  from merging, and neither does a Compose layer alpha on the member, such as an
+  `AnimatedVisibility` fade. A style `alpha` that differs between members does.
 - The dome term is disabled for clusters.
 - In reduced-quality performance modes, merged silhouettes render at the reduced input scale.
 
@@ -616,8 +617,9 @@ the captured sources as usual, so use one `hazeState` for every member that shou
 ### Interaction
 
 Per-member interaction transforms and lighting apply to that member's part of the merged shape.
-Pressing one member enlarges it within the cluster, and only that member brightens. A cluster has
-one static light, because members merge only when their light position is equal.
+Pressing a member applies its pressed response, such as `scale`, to that member's part of the
+cluster, and only that member brightens. A cluster has one static light, because members merge only
+when their light position is equal.
 
 ### Transitions
 
@@ -627,7 +629,8 @@ the transition with `hazeGlass(memberTransition = ...)`:
 - `GlassMemberTransition.MatchedGeometry` is the default. A member that attaches within the
   spacing of another member grows out of it, and a member that detaches retracts into it. Beyond
   the spacing, it falls back to `Materialize`.
-- `GlassMemberTransition.Materialize` fades the glass in or out where it is.
+- `GlassMemberTransition.Materialize` fades the glass in or out where it is. A fading member draws
+  on its own until it is fully opaque.
 - `GlassMemberTransition.None` applies no transition.
 
 `transitionSpec` times the animation. Under reduced motion, as `reducedMotionPolicy` resolves it,
@@ -636,7 +639,7 @@ the morph is kept but uses a critically damped animation, so it does not oversho
 
 Haze animates only the glass. Animate member content yourself, for example with
 `AnimatedVisibility` and fades. A scale animation makes a member non-translation-only, so it stops
-merging and transitioning.
+merging and matched-geometry transitions.
 
 Some members leave without a transition, and their glass disappears immediately:
 

@@ -26,6 +26,7 @@ internal fun ScreenshotUiTest.captureGlassContainer() {
           extraMemberVisible = extraMemberVisible,
           onSpacingChange = {},
           onDrag = { _, _ -> },
+          onResetDrag = {},
           onExtraMemberVisibleChange = {},
           onBack = {},
         )

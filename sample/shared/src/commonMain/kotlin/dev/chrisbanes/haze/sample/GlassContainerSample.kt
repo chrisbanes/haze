@@ -40,10 +40,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,6 +80,7 @@ public fun GlassContainerSample(navController: NavHostController) {
     onDrag = { index, delta ->
       dragOffsets = dragOffsets.mapIndexed { i, offset -> if (i == index) offset + delta else offset }
     },
+    onResetDrag = { dragOffsets = listOf(Offset.Zero, Offset.Zero) },
     onExtraMemberVisibleChange = { extraMemberVisible = it },
     onBack = navController::navigateUp,
   )
@@ -90,12 +93,16 @@ public fun GlassContainerSampleContent(
   extraMemberVisible: Boolean,
   onSpacingChange: (Dp) -> Unit,
   onDrag: (index: Int, delta: Offset) -> Unit,
+  onResetDrag: () -> Unit,
   onExtraMemberVisibleChange: (Boolean) -> Unit,
   onBack: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   // Every member samples the same source, so every member can merge with its neighbours.
   val hazeState = rememberHazeState()
+
+  // The pointer input below keeps running across recompositions, so it reads the latest callback.
+  val currentOnDrag by rememberUpdatedState(onDrag)
 
   // Styles compare by identity, so remember each one. Tint, shape and interaction responses
   // are per member and do not stop members from merging.
@@ -150,21 +157,21 @@ public fun GlassContainerSampleContent(
       Box(
         Modifier
           .align(Alignment.TopStart)
-          .offset(x = 64.dp, y = 228.dp)
+          .offset(x = 64.dp, y = 240.dp)
           .size(width = 200.dp, height = 48.dp)
           .background(Color(0xFF14B8A6), RoundedCornerShape(24.dp)),
       )
       Box(
         Modifier
           .align(Alignment.TopStart)
-          .offset(x = 56.dp, y = 448.dp)
+          .offset(x = 56.dp, y = 456.dp)
           .size(width = 120.dp, height = 64.dp)
           .background(Color(0xFFEC4899), RoundedCornerShape(16.dp)),
       )
       Box(
         Modifier
           .align(Alignment.TopStart)
-          .offset(x = 130.dp, y = 586.dp)
+          .offset(x = 130.dp, y = 590.dp)
           .size(100.dp)
           .background(Color(0xFF0F172A), CircleShape),
       )
@@ -176,7 +183,7 @@ public fun GlassContainerSampleContent(
         .verticalScroll(rememberScrollState())
         .padding(WindowInsets.safeDrawing.asPaddingValues())
         .padding(start = 24.dp, top = 56.dp, end = 24.dp, bottom = 16.dp),
-      verticalArrangement = Arrangement.spacedBy(20.dp),
+      verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
       // 1. Toolbar. Glass members inside a container merge when the gap between them is less
       // than half of the spacing: the 4 dp gaps here are well inside 8 dp.
@@ -217,7 +224,16 @@ public fun GlassContainerSampleContent(
       // circles merge while their gap is less than half of the spacing. A spacing of zero
       // disables merging.
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Draggable members", color = Color.White, style = MaterialTheme.typography.titleMedium)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          Text(
+            "Draggable members",
+            modifier = Modifier.weight(1f),
+            color = Color.White,
+            style = MaterialTheme.typography.titleMedium,
+          )
+          // Dragging can move a circle out of reach, so offer a way back.
+          TextButton(onClick = onResetDrag) { Text("Reset", color = Color.White) }
+        }
         Box(
           Modifier
             .fillMaxWidth()
@@ -232,7 +248,7 @@ public fun GlassContainerSampleContent(
               .pointerInput(Unit) {
                 detectDragGestures { change, delta ->
                   change.consume()
-                  onDrag(0, delta)
+                  currentOnDrag(0, delta)
                 }
               }
               .size(72.dp)
@@ -246,7 +262,7 @@ public fun GlassContainerSampleContent(
               .pointerInput(Unit) {
                 detectDragGestures { change, delta ->
                   change.consume()
-                  onDrag(1, delta)
+                  currentOnDrag(1, delta)
                 }
               }
               .size(72.dp)
@@ -268,7 +284,7 @@ public fun GlassContainerSampleContent(
       // 3. Adding and removing a member. Haze animates only the glass: it grows from the base
       // pill and retracts into it. Animate the content yourself. Use fades here, because a
       // scale animation makes the member non-translation-only, so it would stop merging and
-      // transitioning.
+      // matched-geometry transitions.
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Add and remove", color = Color.White, style = MaterialTheme.typography.titleMedium)
         Row(Modifier.hazeGlassContainer(spacing = 24.dp)) {

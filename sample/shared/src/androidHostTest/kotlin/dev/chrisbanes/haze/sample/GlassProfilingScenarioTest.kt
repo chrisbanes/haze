@@ -13,6 +13,7 @@ import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
@@ -368,7 +369,7 @@ class GlassProfilingScenarioTest {
     assertThat(independent.containerSpacing).isNull()
     assertThat(container.containerSpacing).isEqualTo(32.dp)
     // The members merge only when their gap is less than half of the spacing.
-    assertThat(container.memberGap < checkNotNull(container.containerSpacing) / 2).isTrue()
+    assertThat(container.memberGap).isLessThan(checkNotNull(container.containerSpacing) / 2)
 
     val independentOffset = glassProfilingFrame(independent, 0.75f).sourceOffset
     assertThat(glassProfilingFrame(container, 0.75f).sourceOffset).isEqualTo(independentOffset)
