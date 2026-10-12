@@ -82,6 +82,7 @@ class RenderScriptLayerReuseInstrumentationTest {
     h.awaitCenter { it.blue > it.red }
     val capture = checkNotNull(h.delegate.captureLayer.layer)
     val padded = checkNotNull(h.delegate.paddedLayer.layer)
+    val presentation = checkNotNull(h.delegate.presentationLayer.layer)
 
     // Another padded size: 109 pads to 112 where 101 padded to 104.
     h.widthPx = 109
@@ -91,6 +92,7 @@ class RenderScriptLayerReuseInstrumentationTest {
     assertThat(resizedPadded).isNotSameInstanceAs(padded)
     assertThat(padded.isReleased).isTrue()
     assertThat(h.delegate.captureLayer.layer).isNotNull().isSameInstanceAs(capture)
+    assertThat(h.delegate.presentationLayer.layer).isNotNull().isSameInstanceAs(presentation)
 
     // Multiples of 4 need no padding.
     h.widthPx = 100
@@ -100,6 +102,7 @@ class RenderScriptLayerReuseInstrumentationTest {
     assertThat(h.delegate.paddedLayer.layer).isNull()
     assertThat(resizedPadded.isReleased).isTrue()
     assertThat(h.delegate.captureLayer.layer).isNotNull().isSameInstanceAs(capture)
+    assertThat(h.delegate.presentationLayer.layer).isNotNull().isSameInstanceAs(presentation)
   }
 
   @Test

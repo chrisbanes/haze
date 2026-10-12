@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
@@ -155,6 +156,50 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
 
   @Test
   @Config(sdk = [35])
+  fun invalidateRetainedOutput_keepsTheLayersAndNoiseShaderForTheNextDraw() = runScreenshotTest {
+    val h = Harness(NOISY)
+    setContent { h.Content() }
+    frame()
+    val graphicsContext = checkNotNull(h.factory.graphicsContext)
+    val capture = h.delegate.captureLayer.acquire(graphicsContext)
+    val padded = h.delegate.paddedLayer.acquire(graphicsContext, key = 1L)
+    val presentation = checkNotNull(h.delegate.presentationLayer.layer)
+
+    h.delegate.invalidateRetainedOutput()
+    h.redraw(this)
+
+    assertThat(h.delegate.captureLayer.layer).isNotNull().isSameInstanceAs(capture)
+    assertThat(h.delegate.paddedLayer.layer).isNotNull().isSameInstanceAs(padded)
+    assertThat(h.delegate.presentationLayer.layer).isNotNull().isSameInstanceAs(presentation)
+    assertThat(capture.isReleased).isFalse()
+    assertThat(padded.isReleased).isFalse()
+    assertThat(presentation.isReleased).isFalse()
+    assertThat(h.delegate.noiseShaders.buildCount).isEqualTo(1)
+  }
+
+  @Test
+  @Config(sdk = [35])
+  fun draw_withAnEmptyScaledSize_releasesTheKeptCaptureAndPaddedLayers() = runScreenshotTest {
+    val h = Harness(NOISY)
+    setContent { h.Content() }
+    frame()
+    val graphicsContext = checkNotNull(h.factory.graphicsContext)
+    val capture = h.delegate.captureLayer.acquire(graphicsContext)
+    val padded = h.delegate.paddedLayer.acquire(graphicsContext, key = 1L)
+
+    // An empty layer creates no capture, so the full draw stops before it starts an update.
+    h.factory.drawsEmptyLayer = true
+    h.delegate.invalidateRetainedOutput()
+    h.redraw(this)
+
+    assertThat(capture.isReleased).isTrue()
+    assertThat(padded.isReleased).isTrue()
+    assertThat(h.delegate.captureLayer.layer).isNull()
+    assertThat(h.delegate.paddedLayer.layer).isNull()
+  }
+
+  @Test
+  @Config(sdk = [35])
   fun onTrimMemory_background_keepsThePresentationLayerAndNoiseShader() = runScreenshotTest {
     val h = Harness(NOISY)
     setContent { h.Content() }
@@ -230,11 +275,18 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
 
   private class PresentationFactory(val effect: BlurVisualEffect) : HazeEffectFactory<Int> {
     var scale = 1f
+
+    /** Runs the delegate's whole draw, over an empty layer, instead of only its presentation. */
+    var drawsEmptyLayer = false
     var draws = 0
       private set
 
     /** The delegate of the latest renderer, built by its first draw. */
     var delegate: RenderScriptBlurVisualEffectDelegate? = null
+      private set
+
+    /** The graphics context of the latest draw. */
+    var graphicsContext: GraphicsContext? = null
       private set
 
     override fun createRenderer(): HazeEffectRenderer<Int> = object : HazeEffectRenderer<Int> {
@@ -245,6 +297,7 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
       override fun HazeEffectDrawScope.draw(style: Int) {
         val runtime = this as HazeEffectRuntimeDrawScope
         val graphicsContext = runtime.requireGraphicsContext()
+        this@PresentationFactory.graphicsContext = graphicsContext
         val current = own ?: RenderScriptBlurVisualEffectDelegate(
           effect,
           graphicsContext,
@@ -260,7 +313,18 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
           output = it
           outputOwner = graphicsContext
         }
-        with(current) { drawPresentation(runtime, layer, Offset.Zero, scale) }
+        with(current) {
+          if (drawsEmptyLayer) {
+            draw(
+              object : HazeEffectRuntimeDrawScope by runtime {
+                override val layerSize: Size = Size.Zero
+                override val hasDrawableInput: Boolean = true
+              },
+            )
+          } else {
+            drawPresentation(runtime, layer, Offset.Zero, scale)
+          }
+        }
         draws++
       }
 
