@@ -46,10 +46,29 @@ internal fun BlurVisualEffect.getOrCreateRenderEffect(
   retainInputWhenMasked: Boolean = false,
   progressive: HazeProgressive? = null,
   blurTileMode: TileMode = calculateBlurTileMode(),
-): PlatformRenderEffect = trace("HazeEffectNode-getOrCreateRenderEffect") {
-  getOrCreateRenderEffect(
-    context = context,
-    params = RenderEffectParams(
+  slot: BlurRenderEffectSlot? = null,
+): PlatformRenderEffect {
+  val densityScale = context.requireDensity().density
+  slot?.lookup(
+    generation = renderEffectGeneration,
+    densityScale = densityScale,
+    blurRadius = blurRadius,
+    noiseFactor = noiseFactor,
+    scale = inputScale,
+    colorEffects = colorEffects,
+    colorEffectsAlphaModulate = colorEffectsAlphaModulate,
+    backgroundColor = backgroundColor,
+    contentSize = contentSize,
+    contentOffset = contentOffset,
+    mask = mask,
+    progressiveMask = progressiveMask,
+    retainInputWhenMasked = retainInputWhenMasked,
+    progressive = progressive,
+    blurTileMode = blurTileMode,
+  )?.let { return it }
+
+  return trace("HazeEffectNode-getOrCreateRenderEffect") {
+    val params = RenderEffectParams(
       blurRadius = blurRadius,
       noiseFactor = noiseFactor,
       scale = inputScale,
@@ -63,12 +82,18 @@ internal fun BlurVisualEffect.getOrCreateRenderEffect(
       retainInputWhenMasked = retainInputWhenMasked,
       progressive = progressive,
       blurTileMode = blurTileMode,
-    ),
-  )
+    )
+    getOrCreateRenderEffect(context = context, params = params).also {
+      slot?.store(renderEffectGeneration, densityScale, params, it)
+    }
+  }
 }
 
 internal fun BlurVisualEffect.clearRenderEffectCache() {
   renderEffectCache.evictAll()
+  // Slots compare the generation, so none can return an effect the cache no longer holds.
+  renderEffectGeneration++
+  backdropSlot.reset()
 }
 
 @Poko

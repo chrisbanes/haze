@@ -9,7 +9,6 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.asComposeRenderEffect
 
 internal actual fun BlurVisualEffect.invalidateRenderEffectOnInputChange() = Unit
 
@@ -21,13 +20,15 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   context: HazeEffectRuntimeDrawScope,
   inputScale: Float,
 ) = with(drawScope) {
-  contentLayer.renderEffect = blurVisualEffect
-    .getOrCreateRenderEffect(
+  effectSlot.apply(
+    contentLayer,
+    blurVisualEffect.getOrCreateRenderEffect(
       context = context,
       inputScale = inputScale,
       progressive = progressive,
-    )
-    .asComposeRenderEffect()
+      slot = effectSlot,
+    ),
+  )
   contentLayer.alpha = blurVisualEffect.alpha
 
   // Finally draw the layer

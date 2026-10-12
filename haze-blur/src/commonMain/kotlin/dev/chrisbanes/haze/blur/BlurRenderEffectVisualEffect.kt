@@ -8,7 +8,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
-import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -24,14 +23,14 @@ import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
-import dev.chrisbanes.haze.asComposeRenderEffect
 import kotlin.math.ceil
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RenderEffectBlurVisualEffectDelegate(
   val blurVisualEffect: BlurVisualEffect,
 ) : BlurVisualEffect.Delegate, RetainedOutputDelegate {
-  private var renderEffect: RenderEffect? = null
+  internal val effectSlot: BlurRenderEffectSlot = blurVisualEffect.renderEffectSlotFactory()
+  private val bandSlots = mutableListOf<BlurRenderEffectSlot>()
   internal var scaledContentLayer: GraphicsLayer? = null
     private set
   private var lastScaledLayerSize: Size? = null
@@ -141,8 +140,14 @@ internal class RenderEffectBlurVisualEffectDelegate(
           inputScale = scaleFactor,
         )
       } else {
-        updateRenderEffectIfDirty(context, scaleFactor)
-        layer.renderEffect = renderEffect
+        trimBandSlots(0)
+        // Always resolve the current RenderEffect, so changes coming from either the effect itself
+        // or the hosting node (e.g., size, layer offset, input scale) are reflected without relying
+        // on local dirty flags. The slot makes the unchanged case cheap.
+        effectSlot.apply(
+          layer,
+          blurVisualEffect.getOrCreateRenderEffect(context, inputScale = scaleFactor, slot = effectSlot),
+        )
         layer.alpha = blurVisualEffect.alpha
         drawLayer(layer)
       }
@@ -181,23 +186,25 @@ internal class RenderEffectBlurVisualEffectDelegate(
     }
     scaledContentLayer = null
     lastScaledLayerSize = null
-    renderEffect = null
+    effectSlot.reset()
+    bandSlots.forEach { it.reset() }
+    bandSlots.clear()
     graphicsContext = null
     retainedOutputAvailable = false
     inputCaptureKey = null
   }
 
-  private fun updateRenderEffectIfDirty(
-    context: HazeEffectRuntimeDrawScope,
-    scaleFactor: Float,
-  ) {
-    // Always resolve the current RenderEffect using the memoized cache keyed by params.
-    // This ensures that changes coming from either the effect itself OR the hosting node
-    // (e.g., size, layer offset, input scale, etc.) will be reflected without relying on
-    // the effect's local dirty flags only.
-    renderEffect = blurVisualEffect
-      .getOrCreateRenderEffect(context, inputScale = scaleFactor)
-      .asComposeRenderEffect()
+  internal val bandSlotCount: Int get() = bandSlots.size
+
+  /** The slot for the [index]th band of a layered progressive draw, in draw order. */
+  internal fun bandSlot(index: Int): BlurRenderEffectSlot {
+    while (bandSlots.size <= index) bandSlots += blurVisualEffect.renderEffectSlotFactory()
+    return bandSlots[index]
+  }
+
+  /** Drops the slots of bands the latest layered draw no longer has. */
+  internal fun trimBandSlots(count: Int) {
+    while (bandSlots.size > count) bandSlots.removeAt(bandSlots.lastIndex).reset()
   }
 
   @Poko

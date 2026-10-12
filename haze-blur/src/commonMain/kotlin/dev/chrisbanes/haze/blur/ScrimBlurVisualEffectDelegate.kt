@@ -9,7 +9,6 @@ import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.asBrush
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class ScrimBlurVisualEffectDelegate(
@@ -26,7 +25,7 @@ internal class ScrimBlurVisualEffectDelegate(
         colorEffect = scrimTint,
         context = context,
         mask = blurVisualEffect.mask,
-        progressiveMask = blurVisualEffect.progressive?.asBrush(),
+        progressiveMask = blurVisualEffect.progressiveBrush,
       )
     }
   }
