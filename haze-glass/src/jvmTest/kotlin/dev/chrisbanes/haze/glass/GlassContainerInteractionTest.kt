@@ -34,6 +34,7 @@ import assertk.assertions.hasSize
 import assertk.assertions.isCloseTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isTrue
 import assertk.assertions.prop
@@ -41,6 +42,7 @@ import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.math.abs
@@ -177,7 +179,58 @@ class GlassContainerInteractionTest : ContextTest() {
     assertThat(minLeft).isGreaterThanOrEqualTo(0f)
   }
 
+  @Test
+  fun unavailableRuntime_pressOneMember_lightsOnlyThatMember() = runComposeUiTest {
+    val fixture = cluster(pressed = instantLit, unavailable = true)
+    fixture.assertFallback()
+    val rest = fixture.capture()
+    fixture.press(fixture.firstSource)
+    assertThat(fixture.field().members.map { it.lightIntensity }).containsExactly(1f, 0f)
+    val pressed = fixture.capture()
+    assertThat(pressed[90, 100].luminance()).isGreaterThan(rest[90, 100].luminance())
+    assertThat(abs(pressed[200, 100].luminance() - rest[200, 100].luminance())).isLessThan(1f / 255f)
+  }
+
+  @Test
+  fun unavailableRuntime_pressBothMembers_lightsBoth() = runComposeUiTest {
+    val fixture = cluster(pressed = instantLit, unavailable = true)
+    fixture.assertFallback()
+    val rest = fixture.capture()
+    fixture.press(fixture.firstSource)
+    fixture.press(fixture.secondSource)
+    assertThat(fixture.field().members.map { it.lightIntensity }).containsExactly(1f, 1f)
+    val pressed = fixture.capture()
+    assertThat(pressed[90, 100].luminance()).isGreaterThan(rest[90, 100].luminance())
+    assertThat(pressed[200, 100].luminance()).isGreaterThan(rest[200, 100].luminance())
+  }
+
+  @Test
+  fun unavailableRuntime_memberLightIsClippedToItsMember() = runComposeUiTest {
+    val fixture = cluster(pressed = instantLit, unavailable = true)
+    fixture.assertFallback()
+    val rest = fixture.capture()
+    // Root (135, 100): the 56px light radius would reach x = 191 if it were not clipped to A.
+    fixture.press(fixture.firstSource, Offset(95f, 40f))
+    val pressed = fixture.capture()
+    assertThat(pressed[130, 100].luminance()).isGreaterThan(rest[130, 100].luminance())
+    assertThat(abs(pressed[160, 100].luminance() - rest[160, 100].luminance())).isLessThan(1f / 255f)
+  }
+
+  @Test
+  fun unavailableRuntime_laterMemberLightDoesNotDrawOverEarlierMember() = runComposeUiTest {
+    // B spans root x 100..200 and A wins the overlap at x 100..140.
+    val fixture = cluster(gap = -40, pressed = instantLit, unavailable = true)
+    fixture.assertFallback()
+    assertThat(fixture.field().members).hasSize(2)
+    val rest = fixture.capture()
+    fixture.press(fixture.secondSource, Offset(10f, 40f))
+    val pressed = fixture.capture()
+    assertThat(abs(pressed[120, 100].luminance() - rest[120, 100].luminance())).isLessThan(1f / 255f)
+    assertThat(pressed[150, 100].luminance()).isGreaterThan(rest[150, 100].luminance())
+  }
+
   private val lit = GlassStyle { pressed { lightingIntensity(1f) } }
+  private val instantLit = GlassStyle { pressed { animate(snap(), snap()) { lightingIntensity(1f) } } }
 
   private class ClusterFixture(
     val test: ComposeUiTest,
@@ -187,6 +240,10 @@ class GlassContainerInteractionTest : ContextTest() {
   ) {
     fun owner() = checkNotNull(first.memberBindingForTest?.node?.container)
     fun field() = checkNotNull(owner().renderer.runtimeSurfaces.single().mergedField)
+    fun assertFallback() {
+      assertThat(owner().renderer.runtimeSurfaces.single().delegate).isInstanceOf<FallbackGlassDelegate>()
+    }
+
     fun capture() = test.onNodeWithTag("root").captureToImage().toPixelMap()
 
     fun press(source: MutableInteractionSource, position: Offset = Offset(50f, 40f)): PressInteraction.Press {
@@ -209,8 +266,15 @@ class GlassContainerInteractionTest : ContextTest() {
     policy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.Full,
     pivot: GlassTransformPivot = GlassTransformPivot.Center,
     firstModifier: Modifier = Modifier,
+    unavailable: Boolean = false,
   ): ClusterFixture {
     val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    if (unavailable) {
+      listOf(first, second).forEach { effect ->
+        effect.runtimeEffectFactory = GlassRuntimeEffectFactory { throw RuntimeShaderRenderEffectException(IllegalStateException("test unavailable runtime")) }
+      }
+    }
     val firstSource = MutableInteractionSource()
     val secondSource = MutableInteractionSource()
     val state = HazeState()
@@ -226,7 +290,7 @@ class GlassContainerInteractionTest : ContextTest() {
           )
           Box(
             Modifier.offset((140 + gap).dp, 60.dp).size(100.dp, 80.dp).hazeGlass(
-              HazeEffectFactory { GlassRuntimeEffect() }, HazeInput.Sources(state), containerTestStyle(Color.Blue).then(pressed),
+              HazeEffectFactory { second }, HazeInput.Sources(state), containerTestStyle(Color.Blue).then(pressed),
               HazePerformanceMode.Quality, true, secondSource, GlassTransformTarget.MaterialOnly, pivot, policy,
             ),
           )
