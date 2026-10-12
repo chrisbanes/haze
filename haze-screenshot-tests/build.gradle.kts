@@ -98,6 +98,11 @@ tasks.withType<Test> {
     maxHeapSize = "2g"
   }
 
+  // The CPU-bound Desktop suite was a lone-fork CI tail on an otherwise idle runner (#1493).
+  if (name == "jvmTest") {
+    maxParallelForks = 4
+  }
+
   addTestOutputListener(
     object : TestOutputListener {
       override fun onOutput(
