@@ -78,6 +78,32 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun matchedGeometryAttach_doesNotReRunMemberUpdatesPerFrame() = runComposeUiTest {
+    val fixture = fixture(present = false)
+    fixture.toggle()
+    fixture.a.updateCallsForTest = 0
+    fixture.b.updateCallsForTest = 0
+    val left = fixture.b().rect.left
+    fixture.advance(144)
+    assertThat(fixture.a.updateCallsForTest).isEqualTo(0)
+    assertThat(fixture.b.updateCallsForTest).isEqualTo(0)
+    assertThat(fixture.b().rect.left).isGreaterThan(left)
+    fixture.settle()
+  }
+
+  @Test
+  fun matchedGeometryDetach_doesNotReRunNeighbourUpdatesPerFrame() = runComposeUiTest {
+    val fixture = fixture()
+    fixture.toggle()
+    fixture.a.updateCallsForTest = 0
+    val left = fixture.b().rect.left
+    fixture.advance(144)
+    assertThat(fixture.a.updateCallsForTest).isEqualTo(0)
+    assertThat(fixture.b().rect.left).isLessThan(left)
+    fixture.settle()
+  }
+
+  @Test
   fun matchedGeometry_attachBeyondHalfSpacing_staysLinkedUntilEnd() = runComposeUiTest {
     val fixture = fixture(gap = 30, present = false)
     fixture.toggle()

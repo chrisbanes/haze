@@ -168,6 +168,7 @@ internal class GlassRuntimeEffect() :
   private var surfaceSnapshot: GlassSurfaceSnapshot? = null
   override val alpha: Float get() = surfaceSnapshot?.material?.alpha ?: super.alpha
   internal val memberBindingForTest: GlassMemberBinding? get() = memberBinding
+  internal var updateCallsForTest = 0
 
   /** Re-publishes the member material at a new container optical size before reclustering. */
   internal fun refreshMemberMaterial() {
@@ -405,6 +406,7 @@ internal class GlassRuntimeEffect() :
     style: GlassNodeConfiguration,
     sampling: HazeSampling,
   ) {
+    updateCallsForTest++
     val context = scope
     // An equal binding is the same membership, already handed over by GlassMemberNode.
     if (memberBinding != style.member) memberBinding?.release(this)

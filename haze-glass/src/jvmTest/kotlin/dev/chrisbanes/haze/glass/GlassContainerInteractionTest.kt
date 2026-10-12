@@ -5,8 +5,10 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -32,6 +34,7 @@ import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.hasSize
 import assertk.assertions.isCloseTo
+import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
@@ -245,15 +248,49 @@ class GlassContainerInteractionTest : ContextTest() {
     assertThat(litPaths).isSameInstanceAs(idlePaths)
   }
 
+  @Test
+  fun pressAnimation_doesNotReRunMemberUpdatesPerFrame() = runComposeUiTest {
+    val linear = tween<Float>(300, easing = LinearEasing)
+    val fixture = cluster(pressed = GlassStyle { pressed { animate(linear, linear) { scale(0.9f) } } })
+    mainClock.autoAdvance = false
+    val press = PressInteraction.Press(Offset(50f, 40f))
+    runBlocking { fixture.firstSource.emit(press) }
+    mainClock.advanceTimeByFrame()
+    fixture.resetUpdateCounts()
+    var width = fixture.field().members[0].rect.width
+    repeat(10) { mainClock.advanceTimeByFrame() }
+    // Neither member re-runs its update while the container re-clusters around the press.
+    assertThat(fixture.first.updateCallsForTest).isEqualTo(0)
+    assertThat(fixture.second.updateCallsForTest).isEqualTo(0)
+    assertThat(fixture.field().members[0].rect.width).isLessThan(width)
+
+    runBlocking { fixture.firstSource.emit(PressInteraction.Release(press)) }
+    mainClock.advanceTimeByFrame()
+    fixture.resetUpdateCounts()
+    width = fixture.field().members[0].rect.width
+    repeat(10) { mainClock.advanceTimeByFrame() }
+    assertThat(fixture.first.updateCallsForTest).isEqualTo(0)
+    assertThat(fixture.second.updateCallsForTest).isEqualTo(0)
+    assertThat(fixture.field().members[0].rect.width).isGreaterThan(width)
+    // Let both animations finish so no coroutine outlives the test.
+    repeat(20) { mainClock.advanceTimeByFrame() }
+  }
+
   private val lit = GlassStyle { pressed { lightingIntensity(1f) } }
   private val instantLit = GlassStyle { pressed { animate(snap(), snap()) { lightingIntensity(1f) } } }
 
   private class ClusterFixture(
     val test: ComposeUiTest,
     val first: GlassRuntimeEffect,
+    val second: GlassRuntimeEffect,
     val firstSource: MutableInteractionSource,
     val secondSource: MutableInteractionSource,
   ) {
+    fun resetUpdateCounts() {
+      first.updateCallsForTest = 0
+      second.updateCallsForTest = 0
+    }
+
     fun owner() = checkNotNull(first.memberBindingForTest?.node?.container)
     fun field() = checkNotNull(owner().renderer.runtimeSurfaces.single().mergedField)
     fun assertFallback() {
@@ -326,7 +363,7 @@ class GlassContainerInteractionTest : ContextTest() {
       }
     }
     waitForIdle()
-    return ClusterFixture(this, first, firstSource, secondSource)
+    return ClusterFixture(this, first, second, firstSource, secondSource)
   }
 }
 
