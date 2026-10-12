@@ -31,3 +31,7 @@ SDKs, filtered runs, and record mode are incomplete full validation, not skips. 
 revision, selected coverage, results, and missing device evidence accurately. When adding a case,
 update the independent acceptance set in `scripts/verify_screenshot_matrix.py` alongside the catalog
 and tests so discovery cannot silently omit it.
+
+Robolectric runtime jars are resolved by Gradle and tests run offline. A test on a new Robolectric SDK
+level must also add it to `Versions.ROBOLECTRIC_SDKS` in `gradle/build-logic`, or its test class
+fails with `no artifacts found for DependencyJar`.
