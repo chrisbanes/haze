@@ -29,6 +29,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectContentTransform
 import dev.chrisbanes.haze.HazeEffectSurface
 import dev.chrisbanes.haze.HazeEffectSurfaceOwner
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.drawHazeEffectSurfaces
@@ -51,17 +52,19 @@ import kotlinx.coroutines.launch
  * Members that attach or detach after the container's first draw animate their glass as each
  * member's [GlassMemberTransition] declares, timed by [transitionSpec]. Under reduced motion, as
  * resolved by [reducedMotionPolicy], the transition keeps its morph with a critically damped
- * spring, even when the system removes animations. A detached member's glass is drawn by the
- * container through a live member with the same input, resolving the same sources, until its
- * animation ends; when no such member remains, for example when the last member leaves, the glass disappears immediately, as
- * it does for a member that is rotated or scaled. A transition ends without animating when the
- * member it grows from, retracts into or is drawn through leaves. A member moving to another
- * container appears there immediately. A running transition ends once its member is no longer
- * within [spacing] of its neighbour; [transitionSpec] and [reducedMotionPolicy] changes apply from
- * the next transition.
- * Leaving members never count towards the shared optical size. Haze animates only the glass, so
- * callers animate member content themselves, for example with `AnimatedVisibility`. Cap
- * diagnostics follow [HazeLogger.enabled].
+ * spring, even when the system removes animations.
+ *
+ * A detached member's glass is drawn by the container through a live member with the same input,
+ * resolving the same sources, until its animation ends. When no such member remains, for example
+ * when the last member leaves, the glass disappears immediately. So does the glass of a member
+ * that is rotated or scaled, or that uses [HazeInput.Content], whose content leaves with it.
+ *
+ * A running transition ends without animating when the member it grows from, retracts into or is
+ * drawn through leaves, or when its member is no longer within [spacing] of that member. A member
+ * moving to another container appears there immediately. [transitionSpec] and
+ * [reducedMotionPolicy] changes apply from the next transition. Leaving members never count
+ * towards the shared optical size. Haze animates only the glass, so callers animate member content
+ * themselves, for example with `AnimatedVisibility`. Cap diagnostics follow [HazeLogger.enabled].
  */
 @Stable
 @ExperimentalHazeApi
@@ -178,7 +181,9 @@ internal class GlassContainerNode(
 
   private fun ghostOf(member: GlassMemberNode, last: GlassMemberSnapshot): GlassMemberGhost? {
     // An axis-aligned field rect cannot draw a rotated or scaled member's glass.
-    if (!isAttached || !settled || member.transition == GlassMemberTransition.None || !last.translationOnly) return null
+    // A Content member's glass samples its own content, which leaves with it; another member's
+    // surface would draw unrelated content in its place.
+    if (!isAttached || !settled || member.transition == GlassMemberTransition.None || !last.translationOnly || last.key.input is HazeInput.Content) return null
     val ordered = registrations.mapNotNull { if (it === member) last else latest[it] }
     // Only members that can draw now may carry a ghost; a collapsed member keeps a stale snapshot.
     val live = liveSnapshots().filterValues { it.layoutRect.isValidGlassMember() }.keys
@@ -240,13 +245,12 @@ internal class GlassContainerNode(
       // A ghost draws through its anchor's surface, so it ends once that anchor cannot draw it: the
       // anchor collapsed, left the layout, or changed input or resolved sources. A valid anchor
       // also keeps the model's optical size non-null while ghosts remain. A retracting ghost also
-      // needs a translation-only neighbour within the current spacing; it takes the neighbour's
-      // key, so keys always match.
+      // needs a neighbour it could still have chosen: compatible and within the current spacing.
       endGhosts { ghost ->
         val anchor = live[ghost.anchor]
         anchor == null || !anchor.layoutRect.isValidGlassMember() || !anchor.drawsSourcesOf(ghost.last) ||
           anchor.key.input != ghost.last.key.input || anchor.key.expandLayerBounds != ghost.last.key.expandLayerBounds ||
-          (ghost.neighbour != null && (!anchor.translationOnly || !ghost.last.isWithinSpacingOf(ghost.anchor, live)))
+          (ghost.neighbour != null && (!ghost.last.canTransitionWith(anchor) || !ghost.last.isWithinSpacingOf(ghost.anchor, live)))
       }
       // A transition's link only draws when it shares its neighbour's cluster, which can stop
       // holding when registrations between them change (for example a fading ghost splits a run).

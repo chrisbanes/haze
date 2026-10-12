@@ -589,6 +589,54 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun retractingGhost_endsWhenNeighbourKeyChanges() = runComposeUiTest {
+    val fixture = fixture()
+    fixture.toggle()
+    assertThat(fixture.b().identity).isInstanceOf<GlassMemberGhost>()
+    runOnIdle { fixture.aExtra.value = GlassStyle { contrast(0.5f) } }
+    fixture.advance(16)
+    assertThat(fixture.owner().model.surfaces.flatMap { it.members }.map { it.identity }).containsExactly(fixture.aNode)
+    fixture.settle()
+  }
+
+  @Test
+  fun contentMembers_leaveWithoutGhosts() {
+    // A Content ghost could only draw another member's content, so neither transition makes one.
+    for ((gap, transition) in listOf(10 to GlassMemberTransition.MatchedGeometry, 100 to GlassMemberTransition.Materialize)) {
+      runComposeUiTest {
+        val a = GlassRuntimeEffect()
+        val b = GlassRuntimeEffect()
+        val present = mutableStateOf(true)
+        setContent {
+          Box(Modifier.size(360.dp, 240.dp).background(Color.White).hazeGlassContainer(40.dp, tween(300, easing = LinearEasing), GlassReducedMotionPolicy.Full)) {
+            Box(Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { a }, HazeInput.Content, containerTestStyle(Color.Red), HazePerformanceMode.Quality, true, null).background(Color.Yellow))
+            if (present.value) {
+              Box(
+                Modifier.offset((140 + gap).dp, 60.dp).size(100.dp, 80.dp).hazeGlass(
+                  HazeEffectFactory { b },
+                  HazeInput.Content,
+                  containerTestStyle(Color.Blue),
+                  HazePerformanceMode.Quality,
+                  true,
+                  null,
+                  memberTransition = transition,
+                ).background(Color.Cyan),
+              )
+            }
+          }
+        }
+        waitForIdle()
+        mainClock.autoAdvance = false
+        val owner = checkNotNull(a.memberBindingForTest?.node?.container)
+        runOnIdle { present.value = false }
+        mainClock.advanceTimeBy(16)
+        waitForIdle()
+        assertThat(owner.model.surfaces.flatMap { it.members }.map { it.identity }, "$transition").containsExactly(a.memberBindingForTest?.node)
+      }
+    }
+  }
+
+  @Test
   fun retractingGhost_endsWhenNeighbourStopsBeingTranslationOnly() = runComposeUiTest {
     val fixture = fixture()
     fixture.toggle()
@@ -681,6 +729,7 @@ class GlassContainerTransitionTest : ContextTest() {
     val bRotation = mutableStateOf(0f)
     val aRotation = mutableStateOf(0f)
     val aScaleY = mutableStateOf(1f)
+    val aExtra = mutableStateOf(GlassStyle { })
     val bSourced = mutableStateOf(false)
     val spacing = mutableStateOf(40)
 
@@ -757,7 +806,7 @@ class GlassContainerTransitionTest : ContextTest() {
               Modifier.offset(40.dp, 60.dp).size(aWidth.value.dp, 80.dp).graphicsLayer {
                 rotationZ = fixture.aRotation.value
                 scaleY = fixture.aScaleY.value
-              }.hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(aState.value), containerTestStyle(Color.Red), HazePerformanceMode.Quality, true, null),
+              }.hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(aState.value), containerTestStyle(Color.Red).then(fixture.aExtra.value), HazePerformanceMode.Quality, true, null),
             )
           }
           Box(
