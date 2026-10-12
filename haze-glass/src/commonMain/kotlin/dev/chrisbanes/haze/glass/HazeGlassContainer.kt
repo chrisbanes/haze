@@ -240,26 +240,37 @@ internal class GlassContainerNode(
           anchor.key.input != ghost.last.key.input || anchor.key.expandLayerBounds != ghost.last.key.expandLayerBounds ||
           (ghost.neighbour != null && !anchor.translationOnly)
       }
-      // Morphs follow what their neighbour draws now, which may itself still be growing.
-      val drawn = mutableMapOf<Any, GlassMemberSnapshot>()
-      val snapshots = registrations.mapNotNull { registration ->
-        when (registration) {
-          is GlassMemberNode -> live[registration]?.let { snapshot ->
-            val attach = attaching[registration] ?: return@let snapshot
-            // A fading member draws alone until it is opaque, even beside an equally faded member.
-            if (attach.neighbour == null) return@let snapshot.copy(fading = true)
-            val neighbour = drawn[attach.neighbour] ?: drawnSnapshot(attach.neighbour, live) ?: return@let snapshot
-            val (rect, material) = snapshot.morphedFrom(neighbour, attach.progress.value)
-            registration.snapshot(rect, snapshot.key, material, link = neighbour.identity).copy(sourceSelection = snapshot.sourceSelection)
-          }
-          // A ghost's neighbour is its anchor, which is live after the pruning above.
-          is GlassMemberGhost -> registration.snapshot(registration.neighbour?.let { drawn[it] ?: checkNotNull(drawnSnapshot(it, live)) })
-          else -> null
-        }?.also { drawn[registration] = it }
+      // A transition's link only draws when it shares its neighbour's cluster, which can stop
+      // holding when registrations between them change (for example a fading ghost splits a run).
+      // Such a transition ends, like any other broken start condition, and the pass reclusters.
+      while (true) {
+        // Morphs follow what their neighbour draws now, which may itself still be growing.
+        val drawn = mutableMapOf<Any, GlassMemberSnapshot>()
+        val snapshots = registrations.mapNotNull { registration ->
+          when (registration) {
+            is GlassMemberNode -> live[registration]?.let { snapshot ->
+              val attach = attaching[registration] ?: return@let snapshot
+              // A fading member draws alone until it is opaque, even beside an equally faded member.
+              if (attach.neighbour == null) return@let snapshot.copy(fading = true)
+              val neighbour = drawn[attach.neighbour] ?: drawnSnapshot(attach.neighbour, live) ?: return@let snapshot
+              val (rect, material) = snapshot.morphedFrom(neighbour, attach.progress.value)
+              registration.snapshot(rect, snapshot.key, material, link = neighbour.identity).copy(sourceSelection = snapshot.sourceSelection)
+            }
+            // A ghost's neighbour is its anchor, which is live after the pruning above.
+            is GlassMemberGhost -> registration.snapshot(registration.neighbour?.let { drawn[it] ?: checkNotNull(drawnSnapshot(it, live)) })
+            else -> null
+          }?.also { drawn[registration] = it }
+        }
+        snapshots.forEach { latest[it.identity] = it }
+        // Optical size changes immediately and counts live layout rects only, never ghosts.
+        model = clusterGlassMembers(snapshots, spacingPx, glassOpticalSize(live.values.map { it.layoutRect }))
+        val split = model.surfaces.flatMap { cluster ->
+          cluster.members.filter { member -> member.link != null && cluster.members.none { it.identity === member.link } }
+        }.map { it.identity }
+        if (split.isEmpty()) break
+        split.filterIsInstance<GlassMemberNode>().forEach { attaching.remove(it)?.job?.cancel() }
+        endGhosts { it in split }
       }
-      snapshots.forEach { latest[it.identity] = it }
-      // Optical size changes immediately and counts live layout rects only, never ghosts.
-      model = clusterGlassMembers(snapshots, spacingPx, glassOpticalSize(live.values.map { it.layoutRect }))
       if (model.overflow != overflow) {
         overflow = model.overflow
         overflow.forEach { component ->

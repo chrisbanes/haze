@@ -42,6 +42,7 @@ import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
+import assertk.assertions.isTrue
 import assertk.assertions.prop
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
@@ -547,6 +548,28 @@ class GlassContainerTransitionTest : ContextTest() {
     runOnIdle { fixture.aRotation.value = 10f }
     fixture.advance(16)
     assertThat(fixture.owner().model.surfaces.flatMap { it.members }.map { it.identity }).containsExactly(fixture.aNode)
+    fixture.settle()
+  }
+
+  @Test
+  fun growingMember_endsWhenItsRunIsSplit() = runComposeUiTest {
+    // C grows out of A through a run [A, B, C] that B bridges. B then fades out, and its ghost,
+    // which never merges, splits the run.
+    val fixture = fixture(transition = GlassMemberTransition.Materialize, cOffset = 40 to 150)
+    runOnIdle { fixture.cPresent.value = true }
+    fixture.advance(16)
+    fixture.advance(96)
+    val c = { fixture.owner().model.surfaces.flatMap { it.members }.single { it.identity === fixture.c.memberBindingForTest?.node } }
+    assertThat(c().link).isEqualTo(fixture.aNode)
+    runOnIdle { fixture.present.value = false }
+    fixture.advance(16)
+    val cluster = fixture.owner().model.surfaces.single { cluster -> cluster.members.any { it.identity === fixture.c.memberBindingForTest?.node } }
+    // C is never drawn alone at its morphed shape: its grow ended and it is at its own rect.
+    assertThat(c()).all {
+      prop(GlassMemberSnapshot::link).isNull()
+      prop(GlassMemberSnapshot::layoutRect).isCloseTo(Rect(40f, 150f, 140f, 230f))
+    }
+    assertThat(cluster.members.none { it.link != null && cluster.members.none { other -> other.identity === it.link } }).isTrue()
     fixture.settle()
   }
 
