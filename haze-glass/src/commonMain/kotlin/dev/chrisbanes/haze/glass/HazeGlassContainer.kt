@@ -154,9 +154,9 @@ internal class GlassContainerNode(
     pending -= member
     attaching.remove(member)?.job?.cancel()
     // Transitions with the leaving member end now rather than retargeting: a growing member snaps
-    // to its own shape and a ghost drawn through the leaving member disappears.
-    attaching.values.filter { it.neighbour === member }.forEach { it.job?.cancel() }
-    attaching.values.removeAll { it.neighbour === member }
+    // to its own shape (or fades in, if it had not started) and a ghost drawn through the leaving
+    // member disappears.
+    attaching.filterValues { it.neighbour === member }.keys.forEach { endGrow(it) }
     endGhosts { it.anchor === member }
     member.binding.runtime?.let {
       it.opticalSizeOverride = null
@@ -233,7 +233,7 @@ internal class GlassContainerNode(
           // Snapshots below must not use material resolved at the previous optical size or alpha.
           runtime.refreshMemberMaterial()
         }
-        val live = liveSnapshots()
+        var live = liveSnapshots()
         // A grow ends, snapping to the member's own shape, once its neighbour is no longer live or
         // could no longer have been chosen: the start conditions, including the current spacing,
         // hold on every pass.
@@ -243,10 +243,8 @@ internal class GlassContainerNode(
           // The gap is measured to what the neighbour draws, as when it was chosen, or to its layout.
           live[neighbour]?.let { snapshot.canTransitionWith(it) && snapshot.isWithinSpacingOf(neighbour, live) } != true
         }
-        broken.forEach { (member, attach) ->
-          attach.job?.cancel()
-          attaching.remove(member)
-        }
+        // A converted member's material changed, so its snapshot is retaken.
+        if (broken.keys.map { endGrow(it) }.any { it }) live = liveSnapshots()
         // A ghost draws through its anchor's surface, so it ends once that anchor cannot draw it: the
         // anchor collapsed, left the layout, or changed input or resolved sources. A valid anchor
         // also keeps the model's optical size non-null while ghosts remain. A retracting ghost also
@@ -285,7 +283,8 @@ internal class GlassContainerNode(
             cluster.members.filter { member -> member.link != null && cluster.members.none { it.identity === member.link } }
           }.map { it.identity }
           if (split.isEmpty()) break
-          split.filterIsInstance<GlassMemberNode>().forEach { attaching.remove(it)?.job?.cancel() }
+          // A grow converted to a fade has no link, so it cannot split again and the loop ends.
+          if (split.filterIsInstance<GlassMemberNode>().map { endGrow(it) }.any { it }) live = liveSnapshots()
           endGhosts { it in split }
         }
         if (model.overflow != overflow) {
@@ -299,6 +298,25 @@ internal class GlassContainerNode(
     } finally {
       refreshing = false
     }
+  }
+
+  /**
+   * Ends [member]'s grow, snapping it to its own shape. A grow still at its start has not drawn
+   * a morphed frame, so it fades in instead of popping in at full size. Returns whether it did.
+   */
+  private fun endGrow(member: GlassMemberNode): Boolean {
+    val attach = attaching.remove(member) ?: return false
+    attach.job?.cancel()
+    if (attach.neighbour == null || attach.progress.value != 0f) return false
+    val fade = GlassMemberAttach(null)
+    attaching[member] = fade
+    fade.job = animate(fade.progress, 1f) { attaching.remove(member) }
+    // This pass has already applied transition alphas, so the fade starts transparent here.
+    member.binding.runtime?.let {
+      it.transitionAlpha = 0f
+      it.refreshMemberMaterial()
+    }
+    return true
   }
 
   private fun liveSnapshots(): Map<GlassMemberNode, GlassMemberSnapshot> = members.mapNotNull { member ->

@@ -804,6 +804,32 @@ class GlassContainerTransitionTest : ContextTest() {
     fixture.settle(3000)
   }
 
+  @Test
+  fun growSplitAtStartByMaterializingMember_fadesIn() = runComposeUiTest {
+    val fixture = fixture(cOffset = 40 to 150, cTransition = GlassMemberTransition.Materialize, cInitially = true)
+    val owner = fixture.owner()
+    val nodes = listOf(fixture.c, fixture.b).map { checkNotNull(it.memberBindingForTest?.node) }
+    runOnIdle {
+      // C (fading) and B (growing out of A) start in the same pass, registered as A, C, B.
+      nodes.forEach { owner.remove(it, leaving = false) }
+      val materials = nodes.map { it.binding.material }
+      nodes.forEach { it.binding.material = null }
+      nodes.forEach { owner.add(it) }
+      nodes.zip(materials).forEach { (node, material) -> node.binding.material = material }
+      owner.memberChanged()
+    }
+    fixture.advance(16)
+    // C's fade splits B from A before B draws a morphed frame, so B fades in place.
+    assertThat(fixture.b()).all {
+      prop(GlassMemberSnapshot::link).isNull()
+      prop(GlassMemberSnapshot::fading).isTrue()
+      prop(GlassMemberSnapshot::rect).isCloseTo(Rect(150f, 60f, 250f, 140f))
+    }
+    assertThat(fixture.b.transitionAlpha).isLessThan(0.1f)
+    fixture.settle()
+    assertThat(fixture.b.transitionAlpha).isEqualTo(1f)
+  }
+
   /** Starts B growing out of A, breaks one start condition, and expects B to snap to its own rect. */
   private fun assertGrowEnds(change: Fixture.() -> Unit) = runComposeUiTest {
     val fixture = fixture(present = false)
