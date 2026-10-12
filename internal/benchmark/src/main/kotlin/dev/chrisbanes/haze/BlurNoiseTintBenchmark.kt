@@ -56,7 +56,7 @@ class BlurNoiseTintBenchmark {
           TraceSectionMetric("HazeRuntimeShader.construct", TraceSectionMetric.Mode.Sum, "runtimeShaderConstruct"),
         ),
         startupMode = if (cold) StartupMode.COLD else StartupMode.WARM,
-        iterations = 8,
+        iterations = BENCHMARK_ITERATIONS,
         setupBlock = {
           if (!cold) {
             startActivityAndWait { it.selectBenchmarkSample("blur-profiling", "blur", scenario) }
