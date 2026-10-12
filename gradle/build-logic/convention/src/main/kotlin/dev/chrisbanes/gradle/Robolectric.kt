@@ -85,10 +85,12 @@ private fun androidAllCoordinates(robolectricClasspath: Iterable<File>, apiLevel
       val resolverType = loader.loadClass("org.robolectric.internal.dependency.DependencyResolver")
       val dependencyJarType = loader.loadClass("org.robolectric.internal.dependency.DependencyJar")
       val sdkType = loader.loadClass("org.robolectric.pluginapi.Sdk")
-      val placeholder = File.createTempFile("android-all", ".jar").also { it.deleteOnExit() }.toURI().toURL()
+      // Robolectric only checks that the file it is handed exists, so any existing file will do.
+      val placeholder = robolectricClasspath.first().toURI().toURL()
       val requested = mutableListOf<String>()
       // Every call to the resolver is a request for one jar: record its coordinate, return a stand-in.
-      val resolver = Proxy.newProxyInstance(loader, arrayOf(resolverType)) { _, _, args ->
+      val resolver = Proxy.newProxyInstance(loader, arrayOf(resolverType)) { _, method, args ->
+        check(method.name == "getLocalArtifactUrl") { "Unexpected DependencyResolver call: ${method.name}" }
         requested += dependencyJarType.getMethod("getShortName").invoke(args[0]) as String
         placeholder
       }
@@ -101,13 +103,13 @@ private fun androidAllCoordinates(robolectricClasspath: Iterable<File>, apiLevel
         val sdk = checkNotNull(byLevel[level]) { "Robolectric does not know SDK $level" }
         requested.clear()
         sdkType.getMethod("getJarPath").invoke(sdk)
-        requested.single()
+        checkNotNull(requested.singleOrNull()) { "Robolectric requested $requested for SDK $level, expected one jar" }
       }
     } catch (e: ReflectiveOperationException) {
       val cause = (e as? InvocationTargetException)?.targetException ?: e
       throw IllegalStateException(
         "Cannot read the android-all-instrumented coordinates from Robolectric: $cause. " +
-          "DefaultSdkProvider or DependencyResolver changed; see Robolectric.kt.",
+          "If a Robolectric bump reshaped DefaultSdkProvider or DependencyResolver, update Robolectric.kt.",
         cause,
       )
     }
