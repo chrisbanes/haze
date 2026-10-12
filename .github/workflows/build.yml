@@ -159,7 +159,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api-level: [31, 34]
+        # API 30 runs the RenderScript Blur path: its assumeTrue(SDK_INT == 30) and
+        # @SdkSuppress(maxSdkVersion = 30) device tests only run there.
+        api-level: [30, 31, 34]
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
