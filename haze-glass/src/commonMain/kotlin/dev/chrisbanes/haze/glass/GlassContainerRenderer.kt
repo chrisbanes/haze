@@ -69,10 +69,15 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
         surfaceSnapshot = GlassSurfaceSnapshot(first.key, first.material, field, opticalSize),
       )
       val slot = slots.getOrPut(cluster.slotKey()) {
-        val runtime = GlassRuntimeEffect().also { it.runtimeEffectFactory = checkNotNull(nodes.first().binding.runtime).runtimeEffectFactory }
+        val runtime = GlassRuntimeEffect().also {
+          it.runtimeEffectFactory = checkNotNull(nodes.first().binding.runtime).runtimeEffectFactory
+          it.surfaceOwner = owner
+        }
         Slot(inputs.first().createConfiguredSurface(HazeEffectFactory { runtime }, configuration, bounds, inputs), runtime)
       }
       slot.handle.update(configuration, bounds, inputs)
+      // The cluster draws in the surface translated by its origin, which moves with its members.
+      slot.runtime.surfaceOrigin = bounds.topLeft
       output += slot.handle.surface
       runtimes += bounds to slot.runtime
     }

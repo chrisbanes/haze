@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -109,7 +110,7 @@ class FallbackGlassUnionPathTest {
     val paths = FallbackMergedPaths(field(member(Rect(20f, 20f, 120f, 100f)), member(Rect(110f, 20f, wide, 100f))))
     val layers = mutableListOf<Rect>()
     val pixels = drawColours(paths, layers)
-    assertThat(paths.layerBounds).isNull()
+    assertThat(paths.layerBounds(null)).isNull()
     assertThat(layers).isEmpty()
     assertThat(pixels, 60, 60).isGreaterThan(0.4f)
     assertThat(pixels, 200, 60).isGreaterThan(0.4f)
@@ -129,7 +130,36 @@ class FallbackGlassUnionPathTest {
     assertThat(pixels[200, 60].blue).isGreaterThan(pixels[200, 60].red)
   }
 
-  private fun drawColours(paths: FallbackMergedPaths, layers: MutableList<Rect>): PixelMap {
+  @Test
+  fun drawMergedColours_unionOverBudget_visiblePartWithinBudget_boundsLayerToVisible() {
+    val wide = MAX_GLASS_LAYER_DIMENSION_PX + 100f
+    val paths = FallbackMergedPaths(
+      field(
+        member(Rect(20f, 20f, 120f, 100f), tint = Color.Red.copy(alpha = 0.5f)),
+        member(Rect(100f, 20f, wide, 100f), tint = Color.Blue.copy(alpha = 0.5f)),
+      ),
+    )
+    val layers = mutableListOf<Rect>()
+    val pixels = drawColours(paths, layers, visible = Rect(0f, 0f, 240f, 160f))
+    assertThat(layers).containsExactly(Rect(20f, 20f, 240f, 100f))
+    assertThat(pixels[110, 60]).isEqualTo(pixels[60, 60])
+  }
+
+  @Test
+  fun drawMergedColours_visibleMissesUnion_drawsNothing() {
+    val paths = FallbackMergedPaths(field(member(Rect(20f, 20f, 120f, 100f)), member(Rect(90f, 40f, 190f, 120f))))
+    val layers = mutableListOf<Rect>()
+    val pixels = drawColours(paths, layers, visible = Rect(200f, 0f, 240f, 160f))
+    assertThat(layers).isEmpty()
+    for (x in 0 until pixels.width) {
+      for (y in 0 until pixels.height) assertThat(pixels, x, y).isEmpty()
+    }
+  }
+
+  private fun drawColours(paths: FallbackMergedPaths, layers: MutableList<Rect>, visible: Rect? = null): PixelMap =
+    draw(layers) { drawMergedColours(paths, alphaMultiplier = 1f, visible = visible) { it.tint } }
+
+  private fun draw(layers: MutableList<Rect>, block: DrawScope.() -> Unit): PixelMap {
     val image = ImageBitmap(240, 160)
     val delegate = Canvas(image)
     val canvas = object : Canvas by delegate {
@@ -138,9 +168,7 @@ class FallbackGlassUnionPathTest {
         delegate.saveLayer(bounds, paint)
       }
     }
-    CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, canvas, Size(240f, 160f)) {
-      drawMergedColours(paths, alphaMultiplier = 1f) { it.tint }
-    }
+    CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, canvas, Size(240f, 160f), block)
     return image.toPixelMap()
   }
 

@@ -46,7 +46,7 @@ class FallbackMergedColoursInstrumentationTest {
         member(Rect(80f, 0f, 280f, 120f), radius = 10f, tint = Color.Green.copy(alpha = 0.5f)),
       ),
     )
-    assertThat(paths.layerBounds, "layerBounds").isNotNull()
+    assertThat(paths.layerBounds(null), "layerBounds").isNotNull()
     val pixels = capture(widthPx = 300, heightPx = 140) { drawMergedColours(paths, 1f) { it.tint } }
 
     // Red over blue where only member 0 is.

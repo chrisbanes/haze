@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.InternalHazeApi
+import kotlin.math.ceil
+import kotlin.math.floor
 
 internal fun DrawScope.recordDepthMix(
   layer: GraphicsLayer,
@@ -59,6 +61,7 @@ internal inline fun DrawScope.withLayerPaint(
   block: DrawScope.() -> Unit,
 ) {
   val canvas = drawContext.canvas
+  glassLayerBoundsForTest?.invoke(bounds)
   val paint = LayerPaints.acquire(alpha, blendMode)
   try {
     canvas.saveLayer(bounds, paint)
@@ -77,6 +80,20 @@ internal inline fun DrawScope.withLayerPaint(
  * block, so an inner layer takes the next paint instead of changing an enclosing layer's alpha or
  * blend mode. Drawing is single-threaded, so this is not thread-safe, like haze-blur's `PaintPool`.
  */
+/** Receives every [withLayerPaint] bound before its `saveLayer`, so tests can check layer sizes. */
+internal var glassLayerBoundsForTest: ((Rect) -> Unit)? = null
+
+/**
+ * The part of this rect within [visible], rounded out to whole pixels, or [Rect.Zero] when they
+ * do not overlap. A null [visible] returns this rect unchanged.
+ */
+internal fun Rect.visiblePart(visible: Rect?): Rect {
+  if (visible == null) return this
+  val part = intersect(visible)
+  if (part.isEmpty) return Rect.Zero
+  return Rect(floor(part.left), floor(part.top), ceil(part.right), ceil(part.bottom))
+}
+
 internal object LayerPaints {
   private val paints = ArrayList<Paint>()
   private var depth = 0
@@ -98,8 +115,9 @@ internal object LayerPaints {
 internal fun DrawScope.drawInputWithAlpha(
   context: HazeEffectRuntimeDrawScope,
   alpha: Float,
+  bounds: Rect,
 ) {
-  withLayerPaint(alpha = alpha, blendMode = BlendMode.SrcOver) {
+  withLayerPaint(alpha = alpha, blendMode = BlendMode.SrcOver, bounds = bounds) {
     // drawInput() draws in expanded-layer space, but this draw is in effect space.
     translate(-context.layerOffset.x, -context.layerOffset.y) {
       with(context) { this@translate.drawInput() }
