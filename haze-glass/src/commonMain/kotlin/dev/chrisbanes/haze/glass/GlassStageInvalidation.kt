@@ -28,7 +28,7 @@ internal data class GlassStageInputs(
     detail == other.detail
 }
 
-/** Returns [previous] when it already holds these inputs, so an unchanged frame builds nothing. */
+/** Returns [previous] when it already holds these inputs, so an unchanged frame builds no new inputs. */
 internal fun resolveGlassStageInputs(
   previous: GlassStageInputs?,
   blur: Any?,
@@ -112,7 +112,7 @@ internal fun calculateRequiredStageInvalidation(
   return stageInvalidation(blur, depth, optical, detail, rim)
 }
 
-/** Shares [GlassStageInvalidation.None] when nothing is invalidated, so unchanged frames build nothing. */
+/** Shares [GlassStageInvalidation.None] when nothing is invalidated, so unchanged frames build no new invalidation. */
 private fun stageInvalidation(
   blur: Boolean,
   depth: Boolean,
@@ -134,10 +134,8 @@ internal class GlassRuntimeSourceSnapshot(
   val backgroundColor: Color = Color.Transparent,
   val mergedBackground: GlassMergedField? = null,
 ) {
-  /** The drawable-source state holding this snapshot, built once so unchanged frames reuse it. */
-  val state: GlassRuntimeSourceState by lazy(LazyThreadSafetyMode.NONE) {
-    GlassRuntimeSourceState(hasDrawableSource = true, snapshot = this)
-  }
+  /** The drawable-source state holding this snapshot, built with it so unchanged frames reuse it. */
+  val state: GlassRuntimeSourceState = GlassRuntimeSourceState(hasDrawableSource = true, snapshot = this)
 
   /** Whether a snapshot built from these inputs would equal this one, without building it. */
   fun matches(

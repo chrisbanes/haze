@@ -460,6 +460,7 @@ class GlassStageInvalidationTest {
       mergedField = field,
     )
 
+    assertThat(previous).isEqualTo(GlassInteractionLightingKey(coordinates(), 2f, radii, field))
     assertThat(
       resolveGlassInteractionLightingKey(previous, coordinates(), 2f, radii.copy(), field),
     ).isSameInstanceAs(previous)
