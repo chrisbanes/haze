@@ -784,6 +784,26 @@ class GlassContainerTransitionTest : ContextTest() {
     fixture.settle()
   }
 
+  @Test
+  fun growOutOfOvershootingNeighbour_doesNotEndWhileLayoutStaysWithinSpacing() = runComposeUiTest {
+    // C's layout is 35px from B's, but B overshoots its layout while it grows out of A.
+    val fixture = fixture(present = false, spec = spring(dampingRatio = 0.2f, stiffness = 200f), cOffset = 285 to 60, width = 400)
+    val c = { fixture.owner().model.surfaces.flatMap { it.members }.single { it.identity === fixture.c.memberBindingForTest?.node } }
+    fixture.toggle()
+    // Near B's overshoot peak, so C chooses B at its drawn shape.
+    repeat(13) { fixture.advance(16) }
+    runOnIdle { fixture.cPresent.value = true }
+    fixture.advance(16)
+    val bNode = fixture.b.memberBindingForTest?.node
+    assertThat(c().link).isEqualTo(bNode)
+    // B then swings back, away from C, while its layout stays within the spacing.
+    repeat(20) {
+      fixture.advance(16)
+      assertThat(c().link).isEqualTo(bNode)
+    }
+    fixture.settle(3000)
+  }
+
   /** Starts B growing out of A, breaks one start condition, and expects B to snap to its own rect. */
   private fun assertGrowEnds(change: Fixture.() -> Unit) = runComposeUiTest {
     val fixture = fixture(present = false)
@@ -911,6 +931,7 @@ class GlassContainerTransitionTest : ContextTest() {
     cOffset: Pair<Int, Int>? = null,
     cTransition: GlassMemberTransition = GlassMemberTransition.MatchedGeometry,
     cInitially: Boolean = false,
+    width: Int = 360,
   ): Fixture {
     val c = GlassRuntimeEffect()
     val cPresent = mutableStateOf(cInitially)
@@ -930,9 +951,9 @@ class GlassContainerTransitionTest : ContextTest() {
     val aState = mutableStateOf(state)
     val fixture = Fixture(this, a, b, bPresent, aPresent, enabled, nested, aWidth, aState, c, cPresent)
     setContent {
-      Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
-        Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
-        Box(Modifier.size(360.dp, 240.dp).then(if (enabled.value) Modifier.hazeGlassContainer(fixture.spacing.value.dp, spec, policy) else Modifier)) {
+      Box(Modifier.size(width.dp, 240.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(width.dp, 240.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(width.dp, 240.dp).then(if (enabled.value) Modifier.hazeGlassContainer(fixture.spacing.value.dp, spec, policy) else Modifier)) {
           if (aPresent.value) {
             Box(
               Modifier.offset(40.dp, 60.dp).size(aWidth.value.dp, 80.dp).graphicsLayer {
@@ -942,7 +963,7 @@ class GlassContainerTransitionTest : ContextTest() {
             )
           }
           Box(
-            Modifier.size(360.dp, 240.dp)
+            Modifier.size(width.dp, 240.dp)
               .then(if (fixture.bSourced.value) Modifier.hazeSource(state, zIndex = 1f) else Modifier)
               .then(if (nested.value) Modifier.hazeGlassContainer(40.dp) else Modifier),
           ) {

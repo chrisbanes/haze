@@ -240,7 +240,7 @@ internal class GlassContainerNode(
         val broken = attaching.filter { (member, attach) ->
           val neighbour = attach.neighbour ?: return@filter false
           val snapshot = live[member] ?: return@filter false
-          // The gap is measured to what the neighbour draws, as when it was chosen.
+          // The gap is measured to what the neighbour draws, as when it was chosen, or to its layout.
           live[neighbour]?.let { snapshot.canTransitionWith(it) && snapshot.isWithinSpacingOf(neighbour, live) } != true
         }
         broken.forEach { (member, attach) ->
@@ -320,8 +320,11 @@ internal class GlassContainerNode(
     return GlassMemberSnapshot(this, rect, key, material, uniformScale && hasTranslationOnlyTransform(owner), layoutRect, link)
   }
 
-  private fun GlassMemberSnapshot.isWithinSpacingOf(neighbour: GlassMemberNode, live: Map<GlassMemberNode, GlassMemberSnapshot>): Boolean =
-    drawnSnapshot(neighbour, live)?.let { glassMemberGap(layoutRect, it.layoutRect) < spacingPx } == true
+  private fun GlassMemberSnapshot.isWithinSpacingOf(neighbour: GlassMemberNode, live: Map<GlassMemberNode, GlassMemberSnapshot>): Boolean {
+    val drawn = drawnSnapshot(neighbour, live) ?: return false
+    // A growing neighbour can overshoot away from its own layout rect, which stays as near as it was.
+    return minOf(glassMemberGap(layoutRect, drawn.layoutRect), glassMemberGap(layoutRect, live.getValue(neighbour).layoutRect)) < spacingPx
+  }
 
   /** What [member] draws now: a member growing out of its neighbour is at its last morphed shape. */
   private fun drawnSnapshot(member: GlassMemberNode, live: Map<GlassMemberNode, GlassMemberSnapshot>): GlassMemberSnapshot? =
