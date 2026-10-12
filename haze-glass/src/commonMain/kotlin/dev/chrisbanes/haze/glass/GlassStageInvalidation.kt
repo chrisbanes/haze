@@ -133,12 +133,37 @@ internal class GlassRuntimeSourceSnapshot(
   val inputSnapshot: HazeEffectInputSnapshot,
   val backgroundColor: Color = Color.Transparent,
   val mergedBackground: GlassMergedField? = null,
-)
+) {
+  /** The drawable-source state holding this snapshot, built once so unchanged frames reuse it. */
+  val state: GlassRuntimeSourceState by lazy(LazyThreadSafetyMode.NONE) {
+    GlassRuntimeSourceState(hasDrawableSource = true, snapshot = this)
+  }
+
+  /** Whether a snapshot built from these inputs would equal this one, without building it. */
+  fun matches(
+    captureScale: Float,
+    layerSize: Size,
+    layerOffset: Offset,
+    inputSnapshot: HazeEffectInputSnapshot,
+    backgroundColor: Color,
+    mergedBackground: GlassMergedField?,
+  ): Boolean = this.captureScale.compareTo(captureScale) == 0 &&
+    this.layerSize == layerSize &&
+    this.layerOffset == layerOffset &&
+    this.inputSnapshot == inputSnapshot &&
+    this.backgroundColor == backgroundColor &&
+    this.mergedBackground == mergedBackground
+}
 
 internal data class GlassRuntimeSourceState(
   val hasDrawableSource: Boolean,
   val snapshot: GlassRuntimeSourceSnapshot?,
-)
+) {
+  companion object {
+    val NoDrawableSource = GlassRuntimeSourceState(hasDrawableSource = false, snapshot = null)
+    val UnknownSnapshot = GlassRuntimeSourceState(hasDrawableSource = true, snapshot = null)
+  }
+}
 
 internal fun HazeEffectRuntimeDrawScope.resolveGlassRuntimeSourceState(
   captureScale: Float,
@@ -166,18 +191,27 @@ internal fun resolveGlassRuntimeSourceState(
   previousSnapshot: GlassRuntimeSourceSnapshot? = null,
   mergedBackground: GlassMergedField? = null,
 ): GlassRuntimeSourceState {
-  if (!hasDrawableInput) return GlassRuntimeSourceState(false, null)
-  val currentInputSnapshot = inputSnapshot ?: return GlassRuntimeSourceState(true, null)
-  val current = GlassRuntimeSourceSnapshot(
+  if (!hasDrawableInput) return GlassRuntimeSourceState.NoDrawableSource
+  val currentInputSnapshot = inputSnapshot ?: return GlassRuntimeSourceState.UnknownSnapshot
+  if (
+    previousSnapshot != null &&
+    previousSnapshot.matches(
+      captureScale,
+      layerSize,
+      layerOffset,
+      currentInputSnapshot,
+      backgroundColor,
+      mergedBackground,
+    )
+  ) {
+    return previousSnapshot.state
+  }
+  return GlassRuntimeSourceSnapshot(
     captureScale = captureScale,
     layerSize = layerSize,
     layerOffset = layerOffset,
     inputSnapshot = currentInputSnapshot,
     backgroundColor = backgroundColor,
     mergedBackground = mergedBackground,
-  )
-  return GlassRuntimeSourceState(
-    hasDrawableSource = true,
-    snapshot = previousSnapshot?.takeIf { it == current } ?: current,
-  )
+  ).state
 }

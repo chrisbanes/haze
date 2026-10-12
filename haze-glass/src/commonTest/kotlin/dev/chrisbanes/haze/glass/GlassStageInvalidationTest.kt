@@ -500,6 +500,103 @@ class GlassStageInvalidationTest {
   }
 
   @Test
+  fun resolveGlassRuntimeSourceState_unchangedInputsReuseTheSameState() {
+    val first = resolveGlassRuntimeSourceState(
+      captureScale = 1f,
+      layerSize = Size(100f, 80f),
+      layerOffset = Offset.Zero,
+      hasDrawableInput = true,
+      inputSnapshot = TestInputSnapshot(1),
+    )
+    val second = resolveGlassRuntimeSourceState(
+      captureScale = 1f,
+      layerSize = Size(100f, 80f),
+      layerOffset = Offset.Zero,
+      hasDrawableInput = true,
+      inputSnapshot = TestInputSnapshot(1),
+      previousSnapshot = first.snapshot,
+    )
+
+    assertThat(second).isSameInstanceAs(first)
+    assertThat(second.hasDrawableSource).isTrue()
+    assertThat(second.snapshot).isSameInstanceAs(first.snapshot)
+  }
+
+  @Test
+  fun resolveGlassRuntimeSourceState_changedInputBuildsNewState() {
+    val first = snapshot(inputSnapshot = TestInputSnapshot(1))
+    val second = resolveGlassRuntimeSourceState(
+      captureScale = 1f,
+      layerSize = Size(100f, 80f),
+      layerOffset = Offset.Zero,
+      hasDrawableInput = true,
+      inputSnapshot = TestInputSnapshot(2),
+      previousSnapshot = first,
+    )
+
+    assertThat(second.snapshot).isNotSameInstanceAs(first)
+    assertThat(second.snapshot).isEqualTo(snapshot(inputSnapshot = TestInputSnapshot(2)))
+  }
+
+  @Test
+  fun resolveGlassRuntimeSourceState_noDrawableInputAndUnknownSnapshotShareConstants() {
+    fun resolve(hasDrawableInput: Boolean) = resolveGlassRuntimeSourceState(
+      captureScale = 1f,
+      layerSize = Size(100f, 80f),
+      layerOffset = Offset.Zero,
+      hasDrawableInput = hasDrawableInput,
+      inputSnapshot = null,
+    )
+
+    assertThat(resolve(hasDrawableInput = false)).isSameInstanceAs(GlassRuntimeSourceState.NoDrawableSource)
+    assertThat(resolve(hasDrawableInput = true)).isSameInstanceAs(GlassRuntimeSourceState.UnknownSnapshot)
+  }
+
+  @Test
+  fun snapshotMatches_agreesWithPokoEquality() {
+    val red = mergedField(mergedMember(0f, 0f, 40f, 40f, backgroundColor = Color.Red))
+    val blue = mergedField(mergedMember(0f, 0f, 40f, 40f, backgroundColor = Color.Blue))
+    val base = snapshot(
+      captureScale = Float.NaN,
+      inputSnapshot = TestInputSnapshot(1),
+      mergedBackground = red,
+    )
+    listOf(
+      snapshot(captureScale = Float.NaN, inputSnapshot = TestInputSnapshot(1), mergedBackground = red),
+      snapshot(captureScale = 0f, inputSnapshot = TestInputSnapshot(1), mergedBackground = red),
+      snapshot(captureScale = .5f, inputSnapshot = TestInputSnapshot(1), mergedBackground = red),
+      snapshot(captureScale = Float.NaN, layerSize = Size(120f, 80f), mergedBackground = red),
+      snapshot(captureScale = Float.NaN, layerOffset = Offset(8f, 2f), mergedBackground = red),
+      snapshot(captureScale = Float.NaN, inputSnapshot = TestInputSnapshot(2), mergedBackground = red),
+      snapshot(captureScale = Float.NaN, backgroundColor = Color.White, mergedBackground = red),
+      snapshot(captureScale = Float.NaN, mergedBackground = blue),
+      snapshot(captureScale = Float.NaN, mergedBackground = null),
+    ).forEach { other ->
+      assertThat(
+        base.matches(
+          captureScale = other.captureScale,
+          layerSize = other.layerSize,
+          layerOffset = other.layerOffset,
+          inputSnapshot = other.inputSnapshot,
+          backgroundColor = other.backgroundColor,
+          mergedBackground = other.mergedBackground,
+        ),
+      ).isEqualTo(base == other)
+    }
+    val negativeZero = snapshot(captureScale = -0f)
+    assertThat(
+      snapshot(captureScale = 0f).matches(
+        captureScale = -0f,
+        layerSize = negativeZero.layerSize,
+        layerOffset = negativeZero.layerOffset,
+        inputSnapshot = negativeZero.inputSnapshot,
+        backgroundColor = negativeZero.backgroundColor,
+        mergedBackground = negativeZero.mergedBackground,
+      ),
+    ).isEqualTo(snapshot(captureScale = 0f) == negativeZero)
+  }
+
+  @Test
   fun resolveGlassRuntimeSourceState_changedInputInvalidatesSourceDependentStages() {
     val captured = snapshot(inputSnapshot = TestInputSnapshot(1))
     val changed = snapshot(inputSnapshot = TestInputSnapshot(2))
