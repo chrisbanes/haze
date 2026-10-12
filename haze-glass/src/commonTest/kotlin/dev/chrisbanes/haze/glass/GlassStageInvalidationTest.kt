@@ -12,6 +12,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
@@ -289,6 +290,200 @@ class GlassStageInvalidationTest {
   }
 
   @Test
+  fun calculateStageInvalidation_unchangedFrameSharesNone() {
+    val inputs = inputs()
+
+    assertThat(calculateStageInvalidation(inputs, inputs, sourceChanged = false))
+      .isSameInstanceAs(GlassStageInvalidation.None)
+    assertThat(
+      calculateRequiredStageInvalidation(
+        previous = inputs,
+        current = inputs,
+        sourceChanged = false,
+        availability = GlassStageAvailability(
+          blur = true,
+          depth = true,
+          optical = true,
+          detail = true,
+          rim = true,
+        ),
+      ),
+    ).isSameInstanceAs(GlassStageInvalidation.None)
+  }
+
+  @Test
+  fun calculateStageInvalidation_interactionUniformChangeInvalidatesOpticalOnly() {
+    val previous = inputs().copy(opticalInteraction = interactionUniforms())
+    val current = previous.copy(opticalInteraction = interactionUniforms().copy(radiusPx = 90f))
+
+    assertThat(calculateStageInvalidation(previous, current, sourceChanged = false))
+      .isEqualTo(GlassStageInvalidation.None.copy(optical = true))
+    assertThat(
+      calculateStageInvalidation(previous, previous.copy(opticalInteraction = null), sourceChanged = false),
+    ).isEqualTo(GlassStageInvalidation.None.copy(optical = true))
+  }
+
+  @Test
+  fun resolveGlassStageInputs_equalInputsReusePreviousInstance() {
+    val blur = TestKey(1)
+    val previous = resolveGlassStageInputs(
+      previous = null,
+      blur = blur,
+      depth = 1f,
+      optical = TestKey(2),
+      opticalInteraction = interactionUniforms(),
+      detail = TestKey(3),
+      rim = TestKey(4),
+    )
+
+    val resolved = resolveGlassStageInputs(
+      previous = previous,
+      blur = TestKey(1),
+      depth = 1f,
+      optical = TestKey(2),
+      opticalInteraction = interactionUniforms(),
+      detail = TestKey(3),
+      rim = TestKey(4),
+    )
+
+    assertThat(resolved).isSameInstanceAs(previous)
+  }
+
+  @Test
+  fun resolveGlassStageInputs_changedInputBuildsNewInstance() {
+    val previous = GlassStageInputs(
+      blur = TestKey(1),
+      depth = 1f,
+      optical = TestKey(2),
+      detail = TestKey(3),
+      rim = TestKey(4),
+      opticalInteraction = interactionUniforms(),
+    )
+    listOf(
+      previous.copy(blur = TestKey(10)),
+      previous.copy(blur = null),
+      previous.copy(depth = 2f),
+      previous.copy(optical = TestKey(20)),
+      previous.copy(opticalInteraction = interactionUniforms().copy(radiusPx = 90f)),
+      previous.copy(opticalInteraction = null),
+      previous.copy(detail = TestKey(30)),
+      previous.copy(rim = TestKey(40)),
+      previous.copy(rim = null),
+    ).forEach { expected ->
+      val resolved = resolveGlassStageInputs(
+        previous = previous,
+        blur = expected.blur,
+        depth = expected.depth,
+        optical = expected.optical,
+        opticalInteraction = expected.opticalInteraction,
+        detail = expected.detail,
+        rim = expected.rim,
+      )
+
+      assertThat(resolved).isNotSameInstanceAs(previous)
+      assertThat(resolved).isEqualTo(expected)
+    }
+  }
+
+  @Test
+  fun resolveGlassStageInputs_nullPreviousBuildsInstance() {
+    val resolved = resolveGlassStageInputs(
+      previous = null,
+      blur = null,
+      depth = 1f,
+      optical = TestKey(2),
+      opticalInteraction = null,
+      detail = null,
+      rim = null,
+    )
+
+    assertThat(resolved).isEqualTo(
+      GlassStageInputs(blur = null, depth = 1f, optical = TestKey(2), detail = null, rim = null),
+    )
+  }
+
+  @Test
+  fun resolveGlassStageInputs_depthEqualityMatchesDataClassEquality() {
+    fun resolve(previous: GlassStageInputs, depth: Float) = resolveGlassStageInputs(
+      previous = previous,
+      blur = previous.blur,
+      depth = depth,
+      optical = previous.optical,
+      opticalInteraction = null,
+      detail = previous.detail,
+      rim = previous.rim,
+    )
+    val nan = inputs().copy(depth = Float.NaN)
+    val zero = inputs().copy(depth = 0f)
+
+    assertThat(resolve(nan, Float.NaN)).isSameInstanceAs(nan)
+    assertThat(resolve(zero, -0f)).isNotSameInstanceAs(zero)
+    assertThat(nan.hasSameBaseAs(nan.copy())).isTrue()
+    assertThat(zero.hasSameBaseAs(zero.copy(depth = -0f))).isFalse()
+  }
+
+  @Test
+  fun hasSameBaseAs_ignoresOnlyRim() {
+    val base = GlassStageInputs(
+      blur = TestKey(1),
+      depth = 1f,
+      optical = TestKey(2),
+      detail = TestKey(3),
+      rim = TestKey(4),
+      opticalInteraction = interactionUniforms(),
+    )
+
+    assertThat(base.hasSameBaseAs(base.copy(rim = TestKey(40)))).isTrue()
+    assertThat(base.hasSameBaseAs(base.copy(rim = null))).isTrue()
+    assertThat(base.hasSameBaseAs(base.copy(blur = TestKey(10)))).isFalse()
+    assertThat(base.hasSameBaseAs(base.copy(depth = 2f))).isFalse()
+    assertThat(base.hasSameBaseAs(base.copy(optical = TestKey(20)))).isFalse()
+    assertThat(base.hasSameBaseAs(base.copy(opticalInteraction = null))).isFalse()
+    assertThat(base.hasSameBaseAs(base.copy(detail = TestKey(30)))).isFalse()
+  }
+
+  @Test
+  fun resolveGlassInteractionLightingKey_reusesOnlyAnEqualKey() {
+    fun coordinates(origin: Float = 0f) = GlassCoordinates(
+      sampleSize = Size(100f, 80f),
+      materialOrigin = Offset(origin, 0f),
+      materialSize = Size(100f, 80f),
+      scaleFactor = 1f,
+    )
+    val radii = CornerRadii(8f, 8f, 8f, 8f)
+    val field = mergedField(mergedMember(0f, 0f, 40f, 40f))
+    val previous = resolveGlassInteractionLightingKey(
+      previous = null,
+      coordinates = coordinates(),
+      edgeSoftnessPx = 2f,
+      cornerRadii = radii,
+      mergedField = field,
+    )
+
+    assertThat(previous).isEqualTo(GlassInteractionLightingKey(coordinates(), 2f, radii, field))
+    assertThat(
+      resolveGlassInteractionLightingKey(previous, coordinates(), 2f, radii.copy(), field),
+    ).isSameInstanceAs(previous)
+    listOf(
+      GlassInteractionLightingKey(coordinates(origin = 4f), 2f, radii, field),
+      GlassInteractionLightingKey(coordinates(), 3f, radii, field),
+      GlassInteractionLightingKey(coordinates(), 2f, CornerRadii(4f, 8f, 8f, 8f), field),
+      GlassInteractionLightingKey(coordinates(), 2f, radii, null),
+    ).forEach { expected ->
+      val resolved = resolveGlassInteractionLightingKey(
+        previous = previous,
+        coordinates = expected.coordinates,
+        edgeSoftnessPx = expected.edgeSoftnessPx,
+        cornerRadii = expected.cornerRadii,
+        mergedField = expected.mergedField,
+      )
+
+      assertThat(resolved).isNotSameInstanceAs(previous)
+      assertThat(resolved).isEqualTo(expected)
+    }
+  }
+
+  @Test
   fun resolveGlassRuntimeSourceState_drawableInputWithoutSnapshotForcesRecapture() {
     val state = resolveGlassRuntimeSourceState(
       captureScale = .5f,
@@ -343,6 +538,103 @@ class GlassStageInvalidationTest {
     ).snapshot
 
     assertThat(second).isSameInstanceAs(first)
+  }
+
+  @Test
+  fun resolveGlassRuntimeSourceState_unchangedInputsReuseTheSameState() {
+    val first = resolveGlassRuntimeSourceState(
+      captureScale = 1f,
+      layerSize = Size(100f, 80f),
+      layerOffset = Offset.Zero,
+      hasDrawableInput = true,
+      inputSnapshot = TestInputSnapshot(1),
+    )
+    val second = resolveGlassRuntimeSourceState(
+      captureScale = 1f,
+      layerSize = Size(100f, 80f),
+      layerOffset = Offset.Zero,
+      hasDrawableInput = true,
+      inputSnapshot = TestInputSnapshot(1),
+      previousSnapshot = first.snapshot,
+    )
+
+    assertThat(second).isSameInstanceAs(first)
+    assertThat(second.hasDrawableSource).isTrue()
+    assertThat(second.snapshot).isSameInstanceAs(first.snapshot)
+  }
+
+  @Test
+  fun resolveGlassRuntimeSourceState_changedInputBuildsNewState() {
+    val first = snapshot(inputSnapshot = TestInputSnapshot(1))
+    val second = resolveGlassRuntimeSourceState(
+      captureScale = 1f,
+      layerSize = Size(100f, 80f),
+      layerOffset = Offset.Zero,
+      hasDrawableInput = true,
+      inputSnapshot = TestInputSnapshot(2),
+      previousSnapshot = first,
+    )
+
+    assertThat(second.snapshot).isNotSameInstanceAs(first)
+    assertThat(second.snapshot).isEqualTo(snapshot(inputSnapshot = TestInputSnapshot(2)))
+  }
+
+  @Test
+  fun resolveGlassRuntimeSourceState_noDrawableInputAndUnknownSnapshotShareConstants() {
+    fun resolve(hasDrawableInput: Boolean) = resolveGlassRuntimeSourceState(
+      captureScale = 1f,
+      layerSize = Size(100f, 80f),
+      layerOffset = Offset.Zero,
+      hasDrawableInput = hasDrawableInput,
+      inputSnapshot = null,
+    )
+
+    assertThat(resolve(hasDrawableInput = false)).isSameInstanceAs(GlassRuntimeSourceState.NoDrawableSource)
+    assertThat(resolve(hasDrawableInput = true)).isSameInstanceAs(GlassRuntimeSourceState.UnknownSnapshot)
+  }
+
+  @Test
+  fun snapshotMatches_agreesWithPokoEquality() {
+    val red = mergedField(mergedMember(0f, 0f, 40f, 40f, backgroundColor = Color.Red))
+    val blue = mergedField(mergedMember(0f, 0f, 40f, 40f, backgroundColor = Color.Blue))
+    val base = snapshot(
+      captureScale = Float.NaN,
+      inputSnapshot = TestInputSnapshot(1),
+      mergedBackground = red,
+    )
+    listOf(
+      snapshot(captureScale = Float.NaN, inputSnapshot = TestInputSnapshot(1), mergedBackground = red),
+      snapshot(captureScale = 0f, inputSnapshot = TestInputSnapshot(1), mergedBackground = red),
+      snapshot(captureScale = .5f, inputSnapshot = TestInputSnapshot(1), mergedBackground = red),
+      snapshot(captureScale = Float.NaN, layerSize = Size(120f, 80f), mergedBackground = red),
+      snapshot(captureScale = Float.NaN, layerOffset = Offset(8f, 2f), mergedBackground = red),
+      snapshot(captureScale = Float.NaN, inputSnapshot = TestInputSnapshot(2), mergedBackground = red),
+      snapshot(captureScale = Float.NaN, backgroundColor = Color.White, mergedBackground = red),
+      snapshot(captureScale = Float.NaN, mergedBackground = blue),
+      snapshot(captureScale = Float.NaN, mergedBackground = null),
+    ).forEach { other ->
+      assertThat(
+        base.matches(
+          captureScale = other.captureScale,
+          layerSize = other.layerSize,
+          layerOffset = other.layerOffset,
+          inputSnapshot = other.inputSnapshot,
+          backgroundColor = other.backgroundColor,
+          mergedBackground = other.mergedBackground,
+        ),
+      ).isEqualTo(base == other)
+    }
+    val negativeZero = snapshot(captureScale = -0f)
+    assertThat(
+      snapshot(captureScale = 0f).matches(
+        captureScale = -0f,
+        layerSize = negativeZero.layerSize,
+        layerOffset = negativeZero.layerOffset,
+        inputSnapshot = negativeZero.inputSnapshot,
+        backgroundColor = negativeZero.backgroundColor,
+        mergedBackground = negativeZero.mergedBackground,
+      ),
+    ).isEqualTo(snapshot(captureScale = 0f) == negativeZero)
   }
 
   @Test
@@ -434,6 +726,16 @@ class GlassStageInvalidationTest {
     backgroundColor = backgroundColor,
     mergedBackground = mergedBackground,
   ).snapshot!!
+
+  private fun interactionUniforms() = GlassInteractionUniforms(
+    position = Offset(20f, 20f),
+    radiusPx = 70f,
+    lightingIntensity = 0f,
+    refractionMultiplier = 1f,
+    whitePointDelta = 0f,
+  )
+
+  private data class TestKey(val value: Int)
 
   private data class TestInputSnapshot(val value: Int) : HazeEffectInputSnapshot
 }
