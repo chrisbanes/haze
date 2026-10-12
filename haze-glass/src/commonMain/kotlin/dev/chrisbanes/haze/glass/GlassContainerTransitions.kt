@@ -69,7 +69,7 @@ internal fun GlassMemberSnapshot.morphedFrom(from: GlassMemberSnapshot, fraction
  * [ordered] is every registration's snapshot, with [member] at its registration position;
  * [excluded] members are not visible yet. A neighbour must satisfy [canTransitionWith], be within
  * the full spacing, and share a cluster with [member] placed on it, so the consecutive-run and cap
- * rules still hold.
+ * rules still hold. Every live member of that cluster must also resolve [member]'s sources.
  */
 internal fun resolveGlassNeighbour(
   member: GlassMemberSnapshot,
@@ -87,7 +87,10 @@ internal fun resolveGlassNeighbour(
         if (it.identity === member.identity) it.copy(rect = candidate.rect, layoutRect = candidate.layoutRect, key = candidate.key, link = candidate.identity) else it
       }
       clusterGlassMembers(probe, spacingPx).surfaces.any { cluster ->
-        cluster.members.any { it.identity === member.identity } && cluster.members.any { it.identity === candidate.identity }
+        cluster.members.any { it.identity === member.identity } && cluster.members.any { it.identity === candidate.identity } &&
+          // A cluster mixing resolved sources draws its members separately, so the morph would not show.
+          // Ghosts draw through their anchor, so only live members count.
+          cluster.members.filter { it.identity is GlassMemberNode }.all { it.drawsSourcesOf(member) }
       }
     }
     .minByOrNull { glassMemberGap(member.layoutRect, it.layoutRect) }

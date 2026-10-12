@@ -46,6 +46,7 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
@@ -728,6 +729,38 @@ class GlassContainerTransitionTest : ContextTest() {
     val ghost = fixture.b()
     val progress = (ghost.identity as GlassMemberGhost).progress.value
     assertThat(ghost.rect).isCloseTo(lerp(a, Rect(150f, 60f, 250f, 140f), progress), tolerance = 0.1f)
+    fixture.settle()
+  }
+
+  @Test
+  fun matchedGeometry_attachIntoSourceMixedCluster_materializes() = runComposeUiTest {
+    // B resolves a zIndex 1 source as well, so A and B already form a cluster that mixes sources.
+    val fixture = fixture(cOffset = 40 to 150)
+    runOnIdle { fixture.bSourced.value = true }
+    fixture.advance(16)
+    assertThat(fixture.b().sourceSelection).isNotEqualTo(fixture.a().sourceSelection)
+    runOnIdle { fixture.cPresent.value = true }
+    fixture.advance(16)
+    val c = fixture.owner().model.surfaces.flatMap { it.members }.single { it.identity === fixture.c.memberBindingForTest?.node }
+    // Growing out of A would join that mixed cluster, which draws each member separately.
+    assertThat(c).all {
+      prop(GlassMemberSnapshot::link).isNull()
+      prop(GlassMemberSnapshot::rect).isCloseTo(Rect(40f, 150f, 140f, 230f))
+    }
+    assertThat(fixture.c.transitionAlpha).isLessThan(0.1f)
+    fixture.settle()
+  }
+
+  @Test
+  fun matchedGeometry_detachFromSourceMixedCluster_fadesThroughAnchor() = runComposeUiTest {
+    val fixture = fixture(cOffset = 40 to 150, cInitially = true)
+    runOnIdle { fixture.bSourced.value = true }
+    fixture.advance(16)
+    runOnIdle { fixture.cPresent.value = false }
+    fixture.advance(16)
+    val ghost = fixture.owner().model.surfaces.flatMap { it.members }.single { it.identity is GlassMemberGhost }.identity as GlassMemberGhost
+    assertThat(ghost.neighbour).isNull()
+    assertThat(ghost.anchor).isEqualTo(fixture.aNode)
     fixture.settle()
   }
 
