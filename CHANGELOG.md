@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   retained Glass output can redraw from live or changed source content after its source is lost
   ([#1432](https://github.com/chrisbanes/haze/pull/1432)).
 
+### Fixed
+
+- Fallback Glass surfaces with a `backgroundColor` no longer draw their backdrop offset by the
+  layer padding, for standalone members and members of a `hazeGlassContainer`.
+
 ## 2.0.1 <small>2026-09-29</small> { id="2.0.1" }
 
 ### Changed
