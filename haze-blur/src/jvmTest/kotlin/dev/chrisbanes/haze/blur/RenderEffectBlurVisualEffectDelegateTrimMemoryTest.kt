@@ -28,9 +28,12 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotSameInstanceAs
+import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
+import dev.chrisbanes.haze.HazeEffectBackdrop
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeSampling
@@ -332,6 +335,30 @@ class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
     context.render { with(delegate) { draw(context) } }
 
     assertThat(context.inputCaptureCount).isEqualTo(2)
+  }
+
+  @Test
+  fun renderEffectDelegate_declaresItsCapabilities() {
+    val delegate = RenderEffectBlurVisualEffectDelegate(BlurVisualEffect())
+
+    assertThat(delegate.supportsBackdropRenderEffect).isTrue()
+    assertThat(delegate.drawsContentBehind).isFalse()
+  }
+
+  @Test
+  fun backdropEffect_returnsNullWhenTheDelegateHasNoRenderEffect() {
+    val effect = BlurVisualEffect()
+    val context = RecordingDrawContext(recordedSize = Size(100f, 100f))
+    val configuration = BlurConfiguration(HazeBlurStyle { blurEnabled(false) }, HazePerformanceMode.Quality)
+    effect.update(BlurLifecycleScope, configuration, HazeSampling.FullResolution)
+    var backdrop: HazeEffectBackdrop? = null
+
+    context.render {
+      backdrop = with(effect) { with(context) { backdropEffect(configuration) } }
+    }
+
+    assertThat(effect.delegate).isInstanceOf<ScrimBlurVisualEffectDelegate>()
+    assertThat(backdrop).isNull()
   }
 
   @Test

@@ -311,7 +311,7 @@ private class TrackingLifecycleScope(
 }
 
 @OptIn(InternalHazeApi::class)
-private class CountingGlassDelegate : GlassRuntimeEffect.Delegate, RetainedOutputDelegate {
+private class CountingGlassDelegate : GlassRuntimeEffect.Delegate {
   private var ownsResource = true
 
   var releaseCalls = 0

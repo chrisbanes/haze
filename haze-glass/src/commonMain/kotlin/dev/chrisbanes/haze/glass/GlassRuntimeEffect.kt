@@ -42,6 +42,7 @@ import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.LocalHazePerformanceMode
+import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.trace
@@ -476,7 +477,7 @@ internal class GlassRuntimeEffect() :
         try {
           with(selectedDelegate) { prepareDraw(context) }
         } catch (failure: RuntimeShaderRenderEffectException) {
-          if (selectedDelegate !is RuntimeShaderGlassDelegate) throw failure
+          if (!selectedDelegate.usesRuntimeShader) throw failure
           downgradeRuntimeDelegate(context, failure)
         }
       }
@@ -501,9 +502,8 @@ internal class GlassRuntimeEffect() :
         needsDelegateSelection = true
       }
       selectDelegateForDraw()
-      val runtimeDelegate = delegate as? RuntimeShaderGlassDelegate ?: return null
       val platformEffect = with(context as DrawScope) {
-        with(runtimeDelegate) { prepareBackdrop(context) }
+        with(delegate) { prepareBackdrop(context) }
       } ?: return null
       HazeEffectBackdrop(
         platformEffect = platformEffect,
@@ -511,11 +511,8 @@ internal class GlassRuntimeEffect() :
         materialTransform = currentMaterialTransform(context.modifierSize),
       )
     } catch (failure: RuntimeShaderRenderEffectException) {
-      runtimeShaderIncompatible = true
-      needsDelegateSelection = true
-      logDebug(TAG) {
-        "Runtime shader backdrop rendering failed; using source fallback: $failure"
-      }
+      if (!delegate.usesRuntimeShader) throw failure
+      recordRuntimeShaderFailure(failure, "Runtime shader backdrop rendering failed; using source fallback")
       context.invalidateDraw()
       null
     } finally {
@@ -534,7 +531,7 @@ internal class GlassRuntimeEffect() :
     val style = resolvedStyleCache ?: return false
     val interactionState = interactionRenderState(context.modifierSize)
     return preparedRender != null &&
-      (delegate as? RetainedOutputDelegate)?.canDrawRetainedOutput() == true &&
+      delegate.canDrawRetainedOutput() &&
       key.dirtyTrackerVersion == dirtyTrackerVersion &&
       key.size == context.modifierSize &&
       key.layerSize == context.layerSize &&
@@ -572,6 +569,7 @@ internal class GlassRuntimeEffect() :
           with(selectedDelegate) { draw(context) }
         }
       } catch (failure: RuntimeShaderRenderEffectException) {
+        if (!selectedDelegate.usesRuntimeShader) throw failure
         val fallback = downgradeRuntimeDelegate(context, failure)
         withMaterialTransform(context) {
           with(fallback) { draw(context, forceInput = true) }
@@ -582,14 +580,17 @@ internal class GlassRuntimeEffect() :
     }
   }
 
+  private fun recordRuntimeShaderFailure(failure: RuntimeShaderRenderEffectException, what: String) {
+    runtimeShaderIncompatible = true
+    needsDelegateSelection = true
+    logDebug(TAG) { "$what: $failure" }
+  }
+
   private fun DrawScope.downgradeRuntimeDelegate(
     context: HazeEffectRuntimeDrawScope,
     failure: RuntimeShaderRenderEffectException,
   ): FallbackGlassDelegate {
-    runtimeShaderIncompatible = true
-    logDebug(TAG) {
-      "Runtime shader rendering failed; using fallback until reattachment: $failure"
-    }
+    recordRuntimeShaderFailure(failure, "Runtime shader rendering failed; using fallback until reattachment")
     val fallback = FallbackGlassDelegate(this@GlassRuntimeEffect)
     delegate = fallback
     with(fallback) { prepareDraw(context) }
@@ -618,7 +619,7 @@ internal class GlassRuntimeEffect() :
     resolveTransform(size, interactionTransformTarget)
 
   override fun shouldDrawContentBehind(): Boolean {
-    return delegate is FallbackGlassDelegate
+    return delegate.drawsContentBehind
   }
 
   internal fun controllerConfiguration(
@@ -699,7 +700,7 @@ internal class GlassRuntimeEffect() :
     // was disposed (invalidated in reconcile), or hidden output was released.
     var redraw = reconcileInteractionCompletion(context)
     if (alpha == 0f && !controller.hasRunningResponseAnimations) {
-      (delegate as? RetainedOutputDelegate)?.releaseObsoleteInteractionOutput(interactionTopologySnapshot)
+      delegate.releaseObsoleteInteractionOutput(interactionTopologySnapshot)
       clearPreparedRenderCache()
       redraw = true
     }
@@ -733,19 +734,19 @@ internal class GlassRuntimeEffect() :
   }
 
   override fun canDrawRetainedOutput(): Boolean {
-    return (delegate as? RetainedOutputDelegate)?.canDrawRetainedOutput() == true
+    return delegate.canDrawRetainedOutput()
   }
 
   override fun shouldDrawRetainedOutput(): Boolean {
-    return (delegate as? RetainedOutputDelegate)?.shouldDrawRetainedOutput() == true
+    return delegate.shouldDrawRetainedOutput()
   }
 
   override fun invalidateRetainedOutput() {
-    (delegate as? RetainedOutputDelegate)?.invalidateRetainedOutput()
+    delegate.invalidateRetainedOutput()
   }
 
   override fun clearRetainedOutput() {
-    (delegate as? RetainedOutputDelegate)?.clearRetainedOutput()
+    delegate.clearRetainedOutput()
   }
 
   override fun shouldClipToNodeBounds(): Boolean {
@@ -1174,6 +1175,21 @@ internal class GlassRuntimeEffect() :
     fun detach() = Unit
     fun release() = detach()
     fun onTrimMemory(context: HazeEffectLifecycleScope, level: TrimMemoryLevel) = Unit
+
+    /** Whether this delegate draws the content behind the glass itself, rather than the node. */
+    val drawsContentBehind: Boolean get() = false
+
+    /** Whether a [RuntimeShaderRenderEffectException] from this delegate can be recovered by downgrading. */
+    val usesRuntimeShader: Boolean get() = false
+
+    /** The platform effect for the backdrop path, or null when this delegate has none. */
+    fun DrawScope.prepareBackdrop(context: HazeEffectRuntimeDrawScope): PlatformRenderEffect? = null
+
+    fun canDrawRetainedOutput(): Boolean = false
+    fun shouldDrawRetainedOutput(): Boolean = canDrawRetainedOutput()
+    fun clearRetainedOutput() = Unit
+    fun invalidateRetainedOutput() = clearRetainedOutput()
+    fun releaseObsoleteInteractionOutput(topology: GlassInteractionTopology) = Unit
   }
 
   internal fun resetDirtyTracker() {
@@ -1214,18 +1230,6 @@ private class GlassRenderPreparation(
   var decision: GlassRenderBudgetDecision,
   var prepared: GlassPreparedRender?,
 )
-
-internal interface RetainedOutputDelegate {
-  fun canDrawRetainedOutput(): Boolean
-
-  fun shouldDrawRetainedOutput(): Boolean = canDrawRetainedOutput()
-
-  fun clearRetainedOutput()
-
-  fun invalidateRetainedOutput(): Unit = clearRetainedOutput()
-
-  fun releaseObsoleteInteractionOutput(topology: GlassInteractionTopology): Unit = Unit
-}
 
 internal fun GlassRuntimeEffect.updateDelegate(): GlassRuntimeEffect.Delegate {
   val wantsRuntime =

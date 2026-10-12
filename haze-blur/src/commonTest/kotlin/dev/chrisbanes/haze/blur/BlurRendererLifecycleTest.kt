@@ -129,14 +129,81 @@ class BlurRendererLifecycleTest {
     assertThat(renderer.canDrawRetainedOutput()).isFalse()
     assertThat(renderer.shouldDrawRetainedOutput()).isFalse()
   }
+
+  @Test
+  fun plainDelegate_retainedOutputDefaultsAreNoOps() {
+    val renderer = HazeBlurFactory.createRenderer() as BlurVisualEffect
+    val delegate = PlainBlurDelegate()
+    renderer.delegate = delegate
+
+    assertThat(delegate.drawsContentBehind).isFalse()
+    assertThat(delegate.supportsBackdropRenderEffect).isFalse()
+    assertThat(renderer.canDrawRetainedOutput()).isFalse()
+    assertThat(renderer.shouldDrawRetainedOutput()).isFalse()
+    renderer.clearRetainedOutput()
+    renderer.invalidateRetainedOutput()
+  }
+
+  @Test
+  fun renderer_forwardsContentBehindToAnyDelegate() {
+    val renderer = HazeBlurFactory.createRenderer() as BlurVisualEffect
+
+    renderer.delegate = PlainBlurDelegate(drawsContentBehind = true)
+    assertThat(renderer.shouldDrawContentBehind()).isTrue()
+
+    renderer.delegate = RecordingBlurDelegate()
+    assertThat(renderer.shouldDrawContentBehind()).isFalse()
+  }
+
+  @Test
+  fun scrimDelegate_declaresItsCapabilities() {
+    val delegate = ScrimBlurVisualEffectDelegate(BlurVisualEffect())
+
+    assertThat(delegate.drawsContentBehind).isTrue()
+    assertThat(delegate.supportsBackdropRenderEffect).isFalse()
+  }
+
+  @Test
+  fun invalidateRetainedOutput_reachesTheDelegateAndDefaultsToClear() {
+    val renderer = HazeBlurFactory.createRenderer() as BlurVisualEffect
+    val invalidating = RecordingBlurDelegate(retained = true)
+    renderer.delegate = invalidating
+
+    renderer.invalidateRetainedOutput()
+
+    assertThat(invalidating.invalidateCalls).isEqualTo(1)
+
+    val defaulting = PlainBlurDelegate(retained = true)
+    renderer.delegate = defaulting
+    renderer.invalidateRetainedOutput()
+
+    assertThat(defaulting.clearCalls).isEqualTo(1)
+  }
+}
+
+private class PlainBlurDelegate(
+  override val drawsContentBehind: Boolean = false,
+  private val retained: Boolean = false,
+) : BlurVisualEffect.Delegate {
+  var clearCalls = 0
+    private set
+
+  override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) = Unit
+
+  override fun canDrawRetainedOutput(): Boolean = retained
+
+  override fun clearRetainedOutput() {
+    clearCalls++
+  }
 }
 
 private class RecordingBlurDelegate(
   retained: Boolean = false,
-) : BlurVisualEffect.Delegate, RetainedOutputDelegate {
+) : BlurVisualEffect.Delegate {
   var attachCalls = 0
   var trimCalls = 0
   var detachCalls = 0
+  var invalidateCalls = 0
   private var retained = retained
 
   override fun attach() {
@@ -157,6 +224,10 @@ private class RecordingBlurDelegate(
 
   override fun clearRetainedOutput() {
     retained = false
+  }
+
+  override fun invalidateRetainedOutput() {
+    invalidateCalls++
   }
 }
 

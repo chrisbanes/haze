@@ -875,9 +875,7 @@ private fun invalidPositiveAtMostOne(
   write,
 )
 
-private class RetainedTrackingGlassDelegate :
-  GlassRuntimeEffect.Delegate,
-  RetainedOutputDelegate {
+private class RetainedTrackingGlassDelegate : GlassRuntimeEffect.Delegate {
 
   var retainedOutputAvailable = false
   var pendingRetainedOutput = false

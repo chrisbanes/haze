@@ -11,6 +11,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -38,6 +39,7 @@ import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
+import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.createMutableRuntimeShaderRenderEffect
@@ -340,9 +342,10 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(creationAttempts).isEqualTo(2)
     assertThat(context.invalidateDrawCalls).isEqualTo(1)
 
+    val downgradedFallback = effect.delegate
     effect.prepareDrawForTest(context)
 
-    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(effect.delegate).isSameInstanceAs(downgradedFallback)
     assertThat(creationAttempts).isEqualTo(2)
 
     effect.detach()
@@ -351,6 +354,97 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
 
     assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
     assertThat(creationAttempts).isEqualTo(4)
+    effect.detach()
+  }
+
+  @Test
+  fun runtimeShaderDelegate_declaresItsCapabilities() {
+    val delegate = RuntimeShaderGlassDelegate(GlassRuntimeEffect(), GlassRuntimeEffectFactory { create -> create() })
+
+    assertThat(delegate.usesRuntimeShader).isTrue()
+    assertThat(delegate.drawsContentBehind).isFalse()
+  }
+
+  @Test
+  fun backdropEffect_runtimeShaderFailure_marksIncompatibleAndReselectsFallback() {
+    val effect = GlassRuntimeEffect()
+    val context = RecordingVisualEffectContext(size = Size(100f, 100f), layerSize = Size(100f, 100f))
+    effect.attach(context)
+    effect.prepareDrawForTest(context)
+    effect.delegate = FailingGlassDelegate(usesRuntimeShader = true)
+    val invalidationsBefore = context.invalidateDrawCalls
+
+    val backdrop = with(effect) { with(context) { backdropEffect(effect.configuration()) } }
+
+    assertThat(backdrop).isNull()
+    assertThat(effect.runtimeShaderIncompatible).isTrue()
+    assertThat(context.invalidateDrawCalls).isEqualTo(invalidationsBefore + 1)
+
+    effect.prepareDrawForTest(context)
+
+    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    effect.detach()
+  }
+
+  @Test
+  fun backdropEffect_failureFromDelegateThatCannotRecover_rethrows() {
+    val effect = GlassRuntimeEffect()
+    val context = RecordingVisualEffectContext(size = Size(100f, 100f), layerSize = Size(100f, 100f))
+    effect.attach(context)
+    effect.prepareDrawForTest(context)
+    effect.delegate = FailingGlassDelegate(usesRuntimeShader = false)
+
+    assertFailure {
+      with(effect) { with(context) { backdropEffect(effect.configuration()) } }
+    }.isInstanceOf<RuntimeShaderRenderEffectException>()
+    assertThat(effect.runtimeShaderIncompatible).isFalse()
+    effect.detach()
+  }
+
+  @Test
+  fun draw_failureFromDelegateThatCannotRecover_rethrows() {
+    val effect = GlassRuntimeEffect()
+    val context = RecordingVisualEffectContext(size = Size(100f, 100f), layerSize = Size(100f, 100f))
+    effect.attach(context)
+    effect.prepareDrawForTest(context)
+    val failing = FailingGlassDelegate(usesRuntimeShader = false)
+    effect.delegate = failing
+
+    assertFailure {
+      with(effect) { context.draw(effect.configuration()) }
+    }.isInstanceOf<RuntimeShaderRenderEffectException>()
+    assertThat(effect.delegate).isSameInstanceAs(failing)
+    assertThat(effect.runtimeShaderIncompatible).isFalse()
+    effect.detach()
+  }
+
+  @Test
+  fun prepareDraw_failureFromRuntimeShaderDelegate_downgradesToFallback() {
+    val effect = GlassRuntimeEffect()
+    val context = RecordingVisualEffectContext(size = Size(100f, 100f), layerSize = Size(100f, 100f))
+    effect.attach(context)
+    effect.prepareDrawForTest(context)
+    effect.delegate = FailingGlassDelegate(usesRuntimeShader = true)
+
+    effect.prepareDrawForTest(context)
+
+    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(effect.runtimeShaderIncompatible).isTrue()
+    effect.detach()
+  }
+
+  @Test
+  fun prepareDraw_failureFromDelegateThatCannotRecover_rethrows() {
+    val effect = GlassRuntimeEffect()
+    val context = RecordingVisualEffectContext(size = Size(100f, 100f), layerSize = Size(100f, 100f))
+    effect.attach(context)
+    effect.prepareDrawForTest(context)
+    effect.delegate = FailingGlassDelegate(usesRuntimeShader = false)
+
+    assertFailure {
+      effect.prepareDrawForTest(context)
+    }.isInstanceOf<RuntimeShaderRenderEffectException>()
+    assertThat(effect.runtimeShaderIncompatible).isFalse()
     effect.detach()
   }
 
@@ -915,6 +1009,22 @@ private fun RuntimeShaderGlassDelegate.seedRetainedOutputAvailable() {
   javaClass.getDeclaredField("retainedOutputAvailable").apply {
     isAccessible = true
     set(this@seedRetainedOutputAvailable, true)
+  }
+}
+
+private class FailingGlassDelegate(
+  override val usesRuntimeShader: Boolean,
+) : GlassRuntimeEffect.Delegate {
+  override fun DrawScope.prepareDraw(context: HazeEffectRuntimeDrawScope) {
+    throw RuntimeShaderRenderEffectException(IllegalStateException("prepare failed"))
+  }
+
+  override fun DrawScope.prepareBackdrop(context: HazeEffectRuntimeDrawScope): PlatformRenderEffect? {
+    throw RuntimeShaderRenderEffectException(IllegalStateException("backdrop failed"))
+  }
+
+  override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) {
+    throw RuntimeShaderRenderEffectException(IllegalStateException("draw failed"))
   }
 }
 

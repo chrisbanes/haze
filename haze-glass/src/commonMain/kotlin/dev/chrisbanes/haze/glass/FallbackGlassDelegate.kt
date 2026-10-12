@@ -38,6 +38,8 @@ internal class FallbackGlassDelegate(
   private val groupAlpha = RetainedGlassGroupAlphaLayer()
   private var graphicsContext: GraphicsContext? = null
 
+  override val drawsContentBehind: Boolean get() = true
+
   override fun DrawScope.prepareDraw(context: HazeEffectRuntimeDrawScope) {
     if (effect.alpha == 0f) return
 
