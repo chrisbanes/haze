@@ -18,3 +18,7 @@ internal Glass runtime), follow these conventions:
 - Make platform-specific `updateDelegate` functions return the new `Delegate` instance rather than
   mutating the property as a side-effect.
 
+- Expose delegate capabilities (content drawn behind, retained output, backdrop support,
+  runtime-shader recovery) as members of the runtime's `Delegate` interface with no-op defaults.
+  The runtime calls them on `delegate` and does not type-check delegates anywhere except delegate
+  selection (`updateDelegate`).
