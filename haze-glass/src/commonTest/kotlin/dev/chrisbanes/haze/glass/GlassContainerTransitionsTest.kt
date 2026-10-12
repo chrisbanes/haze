@@ -1,0 +1,75 @@
+// Copyright 2026, Christopher Banes and the Haze project contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package dev.chrisbanes.haze.glass
+
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.TargetBasedAnimation
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
+import assertk.assertions.isGreaterThanOrEqualTo
+import assertk.assertions.isInstanceOf
+import assertk.assertions.isLessThanOrEqualTo
+import assertk.assertions.isSameInstanceAs
+import assertk.assertions.prop
+import kotlin.test.Test
+
+class GlassContainerTransitionsTest {
+  @Test
+  fun glassTransitionSpec_reduced_isCriticallyDampedSpring() {
+    assertThat(glassTransitionSpec(spring(dampingRatio = 0.3f, stiffness = 200f), reduced = true)).isInstanceOf<SpringSpec<Float>>().given {
+      assertThat(it.dampingRatio).isEqualTo(1f)
+      assertThat(it.stiffness).isEqualTo(200f)
+    }
+    assertThat(glassTransitionSpec(tween(300), reduced = true)).isInstanceOf<SpringSpec<Float>>().given {
+      assertThat(it.dampingRatio).isEqualTo(1f)
+      assertThat(it.stiffness).isEqualTo(Spring.StiffnessMedium)
+    }
+    val spec = tween<Float>(300)
+    assertThat(glassTransitionSpec(spec, reduced = false)).isSameInstanceAs(spec)
+  }
+
+  @Test
+  fun glassTransitionSpec_reduced_neverOvershoots() {
+    val bouncy = spring<Float>(dampingRatio = 0.3f, stiffness = 200f)
+    assertThat(peak(glassTransitionSpec(bouncy, reduced = true))).isLessThanOrEqualTo(1f)
+    // Sensitivity: the authored spring does overshoot.
+    assertThat(peak(glassTransitionSpec(bouncy, reduced = false))).isGreaterThan(1f)
+  }
+
+  @Test
+  fun lerpGlassMergedMember_endpointsAndMidpoint() {
+    val from = GlassMergedMember(Rect(0f, 0f, 100f, 80f), CornerRadii(12f, 12f, 12f, 12f), Color.Red, Color.Transparent)
+    val to = GlassMergedMember(Rect(110f, 0f, 210f, 80f), CornerRadii(4f, 4f, 4f, 4f), Color.Blue, Color.Transparent)
+    assertThat(lerpGlassMergedMember(from, to, 0f)).isEqualTo(from)
+    assertThat(lerpGlassMergedMember(from, to, 1f)).isEqualTo(to)
+    val half = lerpGlassMergedMember(from, to, 0.5f)
+    assertThat(half.rect).isEqualTo(Rect(55f, 0f, 155f, 80f))
+    assertThat(half.cornerRadii).isEqualTo(CornerRadii(8f, 8f, 8f, 8f))
+    assertThat(half.tint).isEqualTo(lerp(Color.Red, Color.Blue, 0.5f))
+  }
+
+  @Test
+  fun lerpGlassMergedMember_overshoot_keepsPositiveSize() {
+    val from = GlassMergedMember(Rect(0f, 0f, 10f, 10f), CornerRadii.zero, Color.Red, Color.Green)
+    val to = GlassMergedMember(Rect(100f, 0f, 101f, 10f), CornerRadii.zero, Color.Blue, Color.White)
+    val overshoot = lerpGlassMergedMember(from, to, 1.5f)
+    assertThat(overshoot).prop(GlassMergedMember::rect).prop(Rect::width).isGreaterThanOrEqualTo(1f)
+    assertThat(overshoot.tint).isEqualTo(Color.Blue)
+    assertThat(overshoot.backgroundColor).isEqualTo(Color.White)
+  }
+
+  private fun peak(spec: FiniteAnimationSpec<Float>): Float {
+    val animation = TargetBasedAnimation(spec, Float.VectorConverter, 0f, 1f)
+    return (0L..animation.durationNanos step 16_000_000L).maxOf { animation.getValueFromNanos(it) }
+  }
+}

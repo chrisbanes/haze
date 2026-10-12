@@ -654,7 +654,7 @@ private class AnimatedFloatChannel(
   }
 }
 
-private object FullMotionDurationScale : MotionDurationScale {
+internal object FullMotionDurationScale : MotionDurationScale {
   override val scaleFactor: Float = 1f
 }
 

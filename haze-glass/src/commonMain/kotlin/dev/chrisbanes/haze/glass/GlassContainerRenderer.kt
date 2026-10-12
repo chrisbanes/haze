@@ -36,16 +36,16 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
   fun reconcile(): List<HazeEffectSurface> {
     val model = owner.model
     val spacing = owner.spacingPx
-    val validKeys = model.surfaces.filter { it.members.size > 1 }.map { it.members.map { member -> member.identity } }.toSet()
+    val validKeys = model.surfaces.filterNot { it.drawsOwnSurface() }.map { it.slotKey() }.toSet()
     slots.keys.filter { it !in validKeys }.forEach { slots.remove(it)?.handle?.dispose() }
     val output = mutableListOf<HazeEffectSurface>()
     val runtimes = mutableListOf<Pair<Rect, GlassRuntimeEffect>>()
     for (cluster in model.surfaces) {
       val members = cluster.members
-      val nodes = members.map { it.identity as GlassMemberNode }
+      val nodes = cluster.drawingNodes()
       val inputs = nodes.mapNotNull { it.binding.surface }
       if (inputs.size != nodes.size) continue
-      if (members.size == 1) {
+      if (cluster.drawsOwnSurface()) {
         output += inputs.single()
         nodes.single().binding.runtime?.let { runtimes += members.single().layoutRect to it }
         continue
@@ -68,7 +68,7 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
         interactionSource = null,
         surfaceSnapshot = GlassSurfaceSnapshot(first.key, first.material, field, opticalSize),
       )
-      val slot = slots.getOrPut(members.map { it.identity }) {
+      val slot = slots.getOrPut(cluster.slotKey()) {
         val runtime = GlassRuntimeEffect().also { it.runtimeEffectFactory = checkNotNull(nodes.first().binding.runtime).runtimeEffectFactory }
         Slot(inputs.first().createConfiguredSurface(HazeEffectFactory { runtime }, configuration, bounds, inputs), runtime)
       }
@@ -106,11 +106,23 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
   }
 }
 
+/** A lone live member draws through its own surface unless it is transitioning with another. */
+private fun GlassCluster.drawsOwnSurface(): Boolean =
+  members.size == 1 && members.single().identity is GlassMemberNode && members.single().link == null
+
+/** Live members whose inputs draw the cluster; a lone fading ghost draws through its borrowed anchor. */
+private fun GlassCluster.drawingNodes(): List<GlassMemberNode> =
+  members.mapNotNull { it.identity as? GlassMemberNode }.ifEmpty { listOf((members.first().identity as GlassMemberGhost).anchor) }
+
+/** A borrowed anchor is part of the key, so its departure disposes the slot. */
+private fun GlassCluster.slotKey(): List<Any> = (members.map { it.identity } + drawingNodes()).distinct()
+
 /** Maps member-local values through the member's draw-time interaction scale, as it draws alone. */
 private fun GlassMemberSnapshot.toMergedMember(origin: Offset): GlassMergedMember {
   val scaleX = rect.width / layoutRect.width
   val scaleY = rect.height / layoutRect.height
-  val runtime = (identity as GlassMemberNode).binding.runtime
+  // Ghosts carry no interaction.
+  val runtime = (identity as? GlassMemberNode)?.binding?.runtime
   val light = runtime?.let { resolveGlassInteraction(it.currentInteractionState, it.interactionLightRadiusFraction) }
   val topLeft = rect.topLeft - origin
   val fieldRect = Rect(topLeft, rect.size)

@@ -26,4 +26,8 @@ class GlassContainerDesktopScreenshotTest : ScreenshotTest() {
   @Test fun interactiveClusterPressed() = runScreenshotTest(Size(360f, 240f)) { assertGlassContainerScene(GlassContainerScene.InteractivePressed) }
 
   @Test fun removalRestoresOutsideContainerPixels() = runScreenshotTest(Size(360f, 240f)) { assertGlassContainerRemovalRestoresOutsidePixels() }
+
+  @Test fun memberGrowsOutOfNeighbour() = runScreenshotTest(Size(360f, 240f)) { assertGlassContainerTransitionSequence(grow = true) }
+
+  @Test fun memberRetractsIntoNeighbour() = runScreenshotTest(Size(360f, 240f)) { assertGlassContainerTransitionSequence(grow = false) }
 }

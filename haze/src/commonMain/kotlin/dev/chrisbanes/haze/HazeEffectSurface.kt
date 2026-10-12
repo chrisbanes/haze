@@ -52,6 +52,12 @@ public class HazeEffectSurface internal constructor(
   /** Member bounds in the owner's coordinates, or null before valid placement. */
   public fun boundsInOwner(): Rect? = configured?.bounds ?: node.surfaceBounds(owner?.surfaceCoordinates)
 
+  /**
+   * The source areas this member's input currently resolves to. Equal inputs can still resolve
+   * differently, for example `Behind` under different source ancestors.
+   */
+  public fun inputSelection(): Set<Any> = node.areas.toSet()
+
   /** Creates an independently owned renderer over these members' core-selected input captures. */
   public fun <Style> createConfiguredSurface(
     factory: HazeEffectFactory<Style>,

@@ -140,6 +140,7 @@ package dev.chrisbanes.haze {
   @dev.chrisbanes.haze.InternalHazeApi public final class HazeEffectSurface {
     method public androidx.compose.ui.geometry.Rect? boundsInOwner();
     method public <Style> dev.chrisbanes.haze.HazeConfiguredEffectSurface<Style> createConfiguredSurface(dev.chrisbanes.haze.HazeEffectFactory<Style> factory, Style style, androidx.compose.ui.geometry.Rect bounds, java.util.List<dev.chrisbanes.haze.HazeEffectSurface> members);
+    method public java.util.Set<java.lang.Object> inputSelection();
     method public void relocateTo(dev.chrisbanes.haze.HazeEffectSurfaceOwner? owner);
   }
 
