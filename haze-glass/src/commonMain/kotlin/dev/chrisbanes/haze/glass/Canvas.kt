@@ -69,15 +69,38 @@ internal inline fun DrawScope.withLayerPaint(
   block: DrawScope.() -> Unit,
 ) {
   val canvas = drawContext.canvas
-  val paint = Paint().apply {
-    this.alpha = alpha
-    this.blendMode = blendMode
-  }
-  canvas.saveLayer(bounds, paint)
+  val paint = LayerPaints.acquire(alpha, blendMode)
   try {
-    block()
+    canvas.saveLayer(bounds, paint)
+    try {
+      block()
+    } finally {
+      canvas.restore()
+    }
   } finally {
-    canvas.restore()
+    LayerPaints.release()
+  }
+}
+
+/**
+ * Paints for [withLayerPaint], one per nesting depth. A layer keeps its paint for the whole
+ * block, so an inner layer takes the next paint instead of changing an enclosing layer's alpha or
+ * blend mode. Drawing is single-threaded, so this is not thread-safe, like haze-blur's `PaintPool`.
+ */
+internal object LayerPaints {
+  private val paints = ArrayList<Paint>()
+  private var depth = 0
+
+  fun acquire(alpha: Float, blendMode: BlendMode): Paint {
+    if (depth == paints.size) paints += Paint()
+    return paints[depth++].also {
+      it.alpha = alpha
+      it.blendMode = blendMode
+    }
+  }
+
+  fun release() {
+    depth--
   }
 }
 
