@@ -8,16 +8,26 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isFinite
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
+import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.roundToIntSize
+import kotlin.math.ceil
+import kotlin.math.max
 import kotlinx.coroutines.CoroutineScope
 
 /**
@@ -347,6 +357,84 @@ public inline fun <R> HazeEffectRuntimeDrawScope.withGraphicsLayer(
   } finally {
     graphicsContext.releaseGraphicsLayer(layer)
   }
+}
+
+/** Runs [block] translated by [offset], or untranslated when [offset] is zero or not finite. */
+@InternalHazeApi
+public inline fun DrawScope.translate(
+  offset: Offset,
+  block: DrawScope.() -> Unit,
+) {
+  if (offset.isFinite && offset != Offset.Zero) {
+    translate(offset.x, offset.y, block)
+  } else {
+    block()
+  }
+}
+
+/**
+ * Draws [block], recorded at [scaledSize], scaled up to fill this scope and translated by
+ * [offset]. Clips to this scope when [clip] is true.
+ */
+@InternalHazeApi
+public fun DrawScope.drawScaledContent(
+  offset: Offset,
+  scaledSize: Size,
+  clip: Boolean = true,
+  block: DrawScope.() -> Unit,
+) {
+  val scaleFactor = max(size.width / scaledSize.width, size.height / scaledSize.height)
+  withTransform({ if (clip) clipRect() }) {
+    translate(offset) {
+      scale(scale = scaleFactor, pivot = Offset.Zero) {
+        block()
+      }
+    }
+  }
+}
+
+/**
+ * Records the effect input of [context], scaled by [scaleFactor], into [existingLayer] (or a new
+ * layer when it is null or released) over [backgroundShader] or, without one, [backgroundColor].
+ *
+ * Returns null without creating a layer when the scaled [layerSize] is empty.
+ */
+@InternalHazeApi
+public fun DrawScope.createScaledContentLayer(
+  context: HazeEffectRuntimeDrawScope,
+  backgroundColor: Color,
+  scaleFactor: Float,
+  layerSize: Size,
+  existingLayer: GraphicsLayer? = null,
+  backgroundShader: Shader? = null,
+): GraphicsLayer? {
+  val scaledLayerSize = (layerSize * scaleFactor).roundToIntSize()
+
+  if (scaledLayerSize.width <= 0 || scaledLayerSize.height <= 0) {
+    return null
+  }
+
+  val layer = existingLayer?.takeUnless { it.isReleased }
+    ?: context.requireGraphicsContext().createGraphicsLayer()
+
+  layer.record(size = scaledLayerSize) {
+    if (backgroundShader != null) {
+      drawRect(ShaderBrush(backgroundShader))
+    } else if (backgroundColor.alpha > 0f) {
+      drawRect(backgroundColor)
+    }
+
+    scale(scale = scaleFactor, pivot = Offset.Zero) {
+      with(context) { this@record.drawInput() }
+    }
+  }
+
+  // Refresh the outline when a retained layer is resized. Round it outward independently of the
+  // capture allocation: rounding down can clip the last output row or column after upscaling.
+  val outlineSize = layerSize * scaleFactor
+  layer.setRectOutline(size = Size(ceil(outlineSize.width), ceil(outlineSize.height)))
+
+  return layer
 }
 
 @OptIn(InternalHazeApi::class)
