@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added the experimental `Modifier.hazeGlassContainer`, which merges nearby compatible Glass
+  members into Glass clusters and gives them one container-wide optical size
+  ([#1472](https://github.com/chrisbanes/haze/pull/1472)). Each member's interaction transforms and
+  lighting apply to its part of a cluster
+  ([#1476](https://github.com/chrisbanes/haze/pull/1476)). Without `RuntimeShader` support, a
+  cluster draws as the hard union of its member shapes
+  ([#1479](https://github.com/chrisbanes/haze/pull/1479)) and keeps per-member press lights
+  ([#1487](https://github.com/chrisbanes/haze/pull/1487)). `GlassMemberTransition` and
+  `hazeGlass(memberTransition = ...)` animate members as they join or leave a container
+  ([#1482](https://github.com/chrisbanes/haze/pull/1482)).
+- Added the `Glass — Container` sample and Glass container documentation and performance guidance
+  ([#1491](https://github.com/chrisbanes/haze/pull/1491)).
+
 ### Changed
 
 - Documented that `HazeSourceRetention.KeepLastFrame` does not guarantee frozen pixels: on Android,

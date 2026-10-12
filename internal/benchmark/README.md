@@ -11,6 +11,7 @@ see the [performance guide](../../docs/performance.md); published historical mea
 | Compare Blur and Glass performance modes | [Calibration matrix](#calibration-matrix) |
 | Observe combined Blur noise/tint reconstruction | [Noise/tint construction](#noisetint-construction) |
 | Diagnose one controlled scenario or run Gallery journeys | [Run a profile](#run-a-profile) |
+| Compare a merged Glass cluster with independent surfaces | [Glass container comparison](#glass-container-comparison) |
 | Compare source and native backdrop paths | [Android 37.2 comparisons](#android-372-sourcebackdrop-comparisons) |
 | Find artifacts and interpret metrics or traces | [Results](#results) |
 | Generate and verify library baseline profiles | [Baseline-profile maintenance](BASELINE_PROFILES.md) |
@@ -125,6 +126,32 @@ count.
 The input levels are benchmark labels. Interpret their resolution using the Glass implementation
 under test and preserve its build identity with the result. The sweep does not establish a public
 minimum-resolution guarantee.
+
+### Glass container comparison
+
+The `source_update_independent_2` and `source_update_container_2` workloads compare two Glass
+surfaces drawn independently with the same two surfaces in one Glass cluster. They share every
+parameter except the container:
+
+- two surfaces 12 dp apart in the 280×180 dp grid, each about 134×180 dp;
+- `HazePerformanceMode.Default` (`Balanced`), `HazeInput.Sources`, and the Regular style;
+- the continuously changing source workload used by `source_update_balanced`.
+
+`source_update_container_2` wraps the grid in `hazeGlassContainer(spacing = 32.dp)`. The 12 dp gap
+is less than half of the spacing, so the two surfaces form one two-member cluster.
+
+Both use the changing-source workload, not the steady one, so that container-owned glass is
+expected to redraw every frame. The steady workload invalidates only each member's own draw, and the container draws
+its members' glass. A source change is expected to reach the container through the same
+invalidation as any other surface, but confirm it for each run: `hazeGlassRuntimeDrawCount` is
+expected to be roughly half per frame in the container row, because one cluster draws once where
+two independent surfaces draw twice. It must be positive and continuous in both rows. If the
+container row does not redraw continuously, the workload does not exercise the cluster and the
+comparison is invalid.
+
+CPU frame time does not measure GPU shader cost. Compare the container row's layer, which covers
+both members and the bridge between them, with the two independent layers using peak GPU memory and
+system GPU data alongside CPU frame duration.
 
 ## Noise/tint construction
 
@@ -287,6 +314,51 @@ adb shell am force-stop dev.chrisbanes.haze.sample.android
 `connectedBenchmarkReleaseAndroidTest` runs only this module's release benchmark variant. Do not
 use `connectedCheck` for calibration: it also schedules the non-minified and baseline-profile
 instrumentation work, which can change device state or mix artifact output with the recorded run.
+
+## Run the Glass container comparison
+
+Run each method individually. Dry-run first, with
+`-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true`, and check
+that each XML result names its method; do not archive a dry run as a measurement. Then run the two
+measured passes, the second in the opposite order, so that order and thermal drift do not favour
+one row. The loop archives each method with `archive_result.py`, which checks the eight measured
+iterations, a passing XML testcase, and eight distinct traces.
+
+Before each pass, record the device model and Android build, the refresh rate, the thermal status
+and the battery temperature. Record the build identity of the installed APKs and the run order with
+the results.
+
+```bash
+(
+set -e
+trap 'adb shell cmd power set-fixed-performance-mode-enabled false' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+adb shell cmd power set-fixed-performance-mode-enabled true
+mkdir -p internal/benchmark/build/benchmark-results
+results_dir=$(mktemp -d internal/benchmark/build/benchmark-results/container.XXXXXX)
+echo "Results: $results_dir"
+pass_one=(sourceUpdateIndependent2 sourceUpdateContainer2)
+pass_two=(sourceUpdateContainer2 sourceUpdateIndependent2)
+for pass in one two; do
+  methods=("${pass_one[@]}")
+  if [ "$pass" = two ]; then methods=("${pass_two[@]}"); fi
+  adb shell dumpsys thermalservice | head -n 20
+  adb shell dumpsys battery | grep -i temperature
+  for method in "${methods[@]}"; do
+    ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
+      -Pandroid.testInstrumentationRunnerArguments.class="dev.chrisbanes.haze.GlassProfilingBenchmark#${method}"
+    python3 internal/benchmark/archive_result.py \
+      --method "dev.chrisbanes.haze.GlassProfilingBenchmark#${method}" \
+      --destination "$results_dir/$pass/$method"
+  done
+done
+)
+```
+
+Check `hazeGlassRuntimeDrawCount` in every archived JSON as described above before comparing
+frame durations. If Perfetto stalls waiting for the `track_event` data source, force-stop the
+Google app as described in [Prepare the device](#prepare-the-device) and restart the pass.
 
 ## Run a profile
 

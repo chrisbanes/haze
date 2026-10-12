@@ -5,9 +5,11 @@ package dev.chrisbanes.haze.sample
 
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -67,6 +69,42 @@ class GlassProfilingSampleTest : ContextTest() {
     repeat(9) { index ->
       onNodeWithTag("glass_profiling_surface_$index").assertIsDisplayed()
     }
+  }
+
+  @Test
+  fun sourceUpdateContainer2_wrapsTwoMembersInAContainer() = runComposeUiTest {
+    setContent {
+      GlassProfilingSampleContent(
+        state = remember { GlassProfilingState() },
+        onBack = {},
+      )
+    }
+
+    onNodeWithTag("glass_profiling_select_source_update_container_2")
+      .performScrollTo()
+      .performClick()
+    onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_surface_0").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_surface_1").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_container").assertExists()
+  }
+
+  @Test
+  fun sourceUpdateIndependent2_hasNoContainer() = runComposeUiTest {
+    setContent {
+      GlassProfilingSampleContent(
+        state = remember { GlassProfilingState() },
+        onBack = {},
+      )
+    }
+
+    onNodeWithTag("glass_profiling_select_source_update_independent_2")
+      .performScrollTo()
+      .performClick()
+    onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_surface_0").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_surface_1").assertIsDisplayed()
+    onAllNodesWithTag("glass_profiling_container").assertCountEquals(0)
   }
 
   @Test

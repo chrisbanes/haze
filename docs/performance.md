@@ -122,6 +122,12 @@ Check an effect's first appearance separately from its ongoing animation: smooth
 not rule out a pause when a Glass surface is first created. Include lighting, refraction, and
 transform changes during interaction in your measurements.
 
+Use a [Glass container](effects/glass.md#containers) only where surfaces should merge. A merged
+Glass cluster draws one surface whose layer covers its members and the bridges between them, so
+measure clustered screens against independent surfaces before adopting them. A container also
+shares one optical size, so one large member changes the diffusion of the small members next to
+it.
+
 For styling examples, see the [Glass overview](effects/glass.md).
 
 <a id="backdrop-input"></a>

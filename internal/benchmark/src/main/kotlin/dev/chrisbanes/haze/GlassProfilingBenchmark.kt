@@ -200,6 +200,12 @@ class GlassProfilingBenchmark {
     requireRuntimeMarker = false,
   )
 
+  @Test
+  fun sourceUpdateIndependent2() = measureScenario("source_update_independent_2", includeMemory = true)
+
+  @Test
+  fun sourceUpdateContainer2() = measureScenario("source_update_container_2", includeMemory = true)
+
   private fun measureColdInitializationScenario(scenarioId: String) {
     measureScenario(
       scenarioId = scenarioId,
