@@ -38,6 +38,7 @@ import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
+import androidx.compose.ui.node.requireLayoutCoordinates
 import androidx.compose.ui.node.traverseAncestors
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toIntSize
@@ -451,6 +452,12 @@ internal class HazeEffectNode(
     rebindTrimMemoryCallback()
     update()
     reconcileSourceDemand()
+
+    // Reactivation with an unchanged layout is not placed again (#1473); a first attach is unmeasured.
+    val coordinates = requireLayoutCoordinates()
+    if (coordinates.isAttached && coordinates.size != IntSize.Zero) {
+      onPositioned(coordinates, fromPlacement = false)
+    }
   }
 
   override fun onDetach() {

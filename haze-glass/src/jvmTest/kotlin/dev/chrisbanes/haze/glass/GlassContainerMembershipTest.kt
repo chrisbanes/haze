@@ -243,6 +243,30 @@ class GlassContainerMembershipTest : ContextTest() {
   }
 
   @Test
+  fun membership_reactivationWithUnchangedLayoutRejoinsCluster() = runComposeUiTest {
+    val other = GlassRuntimeEffect()
+    val factory = HazeEffectFactory { GlassRuntimeEffect() }
+    val active = mutableStateOf(true)
+    setContent {
+      Row(Modifier.hazeGlassContainer(40.dp)) {
+        Member(other)
+        ReusableContentHost(active.value) {
+          Box(Modifier.size(100.dp, 40.dp).hazeGlass(factory, HazeInput.Content, GlassStyle, null, true, null))
+        }
+      }
+    }
+    fun members() = container(other).model.surfaces.sumOf { it.members.size }
+    waitForIdle()
+    assertThat(members()).isEqualTo(2)
+    runOnIdle { active.value = false }
+    waitForIdle()
+    assertThat(members()).isEqualTo(1)
+    runOnIdle { active.value = true }
+    waitForIdle()
+    assertThat(members()).isEqualTo(2)
+  }
+
+  @Test
   fun membership_opticalSizeChangeRepublishesMaterialBeforeReclustering() = runComposeUiTest {
     val card = GlassRuntimeEffect()
     val pill = GlassRuntimeEffect()
