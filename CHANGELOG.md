@@ -19,7 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ([#1487](https://github.com/chrisbanes/haze/pull/1487)). `GlassMemberTransition` and
   `hazeGlass(memberTransition = ...)` animate members as they join or leave a container
   ([#1482](https://github.com/chrisbanes/haze/pull/1482)).
-- Added the `Glass — Container` sample and Glass container documentation and performance guidance.
+- Added the `Glass — Container` sample and Glass container documentation and performance guidance
+  ([#1491](https://github.com/chrisbanes/haze/pull/1491)).
 
 ### Changed
 
