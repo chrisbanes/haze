@@ -14,7 +14,6 @@
 - URL: `https://github.com/users/chrisbanes/projects/7`
 - Node ID: `PVT_kwHOAAN4ns4Beqrm`
 - Filter: `none`
-- Execution approver logins: `chrisbanes`
 
 ## Status
 
@@ -56,6 +55,6 @@
 - Method: `squash`
 - Issue closure: `closing-keyword`
 - Required reviews: `none`
-- Required checks: `build_docs`, `emulator_tests`, `linux_build`, `mac_build`, `Greptile Review`, `Screenshot tests (android)`
+- Required checks: `build_docs`, `emulator_tests_matrix (31)`, `emulator_tests_matrix (34)`, `linux_build`, `mac_build`, `Greptile Review`, `Screenshot tests (android)`
 - Done automation: `set-status`
 - Automation description: Enabled `Item closed` and `Pull request merged` workflows set Status to `Done`; `Auto-close issue` is enabled; Done items are not automatically archived.
