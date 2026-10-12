@@ -458,7 +458,7 @@ Run it over each trace with Perfetto's `trace_processor_shell`, one iteration pe
 above run in subshells, so set `results_dir` to the path they printed after `Results:`:
 
 ```bash
-results_dir=internal/benchmark/build/benchmark-results/container.XXXXXX
+results_dir=internal/benchmark/build/benchmark-results/container.XXXXXX  # replace XXXXXX with the printed suffix
 find "$results_dir/one/sourceUpdateContainer2" -name '*.perfetto-trace' | sort | while read -r trace; do
   echo "== $trace"
   trace_processor_shell -q placement.sql "$trace"
