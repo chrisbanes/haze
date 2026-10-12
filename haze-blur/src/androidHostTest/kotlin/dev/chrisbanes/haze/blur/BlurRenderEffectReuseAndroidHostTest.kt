@@ -16,7 +16,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -38,7 +37,6 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import dev.chrisbanes.haze.test.runScreenshotTest
-import kotlin.math.abs
 import kotlin.test.Test
 import org.robolectric.annotation.Config
 
@@ -395,31 +393,6 @@ class BlurRenderEffectReuseAndroidHostTest : ScreenshotTest() {
     val after = frame()
     assertThat(maxDifference(before, after)).isLessThan(0.01f)
     probe.bandLayers().forEach { assertThat(it.isReleased).isFalse() }
-  }
-
-  private fun ScreenshotUiTest.frame(): PixelMap {
-    waitForIdle()
-    return captureRootPixels()
-  }
-
-  private fun maxDifference(a: PixelMap, b: PixelMap): Float {
-    assertThat(a.width).isEqualTo(b.width)
-    assertThat(a.height).isEqualTo(b.height)
-    var max = 0f
-    for (y in 0 until a.height step 3) {
-      for (x in 0 until a.width step 3) {
-        val first = a[x, y]
-        val second = b[x, y]
-        max = maxOf(
-          max,
-          abs(first.red - second.red),
-          abs(first.green - second.green),
-          abs(first.blue - second.blue),
-          abs(first.alpha - second.alpha),
-        )
-      }
-    }
-    return max
   }
 }
 
