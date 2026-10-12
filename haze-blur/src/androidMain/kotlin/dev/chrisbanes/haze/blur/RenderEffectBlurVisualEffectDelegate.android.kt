@@ -22,7 +22,6 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.asComposeRenderEffect
 import dev.chrisbanes.haze.withGraphicsLayer
 
 internal actual fun BlurVisualEffect.invalidateRenderEffectOnInputChange() {
@@ -44,13 +43,15 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
 ) {
   if (Build.VERSION.SDK_INT >= 33) {
     with(drawScope) {
-      contentLayer.renderEffect = blurVisualEffect
-        .getOrCreateRenderEffect(
+      effectSlot.apply(
+        contentLayer,
+        blurVisualEffect.getOrCreateRenderEffect(
           context = context,
           inputScale = inputScale,
           progressive = progressive,
-        )
-        .asComposeRenderEffect()
+          slot = effectSlot,
+        ),
+      )
       contentLayer.alpha = blurVisualEffect.alpha
 
       // Finally draw the layer
@@ -71,14 +72,16 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   } else {
     // Otherwise draw the masked blur over its input, preserving unblurred regions.
     with(drawScope) {
-      contentLayer.renderEffect = blurVisualEffect
-        .getOrCreateRenderEffect(
+      effectSlot.apply(
+        contentLayer,
+        blurVisualEffect.getOrCreateRenderEffect(
           context = context,
           inputScale = inputScale,
           progressiveMask = checkNotNull(blurVisualEffect.progressiveBrush),
           retainInputWhenMasked = progressive is RootHazeProgressive.LinearGradient,
-        )
-        .asComposeRenderEffect()
+          slot = effectSlot,
+        ),
+      )
       contentLayer.alpha = blurVisualEffect.alpha
 
       // Finally draw the layer
@@ -96,7 +99,7 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
 ) = with(drawScope) {
   // The retained capture may have been drawn through the ordinary or masked path.
   // Record the unprocessed input so its prior effect and alpha do not compound here.
-  contentLayer.renderEffect = null
+  effectSlot.apply(contentLayer, null)
   contentLayer.alpha = 1f
 
   val colorEffects = blurVisualEffect.colorEffects
@@ -110,7 +113,9 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
     drawContext.canvas.saveLayer(Rect(Offset.Zero, layerSize), Paint())
   }
 
+  var band = 0
   drawProgressiveWithMultipleLayers(progressive) { mask, intensity ->
+    val slot = bandSlot(band++)
     context.withGraphicsLayer { layer ->
       layer.record(contentLayer.size) {
         drawLayer(contentLayer)
@@ -120,8 +125,8 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
         "drawLinearGradientProgressiveEffectUsingLayers. mask=$mask, intensity=$intensity"
       }
 
-      layer.renderEffect = blurVisualEffect
-        .getOrCreateRenderEffect(
+      layer.renderEffect = slot.composeEffect(
+        blurVisualEffect.getOrCreateRenderEffect(
           context = context,
           inputScale = inputScale,
           blurRadius = blurRadius * intensity,
@@ -129,8 +134,9 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
           colorEffects = colorEffects.orEmpty(),
           colorEffectsAlphaModulate = intensity,
           mask = mask,
-        )
-        .asComposeRenderEffect()
+          slot = slot,
+        ),
+      )
       layer.alpha = blurVisualEffect.alpha
 
       // Since we included a border around the content, we need to translate so that
@@ -138,6 +144,8 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
       drawLayer(layer)
     }
   }
+
+  trimBandSlots(band)
 
   if (userMask != null) {
     // Cover the expanded layer so clamped mask values reach its outset, as in the shader path.
