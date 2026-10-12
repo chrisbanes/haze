@@ -277,7 +277,7 @@ internal class HazeSourceNode(
     area.size = coordinates.size.toSize()
     area.windowId = getWindowId()
 
-    HazeLogger.d(TAG) {
+    logDebug(TAG) {
       "$source: localPosition=${area.coordinates.localPosition}, " +
         "screenPosition=${area.coordinates.screenPosition}, size=${area.size}"
     }
@@ -317,14 +317,14 @@ internal class HazeSourceNode(
         trace("HazeSource.record") {
           contentLayer.record {
             this@draw.drawContentSafely()
-            HazeLogger.d(TAG) { "Drawn content into layer: $contentLayer" }
+            logDebug(TAG) { "Drawn content into layer: $contentLayer" }
           }
         }
         area.contentVersion++
 
         // Now we draw `content` into the window canvas
         drawLayer(contentLayer)
-        HazeLogger.d(TAG) { "Drawn layer to canvas: $contentLayer" }
+        logDebug(TAG) { "Drawn layer to canvas: $contentLayer" }
       } else {
         HazeLogger.d(TAG) { "No capture demand, so drawing content direct to canvas" }
         // A previously recorded layer must not remain available after capture demand disappears or

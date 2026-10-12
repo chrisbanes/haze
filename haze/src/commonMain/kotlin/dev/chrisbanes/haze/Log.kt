@@ -41,4 +41,13 @@ public object HazeLogger {
   }
 }
 
+/**
+ * Logs [message] under [tag] when [HazeLogger.enabled]. Unlike calling [HazeLogger.d] directly,
+ * the guard is inlined, so a capturing [message] allocates nothing at the call site while logging
+ * is disabled. Use it on per-draw and per-update paths.
+ */
+internal inline fun logDebug(tag: String, crossinline message: () -> String) {
+  if (HazeLogger.enabled) HazeLogger.d(tag) { message() }
+}
+
 internal expect inline fun platformLog(tag: String, message: String)
