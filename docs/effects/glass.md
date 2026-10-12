@@ -652,6 +652,48 @@ member leaves, the glass disappears immediately. A running transition ends witho
 the member it grows from, retracts into or is drawn through leaves, or when it is no longer within
 the spacing of that member.
 
+### Lazy layouts
+
+Members of a lazy layout such as `LazyRow` or `LazyColumn` attach as they scroll into view, and
+Compose gives a modifier no signal that tells that from a state change. The container therefore
+treats a scrolled-in item like any member that attaches after its first draw, and a scrolled-out
+item like any member that detaches. Items composed before the container's first draw never animate.
+
+A prefetched item registers with the container as soon as it is composed, but it has no bounds
+until it is placed, so its transition starts when it is placed.
+
+With the default `MatchedGeometry`, the first item to scroll in grows out of its neighbour while it
+is visible. Its glass starts on the neighbour and lags its content, which stays at its layout
+position. An item with no neighbour within the spacing fades in instead. An item that scrolls out
+leaves a ghost until the animation ends. `Materialize` fades the glass in while the item is
+visible, and also leaves a ghost when the item scrolls out.
+
+Set `GlassMemberTransition.None` on lazy items so that their glass appears and disappears with
+the item. Use `Materialize` if a fade is acceptable. `None` also stops the glass animating when
+state inserts or removes a lazy item. To animate those changes, put the animated member outside the
+lazy layout.
+
+```kotlin
+// Styles compare by identity, so remember the style.
+val style = remember { GlassStyle.regular.then { shape(CircleShape) } }
+
+LazyRow(
+  modifier = Modifier.hazeGlassContainer(spacing = 16.dp),
+  horizontalArrangement = Arrangement.spacedBy(8.dp),
+) {
+  items(chips, key = { it.id }) { chip ->
+    Chip(
+      chip = chip,
+      modifier = Modifier.hazeGlass(
+        input = HazeInput.Sources(hazeState),
+        style = style,
+        memberTransition = GlassMemberTransition.None,
+      ),
+    )
+  }
+}
+```
+
 ### Fallback
 
 Without `RuntimeShader` support, or when a cluster exceeds the render budget, each cluster draws
