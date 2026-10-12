@@ -585,7 +585,7 @@ internal class GlassRuntimeEffect() :
   private fun recordRuntimeShaderFailure(failure: RuntimeShaderRenderEffectException, what: String) {
     runtimeShaderIncompatible = true
     needsDelegateSelection = true
-    logDebug(TAG) { "$what: $failure" }
+    HazeLogger.d(TAG) { "$what: $failure" }
   }
 
   private fun DrawScope.downgradeRuntimeDelegate(
@@ -921,7 +921,7 @@ internal class GlassRuntimeEffect() :
     }
     val requestedScale = requestedScaleOverride ?: performanceMode.resolveGlassInputScale()
     if (requestedScale != resolvedInputScale) {
-      logDebug(TAG) {
+      HazeLogger.d(TAG) {
         "Glass input scale changed from $resolvedInputScale to $requestedScale"
       }
     }
@@ -1103,12 +1103,12 @@ internal class GlassRuntimeEffect() :
     preparedRender = preparation.prepared
     if (previousBudget != preparation.decision) {
       when (val decision = preparation.decision) {
-        is GlassRenderBudgetDecision.Fallback -> logDebug(TAG) {
+        is GlassRenderBudgetDecision.Fallback -> HazeLogger.d(TAG) {
           "Glass render budget selected fallback: ${decision.reason}"
         }
         is GlassRenderBudgetDecision.Runtime -> {
           if (decision.scaleFactor < resolvedInputScale) {
-            logDebug(TAG) {
+            HazeLogger.d(TAG) {
               "Glass render budget reduced scale from $resolvedInputScale to ${decision.scaleFactor}"
             }
           }

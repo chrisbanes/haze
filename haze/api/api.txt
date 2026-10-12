@@ -202,8 +202,8 @@ package dev.chrisbanes.haze {
   }
 
   public final class HazeLogger {
-    method @dev.chrisbanes.haze.InternalHazeApi public void d(String tag, Throwable? throwable, kotlin.jvm.functions.Function0<java.lang.String> message);
-    method @dev.chrisbanes.haze.InternalHazeApi public void d(String tag, kotlin.jvm.functions.Function0<java.lang.String> message);
+    method @dev.chrisbanes.haze.InternalHazeApi public inline void d(String tag, Throwable? throwable, kotlin.jvm.functions.Function0<java.lang.String> message);
+    method @dev.chrisbanes.haze.InternalHazeApi public inline void d(String tag, kotlin.jvm.functions.Function0<java.lang.String> message);
     method @InaccessibleFromKotlin public boolean getEnabled();
     method @InaccessibleFromKotlin public void setEnabled(boolean);
     property public boolean enabled;
