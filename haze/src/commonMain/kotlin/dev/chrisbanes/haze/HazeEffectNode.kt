@@ -473,7 +473,7 @@ internal class HazeEffectNode(
     _areas = emptyList()
     areaTransforms.clear()
     lastSeenStateAreas = emptyList()
-    contentDrawArea.releaseLayer()
+    contentDrawArea.releaseContentLayer(requireGraphicsContext())
     clearRetainedOutput()
     pointerInputDelegate?.let { delegate ->
       val renderer = typedEffectRenderer as? HazeEffectRendererInteraction
@@ -506,14 +506,6 @@ internal class HazeEffectNode(
   private fun unregisterSourceDemand() {
     sourceDemandState?.removeSourceDemand(sourceDemandKey)
     sourceDemandState = null
-  }
-
-  private fun HazeArea.releaseLayer() {
-    contentLayer?.let { layer ->
-      HazeLogger.d(TAG) { "Releasing content layer: $layer" }
-      requireGraphicsContext().releaseGraphicsLayer(layer)
-    }
-    contentLayer = null
   }
 
   override fun onObservedReadsChanged() {

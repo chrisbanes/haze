@@ -366,11 +366,8 @@ internal class HazeSourceNode(
   }
 
   internal fun HazeArea.releaseLayer() {
-    contentLayer?.let { layer ->
-      HazeLogger.d(TAG) { "Releasing content layer: $layer" }
-      currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(layer)
-    }
-    contentLayer = null
+    // Skips the composition-local read on idle draws, which call this every frame.
+    if (contentLayer != null) releaseContentLayer(currentValueOf(LocalGraphicsContext))
   }
 
   private companion object {

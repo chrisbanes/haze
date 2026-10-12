@@ -44,6 +44,7 @@ import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.createMutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.createRuntimeEffect
+import dev.chrisbanes.haze.wrapRuntimeShaderConstruction
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
@@ -58,7 +59,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     val failure = IllegalArgumentException("unsupported blur radius")
 
     assertFailure {
-      wrapGlassRuntimeEffectConstruction { throw failure }
+      wrapRuntimeShaderConstruction { throw failure }
     }.isInstanceOf<RuntimeShaderRenderEffectException>()
       .prop(Throwable::cause).isSameInstanceAs(failure)
   }
@@ -68,7 +69,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     val failure = RuntimeShaderRenderEffectException(IllegalArgumentException("unsupported effect"))
 
     assertFailure {
-      wrapGlassRuntimeEffectConstruction { throw failure }
+      wrapRuntimeShaderConstruction { throw failure }
     }.isSameInstanceAs(failure)
   }
 

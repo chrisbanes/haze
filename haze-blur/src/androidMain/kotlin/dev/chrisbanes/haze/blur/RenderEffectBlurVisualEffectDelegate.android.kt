@@ -22,6 +22,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.translate
 
 internal actual fun BlurVisualEffect.invalidateRenderEffectOnInputChange() {
   if (Build.VERSION.SDK_INT == 31) {

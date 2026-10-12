@@ -197,6 +197,11 @@ private class SkikoMutableRuntimeShaderRenderEffect(
   }
 }
 
+/** Returns a [RuntimeShaderUniformProvider] that sets uniforms and child shaders on this builder. */
+@InternalHazeApi
+public fun RuntimeShaderBuilder.asUniformProvider(): RuntimeShaderUniformProvider =
+  SkikoRuntimeShaderUniformProvider(this)
+
 @JvmInline
 private value class SkikoRuntimeShaderUniformProvider(
   private val builder: RuntimeShaderBuilder,

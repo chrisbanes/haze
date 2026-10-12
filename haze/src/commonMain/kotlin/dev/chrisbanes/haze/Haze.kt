@@ -21,6 +21,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
+import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -237,6 +238,15 @@ internal class HazeArea {
    */
   internal var contentLayer: GraphicsLayer? by mutableStateOf(null)
     internal set
+
+  /** Releases [contentLayer] through [graphicsContext], if there is one, and clears it. */
+  internal fun releaseContentLayer(graphicsContext: GraphicsContext) {
+    contentLayer?.let { layer ->
+      HazeLogger.d("HazeArea") { "Releasing content layer: $layer" }
+      graphicsContext.releaseGraphicsLayer(layer)
+    }
+    contentLayer = null
+  }
 
   /** [contentLayer] when it can be drawn: not released and with a non-empty size. */
   internal val drawableContentLayer: GraphicsLayer?
