@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.node.requireLayoutCoordinates
 import androidx.compose.ui.platform.InspectorInfo
@@ -82,11 +83,15 @@ internal class GlassMemberElement(
   }
 }
 
+internal object GlassMemberTraversalKey
+
 /** [transition] is read by the container when this member's glass appears and when it leaves. */
 internal class GlassMemberNode(
   var binding: GlassMemberBinding,
   var transition: GlassMemberTransition,
-) : Modifier.Node(), LayoutAwareModifierNode {
+) : Modifier.Node(), LayoutAwareModifierNode, TraversableNode {
+  override val traverseKey: Any get() = GlassMemberTraversalKey
+
   var container: GlassContainerNode? = null
     private set
 

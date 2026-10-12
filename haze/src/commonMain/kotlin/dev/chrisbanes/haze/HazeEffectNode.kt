@@ -34,6 +34,7 @@ import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.node.TraversableNode
+import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
@@ -148,14 +149,24 @@ internal class HazeEffectNode(
   private var preparedSurfaceBackdrop: HazeEffectBackdrop? = null
   private var surfaceBudgetFallback = false
 
-  // False means a source read refresh is pending: the last observed updateEffect did not finish.
+  // False means a read refresh is pending: the last configuration pass, or its geometry pass, did not finish.
   private var observedUpdateCompleted = false
 
-  // Sources seen by a completed onPlaced update, consumed by onGloballyPositioned (#1437).
-  // Without a draw a record can outlive its frame; the source check below keeps that safe.
-  private var placedAreas: List<HazeArea>? = null // null: no record
-  private var placedSourceChangeCounts = IntArray(0)
-  private var coordinateTransformValues: FloatArray? = null
+  // Source movement re-runs only the geometry pass, through its own read scope (#1456).
+  private val geometryObserver = delegate(
+    HazeEffectGeometryObserverNode {
+      dirtyTracker += DirtyFields.AreaPositionReads
+      refreshGeometry(fromObserver = true)
+    },
+  )
+
+  // The member's geometry in its surface owner when the owner was last notified.
+  private var notifiedSurfaceOwner: HazeEffectSurfaceOwner? = null
+  private var notifiedSurfaceTransform: FloatArray? = null
+  private var notifiedSurfaceSize: Size = Size.Unspecified
+  private var notifiedLayerSize: Size = Size.Unspecified
+  private var notifiedLayerOffset: Offset = Offset.Unspecified
+  private val surfaceTransformScratch = Matrix()
   private var screenToEffectTransform: Matrix? = null
   private var sourceSelectionSnapshotObserver: SnapshotStateObserver? = null
   private var sourceSelectionObserverGeneration: Int = 0
@@ -239,6 +250,7 @@ internal class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "layerOffset changed. Current: $field. New: $value" }
+        invalidateRetainedOutput()
         dirtyTracker += DirtyFields.LayerOffset
         field = value
       }
@@ -482,9 +494,12 @@ internal class HazeEffectNode(
     }
     pointerInputDelegate = null
     lastKnownCoordinates = null
-    coordinateTransformValues = null
     observedUpdateCompleted = false
-    clearPlacementRecord()
+    notifiedSurfaceOwner = null
+    notifiedSurfaceTransform = null
+    notifiedSurfaceSize = Size.Unspecified
+    notifiedLayerSize = Size.Unspecified
+    notifiedLayerOffset = Offset.Unspecified
     screenToEffectTransform = null
     lastInputSnapshot = null
     releaseBackdropRenderer()
@@ -513,10 +528,72 @@ internal class HazeEffectNode(
     refreshObservedReads()
   }
 
-  private fun refreshObservedReads() {
-    // Cleared first so an early exit from updateEffect leaves a source read refresh pending.
+  /**
+   * Runs the observed configuration pass, which ends with the geometry pass. Draw-time refreshes
+   * pass [notifySurface] false: the owner is not notified while it draws, and the next pass that
+   * completes outside drawing reports any change.
+   */
+  private fun refreshObservedReads(notifySurface: Boolean = true) {
+    // Cleared first so an early exit leaves a read refresh pending.
     observedUpdateCompleted = false
-    observeReads(::updateEffect)
+    observeReads(::updateConfiguration)
+    if (notifySurface) notifySurfaceIfGeometryChanged()
+  }
+
+  private fun refreshGeometry(fromObserver: Boolean = false) {
+    if (!isAttached) return
+    // Never place a stale selection: a source joining or leaving (even in this layout pass, #1437)
+    // notifies both scopes in no fixed order, so membership changes run the configuration pass.
+    val membershipChanged = Snapshot.withoutReadObservation {
+      val stateAreas = state?.areas
+      stateAreas != null && !stateAreasMatchLastSeen(stateAreas)
+    }
+    if (membershipChanged) {
+      // The configuration scope reads the same list and versions, so an observer notification for
+      // it is already pending; running it here as well would update the renderer twice.
+      if (!fromObserver) refreshObservedReads()
+      return
+    }
+    if (!observeGeometry()) observedUpdateCompleted = false
+    notifySurfaceIfGeometryChanged()
+  }
+
+  /** Runs [updateGeometry] in its own read scope, outside any enclosing observation. */
+  private fun observeGeometry(): Boolean {
+    var completed = false
+    Snapshot.withoutReadObservation {
+      geometryObserver.observe { completed = updateGeometry() }
+    }
+    return completed
+  }
+
+  // Outside both read scopes: the owner reclusters synchronously.
+  private fun notifySurfaceIfGeometryChanged() {
+    val owner = surface.owner ?: run {
+      notifiedSurfaceOwner = null
+      return
+    }
+    // A new owner has not been told about this member's geometry yet.
+    var changed = owner !== notifiedSurfaceOwner
+    notifiedSurfaceOwner = owner
+    if (notifiedLayerSize != layerSize || notifiedLayerOffset != layerOffset) {
+      notifiedLayerSize = layerSize
+      notifiedLayerOffset = layerOffset
+      changed = true
+    }
+    val member = lastKnownCoordinates
+    val ownerCoordinates = owner.surfaceCoordinates
+    if (member != null && member.isAttached && ownerCoordinates?.isAttached == true) {
+      surfaceTransformScratch.reset()
+      ownerCoordinates.transformFrom(member, surfaceTransformScratch)
+      val values = surfaceTransformScratch.values
+      if (notifiedSurfaceTransform?.contentEquals(values) != true || notifiedSurfaceSize != size) {
+        notifiedSurfaceTransform = values.copyOf()
+        notifiedSurfaceSize = size
+        changed = true
+      }
+    }
+    if (changed) surface.changed()
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
@@ -547,91 +624,33 @@ internal class HazeEffectNode(
     }
 
     lastKnownCoordinates = coordinates
-    val effectToScreenTransform = coordinates.safeTransformToScreen()
-    val transform = effectToScreenTransform ?: coordinates.transformToRoot()
-    val transformChanged = coordinateTransformValues?.contentEquals(transform.values) != true
-    if (transformChanged) {
-      coordinateTransformValues = transform.values.copyOf()
-      dirtyTracker += DirtyFields.AreaPositionReads
-    }
-    val previousPosition = _position
     val previousSize = _size
     updatePositionGeometry(
       coordinates = coordinates,
       source = if (fromPlacement) "onPlaced" else "onGloballyPositioned",
-      effectToScreenTransform = effectToScreenTransform,
     )
-    if (!fromPlacement) {
-      // #1437: onPlaced already applied this placement with these sources; sources placed later in
-      // the pass need this update. The pending-refresh check is defensive.
-      val alreadyApplied = placedAreas != null &&
-        !transformChanged &&
-        _position == previousPosition &&
-        _size == previousSize &&
-        observedUpdateCompleted &&
-        placedAreasUnchanged()
-      clearPlacementRecord()
-      if (alreadyApplied) return
+    // Sources placed earlier in this pass have not notified observers yet (#1437), so the geometry
+    // pass always re-reads them.
+    dirtyTracker += DirtyFields.AreaPositionReads
+    // Glass resolves its style against the effect size (ADR-0011). A pending refresh also needs the
+    // configuration reads that an early exit dropped.
+    if (!observedUpdateCompleted || _size != previousSize) {
+      refreshObservedReads()
+    } else {
+      refreshGeometry()
     }
-    // Initial observed updates can exit before the effect has coordinates and drop source reads.
-    // Refresh those reads even when this placement leaves the effect's own transform unchanged.
-    update()
-    surface.changed()
-    if (fromPlacement) {
-      if (observedUpdateCompleted) recordPlacedAreas() else clearPlacementRecord()
-    }
-  }
-
-  private fun clearPlacementRecord() {
-    placedAreas = null
-  }
-
-  // All of the state's sources, selected or not, since any of them can change the selection.
-  private fun placementSources(): List<HazeArea> = if (state != null) lastSeenStateAreas else _areas
-
-  private fun recordPlacedAreas() {
-    placedAreas = _areas
-    val sources = placementSources()
-    if (placedSourceChangeCounts.size < sources.size) {
-      placedSourceChangeCounts = IntArray(sources.size)
-    }
-    for (i in sources.indices) {
-      placedSourceChangeCounts[i] = sources[i].changeCount
-    }
-  }
-
-  private fun placedAreasUnchanged(): Boolean {
-    if (placedAreas !== _areas) return false
-    // Sources can join the state during layout, e.g. lazy items composed after onPlaced.
-    Snapshot.withoutReadObservation {
-      val stateAreas = state?.areas
-      if (stateAreas != null) {
-        if (stateAreas.size != lastSeenStateAreas.size) return false
-        for (i in stateAreas.indices) {
-          if (stateAreas[i] !== lastSeenStateAreas[i]) return false
-        }
-      }
-    }
-    // Sources placed later in the pass change after onPlaced, before observers are notified.
-    val sources = placementSources()
-    if (sources.size > placedSourceChangeCounts.size) return false
-    for (i in sources.indices) {
-      if (placedSourceChangeCounts[i] != sources[i].changeCount) return false
-    }
-    return true
   }
 
   private fun updatePositionGeometry(
     coordinates: LayoutCoordinates,
     source: String,
-    effectToScreenTransform: Matrix? = null,
   ) {
     // Use node-local resolvedPositionStrategy instead of shared state
     _position = coordinates.positionForHaze(resolvedPositionStrategy)
     _size = coordinates.size.toSize()
     windowId = getWindowId()
     screenToEffectTransform = if (resolvedPositionStrategy == HazePositionStrategy.Screen) {
-      (effectToScreenTransform ?: coordinates.safeTransformToScreen())?.also { it.invert() }
+      coordinates.safeTransformToScreen()?.also { it.invert() }
     } else {
       null
     }
@@ -649,7 +668,7 @@ internal class HazeEffectNode(
 
   override fun ContentDrawScope.draw() {
     if (surface.owner != null) {
-      if (layerBoundsRefreshPending) refreshObservedReads()
+      if (layerBoundsRefreshPending) refreshObservedReads(notifySurface = false)
       isDrawing = true
       try {
         if (explicitInput === HazeInput.Content && size.minDimension > 0f) {
@@ -673,7 +692,7 @@ internal class HazeEffectNode(
       }
 
       if (layerBoundsRefreshPending) {
-        refreshObservedReads()
+        refreshObservedReads(notifySurface = false)
       }
       // Bounds requested during the refresh are consumed by that update's calculation.
       // Only requests after this boundary need to survive until another frame.
@@ -940,7 +959,11 @@ internal class HazeEffectNode(
       ?.shouldDrawContentBehind() == true
   }
 
-  private fun updateEffect(): Unit = trace("HazeEffectNode-updateEffect") {
+  /**
+   * Configuration pass, observed by this node: source membership and selection, the renderer's
+   * update and pointer input, then the geometry pass. Placement alone never runs it.
+   */
+  private fun updateConfiguration(): Unit = trace("HazeEffectNode-updateConfiguration") {
     if (!isAttached) return@trace
 
     windowId = getWindowId()
@@ -1029,23 +1052,43 @@ internal class HazeEffectNode(
           }
         _areas = filteredAreas
 
-        if (!retainOutputWhenSourceUnavailable && !hasDrawableSourceLayers()) {
+        // Source sizes and layers are geometry: reading them here would re-run the renderer update.
+        if (!retainOutputWhenSourceUnavailable && !Snapshot.withoutReadObservation { hasDrawableSourceLayers() }) {
           clearRetainedOutput()
         }
       }
     } else if (explicitInput === HazeInput.Content) {
       lastSeenStateAreas = emptyList()
+      _areas = listOf(contentDrawArea)
+    } else {
+      lastSeenStateAreas = emptyList()
+      _areas = emptyList()
+    }
+
+    // Allow the current renderer to update from CompositionLocals/state before calculating bounds,
+    // so it can request a bounds refresh for values observed during this update.
+    updateTypedRenderer()
+    syncPointerInputDelegate()
+
+    observedUpdateCompleted = observeGeometry()
+  }
+
+  /**
+   * Geometry pass, observed separately: position strategy, area transforms, pre-draw listeners,
+   * layer bounds and invalidation. Returns false when it exits early without coordinates.
+   */
+  private fun updateGeometry(): Boolean = trace("HazeEffectNode-updateGeometry") {
+    if (!isAttached) return@trace true
+
+    if (explicitInput === HazeInput.Content) {
       // Foreground (content) blur: always update contentDrawArea since its size,
       // position, and windowId may change every frame with no dirty flag.
       contentDrawArea.size = size
       contentDrawArea.coordinates.localPosition = position
       contentDrawArea.coordinates.screenPosition = position
       contentDrawArea.windowId = windowId
-      _areas = listOf(contentDrawArea)
-    } else {
-      lastSeenStateAreas = emptyList()
-      _areas = emptyList()
     }
+    val state = this.state
 
     // Auto-promote position strategy when cross-window is detected
     // This is now node-local to prevent oscillation between effects in different windows
@@ -1061,14 +1104,15 @@ internal class HazeEffectNode(
         if (coordinates == null || !coordinates.isAttached) {
           // Without attached coordinates we cannot atomically enter the new coordinate space.
           invalidateIfNeeded()
-          return@trace
+          return@trace false
         }
         updatePositionGeometry(coordinates, "positionStrategyChanged")
       }
     }
 
     // Resolved lazily on first use; layout cannot re-root the effect during an update.
-    // updateTypedRenderer below can dirty the layer bounds, so that block resolves it if needed.
+    // The configuration pass's updateTypedRenderer can dirty the layer bounds alone, so that block
+    // resolves it if needed.
     var effectRoot: LayoutCoordinates? = null
     if (dirtyTracker.any(AreaTransformsDirtyFields)) {
       effectRoot = localEffectRoot()
@@ -1086,11 +1130,6 @@ internal class HazeEffectNode(
         area.preDrawListeners -= areaPreDrawListener
       }
     }
-
-    // Allow the current renderer to update from CompositionLocals/state before calculating bounds,
-    // so it can request a bounds refresh for values observed during this update.
-    updateTypedRenderer()
-    syncPointerInputDelegate()
 
     if (dirtyTracker.any(LayerBoundsDirtyFields)) {
       // Requests made before this point are consumed by the calculation below.
@@ -1156,7 +1195,7 @@ internal class HazeEffectNode(
     }
 
     invalidateIfNeeded()
-    observedUpdateCompleted = true
+    true
   }
 
   internal fun updateLifecycle(lifecycle: Lifecycle) {
@@ -1241,7 +1280,6 @@ internal class HazeEffectNode(
   }
 
   private fun onPostDraw() {
-    clearPlacementRecord()
     val carryLayerBounds = needsNextFrameLayerBounds
     dirtyTracker = if (carryLayerBounds) {
       Bitmask(DirtyFields.VisualEffectLayerBounds)
@@ -1305,7 +1343,18 @@ internal class HazeEffectNode(
     if (haveAreaTransformsChanged) {
       HazeLogger.d(TAG) { "areaTransforms changed" }
       dirtyTracker += DirtyFields.AreaTransforms
+      invalidateSurfaceOwnerDraw()
     }
+  }
+
+  /**
+   * A relocated member's output is drawn by its owner, whose recorded draw this node's own
+   * invalidation does not reach when a layer separates them. Moving sources need a redraw only, so
+   * this does not notify the owner, which would recluster its members.
+   */
+  private fun invalidateSurfaceOwnerDraw() {
+    val owner = surface.owner as? DrawModifierNode ?: return
+    if (owner.node.isAttached) owner.invalidateDraw()
   }
 
   internal fun sourceTransformInEffect(area: HazeArea): Matrix =
@@ -1383,7 +1432,7 @@ internal class HazeEffectNode(
     }
   }
 
-  // Reads every area's version, even after a mismatch, so updateEffect observes all of them.
+  // Reads every area's version, even after a mismatch, so the configuration pass observes all of them.
   private fun stateAreasMatchLastSeen(stateAreas: List<HazeArea>): Boolean {
     var matches = stateAreas.size == lastSeenStateAreas.size
     for (i in stateAreas.indices) {
@@ -1551,7 +1600,7 @@ internal class HazeEffectNode(
 
   internal fun surfaceFootprint(scope: DrawScope, owner: LayoutCoordinates?): HazeSurfaceFootprint? {
     val matrix = surfaceTransform(owner) ?: return null
-    if (layerBoundsRefreshPending) refreshObservedReads()
+    if (layerBoundsRefreshPending) refreshObservedReads(notifySurface = false)
     if (!layerSize.isSpecified || layerSize.minDimension <= 0f) return null
     val interaction = (typedEffectRenderer as? HazeEffectRendererInteraction)?.currentContentTransform()
       ?: HazeEffectContentTransform.Identity
@@ -1635,7 +1684,9 @@ internal class HazeEffectNode(
     releaseBackdropRenderer()
     backdropBackendState.attach(backdropEnabledAtAttach)
     refreshResolvedSourcesInput(previousSources)
-    update()
+    // Reached while the owner draws its surfaces, so it is not notified here.
+    dirtyTracker += DirtyFields.AreaPositionReads
+    refreshObservedReads(notifySurface = false)
   }
 
   internal fun drawRelocatedSurface(scope: DrawScope, owner: LayoutCoordinates?) {
@@ -1671,6 +1722,15 @@ internal class HazeEffectNode(
   private companion object {
     private const val TAG = "HazeEffect"
   }
+}
+
+/** A read scope of its own, so geometry reads re-run only the geometry pass. */
+private class HazeEffectGeometryObserverNode(
+  private val onChanged: () -> Unit,
+) : Modifier.Node(), ObserverModifierNode {
+  fun observe(block: () -> Unit) = observeReads(block)
+
+  override fun onObservedReadsChanged() = onChanged()
 }
 
 private class HazeEffectPointerInputNode(

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -44,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeFeatureFlags
@@ -222,6 +224,14 @@ private fun GlassProfilingScene(
     Canvas(
       Modifier
         .fillMaxSize()
+        .then(
+          if (scenario.scrollsSource) {
+            // Read only during placement: the source moves without recomposition or style changes.
+            Modifier.offset { IntOffset(0, profilingSourceScrollOffset(state.progress).roundToPx()) }
+          } else {
+            Modifier
+          },
+        )
         .hazeSource(hazeState)
         .testTag("glass_profiling_source"),
     ) {
@@ -453,6 +463,8 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.SourceUpdateNoGlass,
     GlassProfilingScenario.SourceUpdateIndependent2,
     GlassProfilingScenario.SourceUpdateContainer2,
+    GlassProfilingScenario.SourceScrollBalanced,
+    GlassProfilingScenario.SourceScrollBalanced9,
     -> Unit
   }
 }.then {

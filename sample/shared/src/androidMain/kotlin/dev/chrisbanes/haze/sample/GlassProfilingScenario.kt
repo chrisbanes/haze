@@ -49,6 +49,7 @@ internal enum class GlassProfilingScenario(
   val resizesLayoutBounds: Boolean = false,
   val memberGap: Dp = 0.dp,
   val containerSpacing: Dp? = null,
+  val scrollsSource: Boolean = false,
 ) {
   EffectAttach(
     id = "effect_attach",
@@ -295,6 +296,17 @@ internal enum class GlassProfilingScenario(
     performanceMode = HazePerformanceMode.Balanced,
     resizesLayoutBounds = true,
   ),
+  SourceScrollBalanced(
+    id = "source_scroll_balanced",
+    performanceMode = HazePerformanceMode.Balanced,
+    scrollsSource = true,
+  ),
+  SourceScrollBalanced9(
+    id = "source_scroll_balanced_9",
+    effectCount = 9,
+    performanceMode = HazePerformanceMode.Balanced,
+    scrollsSource = true,
+  ),
 }
 
 internal val ProfilingSurfaceSize = DpSize(280.dp, 180.dp)
@@ -396,6 +408,8 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.SteadyNoGlass,
     GlassProfilingScenario.InteractionUpdate,
     GlassProfilingScenario.InteractionUpdate9,
+    GlassProfilingScenario.SourceScrollBalanced,
+    GlassProfilingScenario.SourceScrollBalanced9,
     -> base
     GlassProfilingScenario.RetainedReuse -> base.copy(
       markerOffset = lerp(-0.4f, 0.4f, progress),

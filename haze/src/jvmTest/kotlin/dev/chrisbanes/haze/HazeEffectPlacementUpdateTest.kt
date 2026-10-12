@@ -25,6 +25,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -33,7 +34,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.test.ContextTest
@@ -55,27 +55,119 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
   }
 
   @Test
-  fun positionOnlyChange_runsOneUpdatePerFrame() = runComposeUiTest {
+  fun effectMoveWithoutResize_updatesGeometryWithoutRendererUpdate() = runComposeUiTest {
     val fixture = setPlacementFixtureContent()
+    val node = checkNotNull(fixture.effectNode)
+    val area = node.areas.single()
     val updates = fixture.renderer.updateCalls
+    val initialOffset = node.sourceTransformInEffect(area).map(Offset.Zero)
 
     fixture.offsetPx = 20
     waitForIdle()
 
-    // onGloballyPositioned no longer repeats onPlaced's update for the same placement (#1437).
-    assertThat(fixture.renderer.updateCalls - updates).isEqualTo(1)
+    assertThat(node.sourceTransformInEffect(area).map(Offset.Zero)).isEqualTo(initialOffset - Offset(20f, 0f))
+    assertThat(fixture.renderer.updateCalls).isEqualTo(updates)
   }
 
   @Test
-  fun transformOnlyChange_runsOneUpdatePerFrame() = runComposeUiTest {
+  fun effectTransformWithoutResize_updatesGeometryWithoutRendererUpdate() = runComposeUiTest {
     val fixture = setPlacementFixtureContent()
+    val node = checkNotNull(fixture.effectNode)
+    val area = node.areas.single()
     val updates = fixture.renderer.updateCalls
 
-    fixture.scale = 1.5f
+    fixture.scale = 2f
     waitForIdle()
 
-    // onGloballyPositioned no longer repeats onPlaced's update for the same placement (#1437).
-    assertThat(fixture.renderer.updateCalls - updates).isEqualTo(1)
+    // The effect's local space is scaled, so a 10 px source offset maps to 5 px in it.
+    assertThat(node.sourceTransformInEffect(area).map(Offset(10f, 0f)).x - node.sourceTransformInEffect(area).map(Offset.Zero).x)
+      .isEqualTo(5f)
+    assertThat(fixture.renderer.updateCalls).isEqualTo(updates)
+  }
+
+  @Test
+  fun sourceScroll_updatesGeometryWithoutRendererUpdate() = runComposeUiTest {
+    val hazeState = HazeState()
+    var sourceX by mutableIntStateOf(0)
+    var effectNode: HazeEffectNode? = null
+    val renderer = CountingUpdateRenderer()
+    val factory = HazeEffectFactory<Unit> { renderer }
+    setContent {
+      Box(Modifier.size(200.dp)) {
+        // Placement-only movement, as a scrolling container moves its children.
+        Box(Modifier.offset { IntOffset(sourceX, 0) }.size(100.dp).hazeSource(hazeState))
+        Spacer(
+          Modifier
+            .size(50.dp)
+            .hazeEffect(factory = factory, input = HazeInput.Sources(hazeState), style = Unit)
+            .captureEffectNode { effectNode = it },
+        )
+      }
+    }
+    waitForIdle()
+    mainClock.autoAdvance = false
+    val node = checkNotNull(effectNode)
+    val area = hazeState.areas.single()
+    val updates = renderer.updateCalls
+    val initialOffset = node.sourceTransformInEffect(area).map(Offset.Zero)
+
+    repeat(3) { frame ->
+      sourceX = 10 * (frame + 1)
+      mainClock.advanceTimeByFrame()
+      assertThat(node.sourceTransformInEffect(area).map(Offset.Zero))
+        .isEqualTo(initialOffset + Offset(10f * (frame + 1), 0f))
+    }
+    assertThat(renderer.updateCalls).isEqualTo(updates)
+  }
+
+  @Test
+  fun sourcePlacedAfterEffect_effectMoveWithoutResize_positionedCallbacksSeeMovedSource() = runComposeUiTest {
+    val hazeState = HazeState()
+    var moved by mutableStateOf(false)
+    var effectNode: HazeEffectNode? = null
+    val positionedSourceOffsets = mutableListOf<Offset>()
+
+    setContent {
+      // One placement pass moves both, placing the effect before its source: the effect's onPlaced
+      // geometry pass sees the old source, and only its onGloballyPositioned pass sees the new one.
+      Layout(
+        content = {
+          Box(
+            Modifier
+              .size(100.dp)
+              .hazeEffect(
+                factory = TestEffectFactory,
+                input = HazeInput.Sources(hazeState),
+                style = Unit,
+              )
+              .captureEffectNode { effectNode = it },
+          )
+          Box(Modifier.size(200.dp).hazeSource(hazeState)) {
+            Spacer(
+              Modifier.size(10.dp).onGloballyPositioned {
+                val node = checkNotNull(effectNode)
+                positionedSourceOffsets +=
+                  node.sourceTransformInEffect(node.areas.single()).map(Offset.Zero)
+              },
+            )
+          }
+        },
+        modifier = Modifier.size(300.dp),
+      ) { measurables, constraints ->
+        val placeables = measurables.map { it.measure(constraints.copy(minWidth = 0, minHeight = 0)) }
+        layout(constraints.maxWidth, constraints.maxHeight) {
+          placeables[0].place(if (moved) 10 else 0, 0)
+          placeables[1].place(if (moved) 40 else 0, 0)
+        }
+      }
+    }
+    waitForIdle()
+    positionedSourceOffsets.clear()
+
+    moved = true
+    waitForIdle()
+
+    assertThat(positionedSourceOffsets.first()).isEqualTo(Offset(30f, 0f))
   }
 
   @Test
@@ -155,7 +247,8 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
     groupX = 30
     waitForIdle()
 
-    assertThat(renderer.updateCalls).isGreaterThan(updates)
+    // Placement runs the geometry pass only.
+    assertThat(renderer.updateCalls).isEqualTo(updates)
     // Guards against reassigning the membership list; the transform identity guards allocation.
     assertThat(node.lastSeenStateAreas).isSameInstanceAs(membership)
     assertThat(node.sourceTransformInEffect(area).values).isSameInstanceAs(transformValues)
@@ -330,6 +423,7 @@ private class PlacementFixture {
   var sizeDp by mutableIntStateOf(100)
   var offsetPx by mutableIntStateOf(0)
   var scale by mutableFloatStateOf(1f)
+  var effectNode: HazeEffectNode? = null
   val renderer = CountingUpdateRenderer()
 }
 
@@ -346,13 +440,15 @@ private fun ComposeUiTest.setPlacementFixtureContent(): PlacementFixture {
         Modifier.graphicsLayer {
           scaleX = fixture.scale
           scaleY = fixture.scale
+          transformOrigin = TransformOrigin(0f, 0f)
         },
       ) {
         Box(
           Modifier
             .offset { IntOffset(fixture.offsetPx, 0) }
             .size(fixture.sizeDp.dp)
-            .hazeEffect(factory = factory, input = HazeInput.Sources(hazeState), style = Unit),
+            .hazeEffect(factory = factory, input = HazeInput.Sources(hazeState), style = Unit)
+            .captureEffectNode { fixture.effectNode = it },
         )
       }
     }

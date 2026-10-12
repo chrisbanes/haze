@@ -10,6 +10,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazePerformanceMode
@@ -25,6 +27,7 @@ internal enum class BlurProfilingScenario(
   val usesBackdrop: Boolean = false,
   val noiseTintProperty: BlurNoiseTintProperty? = null,
   val noiseTintNodes: Int = 1,
+  val sourceScrollEffects: Int = 0,
 ) {
   StableQuality("stable_quality", HazePerformanceMode.Quality, updatesSource = false),
   BackdropStableQuality(
@@ -64,6 +67,8 @@ internal enum class BlurProfilingScenario(
   NoiseTintRadius3("noise_tint_radius_3", HazePerformanceMode.Quality, false, noiseTintProperty = BlurNoiseTintProperty.Radius, noiseTintNodes = 3),
   NoiseTintNoise1("noise_tint_noise_1", HazePerformanceMode.Quality, false, noiseTintProperty = BlurNoiseTintProperty.Noise),
   NoiseTintNoise3("noise_tint_noise_3", HazePerformanceMode.Quality, false, noiseTintProperty = BlurNoiseTintProperty.Noise, noiseTintNodes = 3),
+  SourceScrollBalanced("source_scroll_balanced", HazePerformanceMode.Balanced, updatesSource = false, sourceScrollEffects = 1),
+  SourceScrollBalanced9("source_scroll_balanced_9", HazePerformanceMode.Balanced, updatesSource = false, sourceScrollEffects = 9),
 }
 
 internal enum class BlurProfilingPhase(val id: String) {
@@ -80,6 +85,17 @@ internal fun blurProfilingSourceOffset(
 ): Float {
   require(progress.isFinite() && progress in 0f..1f)
   return if (scenario.updatesSource) lerp(-48f, 48f, progress) else 0f
+}
+
+/**
+ * Vertical source offset for the source-scroll workloads: a triangular 0 -> 48 dp -> 0 cycle,
+ * repeated three times over the run. Shared by the Blur and Glass scenes.
+ */
+internal fun profilingSourceScrollOffset(progress: Float): Dp {
+  require(progress.isFinite() && progress in 0f..1f)
+  val cycleProgress = (progress * 6f) % 2f
+  val phase = if (cycleProgress <= 1f) cycleProgress else 2f - cycleProgress
+  return (48f * phase).dp
 }
 
 @Stable

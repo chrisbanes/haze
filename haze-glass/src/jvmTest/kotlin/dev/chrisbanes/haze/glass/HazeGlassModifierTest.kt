@@ -11,6 +11,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocalProvider
@@ -32,6 +33,7 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
@@ -614,6 +616,44 @@ class HazeGlassModifierTest : ContextTest() {
   }
 
   @Test
+  fun sourceScroll_updatesGeometryWithoutRendererUpdate() = runComposeUiTest {
+    val hazeState = HazeState()
+    val sourceY = mutableIntStateOf(0)
+    val factory = RecordingGlassFactory()
+    setContent {
+      Box(Modifier.size(200.dp)) {
+        Box(Modifier.offset { IntOffset(0, sourceY.intValue) }.size(200.dp).hazeSource(hazeState))
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeGlass(
+              factory = factory,
+              input = HazeInput.Sources(hazeState),
+              style = GlassStyle,
+              performanceMode = HazePerformanceMode.Default,
+              expandLayerBounds = true,
+              interactionSource = null,
+            ),
+        )
+      }
+    }
+    waitForIdle()
+    mainClock.autoAdvance = false
+    val effect = factory.effects.single()
+    effect.updateCalls = 0
+    val draws = effect.drawCalls
+
+    repeat(3) { frame ->
+      sourceY.intValue = 10 * (frame + 1)
+      mainClock.advanceTimeByFrame()
+    }
+
+    // Glass re-resolves its style only for configuration or effect-size changes (ADR-0011).
+    assertThat(effect.updateCalls).isEqualTo(0)
+    assertThat(effect.drawCalls).isGreaterThan(draws)
+  }
+
+  @Test
   fun observedStyleChange_addsOneRendererUpdatePerFrame() = runComposeUiTest {
     val radius = mutableStateOf(8.dp)
     val side = mutableStateOf(100.dp)
@@ -658,6 +698,8 @@ class HazeGlassModifierTest : ContextTest() {
       side.value = 140.dp
     }
 
+    // A size change re-resolves the size-responsive style once (ADR-0011, #1456).
+    assertThat(sizeOnly).isEqualTo(1)
     assertThat(styleOnly).isEqualTo(1)
     assertThat(styleAndSize).isEqualTo(sizeOnly + 1)
     assertPreparedRadius(effect, 24.dp)

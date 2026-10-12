@@ -97,6 +97,12 @@ class BenchmarkTest {
   fun blurSourceUpdatePerformance() = measureBlurProfilingScenario("source_update_performance")
 
   @Test
+  fun blurSourceScrollBalanced() = measureBlurProfilingScenario("source_scroll_balanced")
+
+  @Test
+  fun blurSourceScrollBalanced9() = measureBlurProfilingScenario("source_scroll_balanced_9")
+
+  @Test
   fun creditCard() {
     measureSample(
       sampleRoute = "credit-card",

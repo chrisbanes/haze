@@ -18,6 +18,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -31,6 +32,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -291,6 +293,67 @@ class HazeEffectSurfaceDrawTest {
   }
 
   @Test
+  fun relocatedMember_notifiesOwnerOnlyWhenItsSurfaceGeometryChanges() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val factory = SurfaceFactory(owner)
+    val state = HazeState()
+    val groupX = mutableStateOf(0)
+    val memberX = mutableStateOf(10)
+    setContent {
+      Box(Modifier.size(200.dp).background(Color.White)) {
+        Box(Modifier.size(200.dp).hazeSource(state).background(Color.Red))
+        Box(Modifier.offset { IntOffset(groupX.value, 10) }.size(120.dp).then(OwnerElement(owner))) {
+          Box(
+            Modifier.offset { IntOffset(memberX.value, 15) }.size(60.dp)
+              .hazeEffect(factory, HazeInput.Sources(state), Unit),
+          )
+        }
+      }
+    }
+    waitForIdle()
+
+    // The owner and its member move together: the member is re-placed, but its bounds in the owner
+    // and its layer bounds are unchanged.
+    var changes = owner.changes
+    groupX.value = 30
+    waitForIdle()
+    assertThat(owner.changes).isEqualTo(changes)
+
+    changes = owner.changes
+    memberX.value = 20
+    waitForIdle()
+    assertThat(owner.changes).isGreaterThan(changes)
+    assertThat(factory.surface.boundsInOwner()?.left).isEqualTo(20f)
+  }
+
+  @Test
+  fun relocatedMember_layeredGroupMovedOverStaticSourceUpdatesPixels() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val factory = SurfaceFactory(owner)
+    val state = HazeState()
+    val groupX = mutableStateOf(0)
+    setContent {
+      Box(Modifier.size(160.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(60.dp).hazeSource(state).background(Color.Red))
+        Box(Modifier.fillMaxSize().background(Color.White))
+        // Layers keep the owner's recorded draw when the group moves: only the member is placed again
+        // relative to the source, while its transform in the owner is unchanged.
+        Box(Modifier.offset { IntOffset(groupX.value, 0) }.graphicsLayer {}.size(120.dp)) {
+          Box(Modifier.size(120.dp).then(OwnerElement(owner))) {
+            Box(Modifier.graphicsLayer {}.size(60.dp).hazeEffect(factory, HazeInput.Sources(state), Unit))
+          }
+        }
+      }
+    }
+    assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[30, 30]).isEqualTo(Color.Red)
+
+    groupX.value = 60
+    waitForIdle()
+
+    assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[90, 30]).isEqualTo(Color.White)
+  }
+
+  @Test
   fun relocatedSources_movedSelectedSourceUpdatesPixelsWithoutSelectingSibling() = runComposeUiTest {
     val owner = SurfaceOwnerNode()
     val factory = SurfaceFactory(owner)
@@ -408,7 +471,9 @@ class HazeEffectSurfaceDrawTest {
     override fun onPlaced(coordinates: LayoutCoordinates) {
       surfaceCoordinates = coordinates
     }
+    var changes = 0
     override fun onSurfaceChanged(surface: HazeEffectSurface) {
+      changes++
       if (surface !in surfaces) surfaces += surface
       if (isAttached) invalidateDraw()
     }

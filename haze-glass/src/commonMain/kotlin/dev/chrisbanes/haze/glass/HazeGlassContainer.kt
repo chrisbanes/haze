@@ -21,9 +21,11 @@ import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.TraversableNode
+import androidx.compose.ui.node.TraversableNode.Companion.TraverseDescendantsAction
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
+import androidx.compose.ui.node.traverseDescendants
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -137,7 +139,16 @@ internal class GlassContainerNode(
     children = requireGraphicsContext().createGraphicsLayer()
   }
   override fun onPlaced(coordinates: LayoutCoordinates) {
+    val firstPlacement = surfaceCoordinates == null
     surfaceCoordinates = coordinates
+    if (firstPlacement) {
+      // Claim members that were placed before this container: an unchanged member is not re-placed
+      // or re-published, so nothing else reconnects it.
+      traverseDescendants(GlassMemberTraversalKey) {
+        (it as GlassMemberNode).connect()
+        TraverseDescendantsAction.ContinueTraversal
+      }
+    }
     memberChanged()
   }
 

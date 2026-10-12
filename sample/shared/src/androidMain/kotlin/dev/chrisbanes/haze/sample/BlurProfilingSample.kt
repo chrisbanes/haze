@@ -140,6 +140,8 @@ private fun BlurProfilingScene(
   Box(modifier = modifier.fillMaxSize()) {
     if (scenario.noiseTintProperty != null) {
       BlurNoiseTintProfilingScene(state, scenario)
+    } else if (scenario.sourceScrollEffects > 0) {
+      BlurSourceScrollProfilingScene(state, scenario)
     } else {
       ScaffoldSample(
         navController = navController,
