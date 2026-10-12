@@ -274,8 +274,9 @@ internal class FallbackGlassDelegate(
 
       val mergedPaths = prepared.mergedPaths
       if (mergedPaths != null) {
-        // Read exclusive only for a lit cluster: building it costs a Path.op per member.
-        prepared.memberLightBrushes?.let { drawMergedInteractionLighting(mergedPaths.exclusive, it) }
+        prepared.memberLightBrushes?.let {
+          drawMergedInteractionLighting(mergedPaths, it, effect.windowBoundsInEffect())
+        }
       } else {
         drawInteractionLighting(
           interaction = prepared.interaction,
@@ -357,14 +358,30 @@ private fun DrawScope.drawInteractionLighting(
   }
 }
 
-/** Draws each member's light over the part of it that no earlier member covers. */
-private fun DrawScope.drawMergedInteractionLighting(
-  exclusive: List<Path>,
+/**
+ * Draws each member's light over its shape where no earlier member covers it, like
+ * [drawMergedColours]: in a layer when the visible union fits, otherwise over exclusive paths.
+ */
+internal fun DrawScope.drawMergedInteractionLighting(
+  paths: FallbackMergedPaths,
   brushes: List<Brush?>,
+  visible: Rect?,
 ) {
-  brushes.forEachIndexed { index, brush ->
-    // The gradient is transparent beyond its radius, so filling the whole region is equivalent.
-    if (brush != null) drawPath(exclusive[index], brush)
+  if (paths.unionBounds.visiblePart(visible).isEmpty) return
+  val layerBounds = paths.layerBounds(visible)
+  if (layerBounds == null) {
+    brushes.forEachIndexed { index, brush ->
+      // The gradient is transparent beyond its radius, so filling the whole region is equivalent.
+      if (brush != null) drawPath(paths.exclusive[index], brush)
+    }
+    return
+  }
+  withLayerPaint(alpha = 1f, blendMode = BlendMode.SrcOver, bounds = layerBounds) {
+    for (index in brushes.indices.reversed()) {
+      // An unlit member still clears what it covers: the earliest member owns the overlap.
+      drawPath(paths.members[index], Color.Black, blendMode = BlendMode.DstOut)
+      brushes[index]?.let { drawPath(paths.members[index], it, blendMode = BlendMode.Plus) }
+    }
   }
 }
 

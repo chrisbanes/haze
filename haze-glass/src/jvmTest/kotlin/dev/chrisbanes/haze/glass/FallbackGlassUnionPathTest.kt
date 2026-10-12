@@ -3,8 +3,10 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -21,9 +23,11 @@ import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isNull
+import assertk.assertions.isTrue
 import assertk.assertions.prop
 import kotlin.test.Test
 
@@ -156,8 +160,46 @@ class FallbackGlassUnionPathTest {
     }
   }
 
+  @Test
+  fun drawMergedInteractionLighting_withinBudget_overlapUsesFirstMemberLightOnce() {
+    // Member 0 spans x 20..120 and member 1 x 90..190; each light centres on (105, 60).
+    val paths = FallbackMergedPaths(field(member(Rect(20f, 20f, 120f, 100f)), member(Rect(90f, 20f, 190f, 100f))))
+    val layers = mutableListOf<Rect>()
+    val firstOnly = drawLights(paths, listOf(light(), null), layers)
+    assertThat(layers).containsExactly(Rect(20f, 20f, 190f, 100f))
+    assertThat(paths.exclusiveBuilt()).isFalse()
+    // (105, 30) is in the overlap and (75, 60) only in member 0, both 30 px from the centre.
+    assertThat(firstOnly[105, 30].alpha).isGreaterThan(0.1f)
+    assertThat(firstOnly[105, 30]).isEqualTo(firstOnly[75, 60])
+    // Unlit member 1 shows no light, even within the radius.
+    assertThat(firstOnly, 135, 60).isEmpty()
+
+    val both = drawLights(paths, listOf(light(), light()), mutableListOf())
+    assertThat(both[105, 30]).isEqualTo(firstOnly[105, 30])
+  }
+
+  @Test
+  fun drawMergedInteractionLighting_visibleOverBudget_usesExclusivePaths() {
+    val wide = MAX_GLASS_LAYER_DIMENSION_PX + 100f
+    val paths = FallbackMergedPaths(field(member(Rect(20f, 20f, 120f, 100f)), member(Rect(90f, 20f, wide, 100f))))
+    val layers = mutableListOf<Rect>()
+    val pixels = drawLights(paths, listOf(light(), light()), layers, visible = null)
+    assertThat(layers).isEmpty()
+    assertThat(paths.exclusiveBuilt()).isTrue()
+    assertThat(pixels[105, 30]).isEqualTo(pixels[75, 60])
+  }
+
   private fun drawColours(paths: FallbackMergedPaths, layers: MutableList<Rect>, visible: Rect? = null): PixelMap =
     draw(layers) { drawMergedColours(paths, alphaMultiplier = 1f, visible = visible) { it.tint } }
+
+  private fun drawLights(
+    paths: FallbackMergedPaths,
+    brushes: List<Brush?>,
+    layers: MutableList<Rect>,
+    visible: Rect? = Rect(0f, 0f, 240f, 160f),
+  ): PixelMap = draw(layers) { drawMergedInteractionLighting(paths, brushes, visible) }
+
+  private fun light() = Brush.radialGradient(listOf(Color.White.copy(alpha = 0.5f), Color.Transparent), center = Offset(105f, 60f), radius = 40f)
 
   private fun draw(layers: MutableList<Rect>, block: DrawScope.() -> Unit): PixelMap {
     val image = ImageBitmap(240, 160)
