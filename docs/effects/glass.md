@@ -657,21 +657,19 @@ the spacing of that member.
 Members of a lazy layout such as `LazyRow` or `LazyColumn` attach as they scroll into view, and
 Compose gives a modifier no signal that tells that from a state change. The container therefore
 treats a scrolled-in item like any member that attaches after its first draw, and a scrolled-out
-item like any member that detaches. Items composed before the container's first draw never animate.
+item like any member that detaches. Items placed before the container's first draw never animate.
 
 A prefetched item registers with the container as soon as it is composed, but it has no bounds
 until it is placed, so its transition starts when it is placed.
 
 With the default `MatchedGeometry`, the first item to scroll in grows out of its neighbour while it
 is visible. Its glass starts on the neighbour and lags its content, which stays at its layout
-position. An item with no neighbour within the spacing fades in instead. An item that scrolls out
-leaves a ghost until the animation ends. `Materialize` fades the glass in while the item is
-visible, and also leaves a ghost when the item scrolls out.
+position. An item that scrolls out leaves a ghost until the animation ends. `Materialize` fades
+the glass in while the item is visible, and also leaves a ghost when the item scrolls out.
 
 Set `GlassMemberTransition.None` on lazy items so that their glass appears and disappears with
 the item. Use `Materialize` if a fade is acceptable. `None` also stops the glass animating when
-state inserts or removes a lazy item. To animate those changes, put the animated member outside the
-lazy layout.
+state inserts or removes a lazy item.
 
 ```kotlin
 // Styles compare by identity, so remember the style.

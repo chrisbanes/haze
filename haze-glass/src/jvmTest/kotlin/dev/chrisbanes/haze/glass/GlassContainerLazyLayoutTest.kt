@@ -53,7 +53,8 @@ import kotlin.test.Test
  * item 0 is the first to scroll out. The tests read the container's drawn state (`model`), so a
  * member is "visible" when its glass rect overlaps the 360x80 viewport. They do not read pixels.
  *
- * The tests use 6px per frame because that rate keeps item 5's grow running for its whole
+ * Pixel values assume a density of 1, as in the desktop test environment, and a positive
+ * `dispatchRawDelta` scrolls towards later items. The tests use 6px per frame because that rate keeps item 5's grow running for its whole
  * duration. They characterise the first item only: later items depend on whether their neighbour
  * is still animating.
  *
@@ -82,7 +83,9 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     // It stays visible and lagging while item 0, which scrolled out, leaves a ghost.
     fixture.frames(5)
     assertThat(checkNotNull(fixture.member(5)).rect.overlaps(fixture.viewport)).isTrue()
-    assertThat(fixture.ghosts()).isNotEmpty()
+    val ghosts = fixture.ghosts()
+    assertThat(ghosts).isNotEmpty()
+    assertThat(ghosts.any { it.rect.overlaps(fixture.viewport) }).isTrue()
 
     fixture.settle()
     assertThat(fixture.ghosts()).isEmpty()
@@ -117,6 +120,7 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     assertThat(entering.link).isNull()
     assertThat(entering.fading).isFalse()
     assertThat(entering.material.alpha).isEqualTo(1f)
+    assertThat(entering.rect.overlaps(fixture.viewport)).isTrue()
     assertThat(entering.rect).isEqualTo(fixture.contentBounds(5))
     assertThat(fixture.ghosts()).isEmpty()
   }
