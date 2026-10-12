@@ -129,6 +129,7 @@ internal class GlassContainerNode(
   private var settled = false
   private var children: GraphicsLayer? = null
   private var refreshing = false
+  private var spacingCheckPending = false
   private var overflow = emptyList<GlassClusterOverflow>()
   internal val renderer = GlassContainerRenderer(this)
   internal val spacingPx: Float get() = with(requireDensity()) { spacing.toPx() }
@@ -226,9 +227,10 @@ internal class GlassContainerNode(
     }
   }
 
-  fun memberChanged() {
+  fun memberChanged(layoutComplete: Boolean = false) {
     // onPlaced reclusters once this container has coordinates; a member can register first.
     if (!isAttached || refreshing || surfaceCoordinates == null) return
+    if (layoutComplete) spacingCheckPending = false
     refreshing = true
     try {
       // Reached synchronously from a member's observed update(): the animated interaction and
@@ -247,14 +249,19 @@ internal class GlassContainerNode(
           runtime.refreshMemberMaterial()
         }
         var live = liveSnapshots()
-        // A grow ends, snapping to the member's own shape, once its neighbour is no longer live or
-        // could no longer have been chosen: the start conditions, including the current spacing,
-        // hold on every pass.
+        // Liveness and compatibility hold on every pass; spacing is checked once layout is complete.
         val broken = attaching.filter { (member, attach) ->
           val neighbour = attach.neighbour ?: return@filter false
           val snapshot = live[member] ?: return@filter false
-          // The gap is measured to what the neighbour draws, as when it was chosen, or to its layout.
-          live[neighbour]?.let { snapshot.canTransitionWith(it) && snapshot.isWithinSpacingOf(neighbour, live) } != true
+          val neighbourSnapshot = live[neighbour] ?: return@filter true
+          if (!snapshot.canTransitionWith(neighbourSnapshot)) return@filter true
+          // Placement moves members one at a time, so spacing can be transiently wrong mid-layout.
+          if (snapshot.isWithinSpacingOf(neighbour, live)) return@filter false
+          if (!layoutComplete) {
+            spacingCheckPending = true
+            return@filter false
+          }
+          true
         }
         // A converted member's material changed, so its snapshot is retaken.
         if (broken.keys.map { endGrow(it) }.any { it }) live = liveSnapshots()
@@ -382,6 +389,7 @@ internal class GlassContainerNode(
   override fun canComposeNativeSurfaces(bounds: Rect): Boolean = renderer.canComposeNativeSurfaces(bounds)
 
   override fun ContentDrawScope.draw() {
+    if (spacingCheckPending) memberChanged(layoutComplete = true)
     drawHazeEffectSurfaces(this@GlassContainerNode, { renderer.reconcile() }, checkNotNull(children))
     settled = true
   }
