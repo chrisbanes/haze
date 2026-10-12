@@ -13,19 +13,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.CompositingStrategy
-import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.InternalHazeApi
-import kotlin.math.max
+import dev.chrisbanes.haze.translate
 
 @OptIn(InternalHazeApi::class)
 /**
@@ -114,56 +108,4 @@ internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffe
 private fun DrawScope.drawMasks(first: Brush?, second: Brush?) {
   if (first != null) drawRect(brush = first, blendMode = BlendMode.DstIn)
   if (second != null) drawRect(brush = second, blendMode = BlendMode.DstIn)
-}
-
-internal fun DrawScope.createScaledContentLayer(
-  context: HazeEffectRuntimeDrawScope,
-  backgroundColor: Color,
-  scaleFactor: Float,
-  layerSize: Size,
-  existingLayer: GraphicsLayer? = null,
-): GraphicsLayer? {
-  val scaledLayerSize = (layerSize * scaleFactor).roundToIntSize()
-
-  if (scaledLayerSize.width <= 0 || scaledLayerSize.height <= 0) {
-    // If we have a 0px dimension we can't do anything so just return
-    return null
-  }
-
-  // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
-  // The RenderEffect applied will provide the blurring effect.
-  val graphicsContext = context.requireGraphicsContext()
-  val layer = existingLayer?.takeUnless { it.isReleased }
-    ?: graphicsContext.createGraphicsLayer()
-
-  layer.record(size = scaledLayerSize) {
-    if (backgroundColor.isSpecified) {
-      drawRect(backgroundColor)
-    }
-
-    scale(scale = scaleFactor, pivot = Offset.Zero) {
-      with(context) { this@record.drawInput() }
-    }
-  }
-  // Refresh the outline when a retained layer is resized. Round it outward independently of
-  // the capture allocation: rounding down can clip the last output row or column after upscaling.
-  layer.setRectOutline(size = ceil(layerSize * scaleFactor))
-
-  return layer
-}
-
-internal fun DrawScope.drawScaledContent(
-  offset: Offset,
-  scaledSize: Size,
-  clip: Boolean = true,
-  block: DrawScope.() -> Unit,
-) {
-  val scaleFactor = max(size.width / scaledSize.width, size.height / scaledSize.height)
-  withTransform({ if (clip) clipRect() }) {
-    translate(offset) {
-      scale(scale = scaleFactor, pivot = Offset.Zero) {
-        block()
-      }
-    }
-  }
 }
