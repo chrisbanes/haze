@@ -145,6 +145,20 @@ internal class FallbackGlassDelegate(
         )
       }
 
+      // The cluster runtime has no interaction source; each member carries its own light instead.
+      val memberLightBrushes = style.mergedField?.takeIf { it.hasInteractionLighting }?.members?.map { member ->
+        val alpha = 0.32f * member.lightIntensity * style.alpha
+        if (!member.hasLighting || alpha <= 0f) {
+          null
+        } else {
+          Brush.radialGradient(
+            colors = listOf(Color.White.copy(alpha = alpha), Color.Transparent),
+            center = member.lightPosition,
+            radius = member.lightRadius,
+          )
+        }
+      }
+
       preparedDraw = FallbackGlassPreparedDraw(
         size = size,
         style = style,
@@ -163,6 +177,7 @@ internal class FallbackGlassDelegate(
         interaction = interaction,
         interactionAlpha = interactionAlpha,
         interactionBrush = interactionBrush,
+        memberLightBrushes = memberLightBrushes,
       )
     }
 
@@ -253,11 +268,17 @@ internal class FallbackGlassDelegate(
     trace(GlassTraceSection.FallbackForeground) {
       val shapePath = prepared.shapePath
 
-      drawInteractionLighting(
-        interaction = prepared.interaction,
-        brush = prepared.interactionBrush,
-        shapePath = shapePath,
-      )
+      val mergedPaths = prepared.mergedPaths
+      if (mergedPaths != null) {
+        // Read exclusive only for a lit cluster: building it costs a Path.op per member.
+        prepared.memberLightBrushes?.let { drawMergedInteractionLighting(mergedPaths.exclusive, it) }
+      } else {
+        drawInteractionLighting(
+          interaction = prepared.interaction,
+          brush = prepared.interactionBrush,
+          shapePath = shapePath,
+        )
+      }
 
       prepared.edgeShadowBrush?.let { edgeShadowBrush ->
         drawFallbackEdge(
@@ -329,6 +350,17 @@ private fun DrawScope.drawInteractionLighting(
     clipPath(shapePath, block = drawHighlight)
   } else {
     drawHighlight()
+  }
+}
+
+/** Draws each member's light over the part of it that no earlier member covers. */
+private fun DrawScope.drawMergedInteractionLighting(
+  exclusive: List<Path>,
+  brushes: List<Brush?>,
+) {
+  brushes.forEachIndexed { index, brush ->
+    // The gradient is transparent beyond its radius, so filling the whole region is equivalent.
+    if (brush != null) drawPath(exclusive[index], brush)
   }
 }
 
@@ -462,4 +494,5 @@ private data class FallbackGlassPreparedDraw(
   val interaction: GlassInteractionUniforms,
   val interactionAlpha: Float,
   val interactionBrush: Brush?,
+  val memberLightBrushes: List<Brush?>?,
 )
