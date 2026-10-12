@@ -37,6 +37,11 @@ tasks.named("check") {
   dependsOn(checkPublicApiDocumentation)
 }
 
+// gradle/build-logic is an included build, so `check` and `spotlessCheck` don't reach its tasks by name.
+tasks.named("spotlessCheck") {
+  dependsOn(gradle.includedBuild("build-logic").task(":convention:spotlessCheck"))
+}
+
 tasks.withType<KotlinNpmInstallTask>().configureEach {
   args.add("--userconfig=${rootProject.file("gradle/npmrc")}")
   if (name == "kotlinWasmNpmInstall") {

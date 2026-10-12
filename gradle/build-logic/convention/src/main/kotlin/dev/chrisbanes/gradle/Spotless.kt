@@ -33,5 +33,4 @@ fun Project.configureSpotless() {
   }
 }
 
-private fun Project.spotless(action: SpotlessExtension.() -> Unit) =
-  extensions.configure<SpotlessExtension>(action)
+private fun Project.spotless(action: SpotlessExtension.() -> Unit) = extensions.configure<SpotlessExtension>(action)

@@ -23,7 +23,7 @@ class MetalavaConventionPlugin : Plugin<Project> {
         target.kotlin
           .sourceSets
           .filter { it.name.contains("test", ignoreCase = true) }
-          .flatMap { it.kotlin.sourceDirectories }
+          .flatMap { it.kotlin.sourceDirectories },
       )
 
       version.set(METALAVA_VERSION)
