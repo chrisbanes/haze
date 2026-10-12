@@ -197,6 +197,77 @@ appearance and frame timing on the actual screen under normal scheduling.
     remains in git history. This controlled sweep also fixed brightness, so differences
     between the experiments cannot be attributed to CPU affinity alone.
 
+<a id="glass-containers"></a>
+
+## Glass containers
+
+This comparison draws two Regular Glass surfaces, each about 134 × 180 dp and 12 dp apart, over a
+continuously changing source. The independent row draws them separately. The container row wraps
+the same surfaces in `hazeGlassContainer(spacing = 32.dp)`, so they merge into one cluster. Both
+rows use `HazePerformanceMode.Default` and `HazeInput.Sources`. It used a Pixel 8a running
+Android 17 (full SDK 37.2) at 60 Hz, with fixed-performance mode enabled and normal CPU scheduling.
+
+Values are the **arithmetic mean of two per-pass values**, not statistics of pooled frames. Peak
+GPU memory uses each pass's median `memoryGpuMaxKb`.
+
+| Row | CPU frame duration P50 (ms) | CPU frame duration P90 (ms) | Frame overrun P90 (ms) | Peak GPU memory (KB) |
+| --- | ---: | ---: | ---: | ---: |
+| Independent surfaces | 2.97 | 4.86 | -7.26 | 100,016 |
+| One container cluster | 2.84 | 4.51 | -2.79 | 107,190 |
+
+Both rows re-rendered their Glass layers on every frame. HWUI's `drawLayer [graphicsLayer]` slice
+shows what each row drew:
+
+| Row | `graphicsLayerDrawCount` per frame | Layer size (px) |
+| --- | ---: | --- |
+| Independent surfaces | 1.93–2.00 | two 527 × 623 layers |
+| One container cluster | 0.95–1.00 | one 952 × 745 layer |
+
+The cluster's single layer covers both members and the bridge between them, so it is about 8%
+larger than the two independent layers combined.
+
+The container row had 0.35 ms lower CPU P90, but about 4.5 ms less deadline margin at P90 and
+7,174 KB (about 7%) more peak GPU memory. CPU frame duration does not measure GPU shader cost.
+The overrun difference points to work after the CPU portion of the frame, such as rendering the
+merged layer, but these runs did not analyze GPU timings. Neither row missed its deadline at P90.
+
+These results describe two surfaces at one spacing on one device. They do not establish the cost
+of larger clusters, more members, other styles, or higher refresh rates. Measure clustered screens
+against independent surfaces before adopting a container.
+
+??? info "Measurement details"
+
+    The `benchmarkRelease` APKs were built from commit `33e2371a`. The sample APK SHA-256 was
+    `0dab212a8b5d285b99ab9c1483352f43666b27a1242e0831ce66dbbe90a18194` and the benchmark APK
+    SHA-256 was `5a9ea749589d95107cf2bf72d7671cc5825afe888ad57ebee4a257cbbf0c0c0a`. The Android
+    build was `CP41.260831.007.A3`. The device was on AC power at 80% charge, and both passes
+    started at thermal status 0, with the battery at 27.8°C and 28.1°C.
+
+    Each method ran eight measured iterations per pass in its own Gradle invocation. The first
+    pass ran independent then container, and the second pass reversed that order. This produced
+    32 iterations, 32 Perfetto traces, and 5,846 measured frames. No completed iteration was
+    discarded. Every iteration recorded one `HazeSource.record` per frame (0.95–1.00) and at
+    least one `HazeGlass.runtimeDraw`, confirming the changing source and the runtime Glass path.
+    The Google app was temporarily disabled to prevent its Chromium trace producer from delaying
+    collection.
+
+    The two passes agreed closely: per-pass CPU P90 differed by at most 0.08 ms, and frame
+    overrun P90 by at most 0.12 ms.
+
+    CPU placement differed between the rows. Main-thread placement was similar, with 72%
+    (container) and 79% (independent) of its running time on the little cluster on average.
+    RenderThread spent an average of 18% of its running time on the big core in the independent
+    row, compared with 6% in the container row. Grouping iterations by RenderThread big-core
+    share kept the same ranking. With at most 5% on the big core, the pooled CPU P90 was 4.80 ms
+    independent (4 iterations) against 4.55 ms container (10 iterations). Above 5%, it was
+    4.90 ms (12 iterations) against 4.45 ms (6 iterations). The overrun P90 difference stayed
+    between 4.2 and 4.7 ms in both groups.
+
+    Raw JSON, benchmark messages, traces, per-iteration placement, and device readbacks are
+    retained locally under `internal/benchmark/build/benchmark-results/container.dy8ZmS/`. The
+    on-device sample check is recorded in the
+    [replan report](https://github.com/chrisbanes/haze/issues/1448#issuecomment-6120179344).
+
 <a id="blur-noise-tint"></a>
 
 ## Blur noise and tint shader reuse

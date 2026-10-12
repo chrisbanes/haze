@@ -128,6 +128,11 @@ measure clustered screens against independent surfaces before adopting them. A c
 shares one optical size, so one large member changes the diffusion of the small members next to
 it.
 
+On a Pixel 8a at 60 Hz, merging two nearby Regular Glass surfaces into one cluster over a
+changing source left about 4.5 ms less frame deadline margin at P90 and used about 7% more peak
+GPU memory than drawing them independently, even though its CPU frame duration P90 was 0.35 ms
+lower ([conditions and limits](benchmark-results.md#glass-containers)).
+
 For styling examples, see the [Glass overview](effects/glass.md).
 
 <a id="backdrop-input"></a>
