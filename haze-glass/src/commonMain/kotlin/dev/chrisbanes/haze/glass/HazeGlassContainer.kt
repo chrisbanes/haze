@@ -66,6 +66,8 @@ import kotlinx.coroutines.launch
  * [reducedMotionPolicy] changes apply from the next transition. Leaving members never count
  * towards the shared optical size. Haze animates only the glass, so callers animate member content
  * themselves, for example with `AnimatedVisibility`. Cap diagnostics follow [HazeLogger.enabled].
+ * Items of a lazy layout that scroll into view animate like any member that attaches after the
+ * first draw; see [GlassMemberTransition] for the recommended transition.
  */
 @Stable
 @ExperimentalHazeApi

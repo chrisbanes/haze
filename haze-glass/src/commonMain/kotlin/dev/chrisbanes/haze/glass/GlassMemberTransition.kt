@@ -14,6 +14,25 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
  *
  * Haze animates only the glass. Callers animate member content themselves, for example by
  * wrapping the member in `AnimatedVisibility`.
+ *
+ * Members of a lazy layout such as `LazyRow` or `LazyColumn` attach as they scroll into view, and
+ * Compose gives a modifier no signal that tells that from a state change. Their glass therefore
+ * animates while the item is visible, and leaves a ghost when it scrolls out. Set [None] on lazy
+ * items, or [Materialize] if a fade is acceptable:
+ *
+ * ```
+ * LazyRow(Modifier.hazeGlassContainer(spacing = 16.dp)) {
+ *   items(chips, key = { it.id }) { chip ->
+ *     Chip(
+ *       Modifier.hazeGlass(
+ *         input = input,
+ *         style = style,
+ *         memberTransition = GlassMemberTransition.None,
+ *       ),
+ *     )
+ *   }
+ * }
+ * ```
  */
 @ExperimentalHazeApi
 public enum class GlassMemberTransition {
