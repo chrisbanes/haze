@@ -112,6 +112,12 @@ internal class RecordingDrawContext(
     output = bitmap
   }
 
+  /** How many layers the draws created through [requireGraphicsContext]. */
+  val createdLayers: Int get() = graphicsContext.createdLayers
+
+  /** How many layers were released through [requireGraphicsContext]. */
+  val releasedLayers: Int get() = graphicsContext.releasedLayers
+
   fun releaseLatestLayer() {
     graphicsContext.releaseLatestLayer()
   }
@@ -137,9 +143,18 @@ internal class RecordingGraphicsContext : GraphicsContext {
   private val delegate = SkiaGraphicsContext()
   private var latestLayer: androidx.compose.ui.graphics.layer.GraphicsLayer? = null
 
-  override fun createGraphicsLayer() = delegate.createGraphicsLayer().also { latestLayer = it }
+  var createdLayers = 0
+    private set
+  var releasedLayers = 0
+    private set
+
+  override fun createGraphicsLayer() = delegate.createGraphicsLayer().also {
+    latestLayer = it
+    createdLayers++
+  }
 
   override fun releaseGraphicsLayer(layer: androidx.compose.ui.graphics.layer.GraphicsLayer) {
+    releasedLayers++
     delegate.releaseGraphicsLayer(layer)
   }
 

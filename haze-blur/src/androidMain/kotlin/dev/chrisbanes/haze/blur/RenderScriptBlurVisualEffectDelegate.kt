@@ -6,11 +6,8 @@
 
 package dev.chrisbanes.haze.blur
 
-import android.graphics.BitmapShader
 import android.graphics.Color
-import android.graphics.Matrix
 import android.graphics.PorterDuff
-import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import android.renderscript.RenderScript
 import android.view.Surface
@@ -45,8 +42,6 @@ import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.trace
 import dev.chrisbanes.haze.traceAsync
-import dev.chrisbanes.haze.withGraphicsLayer
-import kotlin.math.abs
 import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -63,7 +58,8 @@ internal class RenderScriptBlurVisualEffectDelegate(
   private var renderScript = RenderScript.create(platformContext.applicationContext)
 
   @Volatile
-  private var renderScriptContext: RenderScriptContext? = null
+  internal var renderScriptContext: RenderScriptContext? = null
+    private set
   private val drawScope = CanvasDrawScope()
 
   private var currentJob: Job? = null
@@ -75,6 +71,14 @@ internal class RenderScriptBlurVisualEffectDelegate(
   private var trimGeneration = 0
 
   private var contentLayer: GraphicsLayer? = null
+
+  // Layers kept across draws and updates. [draw] records the capture layer; a job records, re-keys
+  // or releases the padded layer only before its first suspension, while [currentJob] gates new
+  // updates. [releaseRetainedOutput] releases all of them with [contentLayer].
+  internal val presentationLayer = RetainedGraphicsLayer()
+  internal val captureLayer = RetainedGraphicsLayer()
+  internal val paddedLayer = RetainedGraphicsLayer()
+  internal val noiseShaders = NoiseShaderCache()
 
   override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) {
     if (blurVisualEffect.alpha == 0f) return
@@ -113,6 +117,9 @@ internal class RenderScriptBlurVisualEffectDelegate(
         scaleFactor = scaleFactor,
         layerSize = context.layerSize,
         backgroundColor = blurVisualEffect.backgroundColor,
+        // The currentJob gate allows one update at a time, so the one capture layer is re-recorded
+        // only while no job reads it.
+        existingLayer = captureLayer.acquire(graphicsContext),
       )?.let { layer ->
         layer.clip = blurVisualEffect.shouldClipToNodeBounds()
         if (contentLayer == null || contentLayer!!.isReleased) {
@@ -131,8 +138,6 @@ internal class RenderScriptBlurVisualEffectDelegate(
             )
           } finally {
             retainedOutputState.finishOutputUpdate(retainedOutputGenerationAtStart)
-            // Release the graphics layer even if updateSurface was cancelled
-            graphicsContext.releaseGraphicsLayer(layer)
           }
 
           if (outputUpdated) completedCaptureKey = captureKey
@@ -149,82 +154,86 @@ internal class RenderScriptBlurVisualEffectDelegate(
       if (retainedOutputState.isPending) {
         drawSkipped = true
       }
+      // Nothing to present, so this draw does not use the presentation layer.
+      presentationLayer.release()
       return
     }
 
-    context.withGraphicsLayer { layer ->
-      layer.alpha = blurVisualEffect.alpha
-      layer.clip = blurVisualEffect.shouldClipToNodeBounds()
+    drawPresentation(context, contentLayer, offset, scaleFactor)
+  }
 
-      val progressiveMask = blurVisualEffect.progressiveBrush
-      val userMask = blurVisualEffect.mask
-      if (progressiveMask != null || userMask != null) {
-        // If we have a mask, this needs to be drawn offscreen
-        layer.compositingStrategy = CompositingStrategy.Offscreen
-      }
+  internal fun DrawScope.drawPresentation(
+    context: HazeEffectRuntimeDrawScope,
+    output: GraphicsLayer?,
+    offset: Offset,
+    scaleFactor: Float,
+  ) {
+    val layer = presentationLayer.acquire(graphicsContext)
+    // The layer keeps what the previous draw set, so set every property on every draw.
+    layer.alpha = blurVisualEffect.alpha
+    layer.clip = blurVisualEffect.shouldClipToNodeBounds()
 
-      layer.record(size = size.toIntSize()) {
-        drawScaledContent(
-          offset = -offset,
-          scaledSize = size * scaleFactor,
-          clip = blurVisualEffect.shouldClipToNodeBounds(),
-        ) {
-          contentLayer?.let(::drawLayer)
-        }
-
-        val expandedSize = size.expand(
-          expansionWidth = max(offset.x, 0f) * 2,
-          expansionHeight = max(offset.y, 0f) * 2,
-        )
-
-        // Draw the noise on top...
-        val noiseFactor = blurVisualEffect.noiseFactor
-        if (noiseFactor.hasVisibleNoise()) {
-          translate(offset = -offset) {
-            PaintPool.usePaint { paint ->
-              paint.isAntiAlias = true
-              paint.alpha = noiseFactor.coerceIn(0f, 1f)
-              val shader = BitmapShader(platformContext.getNoiseTexture(), REPEAT, REPEAT)
-              val normalizedScale = if (scaleFactor > 0f) scaleFactor else 1f
-              if (abs(normalizedScale - 1f) >= 0.001f) {
-                val matrix = Matrix().apply {
-                  val reciprocal = 1f / normalizedScale
-                  setScale(reciprocal, reciprocal)
-                }
-                shader.setLocalMatrix(matrix)
-              }
-              paint.shader = shader
-              paint.blendMode = BlendMode.SrcAtop
-              drawContext.canvas.drawRect(expandedSize.toRect(), paint)
-            }
-          }
-        }
-
-        // Then the tints...
-        translate(offset = -offset) {
-          for (colorEffect in blurVisualEffect.colorEffects.orEmpty()) {
-            drawScrim(
-              colorEffect = colorEffect,
-              context = context,
-              offset = offset,
-              expandedSize = expandedSize,
-            )
-          }
-        }
-
-        // Progressive intensity first, then the user's mask fades the complete output.
-        if (progressiveMask != null) {
-          logDebug(TAG) { "Drawing progressive mask, canvas size=$size" }
-          drawRect(brush = progressiveMask, size = size, blendMode = BlendMode.DstIn)
-        }
-        if (userMask != null) {
-          logDebug(TAG) { "Drawing mask, canvas size=$size" }
-          drawRect(brush = userMask, size = size, blendMode = BlendMode.DstIn)
-        }
-      }
-
-      drawLayer(layer)
+    val progressiveMask = blurVisualEffect.progressiveBrush
+    val userMask = blurVisualEffect.mask
+    // If we have a mask, this needs to be drawn offscreen
+    layer.compositingStrategy = if (progressiveMask != null || userMask != null) {
+      CompositingStrategy.Offscreen
+    } else {
+      CompositingStrategy.Auto
     }
+
+    layer.record(size = size.toIntSize()) {
+      drawScaledContent(
+        offset = -offset,
+        scaledSize = size * scaleFactor,
+        clip = blurVisualEffect.shouldClipToNodeBounds(),
+      ) {
+        output?.let(::drawLayer)
+      }
+
+      val expandedSize = size.expand(
+        expansionWidth = max(offset.x, 0f) * 2,
+        expansionHeight = max(offset.y, 0f) * 2,
+      )
+
+      // Draw the noise on top...
+      val noiseFactor = blurVisualEffect.noiseFactor
+      if (noiseFactor.hasVisibleNoise()) {
+        translate(offset = -offset) {
+          PaintPool.usePaint { paint ->
+            paint.isAntiAlias = true
+            paint.alpha = noiseFactor.coerceIn(0f, 1f)
+            paint.shader = noiseShaders.get(platformContext, scaleFactor)
+            paint.blendMode = BlendMode.SrcAtop
+            drawContext.canvas.drawRect(expandedSize.toRect(), paint)
+          }
+        }
+      }
+
+      // Then the tints...
+      translate(offset = -offset) {
+        for (colorEffect in blurVisualEffect.colorEffects.orEmpty()) {
+          drawScrim(
+            colorEffect = colorEffect,
+            context = context,
+            offset = offset,
+            expandedSize = expandedSize,
+          )
+        }
+      }
+
+      // Progressive intensity first, then the user's mask fades the complete output.
+      if (progressiveMask != null) {
+        logDebug(TAG) { "Drawing progressive mask, canvas size=$size" }
+        drawRect(brush = progressiveMask, size = size, blendMode = BlendMode.DstIn)
+      }
+      if (userMask != null) {
+        logDebug(TAG) { "Drawing mask, canvas size=$size" }
+        drawRect(brush = userMask, size = size, blendMode = BlendMode.DstIn)
+      }
+    }
+
+    drawLayer(layer)
   }
 
   private fun shouldUpdateLayer(captureKey: InputCaptureKey): Boolean = when {
@@ -239,8 +248,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
   override fun onTrimMemory(context: HazeEffectLifecycleScope, level: TrimMemoryLevel) {
     if (level.severity >= TrimMemoryLevel.MODERATE.severity) {
       currentJob?.cancel()
-      renderScriptContext?.release()
-      renderScriptContext = null
+      releaseRenderScriptContext()
       // Create the new RenderScript first, then destroy the old instance.
       // This avoids leaving renderScript in a destroyed state if creation fails.
       runCatching { RenderScript.create(platformContext.applicationContext) }
@@ -273,83 +281,74 @@ internal class RenderScriptBlurVisualEffectDelegate(
     // Allocation surface is fully covered with content (no transparent/black edges).
     val paddedContent = padToMultipleOf4(content, density, context)
 
-    try {
-      traceAsync("Haze-RenderScriptBlurEffect-updateSurface", 0) {
-        // If a trim happened before we even started, bail out
-        if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@traceAsync
+    traceAsync("Haze-RenderScriptBlurEffect-updateSurface", 0) {
+      // If a trim happened before we even started, bail out
+      if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@traceAsync
 
-        val rs = getRenderScriptContext(paddedContent.size)
+      val rs = getRenderScriptContext(paddedContent.size)
 
-        // If the retained output was cleared while we were getting the context, bail out
-        if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) {
-          renderScriptContext?.release()
-          renderScriptContext = null
+      // If the retained output was cleared while we were getting the context, bail out
+      if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) {
+        releaseRenderScriptContext()
+        return@traceAsync
+      }
+
+      traceAsync("Haze-RenderScriptBlurEffect-updateSurface-drawLayerToSurface", 0) {
+        try {
+          // Draw the layer (this is async)
+          rs.inputSurface.drawGraphicsLayer(layer = paddedContent, density = density, drawScope = drawScope)
+        } catch (e: IllegalStateException) {
+          HazeLogger.d(TAG) { "Surface draw failed, likely destroyed. Releasing context." }
+          releaseRenderScriptContext()
           return@traceAsync
         }
+        // Wait for the layer to be written to the Surface
+        rs.awaitSurfaceWritten()
+      }
 
-        traceAsync("Haze-RenderScriptBlurEffect-updateSurface-drawLayerToSurface", 0) {
-          try {
-            // Draw the layer (this is async)
-            rs.inputSurface.drawGraphicsLayer(layer = paddedContent, density = density, drawScope = drawScope)
-          } catch (e: IllegalStateException) {
-            HazeLogger.d(TAG) { "Surface draw failed, likely destroyed. Releasing context." }
-            renderScriptContext?.release()
-            renderScriptContext = null
-            return@traceAsync
+      // If the retained output was cleared during surface operations, bail out before using stale data
+      if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@traceAsync
+
+      if (blurRadius > 0f) {
+        // Now apply the blur on a background thread
+        traceAsync("Haze-RenderScriptBlurEffect-updateSurface-applyBlur", 0) {
+          withContext(Dispatchers.Default) {
+            rs.applyBlur(blurRadius)
           }
-          // Wait for the layer to be written to the Surface
-          rs.awaitSurfaceWritten()
         }
 
-        // If the retained output was cleared during surface operations, bail out before using stale data
-        if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@traceAsync
+        trace("Haze-RenderScriptBlurEffect-updateSurface-drawToContentLayer") {
+          if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@trace
 
-        if (blurRadius > 0f) {
-          // Now apply the blur on a background thread
-          traceAsync("Haze-RenderScriptBlurEffect-updateSurface-applyBlur", 0) {
-            withContext(Dispatchers.Default) {
-              rs.applyBlur(blurRadius)
-            }
-          }
+          // Finally draw the updated bitmap to our drawing graphics layer
+          val output = rs.outputBitmap
 
-          trace("Haze-RenderScriptBlurEffect-updateSurface-drawToContentLayer") {
-            if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@trace
-
-            // Finally draw the updated bitmap to our drawing graphics layer
-            val output = rs.outputBitmap
-
-            val outputLayer = contentLayer ?: return@trace
-            outputLayer.record(
-              density = density,
-              layoutDirection = context.currentValueOf(LocalLayoutDirection),
-              size = IntSize(output.width, output.height),
-            ) {
-              drawImage(output.asImageBitmap())
-            }
-            outputUpdated = retainedOutputState.completeOutputUpdate(retainedOutputGenerationAtStart)
-          }
-        } else {
-          if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@traceAsync
-
-          // If the blur radius is 0, we just copy the input content into our contentLayer
-          val outputLayer = contentLayer ?: return@traceAsync
+          val outputLayer = contentLayer ?: return@trace
           outputLayer.record(
             density = density,
             layoutDirection = context.currentValueOf(LocalLayoutDirection),
-            size = paddedContent.size,
+            size = IntSize(output.width, output.height),
           ) {
-            drawLayer(paddedContent)
+            drawImage(output.asImageBitmap())
           }
           outputUpdated = retainedOutputState.completeOutputUpdate(retainedOutputGenerationAtStart)
         }
+      } else {
+        if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@traceAsync
 
-        HazeLogger.d(TAG) { "Output updated in layer" }
+        // If the blur radius is 0, we just copy the input content into our contentLayer
+        val outputLayer = contentLayer ?: return@traceAsync
+        outputLayer.record(
+          density = density,
+          layoutDirection = context.currentValueOf(LocalLayoutDirection),
+          size = paddedContent.size,
+        ) {
+          drawLayer(paddedContent)
+        }
+        outputUpdated = retainedOutputState.completeOutputUpdate(retainedOutputGenerationAtStart)
       }
-    } finally {
-      // If we created a padded wrapper layer, release it now that we're done
-      if (paddedContent !== content) {
-        graphicsContext.releaseGraphicsLayer(paddedContent)
-      }
+
+      HazeLogger.d(TAG) { "Output updated in layer" }
     }
     return outputUpdated
   }
@@ -364,10 +363,10 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
   /**
    * Returns [layer] as-is if both dimensions are already multiples of 4.
-   * Otherwise creates a wrapper layer at a size rounded up to the next multiple of 4,
-   * fills the extra area with [BlurVisualEffect.backgroundColor], and records
-   * the original layer into it. This ensures the RenderScript Allocation surface
-   * has no transparent/black fringe regions for the blur kernel to sample.
+   * Otherwise records [layer] into the retained [paddedLayer], at a size rounded up to the next
+   * multiple of 4, after filling the extra area with [BlurVisualEffect.backgroundColor]. This
+   * ensures the RenderScript Allocation surface has no transparent/black fringe regions for the
+   * blur kernel to sample. The padded layer is keyed by its size and released when none is needed.
    */
   private fun padToMultipleOf4(
     layer: GraphicsLayer,
@@ -378,11 +377,17 @@ internal class RenderScriptBlurVisualEffectDelegate(
     val paddedWidth = ((size.width + 3) / 4) * 4
     val paddedHeight = ((size.height + 3) / 4) * 4
 
-    if (paddedWidth == size.width && paddedHeight == size.height) return layer
+    if (paddedWidth == size.width && paddedHeight == size.height) {
+      paddedLayer.release()
+      return layer
+    }
 
-    val paddedLayer = graphicsContext.createGraphicsLayer()
+    val padded = paddedLayer.acquire(
+      graphicsContext,
+      key = (paddedWidth.toLong() shl 32) or paddedHeight.toLong(),
+    )
     val bg = blurVisualEffect.backgroundColor
-    paddedLayer.record(
+    padded.record(
       density = density,
       layoutDirection = context.currentValueOf(LocalLayoutDirection),
       size = IntSize(paddedWidth, paddedHeight),
@@ -392,15 +397,15 @@ internal class RenderScriptBlurVisualEffectDelegate(
       }
       drawLayer(layer)
     }
-    return paddedLayer
+    return padded
   }
 
-  private fun getRenderScriptContext(size: IntSize): RenderScriptContext {
+  internal fun getRenderScriptContext(size: IntSize): RenderScriptContext {
     val rs = renderScriptContext
     if (rs != null && rs.size == size) return rs
 
     // Release any existing context
-    rs?.release()
+    releaseRenderScriptContext()
     // Return a new context and store it
     return RenderScriptContext(rs = renderScript, size = size)
       .also { renderScriptContext = it }
@@ -432,6 +437,14 @@ internal class RenderScriptBlurVisualEffectDelegate(
     completedCaptureKey = null
     contentLayer?.let(graphicsContext::releaseGraphicsLayer)
     contentLayer = null
+    captureLayer.release()
+    paddedLayer.release()
+    presentationLayer.release()
+    noiseShaders.clear()
+    releaseRenderScriptContext()
+  }
+
+  private fun releaseRenderScriptContext() {
     renderScriptContext?.release()
     renderScriptContext = null
   }

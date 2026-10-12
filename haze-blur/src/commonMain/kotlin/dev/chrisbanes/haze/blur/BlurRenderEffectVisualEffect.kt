@@ -30,7 +30,8 @@ internal class RenderEffectBlurVisualEffectDelegate(
   val blurVisualEffect: BlurVisualEffect,
 ) : BlurVisualEffect.Delegate {
   internal val effectSlot: BlurRenderEffectSlot = blurVisualEffect.renderEffectSlotFactory()
-  private val bandSlots = mutableListOf<BlurRenderEffectSlot>()
+  private val bands = mutableListOf<Band>()
+  internal val bandMasks = BandMasks()
   internal var scaledContentLayer: GraphicsLayer? = null
     private set
   private var lastScaledLayerSize: Size? = null
@@ -189,24 +190,38 @@ internal class RenderEffectBlurVisualEffectDelegate(
     scaledContentLayer = null
     lastScaledLayerSize = null
     effectSlot.reset()
-    bandSlots.forEach { it.reset() }
-    bandSlots.clear()
+    trimBandSlots(0)
     graphicsContext = null
     retainedOutputAvailable = false
     inputCaptureKey = null
   }
 
-  internal val bandSlotCount: Int get() = bandSlots.size
+  internal val bandSlotCount: Int get() = bands.size
 
   /** The slot for the [index]th band of a layered progressive draw, in draw order. */
-  internal fun bandSlot(index: Int): BlurRenderEffectSlot {
-    while (bandSlots.size <= index) bandSlots += blurVisualEffect.renderEffectSlotFactory()
-    return bandSlots[index]
+  internal fun bandSlot(index: Int): BlurRenderEffectSlot = band(index).slot
+
+  /** The retained layer for the [index]th band, recorded again on every layered draw. */
+  internal fun bandLayer(index: Int): RetainedGraphicsLayer = band(index).layer
+
+  private fun band(index: Int): Band {
+    while (bands.size <= index) bands += Band(blurVisualEffect.renderEffectSlotFactory())
+    return bands[index]
   }
 
-  /** Drops the slots of bands the latest layered draw no longer has. */
+  /** Drops the slots and layers of bands the latest layered draw no longer has, and the masks with the last. */
   internal fun trimBandSlots(count: Int) {
-    while (bandSlots.size > count) bandSlots.removeAt(bandSlots.lastIndex).reset()
+    while (bands.size > count) {
+      bands.removeAt(bands.lastIndex).let {
+        it.slot.reset()
+        it.layer.release()
+      }
+    }
+    if (count == 0) bandMasks.clear()
+  }
+
+  private class Band(val slot: BlurRenderEffectSlot) {
+    val layer = RetainedGraphicsLayer()
   }
 
   @Poko
@@ -242,6 +257,7 @@ internal fun shouldDrawProgressiveWithLayers(
 internal fun DrawScope.drawProgressiveWithMultipleLayers(
   progressive: RootHazeProgressive.LinearGradient,
   stepHeight: Dp = 64.dp,
+  masks: BandMasks? = null,
   block: (mask: Brush, intensity: Float) -> Unit,
 ) {
   // Use 64dp per step to balance quality and drawing work.
@@ -270,14 +286,7 @@ internal fun DrawScope.drawProgressiveWithMultipleLayers(
       progressive.easing.transform(fraction),
     )
 
-    val mask = Brush.linearGradient(
-      (i - 2f) / steps to Color.Transparent,
-      (i - 1f) / steps to Color.Black,
-      (i + 0f) / steps to Color.Black,
-      (i + 1f) / steps to Color.Transparent,
-      start = progressive.start,
-      end = progressive.end,
-    )
+    val mask = masks?.maskFor(progressive, steps, i) ?: bandMask(progressive, steps, i)
 
     block(mask, intensity)
   }
