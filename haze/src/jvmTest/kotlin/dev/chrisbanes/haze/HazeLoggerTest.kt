@@ -7,14 +7,14 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import kotlin.test.Test
 
-class LogDebugTest {
+class HazeLoggerTest {
 
   @Test
-  fun logDebug_disabledDoesNotInvokeMessage() {
+  fun d_disabledDoesNotInvokeMessage() {
     var calls = 0
 
     withLogging(enabled = false) {
-      logDebug("Foo") {
+      HazeLogger.d("Foo") {
         calls++
         error("message built while logging is disabled")
       }
@@ -24,11 +24,39 @@ class LogDebugTest {
   }
 
   @Test
-  fun logDebug_enabledInvokesMessageOnce() {
+  fun d_withThrowableDisabledDoesNotInvokeMessage() {
+    var calls = 0
+
+    withLogging(enabled = false) {
+      HazeLogger.d("Foo", RuntimeException("x")) {
+        calls++
+        error("message built while logging is disabled")
+      }
+    }
+
+    assertThat(calls).isEqualTo(0)
+  }
+
+  @Test
+  fun d_enabledInvokesMessageOnce() {
     var calls = 0
 
     withLogging(enabled = true) {
-      logDebug("Foo") {
+      HazeLogger.d("Foo") {
+        calls++
+        "foo"
+      }
+    }
+
+    assertThat(calls).isEqualTo(1)
+  }
+
+  @Test
+  fun d_withThrowableEnabledInvokesMessageOnce() {
+    var calls = 0
+
+    withLogging(enabled = true) {
+      HazeLogger.d("Foo", RuntimeException("x")) {
         calls++
         "foo"
       }
