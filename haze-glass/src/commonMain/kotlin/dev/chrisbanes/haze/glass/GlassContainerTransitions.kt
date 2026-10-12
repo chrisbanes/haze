@@ -45,9 +45,21 @@ internal fun lerpGlassMergedMember(from: GlassMergedMember, to: GlassMergedMembe
 internal fun GlassMemberSnapshot.shape(): GlassMergedMember =
   GlassMergedMember(layoutRect, material.cornerRadii, material.tint, material.backgroundColor)
 
-/** [shape] interpolated from [from] towards this member. */
+/**
+ * What this member draws: its interaction-transformed rect, with its corners scaled as the
+ * renderer scales them.
+ */
+internal fun GlassMemberSnapshot.drawnShape(): GlassMergedMember {
+  val scale = minOf(rect.width / layoutRect.width, rect.height / layoutRect.height)
+  return GlassMergedMember(rect, material.cornerRadii * scale, material.tint, material.backgroundColor)
+}
+
+/**
+ * [shape] interpolated from [from]'s [drawn outline][drawnShape] towards this member, so a morph
+ * starts or ends where a pressed neighbour draws rather than at its layout rect.
+ */
 internal fun GlassMemberSnapshot.morphedFrom(from: GlassMemberSnapshot, fraction: Float): Pair<Rect, ResolvedGlassStyle> {
-  val shape = lerpGlassMergedMember(from.shape(), shape(), fraction)
+  val shape = lerpGlassMergedMember(from.drawnShape(), shape(), fraction)
   return shape.rect to material.copy(cornerRadii = shape.cornerRadii, tint = shape.tint, backgroundColor = shape.backgroundColor)
 }
 

@@ -11,9 +11,13 @@ import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
+import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
@@ -21,6 +25,7 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.prop
+import dev.chrisbanes.haze.HazeInput
 import kotlin.test.Test
 
 class GlassContainerTransitionsTest {
@@ -66,6 +71,19 @@ class GlassContainerTransitionsTest {
     assertThat(overshoot).prop(GlassMergedMember::rect).prop(Rect::width).isGreaterThanOrEqualTo(1f)
     assertThat(overshoot.tint).isEqualTo(Color.Blue)
     assertThat(overshoot.backgroundColor).isEqualTo(Color.White)
+  }
+
+  @Test
+  fun morphedFrom_atStart_isNeighboursDrawnOutline() {
+    val effect = GlassRuntimeEffect()
+    val material = resolveGlassStyle(effect, Size(100f, 80f), Density(1f), LayoutDirection.Ltr).copy(cornerRadii = CornerRadii(20f, 20f, 20f, 20f))
+    val key = glassMergeKey(HazeInput.Content, true, 0.5f, effect, material, LayoutDirection.Ltr)
+    // A neighbour pressed to 0.94 about its centre.
+    val neighbour = GlassMemberSnapshot(0, Rect(43f, 62.4f, 137f, 137.6f), key, material, translationOnly = true, layoutRect = Rect(40f, 60f, 140f, 140f))
+    val member = GlassMemberSnapshot(1, Rect(150f, 60f, 250f, 140f), key, material, translationOnly = true, layoutRect = Rect(150f, 60f, 250f, 140f))
+    val (rect, morphed) = member.morphedFrom(neighbour, 0f)
+    assertThat(rect).isEqualTo(Rect(43f, 62.4f, 137f, 137.6f))
+    assertThat(morphed.cornerRadii.topLeft).isCloseTo(18.8f, 0.001f)
   }
 
   private fun peak(spec: FiniteAnimationSpec<Float>): Float {

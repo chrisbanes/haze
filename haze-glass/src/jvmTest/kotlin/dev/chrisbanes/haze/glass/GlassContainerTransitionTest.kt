@@ -7,18 +7,24 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
@@ -53,6 +59,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.math.abs
 import kotlin.test.Test
+import kotlinx.coroutines.runBlocking
 
 class GlassContainerTransitionTest : ContextTest() {
   @Test
@@ -695,6 +702,35 @@ class GlassContainerTransitionTest : ContextTest() {
     fixture.settle()
   }
 
+  @Test
+  fun matchedGeometry_attachToPressedNeighbour_startsOnItsDrawnOutline() = runComposeUiTest {
+    val fixture = fixture(present = false, bStyle = GlassStyle { shape(RoundedCornerShape(20.dp)) })
+    fixture.pressA()
+    val a = fixture.a()
+    assertThat(a.rect).isCloseTo(Rect(43f, 62.4f, 137f, 137.6f), tolerance = 0.1f)
+    fixture.toggle()
+    // B's first frame is A as drawn: scaled by 0.94 with its corners scaled to match.
+    assertThat(fixture.b()).all {
+      prop(GlassMemberSnapshot::link).isEqualTo(fixture.aNode)
+      prop(GlassMemberSnapshot::rect).isCloseTo(a.rect, tolerance = 0.1f)
+      prop(GlassMemberSnapshot::material).prop(ResolvedGlassStyle::cornerRadii).prop(CornerRadii::topLeft).isCloseTo(18.8f, 0.1f)
+    }
+    fixture.settle()
+  }
+
+  @Test
+  fun matchedGeometry_detachFromPressedNeighbour_retractsTowardsItsDrawnOutline() = runComposeUiTest {
+    val fixture = fixture(bStyle = GlassStyle { shape(RoundedCornerShape(20.dp)) })
+    fixture.pressA()
+    val a = fixture.a().rect
+    fixture.toggle()
+    fixture.advance(240)
+    val ghost = fixture.b()
+    val progress = (ghost.identity as GlassMemberGhost).progress.value
+    assertThat(ghost.rect).isCloseTo(lerp(a, Rect(150f, 60f, 250f, 140f), progress), tolerance = 0.1f)
+    fixture.settle()
+  }
+
   /** Starts B growing out of A, breaks one start condition, and expects B to snap to its own rect. */
   private fun assertGrowEnds(change: Fixture.() -> Unit) = runComposeUiTest {
     val fixture = fixture(present = false)
@@ -759,12 +795,29 @@ class GlassContainerTransitionTest : ContextTest() {
     val bSourced = mutableStateOf(false)
     val spacing = mutableStateOf(40)
 
+    val aSource = MutableInteractionSource()
+
     val aNode: GlassMemberNode? by lazy { a.memberBindingForTest?.node }
     lateinit var owner: GlassContainerNode
 
     fun owner(): GlassContainerNode = (aNode?.container ?: b.memberBindingForTest?.node?.container)?.also { owner = it } ?: owner
 
     private var bNode: GlassMemberNode? = null
+
+    fun a(): GlassMemberSnapshot = owner().model.surfaces.flatMap { it.members }.single { it.identity === aNode }
+
+    /** Gives A a 20dp shape that snaps to 0.94 when pressed, then presses it. */
+    fun pressA() {
+      test.runOnIdle {
+        aExtra.value = GlassStyle {
+          shape(RoundedCornerShape(20.dp))
+          pressed { animate(snap(), snap()) { scale(0.94f) } }
+        }
+      }
+      advance(16)
+      runBlocking { aSource.emit(PressInteraction.Press(Offset(50f, 40f))) }
+      advance(16)
+    }
 
     /** B's snapshot: the live member or its ghost. */
     fun b(): GlassMemberSnapshot {
@@ -832,7 +885,7 @@ class GlassContainerTransitionTest : ContextTest() {
               Modifier.offset(40.dp, 60.dp).size(aWidth.value.dp, 80.dp).graphicsLayer {
                 rotationZ = fixture.aRotation.value
                 scaleY = fixture.aScaleY.value
-              }.hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(aState.value), containerTestStyle(Color.Red).then(fixture.aExtra.value), HazePerformanceMode.Quality, true, null),
+              }.hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(aState.value), containerTestStyle(Color.Red).then(fixture.aExtra.value), HazePerformanceMode.Quality, true, fixture.aSource),
             )
           }
           Box(
