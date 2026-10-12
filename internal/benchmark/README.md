@@ -454,8 +454,9 @@ where process.name = 'dev.chrisbanes.haze.sample.android'
 group by thread.name, sched.cpu order by thread.name, sched.cpu;
 ```
 
-Run it over each trace with Perfetto's `trace_processor_shell`, one iteration per trace. The loop below covers both methods in both measured passes (32 traces). The loops
-above run in subshells, so set `results_dir` to the path they printed after `Results:`:
+Run it over each trace with Perfetto's `trace_processor_shell`, one iteration per trace. This
+covers both methods in both measured passes (32 traces). The loops above run in subshells, so set
+`results_dir` to the path they printed after `Results:`:
 
 ```bash
 results_dir=internal/benchmark/build/benchmark-results/container.XXXXXX  # replace XXXXXX with the printed suffix
