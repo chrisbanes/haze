@@ -34,6 +34,7 @@ import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.node.TraversableNode
+import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
@@ -155,7 +156,7 @@ internal class HazeEffectNode(
   private val geometryObserver = delegate(
     HazeEffectGeometryObserverNode {
       dirtyTracker += DirtyFields.AreaPositionReads
-      refreshGeometry()
+      refreshGeometry(fromObserver = true)
     },
   )
 
@@ -539,7 +540,7 @@ internal class HazeEffectNode(
     if (notifySurface) notifySurfaceIfGeometryChanged()
   }
 
-  private fun refreshGeometry() {
+  private fun refreshGeometry(fromObserver: Boolean = false) {
     if (!isAttached) return
     // Never place a stale selection: a source joining or leaving (even in this layout pass, #1437)
     // notifies both scopes in no fixed order, so membership changes run the configuration pass.
@@ -548,7 +549,9 @@ internal class HazeEffectNode(
       stateAreas != null && !stateAreasMatchLastSeen(stateAreas)
     }
     if (membershipChanged) {
-      refreshObservedReads()
+      // The configuration scope reads the same list and versions, so an observer notification for
+      // it is already pending; running it here as well would update the renderer twice.
+      if (!fromObserver) refreshObservedReads()
       return
     }
     if (!observeGeometry()) observedUpdateCompleted = false
@@ -1049,7 +1052,8 @@ internal class HazeEffectNode(
           }
         _areas = filteredAreas
 
-        if (!retainOutputWhenSourceUnavailable && !hasDrawableSourceLayers()) {
+        // Source sizes and layers are geometry: reading them here would re-run the renderer update.
+        if (!retainOutputWhenSourceUnavailable && !Snapshot.withoutReadObservation { hasDrawableSourceLayers() }) {
           clearRetainedOutput()
         }
       }
@@ -1326,25 +1330,31 @@ internal class HazeEffectNode(
 
   private fun updateAreaTransforms(effectRoot: LayoutCoordinates?) {
     var haveAreaTransformsChanged = areaTransforms.keys.removeAll { it !in areas }
-    var retainedAreaMoved = false
 
     val scratch = areaTransformScratch
     for (area in areas) {
       calculateSourceTransformInEffect(area, effectRoot, scratch)
-      val previous = areaTransforms[area]
-      if (previous?.hasSameValues(scratch) != true) {
-        if (previous != null) retainedAreaMoved = true
+      if (areaTransforms[area]?.hasSameValues(scratch) != true) {
         areaTransforms[area] = Matrix(scratch.values.copyOf())
         haveAreaTransformsChanged = true
       }
     }
 
-    // Output retained from moved sources is stale; a source leaving keeps it (KeepLastFrame).
-    if (retainedAreaMoved) invalidateRetainedOutput()
     if (haveAreaTransformsChanged) {
       HazeLogger.d(TAG) { "areaTransforms changed" }
       dirtyTracker += DirtyFields.AreaTransforms
+      invalidateSurfaceOwnerDraw()
     }
+  }
+
+  /**
+   * A relocated member's output is drawn by its owner, whose recorded draw this node's own
+   * invalidation does not reach when a layer separates them. Moving sources need a redraw only, so
+   * this does not notify the owner, which would recluster its members.
+   */
+  private fun invalidateSurfaceOwnerDraw() {
+    val owner = surface.owner as? DrawModifierNode ?: return
+    if (owner.node.isAttached) owner.invalidateDraw()
   }
 
   internal fun sourceTransformInEffect(area: HazeArea): Matrix =
@@ -1674,7 +1684,9 @@ internal class HazeEffectNode(
     releaseBackdropRenderer()
     backdropBackendState.attach(backdropEnabledAtAttach)
     refreshResolvedSourcesInput(previousSources)
-    update()
+    // Reached while the owner draws its surfaces, so it is not notified here.
+    dirtyTracker += DirtyFields.AreaPositionReads
+    refreshObservedReads(notifySurface = false)
   }
 
   internal fun drawRelocatedSurface(scope: DrawScope, owner: LayoutCoordinates?) {
