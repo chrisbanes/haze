@@ -4,8 +4,11 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.SkiaGraphicsContext
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import assertk.assertThat
+import assertk.assertions.isEmpty
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import kotlin.test.Test
@@ -26,11 +29,17 @@ class HazeAreaReleaseContentLayerTest {
   }
 
   @Test
-  fun releaseContentLayer_withoutALayer_leavesTheAreaClear() {
-    val area = HazeArea()
+  fun releaseContentLayer_withoutALayer_releasesNothing() {
+    val released = mutableListOf<GraphicsLayer>()
+    val graphicsContext = object : GraphicsContext {
+      override fun createGraphicsLayer(): GraphicsLayer = error("Unused")
+      override fun releaseGraphicsLayer(layer: GraphicsLayer) {
+        released += layer
+      }
+    }
 
-    area.releaseContentLayer(SkiaGraphicsContext())
+    HazeArea().releaseContentLayer(graphicsContext)
 
-    assertThat(area.contentLayer).isNull()
+    assertThat(released).isEmpty()
   }
 }

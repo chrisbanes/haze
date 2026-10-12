@@ -30,7 +30,6 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
-import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
@@ -156,15 +155,17 @@ class ScaledContentTest {
     val context = FakeRuntimeDrawScope()
 
     // 21 * 0.4 = 8.4: the capture rounds to 8px, the outline outward to 9px.
-    val layer = context.createScaledContentLayer(
-      context = context,
-      backgroundColor = Color.Red,
-      scaleFactor = 0.4f,
-      layerSize = Size(21f, 21f),
+    val layer = checkNotNull(
+      context.createScaledContentLayer(
+        context = context,
+        backgroundColor = Color.Red,
+        scaleFactor = 0.4f,
+        layerSize = Size(21f, 21f),
+      ),
     )
 
-    assertThat(layer).isNotNull().prop(GraphicsLayer::size).isEqualTo(IntSize(8, 8))
-    assertThat(layer!!.outline).isInstanceOf<Outline.Rectangle>()
+    assertThat(layer.size).isEqualTo(IntSize(8, 8))
+    assertThat(layer.outline).isInstanceOf<Outline.Rectangle>()
       .prop(Outline.Rectangle::rect).isEqualTo(Rect(0f, 0f, 9f, 9f))
   }
 
