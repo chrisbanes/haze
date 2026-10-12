@@ -95,6 +95,30 @@ class ScrimBlurLayerReuseTest {
   }
 
   @Test
+  fun clearRetainedOutput_throughBlurVisualEffect_releasesBothLayers() {
+    val h = Harness(alpha = 0.5f, mask = verticalMask, tint = colorTint)
+    h.draw()
+
+    h.effect.clearRetainedOutput()
+
+    assertThat(h.context.releasedLayers).isEqualTo(2)
+    h.draw()
+    assertThat(h.context.createdLayers).isEqualTo(4)
+  }
+
+  @Test
+  fun invalidateRetainedOutput_throughBlurVisualEffect_keepsTheLayers() {
+    val h = Harness(alpha = 0.5f, mask = verticalMask, tint = colorTint)
+    h.draw()
+
+    h.effect.invalidateRetainedOutput()
+    h.draw()
+
+    assertThat(h.context.releasedLayers).isEqualTo(0)
+    assertThat(h.context.createdLayers).isEqualTo(2)
+  }
+
+  @Test
   fun onTrimMemory_background_keepsTheLayers() {
     val h = Harness(alpha = 0.5f, mask = verticalMask, tint = colorTint)
     h.draw()
@@ -171,6 +195,7 @@ class ScrimBlurLayerReuseTest {
     val context = RecordingDrawContext()
 
     init {
+      effect.delegate = delegate
       update(alpha, mask, tint)
     }
 

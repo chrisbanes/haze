@@ -41,6 +41,12 @@ internal class ScrimBlurVisualEffectDelegate(
 
   override fun detach() = releaseLayers()
 
+  override fun clearRetainedOutput() = releaseLayers()
+
+  // The layers are re-recorded at the current size on every draw, so a size change must not
+  // release them (the default would forward to [clearRetainedOutput]).
+  override fun invalidateRetainedOutput() = Unit
+
   override fun onTrimMemory(context: HazeEffectLifecycleScope, level: TrimMemoryLevel) {
     if (level.severity >= TrimMemoryLevel.MODERATE.severity) releaseLayers()
   }
