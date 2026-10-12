@@ -114,6 +114,18 @@ have one- and nine-effect variants. `source_update_quality`, `source_update_bala
 `source_update_performance` are the controlled changing-input
 calibration rows. The default steady scenario additionally has a three-effect variant.
 
+### Source-scroll workloads
+
+The source-scroll workloads move only the source. `source_scroll_balanced` and
+`source_scroll_balanced_9` exist for both Blur (`BenchmarkTest#blurSourceScrollBalanced` and
+`#blurSourceScrollBalanced9`) and Glass (`GlassProfilingBenchmark#sourceScrollBalanced` and
+`#sourceScrollBalanced9`). Each offsets a full-size source vertically from 0 to 48 dp and back,
+three times over the three-second window. The offset is read only during placement, so the source
+is re-placed without recomposition. The one or nine `Balanced` effects keep a fixed size, position,
+and style, and the source pixels themselves do not change. The workload isolates the cost of an
+effect following its source's geometry (#1456). Run the comparison with
+[Run the source-scroll comparison](#run-the-source-scroll-comparison).
+
 ### Fixed-quality sweep
 
 The Glass-only fixed-quality sweep measures one regular-style effect at each requested
@@ -270,6 +282,60 @@ for method in "${methods[@]}"; do
 done
 )
 ```
+
+## Run the source-scroll comparison
+
+This gate compares two builds: build A, the commit that adds the source-scroll scenarios without a
+library change, and build B, the change under test. Create a worktree at each, prepare the device
+as described above, and use eight measured iterations.
+
+First dry-run every method once in each worktree, one invocation per method, and check that each
+XML result names its method:
+
+```shell
+./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true \
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurSourceScrollBalanced
+```
+
+Then run this loop in each worktree, in the order A, B, then B, A. The last four methods are guards:
+the source-update and list workloads should not regress beyond single-pass uncertainty.
+
+```bash
+(
+set -e
+trap 'adb shell cmd power set-fixed-performance-mode-enabled false' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+adb shell cmd power set-fixed-performance-mode-enabled true
+mkdir -p internal/benchmark/build/benchmark-results
+results_dir=$(mktemp -d internal/benchmark/build/benchmark-results/source-scroll.XXXXXX)
+echo "Results: $results_dir"
+methods=(
+  "BenchmarkTest#blurSourceScrollBalanced"
+  "BenchmarkTest#blurSourceScrollBalanced9"
+  "GlassProfilingBenchmark#sourceScrollBalanced"
+  "GlassProfilingBenchmark#sourceScrollBalanced9"
+  "BenchmarkTest#blurSourceUpdateBalanced"
+  "GlassProfilingBenchmark#sourceUpdateBalanced"
+  "GlassProfilingBenchmark#sourceUpdate9"
+  "BenchmarkTest#imagesList"
+)
+for method in "${methods[@]}"; do
+  ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
+    -Pandroid.testInstrumentationRunnerArguments.class="dev.chrisbanes.haze.${method}"
+  python3 internal/benchmark/archive_result.py \
+    --method "dev.chrisbanes.haze.${method}" \
+    --destination "$results_dir/$method"
+done
+)
+```
+
+Copy each archive out of its worktree before the next build replaces outputs. Record the device
+model and build, refresh rate, thermal and battery state, both builds' SHAs and APK SHA-256 hashes,
+and the run order. Before attributing an apparent guard regression to the code, report its
+per-iteration CPU placement as described in
+[Check CPU placement before attributing a regression](#check-cpu-placement-before-attributing-a-regression).
 
 ## Run the fixed-quality sweep
 

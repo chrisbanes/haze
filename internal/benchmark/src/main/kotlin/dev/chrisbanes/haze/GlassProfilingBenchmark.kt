@@ -99,6 +99,12 @@ class GlassProfilingBenchmark {
   fun sourceUpdatePerformance() = measureCalibrationScenario("source_update_performance")
 
   @Test
+  fun sourceScrollBalanced() = measureCalibrationScenario("source_scroll_balanced")
+
+  @Test
+  fun sourceScrollBalanced9() = measureCalibrationScenario("source_scroll_balanced_9")
+
+  @Test
   fun sourceUpdateFixed0() = measureCalibrationScenario("source_update_fixed_0")
 
   @Test

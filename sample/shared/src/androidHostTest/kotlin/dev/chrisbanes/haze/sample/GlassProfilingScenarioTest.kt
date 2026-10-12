@@ -185,6 +185,8 @@ class GlassProfilingScenarioTest {
         "resize_quality_9",
         "shape_update_balanced",
         "shape_update_balanced_9",
+        "source_scroll_balanced",
+        "source_scroll_balanced_9",
       ),
     )
     assertThat(
@@ -351,6 +353,27 @@ class GlassProfilingScenarioTest {
 
       assertThat(readCount, name = scenario.id).isEqualTo(if (updatesSource) 1 else 0)
       assertThat(resolved, name = scenario.id).isEqualTo(if (updatesSource) 0.75f else 0f)
+    }
+  }
+
+  @Test
+  fun sourceScrollScenarios_keepSourceContentStaticWithBalancedOneOrNineEffects() {
+    listOf(
+      GlassProfilingScenario.SourceScrollBalanced to 1,
+      GlassProfilingScenario.SourceScrollBalanced9 to 9,
+    ).forEach { (scenario, effectCount) ->
+      assertThat(scenario.scrollsSource, name = scenario.id).isTrue()
+      assertThat(scenario.effectCount, name = scenario.id).isEqualTo(effectCount)
+      assertThat(scenario.performanceMode, name = scenario.id).isEqualTo(HazePerformanceMode.Balanced)
+      for (progress in listOf(0f, 0.5f, 1f)) {
+        assertThat(glassProfilingFrame(scenario, progress), name = scenario.id).isEqualTo(GlassProfilingFrame())
+      }
+    }
+    GlassProfilingScenario.entries.forEach { scenario ->
+      assertThat(scenario.scrollsSource, name = scenario.id).isEqualTo(
+        scenario == GlassProfilingScenario.SourceScrollBalanced ||
+          scenario == GlassProfilingScenario.SourceScrollBalanced9,
+      )
     }
   }
 
