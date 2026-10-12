@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fallback Glass surfaces with a `backgroundColor` no longer draw their backdrop offset by the
-  layer padding, for standalone members and members of a `hazeGlassContainer`.
+  layer padding.
 
 ## 2.0.1 <small>2026-09-29</small> { id="2.0.1" }
 

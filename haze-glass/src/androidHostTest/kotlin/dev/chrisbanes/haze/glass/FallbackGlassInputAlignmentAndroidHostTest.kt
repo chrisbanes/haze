@@ -92,7 +92,14 @@ class FallbackGlassInputAlignmentAndroidHostTest : ScreenshotTest() {
   private fun Member(effect: GlassRuntimeEffect, state: HazeState, x: Int) {
     Box(
       Modifier.offset { IntOffset(x, 250) }.pxSize(200, 160)
-        .hazeGlass(HazeEffectFactory { effect }, HazeInput.Sources(state), style, null, true, null),
+        .hazeGlass(
+          factory = HazeEffectFactory { effect },
+          input = HazeInput.Sources(state),
+          style = style,
+          performanceMode = null,
+          expandLayerBounds = true,
+          interactionSource = null,
+        ),
     )
   }
 
