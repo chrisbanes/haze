@@ -43,6 +43,8 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
+private const val TRANSITION_MILLIS = 150
+
 /**
  * Characterises what a [hazeGlassContainer] does with the members of a lazy layout, to back the
  * guidance in `docs/effects/glass.md` ("Lazy layouts") and the [GlassMemberTransition] KDoc.
@@ -59,6 +61,11 @@ import kotlin.test.Test
  * The tests use 6px per frame because that rate keeps item 5's grow running for its whole
  * duration. They characterise the first item only: later items depend on whether their neighbour
  * is still animating.
+ *
+ * The container animates over [TRANSITION_MILLIS] milliseconds, about 10 frames. Each frame
+ * draws the glass on the CPU, which takes a few hundred milliseconds in the desktop tests.
+ * `runComposeUiTest` fails a body that takes more than 60 seconds of wall-clock time, so
+ * [LazyFixture.settle] runs only as many frames as the animations need.
  *
  * `PrefetchScheduler` cannot be driven from `jvmTest`, so the prefetch test uses the API that lazy
  * prefetch is built on, [SubcomposeLayoutState.precompose] and `premeasure`. It shows the same
@@ -83,7 +90,7 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     assertThat(settled.fading).isFalse()
 
     // It stays visible and lagging while item 0, which scrolled out, leaves a ghost.
-    fixture.frames(5)
+    fixture.frames(3)
     assertThat(checkNotNull(fixture.member(5)).rect.overlaps(fixture.viewport)).isTrue()
     val ghosts = fixture.ghosts()
     assertThat(ghosts).isNotEmpty()
@@ -158,7 +165,7 @@ class GlassContainerLazyLayoutTest : ContextTest() {
           Modifier
             .offset(0.dp, 80.dp)
             .size(360.dp, 80.dp)
-            .hazeGlassContainer(16.dp, tween(300, easing = LinearEasing), GlassReducedMotionPolicy.Full),
+            .hazeGlassContainer(16.dp, tween(TRANSITION_MILLIS, easing = LinearEasing), GlassReducedMotionPolicy.Full),
         ) { constraints ->
           val fixed = Constraints.fixed(80.dp.roundToPx(), 80.dp.roundToPx())
           val items = placed.value.map { index -> index to subcompose(index, content(index)).map { it.measure(fixed) } }
@@ -200,7 +207,8 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     assertThat(entering.link).isNotNull()
     assertThat(entering.rect.overlaps(Rect(0f, 0f, 360f, 80f))).isTrue()
 
-    mainClock.advanceTimeBy(400)
+    mainClock.autoAdvance = true
+    waitForIdle()
     runOnIdle { handle.dispose() }
   }
 
@@ -233,8 +241,12 @@ class GlassContainerLazyLayoutTest : ContextTest() {
 
     fun scroll(frames: Int) = frames(frames, scrollPerFrame = 6f)
 
-    /** Longer than the 300ms transition, so every animation has finished. */
-    fun settle() = frames(25)
+    /** Runs frames until every animation has finished. */
+    fun settle() {
+      test.mainClock.autoAdvance = true
+      test.waitForIdle()
+      test.mainClock.autoAdvance = false
+    }
   }
 
   private fun ComposeUiTest.lazyFixture(transition: GlassMemberTransition): LazyFixture {
@@ -249,7 +261,7 @@ class GlassContainerLazyLayoutTest : ContextTest() {
           modifier = Modifier
             .offset(0.dp, 80.dp)
             .size(360.dp, 80.dp)
-            .hazeGlassContainer(16.dp, tween(300, easing = LinearEasing), GlassReducedMotionPolicy.Full),
+            .hazeGlassContainer(16.dp, tween(TRANSITION_MILLIS, easing = LinearEasing), GlassReducedMotionPolicy.Full),
           horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
           items(40, key = { it }) { index ->
