@@ -149,6 +149,10 @@ internal class RenderScriptBlurVisualEffectDelegate(
             context.invalidateDraw()
           }
         }
+      } ?: run {
+        // An empty scaled size leaves nothing to capture, so the kept layers would only linger.
+        captureLayer.release()
+        paddedLayer.release()
       }
     } else if (hasDrawableSourceLayers) {
       // Mark this draw as skipped
