@@ -109,6 +109,7 @@ package dev.chrisbanes.haze {
     method @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.PlatformRuntimeEffect createRuntimeEffect(String sksl);
     method @RequiresApi(android.os.Build.VERSION_CODES.TIRAMISU) @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.PlatformRenderEffect createRuntimeShaderRenderEffect(dev.chrisbanes.haze.PlatformRuntimeEffect effect, String[] shaderNames, dev.chrisbanes.haze.PlatformRenderEffect?[] inputs, kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.RuntimeShaderUniformProvider,kotlin.Unit> uniforms);
     method @ChecksSdkIntAtLeast(api=33) @dev.chrisbanes.haze.InternalHazeApi public static boolean isRuntimeShaderRenderEffectSupported();
+    method @KotlinOnly @RequiresApi(android.os.Build.VERSION_CODES.TIRAMISU) @dev.chrisbanes.haze.InternalHazeApi public static long toAndroidColorLong(androidx.compose.ui.graphics.Color);
   }
 
   public final class Shader_androidKt {

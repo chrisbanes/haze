@@ -269,7 +269,9 @@ internal class RecordedUniforms : RuntimeShaderUniformProvider {
  * numbers the others (BT.2020 HLG and PQ, Oklab, ...) differently, and its own `toColorLong` returns an
  * invalid value for some of them on older SDKs, so those take the platform's pack function.
  */
-private fun Color.toAndroidColorLong(): Long = when {
+@InternalHazeApi
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+public fun Color.toAndroidColorLong(): Long = when {
   isUnspecified -> 0L // Transparent black, as the shader has always received for Color.Unspecified.
   (value and 63u).toInt() <= 15 -> value.toLong()
   else -> android.graphics.Color.pack(red, green, blue, alpha, colorSpace.toAndroidColorSpace())
