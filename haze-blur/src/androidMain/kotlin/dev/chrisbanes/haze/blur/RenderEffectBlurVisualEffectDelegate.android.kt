@@ -42,6 +42,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   inputScale: Float,
 ) {
   if (Build.VERSION.SDK_INT >= 33) {
+    trimBandSlots(0)
     with(drawScope) {
       effectSlot.apply(
         contentLayer,
@@ -71,6 +72,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
     )
   } else {
     // Otherwise draw the masked blur over its input, preserving unblurred regions.
+    trimBandSlots(0)
     with(drawScope) {
       effectSlot.apply(
         contentLayer,

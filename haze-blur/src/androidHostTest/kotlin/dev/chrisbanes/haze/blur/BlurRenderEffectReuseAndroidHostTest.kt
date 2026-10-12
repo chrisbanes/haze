@@ -107,6 +107,28 @@ class BlurRenderEffectReuseAndroidHostTest : ScreenshotTest() {
 
   @Test
   @Config(sdk = [32])
+  fun leavingTheLayeredBranch_releasesTheBandSlots() = runScreenshotTest {
+    val probe = Probe()
+    var style by mutableStateOf(LINEAR)
+    setContent { BlurContent(probe, style, Color.White) }
+    frame()
+    assertThat(probe.delegate.bandSlotCount).isGreaterThan(0)
+
+    style = RADIAL
+    frame()
+    assertThat(probe.delegate.bandSlotCount, "masked").isEqualTo(0)
+
+    style = LINEAR
+    frame()
+    assertThat(probe.delegate.bandSlotCount).isGreaterThan(0)
+
+    style = ORDINARY
+    frame()
+    assertThat(probe.delegate.bandSlotCount, "ordinary").isEqualTo(0)
+  }
+
+  @Test
+  @Config(sdk = [32])
   fun layered_changedProgressive_matchesAFreshAttachment() = runScreenshotTest {
     val probe = Probe()
     var progressive by mutableStateOf(HazeProgressive.verticalGradient(startIntensity = 0.2f, endIntensity = 0.8f))

@@ -140,6 +140,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
           inputScale = scaleFactor,
         )
       } else {
+        trimBandSlots(0)
         // Always resolve the current RenderEffect, so changes coming from either the effect itself
         // or the hosting node (e.g., size, layer offset, input scale) are reflected without relying
         // on local dirty flags. The slot makes the unchanged case cheap.
