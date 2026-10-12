@@ -57,7 +57,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
   private val blurVisualEffect: BlurVisualEffect,
   private val graphicsContext: GraphicsContext,
   private val platformContext: PlatformContext,
-) : BlurVisualEffect.Delegate, RetainedOutputDelegate {
+) : BlurVisualEffect.Delegate {
 
   @Volatile
   private var renderScript = RenderScript.create(platformContext.applicationContext)

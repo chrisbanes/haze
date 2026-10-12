@@ -129,7 +129,7 @@ internal class BlurVisualEffect(
   ): HazeEffectBackdrop? {
     return try {
       with(this as DrawScope) { selectDelegateForDraw(this@backdropEffect) }
-      if (delegate !is RenderEffectBlurVisualEffectDelegate) return null
+      if (!delegate.supportsBackdropRenderEffect) return null
 
       HazeEffectBackdrop(
         platformEffect = getOrCreateRenderEffect(
@@ -165,7 +165,7 @@ internal class BlurVisualEffect(
   }
 
   override fun shouldDrawContentBehind(): Boolean {
-    return delegate is ScrimBlurVisualEffectDelegate
+    return delegate.drawsContentBehind
   }
 
   override fun onTrimMemory(level: TrimMemoryLevel) {
@@ -174,19 +174,19 @@ internal class BlurVisualEffect(
   }
 
   override fun canDrawRetainedOutput(): Boolean {
-    return (delegate as? RetainedOutputDelegate)?.canDrawRetainedOutput() == true
+    return delegate.canDrawRetainedOutput()
   }
 
   override fun shouldDrawRetainedOutput(): Boolean {
-    return (delegate as? RetainedOutputDelegate)?.shouldDrawRetainedOutput() == true
+    return delegate.shouldDrawRetainedOutput()
   }
 
   override fun clearRetainedOutput() {
-    (delegate as? RetainedOutputDelegate)?.clearRetainedOutput()
+    delegate.clearRetainedOutput()
   }
 
   override fun invalidateRetainedOutput() {
-    (delegate as? RetainedOutputDelegate)?.invalidateRetainedOutput()
+    delegate.invalidateRetainedOutput()
   }
 
   override fun shouldClipToNodeBounds(): Boolean = blurredEdgeTreatment.isBounded()
@@ -292,6 +292,19 @@ internal class BlurVisualEffect(
     fun DrawScope.draw(context: HazeEffectRuntimeDrawScope)
     fun detach() = Unit
     fun onTrimMemory(context: HazeEffectLifecycleScope, level: TrimMemoryLevel) = Unit
+
+    /** Whether this delegate draws the content behind the blur itself, rather than the node. */
+    val drawsContentBehind: Boolean get() = false
+
+    /** Whether the backdrop path can use this delegate's RenderEffect. */
+    val supportsBackdropRenderEffect: Boolean get() = false
+
+    fun canDrawRetainedOutput(): Boolean = false
+    fun shouldDrawRetainedOutput(): Boolean = canDrawRetainedOutput()
+    fun clearRetainedOutput() = Unit
+
+    /** See [dev.chrisbanes.haze.HazeEffectRendererRetainedOutput.invalidateRetainedOutput]. */
+    fun invalidateRetainedOutput() = clearRetainedOutput()
   }
 
   internal companion object {
@@ -304,17 +317,6 @@ private fun Color.prefersClipToAreaBounds(): Boolean {
 }
 
 private fun BlurredEdgeTreatment.isBounded(): Boolean = shape != null
-
-internal interface RetainedOutputDelegate {
-  fun canDrawRetainedOutput(): Boolean
-
-  fun shouldDrawRetainedOutput(): Boolean = canDrawRetainedOutput()
-
-  fun clearRetainedOutput()
-
-  /** See [dev.chrisbanes.haze.HazeEffectRendererRetainedOutput.invalidateRetainedOutput]. */
-  fun invalidateRetainedOutput() = clearRetainedOutput()
-}
 
 /** Tracks whether an asynchronously generated Blur output is still valid for presentation. */
 internal class BlurRetainedOutputState {

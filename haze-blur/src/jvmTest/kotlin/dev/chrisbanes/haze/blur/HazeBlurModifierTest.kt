@@ -436,7 +436,7 @@ private class RecordingBlurRenderer :
 
 private class ModifierTrackingDelegate(
   private val retainedOutputAvailable: Boolean = false,
-) : BlurVisualEffect.Delegate, RetainedOutputDelegate {
+) : BlurVisualEffect.Delegate {
   var attachCount = 0
     private set
   var detachCount = 0
