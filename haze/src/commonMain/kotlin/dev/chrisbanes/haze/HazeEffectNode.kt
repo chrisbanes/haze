@@ -6,7 +6,6 @@
 
 package dev.chrisbanes.haze
 
-import androidx.collection.MutableObjectLongMap
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.Modifier
@@ -208,8 +207,6 @@ internal class HazeEffectNode(
     }
 
   private val areaTransforms = mutableMapOf<HazeArea, Matrix>()
-  private val areaZIndexes = MutableObjectLongMap<HazeArea>()
-  private val areaKeys = mutableMapOf<HazeArea, Any?>()
 
   private var _size: Size = Size.Unspecified
     set(value) {
@@ -267,7 +264,9 @@ internal class HazeEffectNode(
     HazeEffectLifecycleScopeImpl(this)
   }
 
-  private var lastSeenStateAreas: List<HazeArea> = emptyList()
+  internal var lastSeenStateAreas: List<HazeArea> = emptyList()
+    private set
+  private var lastSeenSelectionVersions = IntArray(0)
 
   private var _areas: List<HazeArea> = emptyList()
     set(value) {
@@ -470,8 +469,7 @@ internal class HazeEffectNode(
     resetPendingInvalidations()
     _areas = emptyList()
     areaTransforms.clear()
-    areaZIndexes.clear()
-    areaKeys.clear()
+    lastSeenStateAreas = emptyList()
     contentDrawArea.releaseLayer()
     clearRetainedOutput()
     pointerInputDelegate?.let { delegate ->
@@ -956,19 +954,20 @@ internal class HazeEffectNode(
       // (mutableStateListOf), even when we skip recomputation below.
       val stateAreas = state.areas
 
-      // Detect membership changes in the observed state list. The snapshot
-      // observation fires when items are added or removed, but we gate the
-      // _areas rebuild behind DirtyFields.Areas. If the raw list has changed,
-      // mark ourselves dirty so the filtered / sorted _areas is refreshed.
-      // We copy toList() because stateAreas is a SnapshotStateList reference
-      // and would otherwise mutate lastSeenStateAreas in place.
-      val currentStateAreas = stateAreas.toList()
-      if (
-        currentStateAreas != lastSeenStateAreas ||
-        haveAreaZIndexesChanged(currentStateAreas) ||
-        haveAreaKeysChanged(currentStateAreas)
-      ) {
-        lastSeenStateAreas = currentStateAreas
+      // Detect membership, key and z-index changes in the observed state list. The
+      // snapshot observation fires when items are added or removed, or when an area's
+      // selectionVersion changes, but we gate the _areas rebuild behind DirtyFields.Areas.
+      // If anything changed, mark ourselves dirty so the filtered / sorted _areas is
+      // refreshed. We copy toList() only then, because stateAreas is a SnapshotStateList
+      // reference and would otherwise mutate lastSeenStateAreas in place.
+      if (!stateAreasMatchLastSeen(stateAreas)) {
+        lastSeenStateAreas = stateAreas.toList()
+        if (lastSeenSelectionVersions.size < stateAreas.size) {
+          lastSeenSelectionVersions = IntArray(stateAreas.size)
+        }
+        for (i in stateAreas.indices) {
+          lastSeenSelectionVersions[i] = stateAreas[i].selectionVersion
+        }
         dirtyTracker += DirtyFields.Areas
       }
 
@@ -1035,12 +1034,9 @@ internal class HazeEffectNode(
         if (!retainOutputWhenSourceUnavailable && !hasDrawableSourceLayers()) {
           clearRetainedOutput()
         }
-        updateAreaZIndexes(currentStateAreas)
-        updateAreaKeys(currentStateAreas)
       }
     } else if (explicitInput === HazeInput.Content) {
-      areaZIndexes.clear()
-      areaKeys.clear()
+      lastSeenStateAreas = emptyList()
       // Foreground (content) blur: always update contentDrawArea since its size,
       // position, and windowId may change every frame with no dirty flag.
       contentDrawArea.size = size
@@ -1049,8 +1045,7 @@ internal class HazeEffectNode(
       contentDrawArea.windowId = windowId
       _areas = listOf(contentDrawArea)
     } else {
-      areaZIndexes.clear()
-      areaKeys.clear()
+      lastSeenStateAreas = emptyList()
       _areas = emptyList()
     }
 
@@ -1370,32 +1365,17 @@ internal class HazeEffectNode(
     }
   }
 
-  private fun haveAreaZIndexesChanged(stateAreas: List<HazeArea>): Boolean {
-    if (areaZIndexes.size != stateAreas.size) return true
-    return stateAreas.any { area ->
-      !areaZIndexes.contains(area) || areaZIndexes[area] != area.zIndex.toRawBits().toLong()
+  // Reads every area's version, even after a mismatch, so updateEffect observes all of them.
+  private fun stateAreasMatchLastSeen(stateAreas: List<HazeArea>): Boolean {
+    var matches = stateAreas.size == lastSeenStateAreas.size
+    for (i in stateAreas.indices) {
+      val area = stateAreas[i]
+      val version = area.selectionVersion
+      if (matches && (area !== lastSeenStateAreas[i] || version != lastSeenSelectionVersions[i])) {
+        matches = false
+      }
     }
-  }
-
-  private fun updateAreaZIndexes(stateAreas: List<HazeArea>) {
-    areaZIndexes.clear()
-    stateAreas.forEach { area ->
-      areaZIndexes[area] = area.zIndex.toRawBits().toLong()
-    }
-  }
-
-  private fun haveAreaKeysChanged(stateAreas: List<HazeArea>): Boolean {
-    if (areaKeys.size != stateAreas.size) return true
-    return stateAreas.any { area ->
-      !areaKeys.containsKey(area) || areaKeys[area] != area.key
-    }
-  }
-
-  private fun updateAreaKeys(stateAreas: List<HazeArea>) {
-    areaKeys.clear()
-    stateAreas.forEach { area ->
-      areaKeys[area] = area.key
-    }
+    return matches
   }
 
   @OptIn(InternalHazeApi::class)

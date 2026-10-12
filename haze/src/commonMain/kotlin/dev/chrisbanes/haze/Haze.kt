@@ -168,6 +168,10 @@ internal class HazeArea {
   private var zIndexState by mutableFloatStateOf(0f)
   private var keyState by mutableStateOf<Any?>(null)
 
+  /** Counts [key] and [zIndex] changes, which can change how effects select and order this area. */
+  internal var selectionVersion: Int by mutableIntStateOf(0)
+    private set
+
   internal var size: Size
     get() = sizeState
     set(value) {
@@ -183,6 +187,7 @@ internal class HazeArea {
       if (value != zIndexState) {
         zIndexState = value
         ownChangeCount++
+        selectionVersion++
       }
     }
 
@@ -192,6 +197,7 @@ internal class HazeArea {
       if (value != keyState) {
         keyState = value
         ownChangeCount++
+        selectionVersion++
       }
     }
 

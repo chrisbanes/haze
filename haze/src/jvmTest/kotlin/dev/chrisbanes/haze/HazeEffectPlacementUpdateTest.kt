@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
+import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.test.ContextTest
 import java.awt.Frame
 import kotlin.test.Test
@@ -116,6 +118,38 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
     waitForIdle()
 
     assertThat(positionedSourceOffsets.first()).isEqualTo(Offset(40f, 0f))
+  }
+
+  @Test
+  fun unchangedSourcesUpdate_retainsMembershipList() = runComposeUiTest {
+    val hazeState = HazeState()
+    var groupX by mutableIntStateOf(0)
+    var effectNode: HazeEffectNode? = null
+    val renderer = CountingUpdateRenderer()
+    val factory = HazeEffectFactory<Unit> { renderer }
+    setContent {
+      Box(Modifier.offset { IntOffset(groupX, 0) }.size(200.dp)) {
+        Box(Modifier.size(100.dp).hazeSource(hazeState))
+        Spacer(
+          Modifier
+            .offset { IntOffset(10, 10) }
+            .size(50.dp)
+            .hazeEffect(factory = factory, input = HazeInput.Sources(hazeState), style = Unit)
+            .captureEffectNode { effectNode = it },
+        )
+      }
+    }
+    waitForIdle()
+    val node = checkNotNull(effectNode)
+    val membership = node.lastSeenStateAreas
+    val updates = renderer.updateCalls
+
+    // Moving the source and effect together re-runs the update without changing the sources.
+    groupX = 30
+    waitForIdle()
+
+    assertThat(renderer.updateCalls).isGreaterThan(updates)
+    assertThat(node.lastSeenStateAreas).isSameInstanceAs(membership)
   }
 
   @Test
