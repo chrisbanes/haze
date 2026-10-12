@@ -6,11 +6,8 @@
 
 package dev.chrisbanes.haze.blur
 
-import android.graphics.BitmapShader
 import android.graphics.Color
-import android.graphics.Matrix
 import android.graphics.PorterDuff
-import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import android.renderscript.RenderScript
 import android.view.Surface
@@ -46,7 +43,6 @@ import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.trace
 import dev.chrisbanes.haze.traceAsync
 import dev.chrisbanes.haze.withGraphicsLayer
-import kotlin.math.abs
 import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -63,7 +59,8 @@ internal class RenderScriptBlurVisualEffectDelegate(
   private var renderScript = RenderScript.create(platformContext.applicationContext)
 
   @Volatile
-  private var renderScriptContext: RenderScriptContext? = null
+  internal var renderScriptContext: RenderScriptContext? = null
+    private set
   private val drawScope = CanvasDrawScope()
 
   private var currentJob: Job? = null
@@ -75,6 +72,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
   private var trimGeneration = 0
 
   private var contentLayer: GraphicsLayer? = null
+  internal val noiseShaders = NoiseShaderCache()
 
   override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) {
     if (blurVisualEffect.alpha == 0f) return
@@ -184,16 +182,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
             PaintPool.usePaint { paint ->
               paint.isAntiAlias = true
               paint.alpha = noiseFactor.coerceIn(0f, 1f)
-              val shader = BitmapShader(platformContext.getNoiseTexture(), REPEAT, REPEAT)
-              val normalizedScale = if (scaleFactor > 0f) scaleFactor else 1f
-              if (abs(normalizedScale - 1f) >= 0.001f) {
-                val matrix = Matrix().apply {
-                  val reciprocal = 1f / normalizedScale
-                  setScale(reciprocal, reciprocal)
-                }
-                shader.setLocalMatrix(matrix)
-              }
-              paint.shader = shader
+              paint.shader = noiseShaders.get(platformContext, scaleFactor)
               paint.blendMode = BlendMode.SrcAtop
               drawContext.canvas.drawRect(expandedSize.toRect(), paint)
             }
@@ -239,8 +228,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
   override fun onTrimMemory(context: HazeEffectLifecycleScope, level: TrimMemoryLevel) {
     if (level.severity >= TrimMemoryLevel.MODERATE.severity) {
       currentJob?.cancel()
-      renderScriptContext?.release()
-      renderScriptContext = null
+      releaseRenderScriptContext()
       // Create the new RenderScript first, then destroy the old instance.
       // This avoids leaving renderScript in a destroyed state if creation fails.
       runCatching { RenderScript.create(platformContext.applicationContext) }
@@ -282,8 +270,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
         // If the retained output was cleared while we were getting the context, bail out
         if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) {
-          renderScriptContext?.release()
-          renderScriptContext = null
+          releaseRenderScriptContext()
           return@traceAsync
         }
 
@@ -293,8 +280,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
             rs.inputSurface.drawGraphicsLayer(layer = paddedContent, density = density, drawScope = drawScope)
           } catch (e: IllegalStateException) {
             HazeLogger.d(TAG) { "Surface draw failed, likely destroyed. Releasing context." }
-            renderScriptContext?.release()
-            renderScriptContext = null
+            releaseRenderScriptContext()
             return@traceAsync
           }
           // Wait for the layer to be written to the Surface
@@ -395,12 +381,12 @@ internal class RenderScriptBlurVisualEffectDelegate(
     return paddedLayer
   }
 
-  private fun getRenderScriptContext(size: IntSize): RenderScriptContext {
+  internal fun getRenderScriptContext(size: IntSize): RenderScriptContext {
     val rs = renderScriptContext
     if (rs != null && rs.size == size) return rs
 
     // Release any existing context
-    rs?.release()
+    releaseRenderScriptContext()
     // Return a new context and store it
     return RenderScriptContext(rs = renderScript, size = size)
       .also { renderScriptContext = it }
@@ -432,6 +418,11 @@ internal class RenderScriptBlurVisualEffectDelegate(
     completedCaptureKey = null
     contentLayer?.let(graphicsContext::releaseGraphicsLayer)
     contentLayer = null
+    noiseShaders.clear()
+    releaseRenderScriptContext()
+  }
+
+  private fun releaseRenderScriptContext() {
     renderScriptContext?.release()
     renderScriptContext = null
   }
