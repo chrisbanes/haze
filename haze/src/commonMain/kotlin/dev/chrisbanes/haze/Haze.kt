@@ -21,6 +21,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
+import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -135,6 +136,7 @@ internal class HazeArea {
     private set
 
   private var coordinateTransformValues: FloatArray? = null
+  private val coordinateTransformScratch = Matrix()
 
   internal var coordinateVersion: Int by mutableIntStateOf(0)
     private set
@@ -151,9 +153,10 @@ internal class HazeArea {
 
   internal fun updateLayoutCoordinates(coordinates: LayoutCoordinates) {
     layoutCoordinates = coordinates
-    val transform = coordinates.transformToScreenOrRoot()
-    if (coordinateTransformValues?.contentEquals(transform.values) != true) {
-      coordinateTransformValues = transform.values.copyOf()
+    coordinates.transformToScreenOrRoot(coordinateTransformScratch)
+    val transform = coordinateTransformScratch.values
+    if (coordinateTransformValues?.contentEquals(transform) != true) {
+      coordinateTransformValues = transform.copyOf()
       coordinateVersion++
       ownChangeCount++
     }

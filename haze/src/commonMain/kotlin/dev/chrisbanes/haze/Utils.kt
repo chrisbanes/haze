@@ -28,10 +28,16 @@ internal fun LayoutCoordinates.safePositionOnScreen(): Offset = try {
   Offset.Unspecified
 }
 
-internal fun LayoutCoordinates.safeTransformToScreen(): Matrix? = try {
-  Matrix().also { transformToScreen(it) }
+internal fun LayoutCoordinates.safeTransformToScreen(): Matrix? =
+  Matrix().takeIf { safeTransformToScreen(it) }
+
+/** Writes this layout's screen transform into [matrix]; returns false if it is unavailable. */
+internal fun LayoutCoordinates.safeTransformToScreen(matrix: Matrix): Boolean = try {
+  matrix.reset()
+  transformToScreen(matrix)
+  true
 } catch (_: Exception) {
-  null
+  false
 }
 
 internal fun LayoutCoordinates.positionForHaze(
@@ -41,12 +47,17 @@ internal fun LayoutCoordinates.positionForHaze(
   HazePositionStrategy.Screen -> safePositionOnScreen()
 }
 
-internal fun LayoutCoordinates.transformToRoot(): Matrix = Matrix().also { matrix ->
+internal fun LayoutCoordinates.transformToRoot(): Matrix = Matrix().also { transformToRoot(it) }
+
+internal fun LayoutCoordinates.transformToRoot(matrix: Matrix) {
+  matrix.reset()
   findRootCoordinates().transformFrom(this, matrix)
 }
 
-internal fun LayoutCoordinates.transformToScreenOrRoot(): Matrix =
-  safeTransformToScreen() ?: transformToRoot()
+/** Writes this layout's screen transform, or its root transform if unavailable, into [matrix]. */
+internal fun LayoutCoordinates.transformToScreenOrRoot(matrix: Matrix) {
+  if (!safeTransformToScreen(matrix)) transformToRoot(matrix)
+}
 
 internal expect fun CompositionLocalConsumerModifierNode.getWindowId(): Any?
 

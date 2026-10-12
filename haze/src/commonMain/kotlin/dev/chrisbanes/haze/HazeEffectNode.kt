@@ -208,6 +208,9 @@ internal class HazeEffectNode(
 
   private val areaTransforms = mutableMapOf<HazeArea, Matrix>()
 
+  // Scratch for updateAreaTransforms only; retained transforms are always copies.
+  private val areaTransformScratch = Matrix()
+
   private var _size: Size = Size.Unspecified
     set(value) {
       if (value != field) {
@@ -1069,8 +1072,12 @@ internal class HazeEffectNode(
       }
     }
 
+    // Resolved at most once per update, on first use; layout cannot re-root the effect during it.
+    // updateTypedRenderer below can dirty the layer bounds, so that block resolves it if needed.
+    var effectRoot: LayoutCoordinates? = null
     if (dirtyTracker.any(AreaTransformsDirtyFields)) {
-      updateAreaTransforms()
+      effectRoot = localEffectRoot()
+      updateAreaTransforms(effectRoot)
     }
 
     if (shouldUsePreDrawListener()) {
@@ -1093,6 +1100,7 @@ internal class HazeEffectNode(
     if (dirtyTracker.any(LayerBoundsDirtyFields)) {
       // Requests made before this point are consumed by the calculation below.
       layerBoundsRefreshPending = false
+      if (effectRoot == null) effectRoot = localEffectRoot()
       if (state != null && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
         var left = Float.POSITIVE_INFINITY
         var top = Float.POSITIVE_INFINITY
@@ -1112,7 +1120,7 @@ internal class HazeEffectNode(
           .letIf(shouldClipToAreaBounds()) { rect ->
             rect.intersect(left, top, right, bottom)
           }
-          .intersect(rootBoundsInEffect().extendedToAreas(left, top, right, bottom))
+          .intersect(rootBoundsInEffect(effectRoot).extendedToAreas(left, top, right, bottom))
 
         _layerSize = Size(
           width = clippedLayerBounds.width.coerceAtLeast(0f),
@@ -1130,7 +1138,7 @@ internal class HazeEffectNode(
         val expanded = rect.letIf(shouldExpandLayer()) {
           calculateEffectLayerBounds(it, requireDensity())
         }
-        val clippedLayerBounds = expanded.intersect(rootBoundsInEffect())
+        val clippedLayerBounds = expanded.intersect(rootBoundsInEffect(effectRoot))
         _layerSize = Size(
           width = clippedLayerBounds.width.coerceAtLeast(0f),
           height = clippedLayerBounds.height.coerceAtLeast(0f),
@@ -1287,13 +1295,14 @@ internal class HazeEffectNode(
     }
   }
 
-  private fun updateAreaTransforms() {
+  private fun updateAreaTransforms(effectRoot: LayoutCoordinates?) {
     var haveAreaTransformsChanged = areaTransforms.keys.removeAll { it !in areas }
 
+    val scratch = areaTransformScratch
     for (area in areas) {
-      val transform = calculateSourceTransformInEffect(area)
-      if (areaTransforms[area]?.hasSameValues(transform) != true) {
-        areaTransforms[area] = transform
+      calculateSourceTransformInEffect(area, effectRoot, scratch)
+      if (areaTransforms[area]?.hasSameValues(scratch) != true) {
+        areaTransforms[area] = Matrix(scratch.values.copyOf())
         haveAreaTransformsChanged = true
       }
     }
@@ -1305,36 +1314,49 @@ internal class HazeEffectNode(
   }
 
   internal fun sourceTransformInEffect(area: HazeArea): Matrix =
-    areaTransforms[area] ?: calculateSourceTransformInEffect(area)
+    areaTransforms[area] ?: Matrix().also { calculateSourceTransformInEffect(area, localEffectRoot(), it) }
 
-  private fun calculateSourceTransformInEffect(area: HazeArea): Matrix {
+  /** The attached effect's root for the Local strategy, which is the only strategy that uses it. */
+  private fun localEffectRoot(): LayoutCoordinates? {
+    if (resolvedPositionStrategy != HazePositionStrategy.Local) return null
+    return lastKnownCoordinates?.takeIf { it.isAttached }?.findRootCoordinates()
+  }
+
+  /** Writes [area]'s transform into [transform]; [effectRoot] is the attached effect's root. */
+  private fun calculateSourceTransformInEffect(
+    area: HazeArea,
+    effectRoot: LayoutCoordinates?,
+    transform: Matrix,
+  ) {
     val effectCoordinates = lastKnownCoordinates
     val sourceCoordinates = area.observedLayoutCoordinates
     if (effectCoordinates != null && sourceCoordinates != null) {
       if (
         resolvedPositionStrategy == HazePositionStrategy.Local &&
-        effectCoordinates.hasSameAttachedRoot(sourceCoordinates)
+        effectRoot != null &&
+        sourceCoordinates.isAttached &&
+        sourceCoordinates.findRootCoordinates() === effectRoot
       ) {
-        return Matrix().also { effectCoordinates.transformFrom(sourceCoordinates, it) }
+        transform.reset()
+        effectCoordinates.transformFrom(sourceCoordinates, transform)
+        return
       }
 
       if (resolvedPositionStrategy == HazePositionStrategy.Screen) {
-        val sourceToScreen = sourceCoordinates.safeTransformToScreen()
         val screenToEffect = screenToEffectTransform
-        if (sourceToScreen != null && screenToEffect != null) {
-          sourceToScreen *= screenToEffect
-          return sourceToScreen
+        if (screenToEffect != null && sourceCoordinates.safeTransformToScreen(transform)) {
+          transform *= screenToEffect
+          return
         }
       }
     }
 
-    val transform = Matrix()
+    transform.reset()
     val sourcePosition = area.coordinates.positionFor(resolvedPositionStrategy)
     if (sourcePosition.isSpecified && position.isSpecified) {
       val relativePosition = sourcePosition - position
       transform.translate(relativePosition.x, relativePosition.y)
     }
-    return transform
   }
 
   private fun areaBoundsInEffect(area: HazeArea): Rect? {
@@ -1345,13 +1367,14 @@ internal class HazeEffectNode(
     }
   }
 
-  private fun rootBoundsInEffect(): Rect {
+  private fun rootBoundsInEffect(effectRoot: LayoutCoordinates?): Rect {
     val effectCoordinates = lastKnownCoordinates
-    if (resolvedPositionStrategy == HazePositionStrategy.Local && effectCoordinates != null) {
-      val rootCoordinates = effectCoordinates.findRootCoordinates()
-      if (effectCoordinates.hasSameAttachedRoot(rootCoordinates)) {
-        return effectCoordinates.localBoundingBoxOf(rootCoordinates, clipBounds = false)
-      }
+    if (
+      resolvedPositionStrategy == HazePositionStrategy.Local &&
+      effectCoordinates != null &&
+      effectRoot?.isAttached == true
+    ) {
+      return effectCoordinates.localBoundingBoxOf(effectRoot, clipBounds = false)
     }
 
     if (resolvedPositionStrategy == HazePositionStrategy.Screen) {
@@ -1781,10 +1804,6 @@ private val HazeArea.observedLayoutCoordinates: LayoutCoordinates?
     coordinateVersion
     return layoutCoordinates
   }
-
-private fun LayoutCoordinates.hasSameAttachedRoot(other: LayoutCoordinates): Boolean {
-  return isAttached && other.isAttached && findRootCoordinates() === other.findRootCoordinates()
-}
 
 internal expect fun invalidateOnHazeAreaPreDraw(): Boolean
 

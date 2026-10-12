@@ -7,19 +7,23 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.LocalAwtWindow
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.test.ComposeUiTest
@@ -30,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.test.ContextTest
 import java.awt.Frame
@@ -121,7 +126,7 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
   }
 
   @Test
-  fun unchangedSourcesUpdate_retainsMembershipList() = runComposeUiTest {
+  fun unchangedSourcesUpdate_retainsMembershipListAndTransform() = runComposeUiTest {
     val hazeState = HazeState()
     var groupX by mutableIntStateOf(0)
     var effectNode: HazeEffectNode? = null
@@ -141,15 +146,93 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
     }
     waitForIdle()
     val node = checkNotNull(effectNode)
+    val area = hazeState.areas.single()
     val membership = node.lastSeenStateAreas
+    val transformValues = node.sourceTransformInEffect(area).values
     val updates = renderer.updateCalls
 
-    // Moving the source and effect together re-runs the update without changing the sources.
+    // Moving the source and effect together re-runs the update without changing either input.
     groupX = 30
     waitForIdle()
 
     assertThat(renderer.updateCalls).isGreaterThan(updates)
     assertThat(node.lastSeenStateAreas).isSameInstanceAs(membership)
+    assertThat(node.sourceTransformInEffect(area).values).isSameInstanceAs(transformValues)
+  }
+
+  @Test
+  fun changedSourceTransform_replacesRetainedTransformWithoutMutatingIt() = runComposeUiTest {
+    val hazeState = HazeState()
+    var sourceX by mutableIntStateOf(0)
+    var effectNode: HazeEffectNode? = null
+    setContent {
+      Box(Modifier.size(200.dp)) {
+        Box(Modifier.offset { IntOffset(sourceX, 0) }.size(100.dp).hazeSource(hazeState))
+        Spacer(
+          Modifier
+            .size(50.dp)
+            .hazeEffect(factory = TestEffectFactory, input = HazeInput.Sources(hazeState), style = Unit)
+            .captureEffectNode { effectNode = it },
+        )
+      }
+    }
+    waitForIdle()
+    val node = checkNotNull(effectNode)
+    val area = hazeState.areas.single()
+    val previous = node.sourceTransformInEffect(area)
+    val previousValues = previous.values.copyOf()
+
+    sourceX = 40
+    waitForIdle()
+
+    val current = node.sourceTransformInEffect(area)
+    assertThat(current.values).isNotSameInstanceAs(previous.values)
+    assertThat(previous.values.toList()).isEqualTo(previousValues.toList())
+    assertThat(current.map(Offset.Zero)).isEqualTo(previous.map(Offset.Zero) + Offset(40f, 0f))
+  }
+
+  @Test
+  fun scaledEffect_clipsLayerToRootBoundsAcrossRendererRefresh() = runComposeUiTest {
+    var refreshRequest by mutableIntStateOf(0)
+    var effectNode: HazeEffectNode? = null
+    var lastRefreshRequest = 0
+    val renderer = CountingUpdateRenderer { scope ->
+      // Requests a layer-bounds refresh from an update where no geometry changed.
+      if (refreshRequest != lastRefreshRequest) {
+        lastRefreshRequest = refreshRequest
+        scope.invalidateLayerBounds()
+      }
+    }
+    val factory = HazeEffectFactory<Unit> { renderer }
+    setContent {
+      Box(
+        Modifier.graphicsLayer {
+          scaleX = 2f
+          scaleY = 2f
+          transformOrigin = TransformOrigin(0f, 0f)
+        },
+      ) {
+        Spacer(
+          Modifier
+            .wrapContentSize(Alignment.TopStart, unbounded = true)
+            .requiredSize(4000.dp)
+            .hazeEffect(factory = factory, input = HazeInput.Backdrop(), style = Unit)
+            .captureEffectNode { effectNode = it },
+        )
+      }
+    }
+    waitForIdle()
+    val node = checkNotNull(effectNode)
+    val layerSize = node.layerSize
+    val updates = renderer.updateCalls
+    // The scaled root clips the layer to half the root's size in the effect's coordinates.
+    assertThat(layerSize.width).isEqualTo(node.rootBounds.width / 2f)
+
+    refreshRequest++
+    waitForIdle()
+
+    assertThat(renderer.updateCalls).isGreaterThan(updates)
+    assertThat(node.layerSize).isEqualTo(layerSize)
   }
 
   @Test
@@ -295,13 +378,15 @@ private fun ComposeUiTest.setPlacementFixtureContent(): PlacementFixture {
 }
 
 @OptIn(InternalHazeApi::class)
-private class CountingUpdateRenderer :
-  HazeEffectRenderer<Unit>,
+private class CountingUpdateRenderer(
+  private val onUpdate: (HazeEffectLifecycleScope) -> Unit = {},
+) : HazeEffectRenderer<Unit>,
   HazeEffectRendererLifecycle<Unit> {
   var updateCalls = 0
 
   override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
     updateCalls++
+    onUpdate(scope)
   }
 
   override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
