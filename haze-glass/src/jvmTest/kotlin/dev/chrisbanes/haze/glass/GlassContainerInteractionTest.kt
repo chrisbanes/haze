@@ -32,10 +32,12 @@ import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.hasSize
 import assertk.assertions.isCloseTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import assertk.assertions.prop
 import dev.chrisbanes.haze.HazeEffectFactory
@@ -229,6 +231,20 @@ class GlassContainerInteractionTest : ContextTest() {
     assertThat(pressed[150, 100].luminance()).isGreaterThan(rest[150, 100].luminance())
   }
 
+  @Test
+  fun unavailableRuntime_exclusivePathsBuiltOnlyWhileLit_andLightOnlyChangeKeepsPaths() = runComposeUiTest {
+    val fixture = cluster(pressed = instantLit, unavailable = true)
+    fixture.assertFallback()
+    fixture.capture()
+    val idlePaths = fixture.mergedPaths()
+    assertThat(idlePaths.exclusiveBuilt()).isFalse()
+    fixture.press(fixture.firstSource)
+    fixture.capture()
+    val litPaths = fixture.mergedPaths()
+    assertThat(litPaths.exclusiveBuilt()).isTrue()
+    assertThat(litPaths).isSameInstanceAs(idlePaths)
+  }
+
   private val lit = GlassStyle { pressed { lightingIntensity(1f) } }
   private val instantLit = GlassStyle { pressed { animate(snap(), snap()) { lightingIntensity(1f) } } }
 
@@ -242,6 +258,18 @@ class GlassContainerInteractionTest : ContextTest() {
     fun field() = checkNotNull(owner().renderer.runtimeSurfaces.single().mergedField)
     fun assertFallback() {
       assertThat(owner().renderer.runtimeSurfaces.single().delegate).isInstanceOf<FallbackGlassDelegate>()
+    }
+
+    fun mergedPaths(): FallbackMergedPaths {
+      val delegate = owner().renderer.runtimeSurfaces.single().delegate
+      val prepared = delegate.javaClass.getDeclaredField("preparedDraw").run {
+        isAccessible = true
+        get(delegate)
+      }
+      return prepared.javaClass.getDeclaredField("mergedPaths").run {
+        isAccessible = true
+        get(prepared) as FallbackMergedPaths
+      }
     }
 
     fun capture() = test.onNodeWithTag("root").captureToImage().toPixelMap()
@@ -300,6 +328,11 @@ class GlassContainerInteractionTest : ContextTest() {
     waitForIdle()
     return ClusterFixture(this, first, firstSource, secondSource)
   }
+}
+
+private fun FallbackMergedPaths.exclusiveBuilt(): Boolean = javaClass.getDeclaredField("exclusive\$delegate").run {
+  isAccessible = true
+  (get(this@exclusiveBuilt) as Lazy<*>).isInitialized()
 }
 
 private fun Assert<Rect>.isCloseTo(expected: Rect) = all {

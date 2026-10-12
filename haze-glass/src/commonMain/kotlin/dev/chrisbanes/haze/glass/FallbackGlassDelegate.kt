@@ -146,7 +146,7 @@ internal class FallbackGlassDelegate(
       }
 
       // The cluster runtime has no interaction source; each member carries its own light instead.
-      val memberLightBrushes = style.mergedField?.members?.map { member ->
+      val memberLightBrushes = style.mergedField?.takeIf { it.hasInteractionLighting }?.members?.map { member ->
         val alpha = 0.32f * member.lightIntensity * style.alpha
         if (!member.hasLighting || alpha <= 0f) {
           null
@@ -270,11 +270,8 @@ internal class FallbackGlassDelegate(
 
       val mergedPaths = prepared.mergedPaths
       if (mergedPaths != null) {
-        drawMergedInteractionLighting(
-          members = checkNotNull(style.mergedField).members,
-          exclusive = mergedPaths.exclusive,
-          brushes = checkNotNull(prepared.memberLightBrushes),
-        )
+        // Read exclusive only for a lit cluster: building it costs a Path.op per member.
+        prepared.memberLightBrushes?.let { drawMergedInteractionLighting(mergedPaths.exclusive, it) }
       } else {
         drawInteractionLighting(
           interaction = prepared.interaction,
@@ -356,18 +353,14 @@ private fun DrawScope.drawInteractionLighting(
   }
 }
 
-/** Draws each member's light clipped to the part of it that no earlier member covers. */
+/** Draws each member's light over the part of it that no earlier member covers. */
 private fun DrawScope.drawMergedInteractionLighting(
-  members: List<GlassMergedMember>,
   exclusive: List<Path>,
   brushes: List<Brush?>,
 ) {
   brushes.forEachIndexed { index, brush ->
-    if (brush == null) return@forEachIndexed
-    val member = members[index]
-    clipPath(exclusive[index]) {
-      drawCircle(brush = brush, radius = member.lightRadius, center = member.lightPosition)
-    }
+    // The gradient is transparent beyond its radius, so filling the whole region is equivalent.
+    if (brush != null) drawPath(exclusive[index], brush)
   }
 }
 
