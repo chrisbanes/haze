@@ -47,6 +47,8 @@ internal enum class GlassProfilingScenario(
   val fullChroma: Boolean = false,
   val usesBackdrop: Boolean = false,
   val resizesLayoutBounds: Boolean = false,
+  val memberGap: Dp = 0.dp,
+  val containerSpacing: Dp? = null,
 ) {
   EffectAttach(
     id = "effect_attach",
@@ -253,6 +255,20 @@ internal enum class GlassProfilingScenario(
     usesBackdrop = true,
   ),
   SourceUpdateNoGlass("source_update_no_glass", glassEnabled = false),
+
+  // The container pair shares its geometry: the 12 dp gap is less than half of the 32 dp
+  // spacing, so the container scenario draws one two-member Glass cluster.
+  SourceUpdateIndependent2(
+    id = "source_update_independent_2",
+    effectCount = 2,
+    memberGap = 12.dp,
+  ),
+  SourceUpdateContainer2(
+    id = "source_update_container_2",
+    effectCount = 2,
+    memberGap = 12.dp,
+    containerSpacing = 32.dp,
+  ),
   ResizeQuality(
     id = "resize_quality",
     steadyDraw = true,
@@ -411,6 +427,8 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.SourceUpdate9,
     GlassProfilingScenario.BackdropSourceUpdate9,
     GlassProfilingScenario.SourceUpdateNoGlass,
+    GlassProfilingScenario.SourceUpdateIndependent2,
+    GlassProfilingScenario.SourceUpdateContainer2,
     -> base.copy(sourceOffset = lerp(-0.08f, 0.08f, progress))
   }
 }
@@ -432,6 +450,8 @@ internal inline fun glassProfilingSourceProgress(
   GlassProfilingScenario.SourceUpdate9,
   GlassProfilingScenario.BackdropSourceUpdate9,
   GlassProfilingScenario.SourceUpdateNoGlass,
+  GlassProfilingScenario.SourceUpdateIndependent2,
+  GlassProfilingScenario.SourceUpdateContainer2,
   -> progress()
   else -> 0f
 }

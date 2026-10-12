@@ -55,6 +55,7 @@ import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
+import dev.chrisbanes.haze.glass.hazeGlassContainer
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.delay
@@ -248,6 +249,8 @@ private fun GlassProfilingScene(
         styles = styles,
         performanceMode = scenario.performanceMode,
         interactionSource = interactionSource,
+        memberGap = scenario.memberGap,
+        containerSpacing = scenario.containerSpacing,
         drawProgress = if (scenario.steadyDraw) {
           { state.progress }
         } else {
@@ -256,7 +259,10 @@ private fun GlassProfilingScene(
         modifier = Modifier
           .align(Alignment.Center)
           .size(surfaceSize)
-          .testTag("glass_profiling_surface"),
+          // A node keeps one test tag, so the container scenario tags the grid as its container.
+          .testTag(
+            if (scenario.containerSpacing != null) "glass_profiling_container" else "glass_profiling_surface",
+          ),
       )
     }
 
@@ -315,14 +321,21 @@ private fun GlassProfilingEffectGrid(
   styles: List<GlassStyle>,
   performanceMode: HazePerformanceMode,
   interactionSource: MutableInteractionSource,
+  memberGap: Dp,
+  containerSpacing: Dp?,
   drawProgress: (() -> Float)?,
   modifier: Modifier = Modifier,
 ) {
   val rowCount = if (styles.size <= 3) 1 else 3
   val columnCount = styles.size / rowCount
-  Column(modifier) {
+  Column(
+    if (containerSpacing != null) modifier.hazeGlassContainer(containerSpacing) else modifier,
+  ) {
     repeat(rowCount) { rowIndex ->
-      Row(Modifier.fillMaxWidth().weight(1f)) {
+      Row(
+        modifier = Modifier.fillMaxWidth().weight(1f),
+        horizontalArrangement = Arrangement.spacedBy(memberGap),
+      ) {
         repeat(columnCount) { columnIndex ->
           val effectIndex = rowIndex * columnCount + columnIndex
           Box(
@@ -438,6 +451,8 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.SourceUpdate9,
     GlassProfilingScenario.BackdropSourceUpdate9,
     GlassProfilingScenario.SourceUpdateNoGlass,
+    GlassProfilingScenario.SourceUpdateIndependent2,
+    GlassProfilingScenario.SourceUpdateContainer2,
     -> Unit
   }
 }.then {

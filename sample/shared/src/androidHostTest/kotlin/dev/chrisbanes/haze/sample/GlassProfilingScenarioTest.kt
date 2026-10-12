@@ -13,6 +13,7 @@ import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -177,6 +178,8 @@ class GlassProfilingScenarioTest {
         "source_update_9",
         "backdrop_source_update_9",
         "source_update_no_glass",
+        "source_update_independent_2",
+        "source_update_container_2",
         "resize_quality",
         "resize_quality_9",
         "shape_update_balanced",
@@ -254,6 +257,8 @@ class GlassProfilingScenarioTest {
         GlassProfilingScenario.SourceUpdate9,
         GlassProfilingScenario.BackdropSourceUpdate9,
         GlassProfilingScenario.SourceUpdateNoGlass,
+        GlassProfilingScenario.SourceUpdateIndependent2,
+        GlassProfilingScenario.SourceUpdateContainer2,
         -> setOf("sourceOffset")
         else -> emptySet()
       }
@@ -339,10 +344,46 @@ class GlassProfilingScenarioTest {
         scenario == GlassProfilingScenario.SourceUpdateFixed100 ||
         scenario == GlassProfilingScenario.SourceUpdate9 ||
         scenario == GlassProfilingScenario.BackdropSourceUpdate9 ||
-        scenario == GlassProfilingScenario.SourceUpdateNoGlass
+        scenario == GlassProfilingScenario.SourceUpdateNoGlass ||
+        scenario == GlassProfilingScenario.SourceUpdateIndependent2 ||
+        scenario == GlassProfilingScenario.SourceUpdateContainer2
 
       assertThat(readCount, name = scenario.id).isEqualTo(if (updatesSource) 1 else 0)
       assertThat(resolved, name = scenario.id).isEqualTo(if (updatesSource) 0.75f else 0f)
+    }
+  }
+
+  @Test
+  fun containerComparison_sharesGeometryAndDiffersOnlyInContainer() {
+    val independent = GlassProfilingScenario.SourceUpdateIndependent2
+    val container = GlassProfilingScenario.SourceUpdateContainer2
+
+    listOf(independent, container).forEach { scenario ->
+      assertThat(scenario.effectCount, name = scenario.id).isEqualTo(2)
+      assertThat(scenario.memberGap, name = scenario.id).isEqualTo(12.dp)
+      assertThat(scenario.performanceMode, name = scenario.id).isEqualTo(HazePerformanceMode.Default)
+      assertThat(scenario.usesBackdrop, name = scenario.id).isFalse()
+      assertThat(scenario.steadyDraw, name = scenario.id).isFalse()
+    }
+    assertThat(independent.containerSpacing).isNull()
+    assertThat(container.containerSpacing).isEqualTo(32.dp)
+    // The members merge only when their gap is less than half of the spacing.
+    assertThat(container.memberGap < checkNotNull(container.containerSpacing) / 2).isTrue()
+
+    val independentOffset = glassProfilingFrame(independent, 0.75f).sourceOffset
+    assertThat(glassProfilingFrame(container, 0.75f).sourceOffset).isEqualTo(independentOffset)
+    assertThat(independentOffset).isNotEqualTo(0f)
+  }
+
+  @Test
+  fun existingScenarios_keepTheirGeometryWithoutAContainer() {
+    val containerPair = setOf(
+      GlassProfilingScenario.SourceUpdateIndependent2,
+      GlassProfilingScenario.SourceUpdateContainer2,
+    )
+    (GlassProfilingScenario.entries - containerPair).forEach { scenario ->
+      assertThat(scenario.memberGap, name = scenario.id).isEqualTo(0.dp)
+      assertThat(scenario.containerSpacing, name = scenario.id).isNull()
     }
   }
 
