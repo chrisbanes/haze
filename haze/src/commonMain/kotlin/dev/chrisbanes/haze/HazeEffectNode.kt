@@ -6,7 +6,6 @@
 
 package dev.chrisbanes.haze
 
-import androidx.collection.MutableObjectLongMap
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.Modifier
@@ -208,8 +207,9 @@ internal class HazeEffectNode(
     }
 
   private val areaTransforms = mutableMapOf<HazeArea, Matrix>()
-  private val areaZIndexes = MutableObjectLongMap<HazeArea>()
-  private val areaKeys = mutableMapOf<HazeArea, Any?>()
+
+  // Scratch for updateAreaTransforms only; retained transforms are always copies.
+  private val areaTransformScratch = Matrix()
 
   private var _size: Size = Size.Unspecified
     set(value) {
@@ -267,7 +267,9 @@ internal class HazeEffectNode(
     HazeEffectLifecycleScopeImpl(this)
   }
 
-  private var lastSeenStateAreas: List<HazeArea> = emptyList()
+  internal var lastSeenStateAreas: List<HazeArea> = emptyList()
+    private set
+  private var lastSeenSelectionVersions = IntArray(0)
 
   private var _areas: List<HazeArea> = emptyList()
     set(value) {
@@ -470,8 +472,7 @@ internal class HazeEffectNode(
     resetPendingInvalidations()
     _areas = emptyList()
     areaTransforms.clear()
-    areaZIndexes.clear()
-    areaKeys.clear()
+    lastSeenStateAreas = emptyList()
     contentDrawArea.releaseContentLayer(requireGraphicsContext())
     clearRetainedOutput()
     pointerInputDelegate?.let { delegate ->
@@ -714,19 +715,20 @@ internal class HazeEffectNode(
     } else {
       hasDrawableSourceLayers
     }
-    if (shouldDrawEffect) {
-      prepareEffectDraw()
+    val scope = if (shouldDrawEffect) effectDrawScope() else null
+    if (scope != null) {
+      prepareEffectDraw(scope)
     }
     withVisualEffectTransform {
-      if (shouldDrawEffect) {
-        drawEffect()
+      if (scope != null) {
+        drawEffect(scope)
         if (typedEffectRenderer != null && hasDrawableSourceLayers) {
           hasRenderedTypedSourceOutput = true
         }
       }
       drawContentSafely()
-      if (shouldDrawEffect) {
-        drawEffectForeground()
+      if (scope != null) {
+        drawEffectForeground(scope)
       }
     }
   }
@@ -734,13 +736,14 @@ internal class HazeEffectNode(
   private fun ContentDrawScope.drawContentEffect() {
     recordSurfaceContent()
     val contentLayer = checkNotNull(contentDrawArea.contentLayer)
-    prepareEffectDraw()
+    val scope = effectDrawScope()
+    prepareEffectDraw(scope)
     withVisualEffectTransform {
       if (shouldDrawContentBehindEffect()) {
         drawLayer(contentLayer)
       }
-      drawEffect()
-      drawEffectForeground()
+      drawEffect(scope)
+      drawEffectForeground(scope)
     }
   }
 
@@ -812,7 +815,7 @@ internal class HazeEffectNode(
       return
     }
 
-    val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
+    val scope = effectDrawScope()
     val backdrop = try {
       preparedSurfaceBackdrop ?: with(capability) { scope.backdropEffect(typedEffectStyle) }
     } catch (exception: Exception) {
@@ -866,7 +869,7 @@ internal class HazeEffectNode(
       }
       drawContentSafely()
       if (backdropDrawn) {
-        drawEffectForeground()
+        drawEffectForeground(scope)
       }
     }
   }
@@ -908,24 +911,25 @@ internal class HazeEffectNode(
   }
 
   @OptIn(InternalHazeApi::class)
-  private fun ContentDrawScope.prepareEffectDraw() {
+  private fun prepareEffectDraw(scope: HazeEffectDrawScopeImpl) {
     val renderer = typedEffectRenderer ?: return
     val hooks = renderer as? HazeEffectRendererDrawHooks<Any?> ?: return
-    val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
     with(hooks) { scope.prepareDraw(typedEffectStyle) }
   }
 
-  private fun ContentDrawScope.drawEffect() {
+  // One scope per draw: every hook on a path runs on the same ContentDrawScope receiver.
+  private fun ContentDrawScope.effectDrawScope() =
+    HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
+
+  private fun drawEffect(scope: HazeEffectDrawScopeImpl) {
     val renderer = typedEffectRenderer ?: return
-    val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
     with(renderer) { scope.draw(typedEffectStyle) }
   }
 
   @OptIn(InternalHazeApi::class)
-  private fun ContentDrawScope.drawEffectForeground() {
+  private fun drawEffectForeground(scope: HazeEffectDrawScopeImpl) {
     val renderer = typedEffectRenderer ?: return
     val hooks = renderer as? HazeEffectRendererDrawHooks<Any?> ?: return
-    val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
     with(hooks) { scope.drawForeground(typedEffectStyle) }
   }
 
@@ -948,19 +952,20 @@ internal class HazeEffectNode(
       // (mutableStateListOf), even when we skip recomputation below.
       val stateAreas = state.areas
 
-      // Detect membership changes in the observed state list. The snapshot
-      // observation fires when items are added or removed, but we gate the
-      // _areas rebuild behind DirtyFields.Areas. If the raw list has changed,
-      // mark ourselves dirty so the filtered / sorted _areas is refreshed.
-      // We copy toList() because stateAreas is a SnapshotStateList reference
-      // and would otherwise mutate lastSeenStateAreas in place.
-      val currentStateAreas = stateAreas.toList()
-      if (
-        currentStateAreas != lastSeenStateAreas ||
-        haveAreaZIndexesChanged(currentStateAreas) ||
-        haveAreaKeysChanged(currentStateAreas)
-      ) {
-        lastSeenStateAreas = currentStateAreas
+      // Detect membership, key and z-index changes in the observed state list. The
+      // snapshot observation fires when items are added or removed, or when an area's
+      // selectionVersion changes, but we gate the _areas rebuild behind DirtyFields.Areas.
+      // If anything changed, mark ourselves dirty so the filtered / sorted _areas is
+      // refreshed. We copy toList() only then, because stateAreas is a SnapshotStateList
+      // reference and would otherwise mutate lastSeenStateAreas in place.
+      if (!stateAreasMatchLastSeen(stateAreas)) {
+        lastSeenStateAreas = stateAreas.toList()
+        if (lastSeenSelectionVersions.size < stateAreas.size) {
+          lastSeenSelectionVersions = IntArray(stateAreas.size)
+        }
+        for (i in stateAreas.indices) {
+          lastSeenSelectionVersions[i] = stateAreas[i].selectionVersion
+        }
         dirtyTracker += DirtyFields.Areas
       }
 
@@ -1027,12 +1032,9 @@ internal class HazeEffectNode(
         if (!retainOutputWhenSourceUnavailable && !hasDrawableSourceLayers()) {
           clearRetainedOutput()
         }
-        updateAreaZIndexes(currentStateAreas)
-        updateAreaKeys(currentStateAreas)
       }
     } else if (explicitInput === HazeInput.Content) {
-      areaZIndexes.clear()
-      areaKeys.clear()
+      lastSeenStateAreas = emptyList()
       // Foreground (content) blur: always update contentDrawArea since its size,
       // position, and windowId may change every frame with no dirty flag.
       contentDrawArea.size = size
@@ -1041,8 +1043,7 @@ internal class HazeEffectNode(
       contentDrawArea.windowId = windowId
       _areas = listOf(contentDrawArea)
     } else {
-      areaZIndexes.clear()
-      areaKeys.clear()
+      lastSeenStateAreas = emptyList()
       _areas = emptyList()
     }
 
@@ -1066,8 +1067,12 @@ internal class HazeEffectNode(
       }
     }
 
+    // Resolved lazily on first use; layout cannot re-root the effect during an update.
+    // updateTypedRenderer below can dirty the layer bounds, so that block resolves it if needed.
+    var effectRoot: LayoutCoordinates? = null
     if (dirtyTracker.any(AreaTransformsDirtyFields)) {
-      updateAreaTransforms()
+      effectRoot = localEffectRoot()
+      updateAreaTransforms(effectRoot)
     }
 
     if (shouldUsePreDrawListener()) {
@@ -1090,6 +1095,7 @@ internal class HazeEffectNode(
     if (dirtyTracker.any(LayerBoundsDirtyFields)) {
       // Requests made before this point are consumed by the calculation below.
       layerBoundsRefreshPending = false
+      if (effectRoot == null) effectRoot = localEffectRoot()
       if (state != null && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
         var left = Float.POSITIVE_INFINITY
         var top = Float.POSITIVE_INFINITY
@@ -1109,7 +1115,7 @@ internal class HazeEffectNode(
           .letIf(shouldClipToAreaBounds()) { rect ->
             rect.intersect(left, top, right, bottom)
           }
-          .intersect(rootBoundsInEffect().extendedToAreas(left, top, right, bottom))
+          .intersect(rootBoundsInEffect(effectRoot).extendedToAreas(left, top, right, bottom))
 
         _layerSize = Size(
           width = clippedLayerBounds.width.coerceAtLeast(0f),
@@ -1127,7 +1133,7 @@ internal class HazeEffectNode(
         val expanded = rect.letIf(shouldExpandLayer()) {
           calculateEffectLayerBounds(it, requireDensity())
         }
-        val clippedLayerBounds = expanded.intersect(rootBoundsInEffect())
+        val clippedLayerBounds = expanded.intersect(rootBoundsInEffect(effectRoot))
         _layerSize = Size(
           width = clippedLayerBounds.width.coerceAtLeast(0f),
           height = clippedLayerBounds.height.coerceAtLeast(0f),
@@ -1284,13 +1290,14 @@ internal class HazeEffectNode(
     }
   }
 
-  private fun updateAreaTransforms() {
+  private fun updateAreaTransforms(effectRoot: LayoutCoordinates?) {
     var haveAreaTransformsChanged = areaTransforms.keys.removeAll { it !in areas }
 
+    val scratch = areaTransformScratch
     for (area in areas) {
-      val transform = calculateSourceTransformInEffect(area)
-      if (areaTransforms[area]?.hasSameValues(transform) != true) {
-        areaTransforms[area] = transform
+      calculateSourceTransformInEffect(area, effectRoot, scratch)
+      if (areaTransforms[area]?.hasSameValues(scratch) != true) {
+        areaTransforms[area] = Matrix(scratch.values.copyOf())
         haveAreaTransformsChanged = true
       }
     }
@@ -1302,36 +1309,49 @@ internal class HazeEffectNode(
   }
 
   internal fun sourceTransformInEffect(area: HazeArea): Matrix =
-    areaTransforms[area] ?: calculateSourceTransformInEffect(area)
+    areaTransforms[area] ?: Matrix().also { calculateSourceTransformInEffect(area, localEffectRoot(), it) }
 
-  private fun calculateSourceTransformInEffect(area: HazeArea): Matrix {
+  /** The attached effect's root for the Local strategy, which is the only strategy that uses it. */
+  private fun localEffectRoot(): LayoutCoordinates? {
+    if (resolvedPositionStrategy != HazePositionStrategy.Local) return null
+    return lastKnownCoordinates?.takeIf { it.isAttached }?.findRootCoordinates()
+  }
+
+  /** Writes [area]'s transform into [transform]; [effectRoot] is the attached effect's root. */
+  private fun calculateSourceTransformInEffect(
+    area: HazeArea,
+    effectRoot: LayoutCoordinates?,
+    transform: Matrix,
+  ) {
     val effectCoordinates = lastKnownCoordinates
     val sourceCoordinates = area.observedLayoutCoordinates
     if (effectCoordinates != null && sourceCoordinates != null) {
       if (
         resolvedPositionStrategy == HazePositionStrategy.Local &&
-        effectCoordinates.hasSameAttachedRoot(sourceCoordinates)
+        effectRoot != null &&
+        sourceCoordinates.isAttached &&
+        sourceCoordinates.findRootCoordinates() === effectRoot
       ) {
-        return Matrix().also { effectCoordinates.transformFrom(sourceCoordinates, it) }
+        transform.reset()
+        effectCoordinates.transformFrom(sourceCoordinates, transform)
+        return
       }
 
       if (resolvedPositionStrategy == HazePositionStrategy.Screen) {
-        val sourceToScreen = sourceCoordinates.safeTransformToScreen()
         val screenToEffect = screenToEffectTransform
-        if (sourceToScreen != null && screenToEffect != null) {
-          sourceToScreen *= screenToEffect
-          return sourceToScreen
+        if (screenToEffect != null && sourceCoordinates.safeTransformToScreen(transform)) {
+          transform *= screenToEffect
+          return
         }
       }
     }
 
-    val transform = Matrix()
+    transform.reset()
     val sourcePosition = area.coordinates.positionFor(resolvedPositionStrategy)
     if (sourcePosition.isSpecified && position.isSpecified) {
       val relativePosition = sourcePosition - position
       transform.translate(relativePosition.x, relativePosition.y)
     }
-    return transform
   }
 
   private fun areaBoundsInEffect(area: HazeArea): Rect? {
@@ -1342,13 +1362,14 @@ internal class HazeEffectNode(
     }
   }
 
-  private fun rootBoundsInEffect(): Rect {
+  private fun rootBoundsInEffect(effectRoot: LayoutCoordinates?): Rect {
     val effectCoordinates = lastKnownCoordinates
-    if (resolvedPositionStrategy == HazePositionStrategy.Local && effectCoordinates != null) {
-      val rootCoordinates = effectCoordinates.findRootCoordinates()
-      if (effectCoordinates.hasSameAttachedRoot(rootCoordinates)) {
-        return effectCoordinates.localBoundingBoxOf(rootCoordinates, clipBounds = false)
-      }
+    if (
+      resolvedPositionStrategy == HazePositionStrategy.Local &&
+      effectCoordinates != null &&
+      effectRoot?.isAttached == true
+    ) {
+      return effectCoordinates.localBoundingBoxOf(effectRoot, clipBounds = false)
     }
 
     if (resolvedPositionStrategy == HazePositionStrategy.Screen) {
@@ -1362,32 +1383,17 @@ internal class HazeEffectNode(
     }
   }
 
-  private fun haveAreaZIndexesChanged(stateAreas: List<HazeArea>): Boolean {
-    if (areaZIndexes.size != stateAreas.size) return true
-    return stateAreas.any { area ->
-      !areaZIndexes.contains(area) || areaZIndexes[area] != area.zIndex.toRawBits().toLong()
+  // Reads every area's version, even after a mismatch, so updateEffect observes all of them.
+  private fun stateAreasMatchLastSeen(stateAreas: List<HazeArea>): Boolean {
+    var matches = stateAreas.size == lastSeenStateAreas.size
+    for (i in stateAreas.indices) {
+      val area = stateAreas[i]
+      val version = area.selectionVersion
+      if (matches && (area !== lastSeenStateAreas[i] || version != lastSeenSelectionVersions[i])) {
+        matches = false
+      }
     }
-  }
-
-  private fun updateAreaZIndexes(stateAreas: List<HazeArea>) {
-    areaZIndexes.clear()
-    stateAreas.forEach { area ->
-      areaZIndexes[area] = area.zIndex.toRawBits().toLong()
-    }
-  }
-
-  private fun haveAreaKeysChanged(stateAreas: List<HazeArea>): Boolean {
-    if (areaKeys.size != stateAreas.size) return true
-    return stateAreas.any { area ->
-      !areaKeys.containsKey(area) || areaKeys[area] != area.key
-    }
-  }
-
-  private fun updateAreaKeys(stateAreas: List<HazeArea>) {
-    areaKeys.clear()
-    stateAreas.forEach { area ->
-      areaKeys[area] = area.key
-    }
+    return matches
   }
 
   @OptIn(InternalHazeApi::class)
@@ -1586,7 +1592,7 @@ internal class HazeEffectNode(
       preparedSurfaceBackdrop?.let { material = material.transformedBy(it.materialTransform) }
     }
     if (!native && shouldPrepareEffectDraw()) {
-      withSurfaceScope(scope, owner) { prepareEffectDraw() }
+      withSurfaceScope(scope, owner) { prepareEffectDraw(effectDrawScope()) }
     }
     val output = matrix.map(layer.transformedBy(interaction))
     val capture = if (native) {
@@ -1647,10 +1653,11 @@ internal class HazeEffectNode(
           state != null -> drawSourceBackedEffect(prepare)
           explicitInput is HazeInput.Backdrop -> drawBackdropEffect(prepare)
           explicitInput === HazeInput.Content && prepare -> {
-            prepareEffectDraw()
+            val effectScope = effectDrawScope()
+            prepareEffectDraw(effectScope)
             withVisualEffectTransform {
-              drawEffect()
-              drawEffectForeground()
+              drawEffect(effectScope)
+              drawEffectForeground(effectScope)
             }
           }
         }
@@ -1793,10 +1800,6 @@ private val HazeArea.observedLayoutCoordinates: LayoutCoordinates?
     coordinateVersion
     return layoutCoordinates
   }
-
-private fun LayoutCoordinates.hasSameAttachedRoot(other: LayoutCoordinates): Boolean {
-  return isAttached && other.isAttached && findRootCoordinates() === other.findRootCoordinates()
-}
 
 internal expect fun invalidateOnHazeAreaPreDraw(): Boolean
 

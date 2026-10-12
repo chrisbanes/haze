@@ -318,6 +318,53 @@ class HazeEffectInputTest {
   }
 
   @Test
+  fun sourcesWhere_reselectsWhenSourceKeyChanges() = runComposeUiTest {
+    val state = HazeState()
+    val effectOffset = mutableStateOf(IntOffset.Zero)
+    val secondKey = mutableStateOf("second")
+    val selection = HazeSourceSelection.All.where { info -> info.key == "selected" }
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        source(state, "selected", 0f, Color.Red)
+        source(state, secondKey.value, 1f, Color.Blue)
+        effect(state, selection, offset = { effectOffset.value })
+      }
+    }
+
+    assertThat(effectCenterColor()).isEqualTo(Color.Red)
+    // A placement-only update must keep observing the selection inputs.
+    effectOffset.value = IntOffset(1, 0)
+    waitForIdle()
+    secondKey.value = "selected"
+    waitForIdle()
+    assertThat(effectCenterColor()).isEqualTo(Color.Blue)
+  }
+
+  @Test
+  fun sources_reorderWhenSourceZIndexChanges() = runComposeUiTest {
+    val state = HazeState()
+    val effectOffset = mutableStateOf(IntOffset.Zero)
+    val redZIndex = mutableStateOf(0f)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        source(state, "red", redZIndex.value, Color.Red)
+        source(state, "blue", 1f, Color.Blue)
+        effect(state, HazeSourceSelection.All, offset = { effectOffset.value })
+      }
+    }
+
+    assertThat(effectCenterColor()).isEqualTo(Color.Blue)
+    // A placement-only update must keep observing the selection inputs.
+    effectOffset.value = IntOffset(1, 0)
+    waitForIdle()
+    redZIndex.value = 2f
+    waitForIdle()
+    assertThat(effectCenterColor()).isEqualTo(Color.Red)
+  }
+
+  @Test
   fun sourcesWhere_tracksSourceMovedAfterPredicateSelectsIt() = runComposeUiTest {
     val state = HazeState()
     val selectedKey = mutableStateOf("first")
@@ -635,10 +682,12 @@ private fun androidx.compose.foundation.layout.BoxScope.source(
 private fun androidx.compose.foundation.layout.BoxScope.effect(
   state: HazeState,
   selection: HazeSourceSelection,
+  offset: () -> IntOffset = { IntOffset.Zero },
 ) {
   Box(
     Modifier
       .fillMaxSize()
+      .offset { offset() }
       .testTag("effect")
       .hazeEffect(
         factory = PassthroughFactory,
