@@ -174,7 +174,8 @@ internal class HazeSourceNode(
     val nodeScope = coroutineScope
 
     // Descendant layer-property changes may not redraw this node, but their snapshot writes
-    // still need to refresh effects hosted in another window.
+    // still need to refresh effects hosted in another window, and on API 31 effects in the same
+    // window too (see observesSameWindowSourceSnapshots).
     snapshotApplyObserver = Snapshot.registerApplyObserver { _, _ ->
       if (!isAttached) return@registerApplyObserver
 

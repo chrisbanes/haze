@@ -13,3 +13,5 @@ import android.os.Build
  * - Anything below API 31 does not have RenderEffect so we need to force invalidations.
  */
 internal actual fun invalidateOnHazeAreaPreDraw(): Boolean = Build.VERSION.SDK_INT < 32
+
+internal actual fun observesSameWindowSourceSnapshots(): Boolean = Build.VERSION.SDK_INT == 31
