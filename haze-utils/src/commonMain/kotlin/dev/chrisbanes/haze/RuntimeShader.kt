@@ -25,8 +25,13 @@ public class RuntimeShaderRenderEffectException(
   cause: Throwable,
 ) : RuntimeException("Unable to construct a runtime shader render effect", cause)
 
-@OptIn(InternalHazeApi::class)
-internal inline fun <T> wrapRuntimeShaderConstruction(block: () -> T): T = try {
+/**
+ * Runs native runtime-shader construction in [block], reporting a [RuntimeException] as a
+ * [RuntimeShaderRenderEffectException] that callers can recover from. A
+ * [RuntimeShaderRenderEffectException] is rethrown unchanged, and errors are not caught.
+ */
+@InternalHazeApi
+public inline fun <T> wrapRuntimeShaderConstruction(block: () -> T): T = try {
   block()
 } catch (failure: RuntimeShaderRenderEffectException) {
   throw failure

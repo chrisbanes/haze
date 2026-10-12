@@ -22,6 +22,7 @@ import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 import dev.chrisbanes.haze.createBlendRenderEffect
 import dev.chrisbanes.haze.createColorFilterRenderEffect
+import dev.chrisbanes.haze.wrapRuntimeShaderConstruction
 
 @RequiresApi(Build.VERSION_CODES.S)
 internal actual fun createGlassDepthInputRenderEffect(
@@ -32,7 +33,7 @@ internal actual fun createGlassDepthInputRenderEffect(
   if (blur == null || depth <= 0.0001f) return null
   if (depth >= 0.9999f) return blur
 
-  return wrapGlassRuntimeEffectConstruction {
+  return wrapRuntimeShaderConstruction {
     fun scaledInput(scale: Float, input: PlatformRenderEffect?): PlatformRenderEffect {
       val matrix = ColorMatrix().apply {
         // Color filters operate on straight RGB and premultiply the result. Scaling both RGB and
