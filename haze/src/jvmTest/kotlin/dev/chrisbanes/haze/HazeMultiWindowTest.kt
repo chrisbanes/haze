@@ -5,8 +5,12 @@ package dev.chrisbanes.haze
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.LocalAwtWindow
@@ -15,6 +19,7 @@ import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.hasSize
@@ -71,6 +76,44 @@ class HazeMultiWindowTest : ContextTest() {
     } finally {
       (sourceWindow as? Frame)?.dispose()
       (effectWindow as? Frame)?.dispose()
+    }
+  }
+
+  @Test
+  fun sourceMovingToAnotherWindow_promotesEffectToScreenStrategy() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effectWindow = createTestWindow("EffectWindow")
+    val otherWindow = createTestWindow("OtherWindow")
+    var moved by mutableStateOf(false)
+    var capturedEffectNode: HazeEffectNode? = null
+
+    try {
+      setContent {
+        CompositionLocalProvider(LocalAwtWindow provides if (moved) otherWindow else effectWindow) {
+          // The source is re-placed in its new window without leaving the state.
+          Box(Modifier.offset { IntOffset(if (moved) 1 else 0, 0) }.size(100.dp).hazeSource(hazeState))
+        }
+        CompositionLocalProvider(LocalAwtWindow provides effectWindow) {
+          Spacer(
+            Modifier
+              .size(100.dp)
+              .hazeEffect(factory = TestEffectFactory, input = HazeInput.Sources(hazeState), style = Unit)
+              .captureEffectNode { capturedEffectNode = it },
+          )
+        }
+      }
+      waitForIdle()
+      val node = checkNotNull(capturedEffectNode)
+      assertThat(node.resolvedPositionStrategy).isEqualTo(HazePositionStrategy.Local)
+
+      moved = true
+      waitForIdle()
+
+      assertThat(hazeState.areas.single().windowId).isSameInstanceAs(otherWindow)
+      assertThat(node.resolvedPositionStrategy).isEqualTo(HazePositionStrategy.Screen)
+    } finally {
+      (effectWindow as? Frame)?.dispose()
+      (otherWindow as? Frame)?.dispose()
     }
   }
 
