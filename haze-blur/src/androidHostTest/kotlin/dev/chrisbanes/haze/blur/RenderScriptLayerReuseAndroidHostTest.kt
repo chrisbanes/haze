@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.unit.IntSize
@@ -239,6 +240,7 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
     override fun createRenderer(): HazeEffectRenderer<Int> = object : HazeEffectRenderer<Int> {
       private var own: RenderScriptBlurVisualEffectDelegate? = null
       private var output: GraphicsLayer? = null
+      private var outputOwner: GraphicsContext? = null
 
       override fun HazeEffectDrawScope.draw(style: Int) {
         val runtime = this as HazeEffectRuntimeDrawScope
@@ -256,9 +258,17 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
             drawRect(Brush.horizontalGradient(listOf(Color.Magenta, Color.Cyan)))
           }
           output = it
+          outputOwner = graphicsContext
         }
         with(current) { drawPresentation(runtime, layer, Offset.Zero, scale) }
         draws++
+      }
+
+      // Haze disposes the renderer on a new attachment and at teardown; release what it owns.
+      override fun dispose() {
+        own?.detach()
+        output?.takeUnless { it.isReleased }?.let { outputOwner?.releaseGraphicsLayer(it) }
+        output = null
       }
     }
   }

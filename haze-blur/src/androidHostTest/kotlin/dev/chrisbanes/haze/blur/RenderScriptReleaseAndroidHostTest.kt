@@ -25,6 +25,7 @@ import assertk.assertions.isTrue
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import org.junit.After
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -104,11 +105,18 @@ class RenderScriptReleaseAndroidHostTest : ContextTest() {
     assertThat(scope.invalidateDrawCalls).isEqualTo(0)
   }
 
+  private val delegates = mutableListOf<RenderScriptBlurVisualEffectDelegate>()
+
+  @After
+  fun detachDelegates() {
+    delegates.forEach { it.detach() }
+  }
+
   private fun delegate() = RenderScriptBlurVisualEffectDelegate(
     blurVisualEffect = BlurVisualEffect(),
     graphicsContext = UnusedGraphicsContext,
     platformContext = context,
-  )
+  ).also(delegates::add)
 
   private fun RenderScriptContext.isDestroyed(): Boolean =
     RenderScriptContext::class.java.getDeclaredField("isDestroyed").run {
