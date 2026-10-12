@@ -54,7 +54,9 @@ import kotlin.test.Test
  * member is "visible" when its glass rect overlaps the 360x80 viewport. They do not read pixels.
  *
  * Pixel values assume a density of 1, as in the desktop test environment, and a positive
- * `dispatchRawDelta` scrolls towards later items. The tests use 6px per frame because that rate keeps item 5's grow running for its whole
+ * `dispatchRawDelta` scrolls towards later items.
+ *
+ * The tests use 6px per frame because that rate keeps item 5's grow running for its whole
  * duration. They characterise the first item only: later items depend on whether their neighbour
  * is still animating.
  *
