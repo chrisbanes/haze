@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -709,6 +710,61 @@ class HazeGlassModifierTest : ContextTest() {
     assertThat(second).isEqualTo(1)
   }
 
+  @Test
+  fun interactionTransformTargetAndPivotChange_redrawsWithNewTransforms() = runComposeUiTest {
+    val target = mutableStateOf(GlassTransformTarget.MaterialOnly)
+    val pivot = mutableStateOf(GlassTransformPivot.Pointer)
+    val factory = RecordingGlassFactory()
+
+    setContent {
+      Spacer(
+        Modifier
+          .size(100.dp)
+          .hazeGlass(
+            factory = factory,
+            input = HazeInput.Content,
+            style = remember { GlassStyle { pressed { scale(0.9f) } } },
+            performanceMode = HazePerformanceMode.Default,
+            expandLayerBounds = true,
+            interactionSource = null,
+            interactionTransformTarget = target.value,
+            interactionTransformPivot = pivot.value,
+            interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+          ),
+      )
+    }
+    waitForIdle()
+    val effect = factory.effects.single()
+    val runtime = effect.delegate
+    val size = checkNotNull(runtime.attachedContextForTest).modifierSize
+    val pointer = Offset(20f, 30f)
+
+    runOnIdle { runtime.setPressedForTest(pointer) }
+    waitForIdle()
+    assertThat(runtime.currentMaterialTransform(size))
+      .isEqualTo(HazeEffectContentTransform(0.9f, 0.9f, pointer))
+    assertThat(runtime.currentContentTransform()).isEqualTo(HazeEffectContentTransform.Identity)
+
+    var draws = effect.drawCalls
+    target.value = GlassTransformTarget.MaterialAndContent
+    waitForIdle()
+    assertThat(effect.drawCalls).isGreaterThan(draws)
+    assertThat(runtime.currentContentTransform())
+      .isEqualTo(HazeEffectContentTransform(0.9f, 0.9f, pointer))
+    assertThat(runtime.currentInteractionTransform(size))
+      .isEqualTo(HazeEffectContentTransform(0.9f, 0.9f, pointer))
+    assertThat(runtime.currentMaterialTransform(size)).isEqualTo(HazeEffectContentTransform.Identity)
+
+    draws = effect.drawCalls
+    pivot.value = GlassTransformPivot.Center
+    waitForIdle()
+    assertThat(effect.drawCalls).isGreaterThan(draws)
+    assertThat(runtime.currentContentTransform())
+      .isEqualTo(HazeEffectContentTransform(0.9f, 0.9f, size.center))
+    assertThat(runtime.currentInteractionTransform(size))
+      .isEqualTo(HazeEffectContentTransform(0.9f, 0.9f, size.center))
+  }
+
   /** Prepared radii are in the render's input-scaled coordinates. */
   private fun uniformRadii(radiusPx: Float, prepared: GlassPreparedRender): CornerRadii =
     CornerRadii(radiusPx, radiusPx, radiusPx, radiusPx) * prepared.params.coordinates.scaleFactor
@@ -1039,10 +1095,12 @@ private class RecordingGlassRuntimeEffect(
 
   var calculateLayerBoundsCalls = 0
   var updateCalls = 0
+  var drawCalls = 0
   var clearRetainedOutputCalls = 0
   var retainedDrawDecisions = 0
 
   override fun HazeEffectDrawScope.draw(style: GlassNodeConfiguration) {
+    drawCalls++
     with(delegate) { draw(style) }
   }
 
