@@ -43,7 +43,7 @@ import dev.chrisbanes.haze.trace
 internal class RuntimeShaderGlassDelegate(
   private val effect: GlassRuntimeEffect,
   private val runtimeEffectFactory: GlassRuntimeEffectFactory = PlatformGlassRuntimeEffectFactory,
-) : GlassRuntimeEffect.Delegate, RetainedOutputDelegate {
+) : GlassRuntimeEffect.Delegate {
   internal val runtimeEffectFactoryForTest: GlassRuntimeEffectFactory
     get() = runtimeEffectFactory
 
@@ -287,7 +287,9 @@ internal class RuntimeShaderGlassDelegate(
     preparedInteractionPatch = interactionPatch
   }
 
-  internal fun DrawScope.prepareBackdrop(
+  override val usesRuntimeShader: Boolean get() = true
+
+  override fun DrawScope.prepareBackdrop(
     context: HazeEffectRuntimeDrawScope,
   ): PlatformRenderEffect? {
     val currentPreparedRender = effect.preparedRender
