@@ -1145,6 +1145,10 @@ invalidates only the affected work, without recomposition. Built-in styles,
     group-composite layer. That layer counts against the render budget, so the change can select a
     different renderer.</li>
 <li>Alpha reaching zero skips drawing altogether.</li>
+<li><strong>Placement re-evaluates the style only when the effect's size changes.</strong> The style resolves
+  against the effect size, so a resize runs the block again. A change of position or transform
+  alone, whether the effect or its source moves, updates only the effect's geometry and does not
+  run the block (<a href="https://github.com/chrisbanes/haze/issues/1456">#1456</a>).</li>
 </ul></div>
 
 
