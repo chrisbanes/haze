@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
+import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.translate
@@ -124,7 +125,7 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
       drawLayer(contentLayer)
     }
 
-    logDebug(RenderEffectBlurVisualEffectDelegate.TAG) {
+    HazeLogger.d(RenderEffectBlurVisualEffectDelegate.TAG) {
       "drawLinearGradientProgressiveEffectUsingLayers. mask=$mask, intensity=$intensity"
     }
 

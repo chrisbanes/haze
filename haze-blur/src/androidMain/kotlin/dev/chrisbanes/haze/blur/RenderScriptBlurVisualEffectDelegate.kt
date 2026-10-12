@@ -100,7 +100,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
       blurRadiusPx = MAX_BLUR_RADIUS
     }
 
-    logDebug(TAG) { "drawEffect. blurRadius=${blurRadiusPx}px. scaleFactor=$scaleFactor" }
+    HazeLogger.d(TAG) { "drawEffect. blurRadius=${blurRadiusPx}px. scaleFactor=$scaleFactor" }
 
     val hasDrawableSourceLayers = context.hasDrawableInput
     val captureKey = InputCaptureKey(
@@ -231,11 +231,11 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
       // Progressive intensity first, then the user's mask fades the complete output.
       if (progressiveMask != null) {
-        logDebug(TAG) { "Drawing progressive mask, canvas size=$size" }
+        HazeLogger.d(TAG) { "Drawing progressive mask, canvas size=$size" }
         drawRect(brush = progressiveMask, size = size, blendMode = BlendMode.DstIn)
       }
       if (userMask != null) {
-        logDebug(TAG) { "Drawing mask, canvas size=$size" }
+        HazeLogger.d(TAG) { "Drawing mask, canvas size=$size" }
         drawRect(brush = userMask, size = size, blendMode = BlendMode.DstIn)
       }
     }

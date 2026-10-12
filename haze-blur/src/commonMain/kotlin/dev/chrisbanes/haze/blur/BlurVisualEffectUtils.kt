@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
+import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformRenderEffect
@@ -166,16 +167,16 @@ private fun BlurVisualEffect.getOrCreateRenderEffect(
   context: HazeEffectRuntimeDrawScope,
   params: RenderEffectParams,
 ): PlatformRenderEffect {
-  logDebug(BlurVisualEffect.TAG) { "getOrCreateRenderEffect: $params" }
+  HazeLogger.d(BlurVisualEffect.TAG) { "getOrCreateRenderEffect: $params" }
   val density = context.requireDensity()
   val cacheKey = params.renderEffectCacheKey(density)
   val cached = renderEffectCache[cacheKey]
   if (cached != null) {
-    logDebug(BlurVisualEffect.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
+    HazeLogger.d(BlurVisualEffect.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
     return cached
   }
 
-  logDebug(BlurVisualEffect.TAG) { "getOrCreateRenderEffect. Creating: $params" }
+  HazeLogger.d(BlurVisualEffect.TAG) { "getOrCreateRenderEffect. Creating: $params" }
   return trace("HazeBlur-createRenderEffect") {
     createRenderEffect(
       context = context.requirePlatformContext(),

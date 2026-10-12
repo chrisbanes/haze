@@ -12,9 +12,8 @@ internal Glass runtime), follow these conventions:
 - Resolve replayable styles in this order: defaults → composition local → explicit style.
 - Guard the delegate property setter with `isAttached` to prevent calling `attach()`/`detach()`
   before the effect is node-attached.
-- Log mutable internal runtime-property changes via `HazeLogger.d(TAG)` where they aid debugging.
-  Log per-draw or per-update messages that capture state via the module's internal `logDebug(TAG)`
-  helper, which skips building the message when logging is disabled.
+- Log runtime-property changes and per-draw or per-update messages through `HazeLogger.d(TAG)`. Its
+  `enabled` guard is inlined, so a capturing message allocates nothing while logging is off.
 - Make platform-specific `updateDelegate` functions return the new `Delegate` instance rather than
   mutating the property as a side-effect.
 - Expose delegate capabilities (content drawn behind, retained output, backdrop support,
