@@ -207,8 +207,9 @@ the same surfaces in `hazeGlassContainer(spacing = 32.dp)`, so they merge into o
 rows use `HazePerformanceMode.Default` and `HazeInput.Sources`. It used a Pixel 8a running
 Android 17 (full SDK 37.2) at 60 Hz, with fixed-performance mode enabled and normal CPU scheduling.
 
-Values are the **arithmetic mean of two per-pass values**, not statistics of pooled frames. Peak
-GPU memory uses each pass's median `memoryGpuMaxKb`.
+Each per-pass value pools the frames of that pass's eight iterations; the table shows the
+**arithmetic mean of the two per-pass values**. Peak GPU memory uses each pass's median
+`memoryGpuMaxKb`.
 
 | Row | CPU frame duration P50 (ms) | CPU frame duration P90 (ms) | Frame overrun P90 (ms) | Peak GPU memory (KB) |
 | --- | ---: | ---: | ---: | ---: |
@@ -223,13 +224,13 @@ shows what each row drew:
 | Independent surfaces | 1.93–2.00 | two 527 × 623 layers |
 | One container cluster | 0.95–1.00 | one 952 × 745 layer |
 
-The cluster's single layer covers both members and the bridge between them, so it is about 8%
-larger than the two independent layers combined.
+The cluster draws one layer that covers both members and the bridge between them. The cluster's
+single layer is about 8% larger in area than the two independent layers combined.
 
 The container row had 0.35 ms lower CPU P90, but about 4.5 ms less deadline margin at P90 and
 7,174 KB (about 7%) more peak GPU memory. CPU frame duration does not measure GPU shader cost.
-The overrun difference points to work after the CPU portion of the frame, such as rendering the
-merged layer, but these runs did not analyze GPU timings. Neither row missed its deadline at P90.
+These runs did not measure GPU timings, so they do not show why the container finished closer to
+its deadline despite its lower CPU frame duration. Neither row missed its deadline at P90.
 
 These results describe two surfaces at one spacing on one device. They do not establish the cost
 of larger clusters, more members, other styles, or higher refresh rates. Measure clustered screens
