@@ -396,9 +396,10 @@ private fun DrawScope.drawMergedBase(
 }
 
 /**
- * Draws one colour stage in a layer bounded by the union, in which members paint with
- * [BlendMode.Src] from last to first. Where members overlap the earliest member's colour applies
- * once, and anti-aliased edges never composite twice.
+ * Draws one colour stage in a layer bounded by the union, in which each member clears its own
+ * shape with [BlendMode.DstOut] and then adds its colour with [BlendMode.Plus], from last to first.
+ * Where members overlap the earliest member's colour applies once, and anti-aliased edges never
+ * composite twice.
  */
 internal fun DrawScope.drawMergedColours(
   paths: FallbackMergedPaths,
@@ -419,10 +420,13 @@ internal fun DrawScope.drawMergedColours(
   withLayerPaint(alpha = 1f, blendMode = BlendMode.SrcOver, bounds = layerBounds) {
     for (index in members.indices.reversed()) {
       val memberColor = color(members[index])
+      // Src with path coverage wipes the member's whole bounding box on the API 23-27 renderer;
+      // DstOut then Plus is the same coverage blend without that.
+      drawPath(paths.members[index], Color.Black, blendMode = BlendMode.DstOut)
       drawPath(
         path = paths.members[index],
         color = memberColor.copy(alpha = memberColor.alpha * alphaMultiplier),
-        blendMode = BlendMode.Src,
+        blendMode = BlendMode.Plus,
       )
     }
   }
