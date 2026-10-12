@@ -80,6 +80,17 @@ class RenderScriptReleaseAndroidHostTest : ContextTest() {
   }
 
   @Test
+  fun invalidateRetainedOutput_releasesAndNullsTheContext() {
+    val delegate = delegate()
+    val rs = delegate.getRenderScriptContext(IntSize(8, 8))
+
+    delegate.invalidateRetainedOutput()
+
+    assertThat(rs.isDestroyed()).isTrue()
+    assertThat(delegate.renderScriptContext).isNull()
+  }
+
+  @Test
   fun onTrimMemory_moderate_releasesAndNullsTheContext() {
     val delegate = delegate()
     val rs = delegate.getRenderScriptContext(IntSize(8, 8))

@@ -155,6 +155,29 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
 
   @Test
   @Config(sdk = [35])
+  fun invalidateRetainedOutput_keepsTheLayersAndNoiseShaderForTheNextDraw() = runScreenshotTest {
+    val h = Harness(NOISY)
+    setContent { h.Content() }
+    frame()
+    val graphicsContext = checkNotNull(h.factory.graphicsContext)
+    val capture = h.delegate.captureLayer.acquire(graphicsContext)
+    val padded = h.delegate.paddedLayer.acquire(graphicsContext, key = 1L)
+    val presentation = checkNotNull(h.delegate.presentationLayer.layer)
+
+    h.delegate.invalidateRetainedOutput()
+    h.redraw(this)
+
+    assertThat(h.delegate.captureLayer.layer).isNotNull().isSameInstanceAs(capture)
+    assertThat(h.delegate.paddedLayer.layer).isNotNull().isSameInstanceAs(padded)
+    assertThat(h.delegate.presentationLayer.layer).isNotNull().isSameInstanceAs(presentation)
+    assertThat(capture.isReleased).isFalse()
+    assertThat(padded.isReleased).isFalse()
+    assertThat(presentation.isReleased).isFalse()
+    assertThat(h.delegate.noiseShaders.buildCount).isEqualTo(1)
+  }
+
+  @Test
+  @Config(sdk = [35])
   fun onTrimMemory_background_keepsThePresentationLayerAndNoiseShader() = runScreenshotTest {
     val h = Harness(NOISY)
     setContent { h.Content() }
@@ -237,6 +260,10 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
     var delegate: RenderScriptBlurVisualEffectDelegate? = null
       private set
 
+    /** The graphics context of the latest draw. */
+    var graphicsContext: GraphicsContext? = null
+      private set
+
     override fun createRenderer(): HazeEffectRenderer<Int> = object : HazeEffectRenderer<Int> {
       private var own: RenderScriptBlurVisualEffectDelegate? = null
       private var output: GraphicsLayer? = null
@@ -245,6 +272,7 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
       override fun HazeEffectDrawScope.draw(style: Int) {
         val runtime = this as HazeEffectRuntimeDrawScope
         val graphicsContext = runtime.requireGraphicsContext()
+        this@PresentationFactory.graphicsContext = graphicsContext
         val current = own ?: RenderScriptBlurVisualEffectDelegate(
           effect,
           graphicsContext,

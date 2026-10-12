@@ -77,7 +77,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
   // Layers kept across draws and updates. [draw] records the capture layer; a job records, re-keys
   // or releases the padded layer only before its first suspension, while [currentJob] gates new
-  // updates. [releaseRetainedOutput] releases all of them with [contentLayer].
+  // updates. [invalidateRetainedOutput] keeps them; [releaseRetainedOutput] releases all of them.
   internal val presentationLayer = RetainedGraphicsLayer()
   internal val captureLayer = RetainedGraphicsLayer()
   internal val paddedLayer = RetainedGraphicsLayer()
@@ -433,18 +433,26 @@ internal class RenderScriptBlurVisualEffectDelegate(
     runCatching { renderScript.destroy() }
   }
 
-  private fun releaseRetainedOutput() {
+  // Drops the output and what produces it, but keeps the capture, padded and presentation layers
+  // and the noise shaders: none is tied to the old size, and the next draw and update re-record or
+  // re-key them. The context goes too, because a cancelled frame's buffer-available callback can
+  // still signal its channel, which would make the next job blur before its own input arrives.
+  override fun invalidateRetainedOutput() {
     currentJob?.cancel()
     currentJob = null
     retainedOutputState.clear()
     completedCaptureKey = null
     contentLayer?.let(graphicsContext::releaseGraphicsLayer)
     contentLayer = null
+    releaseRenderScriptContext()
+  }
+
+  private fun releaseRetainedOutput() {
+    invalidateRetainedOutput()
     captureLayer.release()
     paddedLayer.release()
     presentationLayer.release()
     noiseShaders.clear()
-    releaseRenderScriptContext()
   }
 
   private fun releaseRenderScriptContext() {
