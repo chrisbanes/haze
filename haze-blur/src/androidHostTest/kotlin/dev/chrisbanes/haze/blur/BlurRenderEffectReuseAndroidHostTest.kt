@@ -20,9 +20,12 @@ import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
+import assertk.assertions.isSameInstanceAs
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeInput
@@ -79,7 +82,7 @@ class BlurRenderEffectReuseAndroidHostTest : ScreenshotTest() {
   @Test
   @Config(sdk = [31])
   fun api31_layeredProgressive_everyRecaptureBuildsFreshBandEffects() =
-    assertUnchangedDrawsReuse(LINEAR, freshEffectPerRecapture = true, assignsPerFreshEffect = 0)
+    assertUnchangedDrawsReuse(LINEAR, freshEffectPerRecapture = true, assignsPerBand = true)
 
   @Test
   @Config(sdk = [32])
@@ -166,12 +169,166 @@ class BlurRenderEffectReuseAndroidHostTest : ScreenshotTest() {
     probe.effect.clearRetainedOutput()
   }
 
+  @Test
+  @Config(sdk = [32])
+  fun layered_unchangedDraws_keepEveryBandLayerAndMask() = runScreenshotTest {
+    val probe = Probe()
+    var content by mutableStateOf(Color.White)
+    setContent { BlurContent(probe, LINEAR, content) }
+    frame()
+    val layers = probe.bandLayers()
+    val masksBuilt = probe.delegate.bandMasks.buildCount
+    val cold = probe.counts()
+    assertThat(layers.size).isGreaterThan(2)
+
+    listOf(Color.Red, Color.Green, Color.Blue).forEach {
+      content = it
+      frame()
+    }
+
+    val delta = probe.counts() - cold
+    assertThat(delta.slotLookups, "slot consulted by the extra draws").isGreaterThan(0)
+    probe.bandLayers().zip(layers).forEach { (now, before) ->
+      assertThat(now).isSameInstanceAs(before)
+      assertThat(now.isReleased).isFalse()
+    }
+    assertThat(probe.delegate.bandMasks.buildCount).isEqualTo(masksBuilt)
+    assertThat(delta.cache, "cache lookups").isEqualTo(0)
+    assertThat(delta.wraps, "wrapper creations").isEqualTo(0)
+    assertThat(delta.assigns, "layer assignments").isEqualTo(0)
+  }
+
+  @Test
+  @Config(sdk = [32])
+  fun layered_intensityChange_keepsMasks_geometryChange_rebuildsThem() = runScreenshotTest {
+    val probe = Probe()
+    var progressive by mutableStateOf(HazeProgressive.verticalGradient(startIntensity = 0.2f, endIntensity = 0.8f))
+    setContent { BlurContent(probe, layeredStyle(progressive), Color.White) }
+    frame()
+    val built = probe.delegate.bandMasks.buildCount
+    assertThat(built).isGreaterThan(0)
+
+    progressive = HazeProgressive.verticalGradient(startIntensity = 0.6f, endIntensity = 0.1f)
+    frame()
+    assertThat(probe.delegate.bandMasks.buildCount, "after an intensity change").isEqualTo(built)
+
+    progressive = HazeProgressive.verticalGradient(startY = 40f, startIntensity = 0.6f, endIntensity = 0.1f)
+    frame()
+    assertThat(probe.delegate.bandMasks.buildCount, "after a geometry change").isGreaterThan(built)
+  }
+
+  @Test
+  @Config(sdk = [32])
+  fun layered_nodeResize_releasesSurplusBandLayersAndKeepsTheRest() = runScreenshotTest {
+    val probe = Probe()
+    var fillFraction by mutableStateOf(1f)
+    setContent { BlurContent(probe, LINEAR, Color.White, fillFraction) }
+    frame()
+    val tall = probe.bandLayers()
+
+    fillFraction = 0.5f
+    frame()
+    val short = probe.bandLayers()
+    assertThat(short.size).isLessThan(tall.size)
+    short.forEachIndexed { index, layer -> assertThat(layer).isSameInstanceAs(tall[index]) }
+    tall.drop(short.size).forEach { assertThat(it.isReleased).isTrue() }
+
+    fillFraction = 1f
+    frame()
+    val regrown = probe.bandLayers()
+    assertThat(regrown.size).isEqualTo(tall.size)
+    regrown.take(short.size).forEachIndexed { index, layer -> assertThat(layer).isSameInstanceAs(short[index]) }
+    regrown.drop(short.size).forEach { assertThat(it.isReleased).isFalse() }
+  }
+
+  @Test
+  @Config(sdk = [32])
+  fun leavingTheLayeredBranch_releasesBandLayersAndMasks() = runScreenshotTest {
+    val probe = Probe()
+    var style by mutableStateOf(LINEAR)
+    setContent { BlurContent(probe, style, Color.White) }
+    frame()
+    val layers = probe.bandLayers()
+    assertThat(layers.size).isGreaterThan(0)
+    assertThat(probe.delegate.bandMasks.isEmpty).isFalse()
+
+    style = RADIAL
+    frame()
+
+    layers.forEach { assertThat(it.isReleased).isTrue() }
+    assertThat(probe.delegate.bandMasks.isEmpty).isTrue()
+  }
+
+  @Test
+  @Config(sdk = [32])
+  fun layered_trimModerate_releasesBandLayersAndTheNextFrameMatches() =
+    assertLayeredRelease { probe -> probe.effect.onTrimMemory(TrimMemoryLevel.MODERATE) }
+
+  @Test
+  @Config(sdk = [32])
+  fun layered_clearRetainedOutput_releasesBandLayersAndTheNextFrameMatches() =
+    assertLayeredRelease { probe -> probe.effect.clearRetainedOutput() }
+
+  @Test
+  @Config(sdk = [32])
+  fun layered_detach_releasesBandLayers() = runScreenshotTest {
+    val probe = Probe()
+    var attachment by mutableStateOf(0)
+    setContent { key(attachment) { BlurContent(probe, LINEAR, Color.White) } }
+    frame()
+    val layers = probe.bandLayers()
+    assertThat(layers.size).isGreaterThan(0)
+
+    attachment++
+    waitForIdle()
+
+    layers.forEach { assertThat(it.isReleased).isTrue() }
+  }
+
+  @Test
+  @Config(sdk = [32])
+  fun layered_trimBackground_keepsLayersButAssignsAFreshEffectPerBand() = runScreenshotTest {
+    val probe = Probe()
+    var content by mutableStateOf(Color.White)
+    setContent { BlurContent(probe, LINEAR, content) }
+    frame()
+    val layers = probe.bandLayers()
+    val before = probe.counts()
+
+    probe.effect.onTrimMemory(TrimMemoryLevel.BACKGROUND)
+    content = Color.Red
+    frame()
+
+    probe.bandLayers().zip(layers).forEach { (now, was) -> assertThat(now).isSameInstanceAs(was) }
+    assertThat((probe.counts() - before).assigns).isEqualTo(layers.size)
+  }
+
+  @Test
+  @Config(sdk = [32])
+  fun layered_repeatedDraws_matchAFreshAttachment() = runScreenshotTest {
+    val probe = Probe()
+    var content by mutableStateOf(Color.White)
+    var attachment by mutableStateOf(0)
+    setContent { key(attachment) { BlurContent(probe, LINEAR, content) } }
+    frame()
+    listOf(Color.Red, Color.Green, Color.Blue).forEach {
+      content = it
+      frame()
+    }
+    val repeated = captureRootPixels()
+
+    attachment++
+    frame()
+
+    assertThat(maxDifference(repeated, captureRootPixels())).isLessThan(0.01f)
+  }
+
   private fun assertUnchangedDrawsReuse(
     style: HazeBlurStyle,
     freshEffectPerRecapture: Boolean = false,
-    // Band layers are recorded afresh every draw and take their wrapper directly, so only the
-    // content layer's own assignment is deduplicated.
-    assignsPerFreshEffect: Int = 1,
+    // Each band layer takes its wrapper through its slot, so a fresh effect assigns once per band;
+    // otherwise only the content layer's own assignment is deduplicated.
+    assignsPerBand: Boolean = false,
     expectedBrushCalls: Int? = null,
   ) = runScreenshotTest {
     val probe = Probe()
@@ -197,7 +354,7 @@ class BlurRenderEffectReuseAndroidHostTest : ScreenshotTest() {
       assertThat(delta.generation, "input changes that cleared the cache").isGreaterThan(0)
       assertThat(delta.cache).isEqualTo(delta.generation * cold.cache)
       assertThat(delta.wraps).isEqualTo(delta.generation * cold.wraps)
-      assertThat(delta.assigns).isEqualTo(delta.generation * assignsPerFreshEffect)
+      assertThat(delta.assigns).isEqualTo(delta.generation * if (assignsPerBand) cold.cache else 1)
     } else {
       assertThat(delta.generation, "cache clears").isEqualTo(0)
       assertThat(delta.cache, "cache lookups").isEqualTo(0)
@@ -223,6 +380,21 @@ class BlurRenderEffectReuseAndroidHostTest : ScreenshotTest() {
     assertThat(delta.cache).isEqualTo(1)
     assertThat(delta.wraps).isEqualTo(1)
     assertThat(delta.assigns).isEqualTo(1)
+  }
+
+  private fun assertLayeredRelease(release: (Probe) -> Unit) = runScreenshotTest {
+    val probe = Probe()
+    setContent { BlurContent(probe, LINEAR, Color.White) }
+    val before = frame()
+    val layers = probe.bandLayers()
+    assertThat(layers.size).isGreaterThan(0)
+
+    release(probe)
+
+    layers.forEach { assertThat(it.isReleased).isTrue() }
+    val after = frame()
+    assertThat(maxDifference(before, after)).isLessThan(0.01f)
+    probe.bandLayers().forEach { assertThat(it.isReleased).isFalse() }
   }
 
   private fun ScreenshotUiTest.frame(): PixelMap {
@@ -287,6 +459,9 @@ private class Probe : HazeEffectFactory<BlurConfiguration> {
     },
     renderEffectSlotFactory = { CountingBlurRenderEffectSlot().also(slots::add) },
   ).also { effect = it }
+
+  /** The layers the latest layered draw is holding, in band order. */
+  fun bandLayers() = (0 until delegate.bandSlotCount).map { checkNotNull(delegate.bandLayer(it).layer) }
 
   fun counts() = Counts(
     cache = effect.renderEffectCache.hitCount() + effect.renderEffectCache.missCount(),

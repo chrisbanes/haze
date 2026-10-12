@@ -22,7 +22,6 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.withGraphicsLayer
 
 internal actual fun BlurVisualEffect.invalidateRenderEffectOnInputChange() {
   if (Build.VERSION.SDK_INT == 31) {
@@ -116,35 +115,36 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
   }
 
   var band = 0
-  drawProgressiveWithMultipleLayers(progressive) { mask, intensity ->
-    val slot = bandSlot(band++)
-    context.withGraphicsLayer { layer ->
-      layer.record(contentLayer.size) {
-        drawLayer(contentLayer)
-      }
-
-      logDebug(RenderEffectBlurVisualEffectDelegate.TAG) {
-        "drawLinearGradientProgressiveEffectUsingLayers. mask=$mask, intensity=$intensity"
-      }
-
-      layer.renderEffect = slot.composeEffect(
-        blurVisualEffect.getOrCreateRenderEffect(
-          context = context,
-          inputScale = inputScale,
-          blurRadius = blurRadius * intensity,
-          noiseFactor = noiseFactor,
-          colorEffects = colorEffects.orEmpty(),
-          colorEffectsAlphaModulate = intensity,
-          mask = mask,
-          slot = slot,
-        ),
-      )
-      layer.alpha = blurVisualEffect.alpha
-
-      // Since we included a border around the content, we need to translate so that
-      // we don't see it (but it still affects the RenderEffect)
-      drawLayer(layer)
+  drawProgressiveWithMultipleLayers(progressive, masks = bandMasks) { mask, intensity ->
+    val index = band++
+    val slot = bandSlot(index)
+    val layer = bandLayer(index).acquire(context.requireGraphicsContext())
+    layer.record(contentLayer.size) {
+      drawLayer(contentLayer)
     }
+
+    logDebug(RenderEffectBlurVisualEffectDelegate.TAG) {
+      "drawLinearGradientProgressiveEffectUsingLayers. mask=$mask, intensity=$intensity"
+    }
+
+    slot.apply(
+      layer,
+      blurVisualEffect.getOrCreateRenderEffect(
+        context = context,
+        inputScale = inputScale,
+        blurRadius = blurRadius * intensity,
+        noiseFactor = noiseFactor,
+        colorEffects = colorEffects.orEmpty(),
+        colorEffectsAlphaModulate = intensity,
+        mask = mask,
+        slot = slot,
+      ),
+    )
+    layer.alpha = blurVisualEffect.alpha
+
+    // Since we included a border around the content, we need to translate so that
+    // we don't see it (but it still affects the RenderEffect)
+    drawLayer(layer)
   }
 
   trimBandSlots(band)
