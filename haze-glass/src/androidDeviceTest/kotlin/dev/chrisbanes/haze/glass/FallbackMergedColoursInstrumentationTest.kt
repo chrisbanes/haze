@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.DpSize
 import assertk.assertThat
 import assertk.assertions.isCloseTo
 import assertk.assertions.isNotNull
+import assertk.assertions.isNull
 import kotlin.math.abs
 import org.junit.Rule
 import org.junit.Test
@@ -68,12 +69,30 @@ class FallbackMergedColoursInstrumentationTest {
       ),
     )
     val pixels = capture(widthPx = 300, heightPx = 140) { drawMergedColours(paths, 1f) { it.tint } }
+    pixels.assertNoSeam()
+  }
 
-    // Member 0's arc runs through this window inside member 1.
-    val interior = pixels[90, 100]
+  @Test
+  fun drawMergedColours_overBudgetUnionWithVisiblePartInBudget_hasNoSeamAlongInternalEdge() {
+    val paths = FallbackMergedPaths(
+      field(
+        member(Rect(0f, 0f, 120f, 120f), radius = 60f, tint = Color.Green.copy(alpha = 0.5f)),
+        member(Rect(80f, 0f, MAX_GLASS_LAYER_DIMENSION_PX + 100f, 120f), radius = 10f, tint = Color.Green.copy(alpha = 0.5f)),
+      ),
+    )
+    assertThat(paths.layerBounds(null), "union layerBounds").isNull()
+    val pixels = capture(widthPx = 300, heightPx = 140) {
+      drawMergedColours(paths, 1f, visible = Rect(0f, 0f, 300f, 140f)) { it.tint }
+    }
+    pixels.assertNoSeam()
+  }
+
+  /** Member 0's arc runs through this window inside member 1. */
+  private fun PixelMap.assertNoSeam() {
+    val interior = this[90, 100]
     for (x in 96..108) {
       for (y in 96..108) {
-        val c = pixels[x, y]
+        val c = this[x, y]
         listOf(c.red to interior.red, c.green to interior.green, c.blue to interior.blue).forEach { (a, b) ->
           assertThat(abs(a - b), "seam at ($x, $y)").isCloseTo(0f, 2f / 255f)
         }
