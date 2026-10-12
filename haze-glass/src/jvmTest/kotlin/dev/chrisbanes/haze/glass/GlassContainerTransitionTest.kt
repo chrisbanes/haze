@@ -792,6 +792,7 @@ class GlassContainerTransitionTest : ContextTest() {
     fixture.toggle()
     // Near B's overshoot peak, so C chooses B at its drawn shape.
     repeat(13) { fixture.advance(16) }
+    assertThat(fixture.b().rect.right).isGreaterThan(250f)
     runOnIdle { fixture.cPresent.value = true }
     fixture.advance(16)
     val bNode = fixture.b.memberBindingForTest?.node
@@ -817,6 +818,9 @@ class GlassContainerTransitionTest : ContextTest() {
       nodes.forEach { owner.add(it) }
       nodes.zip(materials).forEach { (node, material) -> node.binding.material = material }
       owner.memberChanged()
+      // The pass that ends the grow already draws B transparent, before its fade's first frame.
+      assertThat(fixture.b()).prop(GlassMemberSnapshot::fading).isTrue()
+      assertThat(fixture.b.transitionAlpha).isEqualTo(0f)
     }
     fixture.advance(16)
     // C's fade splits B from A before B draws a morphed frame, so B fades in place.

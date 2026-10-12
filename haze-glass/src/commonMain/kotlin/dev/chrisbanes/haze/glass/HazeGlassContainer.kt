@@ -302,7 +302,8 @@ internal class GlassContainerNode(
 
   /**
    * Ends [member]'s grow, snapping it to its own shape. A grow still at its start has not drawn
-   * a morphed frame, so it fades in instead of popping in at full size. Returns whether it did.
+   * a morphed frame, so it fades in instead of popping in at full size. Returns whether the grow
+   * became a fade.
    */
   private fun endGrow(member: GlassMemberNode): Boolean {
     val attach = attaching.remove(member) ?: return false
