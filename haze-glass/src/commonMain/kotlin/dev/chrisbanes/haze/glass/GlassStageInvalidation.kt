@@ -215,3 +215,23 @@ internal fun resolveGlassRuntimeSourceState(
     mergedBackground = mergedBackground,
   ).state
 }
+
+/** Returns [previous] when it already holds these inputs, so an unchanged frame builds no key. */
+internal fun resolveGlassInteractionLightingKey(
+  previous: GlassInteractionLightingKey?,
+  coordinates: GlassCoordinates,
+  edgeSoftnessPx: Float,
+  cornerRadii: CornerRadii,
+  mergedField: GlassMergedField?,
+): GlassInteractionLightingKey {
+  if (
+    previous != null &&
+    previous.coordinates == coordinates &&
+    previous.edgeSoftnessPx.compareTo(edgeSoftnessPx) == 0 &&
+    previous.cornerRadii == cornerRadii &&
+    previous.mergedField == mergedField
+  ) {
+    return previous
+  }
+  return GlassInteractionLightingKey(coordinates, edgeSoftnessPx, cornerRadii, mergedField)
+}

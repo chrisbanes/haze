@@ -443,6 +443,46 @@ class GlassStageInvalidationTest {
   }
 
   @Test
+  fun resolveGlassInteractionLightingKey_reusesOnlyAnEqualKey() {
+    fun coordinates(origin: Float = 0f) = GlassCoordinates(
+      sampleSize = Size(100f, 80f),
+      materialOrigin = Offset(origin, 0f),
+      materialSize = Size(100f, 80f),
+      scaleFactor = 1f,
+    )
+    val radii = CornerRadii(8f, 8f, 8f, 8f)
+    val field = mergedField(mergedMember(0f, 0f, 40f, 40f))
+    val previous = resolveGlassInteractionLightingKey(
+      previous = null,
+      coordinates = coordinates(),
+      edgeSoftnessPx = 2f,
+      cornerRadii = radii,
+      mergedField = field,
+    )
+
+    assertThat(
+      resolveGlassInteractionLightingKey(previous, coordinates(), 2f, radii.copy(), field),
+    ).isSameInstanceAs(previous)
+    listOf(
+      GlassInteractionLightingKey(coordinates(origin = 4f), 2f, radii, field),
+      GlassInteractionLightingKey(coordinates(), 3f, radii, field),
+      GlassInteractionLightingKey(coordinates(), 2f, CornerRadii(4f, 8f, 8f, 8f), field),
+      GlassInteractionLightingKey(coordinates(), 2f, radii, null),
+    ).forEach { expected ->
+      val resolved = resolveGlassInteractionLightingKey(
+        previous = previous,
+        coordinates = expected.coordinates,
+        edgeSoftnessPx = expected.edgeSoftnessPx,
+        cornerRadii = expected.cornerRadii,
+        mergedField = expected.mergedField,
+      )
+
+      assertThat(resolved).isNotSameInstanceAs(previous)
+      assertThat(resolved).isEqualTo(expected)
+    }
+  }
+
+  @Test
   fun resolveGlassRuntimeSourceState_drawableInputWithoutSnapshotForcesRecapture() {
     val state = resolveGlassRuntimeSourceState(
       captureScale = .5f,

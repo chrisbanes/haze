@@ -536,7 +536,8 @@ internal class RuntimeShaderGlassDelegate(
             requireRetainedStage(
               trace(GlassTraceSection.InteractionLighting) {
                 recordInteractionLighting(
-                  key = GlassInteractionLightingKey(
+                  key = resolveGlassInteractionLightingKey(
+                    previous = interactionLighting.key,
                     coordinates = interactionPatch.coordinates,
                     edgeSoftnessPx = params.edgeSoftnessPx,
                     cornerRadii = params.cornerRadii,
@@ -764,7 +765,8 @@ internal class RuntimeShaderGlassDelegate(
           requireRetainedStage(
             trace(GlassTraceSection.InteractionLighting) {
               recordInteractionLighting(
-                key = GlassInteractionLightingKey(
+                key = resolveGlassInteractionLightingKey(
+                  previous = interactionLighting.key,
                   coordinates = interactionPatch.coordinates,
                   edgeSoftnessPx = params.edgeSoftnessPx,
                   cornerRadii = params.cornerRadii,
