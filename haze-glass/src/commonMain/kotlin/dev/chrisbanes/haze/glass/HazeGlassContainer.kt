@@ -56,7 +56,9 @@ import kotlinx.coroutines.launch
  * animation ends; when no such member remains, for example when the last member leaves, the glass disappears immediately, as
  * it does for a member that is rotated or scaled. A transition ends without animating when the
  * member it grows from, retracts into or is drawn through leaves. A member moving to another
- * container appears there immediately.
+ * container appears there immediately. A running transition ends once its member is no longer
+ * within [spacing] of its neighbour; [transitionSpec] and [reducedMotionPolicy] changes apply from
+ * the next transition.
  * Leaving members never count towards the shared optical size. Haze animates only the glass, so
  * callers animate member content themselves, for example with `AnimatedVisibility`. Cap
  * diagnostics follow [HazeLogger.enabled].
@@ -220,11 +222,13 @@ internal class GlassContainerNode(
       }
       val live = liveSnapshots()
       // A grow ends, snapping to the member's own shape, once its neighbour is no longer live or
-      // could no longer have been chosen: the start conditions hold on every pass.
+      // could no longer have been chosen: the start conditions, including the current spacing,
+      // hold on every pass.
       val broken = attaching.filter { (member, attach) ->
         val neighbour = attach.neighbour ?: return@filter false
         val snapshot = live[member] ?: return@filter false
-        live[neighbour]?.let(snapshot::canTransitionWith) != true
+        // The gap is measured to what the neighbour draws, as when it was chosen.
+        live[neighbour]?.let { snapshot.canTransitionWith(it) && snapshot.isWithinSpacingOf(neighbour, live) } != true
       }
       broken.forEach { (member, attach) ->
         attach.job?.cancel()
@@ -233,12 +237,13 @@ internal class GlassContainerNode(
       // A ghost draws through its anchor's surface, so it ends once that anchor cannot draw it: the
       // anchor collapsed, left the layout, or changed input or resolved sources. A valid anchor
       // also keeps the model's optical size non-null while ghosts remain. A retracting ghost also
-      // needs a translation-only neighbour; it takes the neighbour's key, so keys always match.
+      // needs a translation-only neighbour within the current spacing; it takes the neighbour's
+      // key, so keys always match.
       endGhosts { ghost ->
         val anchor = live[ghost.anchor]
         anchor == null || !anchor.layoutRect.isValidGlassMember() || !anchor.drawsSourcesOf(ghost.last) ||
           anchor.key.input != ghost.last.key.input || anchor.key.expandLayerBounds != ghost.last.key.expandLayerBounds ||
-          (ghost.neighbour != null && !anchor.translationOnly)
+          (ghost.neighbour != null && (!anchor.translationOnly || !ghost.last.isWithinSpacingOf(ghost.anchor, live)))
       }
       // A transition's link only draws when it shares its neighbour's cluster, which can stop
       // holding when registrations between them change (for example a fading ghost splits a run).
@@ -301,6 +306,9 @@ internal class GlassContainerNode(
     val uniformScale = transform == null || abs(transform.scaleX - transform.scaleY) < 1e-4f
     return GlassMemberSnapshot(this, rect, key, material, uniformScale && hasTranslationOnlyTransform(owner), layoutRect, link)
   }
+
+  private fun GlassMemberSnapshot.isWithinSpacingOf(neighbour: GlassMemberNode, live: Map<GlassMemberNode, GlassMemberSnapshot>): Boolean =
+    drawnSnapshot(neighbour, live)?.let { glassMemberGap(layoutRect, it.layoutRect) < spacingPx } == true
 
   /** What [member] draws now: a member growing out of its neighbour is at its last morphed shape. */
   private fun drawnSnapshot(member: GlassMemberNode, live: Map<GlassMemberNode, GlassMemberSnapshot>): GlassMemberSnapshot? =

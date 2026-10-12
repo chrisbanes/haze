@@ -527,6 +527,20 @@ class GlassContainerTransitionTest : ContextTest() {
   fun growingMember_endsWhenNoLongerTranslationOnly() = assertGrowEnds { bRotation.value = 10f }
 
   @Test
+  fun growingMember_endsWhenSpacingNoLongerReachesNeighbour() = assertGrowEnds { spacing.value = 0 }
+
+  @Test
+  fun retractingGhost_endsWhenSpacingNoLongerReachesNeighbour() = runComposeUiTest {
+    val fixture = fixture()
+    fixture.toggle()
+    assertThat(fixture.b().identity).isInstanceOf<GlassMemberGhost>()
+    runOnIdle { fixture.spacing.value = 0 }
+    fixture.advance(16)
+    assertThat(fixture.owner().model.surfaces.flatMap { it.members }.map { it.identity }).containsExactly(fixture.aNode)
+    fixture.settle()
+  }
+
+  @Test
   fun growingMember_endsWhenNeighbourStopsBeingLive() = runComposeUiTest {
     val fixture = fixture(present = false)
     fixture.toggle()
@@ -633,6 +647,7 @@ class GlassContainerTransitionTest : ContextTest() {
     val bRotation = mutableStateOf(0f)
     val aRotation = mutableStateOf(0f)
     val bSourced = mutableStateOf(false)
+    val spacing = mutableStateOf(40)
 
     val aNode: GlassMemberNode? by lazy { a.memberBindingForTest?.node }
     lateinit var owner: GlassContainerNode
@@ -701,7 +716,7 @@ class GlassContainerTransitionTest : ContextTest() {
     setContent {
       Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
         Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
-        Box(Modifier.size(360.dp, 240.dp).then(if (enabled.value) Modifier.hazeGlassContainer(40.dp, spec, policy) else Modifier)) {
+        Box(Modifier.size(360.dp, 240.dp).then(if (enabled.value) Modifier.hazeGlassContainer(fixture.spacing.value.dp, spec, policy) else Modifier)) {
           if (aPresent.value) {
             Box(Modifier.offset(40.dp, 60.dp).size(aWidth.value.dp, 80.dp).graphicsLayer { rotationZ = fixture.aRotation.value }.hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(aState.value), containerTestStyle(Color.Red), HazePerformanceMode.Quality, true, null))
           }
