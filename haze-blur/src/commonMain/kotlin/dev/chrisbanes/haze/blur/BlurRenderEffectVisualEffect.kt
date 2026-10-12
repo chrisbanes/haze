@@ -28,7 +28,7 @@ import kotlin.math.ceil
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RenderEffectBlurVisualEffectDelegate(
   val blurVisualEffect: BlurVisualEffect,
-) : BlurVisualEffect.Delegate, RetainedOutputDelegate {
+) : BlurVisualEffect.Delegate {
   internal val effectSlot: BlurRenderEffectSlot = blurVisualEffect.renderEffectSlotFactory()
   private val bandSlots = mutableListOf<BlurRenderEffectSlot>()
   internal var scaledContentLayer: GraphicsLayer? = null
@@ -153,6 +153,8 @@ internal class RenderEffectBlurVisualEffectDelegate(
       }
     }
   }
+
+  override val supportsBackdropRenderEffect: Boolean get() = true
 
   override fun canDrawRetainedOutput(): Boolean {
     return retainedOutputAvailable && scaledContentLayer?.isReleased == false

@@ -14,6 +14,8 @@ import dev.chrisbanes.haze.InternalHazeApi
 internal class ScrimBlurVisualEffectDelegate(
   val blurVisualEffect: BlurVisualEffect,
 ) : BlurVisualEffect.Delegate {
+  override val drawsContentBehind: Boolean get() = true
+
   override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) {
     val scrimTint = blurVisualEffect.fallbackTint
       ?: blurVisualEffect.colorEffects?.firstOrNull()
