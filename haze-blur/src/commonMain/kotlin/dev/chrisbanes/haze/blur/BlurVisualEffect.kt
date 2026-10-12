@@ -37,6 +37,7 @@ import dev.chrisbanes.haze.asBrush
 @OptIn(InternalHazeApi::class)
 internal class BlurVisualEffect(
   private val progressiveBrushFactory: (HazeProgressive) -> Brush = { it.asBrush() },
+  internal val renderEffectSlotFactory: () -> BlurRenderEffectSlot = ::BlurRenderEffectSlot,
 ) :
   HazeEffectRenderer<BlurConfiguration>,
   HazeEffectRendererBackdrop<BlurConfiguration>,
@@ -50,6 +51,11 @@ internal class BlurVisualEffect(
   private var needsLayerBoundsInvalidation: Boolean = false
   internal val renderEffectCache =
     LruCache<RenderEffectCacheKey, PlatformRenderEffect>(maxSize = 50)
+
+  /** Bumped when [renderEffectCache] is cleared, so a [BlurRenderEffectSlot] cannot outlive a clear. */
+  internal var renderEffectGeneration: Int = 0
+
+  internal val backdropSlot: BlurRenderEffectSlot = renderEffectSlotFactory()
 
   private var progressiveBrushMemo: Brush? = null
 
@@ -131,6 +137,7 @@ internal class BlurVisualEffect(
           inputScale = BLUR_FULL_RESOLUTION_SCALE,
           backgroundColor = backgroundColor,
           progressive = progressive,
+          slot = backdropSlot,
         ),
         alpha = alpha,
       )
