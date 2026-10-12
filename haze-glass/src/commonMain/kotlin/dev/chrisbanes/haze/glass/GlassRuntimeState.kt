@@ -17,8 +17,8 @@ import dev.chrisbanes.haze.InternalHazeApi
 /**
  * Mutable style and interaction state owned by one [GlassRuntimeEffect].
  *
- * Fields are plain, not snapshot state: update() writes and reads them in one observed pass, so
- * dirtyTrackerSignal is the only observed signal.
+ * Fields are plain, not snapshot state: changes go through markDirty, so dirtyTrackerSignal is the
+ * only observed signal.
  */
 @ExperimentalHazeApi
 @Stable

@@ -136,10 +136,7 @@ class GlassRendererLifecycleTest {
 
   @Test
   fun interactionConfigurationOutsideUpdate_invalidatesDrawAndReachesController() {
-    val renderer = GlassRuntimeEffect().apply {
-      appearanceReader = { GlassSystemAppearance.Light }
-      style = GlassStyle { pressed { scale(0.9f) } }
-    }
+    val renderer = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
     val testScope = TestScope()
     val scope = TrackingLifecycleScope(coroutineScope = testScope)
     renderer.attach(scope)
@@ -158,8 +155,8 @@ class GlassRendererLifecycleTest {
       Snapshot.sendApplyNotifications()
       observedChanges = 0
 
-      // The Interaction bit is still pending, so none of these re-run the observed update. Each
-      // change must still reach the draw phase.
+      // With the Interaction bit pending, draw invalidation, not the observed update, delivers
+      // each change.
       val before = scope.drawInvalidations
       renderer.interactionSource = MutableInteractionSource()
       renderer.interactionTransformTarget = GlassTransformTarget.MaterialAndContent
@@ -193,13 +190,14 @@ class GlassRendererLifecycleTest {
     val testScope = TestScope()
     val scope = TrackingLifecycleScope(coroutineScope = testScope)
     renderer.attach(scope)
+    val style = GlassStyle { pressed { scale(0.9f) } }
     fun configuration(
       source: MutableInteractionSource? = null,
       target: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
       pivot: GlassTransformPivot = GlassTransformPivot.Pointer,
       policy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
     ) = GlassNodeConfiguration(
-      style = GlassStyle { pressed { scale(0.9f) } },
+      style = style,
       interactionSource = source,
       interactionTransformTarget = target,
       interactionTransformPivot = pivot,
