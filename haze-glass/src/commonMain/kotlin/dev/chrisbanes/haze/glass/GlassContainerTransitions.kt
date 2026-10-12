@@ -45,9 +45,21 @@ internal fun lerpGlassMergedMember(from: GlassMergedMember, to: GlassMergedMembe
 internal fun GlassMemberSnapshot.shape(): GlassMergedMember =
   GlassMergedMember(layoutRect, material.cornerRadii, material.tint, material.backgroundColor)
 
-/** [shape] interpolated from [from] towards this member. */
+/**
+ * What this member draws: its interaction-transformed rect, with its corners scaled as the
+ * renderer scales them.
+ */
+internal fun GlassMemberSnapshot.drawnShape(): GlassMergedMember {
+  val scale = minOf(rect.width / layoutRect.width, rect.height / layoutRect.height)
+  return GlassMergedMember(rect, material.cornerRadii * scale, material.tint, material.backgroundColor)
+}
+
+/**
+ * [shape] interpolated from [from]'s [drawn outline][drawnShape] towards this member, so a morph
+ * starts or ends where a pressed neighbour draws rather than at its layout rect.
+ */
 internal fun GlassMemberSnapshot.morphedFrom(from: GlassMemberSnapshot, fraction: Float): Pair<Rect, ResolvedGlassStyle> {
-  val shape = lerpGlassMergedMember(from.shape(), shape(), fraction)
+  val shape = lerpGlassMergedMember(from.drawnShape(), shape(), fraction)
   return shape.rect to material.copy(cornerRadii = shape.cornerRadii, tint = shape.tint, backgroundColor = shape.backgroundColor)
 }
 
@@ -57,7 +69,7 @@ internal fun GlassMemberSnapshot.morphedFrom(from: GlassMemberSnapshot, fraction
  * [ordered] is every registration's snapshot, with [member] at its registration position;
  * [excluded] members are not visible yet. A neighbour must satisfy [canTransitionWith], be within
  * the full spacing, and share a cluster with [member] placed on it, so the consecutive-run and cap
- * rules still hold.
+ * rules still hold. Every live member of that cluster must also resolve [member]'s sources.
  */
 internal fun resolveGlassNeighbour(
   member: GlassMemberSnapshot,
@@ -75,7 +87,10 @@ internal fun resolveGlassNeighbour(
         if (it.identity === member.identity) it.copy(rect = candidate.rect, layoutRect = candidate.layoutRect, key = candidate.key, link = candidate.identity) else it
       }
       clusterGlassMembers(probe, spacingPx).surfaces.any { cluster ->
-        cluster.members.any { it.identity === member.identity } && cluster.members.any { it.identity === candidate.identity }
+        cluster.members.any { it.identity === member.identity } && cluster.members.any { it.identity === candidate.identity } &&
+          // A cluster mixing resolved sources draws its members separately, so the morph would not show.
+          // Ghosts draw through their anchor, so only live members count.
+          cluster.members.filter { it.identity is GlassMemberNode }.all { it.drawsSourcesOf(member) }
       }
     }
     .minByOrNull { glassMemberGap(member.layoutRect, it.layoutRect) }

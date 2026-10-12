@@ -44,7 +44,8 @@ its own children. A member's own style still sets its shape, input and appearanc
   changes because a member was added, removed or resized, it changes immediately and is not
   animated. A member that is leaving does not count.
 - Each member's interaction transform and interaction lighting apply to that member's part of the
-  field. Pressing one member enlarges it within the merged shape, and only that member brightens.
+  field. Pressing one member can shrink it within the merged shape (interaction scales are at most
+  1), and only that member brightens.
 
 ## Transitions
 
@@ -57,6 +58,16 @@ as it is attached. Each member chooses a transition:
 - **`Materialize`** fades the glass in or out where it is. `MatchedGeometry` also falls back to it
   beyond the spacing.
 - **`None`** applies no transition.
+
+A morph starts or ends on the neighbour's drawn outline: its rect after its interaction transform,
+with its corners scaled as they are drawn. A pressed neighbour therefore stays continuous with the
+member growing out of it or retracting into it. Spacing and neighbour checks still ignore
+interaction transforms. A member chooses a growing neighbour by its current morph, and keeps that
+link while either the morph or the neighbour's layout is within the spacing.
+
+A member with `HazeInput.Content` input leaves immediately, without a ghost, because the content
+its glass samples leaves with it
+([#1485](https://github.com/chrisbanes/haze/issues/1485)).
 
 Haze doesn't animate member content, so callers fade content themselves.
 
@@ -108,6 +119,10 @@ instead of the spring, so it doesn't overshoot. `reducedMotionPolicy` uses the e
 - **The fallback renderer draws no bridge.** It renders each cluster as one surface clipped to the
   hard union of the member shapes, so overlapping members of a cluster never double their blur or
   tint. Members beyond the cap still draw separately.
+- **A system animation-scale change applies from the next transition.** A transition that is
+  already running continues as it started.
+- **A retract into a neighbour whose style alpha the caller animates ends immediately.** Alpha is
+  part of the merge key, so the neighbour is no longer compatible once its alpha changes.
 - **Merging costs extra GPU work.** On a Pixel 8a, two merged pills finished frames about 1.2–1.5 ms
   later at P50 and P90 than the same pills drawn independently, with a layer about three times the
   area. CPU frame time was within noise. These were single sessions, and CPU frame time does not

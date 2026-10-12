@@ -7,18 +7,24 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
@@ -40,6 +46,7 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
@@ -53,6 +60,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.math.abs
 import kotlin.test.Test
+import kotlinx.coroutines.runBlocking
 
 class GlassContainerTransitionTest : ContextTest() {
   @Test
@@ -695,6 +703,137 @@ class GlassContainerTransitionTest : ContextTest() {
     fixture.settle()
   }
 
+  @Test
+  fun matchedGeometry_attachToPressedNeighbour_startsOnItsDrawnOutline() = runComposeUiTest {
+    val fixture = fixture(present = false, bStyle = GlassStyle { shape(RoundedCornerShape(20.dp)) })
+    fixture.pressA()
+    val a = fixture.a()
+    assertThat(a.rect).isCloseTo(Rect(43f, 62.4f, 137f, 137.6f), tolerance = 0.1f)
+    fixture.toggle()
+    // B's first frame is A as drawn: scaled by 0.94 with its corners scaled to match.
+    assertThat(fixture.b()).all {
+      prop(GlassMemberSnapshot::link).isEqualTo(fixture.aNode)
+      prop(GlassMemberSnapshot::rect).isCloseTo(a.rect, tolerance = 0.1f)
+      prop(GlassMemberSnapshot::material).prop(ResolvedGlassStyle::cornerRadii).prop(CornerRadii::topLeft).isCloseTo(18.8f, 0.1f)
+    }
+    fixture.settle()
+  }
+
+  @Test
+  fun matchedGeometry_detachFromPressedNeighbour_retractsTowardsItsDrawnOutline() = runComposeUiTest {
+    val fixture = fixture(bStyle = GlassStyle { shape(RoundedCornerShape(20.dp)) })
+    fixture.pressA()
+    val a = fixture.a().rect
+    fixture.toggle()
+    fixture.advance(240)
+    val ghost = fixture.b()
+    val progress = (ghost.identity as GlassMemberGhost).progress.value
+    assertThat(ghost.rect).isCloseTo(lerp(a, Rect(150f, 60f, 250f, 140f), progress), tolerance = 0.1f)
+    fixture.settle()
+  }
+
+  @Test
+  fun matchedGeometry_attachIntoSourceMixedCluster_materializes() = runComposeUiTest {
+    // B resolves a zIndex 1 source as well, so A and B already form a cluster that mixes sources.
+    val fixture = fixture(cOffset = 40 to 150)
+    runOnIdle { fixture.bSourced.value = true }
+    fixture.advance(16)
+    assertThat(fixture.b().sourceSelection).isNotEqualTo(fixture.a().sourceSelection)
+    runOnIdle { fixture.cPresent.value = true }
+    fixture.advance(16)
+    val c = fixture.owner().model.surfaces.flatMap { it.members }.single { it.identity === fixture.c.memberBindingForTest?.node }
+    // Growing out of A would join that mixed cluster, which draws each member separately.
+    assertThat(c).all {
+      prop(GlassMemberSnapshot::link).isNull()
+      prop(GlassMemberSnapshot::rect).isCloseTo(Rect(40f, 150f, 140f, 230f))
+    }
+    assertThat(fixture.c.transitionAlpha).isLessThan(0.1f)
+    fixture.settle()
+  }
+
+  @Test
+  fun matchedGeometry_detachFromSourceMixedCluster_fadesThroughAnchor() = runComposeUiTest {
+    val fixture = fixture(cOffset = 40 to 150, cInitially = true)
+    runOnIdle { fixture.bSourced.value = true }
+    fixture.advance(16)
+    runOnIdle { fixture.cPresent.value = false }
+    fixture.advance(16)
+    val ghost = fixture.owner().model.surfaces.flatMap { it.members }.single { it.identity is GlassMemberGhost }.identity as GlassMemberGhost
+    assertThat(ghost.neighbour).isNull()
+    assertThat(ghost.anchor).isEqualTo(fixture.aNode)
+    fixture.settle()
+  }
+
+  @Test
+  fun undrawableRegistration_doesNotBlockRetract() = runComposeUiTest {
+    // B's key differs and sits between A and C in registration order. While B cannot draw (its
+    // material is unpublished, as during a binding swap), its stale snapshot must not split A and C.
+    val fixture = fixture(bStyle = GlassStyle { contrast(0.5f) }, cOffset = 40 to 150, cInitially = true)
+    val owner = fixture.owner()
+    val bBinding = checkNotNull(fixture.b.memberBindingForTest?.node).binding
+    val cNode = checkNotNull(fixture.c.memberBindingForTest?.node)
+    lateinit var ghost: GlassMemberGhost
+    runOnIdle {
+      val material = bBinding.material
+      bBinding.material = null
+      owner.remove(cNode)
+      ghost = owner.model.surfaces.flatMap { it.members }.single { it.identity is GlassMemberGhost }.identity as GlassMemberGhost
+      bBinding.material = material
+    }
+    assertThat(ghost.neighbour).isEqualTo(fixture.aNode)
+    fixture.settle()
+  }
+
+  @Test
+  fun growOutOfOvershootingNeighbour_doesNotEndWhileLayoutStaysWithinSpacing() = runComposeUiTest {
+    // C's layout is 35px from B's, but B overshoots its layout while it grows out of A.
+    val fixture = fixture(present = false, spec = spring(dampingRatio = 0.2f, stiffness = 200f), cOffset = 285 to 60, width = 400)
+    val c = { fixture.owner().model.surfaces.flatMap { it.members }.single { it.identity === fixture.c.memberBindingForTest?.node } }
+    fixture.toggle()
+    // Near B's overshoot peak, so C chooses B at its drawn shape.
+    repeat(13) { fixture.advance(16) }
+    assertThat(fixture.b().rect.right).isGreaterThan(250f)
+    runOnIdle { fixture.cPresent.value = true }
+    fixture.advance(16)
+    val bNode = fixture.b.memberBindingForTest?.node
+    assertThat(c().link).isEqualTo(bNode)
+    // B then swings back, away from C, while its layout stays within the spacing.
+    repeat(20) {
+      fixture.advance(16)
+      assertThat(c().link).isEqualTo(bNode)
+    }
+    fixture.settle(3000)
+  }
+
+  @Test
+  fun growSplitAtStartByMaterializingMember_fadesIn() = runComposeUiTest {
+    val fixture = fixture(cOffset = 40 to 150, cTransition = GlassMemberTransition.Materialize, cInitially = true)
+    val owner = fixture.owner()
+    val nodes = listOf(fixture.c, fixture.b).map { checkNotNull(it.memberBindingForTest?.node) }
+    runOnIdle {
+      // C (fading) and B (growing out of A) start in the same pass, registered as A, C, B.
+      nodes.forEach { owner.remove(it, leaving = false) }
+      val materials = nodes.map { it.binding.material }
+      nodes.forEach { it.binding.material = null }
+      nodes.forEach { owner.add(it) }
+      nodes.zip(materials).forEach { (node, material) -> node.binding.material = material }
+      owner.memberChanged()
+      // The pass that ends the grow already draws B transparent, before its fade's first frame.
+      assertThat(fixture.b()).prop(GlassMemberSnapshot::fading).isTrue()
+      assertThat(fixture.b.transitionAlpha).isEqualTo(0f)
+    }
+    fixture.advance(16)
+    // C's fade splits B from A before B draws a morphed frame, so B fades in place.
+    assertThat(fixture.b()).all {
+      prop(GlassMemberSnapshot::link).isNull()
+      prop(GlassMemberSnapshot::fading).isTrue()
+      prop(GlassMemberSnapshot::rect).isCloseTo(Rect(150f, 60f, 250f, 140f))
+    }
+    assertThat(fixture.b.transitionAlpha).isLessThan(0.1f)
+    fixture.settle()
+    assertThat(fixture.b.transitionAlpha).isEqualTo(1f)
+  }
+
   /** Starts B growing out of A, breaks one start condition, and expects B to snap to its own rect. */
   private fun assertGrowEnds(change: Fixture.() -> Unit) = runComposeUiTest {
     val fixture = fixture(present = false)
@@ -759,12 +898,29 @@ class GlassContainerTransitionTest : ContextTest() {
     val bSourced = mutableStateOf(false)
     val spacing = mutableStateOf(40)
 
+    val aSource = MutableInteractionSource()
+
     val aNode: GlassMemberNode? by lazy { a.memberBindingForTest?.node }
     lateinit var owner: GlassContainerNode
 
     fun owner(): GlassContainerNode = (aNode?.container ?: b.memberBindingForTest?.node?.container)?.also { owner = it } ?: owner
 
     private var bNode: GlassMemberNode? = null
+
+    fun a(): GlassMemberSnapshot = owner().model.surfaces.flatMap { it.members }.single { it.identity === aNode }
+
+    /** Gives A a 20dp shape that snaps to 0.94 when pressed, then presses it. */
+    fun pressA() {
+      test.runOnIdle {
+        aExtra.value = GlassStyle {
+          shape(RoundedCornerShape(20.dp))
+          pressed { animate(snap(), snap()) { scale(0.94f) } }
+        }
+      }
+      advance(16)
+      runBlocking { aSource.emit(PressInteraction.Press(Offset(50f, 40f))) }
+      advance(16)
+    }
 
     /** B's snapshot: the live member or its ghost. */
     fun b(): GlassMemberSnapshot {
@@ -805,6 +961,7 @@ class GlassContainerTransitionTest : ContextTest() {
     cOffset: Pair<Int, Int>? = null,
     cTransition: GlassMemberTransition = GlassMemberTransition.MatchedGeometry,
     cInitially: Boolean = false,
+    width: Int = 360,
   ): Fixture {
     val c = GlassRuntimeEffect()
     val cPresent = mutableStateOf(cInitially)
@@ -824,19 +981,19 @@ class GlassContainerTransitionTest : ContextTest() {
     val aState = mutableStateOf(state)
     val fixture = Fixture(this, a, b, bPresent, aPresent, enabled, nested, aWidth, aState, c, cPresent)
     setContent {
-      Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
-        Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
-        Box(Modifier.size(360.dp, 240.dp).then(if (enabled.value) Modifier.hazeGlassContainer(fixture.spacing.value.dp, spec, policy) else Modifier)) {
+      Box(Modifier.size(width.dp, 240.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(width.dp, 240.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(width.dp, 240.dp).then(if (enabled.value) Modifier.hazeGlassContainer(fixture.spacing.value.dp, spec, policy) else Modifier)) {
           if (aPresent.value) {
             Box(
               Modifier.offset(40.dp, 60.dp).size(aWidth.value.dp, 80.dp).graphicsLayer {
                 rotationZ = fixture.aRotation.value
                 scaleY = fixture.aScaleY.value
-              }.hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(aState.value), containerTestStyle(Color.Red).then(fixture.aExtra.value), HazePerformanceMode.Quality, true, null),
+              }.hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(aState.value), containerTestStyle(Color.Red).then(fixture.aExtra.value), HazePerformanceMode.Quality, true, fixture.aSource),
             )
           }
           Box(
-            Modifier.size(360.dp, 240.dp)
+            Modifier.size(width.dp, 240.dp)
               .then(if (fixture.bSourced.value) Modifier.hazeSource(state, zIndex = 1f) else Modifier)
               .then(if (nested.value) Modifier.hazeGlassContainer(40.dp) else Modifier),
           ) {
