@@ -1075,7 +1075,7 @@ internal class HazeEffectNode(
       }
     }
 
-    // Resolved at most once per update, on first use; layout cannot re-root the effect during it.
+    // Resolved lazily on first use; layout cannot re-root the effect during an update.
     // updateTypedRenderer below can dirty the layer bounds, so that block resolves it if needed.
     var effectRoot: LayoutCoordinates? = null
     if (dirtyTracker.any(AreaTransformsDirtyFields)) {

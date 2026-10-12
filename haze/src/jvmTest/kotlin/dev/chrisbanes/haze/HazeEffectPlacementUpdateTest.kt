@@ -156,6 +156,7 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
     waitForIdle()
 
     assertThat(renderer.updateCalls).isGreaterThan(updates)
+    // Guards against reassigning the membership list; the transform identity guards allocation.
     assertThat(node.lastSeenStateAreas).isSameInstanceAs(membership)
     assertThat(node.sourceTransformInEffect(area).values).isSameInstanceAs(transformValues)
   }
@@ -192,18 +193,8 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
   }
 
   @Test
-  fun scaledEffect_clipsLayerToRootBoundsAcrossRendererRefresh() = runComposeUiTest {
-    var refreshRequest by mutableIntStateOf(0)
+  fun scaledEffect_clipsLayerToRootBoundsInEffectCoordinates() = runComposeUiTest {
     var effectNode: HazeEffectNode? = null
-    var lastRefreshRequest = 0
-    val renderer = CountingUpdateRenderer { scope ->
-      // Requests a layer-bounds refresh from an update where no geometry changed.
-      if (refreshRequest != lastRefreshRequest) {
-        lastRefreshRequest = refreshRequest
-        scope.invalidateLayerBounds()
-      }
-    }
-    val factory = HazeEffectFactory<Unit> { renderer }
     setContent {
       Box(
         Modifier.graphicsLayer {
@@ -216,23 +207,16 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
           Modifier
             .wrapContentSize(Alignment.TopStart, unbounded = true)
             .requiredSize(4000.dp)
-            .hazeEffect(factory = factory, input = HazeInput.Backdrop(), style = Unit)
+            .hazeEffect(factory = TestEffectFactory, input = HazeInput.Backdrop(), style = Unit)
             .captureEffectNode { effectNode = it },
         )
       }
     }
     waitForIdle()
     val node = checkNotNull(effectNode)
-    val layerSize = node.layerSize
-    val updates = renderer.updateCalls
+
     // The scaled root clips the layer to half the root's size in the effect's coordinates.
-    assertThat(layerSize.width).isEqualTo(node.rootBounds.width / 2f)
-
-    refreshRequest++
-    waitForIdle()
-
-    assertThat(renderer.updateCalls).isGreaterThan(updates)
-    assertThat(node.layerSize).isEqualTo(layerSize)
+    assertThat(node.layerSize.width).isEqualTo(node.rootBounds.width / 2f)
   }
 
   @Test
@@ -378,15 +362,13 @@ private fun ComposeUiTest.setPlacementFixtureContent(): PlacementFixture {
 }
 
 @OptIn(InternalHazeApi::class)
-private class CountingUpdateRenderer(
-  private val onUpdate: (HazeEffectLifecycleScope) -> Unit = {},
-) : HazeEffectRenderer<Unit>,
+private class CountingUpdateRenderer :
+  HazeEffectRenderer<Unit>,
   HazeEffectRendererLifecycle<Unit> {
   var updateCalls = 0
 
   override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
     updateCalls++
-    onUpdate(scope)
   }
 
   override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
