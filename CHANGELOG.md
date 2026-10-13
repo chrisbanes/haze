@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ([#1491](https://github.com/chrisbanes/haze/pull/1491)).
 - Added a `hazeGlassContainer(spacing, scrollState)` overload. Members of a lazy layout appear and
   disappear without a transition while it scrolls
-  ([#1524](https://github.com/chrisbanes/haze/issues/1524)).
+  ([#1544](https://github.com/chrisbanes/haze/pull/1544)).
 
 ### Changed
 
