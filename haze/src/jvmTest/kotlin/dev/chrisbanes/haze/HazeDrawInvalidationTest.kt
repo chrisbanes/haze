@@ -5,11 +5,14 @@ package dev.chrisbanes.haze
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,12 +20,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.test.ContextTest
@@ -171,6 +176,51 @@ class HazeDrawInvalidationTest : ContextTest() {
     assertThat(renderer.updateCalls).isEqualTo(updates + 1)
     assertThat(renderer.layoutCalls).isEqualTo(calculations + 1)
     assertStableDrawOnlyInvalidations(renderer)
+  }
+
+  @Test
+  fun ancestorLayerMove_redrawsOnlyWhenOnScreenPartChanges() = runComposeUiTest {
+    val renderer = BoundsInvalidatingRenderer()
+    val factory = HazeEffectFactory<Unit> { renderer }
+    val shift = mutableFloatStateOf(0f)
+    withHazeInvalidationTracking {
+      setContent {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+          val left = maxWidth - 50.dp
+          // The effect moves with its content, so no transform or layer bound changes (#1534).
+          Box(Modifier.fillMaxSize().graphicsLayer { translationX = shift.floatValue }) {
+            Box(
+              Modifier.offset(left, 0.dp).size(100.dp)
+                .hazeInvalidationTag("effect")
+                .hazeEffect(factory = factory, input = HazeInput.Content, style = Unit, expandLayerBounds = true),
+            )
+          }
+        }
+      }
+      waitForIdle()
+      val updates = renderer.updateCalls
+      val draws = renderer.drawCalls
+
+      // Stationary frames do not redraw.
+      clearHazeInvalidations()
+      repeat(3) { mainClock.advanceTimeByFrame() }
+      waitForIdle()
+      assertHazeInvalidations("effect") { drawInvalidationsExactly(0) }
+
+      // Moving fully on screen reveals the cut-off part.
+      shift.floatValue = -100f * density.density
+      waitForIdle()
+      assertHazeInvalidations("effect") { drawInvalidationsExactly(1) }
+      assertThat(hazeInvalidationEvents().single().reason).isEqualTo(HazeInvalidationReason.DirtyFields)
+      assertThat(renderer.drawCalls).isGreaterThan(draws)
+      assertThat(renderer.updateCalls).isEqualTo(updates)
+
+      // Moving while fully on screen changes nothing that is drawn.
+      clearHazeInvalidations()
+      shift.floatValue = -110f * density.density
+      waitForIdle()
+      assertHazeInvalidations("effect") { drawInvalidationsExactly(0) }
+    }
   }
 
   private fun ComposeUiTest.attachBoundsRenderer(): BoundsInvalidatingRenderer {

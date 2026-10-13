@@ -259,6 +259,17 @@ internal class HazeEffectNode(
   internal val layerOffset: Offset
     get() = _layerOffset
 
+  // The on-screen part of the layer, in effect space. An ancestor layer moving the effect with its
+  // sources changes only this, so it is the only geometry that asks for the redraw (#1534).
+  private var visibleLayerBounds: Rect = Rect.Zero
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "visibleLayerBounds changed. Current: $field. New: $value" }
+        dirtyTracker += DirtyFields.VisibleLayerBounds
+        field = value
+      }
+    }
+
   internal var windowId: Any? = null
 
   /**
@@ -500,6 +511,7 @@ internal class HazeEffectNode(
     notifiedSurfaceSize = Size.Unspecified
     notifiedLayerSize = Size.Unspecified
     notifiedLayerOffset = Offset.Unspecified
+    visibleLayerBounds = Rect.Zero
     screenToEffectTransform = null
     lastInputSnapshot = null
     releaseBackdropRenderer()
@@ -1191,6 +1203,10 @@ internal class HazeEffectNode(
       } else {
         _layerSize = size
         _layerOffset = Offset.Zero
+      }
+      if (_layerSize.isSpecified) {
+        val visible = Rect(Offset.Zero - _layerOffset, _layerSize).intersect(rootBoundsInEffect(effectRoot))
+        visibleLayerBounds = if (visible.isEmpty) Rect.Zero else visible
       }
     }
 
@@ -1910,6 +1926,7 @@ internal object DirtyFields {
   const val LayerOffset: Int = LayerSize shl 1
   const val ExpandLayer: Int = LayerOffset shl 1
   const val VisualEffectLayerBounds: Int = ExpandLayer shl 1
+  const val VisibleLayerBounds: Int = VisualEffectLayerBounds shl 1
 
   const val InvalidateFlags: Int =
     Size or
@@ -1918,7 +1935,8 @@ internal object DirtyFields {
       LayerOffset or
       Areas or
       ExpandLayer or
-      VisualEffectLayerBounds
+      VisualEffectLayerBounds or
+      VisibleLayerBounds
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
@@ -1931,6 +1949,7 @@ internal object DirtyFields {
       if (Areas in dirtyTracker) add("Areas")
       if (ExpandLayer in dirtyTracker) add("ExpandLayer")
       if (VisualEffectLayerBounds in dirtyTracker) add("VisualEffectLayerBounds")
+      if (VisibleLayerBounds in dirtyTracker) add("VisibleLayerBounds")
     }
     return params.joinToString(separator = ", ", prefix = "[", postfix = "]")
   }
