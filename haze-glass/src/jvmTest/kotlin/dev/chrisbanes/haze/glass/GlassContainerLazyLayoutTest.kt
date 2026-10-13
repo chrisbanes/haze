@@ -14,9 +14,13 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -42,6 +46,8 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 private const val TRANSITION_MILLIS = 150
 
@@ -153,6 +159,62 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     assertThat(fixture.ghosts()).isEmpty()
   }
 
+  @Test
+  fun lazyItem_withScrollState_matchedGeometry_appearsAndLeavesWithoutAnimating() = runComposeUiTest {
+    val fixture = lazyFixture(GlassMemberTransition.MatchedGeometry, withScrollState = true)
+
+    fixture.scrollInProgress(frames = 9, px = 6f)
+
+    fixture.assertAppearedWithoutAnimating(5)
+    assertThat(fixture.ghosts()).isEmpty()
+  }
+
+  @Test
+  fun lazyItem_withScrollState_materialize_fastScrollDoesNotAnimate() = runComposeUiTest {
+    val fixture = lazyFixture(GlassMemberTransition.Materialize, withScrollState = true)
+
+    fixture.scrollInProgress(frames = 4, px = 40f)
+
+    fixture.assertAppearedWithoutAnimating(5)
+    assertThat(fixture.ghosts()).isEmpty()
+  }
+
+  @Test
+  fun lazyItem_withScrollState_scrollToItemDoesNotAnimate() = runComposeUiTest {
+    val fixture = lazyFixture(GlassMemberTransition.MatchedGeometry, withScrollState = true)
+
+    fixture.inScroll { scrollToItem(10) }
+
+    fixture.assertAppearedWithoutAnimating(10)
+    assertThat(fixture.ghosts()).isEmpty()
+  }
+
+  /** A state change is not a scroll, so an item inserted while the list is idle still animates. */
+  @Test
+  fun lazyItem_withScrollState_insertWhileIdle_animates() = runComposeUiTest {
+    val fixture = lazyFixture(GlassMemberTransition.MatchedGeometry, withScrollState = true)
+
+    runOnIdle { fixture.keys.add(2, 100) }
+    fixture.frames(1)
+
+    val inserted = checkNotNull(fixture.member(100))
+    assertThat(inserted.link != null || inserted.fading).isTrue()
+  }
+
+  /** The scroll window closes when the scroll ends, so a later insertion still animates. */
+  @Test
+  fun lazyItem_withScrollState_insertAfterScrollEnds_animates() = runComposeUiTest {
+    val fixture = lazyFixture(GlassMemberTransition.MatchedGeometry, withScrollState = true)
+    fixture.scrollInProgress(frames = 3, px = 6f)
+    fixture.settle()
+
+    runOnIdle { fixture.keys.add(3, 100) }
+    fixture.frames(1)
+
+    val inserted = checkNotNull(fixture.member(100))
+    assertThat(inserted.link != null || inserted.fading).isTrue()
+  }
+
   /** Lazy prefetch precomposes and premeasures an item without placing it. */
   @Test
   fun prefetchedItem_registersButDoesNotAnimateUntilPlaced() = runComposeUiTest {
@@ -235,6 +297,8 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     private val test: ComposeUiTest,
     private val state: LazyListState,
     private val effects: Map<Int, GlassRuntimeEffect>,
+    val keys: MutableList<Int>,
+    private val scope: () -> CoroutineScope,
   ) {
     val viewport = Rect(0f, 0f, 360f, 80f)
 
@@ -260,6 +324,31 @@ class GlassContainerLazyLayoutTest : ContextTest() {
 
     fun scroll(frames: Int) = frames(frames, scrollPerFrame = 6f)
 
+    /** Scrolls [px] per frame inside one scroll, so the state reports a scroll in progress. */
+    fun scrollInProgress(frames: Int, px: Float) = inScroll(frames) {
+      scroll {
+        repeat(frames) {
+          scrollBy(px)
+          withFrameNanos {}
+        }
+      }
+    }
+
+    /** Runs [block] on the state, then advances [frames] frames. */
+    fun inScroll(frames: Int = 2, block: suspend LazyListState.() -> Unit) {
+      test.runOnIdle { scope().launch { state.block() } }
+      frames(frames + 1)
+    }
+
+    /** The item's glass is at its content, opaque and unlinked: it did not animate in. */
+    fun assertAppearedWithoutAnimating(index: Int) {
+      val member = checkNotNull(member(index))
+      assertThat(member.link).isNull()
+      assertThat(member.fading).isFalse()
+      assertThat(member.material.alpha).isEqualTo(1f)
+      assertThat(member.rect).isEqualTo(contentBounds(index))
+    }
+
     /** Runs frames until every animation has finished. */
     fun settle() {
       test.mainClock.autoAdvance = true
@@ -268,11 +357,14 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     }
   }
 
-  private fun ComposeUiTest.lazyFixture(transition: GlassMemberTransition): LazyFixture {
+  private fun ComposeUiTest.lazyFixture(transition: GlassMemberTransition, withScrollState: Boolean = false): LazyFixture {
     val effects = mutableMapOf<Int, GlassRuntimeEffect>()
     val hazeState = HazeState()
     val state = LazyListState(firstVisibleItemScrollOffset = 70)
+    val keys = mutableStateListOf<Int>().apply { addAll(0 until 40) }
+    lateinit var scope: CoroutineScope
     setContent {
+      scope = rememberCoroutineScope()
       Box(Modifier.size(360.dp, 240.dp).background(Color.White)) {
         Box(Modifier.size(360.dp, 240.dp).hazeSource(hazeState))
         LazyRow(
@@ -280,10 +372,16 @@ class GlassContainerLazyLayoutTest : ContextTest() {
           modifier = Modifier
             .offset(0.dp, 80.dp)
             .size(360.dp, 80.dp)
-            .hazeGlassContainer(16.dp, tween(TRANSITION_MILLIS, easing = LinearEasing), GlassReducedMotionPolicy.Full),
+            .then(
+              if (withScrollState) {
+                Modifier.hazeGlassContainer(16.dp, state, tween(TRANSITION_MILLIS, easing = LinearEasing), GlassReducedMotionPolicy.Full)
+              } else {
+                Modifier.hazeGlassContainer(16.dp, tween(TRANSITION_MILLIS, easing = LinearEasing), GlassReducedMotionPolicy.Full)
+              },
+            ),
           horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-          items(40, key = { it }) { index ->
+          items(keys, key = { it }) { index ->
             val effect = remember { GlassRuntimeEffect().also { effects[index] = it } }
             Box(
               Modifier.size(80.dp).hazeGlass(
@@ -302,6 +400,6 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     }
     waitForIdle()
     mainClock.autoAdvance = false
-    return LazyFixture(this, state, effects)
+    return LazyFixture(this, state, effects, keys) { scope }
   }
 }

@@ -16,20 +16,15 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
  * wrapping the member in `AnimatedVisibility`.
  *
  * Members of a lazy layout such as `LazyRow` or `LazyColumn` attach as they scroll into view, and
- * Compose gives a modifier no signal that tells that from a state change. Their glass therefore
- * animates while the item is visible, and leaves a ghost when it scrolls out. Set [None] on lazy
- * items, or [Materialize] if a fade is acceptable:
+ * Compose gives a modifier no signal that tells that from a state change. Pass the layout's state
+ * to [hazeGlassContainer], so that items appear and disappear without a transition while it
+ * scrolls, and still animate when state inserts or removes them:
  *
  * ```
- * LazyRow(Modifier.hazeGlassContainer(spacing = 16.dp)) {
+ * val listState = rememberLazyListState()
+ * LazyRow(state = listState, modifier = Modifier.hazeGlassContainer(spacing = 16.dp, scrollState = listState)) {
  *   items(chips, key = { it.id }) { chip ->
- *     Chip(
- *       Modifier.hazeGlass(
- *         input = input,
- *         style = style,
- *         memberTransition = GlassMemberTransition.None,
- *       ),
- *     )
+ *     Chip(Modifier.hazeGlass(input = input, style = style))
  *   }
  * }
  * ```
