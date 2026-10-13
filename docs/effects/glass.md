@@ -655,28 +655,19 @@ the spacing of that member.
 ### Lazy layouts
 
 Members of a lazy layout such as `LazyRow` or `LazyColumn` attach as they scroll into view, and
-Compose gives a modifier no signal that tells that from a state change. The container therefore
-treats a scrolled-in item like any member that attaches after its first draw, and a scrolled-out
-item like any member that detaches. Items placed before the container's first draw never animate.
-
-A prefetched item registers with the container as soon as it is composed, but it has no bounds
-until it is placed, so its transition starts when it is placed.
-
-With the default `MatchedGeometry`, the first item to scroll in grows out of its neighbour while it
-is visible. Its glass starts on the neighbour and lags its content, which stays at its layout
-position. An item that scrolls out leaves a ghost until the animation ends. `Materialize` fades
-the glass in while the item is visible, and also leaves a ghost when the item scrolls out.
-
-Set `GlassMemberTransition.None` on lazy items so that their glass appears and disappears with
-the item. Use `Materialize` if a fade is acceptable. `None` also stops the glass animating when
-state inserts or removes a lazy item.
+Compose gives a modifier no signal that tells that from a state change. Pass the layout's state to
+`hazeGlassContainer` as `scrollState`. While that state is scrolling, including the frame in which it
+stops, members appear and disappear without a transition, whatever their `memberTransition`.
+Items inserted or removed while the layout is idle still animate.
 
 ```kotlin
 // Styles compare by identity, so remember the style.
 val style = remember { GlassStyle.regular.then { shape(CircleShape) } }
+val listState = rememberLazyListState()
 
 LazyRow(
-  modifier = Modifier.hazeGlassContainer(spacing = 16.dp),
+  state = listState,
+  modifier = Modifier.hazeGlassContainer(spacing = 16.dp, scrollState = listState),
   horizontalArrangement = Arrangement.spacedBy(8.dp),
 ) {
   items(chips, key = { it.id }) { chip ->
@@ -685,12 +676,21 @@ LazyRow(
       modifier = Modifier.hazeGlass(
         input = HazeInput.Sources(hazeState),
         style = style,
-        memberTransition = GlassMemberTransition.None,
       ),
     )
   }
 }
 ```
+
+Drags, flings, `animateScrollBy` and `scrollToItem` are scrolls. Position changes made outside a
+scroll, such as `requestScrollToItem` or `dispatchRawDelta`, are not, so their items animate.
+
+Without `scrollState`, the container treats a scrolled-in item like any member that attaches after
+its first draw. With the default `MatchedGeometry`, the item's glass grows out of its neighbour
+while it is visible, lagging its content, and an item that scrolls out leaves a ghost until the
+animation ends. Items placed before the container's first draw never animate. A prefetched item
+registers with the container as soon as it is composed, but it has no bounds until it is placed,
+so its transition starts when it is placed.
 
 ### Fallback
 
