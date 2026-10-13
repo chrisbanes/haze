@@ -331,10 +331,16 @@ class GlassContainerLazyLayoutTest : ContextTest() {
       }
     }
 
-    /** Runs [block] on the state, then advances [frames] frames. */
+    /**
+     * Runs [block] on the state, then advances [frames] frames and the two after it, so the frame
+     * where the scroll stops is included. No member transitions on any of those frames.
+     */
     fun inScroll(frames: Int, block: suspend LazyListState.() -> Unit) {
       test.runOnIdle { scope.launch { state.block() } }
-      frames(frames)
+      repeat(frames + 2) {
+        frames(1)
+        assertThat(members().filter { it.link != null || it.fading || it.identity is GlassMemberGhost }).isEmpty()
+      }
     }
 
     /** The item's glass is at its content, opaque and unlinked: it did not animate in. */
