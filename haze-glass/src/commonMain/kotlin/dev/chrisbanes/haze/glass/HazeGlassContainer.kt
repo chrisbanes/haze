@@ -158,18 +158,17 @@ internal class GlassContainerNode(
   private val latest = mutableMapOf<Any, GlassMemberSnapshot>()
 
   /**
-   * Members that attach or detach while this is true appear or disappear without a transition. A
-   * lazy layout can detach scrolled-out items after its scroll ends, so a scroll seen since the
-   * previous draw still counts.
+   * Members that attach or detach while this is true appear or disappear without a transition:
+   * before the first draw, and from a scroll until the next draw. A lazy layout can detach
+   * scrolled-out items after its scroll ends, so a scroll seen since the previous draw still counts.
    */
-  private var scrolling = false
+  private var suppressTransitions = true
 
   private fun observeScroll() {
-    if (Snapshot.withoutReadObservation { scrollState?.isScrollInProgress == true }) scrolling = true
+    if (suppressTransitions) return
+    val state = scrollState ?: return
+    if (Snapshot.withoutReadObservation { state.isScrollInProgress }) suppressTransitions = true
   }
-
-  /** Members present before the first draw appear without a transition. */
-  private var settled = false
   private var children: GraphicsLayer? = null
   private var refreshing = false
   private var spacingCheckPending = false
@@ -200,7 +199,10 @@ internal class GlassContainerNode(
   fun add(member: GlassMemberNode, appearing: Boolean = true) {
     if (member !in registrations) {
       registrations += member
-      if (appearing) pending += member
+      // A member that appears before the first draw or during a scroll does not animate, even when
+      // its first snapshot arrives later.
+      observeScroll()
+      if (appearing && !suppressTransitions) pending += member
     }
     memberChanged()
   }
@@ -242,7 +244,7 @@ internal class GlassContainerNode(
     // An axis-aligned field rect cannot draw a rotated or scaled member's glass.
     // A Content member's glass samples its own content, which leaves with it; another member's
     // surface would draw unrelated content in its place.
-    if (!isAttached || !settled || scrolling || member.transition == GlassMemberTransition.None || !last.translationOnly || last.key.input is HazeInput.Content) return null
+    if (!isAttached || suppressTransitions || member.transition == GlassMemberTransition.None || !last.translationOnly || last.key.input is HazeInput.Content) return null
     // Only members that can draw now may carry a ghost or split its neighbour's run; a collapsed
     // member keeps a stale snapshot.
     val live = liveSnapshots().filterValues { it.layoutRect.isValidGlassMember() }.keys
@@ -374,7 +376,7 @@ internal class GlassContainerNode(
   private fun endGrow(member: GlassMemberNode): Boolean {
     val attach = attaching.remove(member) ?: return false
     attach.job?.cancel()
-    if (attach.neighbour == null || attach.progress.value != 0f) return false
+    if (attach.neighbour == null || attach.progress.value != 0f || suppressTransitions) return false
     val fade = GlassMemberAttach(null)
     attaching[member] = fade
     fade.job = animate(fade.progress, 1f) { attaching.remove(member) }
@@ -422,7 +424,7 @@ internal class GlassContainerNode(
     for (member in pending.toList()) {
       val snapshot = live[member] ?: continue
       pending -= member
-      if (!settled || scrolling || member.transition == GlassMemberTransition.None) continue
+      if (suppressTransitions || member.transition == GlassMemberTransition.None) continue
       val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(snapshot, ordered, spacingPx, excluded = appearing) else null
       val attach = GlassMemberAttach(neighbour?.identity as GlassMemberNode?)
       attaching[member] = attach
@@ -437,8 +439,7 @@ internal class GlassContainerNode(
   override fun ContentDrawScope.draw() {
     if (spacingCheckPending) memberChanged(layoutComplete = true)
     drawHazeEffectSurfaces(this@GlassContainerNode, { renderer.reconcile() }, checkNotNull(children))
-    settled = true
-    scrolling = false
+    suppressTransitions = false
   }
 
   override fun onDetach() {
@@ -456,7 +457,7 @@ internal class GlassContainerNode(
     pending.clear()
     attaching.clear()
     latest.clear()
-    settled = false
+    suppressTransitions = true
     children?.let { requireGraphicsContext().releaseGraphicsLayer(it) }
     children = null
   }
