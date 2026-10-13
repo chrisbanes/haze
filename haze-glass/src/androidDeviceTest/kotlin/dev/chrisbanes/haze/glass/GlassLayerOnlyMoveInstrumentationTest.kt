@@ -29,8 +29,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.filters.SdkSuppress
 import assertk.assertThat
+import assertk.assertions.hasSize
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
+import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -39,8 +41,8 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Moving a standalone fallback Glass member and its input together with only an ancestor layer
- * translation must redraw the member, including the part the move reveals (#1534).
+ * Moving fallback Glass members and their input together with only an ancestor layer translation
+ * must redraw them, standalone or merged, including the part the move reveals (#1534).
  */
 // Runtime-shader Glass replaces the fallback from API 33. API 27 draws no fallback Glass outside
 // the translated ancestor layer's bounds even without a move, so it cannot show this redraw.
@@ -72,6 +74,28 @@ class GlassLayerOnlyMoveInstrumentationTest {
   }
 
   @Test
+  fun mergedMembers_movedByAncestorLayer_drawsGlassInRevealedPart() {
+    val state = HazeState()
+    val effects = List(2) { GlassRuntimeEffect() }
+    setScene {
+      Box(
+        Modifier.wrapContentSize(Alignment.TopStart, unbounded = true)
+          .requiredSize(2000.dp, 400.dp)
+          .hazeSource(state)
+          .background(Color.Red),
+      )
+      // The container draws the merged members, so it must redraw too.
+      Box(Modifier.fillMaxSize().hazeGlassContainer(40.dp)) {
+        Box(Modifier.offset(memberLeft - 100.dp, 100.dp).size(120.dp).hazeGlass(effects[0], state))
+        Box(Modifier.member().hazeGlass(effects[1], state))
+      }
+    }
+    val owner = checkNotNull(effects.first().memberBindingForTest?.node?.container)
+    assertThat(owner.renderer.runtimeSurfaces, "merged surfaces").hasSize(1)
+    assertLayerOnlyMovesDrawGlass()
+  }
+
+  @Test
   fun contentMember_movedByAncestorLayer_drawsGlassInRevealedPart() {
     setScene {
       Box(Modifier.member().hazeGlass(HazeInput.Content, style)) {
@@ -94,6 +118,15 @@ class GlassLayerOnlyMoveInstrumentationTest {
     }
     composeTestRule.waitForIdle()
   }
+
+  private fun Modifier.hazeGlass(effect: GlassRuntimeEffect, state: HazeState): Modifier = hazeGlass(
+    factory = HazeEffectFactory { effect },
+    input = HazeInput.Sources(state),
+    style = style,
+    performanceMode = null,
+    expandLayerBounds = true,
+    interactionSource = null,
+  )
 
   private fun Modifier.member(): Modifier = offset(memberLeft, 100.dp).size(300.dp, 120.dp)
 
