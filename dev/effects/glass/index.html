@@ -2348,23 +2348,17 @@ the member it grows from, retracts into or is drawn through leaves, or when it i
 the spacing of that member.</p>
 <h3 id="lazy-layouts">Lazy layouts<a class="headerlink" href="#lazy-layouts" title="Permanent link">¶</a></h3>
 <p>Members of a lazy layout such as <code>LazyRow</code> or <code>LazyColumn</code> attach as they scroll into view, and
-Compose gives a modifier no signal that tells that from a state change. The container therefore
-treats a scrolled-in item like any member that attaches after its first draw, and a scrolled-out
-item like any member that detaches. Items placed before the container's first draw never animate.</p>
-<p>A prefetched item registers with the container as soon as it is composed, but it has no bounds
-until it is placed, so its transition starts when it is placed.</p>
-<p>With the default <code>MatchedGeometry</code>, the first item to scroll in grows out of its neighbour while it
-is visible. Its glass starts on the neighbour and lags its content, which stays at its layout
-position. An item that scrolls out leaves a ghost until the animation ends. <code>Materialize</code> fades
-the glass in while the item is visible, and also leaves a ghost when the item scrolls out.</p>
-<p>Set <code>GlassMemberTransition.None</code> on lazy items so that their glass appears and disappears with
-the item. Use <code>Materialize</code> if a fade is acceptable. <code>None</code> also stops the glass animating when
-state inserts or removes a lazy item.</p>
+Compose gives a modifier no signal that tells that from a state change. Pass the layout's state to
+<code>hazeGlassContainer</code> as <code>scrollState</code>. While that state is scrolling, including the frame in which it
+stops, members appear and disappear without a transition, whatever their <code>memberTransition</code>.
+Items inserted or removed while the layout is idle still animate.</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// Styles compare by identity, so remember the style.</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">shape</span><span class="p">(</span><span class="n">CircleShape</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">listState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberLazyListState</span><span class="p">()</span>
 
 <span class="n">LazyRow</span><span class="p">(</span>
-<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlassContainer</span><span class="p">(</span><span class="n">spacing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">16.</span><span class="n">dp</span><span class="p">),</span>
+<span class="w">  </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listState</span><span class="p">,</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlassContainer</span><span class="p">(</span><span class="n">spacing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">16.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="n">scrollState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">horizontalArrangement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arrangement</span><span class="p">.</span><span class="na">spacedBy</span><span class="p">(</span><span class="m">8.</span><span class="n">dp</span><span class="p">),</span>
 <span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">items</span><span class="p">(</span><span class="n">chips</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">it</span><span class="p">.</span><span class="na">id</span><span class="w"> </span><span class="p">})</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">chip</span><span class="w"> </span><span class="o">-&gt;</span>
@@ -2373,12 +2367,19 @@ state inserts or removes a lazy item.</p>
 <span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
 <span class="w">        </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">        </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">,</span>
-<span class="w">        </span><span class="n">memberTransition</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassMemberTransition</span><span class="p">.</span><span class="na">None</span><span class="p">,</span>
 <span class="w">      </span><span class="p">),</span>
 <span class="w">    </span><span class="p">)</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
+<p>Drags, flings, <code>animateScrollBy</code> and <code>scrollToItem</code> are scrolls. Position changes made outside a
+scroll, such as <code>requestScrollToItem</code> or <code>dispatchRawDelta</code>, are not, so their items animate.</p>
+<p>Without <code>scrollState</code>, the container treats a scrolled-in item like any member that attaches after
+its first draw. With the default <code>MatchedGeometry</code>, the item's glass grows out of its neighbour
+while it is visible, lagging its content, and an item that scrolls out leaves a ghost until the
+animation ends. Items placed before the container's first draw never animate. A prefetched item
+registers with the container as soon as it is composed, but it has no bounds until it is placed,
+so its transition starts when it is placed.</p>
 <h3 id="fallback">Fallback<a class="headerlink" href="#fallback" title="Permanent link">¶</a></h3>
 <p>Without <code>RuntimeShader</code> support, or when a cluster exceeds the render budget, each cluster draws
 as one surface clipped to the hard union of the member shapes, with no bridge. Members keep their

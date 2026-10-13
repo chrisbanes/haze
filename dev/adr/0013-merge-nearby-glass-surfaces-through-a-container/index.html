@@ -1240,12 +1240,13 @@ instead of the spring, so it doesn't overshoot. <code>reducedMotionPolicy</code>
   later at P50 and P90 than the same pills drawn independently, with a layer about three times the
   area. CPU frame time was within noise. These were single sessions, and CPU frame time does not
   measure GPU shader cost.</li>
-<li><strong>Lazy layouts animate as they scroll.</strong> Compose gives a modifier no signal that tells a
-  scroll-driven attach from a state-driven one, so members of a <code>LazyRow</code> or <code>LazyColumn</code> animate as
-  they scroll in and out. The default stays <code>MatchedGeometry</code>
-  (<a href="https://github.com/chrisbanes/haze/issues/1485">#1485</a>), and lazy items set
-  <code>GlassMemberTransition.None</code> (<a href="https://github.com/chrisbanes/haze/issues/1512">#1512</a>). Detecting
-  scroll-driven appearances is deferred.</li>
+<li><strong>Lazy layouts pass their scroll state.</strong> Compose gives a modifier no signal that tells a
+  scroll-driven attach from a state-driven one. Callers pass the lazy layout's <code>ScrollableState</code> to
+  <code>hazeGlassContainer</code>, and members attach and detach without a transition while it scrolls. The
+  default stays <code>MatchedGeometry</code> (<a href="https://github.com/chrisbanes/haze/issues/1485">#1485</a>).
+  Inferring scrolls from member positions was measured and rejected: a uniform state-driven shift
+  looks like a scroll, and a scroll past the viewport leaves no evidence
+  (<a href="https://github.com/chrisbanes/haze/issues/1524">#1524</a>).</li>
 </ul></div>
 
 
