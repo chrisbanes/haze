@@ -1147,6 +1147,7 @@ internal class HazeEffectNode(
       // Requests made before this point are consumed by the calculation below.
       layerBoundsRefreshPending = false
       if (effectRoot == null) effectRoot = localEffectRoot()
+      val rootInEffect = rootBoundsInEffect(effectRoot)
       if (state != null && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
         var left = Float.POSITIVE_INFINITY
         var top = Float.POSITIVE_INFINITY
@@ -1166,7 +1167,7 @@ internal class HazeEffectNode(
           .letIf(shouldClipToAreaBounds()) { rect ->
             rect.intersect(left, top, right, bottom)
           }
-          .intersect(rootBoundsInEffect(effectRoot).extendedToAreas(left, top, right, bottom))
+          .intersect(rootInEffect.extendedToAreas(left, top, right, bottom))
 
         _layerSize = Size(
           width = clippedLayerBounds.width.coerceAtLeast(0f),
@@ -1184,7 +1185,7 @@ internal class HazeEffectNode(
         val expanded = rect.letIf(shouldExpandLayer()) {
           calculateEffectLayerBounds(it, requireDensity())
         }
-        val clippedLayerBounds = expanded.intersect(rootBoundsInEffect(effectRoot))
+        val clippedLayerBounds = expanded.intersect(rootInEffect)
         _layerSize = Size(
           width = clippedLayerBounds.width.coerceAtLeast(0f),
           height = clippedLayerBounds.height.coerceAtLeast(0f),
@@ -1205,7 +1206,7 @@ internal class HazeEffectNode(
         _layerOffset = Offset.Zero
       }
       if (_layerSize.isSpecified) {
-        val visible = Rect(Offset.Zero - _layerOffset, _layerSize).intersect(rootBoundsInEffect(effectRoot))
+        val visible = Rect(Offset.Zero - _layerOffset, _layerSize).intersect(rootInEffect)
         visibleLayerBounds = if (visible.isEmpty) Rect.Zero else visible
       }
     }
