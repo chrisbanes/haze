@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+This release adds experimental Glass containers. Wrap nearby Glass surfaces in
+`Modifier.hazeGlassContainer`, and compatible members merge into one cluster with shared optics,
+while each member keeps its own interaction effects and can animate as it joins or leaves. See
+[Glass containers](https://chrisbanes.github.io/haze/effects/glass/containers/) for usage and
+performance guidance.
+
 ### Added
 
 - Added the experimental `Modifier.hazeGlassContainer`, which merges nearby compatible Glass
@@ -30,11 +36,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documented that `HazeSourceRetention.KeepLastFrame` does not guarantee frozen pixels: on Android,
   retained Glass output can redraw from live or changed source content after its source is lost
   ([#1432](https://github.com/chrisbanes/haze/pull/1432)).
+- `GlassStyle` blocks are now evaluated by each node under snapshot observation, so a remembered
+  style that reads animated state (for example, a shape radius or alpha) updates without recomposing
+  the `hazeGlass` call site ([#1427](https://github.com/chrisbanes/haze/pull/1427)).
+- On Android 14+, a background trim-memory callback now releases retained Blur and Glass layers
+  ([#1401](https://github.com/chrisbanes/haze/pull/1401)).
+- Reduced per-frame work in Blur and Glass: unchanged Blur draws reuse their `RenderEffect`,
+  graphics layers, progressive brushes and compiled noise and tint shaders; Glass keeps retained
+  layers across resizes and reuses recorded stages on unchanged draws; and effects avoid duplicate
+  updates per frame ([#1381](https://github.com/chrisbanes/haze/pull/1381),
+  [#1402](https://github.com/chrisbanes/haze/pull/1402),
+  [#1410](https://github.com/chrisbanes/haze/pull/1410),
+  [#1434](https://github.com/chrisbanes/haze/pull/1434),
+  [#1435](https://github.com/chrisbanes/haze/pull/1435),
+  [#1439](https://github.com/chrisbanes/haze/pull/1439),
+  [#1441](https://github.com/chrisbanes/haze/pull/1441),
+  [#1492](https://github.com/chrisbanes/haze/pull/1492),
+  [#1499](https://github.com/chrisbanes/haze/pull/1499),
+  [#1503](https://github.com/chrisbanes/haze/pull/1503),
+  [#1515](https://github.com/chrisbanes/haze/pull/1515)).
+- Published Glass container benchmark results
+  ([#1511](https://github.com/chrisbanes/haze/pull/1511)).
+- Updated Kotlin to 2.4.21, AndroidX Collection to 1.7.0, and AndroidX Tracing to 2.0.4
+  ([#1396](https://github.com/chrisbanes/haze/pull/1396),
+  [#1397](https://github.com/chrisbanes/haze/pull/1397),
+  [#1532](https://github.com/chrisbanes/haze/pull/1532)).
 
 ### Fixed
 
 - Fallback Glass surfaces with a `backgroundColor` no longer draw their backdrop offset by the
   layer padding ([#1526](https://github.com/chrisbanes/haze/pull/1526)).
+- Glass containers now keep members across reactivated reusable content
+  ([#1489](https://github.com/chrisbanes/haze/pull/1489)), keep growing members linked during
+  partial lazy placement ([#1541](https://github.com/chrisbanes/haze/pull/1541)), and avoid
+  re-observing every member when one member changes
+  ([#1516](https://github.com/chrisbanes/haze/pull/1516)). Fallback Glass bounds over-budget
+  clusters to the window ([#1533](https://github.com/chrisbanes/haze/pull/1533)) and no longer
+  clears neighbouring members on API 23–27 ([#1517](https://github.com/chrisbanes/haze/pull/1517)).
+- Effects now redraw when an ancestor layer-only move changes their visible part
+  ([#1543](https://github.com/chrisbanes/haze/pull/1543)).
+- Fixed source placement when member or owner transforms include scale or rotation
+  ([#1542](https://github.com/chrisbanes/haze/pull/1542)).
+- Fixed effects not tracking sources newly selected by a `HazeSourceSelection.where` predicate
+  ([#1423](https://github.com/chrisbanes/haze/pull/1423)).
+- Native backdrop rendering no longer falls back permanently after a declined frame
+  ([#1400](https://github.com/chrisbanes/haze/pull/1400)) or an empty layer
+  ([#1430](https://github.com/chrisbanes/haze/pull/1430), by
+  [Matt Van Horn](https://github.com/mvanhorn)).
+- On Desktop, effects now use window identity to position sources in other windows
+  ([#1387](https://github.com/chrisbanes/haze/pull/1387), by
+  [Shayan Khan](https://github.com/shayann07)), and refresh when a source window moves
+  ([#1390](https://github.com/chrisbanes/haze/pull/1390)).
+- Blur fixes: stale output over scrolling lists on API 31
+  ([#1518](https://github.com/chrisbanes/haze/pull/1518)); `mask` and `progressive` now combine on
+  every platform path ([#1428](https://github.com/chrisbanes/haze/pull/1428)); RenderScript noise
+  blend mode and gradient and masked tints ([#1429](https://github.com/chrisbanes/haze/pull/1429));
+  noise fade and color-filter alignment in expanded layers
+  ([#1424](https://github.com/chrisbanes/haze/pull/1424),
+  [#1384](https://github.com/chrisbanes/haze/pull/1384)); downsampled edge clipping and brush
+  geometry ([#1393](https://github.com/chrisbanes/haze/pull/1393),
+  [#1399](https://github.com/chrisbanes/haze/pull/1399)); `SolidColor` brushes for masks, tints and
+  progressive ([#1382](https://github.com/chrisbanes/haze/pull/1382)); and unbounded work from
+  reverse bounds-relative progressive gradients on API 31–32
+  ([#1379](https://github.com/chrisbanes/haze/pull/1379)).
+- Glass fixes: stale Skiko interaction input and doubled mask
+  ([#1425](https://github.com/chrisbanes/haze/pull/1425)), blank material when a pressed style
+  changes during an exit animation ([#1406](https://github.com/chrisbanes/haze/pull/1406)), and a
+  crash from negative spring scales ([#1380](https://github.com/chrisbanes/haze/pull/1380)).
+- Android runtime shaders now set integer uniforms with the native integer setter
+  ([#1391](https://github.com/chrisbanes/haze/pull/1391)).
 
 ## 2.0.1 <small>2026-09-29</small> { id="2.0.1" }
 
@@ -49,8 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated Compose Multiplatform to 1.12.1, AndroidX Core to 1.19.1, and AndroidX Tracing to 2.0.3
   ([#1343](https://github.com/chrisbanes/haze/pull/1343),
   [#1352](https://github.com/chrisbanes/haze/pull/1352),
-  [#1353](https://github.com/chrisbanes/haze/pull/1353), by
-  [Renovate](https://github.com/apps/renovate)).
+  [#1353](https://github.com/chrisbanes/haze/pull/1353)).
 - Documented iOS UIKit interop placement and pixel-capture limits
   ([#1347](https://github.com/chrisbanes/haze/pull/1347)).
 
