@@ -1,17 +1,16 @@
-Haze is a library providing visual effects (such as blur) for Compose Multiplatform.
+Haze provides Blur and Glass effects for Compose Multiplatform.
 
 ![type:video](./media/desktop-small.mp4)
 
-Haze is built with [Compose Multiplatform](https://www.jetbrains.com/lp/compose-multiplatform/), meaning that it supports different platforms:
+It supports every [Compose Multiplatform](https://www.jetbrains.com/lp/compose-multiplatform/) platform:
 
-| Platform      | Supported        |
-|---------------|------------------|
-| Android       | ✅               |
-| Desktop (JVM) | ✅               |
-| iOS           | ✅               |
-| macOS         | ✅               |
-| Wasm          | ✅               |
-| JS/Canvas     | ✅               |
+| Platform      | Supported                |
+|---------------|--------------------------|
+| Android       | ✅ (API 23+)             |
+| Desktop (JVM) | ✅                       |
+| iOS           | ✅                       |
+| macOS         | ✅ (Apple silicon)       |
+| Wasm / JS     | ✅                       |
 
 You can also see it in action in the [Tivi app](https://github.com/chrisbanes/tivi):
 
@@ -27,20 +26,21 @@ repositories {
 }
 
 dependencies {
-    // Core library. Usually don't need this...
+    // Core infrastructure
     implementation("dev.chrisbanes.haze:haze:<version>")
-    
-    // For blur effects:
-    implementation("dev.chrisbanes.haze:haze-blur:<version>")
 
+    // Blur, plus optional ready-made Blur styles
+    implementation("dev.chrisbanes.haze:haze-blur:<version>")
+    implementation("dev.chrisbanes.haze:haze-blur-materials:<version>")
+
+    // Experimental Glass
+    implementation("dev.chrisbanes.haze:haze-glass:<version>")
 }
 ```
 
-!!! info "Using Effects"
-
-    Haze v2 uses a modular architecture where effects are provided as separate modules. The core `haze` module provides the infrastructure, while effects like blur are in dedicated modules (e.g., `haze-blur`). If you want to use blur effects, you need the `haze-blur` dependency. The core `haze` module alone provides just the base infrastructure for visual effects.
-
-    See [Architecture](architecture.md) for more details about the effect system.
+Add `haze` plus only the effect modules you use, and keep every Haze artifact on the same version.
+Glass APIs require opting in to `@ExperimentalHazeApi`. See [Architecture](architecture.md) for
+the full module list.
 
 ## Acknowledgements
 
@@ -67,5 +67,3 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ```
-
-[compose]: https://developer.android.com/jetpack/compose

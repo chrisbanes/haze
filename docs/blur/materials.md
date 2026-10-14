@@ -1,7 +1,7 @@
 # Blur material presets
 
-The `haze-blur-materials` artifact provides opinionated, replayable Blur Style presets for Haze,
-Cupertino, and Fluent designs:
+The `haze-blur-materials` artifact provides ready-made Blur Styles in Haze, Cupertino, and Fluent
+designs:
 
 ```kotlin
 dependencies {
@@ -9,8 +9,7 @@ dependencies {
 }
 ```
 
-For a minimal Style that follows the current Compose Material 3 theme, use the separate
-[Material 3 integration](material3.md).
+For a Style that follows your Material 3 theme, see the [Material 3 integration](material3.md).
 
 ## Material
 
@@ -47,8 +46,7 @@ Modifier.hazeBlur(
 
 ## Customizing a preset
 
-Material presets are ordinary replayable Styles. Chain additional writes without copying readable
-fields:
+Presets are ordinary Styles. Use `then` to override individual properties:
 
 ```kotlin
 val compact = HazeMaterials.thin().then {
@@ -57,4 +55,4 @@ val compact = HazeMaterials.thin().then {
 }
 ```
 
-The chained Style remains stateless and can be reused by concurrent modifiers.
+The result can be shared between modifiers.

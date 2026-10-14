@@ -1,21 +1,18 @@
 ## What's the difference between this and Modifier.blur?
 
-The [Modifier.blur](https://developer.android.com/reference/kotlin/androidx/compose/ui/Modifier#(androidx.compose.ui.Modifier).blur(androidx.compose.ui.unit.Dp,androidx.compose.ui.unit.Dp,androidx.compose.ui.draw.BlurredEdgeTreatment)) modifier and Haze may sound similar, but what they provide is different.
+[Modifier.blur](https://developer.android.com/reference/kotlin/androidx/compose/ui/Modifier#(androidx.compose.ui.Modifier).blur(androidx.compose.ui.unit.Dp,androidx.compose.ui.unit.Dp,androidx.compose.ui.draw.BlurredEdgeTreatment)) blurs a composable's own content. Haze's main use is blurring the content _behind_ a surface, which is what glass-like effects need. Haze can also blur a composable's own content with `HazeInput.Content`.
 
-Haze primarily provides background blurring, meaning that it will blur content behind, not the content itself. This is typically required to implement glass-like effects. `Modifier.blur` performs 'foreground blurring' (or content blurring) where the content in the node itself is blurred. Haze can work in this mode too, but it's not the primary goal.
-
-Other than that, Haze provides a whole bunch of other features which you can read about on the [Usage](usage.md) page.
+Haze also adds tints, noise, progressive Blur, masks, and more. See the [Usage](usage.md) page.
 
 ## Why does my Blur get clipped inside a graphics layer?
 
-An enclosing caller-owned `graphicsLayer` can become a separate compositing boundary when it uses
-`alpha` below one, an explicit offscreen strategy, a color filter, or similar options. Unbounded
-Blur pixels outside that layer's ordinary bounds are then clipped by the caller layer, even though
-Haze has expanded its own effect layer for the Blur radius.
+An enclosing `graphicsLayer` that uses `alpha` below one, an offscreen compositing strategy, a
+color filter, or similar options clips its content to its bounds. Blur that spreads past those
+bounds is cut off.
 
-Use Compose 1.12's [LayerOutsets][layer-outsets] on that enclosing layer, with only the edges that
-need the extra raster space. For a Blur that may overflow equally on every edge, match each outset
-to the configured Blur radius:
+Use Compose 1.12's [LayerOutsets][layer-outsets] on that enclosing layer, on the edges that need
+the extra space. For Blur that can spread equally on every edge, match each outset to the Blur
+radius:
 
 ```kotlin
 val blurRadius = 32.dp
@@ -35,32 +32,25 @@ Box(
 }
 ```
 
-This only expands the caller layer's visual raster bounds. It does not change Haze's capture or
-sampling geometry. An explicit caller clip remains authoritative, so outsets cannot make Blur draw
-outside geometry that you deliberately clip.
+Outsets only enlarge the area the layer can draw into; they don't change what Haze blurs. An
+explicit clip still applies.
 
-## Are the blur implementations the same across different platforms?
+## Does Blur look the same on every platform?
 
-The short answer to this is yes. The majority of the implementation is the same across all platforms.
-
-The only differences are in how the blur effect is implemented, especially on Android.
-
-For most platforms we can use on [RenderEffects][rendereffect] to implement the blurring, but the implementations used are platform specific. All of the platforms implement them in a very similar, its just the platform classes being used which are different.
+Yes, with the same API on every platform. The exceptions are on older Android versions: Android 12
+and 12L approximate some progressive Blur, and Android 11 and below draw a scrim unless you enable
+Blur. See [Platforms](platforms.md).
 
 ## What versions of Android does Haze work on?
 
-See the [Platforms](platforms.md) page for a detailed run down of what is supported on various platforms.
+See the [Platforms](platforms.md) page.
 
 ## When should I use Backdrop instead of Sources?
 
-Use `HazeInput.Backdrop(hazeState)` for ordinary built-in Blur when the intent is to consume all
-pixels drawn earlier in the same window. It has source capture as a portable fallback. Use
-`HazeInput.Sources(hazeState)` when you need exact source selection, cross-window alignment, or a
-retained-output policy that governs the actual input. Backdrop's fallback options do not filter
-native window pixels.
-The native path is currently experimental, disabled by default, and only eligible after the flag is
-set before attachment; eligibility is not a guarantee. See the [Blur usage](usage.md) guide for
-fallback and diagnostic details.
+Use `HazeInput.Backdrop(hazeState)` for most Blur: it blurs whatever was drawn earlier in the same
+window. Use `HazeInput.Sources(hazeState)` when you need to choose exactly which sources are
+blurred, blur content from another window, or control what is shown while sources are
+unavailable. See [Blur usage](usage.md) for details, including the experimental native Android
+backdrop.
 
- [rendereffect]: https://developer.android.com/reference/android/graphics/RenderEffect
  [layer-outsets]: https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/LayerOutsets

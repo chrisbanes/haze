@@ -2,7 +2,7 @@
 
 ## Scaffold chrome
 
-Place `hazeSource` on the scrolling content and use the same state for each app bar:
+Place `hazeSource` on the scrolling content and pass the same state to each bar's effect:
 
 ```kotlin
 val hazeState = rememberHazeState()
@@ -41,12 +41,13 @@ Scaffold(
 }
 ```
 
-Pass scaffold padding to the scrollable content rather than applying it outside the source. That
-keeps interactive content clear of chrome while preserving source pixels behind translucent bars.
+Pass the scaffold padding to the scrolling content as `contentPadding` rather than padding the
+source. Content then scrolls behind the translucent bars while staying reachable.
 
 ## Sticky headers
 
-Avoid making a `LazyColumn` both a source and a descendant effect. Mark non-header items as sources:
+Don't mark the whole `LazyColumn` as a source when the header inside it applies the effect. Mark
+the non-header items instead:
 
 ```kotlin
 val hazeState = rememberHazeState()
@@ -74,7 +75,8 @@ LazyColumn {
 
 ## Privacy-sensitive source transitions
 
-Clear retained Blur output when no source is available:
+By default, an effect can keep showing its last output after its source disappears. To clear it
+instead, for example when the source showed sensitive content:
 
 ```kotlin
 Modifier.hazeBlur(
@@ -103,4 +105,4 @@ BottomAppBar(
 )
 ```
 
-Both modifiers evaluate the shared Style into independent node-owned runtimes.
+Styles are immutable, so one Style can be shared by several modifiers.

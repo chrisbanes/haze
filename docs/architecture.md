@@ -1,10 +1,10 @@
 # Architecture
 
-Haze separates shareable effect configuration from modifier-node rendering state.
+Haze keeps effect configuration (a Style) separate from the per-modifier state that renders it.
 
 ## Core model
 
-The supported custom-effect path has three parts:
+Every typed effect has three parts:
 
 ```kotlin
 interface HazeEffectFactory<Style> {
@@ -19,16 +19,16 @@ interface HazeEffectRenderer<Style> {
 }
 ```
 
-- A Style is the complete immutable effect configuration.
-- A factory is a stateless descriptor that can be shared by concurrent modifiers.
-- A renderer owns mutable rendering state and resources for exactly one modifier node.
+- A Style is the complete, immutable effect configuration.
+- A factory is a stateless descriptor that many modifiers can share.
+- A renderer owns the mutable state and resources for exactly one modifier.
 
-Factory identity controls renderer ownership. Style, input, sampling, and layer-expansion updates
-reuse the current renderer. Replacing the factory or detaching the node disposes that renderer.
+Changing the Style, input, sampling, or layer expansion keeps the current renderer. Replacing the
+factory, or removing the modifier, disposes it.
 
-## Explicit input and policies
+## Inputs and policies
 
-The typed modifier makes structural behavior explicit:
+Structural choices are explicit modifier arguments rather than part of the Style:
 
 ```kotlin
 Modifier.hazeEffect(
@@ -40,101 +40,62 @@ Modifier.hazeEffect(
 )
 ```
 
-`HazeInput.Backdrop(state)` is the normal built-in input for the intent to consume all pixels drawn
-earlier in the current window. Its `fallback` source input configures only the source-capture
-fallback. `HazeInput.Sources` selects content captured by `hazeSource`,
-while `HazeInput.Content` selects the modifier's own content. Backdrop input is not a
-source-selection mode: it cannot select individual sources, include later drawing, or cross a
-window boundary. Source selection, retained-output privacy, sampling, and layer expansion remain
-core policies rather than effect-specific mutable configuration.
+- `HazeInput.Backdrop(state)` is the normal input for built-in Blur and Glass. It consumes pixels
+  drawn earlier in the current window, and its `fallback` configures the source capture used
+  when the native backdrop isn't available. It can't select individual sources, include later
+  drawing, or cross a window boundary.
+- `HazeInput.Sources` consumes content captured by `hazeSource`, with explicit selection and
+  retention.
+- `HazeInput.Content` consumes the modifier's own content.
 
-## Semantic renderer scopes
+See [Core concepts](core-concepts.md#explicit-inputs) for how to choose.
 
-The draw scope exposes ordinary `DrawScope` operations, the modifier bounds in the effect layer,
-the selected sampling policy, tracked composition-local access, and one `drawInput()` operation for
-both input modes.
+## Renderer scopes
 
-The layout scope exposes density, modifier bounds, and tracked composition-local access. A renderer
-can request larger bounds without seeing the modifier node, source geometry, coordinates, windows,
-or captured layers.
+The draw scope is a `DrawScope` that adds the modifier bounds, the selected sampling policy,
+composition-local access, and a single `drawInput()` call that works for every input.
 
-Reads are observed in the phase where they occur:
+The layout scope gives density, modifier bounds, and composition-local access, so a renderer can
+request larger layer bounds.
 
-- snapshot or composition-local reads in draw invalidate drawing;
-- reads while calculating layer bounds recalculate bounds and then redraw;
-- Style replacement invalidates both phases without replacing the renderer.
+Reads are tracked in the phase where they happen:
 
-## Internal node responsibilities
+- state or composition-local reads while drawing redraw the effect when they change;
+- reads while calculating layer bounds recalculate the bounds, then redraw;
+- a new Style updates both without replacing the renderer.
 
-`HazeEffectNode` remains responsible for:
-
-- source selection and z-ordering;
-- own-content capture;
-- coordinate-space and cross-window handling;
-- graphics-layer allocation and release;
-- trim-memory forwarding;
-- renderer replacement and disposal;
-- draw and bounds invalidation.
-
-For Backdrop input, core also snapshots `HazeFeatureFlags.isPlatformBackdropEnabled` when the
-modifier node attaches, then owns the native/fallback decision, full Android minor-SDK and
-hardware-canvas gate, backdrop geometry and clipping, draw ordering, and dormant fallback capture
-demand. The flag makes native rendering eligible; it does not guarantee it. A native failure
-becomes sticky source fallback after at most one transition frame. `HazeLogger.enabled` exposes
-selection and fallback messages, and native work is marked by the `HazeBackdrop.draw` trace
-section. Blur and Glass own their platform root-effect graphs; no backend or platform effect is
-public. [ADR-0010](adr/0010-adopt-backdrop-as-the-adaptive-haze-input.md) records this exception
-to the ordinary source-capture path.
-
-Those details are intentionally absent from the public typed renderer scopes.
+Source geometry, windows, and captured layers aren't exposed to renderers; Haze handles source
+selection, ordering, and cross-window alignment for you.
 
 ## Built-in Blur
 
-Blur uses the same typed node lifecycle plus narrow `@InternalHazeApi` capabilities for lifecycle,
-retained output, and semantic input drawing. Source geometry, captured layers, modifier nodes,
-delegates, and caches remain owned by their implementation modules.
-
-`HazeBlurStyle` and the shared Blur factory are stateless. Each modifier node creates one
-`BlurVisualEffect` runtime that owns its resolved snapshot, invalidation state, performance-mode
-resolution, delegate, retained output, render-effect cache, and platform resources. Style replacement
-replays defaults, the current composition-local Style, and the explicit Style into a fresh snapshot
-on that same runtime.
+`hazeBlur` takes a `HazeBlurStyle`. Styles and the Blur factory are stateless, so you can share a
+Style between modifiers. Each modifier resolves `HazeBlurDefaults.style`, `LocalHazeBlurStyle`, and
+the explicit Style, in that order, whenever the Style changes.
 
 ## Built-in Glass
 
-Glass exposes only the typed `hazeGlass` modifier, `GlassStyle`, and structural modifier
-arguments. The shared factory is stateless. Each modifier creates one internal node-owned runtime
-which evaluates defaults, `LocalGlassStyle`, and the explicit Style into a fresh snapshot and owns
-its interaction controller, delegate, caches, retained layers, and platform resources. Style blocks
-run inside the node's observed update, so snapshot state read by a block is observed by the node:
-a change resolves the Style again and invalidates draw without recomposition
-([ADR-0011](adr/0011-evaluate-glass-styles-under-state-observation.md)).
-
-The old public effect, renderer, cache, grouped sentinel values, and `glassEffect` DSL are removed.
-No renderer or lifecycle object can be shared between Glass nodes.
-
-On supported Backdrop input, Glass reuses the Android fused effect graph with compositor input and
-keeps only independent rim and interaction-lighting foreground layers. It does not replace the
-source-backed renderer established by
-[ADR-0003](adr/0003-use-one-android-fused-glass-renderer.md).
+`hazeGlass` takes a `GlassStyle`, resolved from defaults, `LocalGlassStyle`, and the explicit Style.
+Snapshot state read inside a Style block is observed: when it changes, Glass resolves the Style
+again and redraws without recomposition. Glass renderers are never shared between modifiers.
 
 ## Modules
 
-- **haze** — core state, source capture, and typed custom-effect orchestration
-- **haze-blur** — blur effect implementation
-- **haze-blur-materials** — reusable blur presets
-- **haze-blur-material3** — optional Compose Material 3 Blur Style factory
-- **haze-glass** — Glass effect implementation
-- **haze-glass-material3** — optional Compose Material 3 Glass Style factory
-- **haze-utils** — shared platform rendering utilities
+- **haze**: core state, source capture, and the custom-effect API
+- **haze-blur**: Blur effect
+- **haze-blur-materials**: ready-made Blur Styles, such as `HazeMaterials.thin()`
+- **haze-blur-material3**: optional Compose Material 3 Blur Style factory
+- **haze-glass**: experimental Glass effect
+- **haze-glass-material3**: optional Compose Material 3 Glass Style factory
+- **haze-utils**: shared internal utilities, included transitively; you don't add it yourself
 
-Effect modules can keep platform-specific renderer internals behind their own `expect`/`actual`
-boundaries.
+## Extension points
 
-## Extension boundary
+Use `hazeBlur` for Blur, `hazeGlass` for Glass, and `HazeEffectFactory` with `hazeEffect` for
+custom effects. The older lambda-based effect API, `VisualEffect`, and the `glassEffect` DSL have
+been removed. See [Custom effects](custom-effects.md).
 
-The lambda-based effect API, mutable `VisualEffect` runtime, direct modifier nodes, source areas,
-coordinates, captured layers, and position strategies are internal or removed. New Blur code uses
-`hazeBlur`; new Glass code uses `hazeGlass`; custom effects use `HazeEffectFactory`.
+## Design decisions
 
-See [Custom effects](custom-effects.md) for the preferred API.
+The reasoning behind Haze's larger design choices is recorded in its
+[architecture decision records](https://github.com/chrisbanes/haze/tree/main/docs/adr).

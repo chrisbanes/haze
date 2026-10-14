@@ -29,7 +29,8 @@ nav:
     - "FAQs": blur/faq.md
     - "Platforms": blur/platforms.md
   - "Glass":
-    - "Overview": effects/glass.md
+    - "Overview": effects/glass/index.md
+    - "Containers": effects/glass/containers.md
   - "Custom Effects": custom-effects.md
   - "Performance":
     - "Guide": performance.md

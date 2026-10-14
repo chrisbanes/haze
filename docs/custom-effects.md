@@ -1,7 +1,7 @@
 # Custom effects
 
-Build custom effects with a shareable `HazeEffectFactory<Style>` and a renderer owned by each
-`hazeEffect` modifier node.
+A custom effect is a shareable `HazeEffectFactory<Style>` that creates one renderer for each
+`hazeEffect` modifier.
 
 ## Define a complete Style
 
@@ -15,13 +15,13 @@ data class SparkStyle(
 )
 ```
 
-Haze passes the complete current Style to every draw and bounds evaluation. Replacing the Style
-updates the existing renderer, so values from an earlier evaluation cannot stick accidentally.
+Haze passes the complete current Style to every draw and bounds calculation, so a renderer never
+sees stale values. Passing a new Style updates the existing renderer.
 
 ## Create a shareable factory
 
-A factory is a stateless descriptor. The same instance can be used by concurrent modifiers, but it
-must create an independent renderer for each one:
+A factory is stateless and can be shared by any number of modifiers, but it must create a new
+renderer each time:
 
 ```kotlin
 data object SparkEffect : HazeEffectFactory<SparkStyle> {
@@ -49,16 +49,15 @@ private class SparkRenderer : HazeEffectRenderer<SparkStyle> {
 }
 ```
 
-Mutable caches, shaders, and other disposable resources belong in the renderer. Haze creates one
-renderer per modifier node, reuses it for Style and input-policy updates, and disposes it when the
-factory is replaced or the node detaches.
+Mutable caches, shaders, and other disposable resources belong in the renderer. Haze keeps the
+renderer across Style, input, and sampling changes, and disposes it when the factory is replaced
+or the modifier is removed.
 
 ## Draw source-backed input
 
-Use an explicit `HazeInput.Sources` when the effect consumes content captured by `hazeSource`:
-This is deliberate for custom effects: `Backdrop` is the built-in Blur and Glass input contract,
-and a generic factory does not receive the platform window-backdrop capability. `Sources` keeps
-the captured-source selection and retention semantics visible at the call site.
+Use `HazeInput.Sources` when the effect consumes content captured by `hazeSource`. Custom effects
+don't get the native Android window backdrop, so `HazeInput.Backdrop` would only ever draw its
+source fallback; `Sources` makes that explicit:
 
 ```kotlin
 val hazeState = rememberHazeState()
@@ -83,19 +82,17 @@ Box {
 }
 ```
 
-Source selection and retention remain explicit:
+Selection and retention are set on the input:
 
 ```kotlin
 input = HazeInput.Sources(
     state = hazeState,
-    // `where` receives library-owned HazeSourceMetadata.
     selection = HazeSourceSelection.All.where { it.key == "hero" },
     retention = HazeSourceRetention.ClearWhenUnavailable,
 )
 ```
 
-`drawInput()` draws the already-selected source content. It does not expose source areas,
-coordinates, captured layers, windows, or renderer ownership internals.
+`drawInput()` draws the selected source content, already positioned for the effect.
 
 ## Draw the modifier's own content
 
@@ -115,21 +112,21 @@ Box(
 
 The renderer uses the same `drawInput()` operation for both input modes.
 
-## Semantic scopes
+## Renderer scopes
 
 `HazeEffectDrawScope` is a `DrawScope` with:
 
 - `modifierBounds`, expressed in the current effect layer
-- the structural `HazeSampling` value
+- `sampling`, the `HazeSampling` policy passed to the modifier
 - `drawInput()` for the selected input
-- tracked composition-local access through `currentValueOf`
+- `currentValueOf` for composition locals
 
-`HazeEffectLayoutScope` is a `Density` with the modifier bounds and tracked composition-local
-access. Return the bounds required by the effect in the same coordinate space. Setting
-`expandLayerBounds = false` on the modifier skips renderer-requested expansion.
+`HazeEffectLayoutScope` is a `Density` with `modifierBounds` and `currentValueOf`. Return the
+bounds the effect needs in the same coordinate space. Setting `expandLayerBounds = false` on the
+modifier ignores any expansion the renderer requests.
 
-Snapshot state and composition locals read while drawing invalidate drawing. Values read while
-calculating bounds recalculate the bounds and then redraw.
+State and composition locals read while drawing trigger a redraw when they change. Values read
+while calculating bounds recalculate the bounds, then redraw.
 
 ## Ownership and lifecycle
 
@@ -137,22 +134,20 @@ calculating bounds recalculate the bounds and then redraw.
 - Never return the same mutable renderer from more than one `createRenderer()` call.
 - Release rebuildable caches in `onTrimMemory`.
 - Release all renderer-owned resources in `dispose`.
-- Keep pointer interaction and retained-output behavior inside your effect module until those
-  capabilities have dedicated public contracts.
+- The public API doesn't cover pointer interaction or retained output; implement those inside
+  your effect if you need them.
 
-On Android and iOS, Haze forwards the platform's native memory-pressure notifications to attached
-effects. Android 14 and later only send `TRIM_MEMORY_UI_HIDDEN` and `TRIM_MEMORY_BACKGROUND`, so
-Haze forwards `TRIM_MEMORY_BACKGROUND` as `TrimMemoryLevel.MODERATE` there. On Desktop and Web, an
-attached effect receives `TrimMemoryLevel.MODERATE` whenever its
-composition lifecycle reaches `ON_STOP`. Discard only resources that can be rebuilt: the next draw
-that needs them must recreate valid output.
+`onTrimMemory` receives memory pressure:
 
-The typed `Modifier.hazeEffect` overload is the only custom-effect extension seam.
-`HazeEffectNode`, `HazeSourceNode`, source areas, coordinates, captured layers, and built-in
-renderer capabilities are implementation details owned by Haze.
+- On Android and iOS, Haze forwards the platform's memory-pressure notifications. Android 14 and
+  later only send `TRIM_MEMORY_UI_HIDDEN` and `TRIM_MEMORY_BACKGROUND`, so Haze reports
+  `TRIM_MEMORY_BACKGROUND` as `TrimMemoryLevel.MODERATE` there.
+- On Desktop, macOS, and Web, an effect receives `TrimMemoryLevel.MODERATE` when its lifecycle reaches
+  `ON_STOP`.
 
-Platform-specific renderer internals can use `expect`/`actual` declarations in the effect module.
-The public renderer contract intentionally does not expose platform delegates or captured layers.
+Discard only resources you can rebuild; the next draw that needs them must recreate valid output.
+
+`Modifier.hazeEffect` with a factory is the only supported way to add a custom effect.
 
 See
 [`CustomVisualEffectSample.kt`](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/CustomVisualEffectSample.kt)

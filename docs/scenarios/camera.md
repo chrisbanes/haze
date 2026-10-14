@@ -1,11 +1,11 @@
 # Camera
 
-Haze can apply Blur and Glass to a live camera preview when the preview pixels are drawn into the
-same Compose graphics layer that contains `hazeSource`.
+Haze can apply Blur and Glass to a live camera preview when the preview draws into Compose, so
+`hazeSource` can capture it.
 
-This example intentionally uses `HazeInput.Sources`: camera and video integrations need explicit
-captured-source semantics, and a platform surface can sit outside the current window's earlier
-Compose pixels. `HazeInput.Backdrop` cannot cross that surface or window boundary.
+This example uses `HazeInput.Sources`, which captures exactly the content marked with
+`hazeSource`. `HazeInput.Backdrop` reads only pixels drawn earlier in the same window, so it cannot
+include a preview on a separate surface or window.
 
 ```kotlin
 val hazeState = rememberHazeState()
@@ -29,14 +29,13 @@ Box {
 }
 ```
 
-The important part is how `CameraPreview` renders. A platform interop composable such as
-`AndroidView` does not, by itself, guarantee that its pixels can be captured.
+What matters is how `CameraPreview` renders. Wrapping a platform view in `AndroidView` does not by
+itself make its pixels capturable.
 
 ## CameraX on Android
 
-CameraX's `PreviewView` uses `ImplementationMode.PERFORMANCE` by default. When possible, that mode
-renders through a `SurfaceView`. A `SurfaceView` owns a separate Android surface, so its pixels are
-not present when Haze captures the Compose source layer.
+CameraX's `PreviewView` uses `ImplementationMode.PERFORMANCE` by default, which renders through a
+`SurfaceView` when possible. A `SurfaceView` draws on its own surface, so Haze cannot capture it.
 
 Use `ImplementationMode.COMPATIBLE`, which makes `PreviewView` use a `TextureView`:
 
@@ -131,12 +130,9 @@ shared Haze layout:
 | CameraX on Android | Yes | Use `PreviewView.ImplementationMode.COMPATIBLE`. |
 | Kamera on Android | Yes | Bind the controller to a compatible `PreviewView`. |
 | Kamera on Desktop | Yes | Use Kamera's Compose-rendered preview. |
-| Kamera on iOS | No | Its preview uses `UIKitViewController`, which is outside Haze's captured Compose layer. |
+| Kamera on iOS | No | Its preview uses `UIKitViewController`, which Haze cannot capture. |
 
 The same constraint applies to video players and other platform views. Choose a rendering path that
-draws into the Compose layer—for example, ExoPlayer's `TextureView` mode—before marking it with
-`hazeSource`.
+draws into Compose, such as ExoPlayer's `TextureView` mode, before marking it with `hazeSource`.
 
-For the iOS equivalent, see [UIKit interop on iOS](uikit-interop.md). UIKit interop placement can
-either leave a cut-out in the Compose Metal canvas or place UIKit above it; neither mode makes
-UIKit pixels available to Haze.
+For iOS, see [UIKit interop on iOS](uikit-interop.md).

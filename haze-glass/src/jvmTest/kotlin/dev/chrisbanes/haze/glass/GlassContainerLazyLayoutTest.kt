@@ -54,7 +54,8 @@ private const val TRANSITION_MILLIS = 150
 
 /**
  * Characterises what a [hazeGlassContainer] does with the members of a lazy layout, to back the
- * guidance in `docs/effects/glass.md` ("Lazy layouts") and the [GlassMemberTransition] KDoc.
+ * guidance in `docs/effects/glass/containers.md` ("Lazy layouts") and the [GlassMemberTransition]
+ * KDoc.
  *
  * A `LazyRow` of 80dp members, 8dp apart, scrolls 6px per 16ms frame on the test's manual clock.
  * The container is on the `LazyRow` itself. Items 0 to 4 compose before the first draw, so they
