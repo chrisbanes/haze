@@ -1,7 +1,8 @@
 # Migrating to Haze 2.0
 
-Haze 2.0 separates structural input policy, shareable Style, and node-owned rendering resources.
-The preferred Blur API is now the typed `Modifier.hazeBlur`.
+Haze 2.0 separates what an effect reads (its input), how it looks (an immutable, shareable Style),
+and per-modifier settings such as performance mode. The preferred Blur API is now the typed
+`Modifier.hazeBlur`.
 
 ## Dependencies and imports
 
@@ -73,28 +74,22 @@ Resolution is defaults, then `LocalHazeBlurStyle`, then the explicit modifier St
 wins. Replacing `compact` with `base` removes the 12 dp write immediately; no previous resolved
 value is retained.
 
-An explicit `colorEffects(emptyList())` clears inherited effects. Caller-owned lists are
-snapshotted before replay.
+An explicit `colorEffects(emptyList())` clears inherited effects. Haze copies lists you pass, so
+changing a list afterwards does not affect the Style.
 
-### Finalized Blur API
+### Other Blur API changes
 
-The temporary prerelease adapters are removed in beta01. Replace both former
-`HazeBlurStyle(...)` construction forms, `HazeBlurStyle.Unspecified`, and the
-`HazeBlurDefaults.style(...)` builder with a replayable `HazeBlurStyle { ... }` program. Start
-from `HazeBlurDefaults.style.then { ... }` when extending the defaults.
+Build every Blur Style with `HazeBlurStyle { ... }`, and extend the defaults with
+`HazeBlurDefaults.style.then { ... }`. The `HazeStyle(...)` constructor, `HazeStyle.Unspecified`,
+and the `HazeDefaults.style(...)` builder have no direct replacement.
 
-`HazeColorEffect` is now opaque. Create an effect only with `HazeColorEffect.tint(...)` or
-`HazeColorEffect.colorFilter(...)`; its concrete implementations, sentinel, `isSpecified`,
-`DefaultBlendMode`, `copy`, and destructuring APIs are not public. `Color.Unspecified` is rejected
-by the color tint factory. Use `fallbackColorEffect(null)` to explicitly clear an inherited
-fallback effect; `null` is the only fallback-absence value.
+Create color effects with `HazeColorEffect.tint(...)` or `HazeColorEffect.colorFilter(...)`. The
+former `HazeTint` constructors and `HazeTint.Unspecified` are gone, and the tint factory rejects
+`Color.Unspecified`. Write `fallbackColorEffect(null)` to clear an inherited fallback effect.
 
-`HazeBlurDefaults.tintAlpha`, `HazeBlurDefaults.tint(...)`, and the deprecated
-`HazeBlurDefaults.style(...)` builder are removed. The supported default-enable query is
+`HazeDefaults.tintAlpha` and `HazeDefaults.tint(...)` are removed; write the tint you want into the
+Style. To check whether Blur is enabled by default on the current platform, call
 `HazeBlurDefaults.isBlurEnabledByDefault()`.
-
-The former Blur-package `HazeProgressive` typealias is also removed. Import
-`dev.chrisbanes.haze.HazeProgressive` directly.
 
 ## Migrate material presets
 
@@ -161,21 +156,20 @@ Modifier.hazeBlur(
 ```
 
 The native Backdrop path is experimental and disabled by default. Set
-`HazeFeatureFlags.isPlatformBackdropEnabled = true` before the relevant effect nodes attach. The
-flag makes native rendering eligible rather than guaranteed, and changing it affects later
-attachments only. Unsupported platforms, incompatible effects, software canvases, native setup,
-or draw failures use sticky source fallback until detachment. Enable `HazeLogger.enabled` for
-selection/fallback messages and inspect the `HazeBackdrop.draw` trace section when diagnosing a
-native draw. No performance result is implied; physical Android 37.2 acceptance remains pending.
-Later releases may enable the default, retain a temporary `false` escape hatch, and then remove
-the flag.
+`HazeFeatureFlags.isPlatformBackdropEnabled = true` before the effects are first composed. The flag
+makes native rendering eligible rather than guaranteed, and changing it affects only effects
+composed afterwards. Unsupported platforms and effects, software rendering, and native failures
+use the source fallback for as long as the effect stays composed. Set `HazeLogger.enabled = true`
+to log which path was chosen. Native Backdrop has not shown a CPU benefit for Glass in Haze's
+benchmarks; see the [performance guide](performance.md#backdrop-input) before enabling it.
 
 `HazePerformanceMode.Default` selects the fixed `Balanced` profile for built-in Blur and Glass.
 `Adaptive` remains deprecated for binary compatibility and behaves the same as `Default`; replace
 it with `Default`. Use `Quality` or `Performance` for their named profiles, or
-`Fixed(qualityFraction)` for an explicit quality level from `0f` (lowest) to `1f` (highest). `Quality` replaces the previous
-built-in full-resolution choice. Previous fixed input-pixel fractions are not equivalent to the
-same `qualityFraction` value; compare appearance and performance before choosing a replacement.
+`Fixed(qualityFraction)` for an explicit quality level from `0f` (lowest) to `1f` (highest).
+`Quality` replaces the previous built-in full-resolution choice. Previous fixed input-pixel
+fractions are not equivalent to the same `qualityFraction` value; compare appearance and
+performance before choosing a replacement.
 `HazeSampling` remains the generic policy used by custom effects.
 
 ## Lifecycle and sharing
@@ -198,7 +192,7 @@ Style variants, and secondary fallback Styles. Haze selects the available implem
 gracefully simplifies unsupported optics.
 
 Invalid Glass values now fail instead of being corrected later: a `GlassOptics` value when it is
-created, and a `GlassStyle` write when the Style's block runs as a node resolves it. Only animatable
+created, and a `GlassStyle` write when the Style is applied to an effect. Only animatable
 overshoot is coerced: alpha and tint alpha are clamped into `0f..1f`, and negative corner radii are
 treated as zero. Validate or clamp other external values before writing them in the Style. See the
 generated API reference for property-specific ranges.
@@ -218,7 +212,7 @@ generated API reference for property-specific ranges.
 | consumer implementation of `GlassInteractionScope` | removed; it is now a sealed declaration DSL implemented by Haze |
 | `GlassStyleConfiguration`, `GlassRenderer`, `GlassRendererCache`, and lifecycle or retention hooks | removed with no public replacement |
 | effect-owned hover, focus, press, light-radius, and light-position animation presentation | property writes inside `GlassStyle { … }` |
-| effect-owned interaction source, transform target/pivot, and reduced-motion policy | explicit `Modifier.hazeGlass` arguments owned by each node |
+| effect-owned interaction source, transform target/pivot, and reduced-motion policy | explicit `Modifier.hazeGlass` arguments set on each modifier |
 | implicit source/content | explicit `HazeInput.Backdrop`, `HazeInput.Sources`, or `HazeInput.Content` |
 | `GlassOptics.Absolute` and `GlassOptics.Fixed` | `GlassOptics` with fixed `OpticalSizeValue` values; this is an intentional source break with no alias or compatibility bridge |
 | `GlassOptics.Adaptive` used as a complete Style | `GlassStyle.regular` |
@@ -282,9 +276,8 @@ selected input with `drawInput()`.
 
 `VisualEffect`, `VisualEffectContext`, `HazeEffectScope`, `BlurVisualEffect`,
 `HazeEffectScope.blurEffect`, and the lambda-based `hazeEffect` overloads are removed. Readable
-`HazeBlurStyle` properties, `copy`, destructuring, and mutable runtime interfaces remain removed.
-The prerelease Blur construction shims and aliases are now removed; use replayable Style blocks
-and `then`.
+`HazeBlurStyle` properties, `copy`, destructuring, and mutable runtime interfaces are not
+available; use Style blocks and `then`.
 
 ## Complete API mapping
 
@@ -314,14 +307,14 @@ and `then`.
 | `HazeState.blurEnabled` | `HazeBlurStyle { blurEnabled(...) }` | Configure each effect explicitly. |
 | `HazeState.contentLayer` | Removed | This was an internal detail of the old single-source model. |
 | `HazeState.positionOnScreen` | Removed | Source geometry is internal. |
-| `HazeEffectFactoryVisualEffect`, `HazeEffectVisualEffectFactory` | Removed | Built-ins use capability-specific `@InternalHazeApi` renderer hooks; there is no third-party full-runtime replacement. |
+| `HazeEffectFactoryVisualEffect`, `HazeEffectVisualEffectFactory` | Removed | There is no public replacement. Use `HazeEffectFactory` for custom effects. |
 | `HazeArea`, `HazeCoordinates`, `HazeSourceNode`, `HazeEffectNode` | Removed from the public API | Haze owns source capture and modifier nodes. |
 | `VisualEffectContext.positionOnScreen` | `HazeEffectDrawScope.modifierBounds` | Custom renderers receive only modifier-relative semantic bounds. |
 | `VisualEffectContext.rootBoundsOnScreen` | Removed | Root and window geometry are internal. |
 | `VisualEffectContext.visualEffect` | Removed | Custom effects read their own properties directly. |
 | `VisualEffect.calculateInputScaleFactor()` | `HazePerformanceMode` for built-in Blur and Glass, `HazeSampling` for custom effects | Built-in effects choose default, named, or fixed performance profiles; generic effects retain sampling. |
 | `VisualEffect.requireInvalidation()` | Snapshot state read by `draw` or `calculateLayerBounds` | Haze observes reads in their rendering phase. |
-| `VisualEffect`, `VisualEffectContext`, `InteractiveVisualEffect`, `RetainedOutputVisualEffect`, `VisualEffectRendererFactory`, `VisualEffectTransform` | `HazeEffectFactory` and `HazeEffectRenderer` | Renderer lifecycle and input are opaque and node-owned. |
+| `VisualEffect`, `VisualEffectContext`, `InteractiveVisualEffect`, `RetainedOutputVisualEffect`, `VisualEffectRendererFactory`, `VisualEffectTransform` | `HazeEffectFactory` and `HazeEffectRenderer` | Haze manages the renderer lifecycle and input. |
 | `HazeState.positionStrategy`, `rememberHazeState(positionStrategy)` | Removed | Cross-window position strategy is internal. |
 | `HazeDefaults` Blur values | `HazeBlurDefaults` | Blur defaults moved to `haze-blur`. |
 | `HazeDefaults.drawContentBehind` | Removed | Custom renderers own draw order; built-ins choose their internal composition. |
@@ -329,8 +322,8 @@ and `then`.
 | `HazeTint` | `HazeColorEffect` | Renamed and moved to `dev.chrisbanes.haze.blur`. |
 | `dev.chrisbanes.haze.blur.HazeProgressive` | `dev.chrisbanes.haze.HazeProgressive` | The old Blur-package typealias is removed. |
 | `HazeProgressive.LinearGradient(..., preferPerformance = ...)` | `Modifier.hazeBlur(performanceMode = ...)` | Choose `Quality` for full resolution or a downsampled `Balanced`/`Performance` profile. |
-| `HazeColorEffect.Unspecified` or a concrete `HazeColorEffect` constructor | `HazeColorEffect.tint(...)` or `HazeColorEffect.colorFilter(...)` | Effects are factory-only; use `fallbackColorEffect(null)` to clear a fallback. |
-| `HazeBlurDefaults.blurEnabled()` | `HazeBlurDefaults.isBlurEnabledByDefault()` | This remains the platform-aware default-enable query. |
+| `HazeTint.Unspecified` or a `HazeTint` constructor | `HazeColorEffect.tint(...)` or `HazeColorEffect.colorFilter(...)` | Effects are factory-only; use `fallbackColorEffect(null)` to clear a fallback. |
+| `HazeDefaults.blurEnabled()` | `HazeBlurDefaults.isBlurEnabledByDefault()` | The platform-aware default-enable query. |
 | `Poko` | Removed | This implementation annotation is not part of Haze's supported API. |
 | `HazeLogger.d(...)` | Removed | `HazeLogger.enabled` remains the supported logging control. |
 | `LocalHazeStyle` | `LocalHazeBlurStyle` | The local contains replayable Style writes. |
@@ -356,8 +349,8 @@ and `then`.
    selection, and layer expansion to `HazeSourceRetention`, `HazeSourceSelection`, and
    `expandLayerBounds`.
 7. Remove `blurEnabled` from `rememberHazeState`; write it in the Style for each effect instead.
-8. Replace custom `VisualEffect` implementations with a stateless `HazeEffectFactory` and one
-   node-owned `HazeEffectRenderer` per modifier.
+8. Replace custom `VisualEffect` implementations with a stateless `HazeEffectFactory` that
+   creates one `HazeEffectRenderer` per modifier.
 
 For example:
 

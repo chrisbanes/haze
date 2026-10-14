@@ -81,19 +81,20 @@ Modifier.hazeBlur(
 )
 ```
 
-The same `performanceMode` parameter is available on `hazeGlass`. Profiles keep the chosen quality
-setting fixed. `Performance`, `Balanced`, and `Quality` correspond to
-`Fixed(0f)`, `Fixed(0.5f)`, and `Fixed(1f)`. The fraction describes quality, not a percentage
-reduction in rendering time.
+The same `performanceMode` parameter is available on `hazeGlass`. To set a mode for a whole
+subtree, provide `LocalHazePerformanceMode`; an explicit `performanceMode` argument overrides it.
+
+`Performance`, `Balanced`, and `Quality` correspond to `Fixed(0f)`, `Fixed(0.5f)`, and
+`Fixed(1f)`. The fraction describes quality, not a percentage reduction in rendering time.
 
 !!! note "Measured quality trade-offs"
 
-    In a two-pass Pixel 8a test at 60 Hz with a changing background, Glass `Balanced` left about
-    **8.1 ms** of frame-deadline headroom at P90, compared with **7.0 ms** for `Quality`. Glass
-    `Performance` used roughly **9% less peak GPU memory** than `Quality` in both stable and
-    changing-background tests, comparing the mean of the two pass-level medians for each mode
-    and workload. Each method ran eight iterations in both forward and reverse order. These are
-    useful reference points, not guaranteed savings on another screen. See the [full mode
+    In a two-pass test on a Pixel 8a (Android 17, 60 Hz, fixed-performance mode) with a changing
+    background, Glass `Balanced` left about **8.1 ms** of frame-deadline headroom at P90,
+    compared with **7.0 ms** for `Quality`. Glass `Performance` used roughly **9% less peak GPU
+    memory** than `Quality` in both stable and changing-background tests, comparing the mean of
+    the two pass-level medians for each mode and workload. Each method ran eight iterations per
+    pass. These are reference points, not guaranteed savings on another screen. See the [full mode
     comparison](benchmark-results.md#performance-mode-calibration).
 
 Keep a fixed override only when repeated measurements and visual checks show a useful benefit.
@@ -122,31 +123,31 @@ Check an effect's first appearance separately from its ongoing animation: smooth
 not rule out a pause when a Glass surface is first created. Include lighting, refraction, and
 transform changes during interaction in your measurements.
 
-Use a [Glass container](effects/glass.md#containers) only where surfaces should merge. A merged
-Glass cluster draws one surface whose layer covers its members and the bridges between them, so
+Use a [Glass container](effects/glass/containers.md) only where surfaces should merge. A merged
+cluster draws one larger surface that covers its members and the bridges between them, so
 measure clustered screens against independent surfaces before adopting them. A container also
 shares one optical size, so one large member changes the diffusion of the small members next to
 it.
 
-On a Pixel 8a at 60 Hz, merging two nearby Regular Glass surfaces into one cluster over a
-changing source left about 4.5 ms less frame deadline margin at P90 and used about 7% more peak
-GPU memory than drawing them independently, even though its CPU frame duration P90 was 0.35 ms
-lower ([conditions and limits](benchmark-results.md#glass-containers)).
+In a two-pass test on a Pixel 8a (Android 17, 60 Hz, fixed-performance mode), merging two nearby
+Regular Glass surfaces into one cluster over a changing source left about 4.5 ms less frame
+deadline margin at P90 and used about 7% more peak GPU memory than drawing them independently,
+even though its CPU frame duration P90 was 0.35 ms lower
+([conditions and limits](benchmark-results.md#glass-containers)).
 
-For styling examples, see the [Glass overview](effects/glass.md).
+For styling examples, see the [Glass overview](effects/glass/index.md).
 
 <a id="backdrop-input"></a>
 
 ## Backdrop versus Sources
 
-`HazeInput.Backdrop` lets built-in Blur and Glass consume pixels already drawn behind them in the
-current window. Its native Android path can filter those pixels directly, without marking the
-background with `hazeSource` or capturing a separate source layer.
+`HazeInput.Backdrop` lets built-in Blur and Glass use pixels already drawn behind them in the
+current window. On supported Android devices it can filter those pixels directly, without marking
+the background with `hazeSource`.
 
-The current API still takes a `HazeState` or `HazeInput.Sources` for fallback. Keep the
-`hazeSource` setup if you need the effect to work when native rendering is unavailable, including
-on other platforms or after a native failure. Without captured sources, the fallback has no
-background content to process.
+Pass a `HazeState` or `HazeInput.Sources` to `Backdrop` and keep the `hazeSource` setup if the
+effect must work when native rendering is unavailable, including on other platforms or after a
+native failure. Without captured sources, the fallback has no background content to process.
 
 Use explicit `HazeInput.Sources` when you need to select particular captured content. Native
 Backdrop uses the combined earlier pixels in the same window; it cannot include later drawing
@@ -155,9 +156,9 @@ for examples.
 
 !!! warning "Experimental native Backdrop"
 
-    Native rendering requires a supported, hardware-accelerated Android 37.2 window and is
-    disabled by default. Set `HazeFeatureFlags.isPlatformBackdropEnabled = true` before attaching
-    the effect node to make it eligible. Unsupported configurations use source fallback.
+    Native rendering requires a hardware-accelerated window on Android 37.2 or later and
+    is disabled by default. Set `HazeFeatureFlags.isPlatformBackdropEnabled = true` before the
+    effect is first composed to make it eligible. Unsupported configurations use source fallback.
     See [Android window backdrops](core-concepts.md#android-window-backdrops).
 
 Compare native Backdrop with Sources before enabling it for performance reasons. Sources can
@@ -166,10 +167,10 @@ when the effect draws.
 
 !!! note "Measured Backdrop cost"
 
-    On a Pixel 8a at 60 Hz, native Backdrop had **23–46% higher CPU frame P90** than Sources in
-    the tested single-surface Glass workloads. Those figures are based on two passes in opposite
-    orders at `Quality`, with eight iterations per method per pass. Native rendering can simplify source
-    capture, but these tests did not show a CPU performance benefit for Glass.
+    On a Pixel 8a (Android 17, 60 Hz), native Backdrop had **23–46% higher CPU frame P90** than
+    Sources in the tested single-surface Glass workloads. Those figures are based on two passes in
+    opposite orders at `Quality`, with eight iterations per method per pass. Native rendering can
+    simplify setup, but these tests did not show a CPU performance benefit for Glass.
     See the [full Backdrop comparison](benchmark-results.md#native-android-backdrop).
 
 <a id="performance-measurements"></a>

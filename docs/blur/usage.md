@@ -1,18 +1,17 @@
 # Blur usage
 
-Blur works with a current-window Backdrop input, exact captured Sources input, or the modifier's
-own Content input. All modes use the typed `hazeBlur` modifier and the same replayable Style.
+`Modifier.hazeBlur` takes an input, which decides what gets blurred, and a Style, which decides how
+it looks.
 
 ## Choosing the input
 
-| Requirement | Input | What it consumes |
+| Requirement | Input | What it blurs |
 | --- | --- | --- |
-| Normal built-in Blur behind content | `HazeInput.Backdrop(hazeState)` | All earlier pixels in the same window, with source capture as fallback. |
-| Exact source ownership or selection | `HazeInput.Sources(hazeState)` | Pixels captured by selected `hazeSource` modifiers. |
-| Blur the modifier's own content | `HazeInput.Content` | Content drawn by the modifier's composable. |
+| Blur whatever is behind a surface | `HazeInput.Backdrop(hazeState)` | Content drawn earlier in the same window, using your `hazeSource` content where native backdrop rendering isn't used. |
+| Control exactly which sources are blurred | `HazeInput.Sources(hazeState)` | Content marked with selected `hazeSource` modifiers. |
+| Blur the modifier's own content | `HazeInput.Content` | The composable's own content. |
 
-Use `Backdrop` for the usual built-in Blur case. Its `fallback` source input applies only if
-source capture is needed; it does not filter the native window backdrop.
+Use `Backdrop` for most cases.
 
 ## Source-backed Blur
 
@@ -38,11 +37,10 @@ Box {
 }
 ```
 
-`HazeInput.Sources` also owns source selection and retained-output behavior. The default
-`KeepLastFrame` policy avoids an empty flash during source transitions, but retained output is
-not guaranteed to be a frozen copy of the last frame (see
-[Core concepts](../core-concepts.md)). Use `ClearWhenUnavailable` for
-privacy-sensitive content:
+`HazeInput.Sources` also controls which sources are used and what is shown while they are
+unavailable. The default, `KeepLastFrame`, avoids an empty flash during source transitions, but the
+retained output is not guaranteed to be an exact copy of the last frame (see
+[Core concepts](../core-concepts.md)). Use `ClearWhenUnavailable` for privacy-sensitive content:
 
 ```kotlin
 Modifier.hazeBlur(
@@ -68,8 +66,9 @@ Image(
 
 ## Android window-backdrop Blur
 
-`HazeInput.Backdrop` is portable, while its native path is an experimental eligibility path. Set
-the process-wide flag before attaching the effect nodes that should observe it:
+On Android 37.2 or later, `HazeInput.Backdrop` can blur the window backdrop natively. This is
+experimental and off by default. Enable it before the Blur modifiers you want to affect are
+attached:
 
 ```kotlin
 HazeFeatureFlags.isPlatformBackdropEnabled = true
@@ -80,29 +79,25 @@ Modifier.hazeBlur(
 )
 ```
 
-The current default is `false`. `true` makes native rendering eligible, not guaranteed: built-in
-effect support, the full Android 37.2 gate, the window and canvas, native setup, and the draw must
-all succeed. This is same-window, previous-pixel ordering—not selected-source capture. It cannot
-see later draw operations or pixels from another dialog, popup, or window. Native sampling stays
-at compositor resolution; `HazePerformanceMode` does not downsample that input. On older Android
-releases, other platforms, a software canvas, or after native setup/draw failure, the modifier uses
-the configured source fallback. That decision is sticky until detachment and the transition may
-take one frame. Changing the flag affects later attachments only, and healthy native consumers do
-not record fallback source layers.
+Enabling the flag makes native rendering possible, not guaranteed. On other platforms, older
+Android releases, a software canvas, or if native rendering fails, Haze uses your `hazeSource`
+content instead; switching can take one frame. Changing the flag only affects modifiers attached
+afterwards.
 
-Set `HazeLogger.enabled = true` for selection and fallback messages. The native draw is marked by
-the `HazeBackdrop.draw` trace section. These diagnostics do not establish a performance result;
-physical Android 37.2 acceptance is still pending. A later release may flip the default, retain a
-temporary `false` escape hatch, and then remove the experimental flag.
+Native rendering blurs content drawn earlier in the same window. It can't see content drawn later,
+or content in another dialog, popup, or window, and `HazePerformanceMode` doesn't reduce its
+resolution. Use `HazeInput.Sources` when you need exact source selection, content from another
+window, or a retention policy.
 
-Use `HazeInput.Sources` when its exact selection, cross-window, or retention semantics must govern
-the actual input. See
-[ADR-0010](../adr/0010-adopt-backdrop-as-the-adaptive-haze-input.md) for the complete boundary.
+Set `HazeLogger.enabled = true` to log which path is chosen. A later release may enable native
+rendering by default.
 
 ## Enabling Blur
 
-Blur is enabled by default only where Haze considers the platform implementation reliable. To
-override that decision, write `blurEnabled` in a Style:
+Blur is enabled by default on Android 12 and newer and on all other platforms. On Android 11 and
+below, Haze draws a translucent scrim instead unless you enable Blur (see
+[Platforms](platforms.md#android-11-and-below)). To override the default, set `blurEnabled` in a
+Style:
 
 ```kotlin
 Modifier.hazeBlur(
@@ -113,11 +108,11 @@ Modifier.hazeBlur(
 )
 ```
 
-When Blur is disabled, Haze draws the configured fallback scrim instead.
+When Blur is disabled, Haze draws `fallbackColorEffect` instead.
 
 ## Replayable Styles
 
-`HazeBlurStyle` is an opaque program of Blur-specific writes:
+A `HazeBlurStyle` is a list of property writes:
 
 ```kotlin
 val style = HazeBlurStyle {
@@ -138,7 +133,7 @@ val style = HazeBlurStyle {
 }
 ```
 
-Style resolution always replays these tiers in order:
+Haze applies Styles in this order:
 
 1. `HazeBlurDefaults.style`
 2. `LocalHazeBlurStyle`
@@ -153,11 +148,11 @@ val compact = HazeMaterials.thin().then {
 }
 ```
 
-If a replacement Style omits `blurRadius`, the local or default value becomes visible again. Styles
-are immutable and safe to share; create a replacement Style when the appearance needs to change.
+Properties a Style doesn't write keep their inherited value. Styles are immutable and safe to
+share; create a new Style to change the appearance.
 
-Caller-owned color-effect lists are snapshotted when the Style is created. An explicit empty list
-clears inherited color effects:
+`colorEffects` copies the list you pass, so later changes to your list have no effect. An empty
+list clears inherited color effects:
 
 ```kotlin
 val noColorEffects = HazeBlurStyle {
@@ -180,7 +175,7 @@ val progressiveStyle = HazeBlurStyle {
 }
 ```
 
-A mask fades the effect's opacity and is usually cheaper:
+A mask fades the effect's opacity instead, and is usually cheaper:
 
 ```kotlin
 val maskedStyle = HazeBlurStyle {
@@ -206,14 +201,13 @@ val maskedProgressiveStyle = HazeBlurStyle {
 }
 ```
 
-Where a platform can't vary blur intensity natively, Haze approximates progressive Blur, and
-`mask` still fades the complete result.
+On Android 12L and below, progressive Blur is approximated (see [Platforms](platforms.md)).
 
 <a id="performance-mode"></a>
 
 ## Performance mode and layer expansion
 
-Performance mode and layer expansion are structural modifier policies, not Style properties:
+Performance mode and layer expansion are `hazeBlur` parameters, not Style properties:
 
 ```kotlin
 Modifier.hazeBlur(
@@ -224,10 +218,6 @@ Modifier.hazeBlur(
 )
 ```
 
-See the [performance guide](../performance.md#performance-mode) for mode selection and
-[Blur guidance](../performance.md#blur) for the cost and edge behaviour of layer expansion.
-
-### Controlled calibration reference
-
-The latest controlled Blur measurements are in the
-[performance-mode calibration](../benchmark-results.md#performance-mode-calibration).
+See the [performance guide](../performance.md#performance-mode) for choosing a mode, and
+[Blur guidance](../performance.md#blur) for when to change `expandLayerBounds`. Measured results
+are in the [benchmark results](../benchmark-results.md#performance-mode-calibration).

@@ -1,6 +1,7 @@
 # Blur Effect
 
-The blur effect creates a glassmorphism-style blur of content in your UI. It's the primary visual effect in Haze and can be applied to both background and foreground content.
+Blur creates a frosted-glass effect over content in your UI. It can blur the content behind a
+surface, or a composable's own content.
 
 ## Download
 
@@ -25,19 +26,21 @@ dependencies {
 
 ## Platform Support
 
-The blur effect is supported on all platforms with platform-optimized implementations:
+Blur is available on every platform Haze supports:
 
-| Platform      | Supported | Notes                               |
-|---------------|-----------|-------------------------------------|
-| Android       | ✅        | API 11+, optimized for API 13+      |
-| Desktop (JVM) | ✅        | Skia-based shader implementation    |
-| iOS           | ✅        | Skia-based shader implementation    |
-| Wasm          | ✅        | Custom shader implementation        |
-| JS/Canvas     | ✅        | Canvas filter-based                 |
+| Platform      | Notes                                                                      |
+|---------------|----------------------------------------------------------------------------|
+| Android       | Android 6.0 (API 23)+. Blurs by default on Android 12+; a translucent scrim is drawn on Android 11 and below unless you opt in. |
+| Desktop (JVM) | Full support.                                                              |
+| iOS & macOS   | Full support.                                                              |
+| Web (Wasm, JS)| Full support.                                                              |
+
+See [Platforms](platforms.md) for details.
 
 ## Basic Usage
 
-Apply Blur with the typed `Modifier.hazeBlur` API:
+Mark the content to blur with `hazeSource`, then apply `Modifier.hazeBlur` to the surface drawn
+over it:
 
 ```kotlin
 val hazeState = rememberHazeState()
@@ -61,26 +64,27 @@ Box {
 }
 ```
 
-For more detailed usage patterns, see the [Blur Usage](usage.md) guide.
+See the [Blur usage](usage.md) guide for more.
 
 ## Styling
 
-The appearance of the blur effect is controlled through the [HazeBlurStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/index.html) class:
+[HazeBlurStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/index.html) controls
+how Blur looks:
 
-- **Blur Radius**: Controls the strength of the blur
-- **Tint**: Applies a color overlay for contrast
-- **Noise**: Adds visual texture
+- **Blur radius**: the strength of the blur.
+- **Tint**: a color overlay that improves contrast.
+- **Noise**: visual texture.
 
-Opinionated pre-built styles are available in the [material presets](materials.md) guide. To adapt
-the current Compose Material 3 theme into a Blur Style, see the [Material 3 integration](material3.md).
+For ready-made styles, see the [material presets](materials.md). To follow the current Material 3
+theme, see the [Material 3 integration](material3.md).
 
 ## Performance
 
-Blur can be a resource-intensive effect. See the [Performance](../performance.md) page for detailed benchmarks and optimization techniques on each platform.
+Blur can be expensive. See [Performance](../performance.md) for how to measure and tune it.
 
 ## Next Steps
 
-- [Blur Usage Guide](usage.md) - Comprehensive usage patterns and features
-- [Material presets](materials.md) - Opinionated pre-built Blur Styles
-- [Material 3 integration](material3.md) - Adapt a Compose Material 3 theme into a Blur Style
-- [Performance Tips](../performance.md) - Optimization techniques
+- [Blur usage](usage.md): inputs, styles, progressive Blur, and masks
+- [Material presets](materials.md): ready-made Blur Styles
+- [Material 3 integration](material3.md): a Blur Style from your Material 3 theme
+- [Performance](../performance.md): measuring and tuning
