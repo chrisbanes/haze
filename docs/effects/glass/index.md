@@ -2,7 +2,7 @@
 
 A refraction-driven Glass effect that combines refraction, depth blur, tint, Fresnel/ambient lift, and specular highlights with optional rounded shapes and dispersion.
 
-![type:video](../media/glass.mp4)
+![type:video](../../media/glass.mp4)
 
 ## Download
 
@@ -16,7 +16,7 @@ dependencies {
 }
 ```
 
-For unreleased changes, follow the [snapshot build instructions](../using-snapshot-version.md) and
+For unreleased changes, follow the [snapshot build instructions](../../using-snapshot-version.md) and
 use the same snapshot version for both artifacts.
 
 ### Material 3
@@ -30,15 +30,12 @@ dependencies {
 }
 ```
 
-`GlassStyle.Material3()` uses `MaterialTheme.colorScheme.surface` as its default container color.
-Pass `containerColor` to use a different color. Supply a replacement Style through recomposition
-when the theme changes. It deliberately leaves the tint unset unless you pass one, so it never
-derives a tint from `LocalContentColor`.
+`GlassStyle.Material3()` uses `MaterialTheme.colorScheme.surface` as its background color. Pass
+`containerColor` to use a different color. It leaves the tint unset unless you pass one. These
+functions are composable, so the Style follows theme changes when the call site recomposes.
 
-Regular and Clear select their light or dark material response from the system appearance reported
-by the Compose host. Material 3 supplies the app theme's surface color and optional explicit tint;
-changing only `MaterialTheme` does not select a different built-in material response. Material 3 is
-not required for system appearance changes.
+Material 3 supplies only colors. Regular and Clear still pick their light or dark response from the
+system appearance, not from `MaterialTheme`, and you don't need Material 3 for that.
 
 Apply Material 3 to a built-in or custom Style with `material3()`:
 
@@ -56,8 +53,9 @@ Modifier.hazeGlass(
 )
 ```
 
-The factory writes its container color and optional tint before its block, allowing the block to
-override either value. It also works as a subtree default:
+The container color and tint are written before the block, so the block can override either. The
+block overload returns a new Style on every call; to read animated state in the block, build the
+Style with `GlassStyle { }` inside `remember` instead. Material 3 also works as a subtree default:
 
 ```kotlin
 CompositionLocalProvider(LocalGlassStyle provides GlassStyle.Material3()) {
@@ -67,35 +65,26 @@ CompositionLocalProvider(LocalGlassStyle provides GlassStyle.Material3()) {
 
 ### Built-in styles
 
-`GlassStyle.regular` is the default built-in Glass style. Its blur and depth adapt to the
-surface's shortest dimension. A 20dp edge refraction band preserves curved loops on compact
-controls, while larger surfaces fully diffuse the backdrop. Blur radii are 20/24/25dp and depth
-is 0.65/1/1 at shortest dimensions of 64/176/220dp. Its light tone was calibrated against
-native iOS 27 light appearance. In dark appearance, Regular selects a darker tone, edge,
-and lighting response while retaining its size-dependent diffusion.
+`GlassStyle.regular` is the default style. Its blur and depth grow with the surface's shortest
+side: compact controls keep some refracted detail and a curved edge, while larger surfaces fully
+diffuse the backdrop. In dark appearance it uses a darker tone, edge, and lighting response.
 
-`GlassStyle.clear` is the alternative built-in style for surfaces that should keep more of the
-background visible. It uses the same shallow blur across surface sizes and an edge refraction
-profile informed by iOS 27 captures. Displacement is strongest at the boundary, decays over a fixed
-28dp band, and follows wider optical corners to form the characteristic loops. Simplified renderers
-retain background color, tint, and edge/rim treatments, but omit refraction, blur, and the contrast,
-white-point, and chroma adjustments that define Clear's calibrated tone. These are Haze styles
-informed by the platform distinction; they do not promise pixel parity with another system.
+`GlassStyle.clear` keeps more of the background visible. It uses the same shallow blur at every
+size, with refraction concentrated in a band along the edge that forms loops around the corners.
+Fallback renderers keep Clear's background color, tint, and edges, but drop the refraction, blur,
+and tone adjustments that give it its look.
 
 Prefer Regular when background content could interfere with labels or controls, especially for
 surfaces containing substantial text. Use Clear for controls over photos and video where the
-underlying content should remain visible. This follows Apple's current
+underlying content should remain visible. This follows Apple's
 [Materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials).
 For Clear over bright content, add a dark dimming layer behind the controls when needed for
-contrast. Dark backgrounds may already provide enough contrast; Haze does not add dimming automatically.
+contrast. Haze does not add dimming automatically.
 
-iOS 27 refines native Liquid Glass diffusion and edge definition, and adds a system appearance
-slider, as described in the [WWDC26 platform updates](https://developer.apple.com/videos/play/wwdc2026/102/).
-Haze's built-in styles respond to the system appearance supplied by the Compose host, which may
-reflect an app or window override rather than the device's raw preference. An unknown host theme
-uses the light response. They do not inherit the iOS appearance slider or native content-dependent
-adaptation, and Haze does not promise iOS pixel parity. Check foreground
-contrast with your own content and configure Haze's styles and accessibility settings accordingly.
+Both styles are informed by iOS 27 Liquid Glass, but Haze does not promise pixel parity with iOS.
+They follow the system appearance supplied by the Compose host, which may reflect an app or window
+override; an unknown appearance uses the light response. They do not follow the iOS appearance
+slider or adapt to the content beneath them, so check foreground contrast with your own content.
 
 ```kotlin
 Modifier.hazeGlass(
@@ -110,96 +99,33 @@ Modifier.hazeGlass(
   (defaults to transparent). Use an opaque color when transparent captured content must fully
   obscure the original sharp source.
 - **tint**: Glass tint (defaults to transparent).
-- **optics**: Optical material configuration. `GlassStyle.regular` supplies the default
-  size-aware optics. Call `optics(...)` for inline fixed configuration, or keep a `GlassOptics`
-  value when it needs to be reused or selected programmatically.
-- **refractionDetailIntensity**: Secondary edge-refraction detail strength `0..1`. `0` disables the
-  detail pass. Caller-authored `GlassOptics` defaults to `0.76`; Regular uses `0`, and Clear uses
-  `0.76`. Non-zero values may retain additional rendering layers on full renderers.
+- **optics**: Optical configuration. See [Choosing optics](#choosing-optics).
+- **refractionDetailIntensity**: Secondary edge-refraction detail strength `0..1`. `0` disables it.
+  `GlassOptics` defaults to `0.76`; Regular uses `0`, and Clear uses `0.76`. Non-zero values add
+  rendering work on full renderers.
 - **specularIntensity**: Highlight strength `0..1` (default 0.48).
-- **edgeShadow**: Shape-following dark rim composited beneath the specular highlight (defaults to
-  black at 14% opacity). Its alpha controls strength; set `Color.Transparent` to disable it.
+- **edgeShadow**: Shape-following dark rim beneath the specular highlight (defaults to black at 14%
+  opacity). Its alpha controls strength; set `Color.Transparent` to disable it.
 - **ambientResponse**: Fresnel/edge lift `0..1` (default 0.15).
 - **edgeSoftness**: Soft fade at the edges (default 1.dp). Set to 0.dp for hard edges.
-- **shape** (`RoundedCornerShape`): Rounded-rect boundary for refraction and masking (default 16.dp corners).
+- **shape** (`RoundedCornerShape`): Boundary for refraction and masking (default 16.dp corners).
+  Add an outer `Modifier.clip()` with the same shape only when child content also needs clipping.
 - **surfaceProfile**: Cross-section for lighting and, with `RefractionProfile.Surface`, refraction. Options: `Circle` (default), `Squircle`, `Lip`, `Concave`.
-- **lightPosition**: `Alignment` of the light within the material's measured bounds (default
-  `Alignment.Center`). Logical start and end follow the node's layout direction.
+- **lightPosition**: `Alignment` of the light within the surface (default `Alignment.Center`).
+  Start and end follow layout direction.
 - **chromaticAberrationStrength**: Dispersion strength `0..1` (default 0). Higher values produce prismatic color splitting at edges.
-- **chromaticAberrationMode**: Quality mode for chromatic aberration. `Simple` (default, fast) or `Full` (spectral, more expensive).
+- **chromaticAberrationMode**: `Simple` (default, cheaper) or `Full` (spectral, more expensive).
 - **alpha**: Overall opacity multiplier `0..1` (default 1). Values outside that range are clamped.
 
-A `GlassOptics` value is validated when it is created. A `GlassStyle` block is validated when it
-runs, which is when a node resolves the Style, so an invalid value throws during that node's
-update rather than where the Style is built. Values that animation can overshoot are coerced
-instead: `alpha` and tint alpha are clamped into `0f..1f`, and negative corner radii are treated
-as zero. Validate or clamp other values from user input and remote data before writing them in the
-block. The generated API reference documents the accepted range for each property.
+### Color handling
 
-### Colour handling
-
-`chromaMultiplier` values above `1f` request a boost, not permission to clip a source colour.
-Glass bounds that boost for colours already within the sRGB gamut, and leaves an out-of-gamut source
-unchanged. This preserves the authored source colour instead of flattening saturated regions into
-display-gamut plateaus.
-
-Authored `tint` and `edgeShadow` colours retain their Compose `ColorSpace` semantics when they are
-passed to the colour-managed shader uniforms. This does not make every Glass operation a complete
-scene-linear colour model: encoded `luma()` used for content normals, display-space contrast, and
-ambient multiplication remain explicitly deferred colour-model questions.
+`chromaMultiplier` values above `1f` boost saturation without clipping colors that are already in
+the sRGB gamut; out-of-gamut source colors are left unchanged. `tint` and `edgeShadow` keep their
+Compose `ColorSpace`.
 
 ## GlassStyle
 
-`GlassStyle` is safe to share. Build a base Style and use `then` for variations. Regular and Clear
-select their material response from the host's current system appearance on each attached node,
-without replacing the Style.
-
-A Style's block runs each time a node resolves its style, not when the Style is constructed. The
-block may read snapshot state, such as an animated value. Each node observes those reads and applies
-a change on the next frame without recomposing the `hazeGlass` call site. The block may run on any
-frame, so keep it free of side effects. Styles compare by identity, so `remember` or hoist a Style:
-constructing a new Style in each composition replaces it on every node.
-
-```kotlin
-val radius = animateDpAsState(if (expanded) 20.dp else 28.dp)
-val style = remember {
-  GlassStyle.regular.then { shape(RoundedCornerShape(radius.value)) }
-}
-```
-
-Invalid values throw `IllegalArgumentException` when the block runs. Values that animation can
-overshoot are coerced instead: `alpha` and tint alpha are clamped into `0f..1f`, and negative corner
-radii are treated as zero. Percent corner sizes, such as `CircleShape`, already follow size-only
-changes without any state in the Style.
-
-Each node starts with the appearance-specific Regular response, then applies `LocalGlassStyle` and
-its explicit Style. An omitted value inherits a local write when present; otherwise material
-response values come from Regular. Presentation values use their accumulator defaults: mostly
-`GlassDefaults`, with `lightPosition` centered and interaction responses unset.
-
-### Accessibility preferences
-
-Haze leaves platform accessibility-service integration to the host application, then accepts its
-semantic result through `LocalGlassAccessibilitySettings`. This keeps the common API portable and
-does not attempt to reproduce another platform's system controls. Provide settings at the subtree
-where Glass is used:
-
-```kotlin
-CompositionLocalProvider(
-  LocalGlassAccessibilitySettings provides GlassAccessibilitySettings(
-    reduceTransparency = reduceTransparency,
-    increaseContrast = increaseContrast,
-    showBorders = showBorders,
-  ),
-) {
-  // Glass here reduces background diffusion or strengthens its separating edge when requested.
-}
-```
-
-The default settings preserve the authored Style exactly. These preferences are applied at render
-resolution, so they do not mutate or replace the Style supplied by your app. Reduced Transparency
-reduces the authored blur contribution. Increased Contrast and Show Borders enforce a visible edge,
-even when the authored Style has zero edge softness.
+`GlassStyle` is safe to share. Build a base Style and use `then` for variations:
 
 ```kotlin
 val baseStyle = GlassStyle {
@@ -215,6 +141,50 @@ CompositionLocalProvider(LocalGlassStyle provides baseStyle) {
 }
 ```
 
+A Style's block runs whenever a Glass surface resolves its style, not when the Style is built. The
+block may read snapshot state, such as an animated value; changes apply on the next frame without
+recomposing the `hazeGlass` call site. Keep the block free of side effects. Styles compare by
+identity, so `remember` or hoist a Style: a new Style in each composition replaces it on every
+surface.
+
+```kotlin
+val radius = animateDpAsState(if (expanded) 20.dp else 28.dp)
+val style = remember {
+  GlassStyle.regular.then { shape(RoundedCornerShape(radius.value)) }
+}
+```
+
+Invalid values in a block throw `IllegalArgumentException` when the block runs, not where the Style
+is built; a `GlassOptics` value is validated when it is created. Values that animation can overshoot
+are coerced instead: `alpha` and tint alpha are clamped into `0f..1f`, and negative corner radii are
+treated as zero. Validate or clamp other values from user input and remote data. Percent corner
+sizes, such as `CircleShape`, follow size changes without any state in the Style.
+
+Each surface applies `LocalGlassStyle` and then its explicit Style. Values that neither sets come
+from Regular and `GlassDefaults`.
+
+### Accessibility preferences
+
+Haze does not read platform accessibility settings. Map them to `GlassAccessibilitySettings` and
+provide it where Glass is used:
+
+```kotlin
+CompositionLocalProvider(
+  LocalGlassAccessibilitySettings provides GlassAccessibilitySettings(
+    reduceTransparency = reduceTransparency,
+    increaseContrast = increaseContrast,
+    showBorders = showBorders,
+  ),
+) {
+  // Glass here reduces background diffusion or strengthens its separating edge when requested.
+}
+```
+
+The defaults leave the Style unchanged, and the settings never modify your Style values.
+`reduceTransparency` reduces blur. `increaseContrast` raises tone contrast and enforces a visible
+edge. `showBorders` enforces a visible edge without changing tone. The edge appears even when the
+Style has zero edge softness.
+
 ### Light alignment
 
 Use Compose `Alignment` values so lighting adapts to each surface. Logical alignments such as
@@ -226,8 +196,7 @@ val sharedLighting = GlassStyle {
 }
 ```
 
-Use `BiasAlignment` when the light needs a continuous proportional position rather than a named
-alignment.
+Use `BiasAlignment` for a continuous proportional position:
 
 ```kotlin
 val movingLighting = GlassStyle {
@@ -237,12 +206,8 @@ val movingLighting = GlassStyle {
 
 ## Style defaults
 
-`GlassStyle.regular` is the default built-in material response, including when the modifier omits
-`style`. Both built-ins are immutable Style values whose response is selected at each attached node
-when system appearance changes. Omitted presentation values use the accumulator defaults described
-above.
-Use `LocalGlassStyle` to set a default for a subtree, and pass an explicit Style
-when one element needs to differ.
+`hazeGlass` uses `GlassStyle.regular` when you omit `style`. Use `LocalGlassStyle` to set a default
+for a subtree, and pass an explicit Style when one element needs to differ.
 
 ```kotlin
 Box(
@@ -254,9 +219,8 @@ Box(
 
 ### Choosing optics
 
-Use `GlassStyle.regular` for the built-in Haze material, which adapts blur and depth to the
-material's shortest dimension. Use `GlassOptics` when authoring a custom Style with direct optical
-control:
+Use `GlassStyle.regular` for the built-in material. For direct optical control, call `optics(...)`
+in a custom Style:
 
 ```kotlin
 val regular = GlassStyle.regular
@@ -275,10 +239,9 @@ GlassStyle {
 }
 ```
 
-The scalar Style overload creates fixed values. For a responsive custom configuration, provide
-independent shortest-dimension points for blur and depth; values clamp at the endpoints and use a
-smoothstep interpolation between points. Each responsive value requires at least two points with
-positive, finite, strictly increasing dimensions:
+`optics(...)` sets fixed values. To vary blur or depth with size, give `GlassOptics` points keyed
+by the surface's shortest side. Values hold at the end points and blend smoothly between them. Each
+responsive value needs at least two points with positive, finite, strictly increasing sizes:
 
 ```kotlin
 val responsiveOptics = GlassOptics(
@@ -291,7 +254,7 @@ val responsiveOptics = GlassOptics(
 val style = GlassStyle { optics(responsiveOptics) }
 ```
 
-Keep a complete value when it is reused, stored, copied, or selected programmatically:
+Keep a `GlassOptics` value when it is reused, stored, copied, or selected programmatically:
 
 ```kotlin
 val reusableOptics = GlassOptics(
@@ -300,118 +263,7 @@ val reusableOptics = GlassOptics(
 val style = GlassStyle { optics(reusableOptics) }
 ```
 
-`refractionProfile` defaults to `RefractionProfile.Surface`, which derives displacement from
-`surfaceProfile` and `refractionHeightFraction`. Existing custom optics retain that behavior.
-`RefractionProfile.Edge(width = 28.dp)` separates sampling from lighting: displacement is strongest
-at the boundary and decays to zero over the specified width. Its optical corner radius is 1.5 times
-the visible radius, capped at half the shortest side. Displacement is capped at half that side too,
-so compact capsules do not refract as far as large cards. A zero width disables refraction and its
-secondary detail pass; `refractionHeightFraction` continues to control lighting.
-
-Clear uses `Edge(28.dp)`, strength `0.85`, displacement `56.dp`, and a lighting height fraction of
-`0.35`. Regular uses `Edge(20.dp)`, strength `0.7`, displacement `48.dp`, and lighting height
-fraction `0.15`. These are empirical Haze settings, not an Apple specification or a promise of
-parity across content and appearance settings.
-
-`refractionFoldStrength` controls the inverted edge-refraction fold from `0f` to `1f`. The default
-for `GlassOptics` is `0f`, which preserves the original monotonic refraction map. The fold is
-available with every `SurfaceProfile` and remains within the configured refraction displacement;
-it does not expand the capture area.
-
-`refractionDetailIntensity` controls a secondary edge-detail pass on full renderers. Set it to `0f`
-to disable the pass and its additional retained layers. Caller-authored `GlassOptics` defaults to
-`0.76f`; `GlassStyle.regular` uses `0f`, while `GlassStyle.clear` uses `0.76f`.
-
-`GlassOptics` controls the appearance; `HazePerformanceMode.Fixed` controls the normalized
-rendering trade-off.
-The `shape` supplied to Glass defines its material boundary. Add an outer `Modifier.clip()` with
-the same shape only when child content also needs clipping.
-
-### Retained output
-
-Glass can retain and redraw its last captured output when all source areas disappear. This
-keeps source transitions smooth, but can briefly preserve stale pixels from removed source content.
-
-Retained output is not a frozen copy of the last displayed frame. On Android, retained Glass can
-redraw from live source content instead: after source selection is lost, or a source detaches
-while the material is hidden, it can show the source's current pixels when it becomes visible
-again. Content changed inside a source after capture can also appear. Use
-`ClearWhenUnavailable` when that is unacceptable.
-
-Keep the default for smooth transitions, and keep source ownership explicit with
-`HazeInput.Sources`:
-
-```kotlin
-Box(
-  Modifier
-    .size(180.dp)
-    .hazeGlass(
-      input = HazeInput.Sources(hazeState),
-      style = GlassStyle,
-    )
-)
-```
-
-The default is `HazeSourceRetention.KeepLastFrame`. For privacy-sensitive source content, opt out
-of retaining pixels when the source disappears:
-
-```kotlin
-Modifier.hazeGlass(
-  input = HazeInput.Sources(
-    state = hazeState,
-    retention = HazeSourceRetention.ClearWhenUnavailable,
-  ),
-  style = GlassStyle,
-)
-```
-
-### Android window-backdrop Glass
-
-`HazeInput.Backdrop` is the normal Glass input when the surface should consume the combined pixels
-already drawn earlier in the current window. Its native path is experimental and eligible only
-after setting the process-wide flag before the effect node attaches:
-
-```kotlin
-HazeFeatureFlags.isPlatformBackdropEnabled = true
-
-Modifier.hazeGlass(
-  input = HazeInput.Backdrop(hazeState),
-  style = GlassStyle.regular,
-)
-```
-
-The native path reuses Glass's fused blur, depth, refraction, detail, chromatic, tint, and tone
-graph at compositor resolution. Rim and interaction lighting remain independent foreground draws,
-and authored alpha, shape, and material transforms keep their normal ordering. It does not retain
-a source or fused-output layer while healthy.
-
-Backdrop input samples the current window's combined earlier pixels. It cannot select a Haze
-source, include content drawn later, or cross a dialog, popup, or window boundary. The `fallback`
-source input on `HazeInput.Backdrop` configures only its source fallback; it does not filter native
-window pixels. The current flag default is `false`, and
-`true` means eligible rather than guaranteed: the built-in effect, full Android 37.2 gate, window,
-canvas, native graph setup, and draw must all succeed. Unsupported platforms or a native failure
-use a supplied source fallback as portable rendering for the rest of that attachment.
-`HazeInput.Backdrop()` has no fallback: if native backdrop is unavailable or fails, its content
-draws unchanged and creates no source-capture demand. The transition may take one frame. A frame
-beyond the layer budget after native rendering has started draws content unchanged for that frame
-rather than switching to the fallback. Changing
-the flag affects later attachments only, and healthy native rendering does not retain or record
-source layers.
-
-Set `HazeLogger.enabled = true` to inspect selection and fallback messages. Native work is marked
-by the `HazeBackdrop.draw` trace section. This is diagnostic information, not a performance claim;
-physical Android 37.2 acceptance remains a separate release gate. A later release may enable the
-flag by default, retain a temporary `false` escape hatch, and then remove the experimental flag.
-
-Use Sources directly when exact source selection, cross-window alignment, or retained-output
-behavior must govern the actual input rather than only the fallback.
-[ADR-0010](../adr/0010-adopt-backdrop-as-the-adaptive-haze-input.md)
-defines the input and rollout, while
-[ADR-0003](../adr/0003-use-one-android-fused-glass-renderer.md) remains authoritative for
-source-backed Android Glass.
-
-You can select a literal optical configuration when the built-in material does not fit the design:
+Optics also accept a progressive intensity:
 
 ```kotlin
 GlassStyle {
@@ -425,12 +277,78 @@ GlassStyle {
 }
 ```
 
+`refractionProfile` chooses where refraction happens:
+
+- `RefractionProfile.Surface` (the `GlassOptics` default) refracts across the surface, following
+  `surfaceProfile` and `refractionHeightFraction`.
+- `RefractionProfile.Edge(width)` refracts most at the boundary and fades to none over `width`.
+  Refraction follows wider corners than the visible shape, and displacement is capped at half the
+  shortest side, so compact capsules refract less than large cards. `refractionHeightFraction`
+  then affects lighting only. A zero width disables refraction.
+
+Regular uses `Edge(20.dp)`, strength `0.7`, displacement `48.dp`, and lighting height fraction
+`0.15`. Clear uses `Edge(28.dp)`, strength `0.85`, displacement `56.dp`, and lighting height
+fraction `0.35`.
+
+`refractionFoldStrength` (`0f..1f`, default `0f`) folds refraction back on itself near the edge. It
+works with every `SurfaceProfile` and stays within `refractionDisplacement`.
+
+`GlassOptics` controls appearance; `HazePerformanceMode` controls the quality and cost trade-off.
+
+### Retained output
+
+When all of its sources disappear, Glass keeps drawing its last output by default
+(`HazeSourceRetention.KeepLastFrame`). This keeps source transitions smooth, but can briefly show
+pixels from removed content.
+
+This is not a frozen copy of the last frame. On Android, retained Glass can redraw from a source's
+current pixels when it becomes visible again, and content changed inside a source after capture can
+appear. For privacy-sensitive content, use `ClearWhenUnavailable`:
+
+```kotlin
+Modifier.hazeGlass(
+  input = HazeInput.Sources(
+    state = hazeState,
+    retention = HazeSourceRetention.ClearWhenUnavailable,
+  ),
+)
+```
+
+### Android window-backdrop Glass
+
+`HazeInput.Backdrop` samples the pixels already drawn earlier in the current window. On Android its
+native path is experimental; enable it before the Glass surface attaches:
+
+```kotlin
+HazeFeatureFlags.isPlatformBackdropEnabled = true
+
+Modifier.hazeGlass(
+  input = HazeInput.Backdrop(hazeState),
+  style = GlassStyle.regular,
+)
+```
+
+Native Glass keeps the full look, including refraction, blur, chromatic aberration, rim lighting,
+and interaction lighting. It cannot select a Haze source, include content drawn later, or cross a
+dialog, popup, or window boundary.
+
+The flag makes Glass eligible, not guaranteed. Where native rendering is unavailable or fails,
+`HazeInput.Backdrop(hazeState)` renders from its source fallback, while `HazeInput.Backdrop()`,
+which has no fallback, draws its content without Glass. A frame that native rendering cannot
+handle after it has started also draws content without Glass for that frame. Changing the flag
+affects later attachments only. See
+[Android window backdrops](../../core-concepts.md#android-window-backdrops) for eligibility,
+fallback, and diagnostics.
+
+Use `HazeInput.Sources` directly when exact source selection, cross-window alignment, or retained
+output must govern the actual input rather than only the fallback.
+
 ## Fallbacks
 
-Use one `GlassStyle` on every platform. Haze chooses the available implementation automatically, so
-applications do not need capability checks or a second fallback Style.
+Use one `GlassStyle` on every platform. Haze chooses the available renderer automatically, so you
+don't need capability checks or a second Style.
 
-Fallback rendering keeps the material recognizable but may simplify advanced optics:
+Fallback rendering keeps the material recognizable but simplifies advanced optics:
 
 | Authored behavior | Preferred rendering | Fallback |
 | --- | --- | --- |
@@ -441,21 +359,21 @@ Fallback rendering keeps the material recognizable but may simplify advanced opt
 | Fixed or responsive refraction, blur, and progressive optics | Preserved | Omitted |
 | Chromatic aberration, surface profile, and advanced color adjustments | Preserved | Omitted |
 | Interaction refraction and white-point deltas | Preserved | Omitted |
-| [Glass container](#containers) clusters | Members merge into one shape with smooth bridges | One surface per cluster, clipped to the hard union of the member shapes, with no bridge |
+| [Glass container](containers.md) clusters | Members merge into one shape with smooth bridges | One surface per cluster, clipped to the hard union of the member shapes, with no bridge |
 
-Do not make essential meaning depend on refraction or chromatic aberration alone, because those
-details may be omitted by a fallback.
+Don't make essential meaning depend on refraction or chromatic aberration alone, because fallback
+rendering omits them.
 
 ## Performance
 
 Start with `HazePerformanceMode.Default` (the fixed `Balanced` profile) and tune only after
-measuring a representative screen. The [performance guide](../performance.md#glass) explains
+measuring a representative screen. The [performance guide](../../performance.md#glass) explains
 which Glass-specific workloads and interactions to test.
 
 ## Interaction
 
-Glass interaction is default-disabled and entirely opt-in. It adds a visual response only: it does
-not add click handling, focusability, semantics, or keyboard/D-pad activation.
+Glass interaction is opt-in. It adds a visual response only: no click handling, focusability,
+semantics, or keyboard/D-pad activation.
 
 ```kotlin
 Modifier.hazeGlass(
@@ -471,9 +389,8 @@ Modifier.hazeGlass(
 )
 ```
 
-Declare only the states and response channels the material needs. To make focus and keyboard/D-pad
-activation useful, retain one `MutableInteractionSource` and share it with both the glass effect
-and your behavior modifiers:
+Declare only the states and responses you need. For focus and keyboard/D-pad activation, share one
+remembered `MutableInteractionSource` between the Glass modifier and your behavior modifiers:
 
 ```kotlin
 val interactionStyle = GlassStyle {
@@ -506,12 +423,11 @@ Modifier
   )
 ```
 
-Direct mouse, stylus, and touch positions track immediately.
-`interactionPositionAnimationSpec` controls movement to focus and `InteractionSource`-derived
-positions.
+The visual response lives in `GlassStyle`; the interaction source and behavior options are passed
+per element to `hazeGlass`, so one Style can be reused without sharing interaction state.
 
-Keep the visual response in `GlassStyle`, and pass each element's interaction source and behavior
-options to `hazeGlass`. The same Style can be reused without sharing interaction state.
+Mouse, stylus, and touch positions are tracked immediately. `interactionPositionAnimationSpec`
+animates the light towards focus and other `InteractionSource`-derived positions.
 
 When states overlap, pressed takes priority over hovered, which takes priority over focused. Use
 `animate(toSpec, fromSpec)` when arrival and departure need different motion.
@@ -532,179 +448,18 @@ GlassStyle {
 }
 ```
 
-`interactionTransformTarget` selects whether a response transforms only the material or also its
-content. `interactionTransformPivot` selects `Pointer` or `Center`. Omit a state block from a
-replacement Style to remove it.
-`GlassReducedMotionPolicy.System` follows the available system duration scale, `Reduced` snaps
-lighting and optics while suppressing transforms, and `Full` forces motion.
+- `interactionTransformTarget` transforms the material only, or the material and its content.
+- `interactionTransformPivot` scales around the `Pointer` or the `Center`.
+- `interactionReducedMotionPolicy`: `System` follows the system animation scale, `Reduced` snaps
+  lighting and optics and suppresses transforms, and `Full` always animates.
+
+Omit a state block from a replacement Style to remove that response.
 
 ## Containers
 
-!!! warning "Experimental"
-
-    `Modifier.hazeGlassContainer` is marked `@ExperimentalHazeApi`. Its behaviour may change
-    before it is stabilised.
-
-A Glass container draws its Glass members' surfaces together, so that nearby members merge into
-one shape. Use it for controls that should read as one object, such as a toolbar or a segmented
-control, and for surfaces that appear next to an existing one and should grow out of it.
-
-### Container and members
-
-```kotlin
-// Styles compare by identity, so remember the style.
-val style = remember { GlassStyle.regular.then { shape(CircleShape) } }
-
-Row(
-  modifier = Modifier.hazeGlassContainer(spacing = 16.dp),
-  horizontalArrangement = Arrangement.spacedBy(4.dp),
-) {
-  repeat(3) {
-    Box(
-      Modifier
-        .size(48.dp)
-        .hazeGlass(input = HazeInput.Sources(hazeState), style = style),
-    )
-  }
-}
-```
-
-`spacing` is required, finite and not negative. A spacing of zero disables bridges. Optionally
-pass `transitionSpec` and `reducedMotionPolicy`, which are described under
-[Transitions](#transitions).
-
-Every `hazeGlass` modifier below the container becomes a Glass member of its nearest container. A
-member keeps its own style, shape, colours and interaction response. A `hazeGlass` modifier
-outside a container is unchanged.
-
-### Merge rule
-
-Members join a Glass cluster when the gap between them is less than half of the spacing. The
-container draws each cluster as one surface, with smooth bridges between the members. A member
-that joins no cluster draws as a separate surface.
-
-- A cluster holds at most four members. Extra members draw separately, without a bridge. Where
-  an extra member overlaps the cluster, blur and tint apply twice in the overlap.
-- Only members that register consecutively share a cluster. Members register in the order they
-  attach, which follows composition order. A member registered between two compatible neighbours
-  splits them, even when it is far away, so merging never reorders members.
-- Members merge only when their input, performance mode and material values are equal: optics, surface profile, specular and edge response, chromatic aberration, tone,
-  light position and alpha. Shape, tint, background colour and interaction responses are not
-  compared, so members with different shapes and tints still merge and their colours blend across
-  the bridge. Regular and Clear surfaces never merge.
-- Members with a rotation or scale transform never merge. A translation does not stop a member
-  from merging, and neither does a Compose layer alpha on the member, such as an
-  `AnimatedVisibility` fade. A style `alpha` that differs between members does.
-- The dome term is disabled for clusters.
-- In reduced-quality performance modes, merged silhouettes render at the reduced input scale.
-
-### Optical size
-
-A container resolves one optical size: the largest shortest side among its members. Every member
-evaluates its optics at that size, whether or not it is in a cluster. A small member next to a
-large one takes on the large member's diffusion, even when the two do not merge.
-
-The size changes immediately, without animation, when a member is added, removed or resized. A
-member that is leaving does not count.
-
-### Where Glass samples from
-
-A container draws all of its members' Glass behind all of its children. With
-`HazeInput.Backdrop`, the glass samples only content drawn before the container. Joining or
-leaving a cluster never changes a member's z-order. With `HazeInput.Sources`, the glass samples
-the captured sources as usual, so use one `hazeState` for every member that should merge.
-
-### Interaction
-
-Per-member interaction transforms and lighting apply to that member's part of the merged shape.
-Pressing a member applies its pressed response, such as `scale`, to that member's part of the
-cluster, and only that member brightens. A cluster has one static light, because members merge only
-when their light position is equal.
-
-### Transitions
-
-A member that attaches or detaches after the container's first draw animates its glass. Choose
-the transition with `hazeGlass(memberTransition = ...)`:
-
-- `GlassMemberTransition.MatchedGeometry` is the default. A member that attaches within the
-  spacing of another member grows out of it, and a member that detaches retracts into it. Beyond
-  the spacing, it falls back to `Materialize`.
-- `GlassMemberTransition.Materialize` fades the glass in or out where it is. A fading member draws
-  on its own until it is fully opaque.
-- `GlassMemberTransition.None` applies no transition.
-
-`transitionSpec` times the animation. Under reduced motion, as `reducedMotionPolicy` resolves it,
-the morph is kept but uses a critically damped animation, so it does not overshoot. Changes to
-`transitionSpec` and `reducedMotionPolicy` apply from the next transition.
-
-Haze animates only the glass. Animate member content yourself, for example with
-`AnimatedVisibility` and fades. A scale animation makes a member non-translation-only, so it stops
-merging and matched-geometry transitions.
-
-Some members leave without a transition, and their glass disappears immediately:
-
-- members that use `HazeInput.Content`;
-- rotated or scaled members;
-- members whose resolved sources differ from every remaining member.
-
-A member that moves to another container appears there immediately. When the last compatible
-member leaves, the glass disappears immediately. A running transition ends without animating when
-the member it grows from, retracts into or is drawn through leaves, or when it is no longer within
-the spacing of that member.
-
-### Lazy layouts
-
-Members of a lazy layout such as `LazyRow` or `LazyColumn` attach as they scroll into view, and
-Compose gives a modifier no signal that tells that from a state change. Pass the layout's state to
-`hazeGlassContainer` as `scrollState`. While that state is scrolling, including the frame in which it
-stops, members appear and disappear without a transition, whatever their `memberTransition`.
-Items inserted or removed while the layout is idle still animate.
-
-```kotlin
-// Styles compare by identity, so remember the style.
-val style = remember { GlassStyle.regular.then { shape(CircleShape) } }
-val listState = rememberLazyListState()
-
-LazyRow(
-  state = listState,
-  modifier = Modifier.hazeGlassContainer(spacing = 16.dp, scrollState = listState),
-  horizontalArrangement = Arrangement.spacedBy(8.dp),
-) {
-  items(chips, key = { it.id }) { chip ->
-    Chip(
-      chip = chip,
-      modifier = Modifier.hazeGlass(
-        input = HazeInput.Sources(hazeState),
-        style = style,
-      ),
-    )
-  }
-}
-```
-
-Drags, flings, `animateScrollBy` and `scrollToItem` are scrolls. Position changes made outside a
-scroll, such as `requestScrollToItem` or `dispatchRawDelta`, are not, so their items animate.
-
-Without `scrollState`, the container treats a scrolled-in item like any member that attaches after
-its first draw. With the default `MatchedGeometry`, the item's glass grows out of its neighbour
-while it is visible, lagging its content, and an item that scrolls out leaves a ghost until the
-animation ends. Items placed before the container's first draw never animate. A prefetched item
-registers with the container as soon as it is composed, but it has no bounds until it is placed,
-so its transition starts when it is placed.
-
-### Fallback
-
-Without `RuntimeShader` support, or when a cluster exceeds the render budget, each cluster draws
-as one surface clipped to the hard union of the member shapes, with no bridge. Members keep their
-own tint and background colour, and the earlier registered member's colours apply where members
-overlap. Per-member press lights are still drawn. See [Fallbacks](#fallbacks).
-
-### Sample
-
-The `Glass — Container` sample shows a merging toolbar, two draggable members with a spacing
-control, a member added and removed with `AnimatedVisibility`, and a cluster of members with
-different tints. Its source is in
-[`GlassContainerSample.kt`](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerSample.kt).
+Wrap nearby Glass surfaces in the experimental `Modifier.hazeGlassContainer` to merge them into one
+shape, for controls that should read as one object, such as a toolbar or a segmented control. See
+[Glass containers](containers.md) for the merge rule, transitions, lazy layouts and fallbacks.
 
 ## Usage
 
@@ -734,9 +489,6 @@ Box(
 
 ## Tips
 
-- `GlassStyle.regular` is the right starting point for material-like glass that should respond
-  naturally to its shortest dimension. Use direct `optics(...)` for inline fixed authoring and
-  `GlassOptics` when the complete value needs to be reused or selected programmatically.
 - Keep `chromaticAberrationStrength` modest; start at 0.1-0.25 to avoid rainbow artifacts.
 - Combine `edgeSoftness` with rounded shapes for smooth clipping; set `edgeSoftness = 0.dp` to rely purely on the shape.
 - Use `SurfaceProfile.Concave` for an inward-curving bezel or `SurfaceProfile.Lip` for a raised rim effect.
