@@ -48,7 +48,7 @@ cluster draws as a separate surface.
 Members merge only when all of these hold:
 
 - **Same input and rendering options.** Equal `input` (for `HazeInput.Sources`, the same
-  `hazeState`), performance mode and `expandLayerBounds`.
+  `hazeState`, `selection` and `retention`), performance mode and `expandLayerBounds`.
 - **Same material.** Equal optics, surface profile, specular and edge settings, chromatic
   aberration, tone, light position and `alpha`. Regular and Clear surfaces therefore never merge.
   Shape, tint, background color and interaction responses may differ; colors blend across the
