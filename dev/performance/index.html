@@ -620,6 +620,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../effects/glass/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1370,18 +1398,18 @@ based on the problem you can see:</p>
 <span class="w">  </span><span class="n">performanceMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePerformanceMode</span><span class="p">.</span><span class="na">Performance</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>The same <code>performanceMode</code> parameter is available on <code>hazeGlass</code>. Profiles keep the chosen quality
-setting fixed. <code>Performance</code>, <code>Balanced</code>, and <code>Quality</code> correspond to
-<code>Fixed(0f)</code>, <code>Fixed(0.5f)</code>, and <code>Fixed(1f)</code>. The fraction describes quality, not a percentage
-reduction in rendering time.</p>
+<p>The same <code>performanceMode</code> parameter is available on <code>hazeGlass</code>. To set a mode for a whole
+subtree, provide <code>LocalHazePerformanceMode</code>; an explicit <code>performanceMode</code> argument overrides it.</p>
+<p><code>Performance</code>, <code>Balanced</code>, and <code>Quality</code> correspond to <code>Fixed(0f)</code>, <code>Fixed(0.5f)</code>, and
+<code>Fixed(1f)</code>. The fraction describes quality, not a percentage reduction in rendering time.</p>
 <div class="admonition note">
 <p class="admonition-title">Measured quality trade-offs</p>
-<p>In a two-pass Pixel 8a test at 60 Hz with a changing background, Glass <code>Balanced</code> left about
-<strong>8.1 ms</strong> of frame-deadline headroom at P90, compared with <strong>7.0 ms</strong> for <code>Quality</code>. Glass
-<code>Performance</code> used roughly <strong>9% less peak GPU memory</strong> than <code>Quality</code> in both stable and
-changing-background tests, comparing the mean of the two pass-level medians for each mode
-and workload. Each method ran eight iterations in both forward and reverse order. These are
-useful reference points, not guaranteed savings on another screen. See the <a href="../benchmark-results/#performance-mode-calibration">full mode
+<p>In a two-pass test on a Pixel 8a (Android 17, 60 Hz, fixed-performance mode) with a changing
+background, Glass <code>Balanced</code> left about <strong>8.1 ms</strong> of frame-deadline headroom at P90,
+compared with <strong>7.0 ms</strong> for <code>Quality</code>. Glass <code>Performance</code> used roughly <strong>9% less peak GPU
+memory</strong> than <code>Quality</code> in both stable and changing-background tests, comparing the mean of
+the two pass-level medians for each mode and workload. Each method ran eight iterations per
+pass. These are reference points, not guaranteed savings on another screen. See the <a href="../benchmark-results/#performance-mode-calibration">full mode
 comparison</a>.</p>
 </div>
 <p>Keep a fixed override only when repeated measurements and visual checks show a useful benefit.
@@ -1402,34 +1430,34 @@ effect counts your screen actually uses.</p>
 <p>Check an effect's first appearance separately from its ongoing animation: smooth scrolling does
 not rule out a pause when a Glass surface is first created. Include lighting, refraction, and
 transform changes during interaction in your measurements.</p>
-<p>Use a <a href="../effects/glass/#containers">Glass container</a> only where surfaces should merge. A merged
-Glass cluster draws one surface whose layer covers its members and the bridges between them, so
+<p>Use a <a href="../effects/glass/containers/">Glass container</a> only where surfaces should merge. A merged
+cluster draws one larger surface that covers its members and the bridges between them, so
 measure clustered screens against independent surfaces before adopting them. A container also
 shares one optical size, so one large member changes the diffusion of the small members next to
 it.</p>
-<p>On a Pixel 8a at 60 Hz, merging two nearby Regular Glass surfaces into one cluster over a
-changing source left about 4.5 ms less frame deadline margin at P90 and used about 7% more peak
-GPU memory than drawing them independently, even though its CPU frame duration P90 was 0.35 ms
-lower (<a href="../benchmark-results/#glass-containers">conditions and limits</a>).</p>
+<p>In a two-pass test on a Pixel 8a (Android 17, 60 Hz, fixed-performance mode), merging two nearby
+Regular Glass surfaces into one cluster over a changing source left about 4.5 ms less frame
+deadline margin at P90 and used about 7% more peak GPU memory than drawing them independently,
+even though its CPU frame duration P90 was 0.35 ms lower
+(<a href="../benchmark-results/#glass-containers">conditions and limits</a>).</p>
 <p>For styling examples, see the <a href="../effects/glass/">Glass overview</a>.</p>
 <p><a id="backdrop-input"></a></p>
 <h2 id="backdrop-versus-sources">Backdrop versus Sources<a class="headerlink" href="#backdrop-versus-sources" title="Permanent link">¶</a></h2>
-<p><code>HazeInput.Backdrop</code> lets built-in Blur and Glass consume pixels already drawn behind them in the
-current window. Its native Android path can filter those pixels directly, without marking the
-background with <code>hazeSource</code> or capturing a separate source layer.</p>
-<p>The current API still takes a <code>HazeState</code> or <code>HazeInput.Sources</code> for fallback. Keep the
-<code>hazeSource</code> setup if you need the effect to work when native rendering is unavailable, including
-on other platforms or after a native failure. Without captured sources, the fallback has no
-background content to process.</p>
+<p><code>HazeInput.Backdrop</code> lets built-in Blur and Glass use pixels already drawn behind them in the
+current window. On supported Android devices it can filter those pixels directly, without marking
+the background with <code>hazeSource</code>.</p>
+<p>Pass a <code>HazeState</code> or <code>HazeInput.Sources</code> to <code>Backdrop</code> and keep the <code>hazeSource</code> setup if the
+effect must work when native rendering is unavailable, including on other platforms or after a
+native failure. Without captured sources, the fallback has no background content to process.</p>
 <p>Use explicit <code>HazeInput.Sources</code> when you need to select particular captured content. Native
 Backdrop uses the combined earlier pixels in the same window; it cannot include later drawing
 or content from another dialog, popup, or window. See <a href="../core-concepts/#explicit-inputs">Explicit inputs</a>
 for examples.</p>
 <div class="admonition warning">
 <p class="admonition-title">Experimental native Backdrop</p>
-<p>Native rendering requires a supported, hardware-accelerated Android 37.2 window and is
-disabled by default. Set <code>HazeFeatureFlags.isPlatformBackdropEnabled = true</code> before attaching
-the effect node to make it eligible. Unsupported configurations use source fallback.
+<p>Native rendering requires a hardware-accelerated window on Android 37.2 or later and
+is disabled by default. Set <code>HazeFeatureFlags.isPlatformBackdropEnabled = true</code> before the
+effect is first composed to make it eligible. Unsupported configurations use source fallback.
 See <a href="../core-concepts/#android-window-backdrops">Android window backdrops</a>.</p>
 </div>
 <p>Compare native Backdrop with Sources before enabling it for performance reasons. Sources can
@@ -1437,10 +1465,10 @@ reuse processed output when their input is stable; native Backdrop filters windo
 when the effect draws.</p>
 <div class="admonition note">
 <p class="admonition-title">Measured Backdrop cost</p>
-<p>On a Pixel 8a at 60 Hz, native Backdrop had <strong>23–46% higher CPU frame P90</strong> than Sources in
-the tested single-surface Glass workloads. Those figures are based on two passes in opposite
-orders at <code>Quality</code>, with eight iterations per method per pass. Native rendering can simplify source
-capture, but these tests did not show a CPU performance benefit for Glass.
+<p>On a Pixel 8a (Android 17, 60 Hz), native Backdrop had <strong>23–46% higher CPU frame P90</strong> than
+Sources in the tested single-surface Glass workloads. Those figures are based on two passes in
+opposite orders at <code>Quality</code>, with eight iterations per method per pass. Native rendering can
+simplify setup, but these tests did not show a CPU performance benefit for Glass.
 See the <a href="../benchmark-results/#native-android-backdrop">full Backdrop comparison</a>.</p>
 </div>
 <p><a id="performance-measurements"></a></p>

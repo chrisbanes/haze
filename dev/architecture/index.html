@@ -347,10 +347,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#explicit-input-and-policies" class="md-nav__link">
+  <a href="#inputs-and-policies" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Explicit input and policies
+        Inputs and policies
       
     </span>
   </a>
@@ -358,21 +358,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#semantic-renderer-scopes" class="md-nav__link">
+  <a href="#renderer-scopes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Semantic renderer scopes
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#internal-node-responsibilities" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Internal node responsibilities
+        Renderer scopes
       
     </span>
   </a>
@@ -413,10 +402,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#extension-boundary" class="md-nav__link">
+  <a href="#extension-points" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Extension boundary
+        Extension points
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design decisions
       
     </span>
   </a>
@@ -742,6 +742,34 @@
     
   
     Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../effects/glass/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
   
 
     
@@ -1209,10 +1237,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#explicit-input-and-policies" class="md-nav__link">
+  <a href="#inputs-and-policies" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Explicit input and policies
+        Inputs and policies
       
     </span>
   </a>
@@ -1220,21 +1248,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#semantic-renderer-scopes" class="md-nav__link">
+  <a href="#renderer-scopes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Semantic renderer scopes
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#internal-node-responsibilities" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Internal node responsibilities
+        Renderer scopes
       
     </span>
   </a>
@@ -1275,10 +1292,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#extension-boundary" class="md-nav__link">
+  <a href="#extension-points" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Extension boundary
+        Extension points
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design decisions
       
     </span>
   </a>
@@ -1306,9 +1334,9 @@
 
 
 <div><h1 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">¶</a></h1>
-<p>Haze separates shareable effect configuration from modifier-node rendering state.</p>
+<p>Haze keeps effect configuration (a Style) separate from the per-modifier state that renders it.</p>
 <h2 id="core-model">Core model<a class="headerlink" href="#core-model" title="Permanent link">¶</a></h2>
-<p>The supported custom-effect path has three parts:</p>
+<p>Every typed effect has three parts:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nc">HazeEffectFactory</span><span class="o">&lt;</span><span class="n">Style</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">createRenderer</span><span class="p">():</span><span class="w"> </span><span class="n">HazeEffectRenderer</span><span class="o">&lt;</span><span class="n">Style</span><span class="o">&gt;</span>
 <span class="p">}</span>
@@ -1321,14 +1349,14 @@
 <span class="p">}</span>
 </code></pre></div>
 <ul>
-<li>A Style is the complete immutable effect configuration.</li>
-<li>A factory is a stateless descriptor that can be shared by concurrent modifiers.</li>
-<li>A renderer owns mutable rendering state and resources for exactly one modifier node.</li>
+<li>A Style is the complete, immutable effect configuration.</li>
+<li>A factory is a stateless descriptor that many modifiers can share.</li>
+<li>A renderer owns the mutable state and resources for exactly one modifier.</li>
 </ul>
-<p>Factory identity controls renderer ownership. Style, input, sampling, and layer-expansion updates
-reuse the current renderer. Replacing the factory or detaching the node disposes that renderer.</p>
-<h2 id="explicit-input-and-policies">Explicit input and policies<a class="headerlink" href="#explicit-input-and-policies" title="Permanent link">¶</a></h2>
-<p>The typed modifier makes structural behavior explicit:</p>
+<p>Changing the Style, input, sampling, or layer expansion keeps the current renderer. Replacing the
+factory, or removing the modifier, disposes it.</p>
+<h2 id="inputs-and-policies">Inputs and policies<a class="headerlink" href="#inputs-and-policies" title="Permanent link">¶</a></h2>
+<p>Structural choices are explicit modifier arguments rather than part of the Style:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span>
 <span class="w">    </span><span class="n">factory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">customEffect</span><span class="p">,</span>
 <span class="w">    </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
@@ -1337,87 +1365,54 @@ reuse the current renderer. Replacing the factory or detaching the node disposes
 <span class="w">    </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p><code>HazeInput.Backdrop(state)</code> is the normal built-in input for the intent to consume all pixels drawn
-earlier in the current window. Its <code>fallback</code> source input configures only the source-capture
-fallback. <code>HazeInput.Sources</code> selects content captured by <code>hazeSource</code>,
-while <code>HazeInput.Content</code> selects the modifier's own content. Backdrop input is not a
-source-selection mode: it cannot select individual sources, include later drawing, or cross a
-window boundary. Source selection, retained-output privacy, sampling, and layer expansion remain
-core policies rather than effect-specific mutable configuration.</p>
-<h2 id="semantic-renderer-scopes">Semantic renderer scopes<a class="headerlink" href="#semantic-renderer-scopes" title="Permanent link">¶</a></h2>
-<p>The draw scope exposes ordinary <code>DrawScope</code> operations, the modifier bounds in the effect layer,
-the selected sampling policy, tracked composition-local access, and one <code>drawInput()</code> operation for
-both input modes.</p>
-<p>The layout scope exposes density, modifier bounds, and tracked composition-local access. A renderer
-can request larger bounds without seeing the modifier node, source geometry, coordinates, windows,
-or captured layers.</p>
-<p>Reads are observed in the phase where they occur:</p>
 <ul>
-<li>snapshot or composition-local reads in draw invalidate drawing;</li>
-<li>reads while calculating layer bounds recalculate bounds and then redraw;</li>
-<li>Style replacement invalidates both phases without replacing the renderer.</li>
+<li><code>HazeInput.Backdrop(state)</code> is the normal input for built-in Blur and Glass. It consumes pixels
+  drawn earlier in the current window, and its <code>fallback</code> configures the source capture used
+  when the native backdrop isn't available. It can't select individual sources, include later
+  drawing, or cross a window boundary.</li>
+<li><code>HazeInput.Sources</code> consumes content captured by <code>hazeSource</code>, with explicit selection and
+  retention.</li>
+<li><code>HazeInput.Content</code> consumes the modifier's own content.</li>
 </ul>
-<h2 id="internal-node-responsibilities">Internal node responsibilities<a class="headerlink" href="#internal-node-responsibilities" title="Permanent link">¶</a></h2>
-<p><code>HazeEffectNode</code> remains responsible for:</p>
+<p>See <a href="../core-concepts/#explicit-inputs">Core concepts</a> for how to choose.</p>
+<h2 id="renderer-scopes">Renderer scopes<a class="headerlink" href="#renderer-scopes" title="Permanent link">¶</a></h2>
+<p>The draw scope is a <code>DrawScope</code> that adds the modifier bounds, the selected sampling policy,
+composition-local access, and a single <code>drawInput()</code> call that works for every input.</p>
+<p>The layout scope gives density, modifier bounds, and composition-local access, so a renderer can
+request larger layer bounds.</p>
+<p>Reads are tracked in the phase where they happen:</p>
 <ul>
-<li>source selection and z-ordering;</li>
-<li>own-content capture;</li>
-<li>coordinate-space and cross-window handling;</li>
-<li>graphics-layer allocation and release;</li>
-<li>trim-memory forwarding;</li>
-<li>renderer replacement and disposal;</li>
-<li>draw and bounds invalidation.</li>
+<li>state or composition-local reads while drawing redraw the effect when they change;</li>
+<li>reads while calculating layer bounds recalculate the bounds, then redraw;</li>
+<li>a new Style updates both without replacing the renderer.</li>
 </ul>
-<p>For Backdrop input, core also snapshots <code>HazeFeatureFlags.isPlatformBackdropEnabled</code> when the
-modifier node attaches, then owns the native/fallback decision, full Android minor-SDK and
-hardware-canvas gate, backdrop geometry and clipping, draw ordering, and dormant fallback capture
-demand. The flag makes native rendering eligible; it does not guarantee it. A native failure
-becomes sticky source fallback after at most one transition frame. <code>HazeLogger.enabled</code> exposes
-selection and fallback messages, and native work is marked by the <code>HazeBackdrop.draw</code> trace
-section. Blur and Glass own their platform root-effect graphs; no backend or platform effect is
-public. <a href="../adr/0010-adopt-backdrop-as-the-adaptive-haze-input/">ADR-0010</a> records this exception
-to the ordinary source-capture path.</p>
-<p>Those details are intentionally absent from the public typed renderer scopes.</p>
+<p>Source geometry, windows, and captured layers aren't exposed to renderers; Haze handles source
+selection, ordering, and cross-window alignment for you.</p>
 <h2 id="built-in-blur">Built-in Blur<a class="headerlink" href="#built-in-blur" title="Permanent link">¶</a></h2>
-<p>Blur uses the same typed node lifecycle plus narrow <code>@InternalHazeApi</code> capabilities for lifecycle,
-retained output, and semantic input drawing. Source geometry, captured layers, modifier nodes,
-delegates, and caches remain owned by their implementation modules.</p>
-<p><code>HazeBlurStyle</code> and the shared Blur factory are stateless. Each modifier node creates one
-<code>BlurVisualEffect</code> runtime that owns its resolved snapshot, invalidation state, performance-mode
-resolution, delegate, retained output, render-effect cache, and platform resources. Style replacement
-replays defaults, the current composition-local Style, and the explicit Style into a fresh snapshot
-on that same runtime.</p>
+<p><code>hazeBlur</code> takes a <code>HazeBlurStyle</code>. Styles and the Blur factory are stateless, so you can share a
+Style between modifiers. Each modifier resolves <code>HazeBlurDefaults.style</code>, <code>LocalHazeBlurStyle</code>, and
+the explicit Style, in that order, whenever the Style changes.</p>
 <h2 id="built-in-glass">Built-in Glass<a class="headerlink" href="#built-in-glass" title="Permanent link">¶</a></h2>
-<p>Glass exposes only the typed <code>hazeGlass</code> modifier, <code>GlassStyle</code>, and structural modifier
-arguments. The shared factory is stateless. Each modifier creates one internal node-owned runtime
-which evaluates defaults, <code>LocalGlassStyle</code>, and the explicit Style into a fresh snapshot and owns
-its interaction controller, delegate, caches, retained layers, and platform resources. Style blocks
-run inside the node's observed update, so snapshot state read by a block is observed by the node:
-a change resolves the Style again and invalidates draw without recomposition
-(<a href="../adr/0011-evaluate-glass-styles-under-state-observation/">ADR-0011</a>).</p>
-<p>The old public effect, renderer, cache, grouped sentinel values, and <code>glassEffect</code> DSL are removed.
-No renderer or lifecycle object can be shared between Glass nodes.</p>
-<p>On supported Backdrop input, Glass reuses the Android fused effect graph with compositor input and
-keeps only independent rim and interaction-lighting foreground layers. It does not replace the
-source-backed renderer established by
-<a href="../adr/0003-use-one-android-fused-glass-renderer/">ADR-0003</a>.</p>
+<p><code>hazeGlass</code> takes a <code>GlassStyle</code>, resolved from defaults, <code>LocalGlassStyle</code>, and the explicit Style.
+Snapshot state read inside a Style block is observed: when it changes, Glass resolves the Style
+again and redraws without recomposition. Glass renderers are never shared between modifiers.</p>
 <h2 id="modules">Modules<a class="headerlink" href="#modules" title="Permanent link">¶</a></h2>
 <ul>
-<li><strong>haze</strong> — core state, source capture, and typed custom-effect orchestration</li>
-<li><strong>haze-blur</strong> — blur effect implementation</li>
-<li><strong>haze-blur-materials</strong> — reusable blur presets</li>
-<li><strong>haze-blur-material3</strong> — optional Compose Material 3 Blur Style factory</li>
-<li><strong>haze-glass</strong> — Glass effect implementation</li>
-<li><strong>haze-glass-material3</strong> — optional Compose Material 3 Glass Style factory</li>
-<li><strong>haze-utils</strong> — shared platform rendering utilities</li>
+<li><strong>haze</strong>: core state, source capture, and the custom-effect API</li>
+<li><strong>haze-blur</strong>: Blur effect</li>
+<li><strong>haze-blur-materials</strong>: ready-made Blur Styles, such as <code>HazeMaterials.thin()</code></li>
+<li><strong>haze-blur-material3</strong>: optional Compose Material 3 Blur Style factory</li>
+<li><strong>haze-glass</strong>: experimental Glass effect</li>
+<li><strong>haze-glass-material3</strong>: optional Compose Material 3 Glass Style factory</li>
+<li><strong>haze-utils</strong>: shared internal utilities, included transitively; you don't add it yourself</li>
 </ul>
-<p>Effect modules can keep platform-specific renderer internals behind their own <code>expect</code>/<code>actual</code>
-boundaries.</p>
-<h2 id="extension-boundary">Extension boundary<a class="headerlink" href="#extension-boundary" title="Permanent link">¶</a></h2>
-<p>The lambda-based effect API, mutable <code>VisualEffect</code> runtime, direct modifier nodes, source areas,
-coordinates, captured layers, and position strategies are internal or removed. New Blur code uses
-<code>hazeBlur</code>; new Glass code uses <code>hazeGlass</code>; custom effects use <code>HazeEffectFactory</code>.</p>
-<p>See <a href="../custom-effects/">Custom effects</a> for the preferred API.</p></div>
+<h2 id="extension-points">Extension points<a class="headerlink" href="#extension-points" title="Permanent link">¶</a></h2>
+<p>Use <code>hazeBlur</code> for Blur, <code>hazeGlass</code> for Glass, and <code>HazeEffectFactory</code> with <code>hazeEffect</code> for
+custom effects. The older lambda-based effect API, <code>VisualEffect</code>, and the <code>glassEffect</code> DSL have
+been removed. See <a href="../custom-effects/">Custom effects</a>.</p>
+<h2 id="design-decisions">Design decisions<a class="headerlink" href="#design-decisions" title="Permanent link">¶</a></h2>
+<p>The reasoning behind Haze's larger design choices is recorded in its
+<a href="https://github.com/chrisbanes/haze/tree/main/docs/adr">architecture decision records</a>.</p></div>
 
 
 

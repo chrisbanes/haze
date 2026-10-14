@@ -620,6 +620,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../effects/glass/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1219,7 +1247,7 @@
 
 <div><h1 id="recipes">Recipes<a class="headerlink" href="#recipes" title="Permanent link">¶</a></h1>
 <h2 id="scaffold-chrome">Scaffold chrome<a class="headerlink" href="#scaffold-chrome" title="Permanent link">¶</a></h2>
-<p>Place <code>hazeSource</code> on the scrolling content and use the same state for each app bar:</p>
+<p>Place <code>hazeSource</code> on the scrolling content and pass the same state to each bar's effect:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
 
@@ -1255,10 +1283,11 @@
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Pass scaffold padding to the scrollable content rather than applying it outside the source. That
-keeps interactive content clear of chrome while preserving source pixels behind translucent bars.</p>
+<p>Pass the scaffold padding to the scrolling content as <code>contentPadding</code> rather than padding the
+source. Content then scrolls behind the translucent bars while staying reachable.</p>
 <h2 id="sticky-headers">Sticky headers<a class="headerlink" href="#sticky-headers" title="Permanent link">¶</a></h2>
-<p>Avoid making a <code>LazyColumn</code> both a source and a descendant effect. Mark non-header items as sources:</p>
+<p>Don't mark the whole <code>LazyColumn</code> as a source when the header inside it applies the effect. Mark
+the non-header items instead:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
 
@@ -1282,7 +1311,8 @@ keeps interactive content clear of chrome while preserving source pixels behind 
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="privacy-sensitive-source-transitions">Privacy-sensitive source transitions<a class="headerlink" href="#privacy-sensitive-source-transitions" title="Permanent link">¶</a></h2>
-<p>Clear retained Blur output when no source is available:</p>
+<p>By default, an effect can keep showing its last output after its source disappears. To clear it
+instead, for example when the source showed sensitive content:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span>
 <span class="w">    </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
@@ -1305,7 +1335,7 @@ keeps interactive content clear of chrome while preserving source pixels behind 
 <span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span><span class="w"> </span><span class="n">quiet</span><span class="p">),</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>Both modifiers evaluate the shared Style into independent node-owned runtimes.</p></div>
+<p>Styles are immutable, so one Style can be shared by several modifiers.</p></div>
 
 
 

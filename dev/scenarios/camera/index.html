@@ -620,6 +620,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../effects/glass/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1198,11 +1226,11 @@
 
 
 <div><h1 id="camera">Camera<a class="headerlink" href="#camera" title="Permanent link">¶</a></h1>
-<p>Haze can apply Blur and Glass to a live camera preview when the preview pixels are drawn into the
-same Compose graphics layer that contains <code>hazeSource</code>.</p>
-<p>This example intentionally uses <code>HazeInput.Sources</code>: camera and video integrations need explicit
-captured-source semantics, and a platform surface can sit outside the current window's earlier
-Compose pixels. <code>HazeInput.Backdrop</code> cannot cross that surface or window boundary.</p>
+<p>Haze can apply Blur and Glass to a live camera preview when the preview draws into Compose, so
+<code>hazeSource</code> can capture it.</p>
+<p>This example uses <code>HazeInput.Sources</code>, which captures exactly the content marked with
+<code>hazeSource</code>. <code>HazeInput.Backdrop</code> reads only pixels drawn earlier in the same window, so it cannot
+include a preview on a separate surface or window.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 
 <span class="n">Box</span><span class="w"> </span><span class="p">{</span>
@@ -1223,12 +1251,11 @@ Compose pixels. <code>HazeInput.Backdrop</code> cannot cross that surface or win
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>The important part is how <code>CameraPreview</code> renders. A platform interop composable such as
-<code>AndroidView</code> does not, by itself, guarantee that its pixels can be captured.</p>
+<p>What matters is how <code>CameraPreview</code> renders. Wrapping a platform view in <code>AndroidView</code> does not by
+itself make its pixels capturable.</p>
 <h2 id="camerax-on-android">CameraX on Android<a class="headerlink" href="#camerax-on-android" title="Permanent link">¶</a></h2>
-<p>CameraX's <code>PreviewView</code> uses <code>ImplementationMode.PERFORMANCE</code> by default. When possible, that mode
-renders through a <code>SurfaceView</code>. A <code>SurfaceView</code> owns a separate Android surface, so its pixels are
-not present when Haze captures the Compose source layer.</p>
+<p>CameraX's <code>PreviewView</code> uses <code>ImplementationMode.PERFORMANCE</code> by default, which renders through a
+<code>SurfaceView</code> when possible. A <code>SurfaceView</code> draws on its own surface, so Haze cannot capture it.</p>
 <p>Use <code>ImplementationMode.COMPATIBLE</code>, which makes <code>PreviewView</code> use a <code>TextureView</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">cameraController</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="p">(</span><span class="n">context</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">LifecycleCameraController</span><span class="p">(</span><span class="n">context</span><span class="p">).</span><span class="na">apply</span><span class="w"> </span><span class="p">{</span>
@@ -1332,16 +1359,13 @@ shared Haze layout:</p>
 <tr>
 <td>Kamera on iOS</td>
 <td>No</td>
-<td>Its preview uses <code>UIKitViewController</code>, which is outside Haze's captured Compose layer.</td>
+<td>Its preview uses <code>UIKitViewController</code>, which Haze cannot capture.</td>
 </tr>
 </tbody>
 </table>
 <p>The same constraint applies to video players and other platform views. Choose a rendering path that
-draws into the Compose layer—for example, ExoPlayer's <code>TextureView</code> mode—before marking it with
-<code>hazeSource</code>.</p>
-<p>For the iOS equivalent, see <a href="../uikit-interop/">UIKit interop on iOS</a>. UIKit interop placement can
-either leave a cut-out in the Compose Metal canvas or place UIKit above it; neither mode makes
-UIKit pixels available to Haze.</p></div>
+draws into Compose, such as ExoPlayer's <code>TextureView</code> mode, before marking it with <code>hazeSource</code>.</p>
+<p>For iOS, see <a href="../uikit-interop/">UIKit interop on iOS</a>.</p></div>
 
 
 

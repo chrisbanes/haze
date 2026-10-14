@@ -569,10 +569,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#are-the-blur-implementations-the-same-across-different-platforms" class="md-nav__link">
+  <a href="#does-blur-look-the-same-on-every-platform" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Are the blur implementations the same across different platforms?
+        Does Blur look the same on every platform?
       
     </span>
   </a>
@@ -707,6 +707,34 @@
     
   
     Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../effects/glass/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
   
 
     
@@ -1183,10 +1211,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#are-the-blur-implementations-the-same-across-different-platforms" class="md-nav__link">
+  <a href="#does-blur-look-the-same-on-every-platform" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Are the blur implementations the same across different platforms?
+        Does Blur look the same on every platform?
       
     </span>
   </a>
@@ -1238,17 +1266,15 @@
   <h1>FAQs</h1>
 
 <div><h2 id="whats-the-difference-between-this-and-modifierblur">What's the difference between this and Modifier.blur?<a class="headerlink" href="#whats-the-difference-between-this-and-modifierblur" title="Permanent link">¶</a></h2>
-<p>The <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/Modifier#(androidx.compose.ui.Modifier).blur(androidx.compose.ui.unit.Dp,androidx.compose.ui.unit.Dp,androidx.compose.ui.draw.BlurredEdgeTreatment)">Modifier.blur</a> modifier and Haze may sound similar, but what they provide is different.</p>
-<p>Haze primarily provides background blurring, meaning that it will blur content behind, not the content itself. This is typically required to implement glass-like effects. <code>Modifier.blur</code> performs 'foreground blurring' (or content blurring) where the content in the node itself is blurred. Haze can work in this mode too, but it's not the primary goal.</p>
-<p>Other than that, Haze provides a whole bunch of other features which you can read about on the <a href="../usage/">Usage</a> page.</p>
+<p><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/Modifier#(androidx.compose.ui.Modifier).blur(androidx.compose.ui.unit.Dp,androidx.compose.ui.unit.Dp,androidx.compose.ui.draw.BlurredEdgeTreatment)">Modifier.blur</a> blurs a composable's own content. Haze's main use is blurring the content <em>behind</em> a surface, which is what glass-like effects need. Haze can also blur a composable's own content with <code>HazeInput.Content</code>.</p>
+<p>Haze also adds tints, noise, progressive Blur, masks, and more. See the <a href="../usage/">Usage</a> page.</p>
 <h2 id="why-does-my-blur-get-clipped-inside-a-graphics-layer">Why does my Blur get clipped inside a graphics layer?<a class="headerlink" href="#why-does-my-blur-get-clipped-inside-a-graphics-layer" title="Permanent link">¶</a></h2>
-<p>An enclosing caller-owned <code>graphicsLayer</code> can become a separate compositing boundary when it uses
-<code>alpha</code> below one, an explicit offscreen strategy, a color filter, or similar options. Unbounded
-Blur pixels outside that layer's ordinary bounds are then clipped by the caller layer, even though
-Haze has expanded its own effect layer for the Blur radius.</p>
-<p>Use Compose 1.12's <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/LayerOutsets">LayerOutsets</a> on that enclosing layer, with only the edges that
-need the extra raster space. For a Blur that may overflow equally on every edge, match each outset
-to the configured Blur radius:</p>
+<p>An enclosing <code>graphicsLayer</code> that uses <code>alpha</code> below one, an offscreen compositing strategy, a
+color filter, or similar options clips its content to its bounds. Blur that spreads past those
+bounds is cut off.</p>
+<p>Use Compose 1.12's <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/LayerOutsets">LayerOutsets</a> on that enclosing layer, on the edges that need
+the extra space. For Blur that can spread equally on every edge, match each outset to the Blur
+radius:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">32.</span><span class="n">dp</span>
 
 <span class="n">Box</span><span class="p">(</span>
@@ -1265,24 +1291,20 @@ to the configured Blur radius:</p>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>This only expands the caller layer's visual raster bounds. It does not change Haze's capture or
-sampling geometry. An explicit caller clip remains authoritative, so outsets cannot make Blur draw
-outside geometry that you deliberately clip.</p>
-<h2 id="are-the-blur-implementations-the-same-across-different-platforms">Are the blur implementations the same across different platforms?<a class="headerlink" href="#are-the-blur-implementations-the-same-across-different-platforms" title="Permanent link">¶</a></h2>
-<p>The short answer to this is yes. The majority of the implementation is the same across all platforms.</p>
-<p>The only differences are in how the blur effect is implemented, especially on Android.</p>
-<p>For most platforms we can use on <a href="https://developer.android.com/reference/android/graphics/RenderEffect">RenderEffects</a> to implement the blurring, but the implementations used are platform specific. All of the platforms implement them in a very similar, its just the platform classes being used which are different.</p>
+<p>Outsets only enlarge the area the layer can draw into; they don't change what Haze blurs. An
+explicit clip still applies.</p>
+<h2 id="does-blur-look-the-same-on-every-platform">Does Blur look the same on every platform?<a class="headerlink" href="#does-blur-look-the-same-on-every-platform" title="Permanent link">¶</a></h2>
+<p>Yes, with the same API on every platform. The exceptions are on older Android versions: Android 12
+and 12L approximate some progressive Blur, and Android 11 and below draw a scrim unless you enable
+Blur. See <a href="../platforms/">Platforms</a>.</p>
 <h2 id="what-versions-of-android-does-haze-work-on">What versions of Android does Haze work on?<a class="headerlink" href="#what-versions-of-android-does-haze-work-on" title="Permanent link">¶</a></h2>
-<p>See the <a href="../platforms/">Platforms</a> page for a detailed run down of what is supported on various platforms.</p>
+<p>See the <a href="../platforms/">Platforms</a> page.</p>
 <h2 id="when-should-i-use-backdrop-instead-of-sources">When should I use Backdrop instead of Sources?<a class="headerlink" href="#when-should-i-use-backdrop-instead-of-sources" title="Permanent link">¶</a></h2>
-<p>Use <code>HazeInput.Backdrop(hazeState)</code> for ordinary built-in Blur when the intent is to consume all
-pixels drawn earlier in the same window. It has source capture as a portable fallback. Use
-<code>HazeInput.Sources(hazeState)</code> when you need exact source selection, cross-window alignment, or a
-retained-output policy that governs the actual input. Backdrop's fallback options do not filter
-native window pixels.
-The native path is currently experimental, disabled by default, and only eligible after the flag is
-set before attachment; eligibility is not a guarantee. See the <a href="../usage/">Blur usage</a> guide for
-fallback and diagnostic details.</p></div>
+<p>Use <code>HazeInput.Backdrop(hazeState)</code> for most Blur: it blurs whatever was drawn earlier in the same
+window. Use <code>HazeInput.Sources(hazeState)</code> when you need to choose exactly which sources are
+blurred, blur content from another window, or control what is shown while sources are
+unavailable. See <a href="../usage/">Blur usage</a> for details, including the experimental native Android
+backdrop.</p></div>
 
 
 

@@ -620,6 +620,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../effects/glass/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1176,9 +1204,8 @@
 
 
 <div><h1 id="uikit-interop-on-ios">UIKit interop on iOS<a class="headerlink" href="#uikit-interop-on-ios" title="Permanent link">¶</a></h1>
-<p>Haze captures pixels that Compose draws into its graphics layer. Content hosted by
-<code>UIKitView</code> or <code>UIKitViewController</code> is rendered by UIKit, so it is not part of that
-captured Compose layer by default.</p>
+<p>Haze captures pixels that Compose draws. Content hosted by <code>UIKitView</code> or <code>UIKitViewController</code>
+is rendered by UIKit, so Haze cannot capture it.</p>
 <h2 id="overlay-placement">Overlay placement<a class="headerlink" href="#overlay-placement" title="Permanent link">¶</a></h2>
 <p><code>UIKitInteropProperties.placedAsOverlay</code> changes where UIKit is composited relative to
 Compose's Metal canvas; it does not make UIKit pixels available to Haze.</p>
@@ -1194,20 +1221,18 @@ Compose's Metal canvas; it does not make UIKit pixels available to Haze.</p>
 <tr>
 <td><code>false</code> (default)</td>
 <td>UIKit stays below the Compose Metal canvas. Compose draws a transparent cut-out where the UIKit view appears.</td>
-<td>The UIKit pixels are outside Haze's captured source.</td>
+<td>Haze cannot capture the UIKit view.</td>
 </tr>
 <tr>
 <td><code>true</code></td>
 <td>UIKit is placed above the Compose Metal canvas.</td>
-<td>The UIKit view covers any overlapping Compose or Haze content; its pixels are still outside Haze's captured source.</td>
+<td>The UIKit view covers overlapping Compose and Haze content. Haze still cannot capture it.</td>
 </tr>
 </tbody>
 </table>
-<p>This follows Compose Multiplatform's <a href="https://kotlinlang.org/docs/multiplatform/whats-new-compose-110.html#overlay-placement-for-interop-views">overlay placement guidance</a>
-and the <a href="https://github.com/JetBrains/compose-multiplatform-core/blob/v1.12.1/compose/ui/ui/src/iosMain/kotlin/androidx/compose/ui/viewinterop/UIKitInteropProperties.ios.kt"><code>UIKitInteropProperties</code> API source</a>.</p>
-<p><code>interactionMode</code> controls touch handling and <code>isNativeAccessibilityEnabled</code> controls
-native accessibility exposure. Both are independent of pixel capture and do not change
-whether Haze can use UIKit content as a source.</p>
+<p>See Compose Multiplatform's <a href="https://kotlinlang.org/docs/multiplatform/whats-new-compose-110.html#overlay-placement-for-interop-views">overlay placement guidance</a>.
+The other <code>UIKitInteropProperties</code>, <code>interactionMode</code> and <code>isNativeAccessibilityEnabled</code>, do not
+affect capture either.</p>
 <h2 id="support">Support<a class="headerlink" href="#support" title="Permanent link">¶</a></h2>
 <table>
 <thead>
@@ -1221,23 +1246,22 @@ whether Haze can use UIKit content as a source.</p>
 <tr>
 <td><code>WKWebView</code> in <code>UIKitView</code></td>
 <td>No</td>
-<td>Use a renderer that draws the visual content into the Compose layer before Haze captures it.</td>
+<td>Use a renderer that draws into Compose.</td>
 </tr>
 <tr>
 <td><code>AVPlayerLayer</code> hosted by <code>UIKitView</code></td>
 <td>No</td>
-<td>Use a video rendering path that draws into the Compose layer before Haze captures it.</td>
+<td>Use a video renderer that draws into Compose.</td>
 </tr>
 <tr>
 <td>Other <code>UIKitView</code> or <code>UIKitViewController</code> content</td>
 <td>No</td>
-<td>Visual content must render into the Compose layer before it can be captured by Haze.</td>
+<td>Render the content in Compose instead.</td>
 </tr>
 </tbody>
 </table>
-<p>Use an iOS UIKit interop view when native composition or interaction is the goal. To blur
-or glass its visual content with Haze, choose a rendering path whose pixels are drawn into
-the same Compose layer as <code>hazeSource</code>.</p></div>
+<p>To apply Blur or Glass over this content, use a rendering path that draws into Compose and mark
+it with <code>hazeSource</code>.</p></div>
 
 
 

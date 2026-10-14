@@ -694,6 +694,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="effects/glass/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1189,9 +1217,9 @@
 
   <h1>Overview</h1>
 
-<div><p>Haze is a library providing visual effects (such as blur) for Compose Multiplatform.</p>
+<div><p>Haze provides Blur and Glass effects for Compose Multiplatform.</p>
 <p><div class="video-container"><video style="width:100%;height:30rem" loop muted autoplay alt="type:video"><source src="media/desktop-small.mp4" type="video/mp4"></source></video></div></p>
-<p>Haze is built with <a href="https://www.jetbrains.com/lp/compose-multiplatform/">Compose Multiplatform</a>, meaning that it supports different platforms:</p>
+<p>It supports every <a href="https://www.jetbrains.com/lp/compose-multiplatform/">Compose Multiplatform</a> platform:</p>
 <table>
 <thead>
 <tr>
@@ -1202,7 +1230,7 @@
 <tbody>
 <tr>
 <td>Android</td>
-<td>✅</td>
+<td>✅ (API 23+)</td>
 </tr>
 <tr>
 <td>Desktop (JVM)</td>
@@ -1214,14 +1242,10 @@
 </tr>
 <tr>
 <td>macOS</td>
-<td>✅</td>
+<td>✅ (Apple silicon)</td>
 </tr>
 <tr>
-<td>Wasm</td>
-<td>✅</td>
-</tr>
-<tr>
-<td>JS/Canvas</td>
+<td>Wasm / JS</td>
 <td>✅</td>
 </tr>
 </tbody>
@@ -1235,19 +1259,20 @@
 <span class="p">}</span>
 
 <span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="c1">// Core library. Usually don't need this...</span>
+<span class="w">    </span><span class="c1">// Core infrastructure</span>
 <span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:&lt;version&gt;"</span><span class="p">)</span>
 
-<span class="w">    </span><span class="c1">// For blur effects:</span>
+<span class="w">    </span><span class="c1">// Blur, plus optional ready-made Blur styles</span>
 <span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur:&lt;version&gt;"</span><span class="p">)</span>
+<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur-materials:&lt;version&gt;"</span><span class="p">)</span>
 
+<span class="w">    </span><span class="c1">// Experimental Glass</span>
+<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-glass:&lt;version&gt;"</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<div class="admonition info">
-<p class="admonition-title">Using Effects</p>
-<p>Haze v2 uses a modular architecture where effects are provided as separate modules. The core <code>haze</code> module provides the infrastructure, while effects like blur are in dedicated modules (e.g., <code>haze-blur</code>). If you want to use blur effects, you need the <code>haze-blur</code> dependency. The core <code>haze</code> module alone provides just the base infrastructure for visual effects.</p>
-<p>See <a href="architecture/">Architecture</a> for more details about the effect system.</p>
-</div>
+<p>Add <code>haze</code> plus only the effect modules you use, and keep every Haze artifact on the same version.
+Glass APIs require opting in to <code>@ExperimentalHazeApi</code>. See <a href="architecture/">Architecture</a> for
+the full module list.</p>
 <h2 id="acknowledgements">Acknowledgements<a class="headerlink" href="#acknowledgements" title="Permanent link">¶</a></h2>
 <p>In previous versions, the Skia-backed implementation (used on iOS and Desktop) was heavily influenced by <a href="https://www.pushing-pixels.org">Kirill Grouchnikov</a>'s explorations on Compose Desktop. He wrote about it in his <a href="https://www.pushing-pixels.org/2022/04/09/shader-based-render-effects-in-compose-desktop-with-skia.html">Shader based render effects in Compose Desktop with Skia</a> blog post.</p>
 <p>The Android implementation was inspired by the techniques documented by <a href="https://twitter.com/chethaase">Chet Haase</a> and <a href="https://twitter.com/nadewad">Nader Jawad</a> in the <a href="https://medium.com/androiddevelopers/rendernode-for-bigger-better-blurs-ced9f108c7e2">RenderNode for Bigger, Better Blurs</a> blog post.</p>

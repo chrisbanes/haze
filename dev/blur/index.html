@@ -735,6 +735,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../effects/glass/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1264,7 +1292,8 @@
 
 
 <div><h1 id="blur-effect">Blur Effect<a class="headerlink" href="#blur-effect" title="Permanent link">¶</a></h1>
-<p>The blur effect creates a glassmorphism-style blur of content in your UI. It's the primary visual effect in Haze and can be applied to both background and foreground content.</p>
+<p>Blur creates a frosted-glass effect over content in your UI. It can blur the content behind a
+surface, or a composable's own content.</p>
 <h2 id="download">Download<a class="headerlink" href="#download" title="Permanent link">¶</a></h2>
 <p><a href="https://search.maven.org/search?q=g:dev.chrisbanes.haze"><img alt="Maven Central" src="https://img.shields.io/maven-central/v/dev.chrisbanes.haze/haze-blur"></a></p>
 <div class="highlight"><pre><span></span><code><span class="n">repositories</span><span class="w"> </span><span class="p">{</span>
@@ -1283,45 +1312,37 @@
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="platform-support">Platform Support<a class="headerlink" href="#platform-support" title="Permanent link">¶</a></h2>
-<p>The blur effect is supported on all platforms with platform-optimized implementations:</p>
+<p>Blur is available on every platform Haze supports:</p>
 <table>
 <thead>
 <tr>
 <th>Platform</th>
-<th>Supported</th>
 <th>Notes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Android</td>
-<td>✅</td>
-<td>API 11+, optimized for API 13+</td>
+<td>Android 6.0 (API 23)+. Blurs by default on Android 12+; a translucent scrim is drawn on Android 11 and below unless you opt in.</td>
 </tr>
 <tr>
 <td>Desktop (JVM)</td>
-<td>✅</td>
-<td>Skia-based shader implementation</td>
+<td>Full support.</td>
 </tr>
 <tr>
-<td>iOS</td>
-<td>✅</td>
-<td>Skia-based shader implementation</td>
+<td>iOS &amp; macOS</td>
+<td>Full support.</td>
 </tr>
 <tr>
-<td>Wasm</td>
-<td>✅</td>
-<td>Custom shader implementation</td>
-</tr>
-<tr>
-<td>JS/Canvas</td>
-<td>✅</td>
-<td>Canvas filter-based</td>
+<td>Web (Wasm, JS)</td>
+<td>Full support.</td>
 </tr>
 </tbody>
 </table>
+<p>See <a href="platforms/">Platforms</a> for details.</p>
 <h2 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Permanent link">¶</a></h2>
-<p>Apply Blur with the typed <code>Modifier.hazeBlur</code> API:</p>
+<p>Mark the content to blur with <code>hazeSource</code>, then apply <code>Modifier.hazeBlur</code> to the surface drawn
+over it:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
 
@@ -1342,24 +1363,25 @@
 <span class="w">    </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>For more detailed usage patterns, see the <a href="usage/">Blur Usage</a> guide.</p>
+<p>See the <a href="usage/">Blur usage</a> guide for more.</p>
 <h2 id="styling">Styling<a class="headerlink" href="#styling" title="Permanent link">¶</a></h2>
-<p>The appearance of the blur effect is controlled through the <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/">HazeBlurStyle</a> class:</p>
+<p><a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/">HazeBlurStyle</a> controls
+how Blur looks:</p>
 <ul>
-<li><strong>Blur Radius</strong>: Controls the strength of the blur</li>
-<li><strong>Tint</strong>: Applies a color overlay for contrast</li>
-<li><strong>Noise</strong>: Adds visual texture</li>
+<li><strong>Blur radius</strong>: the strength of the blur.</li>
+<li><strong>Tint</strong>: a color overlay that improves contrast.</li>
+<li><strong>Noise</strong>: visual texture.</li>
 </ul>
-<p>Opinionated pre-built styles are available in the <a href="materials/">material presets</a> guide. To adapt
-the current Compose Material 3 theme into a Blur Style, see the <a href="material3/">Material 3 integration</a>.</p>
+<p>For ready-made styles, see the <a href="materials/">material presets</a>. To follow the current Material 3
+theme, see the <a href="material3/">Material 3 integration</a>.</p>
 <h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">¶</a></h2>
-<p>Blur can be a resource-intensive effect. See the <a href="../performance/">Performance</a> page for detailed benchmarks and optimization techniques on each platform.</p>
+<p>Blur can be expensive. See <a href="../performance/">Performance</a> for how to measure and tune it.</p>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">¶</a></h2>
 <ul>
-<li><a href="usage/">Blur Usage Guide</a> - Comprehensive usage patterns and features</li>
-<li><a href="materials/">Material presets</a> - Opinionated pre-built Blur Styles</li>
-<li><a href="material3/">Material 3 integration</a> - Adapt a Compose Material 3 theme into a Blur Style</li>
-<li><a href="../performance/">Performance Tips</a> - Optimization techniques</li>
+<li><a href="usage/">Blur usage</a>: inputs, styles, progressive Blur, and masks</li>
+<li><a href="materials/">Material presets</a>: ready-made Blur Styles</li>
+<li><a href="material3/">Material 3 integration</a>: a Blur Style from your Material 3 theme</li>
+<li><a href="../performance/">Performance</a>: measuring and tuning</li>
 </ul></div>
 
 

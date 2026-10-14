@@ -632,6 +632,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../effects/glass/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1087,16 +1115,15 @@
 
 
 <div><h1 id="material-3-integration">Material 3 integration<a class="headerlink" href="#material-3-integration" title="Permanent link">¶</a></h1>
-<p>The <code>haze-blur-material3</code> artifact adapts the current Compose Material 3 theme into a Blur Style.
-It is a theme integration rather than a catalog of opinionated material presets; for those, see
-<a href="../materials/">Blur material presets</a>.</p>
+<p>The <code>haze-blur-material3</code> artifact creates a Blur Style from your current Material 3 theme. For
+ready-made presets, see <a href="../materials/">Blur material presets</a>.</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur-material3:&lt;version&gt;"</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p><code>HazeBlurStyle.Material3()</code> uses <code>MaterialTheme.colorScheme.surface</code> as its default container
-color. Pass <code>containerColor</code> to use a different color. When supplied, its block runs afterward, so
-a one-off Style can override that background without adding an implicit color effect:</p>
+<p><code>HazeBlurStyle.Material3()</code> uses <code>MaterialTheme.colorScheme.surface</code> as the background color. Pass
+<code>containerColor</code> to use a different color. An optional block runs afterwards, so it can override
+any property, including the background:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="p">.</span><span class="na">Material3</span><span class="w"> </span><span class="p">{</span>
@@ -1104,7 +1131,7 @@ a one-off Style can override that background without adding an implicit color ef
 <span class="w">  </span><span class="p">},</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>Use the returned Style with <code>LocalHazeBlurStyle</code> to provide a Material 3 background to a subtree:</p>
+<p>To apply it to every Blur in a subtree, provide it through <code>LocalHazeBlurStyle</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">CompositionLocalProvider</span><span class="p">(</span><span class="n">LocalHazeBlurStyle</span><span class="w"> </span><span class="n">provides</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="p">.</span><span class="na">Material3</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="c1">// Blur modifiers in this subtree inherit the Material 3 surface background.</span>
 <span class="p">}</span>

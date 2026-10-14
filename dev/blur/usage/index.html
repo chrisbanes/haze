@@ -552,23 +552,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Performance mode and layer expansion">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#controlled-calibration-reference" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Controlled calibration reference
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
     </ul>
@@ -761,6 +744,34 @@
     
   
     Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../effects/glass/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
   
 
     
@@ -1302,23 +1313,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Performance mode and layer expansion">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#controlled-calibration-reference" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Controlled calibration reference
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
     </ul>
@@ -1342,37 +1336,36 @@
 
 
 <div><h1 id="blur-usage">Blur usage<a class="headerlink" href="#blur-usage" title="Permanent link">¶</a></h1>
-<p>Blur works with a current-window Backdrop input, exact captured Sources input, or the modifier's
-own Content input. All modes use the typed <code>hazeBlur</code> modifier and the same replayable Style.</p>
+<p><code>Modifier.hazeBlur</code> takes an input, which decides what gets blurred, and a Style, which decides how
+it looks.</p>
 <h2 id="choosing-the-input">Choosing the input<a class="headerlink" href="#choosing-the-input" title="Permanent link">¶</a></h2>
 <table>
 <thead>
 <tr>
 <th>Requirement</th>
 <th>Input</th>
-<th>What it consumes</th>
+<th>What it blurs</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Normal built-in Blur behind content</td>
+<td>Blur whatever is behind a surface</td>
 <td><code>HazeInput.Backdrop(hazeState)</code></td>
-<td>All earlier pixels in the same window, with source capture as fallback.</td>
+<td>Content drawn earlier in the same window, using your <code>hazeSource</code> content where native backdrop rendering isn't used.</td>
 </tr>
 <tr>
-<td>Exact source ownership or selection</td>
+<td>Control exactly which sources are blurred</td>
 <td><code>HazeInput.Sources(hazeState)</code></td>
-<td>Pixels captured by selected <code>hazeSource</code> modifiers.</td>
+<td>Content marked with selected <code>hazeSource</code> modifiers.</td>
 </tr>
 <tr>
 <td>Blur the modifier's own content</td>
 <td><code>HazeInput.Content</code></td>
-<td>Content drawn by the modifier's composable.</td>
+<td>The composable's own content.</td>
 </tr>
 </tbody>
 </table>
-<p>Use <code>Backdrop</code> for the usual built-in Blur case. Its <code>fallback</code> source input applies only if
-source capture is needed; it does not filter the native window backdrop.</p>
+<p>Use <code>Backdrop</code> for most cases.</p>
 <h2 id="source-backed-blur">Source-backed Blur<a class="headerlink" href="#source-backed-blur" title="Permanent link">¶</a></h2>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
@@ -1394,11 +1387,10 @@ source capture is needed; it does not filter the native window backdrop.</p>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p><code>HazeInput.Sources</code> also owns source selection and retained-output behavior. The default
-<code>KeepLastFrame</code> policy avoids an empty flash during source transitions, but retained output is
-not guaranteed to be a frozen copy of the last frame (see
-<a href="../../core-concepts/">Core concepts</a>). Use <code>ClearWhenUnavailable</code> for
-privacy-sensitive content:</p>
+<p><code>HazeInput.Sources</code> also controls which sources are used and what is shown while they are
+unavailable. The default, <code>KeepLastFrame</code>, avoids an empty flash during source transitions, but the
+retained output is not guaranteed to be an exact copy of the last frame (see
+<a href="../../core-concepts/">Core concepts</a>). Use <code>ClearWhenUnavailable</code> for privacy-sensitive content:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span>
 <span class="w">    </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
@@ -1416,8 +1408,9 @@ privacy-sensitive content:</p>
 <span class="p">)</span>
 </code></pre></div>
 <h2 id="android-window-backdrop-blur">Android window-backdrop Blur<a class="headerlink" href="#android-window-backdrop-blur" title="Permanent link">¶</a></h2>
-<p><code>HazeInput.Backdrop</code> is portable, while its native path is an experimental eligibility path. Set
-the process-wide flag before attaching the effect nodes that should observe it:</p>
+<p>On Android 37.2 or later, <code>HazeInput.Backdrop</code> can blur the window backdrop natively. This is
+experimental and off by default. Enable it before the Blur modifiers you want to affect are
+attached:</p>
 <div class="highlight"><pre><span></span><code><span class="n">HazeFeatureFlags</span><span class="p">.</span><span class="na">isPlatformBackdropEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 
 <span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
@@ -1425,25 +1418,21 @@ the process-wide flag before attaching the effect nodes that should observe it:<
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">(),</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>The current default is <code>false</code>. <code>true</code> makes native rendering eligible, not guaranteed: built-in
-effect support, the full Android 37.2 gate, the window and canvas, native setup, and the draw must
-all succeed. This is same-window, previous-pixel ordering—not selected-source capture. It cannot
-see later draw operations or pixels from another dialog, popup, or window. Native sampling stays
-at compositor resolution; <code>HazePerformanceMode</code> does not downsample that input. On older Android
-releases, other platforms, a software canvas, or after native setup/draw failure, the modifier uses
-the configured source fallback. That decision is sticky until detachment and the transition may
-take one frame. Changing the flag affects later attachments only, and healthy native consumers do
-not record fallback source layers.</p>
-<p>Set <code>HazeLogger.enabled = true</code> for selection and fallback messages. The native draw is marked by
-the <code>HazeBackdrop.draw</code> trace section. These diagnostics do not establish a performance result;
-physical Android 37.2 acceptance is still pending. A later release may flip the default, retain a
-temporary <code>false</code> escape hatch, and then remove the experimental flag.</p>
-<p>Use <code>HazeInput.Sources</code> when its exact selection, cross-window, or retention semantics must govern
-the actual input. See
-<a href="../../adr/0010-adopt-backdrop-as-the-adaptive-haze-input/">ADR-0010</a> for the complete boundary.</p>
+<p>Enabling the flag makes native rendering possible, not guaranteed. On other platforms, older
+Android releases, a software canvas, or if native rendering fails, Haze uses your <code>hazeSource</code>
+content instead; switching can take one frame. Changing the flag only affects modifiers attached
+afterwards.</p>
+<p>Native rendering blurs content drawn earlier in the same window. It can't see content drawn later,
+or content in another dialog, popup, or window, and <code>HazePerformanceMode</code> doesn't reduce its
+resolution. Use <code>HazeInput.Sources</code> when you need exact source selection, content from another
+window, or a retention policy.</p>
+<p>Set <code>HazeLogger.enabled = true</code> to log which path is chosen. A later release may enable native
+rendering by default.</p>
 <h2 id="enabling-blur">Enabling Blur<a class="headerlink" href="#enabling-blur" title="Permanent link">¶</a></h2>
-<p>Blur is enabled by default only where Haze considers the platform implementation reliable. To
-override that decision, write <code>blurEnabled</code> in a Style:</p>
+<p>Blur is enabled by default on Android 12 and newer and on all other platforms. On Android 11 and
+below, Haze draws a translucent scrim instead unless you enable Blur (see
+<a href="../platforms/#android-11-and-below">Platforms</a>). To override the default, set <code>blurEnabled</code> in a
+Style:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
@@ -1451,9 +1440,9 @@ override that decision, write <code>blurEnabled</code> in a Style:</p>
 <span class="w">  </span><span class="p">},</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>When Blur is disabled, Haze draws the configured fallback scrim instead.</p>
+<p>When Blur is disabled, Haze draws <code>fallbackColorEffect</code> instead.</p>
 <h2 id="replayable-styles">Replayable Styles<a class="headerlink" href="#replayable-styles" title="Permanent link">¶</a></h2>
-<p><code>HazeBlurStyle</code> is an opaque program of Blur-specific writes:</p>
+<p>A <code>HazeBlurStyle</code> is a list of property writes:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">blurEnabled</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span>
 <span class="w">  </span><span class="n">blurRadius</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">)</span>
@@ -1471,7 +1460,7 @@ override that decision, write <code>blurEnabled</code> in a Style:</p>
 <span class="w">  </span><span class="n">blurredEdgeTreatment</span><span class="p">(</span><span class="n">BlurredEdgeTreatment</span><span class="p">.</span><span class="na">Rectangle</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Style resolution always replays these tiers in order:</p>
+<p>Haze applies Styles in this order:</p>
 <ol>
 <li><code>HazeBlurDefaults.style</code></li>
 <li><code>LocalHazeBlurStyle</code></li>
@@ -1483,10 +1472,10 @@ override that decision, write <code>blurEnabled</code> in a Style:</p>
 <span class="w">  </span><span class="n">noiseFactor</span><span class="p">(</span><span class="m">0f</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>If a replacement Style omits <code>blurRadius</code>, the local or default value becomes visible again. Styles
-are immutable and safe to share; create a replacement Style when the appearance needs to change.</p>
-<p>Caller-owned color-effect lists are snapshotted when the Style is created. An explicit empty list
-clears inherited color effects:</p>
+<p>Properties a Style doesn't write keep their inherited value. Styles are immutable and safe to
+share; create a new Style to change the appearance.</p>
+<p><code>colorEffects</code> copies the list you pass, so later changes to your list have no effect. An empty
+list clears inherited color effects:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">noColorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">colorEffects</span><span class="p">(</span><span class="n">emptyList</span><span class="p">())</span>
 <span class="p">}</span>
@@ -1502,7 +1491,7 @@ clears inherited color effects:</p>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>A mask fades the effect's opacity and is usually cheaper:</p>
+<p>A mask fades the effect's opacity instead, and is usually cheaper:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">maskedStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">mask</span><span class="p">(</span>
 <span class="w">    </span><span class="n">Brush</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span>
@@ -1522,11 +1511,10 @@ complete result, so fully transparent mask regions show no effect:</p>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Where a platform can't vary blur intensity natively, Haze approximates progressive Blur, and
-<code>mask</code> still fades the complete result.</p>
+<p>On Android 12L and below, progressive Blur is approximated (see <a href="../platforms/">Platforms</a>).</p>
 <p><a id="performance-mode"></a></p>
 <h2 id="performance-mode-and-layer-expansion">Performance mode and layer expansion<a class="headerlink" href="#performance-mode-and-layer-expansion" title="Permanent link">¶</a></h2>
-<p>Performance mode and layer expansion are structural modifier policies, not Style properties:</p>
+<p>Performance mode and layer expansion are <code>hazeBlur</code> parameters, not Style properties:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">,</span>
@@ -1534,11 +1522,9 @@ complete result, so fully transparent mask regions show no effect:</p>
 <span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>See the <a href="../../performance/#performance-mode">performance guide</a> for mode selection and
-<a href="../../performance/#blur">Blur guidance</a> for the cost and edge behaviour of layer expansion.</p>
-<h3 id="controlled-calibration-reference">Controlled calibration reference<a class="headerlink" href="#controlled-calibration-reference" title="Permanent link">¶</a></h3>
-<p>The latest controlled Blur measurements are in the
-<a href="../../benchmark-results/#performance-mode-calibration">performance-mode calibration</a>.</p></div>
+<p>See the <a href="../../performance/#performance-mode">performance guide</a> for choosing a mode, and
+<a href="../../performance/#blur">Blur guidance</a> for when to change <code>expandLayerBounds</code>. Measured results
+are in the <a href="../../benchmark-results/#performance-mode-calibration">benchmark results</a>.</p></div>
 
 
 

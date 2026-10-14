@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://chrisbanes.github.io/haze/dev/custom-effects/">
       
       
-        <link rel="prev" href="../effects/glass/">
+        <link rel="prev" href="../effects/glass/containers/">
       
       
         <link rel="next" href="../performance/">
@@ -620,6 +620,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../effects/glass/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -738,10 +766,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#semantic-scopes" class="md-nav__link">
+  <a href="#renderer-scopes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Semantic scopes
+        Renderer scopes
       
     </span>
   </a>
@@ -1220,10 +1248,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#semantic-scopes" class="md-nav__link">
+  <a href="#renderer-scopes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Semantic scopes
+        Renderer scopes
       
     </span>
   </a>
@@ -1262,8 +1290,8 @@
 
 
 <div><h1 id="custom-effects">Custom effects<a class="headerlink" href="#custom-effects" title="Permanent link">¶</a></h1>
-<p>Build custom effects with a shareable <code>HazeEffectFactory&lt;Style&gt;</code> and a renderer owned by each
-<code>hazeEffect</code> modifier node.</p>
+<p>A custom effect is a shareable <code>HazeEffectFactory&lt;Style&gt;</code> that creates one renderer for each
+<code>hazeEffect</code> modifier.</p>
 <h2 id="define-a-complete-style">Define a complete Style<a class="headerlink" href="#define-a-complete-style" title="Permanent link">¶</a></h2>
 <p>Keep effect configuration immutable and free of renderer or platform resources:</p>
 <div class="highlight"><pre><span></span><code><span class="nd">@Immutable</span>
@@ -1272,11 +1300,11 @@
 <span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">alpha</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>Haze passes the complete current Style to every draw and bounds evaluation. Replacing the Style
-updates the existing renderer, so values from an earlier evaluation cannot stick accidentally.</p>
+<p>Haze passes the complete current Style to every draw and bounds calculation, so a renderer never
+sees stale values. Passing a new Style updates the existing renderer.</p>
 <h2 id="create-a-shareable-factory">Create a shareable factory<a class="headerlink" href="#create-a-shareable-factory" title="Permanent link">¶</a></h2>
-<p>A factory is a stateless descriptor. The same instance can be used by concurrent modifiers, but it
-must create an independent renderer for each one:</p>
+<p>A factory is stateless and can be shared by any number of modifiers, but it must create a new
+renderer each time:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">data</span><span class="w"> </span><span class="kd">object</span><span class="w"> </span><span class="nc">SparkEffect</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">HazeEffectFactory</span><span class="o">&lt;</span><span class="n">SparkStyle</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">createRenderer</span><span class="p">():</span><span class="w"> </span><span class="n">HazeEffectRenderer</span><span class="o">&lt;</span><span class="n">SparkStyle</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SparkRenderer</span><span class="p">()</span>
 <span class="p">}</span>
@@ -1301,14 +1329,13 @@ must create an independent renderer for each one:</p>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Mutable caches, shaders, and other disposable resources belong in the renderer. Haze creates one
-renderer per modifier node, reuses it for Style and input-policy updates, and disposes it when the
-factory is replaced or the node detaches.</p>
+<p>Mutable caches, shaders, and other disposable resources belong in the renderer. Haze keeps the
+renderer across Style, input, and sampling changes, and disposes it when the factory is replaced
+or the modifier is removed.</p>
 <h2 id="draw-source-backed-input">Draw source-backed input<a class="headerlink" href="#draw-source-backed-input" title="Permanent link">¶</a></h2>
-<p>Use an explicit <code>HazeInput.Sources</code> when the effect consumes content captured by <code>hazeSource</code>:
-This is deliberate for custom effects: <code>Backdrop</code> is the built-in Blur and Glass input contract,
-and a generic factory does not receive the platform window-backdrop capability. <code>Sources</code> keeps
-the captured-source selection and retention semantics visible at the call site.</p>
+<p>Use <code>HazeInput.Sources</code> when the effect consumes content captured by <code>hazeSource</code>. Custom effects
+don't get the native Android window backdrop, so <code>HazeInput.Backdrop</code> would only ever draw its
+source fallback; <code>Sources</code> makes that explicit:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 
 <span class="n">Box</span><span class="w"> </span><span class="p">{</span>
@@ -1330,16 +1357,14 @@ the captured-source selection and retention semantics visible at the call site.<
 <span class="w">    </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Source selection and retention remain explicit:</p>
+<p>Selection and retention are set on the input:</p>
 <div class="highlight"><pre><span></span><code><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span>
 <span class="w">    </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
-<span class="w">    </span><span class="c1">// `where` receives library-owned HazeSourceMetadata.</span>
 <span class="w">    </span><span class="n">selection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceSelection</span><span class="p">.</span><span class="na">All</span><span class="p">.</span><span class="na">where</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">it</span><span class="p">.</span><span class="na">key</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">"hero"</span><span class="w"> </span><span class="p">},</span>
 <span class="w">    </span><span class="n">retention</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceRetention</span><span class="p">.</span><span class="na">ClearWhenUnavailable</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p><code>drawInput()</code> draws the already-selected source content. It does not expose source areas,
-coordinates, captured layers, windows, or renderer ownership internals.</p>
+<p><code>drawInput()</code> draws the selected source content, already positioned for the effect.</p>
 <h2 id="draw-the-modifiers-own-content">Draw the modifier's own content<a class="headerlink" href="#draw-the-modifiers-own-content" title="Permanent link">¶</a></h2>
 <p>Use <code>HazeInput.Content</code> when the effect consumes the composable carrying the modifier:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
@@ -1353,39 +1378,38 @@ coordinates, captured layers, windows, or renderer ownership internals.</p>
 <span class="p">)</span>
 </code></pre></div>
 <p>The renderer uses the same <code>drawInput()</code> operation for both input modes.</p>
-<h2 id="semantic-scopes">Semantic scopes<a class="headerlink" href="#semantic-scopes" title="Permanent link">¶</a></h2>
+<h2 id="renderer-scopes">Renderer scopes<a class="headerlink" href="#renderer-scopes" title="Permanent link">¶</a></h2>
 <p><code>HazeEffectDrawScope</code> is a <code>DrawScope</code> with:</p>
 <ul>
 <li><code>modifierBounds</code>, expressed in the current effect layer</li>
-<li>the structural <code>HazeSampling</code> value</li>
+<li><code>sampling</code>, the <code>HazeSampling</code> policy passed to the modifier</li>
 <li><code>drawInput()</code> for the selected input</li>
-<li>tracked composition-local access through <code>currentValueOf</code></li>
+<li><code>currentValueOf</code> for composition locals</li>
 </ul>
-<p><code>HazeEffectLayoutScope</code> is a <code>Density</code> with the modifier bounds and tracked composition-local
-access. Return the bounds required by the effect in the same coordinate space. Setting
-<code>expandLayerBounds = false</code> on the modifier skips renderer-requested expansion.</p>
-<p>Snapshot state and composition locals read while drawing invalidate drawing. Values read while
-calculating bounds recalculate the bounds and then redraw.</p>
+<p><code>HazeEffectLayoutScope</code> is a <code>Density</code> with <code>modifierBounds</code> and <code>currentValueOf</code>. Return the
+bounds the effect needs in the same coordinate space. Setting <code>expandLayerBounds = false</code> on the
+modifier ignores any expansion the renderer requests.</p>
+<p>State and composition locals read while drawing trigger a redraw when they change. Values read
+while calculating bounds recalculate the bounds, then redraw.</p>
 <h2 id="ownership-and-lifecycle">Ownership and lifecycle<a class="headerlink" href="#ownership-and-lifecycle" title="Permanent link">¶</a></h2>
 <ul>
 <li>Share the immutable Style and factory freely.</li>
 <li>Never return the same mutable renderer from more than one <code>createRenderer()</code> call.</li>
 <li>Release rebuildable caches in <code>onTrimMemory</code>.</li>
 <li>Release all renderer-owned resources in <code>dispose</code>.</li>
-<li>Keep pointer interaction and retained-output behavior inside your effect module until those
-  capabilities have dedicated public contracts.</li>
+<li>The public API doesn't cover pointer interaction or retained output; implement those inside
+  your effect if you need them.</li>
 </ul>
-<p>On Android and iOS, Haze forwards the platform's native memory-pressure notifications to attached
-effects. Android 14 and later only send <code>TRIM_MEMORY_UI_HIDDEN</code> and <code>TRIM_MEMORY_BACKGROUND</code>, so
-Haze forwards <code>TRIM_MEMORY_BACKGROUND</code> as <code>TrimMemoryLevel.MODERATE</code> there. On Desktop and Web, an
-attached effect receives <code>TrimMemoryLevel.MODERATE</code> whenever its
-composition lifecycle reaches <code>ON_STOP</code>. Discard only resources that can be rebuilt: the next draw
-that needs them must recreate valid output.</p>
-<p>The typed <code>Modifier.hazeEffect</code> overload is the only custom-effect extension seam.
-<code>HazeEffectNode</code>, <code>HazeSourceNode</code>, source areas, coordinates, captured layers, and built-in
-renderer capabilities are implementation details owned by Haze.</p>
-<p>Platform-specific renderer internals can use <code>expect</code>/<code>actual</code> declarations in the effect module.
-The public renderer contract intentionally does not expose platform delegates or captured layers.</p>
+<p><code>onTrimMemory</code> receives memory pressure:</p>
+<ul>
+<li>On Android and iOS, Haze forwards the platform's memory-pressure notifications. Android 14 and
+  later only send <code>TRIM_MEMORY_UI_HIDDEN</code> and <code>TRIM_MEMORY_BACKGROUND</code>, so Haze reports
+  <code>TRIM_MEMORY_BACKGROUND</code> as <code>TrimMemoryLevel.MODERATE</code> there.</li>
+<li>On Desktop, macOS, and Web, an effect receives <code>TrimMemoryLevel.MODERATE</code> when its lifecycle reaches
+  <code>ON_STOP</code>.</li>
+</ul>
+<p>Discard only resources you can rebuild; the next draw that needs them must recreate valid output.</p>
+<p><code>Modifier.hazeEffect</code> with a factory is the only supported way to add a custom effect.</p>
 <p>See
 <a href="https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/CustomVisualEffectSample.kt"><code>CustomVisualEffectSample.kt</code></a>
 for a complete typed example.</p></div>

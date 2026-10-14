@@ -620,6 +620,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../effects/glass/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1002,10 +1030,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#finalized-blur-api" class="md-nav__link">
+  <a href="#other-blur-api-changes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Finalized Blur API
+        Other Blur API changes
       
     </span>
   </a>
@@ -1332,10 +1360,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#finalized-blur-api" class="md-nav__link">
+  <a href="#other-blur-api-changes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Finalized Blur API
+        Other Blur API changes
       
     </span>
   </a>
@@ -1506,8 +1534,9 @@
 
 
 <div><h1 id="migrating-to-haze-20">Migrating to Haze 2.0<a class="headerlink" href="#migrating-to-haze-20" title="Permanent link">¶</a></h1>
-<p>Haze 2.0 separates structural input policy, shareable Style, and node-owned rendering resources.
-The preferred Blur API is now the typed <code>Modifier.hazeBlur</code>.</p>
+<p>Haze 2.0 separates what an effect reads (its input), how it looks (an immutable, shareable Style),
+and per-modifier settings such as performance mode. The preferred Blur API is now the typed
+<code>Modifier.hazeBlur</code>.</p>
 <h2 id="dependencies-and-imports">Dependencies and imports<a class="headerlink" href="#dependencies-and-imports" title="Permanent link">¶</a></h2>
 <p>Blur lives in <code>haze-blur</code>, with optional presets in <code>haze-blur-materials</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
@@ -1558,23 +1587,18 @@ The preferred Blur API is now the typed <code>Modifier.hazeBlur</code>.</p>
 <p>Resolution is defaults, then <code>LocalHazeBlurStyle</code>, then the explicit modifier Style. The last write
 wins. Replacing <code>compact</code> with <code>base</code> removes the 12 dp write immediately; no previous resolved
 value is retained.</p>
-<p>An explicit <code>colorEffects(emptyList())</code> clears inherited effects. Caller-owned lists are
-snapshotted before replay.</p>
-<h3 id="finalized-blur-api">Finalized Blur API<a class="headerlink" href="#finalized-blur-api" title="Permanent link">¶</a></h3>
-<p>The temporary prerelease adapters are removed in beta01. Replace both former
-<code>HazeBlurStyle(...)</code> construction forms, <code>HazeBlurStyle.Unspecified</code>, and the
-<code>HazeBlurDefaults.style(...)</code> builder with a replayable <code>HazeBlurStyle { ... }</code> program. Start
-from <code>HazeBlurDefaults.style.then { ... }</code> when extending the defaults.</p>
-<p><code>HazeColorEffect</code> is now opaque. Create an effect only with <code>HazeColorEffect.tint(...)</code> or
-<code>HazeColorEffect.colorFilter(...)</code>; its concrete implementations, sentinel, <code>isSpecified</code>,
-<code>DefaultBlendMode</code>, <code>copy</code>, and destructuring APIs are not public. <code>Color.Unspecified</code> is rejected
-by the color tint factory. Use <code>fallbackColorEffect(null)</code> to explicitly clear an inherited
-fallback effect; <code>null</code> is the only fallback-absence value.</p>
-<p><code>HazeBlurDefaults.tintAlpha</code>, <code>HazeBlurDefaults.tint(...)</code>, and the deprecated
-<code>HazeBlurDefaults.style(...)</code> builder are removed. The supported default-enable query is
+<p>An explicit <code>colorEffects(emptyList())</code> clears inherited effects. Haze copies lists you pass, so
+changing a list afterwards does not affect the Style.</p>
+<h3 id="other-blur-api-changes">Other Blur API changes<a class="headerlink" href="#other-blur-api-changes" title="Permanent link">¶</a></h3>
+<p>Build every Blur Style with <code>HazeBlurStyle { ... }</code>, and extend the defaults with
+<code>HazeBlurDefaults.style.then { ... }</code>. The <code>HazeStyle(...)</code> constructor, <code>HazeStyle.Unspecified</code>,
+and the <code>HazeDefaults.style(...)</code> builder have no direct replacement.</p>
+<p>Create color effects with <code>HazeColorEffect.tint(...)</code> or <code>HazeColorEffect.colorFilter(...)</code>. The
+former <code>HazeTint</code> constructors and <code>HazeTint.Unspecified</code> are gone, and the tint factory rejects
+<code>Color.Unspecified</code>. Write <code>fallbackColorEffect(null)</code> to clear an inherited fallback effect.</p>
+<p><code>HazeDefaults.tintAlpha</code> and <code>HazeDefaults.tint(...)</code> are removed; write the tint you want into the
+Style. To check whether Blur is enabled by default on the current platform, call
 <code>HazeBlurDefaults.isBlurEnabledByDefault()</code>.</p>
-<p>The former Blur-package <code>HazeProgressive</code> typealias is also removed. Import
-<code>dev.chrisbanes.haze.HazeProgressive</code> directly.</p>
 <h2 id="migrate-material-presets">Migrate material presets<a class="headerlink" href="#migrate-material-presets" title="Permanent link">¶</a></h2>
 <p>Before:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -1639,20 +1663,19 @@ portable fallback, pass a <code>HazeInput.Sources</code> value to <code>Backdrop
 <span class="p">)</span>
 </code></pre></div>
 <p>The native Backdrop path is experimental and disabled by default. Set
-<code>HazeFeatureFlags.isPlatformBackdropEnabled = true</code> before the relevant effect nodes attach. The
-flag makes native rendering eligible rather than guaranteed, and changing it affects later
-attachments only. Unsupported platforms, incompatible effects, software canvases, native setup,
-or draw failures use sticky source fallback until detachment. Enable <code>HazeLogger.enabled</code> for
-selection/fallback messages and inspect the <code>HazeBackdrop.draw</code> trace section when diagnosing a
-native draw. No performance result is implied; physical Android 37.2 acceptance remains pending.
-Later releases may enable the default, retain a temporary <code>false</code> escape hatch, and then remove
-the flag.</p>
+<code>HazeFeatureFlags.isPlatformBackdropEnabled = true</code> before the effects are first composed. The flag
+makes native rendering eligible rather than guaranteed, and changing it affects only effects
+composed afterwards. Unsupported platforms and effects, software rendering, and native failures
+use the source fallback for as long as the effect stays composed. Set <code>HazeLogger.enabled = true</code>
+to log which path was chosen. Native Backdrop has not shown a CPU benefit for Glass in Haze's
+benchmarks; see the <a href="../performance/#backdrop-input">performance guide</a> before enabling it.</p>
 <p><code>HazePerformanceMode.Default</code> selects the fixed <code>Balanced</code> profile for built-in Blur and Glass.
 <code>Adaptive</code> remains deprecated for binary compatibility and behaves the same as <code>Default</code>; replace
 it with <code>Default</code>. Use <code>Quality</code> or <code>Performance</code> for their named profiles, or
-<code>Fixed(qualityFraction)</code> for an explicit quality level from <code>0f</code> (lowest) to <code>1f</code> (highest). <code>Quality</code> replaces the previous
-built-in full-resolution choice. Previous fixed input-pixel fractions are not equivalent to the
-same <code>qualityFraction</code> value; compare appearance and performance before choosing a replacement.
+<code>Fixed(qualityFraction)</code> for an explicit quality level from <code>0f</code> (lowest) to <code>1f</code> (highest).
+<code>Quality</code> replaces the previous built-in full-resolution choice. Previous fixed input-pixel
+fractions are not equivalent to the same <code>qualityFraction</code> value; compare appearance and
+performance before choosing a replacement.
 <code>HazeSampling</code> remains the generic policy used by custom effects.</p>
 <h2 id="lifecycle-and-sharing">Lifecycle and sharing<a class="headerlink" href="#lifecycle-and-sharing" title="Permanent link">¶</a></h2>
 <p>Styles are immutable and safe to share. Supply a replacement Style through recomposition when the
@@ -1667,7 +1690,7 @@ Use <code>then</code> to build variations from a shared base Style.</p>
 Style variants, and secondary fallback Styles. Haze selects the available implementation and
 gracefully simplifies unsupported optics.</p>
 <p>Invalid Glass values now fail instead of being corrected later: a <code>GlassOptics</code> value when it is
-created, and a <code>GlassStyle</code> write when the Style's block runs as a node resolves it. Only animatable
+created, and a <code>GlassStyle</code> write when the Style is applied to an effect. Only animatable
 overshoot is coerced: alpha and tint alpha are clamped into <code>0f..1f</code>, and negative corner radii are
 treated as zero. Validate or clamp other external values before writing them in the Style. See the
 generated API reference for property-specific ranges.</p>
@@ -1733,7 +1756,7 @@ generated API reference for property-specific ranges.</p>
 </tr>
 <tr>
 <td>effect-owned interaction source, transform target/pivot, and reduced-motion policy</td>
-<td>explicit <code>Modifier.hazeGlass</code> arguments owned by each node</td>
+<td>explicit <code>Modifier.hazeGlass</code> arguments set on each modifier</td>
 </tr>
 <tr>
 <td>implicit source/content</td>
@@ -1804,9 +1827,8 @@ selected input with <code>drawInput()</code>.</p>
 <h2 id="removed-compatibility-apis">Removed compatibility APIs<a class="headerlink" href="#removed-compatibility-apis" title="Permanent link">¶</a></h2>
 <p><code>VisualEffect</code>, <code>VisualEffectContext</code>, <code>HazeEffectScope</code>, <code>BlurVisualEffect</code>,
 <code>HazeEffectScope.blurEffect</code>, and the lambda-based <code>hazeEffect</code> overloads are removed. Readable
-<code>HazeBlurStyle</code> properties, <code>copy</code>, destructuring, and mutable runtime interfaces remain removed.
-The prerelease Blur construction shims and aliases are now removed; use replayable Style blocks
-and <code>then</code>.</p>
+<code>HazeBlurStyle</code> properties, <code>copy</code>, destructuring, and mutable runtime interfaces are not
+available; use Style blocks and <code>then</code>.</p>
 <h2 id="complete-api-mapping">Complete API mapping<a class="headerlink" href="#complete-api-mapping" title="Permanent link">¶</a></h2>
 <table>
 <thead>
@@ -1940,7 +1962,7 @@ and <code>then</code>.</p>
 <tr>
 <td><code>HazeEffectFactoryVisualEffect</code>, <code>HazeEffectVisualEffectFactory</code></td>
 <td>Removed</td>
-<td>Built-ins use capability-specific <code>@InternalHazeApi</code> renderer hooks; there is no third-party full-runtime replacement.</td>
+<td>There is no public replacement. Use <code>HazeEffectFactory</code> for custom effects.</td>
 </tr>
 <tr>
 <td><code>HazeArea</code>, <code>HazeCoordinates</code>, <code>HazeSourceNode</code>, <code>HazeEffectNode</code></td>
@@ -1975,7 +1997,7 @@ and <code>then</code>.</p>
 <tr>
 <td><code>VisualEffect</code>, <code>VisualEffectContext</code>, <code>InteractiveVisualEffect</code>, <code>RetainedOutputVisualEffect</code>, <code>VisualEffectRendererFactory</code>, <code>VisualEffectTransform</code></td>
 <td><code>HazeEffectFactory</code> and <code>HazeEffectRenderer</code></td>
-<td>Renderer lifecycle and input are opaque and node-owned.</td>
+<td>Haze manages the renderer lifecycle and input.</td>
 </tr>
 <tr>
 <td><code>HazeState.positionStrategy</code>, <code>rememberHazeState(positionStrategy)</code></td>
@@ -2013,14 +2035,14 @@ and <code>then</code>.</p>
 <td>Choose <code>Quality</code> for full resolution or a downsampled <code>Balanced</code>/<code>Performance</code> profile.</td>
 </tr>
 <tr>
-<td><code>HazeColorEffect.Unspecified</code> or a concrete <code>HazeColorEffect</code> constructor</td>
+<td><code>HazeTint.Unspecified</code> or a <code>HazeTint</code> constructor</td>
 <td><code>HazeColorEffect.tint(...)</code> or <code>HazeColorEffect.colorFilter(...)</code></td>
 <td>Effects are factory-only; use <code>fallbackColorEffect(null)</code> to clear a fallback.</td>
 </tr>
 <tr>
-<td><code>HazeBlurDefaults.blurEnabled()</code></td>
+<td><code>HazeDefaults.blurEnabled()</code></td>
 <td><code>HazeBlurDefaults.isBlurEnabledByDefault()</code></td>
-<td>This remains the platform-aware default-enable query.</td>
+<td>The platform-aware default-enable query.</td>
 </tr>
 <tr>
 <td><code>Poko</code></td>
@@ -2072,8 +2094,8 @@ and <code>then</code>.</p>
    selection, and layer expansion to <code>HazeSourceRetention</code>, <code>HazeSourceSelection</code>, and
    <code>expandLayerBounds</code>.</li>
 <li>Remove <code>blurEnabled</code> from <code>rememberHazeState</code>; write it in the Style for each effect instead.</li>
-<li>Replace custom <code>VisualEffect</code> implementations with a stateless <code>HazeEffectFactory</code> and one
-   node-owned <code>HazeEffectRenderer</code> per modifier.</li>
+<li>Replace custom <code>VisualEffect</code> implementations with a stateless <code>HazeEffectFactory</code> that
+   creates one <code>HazeEffectRenderer</code> per modifier.</li>
 </ol>
 <p>For example:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">().</span><span class="na">then</span><span class="w"> </span><span class="p">{</span>

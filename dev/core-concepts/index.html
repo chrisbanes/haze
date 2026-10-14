@@ -816,6 +816,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../effects/glass/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1428,7 +1456,8 @@
 
 
 <div><h1 id="core-concepts">Core concepts<a class="headerlink" href="#core-concepts" title="Permanent link">¶</a></h1>
-<p>Haze separates captured input, shareable configuration, and node-owned rendering resources.</p>
+<p>Every Haze effect declares what it consumes (its input), how it looks (its Style), and a few
+structural policies such as performance mode and layer expansion.</p>
 <h2 id="sources">Sources<a class="headerlink" href="#sources" title="Permanent link">¶</a></h2>
 <p><code>HazeState</code> connects one or more <code>hazeSource</code> modifiers to source-backed effects:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
@@ -1442,9 +1471,8 @@
 <p>Sources can have a <code>zIndex</code> and metadata <code>key</code>. <code>HazeSourceSelection.Behind</code> is the default. With
 a nearest ancestor <code>hazeSource</code> using the same state, it selects lower-z sources; without one, it
 selects every source. <code>HazeSourceSelection.All</code> bypasses the ancestor relationship.</p>
-<p>Refine either selection with <code>where</code>. Predicates receive a library-owned <code>HazeSourceMetadata</code>
-with only immutable <code>key</code> and <code>zIndex</code> values, not captured pixels or renderer resources. Repeated
-refinements combine with logical AND:</p>
+<p>Refine either selection with <code>where</code>. The predicate receives each source's <code>key</code> and <code>zIndex</code>.
+Repeated refinements combine with logical AND:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">selection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceSelection</span><span class="p">.</span><span class="na">Behind</span>
 <span class="w">  </span><span class="p">.</span><span class="na">where</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">source</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="na">zIndex</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="m">1f</span><span class="w"> </span><span class="p">}</span>
 <span class="w">  </span><span class="p">.</span><span class="na">where</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">source</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="na">key</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">"sensitive"</span><span class="w"> </span><span class="p">}</span>
@@ -1456,30 +1484,29 @@ refinements combine with logical AND:</p>
 <tr>
 <th>Intent</th>
 <th>Input</th>
-<th>Semantics</th>
+<th>Behavior</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Pixels already behind a built-in effect</td>
+<td>Whatever is already behind a built-in effect</td>
 <td><code>HazeInput.Backdrop(hazeState)</code></td>
-<td>Current-window, earlier-pixel intent with source capture as the portable fallback.</td>
+<td>Pixels drawn earlier in the current window, with source capture as the portable fallback.</td>
 </tr>
 <tr>
-<td>Exact captured Haze sources</td>
+<td>Specific captured Haze sources</td>
 <td><code>HazeInput.Sources(hazeState)</code></td>
-<td>Explicit source selection and retained-output policies.</td>
+<td>Explicit source selection and retention.</td>
 </tr>
 <tr>
 <td>The modifier's own content</td>
 <td><code>HazeInput.Content</code></td>
-<td>Foreground or own-content effect input.</td>
+<td>Foreground or own-content effects.</td>
 </tr>
 </tbody>
 </table>
 <p>Use <code>HazeInput.Backdrop(hazeState)</code> for ordinary built-in Blur and Glass surfaces. Its <code>fallback</code>
-source input configures only the source fallback; it does not select or filter native window
-pixels:</p>
+configures only the source fallback; it doesn't select or filter native window pixels:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span>
 <span class="w">    </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span>
@@ -1489,49 +1516,44 @@ pixels:</p>
 <span class="w">  </span><span class="p">),</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>Source-backed input also declares retention:</p>
-<div class="highlight"><pre><span></span><code><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span>
-<span class="w">  </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
-<span class="w">  </span><span class="n">retention</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceRetention</span><span class="p">.</span><span class="na">ClearWhenUnavailable</span><span class="p">,</span>
-<span class="p">)</span>
-</code></pre></div>
-<p><code>KeepLastFrame</code> smooths temporary source gaps. <code>ClearWhenUnavailable</code> clears retained output as
-soon as no selected source is drawable.</p>
-<p><code>KeepLastFrame</code> does not guarantee frozen pixels. On Android, retained Glass output can redraw
-from live or changed source content after its source is lost. Use <code>ClearWhenUnavailable</code> when
-that is unacceptable.</p>
+<p><code>HazeInput.Sources</code> also takes a <code>retention</code> policy:</p>
+<ul>
+<li><code>KeepLastFrame</code> (the default) keeps drawing the last output through temporary source gaps. It
+  isn't a frozen copy: on Android, retained Glass output can redraw from live or changed source
+  content after its source is lost.</li>
+<li><code>ClearWhenUnavailable</code> clears the output as soon as no selected source is drawable. Use it when
+  stale or deselected content must not stay visible.</li>
+</ul>
 <h3 id="android-window-backdrops">Android window backdrops<a class="headerlink" href="#android-window-backdrops" title="Permanent link">¶</a></h3>
-<p><code>HazeInput.Backdrop</code> is a stable, portable input contract. Its native path is currently eligible
-only when the experimental process flag is enabled, the built-in effect supports it, and the
-modifier is attached to a hardware-accelerated Android 37.2 window. The native renderer filters
-the combined pixels already drawn earlier in the same window surface. It cannot select individual
-Haze sources, include content drawn later, or cross a dialog, popup, or window boundary.</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// Set this before the effect node is attached.</span>
+<p><code>HazeInput.Backdrop</code> works on every platform. On Android it can also use a native window
+backdrop, which is eligible only when the experimental flag is enabled, the built-in effect
+supports it, and the modifier is attached to a hardware-accelerated window on Android 37.2 or
+later. The native path filters the combined pixels already drawn earlier in the same window. It
+can't select individual Haze sources, include content drawn later, or cross a dialog, popup, or
+window boundary.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Set this before the effect is attached.</span>
 <span class="n">HazeFeatureFlags</span><span class="p">.</span><span class="na">isPlatformBackdropEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 
 <span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>The flag defaults to <code>false</code>, and <code>true</code> means eligible rather than guaranteed. Native backdrop
-sampling uses compositor resolution rather than the effect's source-capture scale. If the platform,
-window, canvas, built-in effect, native setup, or native draw is unavailable, a supplied source
-fallback provides portable rendering for the rest of the attachment. <code>HazeInput.Backdrop()</code> has no
-fallback: if native backdrop is unavailable or fails, its content draws unchanged and creates no
-source-capture demand. The switch may take one frame; a known-bad native path is not retried every
-frame. Once native rendering has started, a frame the effect cannot express natively, such as
-Glass beyond its layer budget, draws its content unchanged instead of switching to the fallback.
-Healthy native-only consumers do not cause their dormant fallback sources to record.
-Changing the flag affects later attachments only.</p>
-<p>For diagnostics, set <code>HazeLogger.enabled = true</code> to see backdrop selection and fallback messages.
-Native work is marked by the <code>HazeBackdrop.draw</code> trace section. No performance claim is implied by
-native eligibility; physical Android 37.2 acceptance remains a separate release gate. Later
-releases may enable the flag by default, retain a temporary <code>false</code> escape hatch, and then remove
-the experimental flag.</p>
-<p>Use <code>HazeInput.Sources</code> directly when exact source selection, cross-window alignment, or a
-retention policy that must govern the actual input rather than only the fallback is required. See
-<a href="../adr/0010-adopt-backdrop-as-the-adaptive-haze-input/">ADR-0010</a> for the input and rollout
-decision.</p>
+<ul>
+<li>The flag defaults to <code>false</code>, is read when the effect attaches, and makes the native path
+  eligible rather than guaranteed.</li>
+<li>Native sampling uses compositor resolution; the effect's performance mode doesn't downscale it.</li>
+<li>If native rendering is unavailable or fails, the source fallback is used for the rest of the
+  attachment. The switch can take one frame.</li>
+<li><code>HazeInput.Backdrop()</code> without a state has no fallback: if native rendering is unavailable, the
+  content draws unchanged.</li>
+<li>Once native rendering has started, a frame the effect can't express natively, such as Glass
+  beyond its layer budget, draws its content unchanged instead of switching to the fallback.</li>
+<li>While native rendering works, fallback sources aren't recorded, so they add no capture cost.</li>
+</ul>
+<p>Set <code>HazeLogger.enabled = true</code> to log backdrop selection and fallback. The flag is
+experimental, and a later release may enable it by default.</p>
+<p>Use <code>HazeInput.Sources</code> directly when you need exact source selection, cross-window alignment, or
+a retention policy that applies to the actual input rather than only the fallback.</p>
 <h2 id="typed-blur">Typed Blur<a class="headerlink" href="#typed-blur" title="Permanent link">¶</a></h2>
 <p>Blur has an ordinary typed modifier:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
@@ -1541,9 +1563,9 @@ decision.</p>
 <span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>Use <code>HazeInput.Content</code> for own-content Blur. The structural input, retention, performance-mode,
-and layer-expansion policies do not live in <code>HazeBlurStyle</code>.</p>
-<p><code>HazeBlurStyle</code> is an opaque replayable program:</p>
+<p>Use <code>HazeInput.Content</code> for own-content Blur. Input, performance mode, and layer expansion are
+modifier arguments, not part of <code>HazeBlurStyle</code>.</p>
+<p>A <code>HazeBlurStyle</code> is a block of settings, and <code>then</code> appends more:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">blurRadius</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">)</span>
 <span class="w">  </span><span class="n">colorEffects</span><span class="p">(</span>
@@ -1553,13 +1575,12 @@ and layer-expansion policies do not live in <code>HazeBlurStyle</code>.</p>
 <span class="w">  </span><span class="n">noiseFactor</span><span class="p">(</span><span class="m">0f</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Resolution replays <code>HazeBlurDefaults.style</code>, <code>LocalHazeBlurStyle</code>, and the explicit Style in order.
-The last write wins, and every evaluation starts fresh. Styles contain no mutable renderer or
-platform state and can be shared by concurrent modifiers. Style programs with identical ordered
-writes and equal values are structurally equal, so recreating the same program during recomposition
-does not update the modifier node; provide a replacement Style when a configured value changes.</p>
+<p>Haze applies <code>HazeBlurDefaults.style</code>, then <code>LocalHazeBlurStyle</code>, then the explicit Style, and the
+last write wins. Styles hold no rendering state, so you can share them between modifiers. Two
+Styles with the same writes in the same order are equal, so recreating an identical Style during
+recomposition doesn't update the effect; pass a new Style when a value changes.</p>
 <h2 id="typed-custom-effects">Typed custom effects<a class="headerlink" href="#typed-custom-effects" title="Permanent link">¶</a></h2>
-<p>Custom effects use a stateless factory and one renderer per modifier node:</p>
+<p>Custom effects use a shareable factory that creates one renderer per modifier:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">factory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeEffectFactory</span><span class="o">&lt;</span><span class="n">MyStyle</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">object</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="nc">HazeEffectRenderer</span><span class="o">&lt;</span><span class="n">MyStyle</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="n">HazeEffectDrawScope</span><span class="p">.</span><span class="nf">draw</span><span class="p">(</span><span class="n">style</span><span class="p">:</span><span class="w"> </span><span class="n">MyStyle</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -1575,8 +1596,8 @@ does not update the modifier node; provide a replacement Style when a configured
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MyStyle</span><span class="p">(...),</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>The renderer can own mutable resources and releases them in <code>dispose</code>. Style replacement updates
-the existing renderer. Factory replacement and detachment dispose it exactly once.</p>
+<p>A new Style updates the existing renderer. Replacing the factory, or removing the modifier,
+calls <code>dispose</code> once. See <a href="../custom-effects/">Custom effects</a> for the full API.</p>
 <h2 id="built-in-performance-mode">Built-in performance mode<a class="headerlink" href="#built-in-performance-mode" title="Permanent link">¶</a></h2>
 <p><code>HazePerformanceMode</code> lets you choose the quality and performance trade-off for built-in Blur and
 Glass:</p>
@@ -1587,23 +1608,22 @@ Glass:</p>
 <li><code>Fixed(qualityFraction)</code> lets you choose a level from <code>0f</code> (lowest supported quality) to <code>1f</code>
   (highest supported quality).</li>
 </ul>
+<p>Pass <code>performanceMode</code> to one effect, or provide <code>LocalHazePerformanceMode</code> to set it for a
+subtree; an explicit argument wins.</p>
 <p>Start with the default. If the effect looks too pixelated, try a higher fixed quality level and
 check that scrolling and animations remain smooth on the devices you support. See the
 <a href="../performance/">performance guide</a> for more guidance and the <a href="../migrating-2.0/">migration guide</a>
 for replacing older sampling settings.</p>
 <h2 id="generic-sampling">Generic sampling<a class="headerlink" href="#generic-sampling" title="Permanent link">¶</a></h2>
-<p><code>HazeSampling</code> remains the generic input-sampling contract for custom effects. Built-in Blur and
-Glass use <code>HazePerformanceMode</code> instead. <code>HazeSampling</code>'s <code>Default</code>, <code>Adaptive</code>, <code>FullResolution</code>, and
-<code>Fixed(pixelFraction)</code> policies control the fraction of full-resolution input pixels custom
-effects receive.</p>
+<p>Custom effects use <code>HazeSampling</code> instead of <code>HazePerformanceMode</code>. Its <code>Default</code> (currently
+<code>Adaptive</code>), <code>Adaptive</code>, <code>FullResolution</code>, and <code>Fixed(pixelFraction)</code> policies control the
+fraction of full-resolution input pixels the effect receives.</p>
 <h2 id="layer-bounds">Layer bounds<a class="headerlink" href="#layer-bounds" title="Permanent link">¶</a></h2>
-<p><code>expandLayerBounds</code> lets an effect request a larger capture layer. Blur normally expands by its
-resolved radius to avoid edge artifacts. Disable it only when the surrounding pixels must not be
-captured.</p>
+<p><code>expandLayerBounds</code> lets an effect capture beyond its own bounds. Blur expands by its blur radius
+to avoid artifacts at the edges. Disable it only when surrounding pixels must not be captured.</p>
 <h2 id="background-and-foreground-effects">Background and foreground effects<a class="headerlink" href="#background-and-foreground-effects" title="Permanent link">¶</a></h2>
-<p>For the normal built-in case, use Backdrop input to consume earlier pixels in the current window.
-Use Sources when the example needs exact captured-source semantics, as in this source-ordering
-example:</p>
+<p>Background effects usually use <code>HazeInput.Backdrop</code>. This example uses <code>HazeInput.Sources</code> to
+blur exactly the captured list:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">LazyColumn</span><span class="p">(</span>
 <span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
@@ -1652,8 +1672,8 @@ local:</p>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="overlapping-effects">Overlapping effects<a class="headerlink" href="#overlapping-effects" title="Permanent link">¶</a></h2>
-<p>One composable can both consume lower sources and become a source for a higher effect. This example
-deliberately uses Sources because the exact source ordering matters. Give each source an explicit
+<p>One composable can both consume lower sources and be a source for a higher effect. Use
+<code>HazeInput.Sources</code> here, because source ordering matters, and give each source an explicit
 <code>zIndex</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">Background</span><span class="p">(</span>
@@ -1675,8 +1695,8 @@ deliberately uses Sources because the exact source ordering matters. Give each s
 </code></pre></div>
 <p>The Card consumes the Background, while the TopAppBar consumes both lower sources.</p>
 <h2 id="dialogs">Dialogs<a class="headerlink" href="#dialogs" title="Permanent link">¶</a></h2>
-<p>Mark the source before showing a dialog. Haze can then align a source and effect that live in
-different windows:</p>
+<p>Effects in a dialog can consume sources from the window behind it. Use <code>HazeInput.Sources</code>,
+because the native backdrop can't cross windows; Haze aligns the two automatically:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">LazyColumn</span><span class="p">(</span>
 <span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
@@ -1697,16 +1717,15 @@ different windows:</p>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Haze handles alignment between the dialog and its source automatically.</p>
 <h2 id="screenshot-testing">Screenshot testing<a class="headerlink" href="#screenshot-testing" title="Permanent link">¶</a></h2>
 <p>On Android, run Robolectric screenshot tests against SDK 35 or newer. Earlier Robolectric SDK
-levels do not fully reproduce the blur tile modes used at effect edges:</p>
+levels render effect edges differently:</p>
 <div class="highlight"><pre><span></span><code><span class="nd">@Config</span><span class="p">(</span><span class="n">sdk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">[</span><span class="m">35</span><span class="o">]</span><span class="p">)</span>
 <span class="kd">class</span><span class="w"> </span><span class="nc">MyScreenshotTest</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="c1">// Tests</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>This limitation affects the test environment, not the equivalent effect on a physical device.</p></div>
+<p>This only affects Robolectric, not real devices.</p></div>
 
 
 
