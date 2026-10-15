@@ -13,6 +13,8 @@ android {
   namespace = "dev.chrisbanes.haze.sample.android"
 
   defaultConfig {
+    // Compose Material3 Adaptive 1.3.0 requires minSdk 24. The Haze libraries stay on 23.
+    minSdk = 24
     versionCode = 1
     versionName = "1.0"
     applicationId = "dev.chrisbanes.haze.sample.android"
