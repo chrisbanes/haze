@@ -42,7 +42,6 @@ import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
@@ -51,7 +50,6 @@ import dev.chrisbanes.haze.glass.hazeGlass
 import kotlin.math.roundToInt
 
 /** Sample-only controlled progress slider with touch, mouse, and keyboard input. */
-@OptIn(ExperimentalHazeApi::class)
 @Composable
 public fun GlassSlider(
   value: Float,

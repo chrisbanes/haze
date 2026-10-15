@@ -34,7 +34,7 @@ Add the core module and only the effect modules you use. Keep every Haze artifac
 | `haze-blur` | Blur for captured sources or a modifier's own content. |
 | `haze-blur-materials` | Optional ready-made Blur Styles, including `HazeMaterials.thin()`. |
 | `haze-blur-material3` | Optional Compose Material 3 Blur Style factory. |
-| `haze-glass` | Experimental, refraction-driven Glass effect. |
+| `haze-glass` | Refraction-driven Glass effect. |
 | `haze-glass-material3` | Optional Compose Material 3 Glass Style factory. |
 
 ## Download
@@ -50,7 +50,7 @@ dependencies {
 }
 ```
 
-For Glass, add the core module and the experimental Glass artifact:
+For Glass, add the core module and the Glass artifact:
 
 ```kotlin
 dependencies {
@@ -87,7 +87,7 @@ The optional [Blur material presets](https://chrisbanes.github.io/haze/blur/mate
 
 ## Glass
 
-`haze-glass` is an experimental Haze 2 module for material-like Glass: refraction, depth Blur, tint, lighting, highlights, rounded shapes, and optional pointer, focus, and press responses. Glass APIs require `@ExperimentalHazeApi`.
+`haze-glass` is a Haze 2 module for material-like Glass: refraction, depth Blur, tint, lighting, highlights, rounded shapes, and optional pointer, focus, and press responses.
 
 ```kotlin
 Modifier.hazeGlass(
@@ -102,7 +102,7 @@ Modifier.hazeGlass(
 Start with `GlassStyle.regular`, or use `GlassStyle.clear` when the background should remain more
 visible. Consult the [Glass guide](https://chrisbanes.github.io/haze/effects/glass/) for custom
 optics, interaction, retention, and platform fallback behavior. Add `haze-glass-material3` to use
-`GlassStyle.Material3()` or `material3()` with your current Material 3 surface color. Regular and
+`material3()` with your current Material 3 surface color. Regular and
 Clear follow the system appearance without Material 3. The optional integration supplies the app
 theme's surface color and can add a tint.
 

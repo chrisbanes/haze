@@ -16,7 +16,9 @@ import assertk.assertThat
 import assertk.assertions.isCloseTo
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.hazeBlur
+import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
@@ -58,7 +60,7 @@ class HazeSourceDrawUpdateTest : ScreenshotTest() {
                 whitePoint(0f)
                 contrast(0f)
                 chromaMultiplier(1f)
-                optics(blurRadius = 8.dp, depth = 0.5f)
+                optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(8.dp), depth = OpticalSizeValue.Fixed(0.5f)))
               },
             )
           } else {

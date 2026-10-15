@@ -27,15 +27,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.GlassTransformTarget
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
 
 /** Sample-only glass tab bar. Labels stay owned by the caller for copyable sample usage. */
-@OptIn(ExperimentalHazeApi::class)
 @Composable
 public fun GlassBottomTabs(
   selectedIndex: Int,
@@ -56,7 +56,7 @@ public fun GlassBottomTabs(
         style = remember(colors) {
           GlassStyle.regular then GlassStyle {
             this.shape(shape)
-            optics(depth = 1f, blurRadius = 16.dp, refractionDisplacement = 4.dp)
+            optics(GlassOptics(depth = OpticalSizeValue.Fixed(1f), blurRadius = OpticalSizeValue.Fixed(16.dp), refractionDisplacement = 4.dp))
             tint(colors.surface.copy(alpha = 0.8f))
           }
         },

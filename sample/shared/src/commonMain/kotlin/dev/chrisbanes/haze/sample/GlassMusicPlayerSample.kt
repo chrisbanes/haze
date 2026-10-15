@@ -61,7 +61,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassStyle
@@ -109,7 +108,6 @@ internal fun SimulatedPlaybackTimer(player: MusicPlayerState) {
 }
 
 /** The rendering seam for screenshot and compose tests; playback in this sample is simulated. */
-@OptIn(ExperimentalHazeApi::class)
 @Composable
 public fun GlassMusicPlayerSampleContent(
   tracks: List<MusicTrack>,

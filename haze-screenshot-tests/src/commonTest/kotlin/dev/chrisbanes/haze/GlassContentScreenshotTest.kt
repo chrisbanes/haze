@@ -84,7 +84,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
       GlassStyle {
         tint(DefaultTint)
         alpha(0.7f)
-        optics(refractionStrength = 0.45f)
+        optics(GlassOptics(refractionStrength = 0.45f))
       },
     )
     setContent {
@@ -162,7 +162,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
     var style by mutableStateOf(
       GlassStyle {
         tint(DefaultTint)
-        optics(refractionHeightFraction = 0.3f, depth = 0.45f)
+        optics(GlassOptics(refractionHeightFraction = 0.3f, depth = OpticalSizeValue.Fixed(0.45f)))
         specularIntensity(0.6f)
         edgeSoftness(10.dp)
         shape(androidx.compose.foundation.shape.RoundedCornerShape(22.dp))
@@ -180,7 +180,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
 
     captureRoot("rounded")
 
-    style = style.then { optics(refractionHeightFraction = 0.16f, depth = 0.45f) }
+    style = style.then { optics(GlassOptics(refractionHeightFraction = 0.16f, depth = OpticalSizeValue.Fixed(0.45f))) }
     waitForIdle()
     captureRoot("shallow")
   }

@@ -29,7 +29,6 @@ import androidx.compose.ui.node.requireGraphicsContext
 import androidx.compose.ui.node.traverseDescendants
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectContentTransform
 import dev.chrisbanes.haze.HazeEffectSurface
 import dev.chrisbanes.haze.HazeEffectSurfaceOwner
@@ -73,7 +72,6 @@ import kotlinx.coroutines.launch
  * first draw; use the overload that takes a [ScrollableState] for lazy layouts.
  */
 @Stable
-@ExperimentalHazeApi
 public fun Modifier.hazeGlassContainer(
   spacing: Dp,
   transitionSpec: FiniteAnimationSpec<Float> = spring(),
@@ -92,7 +90,6 @@ public fun Modifier.hazeGlassContainer(
  * scrolls.
  */
 @Stable
-@ExperimentalHazeApi
 public fun Modifier.hazeGlassContainer(
   spacing: Dp,
   scrollState: ScrollableState,

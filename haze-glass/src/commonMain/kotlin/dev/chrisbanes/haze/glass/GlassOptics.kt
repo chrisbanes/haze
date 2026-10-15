@@ -6,7 +6,6 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeProgressive
 
 /**
@@ -19,7 +18,6 @@ import dev.chrisbanes.haze.HazeProgressive
  * Responsive values require at least two points with positive, finite, strictly increasing
  * dimensions. Invalid numeric values throw [IllegalArgumentException] during construction.
  */
-@ExperimentalHazeApi
 @Immutable
 public data class GlassOptics(
   /** Finite refraction strength in the inclusive range `0f..1f`. */

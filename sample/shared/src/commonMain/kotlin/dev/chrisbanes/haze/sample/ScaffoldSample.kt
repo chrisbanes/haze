@@ -63,7 +63,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
@@ -88,7 +87,6 @@ enum class ScaffoldSampleMode {
 
 @OptIn(
   ExperimentalMaterial3Api::class,
-  ExperimentalHazeApi::class,
 )
 @Composable
 fun ScaffoldSample(
@@ -288,7 +286,6 @@ fun ScaffoldSample(
 }
 
 @Composable
-@OptIn(ExperimentalHazeApi::class)
 private fun GlassScaffoldTopBar(
   hazeState: HazeState,
   backgroundColor: Color,
@@ -345,7 +342,6 @@ private fun GlassScaffoldTopBar(
 }
 
 @Composable
-@OptIn(ExperimentalHazeApi::class)
 private fun GlassScaffoldNavigationBar(
   hazeState: HazeState,
   backgroundColor: Color,
@@ -393,7 +389,6 @@ private fun GlassScaffoldNavigationBar(
 }
 
 @Composable
-@OptIn(ExperimentalHazeApi::class)
 private fun GlassScaffoldSurface(
   hazeState: HazeState,
   backgroundColor: Color,

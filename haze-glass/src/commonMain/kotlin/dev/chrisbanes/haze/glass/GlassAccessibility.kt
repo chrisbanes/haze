@@ -6,7 +6,6 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.compositionLocalOf
-import dev.chrisbanes.haze.ExperimentalHazeApi
 
 /**
  * Semantic accessibility preferences that change how Glass separates itself from its content.
@@ -14,10 +13,12 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
  * Haze deliberately does not read platform accessibility services from common code. Hosts map
  * their platform settings to this value and provide it to the subtree that renders Glass.
  */
-@ExperimentalHazeApi
 @Immutable
 public data class GlassAccessibilitySettings(
-  /** Reduces the resolved blur radius used by Glass materials. */
+  /**
+   * Makes Glass materials more opaque by fully diffusing a stronger blur, so content behind them
+   * is less legible.
+   */
   val reduceTransparency: Boolean = false,
   /** Enforces minimum tone contrast and edge separation. */
   val increaseContrast: Boolean = false,
@@ -26,6 +27,5 @@ public data class GlassAccessibilitySettings(
 )
 
 /** Accessibility preferences inherited by Glass nodes in this composition subtree. */
-@ExperimentalHazeApi
 public val LocalGlassAccessibilitySettings: ProvidableCompositionLocal<GlassAccessibilitySettings> =
   compositionLocalOf { GlassAccessibilitySettings() }

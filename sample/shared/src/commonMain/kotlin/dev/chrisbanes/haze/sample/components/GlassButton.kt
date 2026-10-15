@@ -19,7 +19,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
@@ -30,7 +29,6 @@ import dev.chrisbanes.haze.glass.hazeGlass
  * Sample-only Glass button. A copied version needs a caller-owned [input] backed by
  * `rememberHazeState()` and an earlier `hazeSource` in the same window.
  */
-@OptIn(ExperimentalHazeApi::class)
 @Composable
 public fun GlassButton(
   input: HazeInput,

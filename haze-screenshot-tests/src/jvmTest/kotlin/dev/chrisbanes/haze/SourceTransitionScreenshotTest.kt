@@ -16,7 +16,9 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -57,7 +59,7 @@ class SourceTransitionScreenshotTest : ScreenshotTest() {
   fun glass_sourceRemoved_retainsLastOutput() = runScreenshotTest {
     val style = GlassStyle {
       tint(Color.White.copy(alpha = 0.12f))
-      optics(refractionStrength = 0.45f, depth = 0.35f)
+      optics(GlassOptics(refractionStrength = 0.45f, depth = OpticalSizeValue.Fixed(0.35f)))
       specularIntensity(0.45f)
     }
     var showSource by mutableStateOf(true)
@@ -84,7 +86,7 @@ class SourceTransitionScreenshotTest : ScreenshotTest() {
     var style by mutableStateOf(
       GlassStyle {
         tint(Color.White.copy(alpha = 0.12f))
-        optics(refractionStrength = 0.45f, depth = 0.35f)
+        optics(GlassOptics(refractionStrength = 0.45f, depth = OpticalSizeValue.Fixed(0.35f)))
         specularIntensity(0.45f)
       },
     )

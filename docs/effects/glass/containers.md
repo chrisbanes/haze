@@ -1,10 +1,5 @@
 # Glass containers
 
-!!! warning "Experimental"
-
-    `Modifier.hazeGlassContainer` is marked `@ExperimentalHazeApi`. Its behavior may change
-    before it is stabilized.
-
 A Glass container draws its Glass members' surfaces together, so that nearby members merge into
 one shape. Use it for controls that should read as one object, such as a toolbar or a segmented
 control, and for surfaces that appear next to an existing one and should grow out of it.

@@ -8,7 +8,6 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeInput
@@ -54,7 +53,6 @@ import dev.chrisbanes.haze.hazeEffect
  * yourself, for example with `AnimatedVisibility`.
  */
 @Stable
-@ExperimentalHazeApi
 public fun Modifier.hazeGlass(
   input: HazeInput,
   style: GlassStyle = GlassStyle,

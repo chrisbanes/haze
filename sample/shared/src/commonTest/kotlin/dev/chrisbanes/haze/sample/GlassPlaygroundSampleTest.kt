@@ -18,14 +18,13 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isTrue
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.runTest
 
-@OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
+@OptIn(ExperimentalTestApi::class)
 class GlassPlaygroundSampleTest : ContextTest() {
   @Test
   fun styleSelector_changesStyleWithoutRestartingAutoplayAndHidesWhileRecording() = runComposeUiTest {

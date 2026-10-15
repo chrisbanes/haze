@@ -546,12 +546,16 @@ internal fun resolveGlassStyle(
   ).withAccessibility(
     settings = effect.accessibilitySettings,
     minimumBorderSoftnessPx = defaultEdgeSoftnessPx,
+    minimumReducedTransparencyBlurPx = with(density) { ReducedTransparencyMinimumBlurRadius.toPx() },
   )
 }
+
+private val ReducedTransparencyMinimumBlurRadius = 20.dp
 
 private fun ResolvedGlassStyle.withAccessibility(
   settings: GlassAccessibilitySettings,
   minimumBorderSoftnessPx: Float,
+  minimumReducedTransparencyBlurPx: Float,
 ): ResolvedGlassStyle {
   if (
     !settings.reduceTransparency &&
@@ -560,12 +564,18 @@ private fun ResolvedGlassStyle.withAccessibility(
   ) {
     return this
   }
-  val blurMultiplier = if (settings.reduceTransparency) 0.65f else 1f
-  val blurRadiusPx = (resolvedOptics.blurRadiusPx * blurMultiplier)
-    .coerceAtMost(SemanticBlurKernel.MAX_SUPPORTED_RADIUS_PX)
-  val optics = resolvedOptics.copy(
-    blurRadiusPx = blurRadiusPx,
-  )
+  val optics = if (settings.reduceTransparency) {
+    // A stronger, fully diffused blur makes content behind the material less legible. A
+    // progressive mask would leave low-intensity regions sharp, so blur applies everywhere.
+    resolvedOptics.copy(
+      depth = 1f,
+      progressive = null,
+      blurRadiusPx = maxOf(resolvedOptics.blurRadiusPx * 1.5f, minimumReducedTransparencyBlurPx)
+        .coerceAtMost(SemanticBlurKernel.MAX_SUPPORTED_RADIUS_PX),
+    )
+  } else {
+    resolvedOptics
+  }
   val strengthenEdge = settings.increaseContrast || settings.showBorders
   return copy(
     resolvedOptics = optics,

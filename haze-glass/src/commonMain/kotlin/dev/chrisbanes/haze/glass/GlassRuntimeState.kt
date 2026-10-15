@@ -10,7 +10,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.InternalHazeApi
 
@@ -20,7 +19,6 @@ import dev.chrisbanes.haze.InternalHazeApi
  * Fields are plain, not snapshot state: changes go through markDirty, so dirtyTrackerSignal is the
  * only observed signal.
  */
-@ExperimentalHazeApi
 @Stable
 @OptIn(InternalHazeApi::class)
 internal abstract class GlassRuntimeState {

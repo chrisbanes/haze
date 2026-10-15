@@ -41,7 +41,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
@@ -54,7 +53,6 @@ import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
-@OptIn(ExperimentalHazeApi::class)
 @Composable
 fun MaterialsSample(navController: NavHostController, effect: SampleEffect) {
   val navigationEnabled = LocalSampleNavigationEnabled.current
@@ -200,7 +198,7 @@ fun MaterialsSample(navController: NavHostController, effect: SampleEffect) {
   }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalHazeApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun GlassMaterialsContent(hazeState: HazeState) {
   Column(
@@ -247,7 +245,6 @@ private fun GlassMaterialsContent(hazeState: HazeState) {
   }
 }
 
-@OptIn(ExperimentalHazeApi::class)
 @Composable
 private fun GlassMaterialsCard(
   name: String,

@@ -70,7 +70,7 @@ class GlassScreenshotTest : ScreenshotTest() {
   fun creditCard_multiple() = runScreenshotTest {
     val style = GlassStyle {
       tint(DefaultTint)
-      optics(refractionStrength = 0.45f)
+      optics(GlassOptics(refractionStrength = 0.45f))
     }
     val styles = List(3) { style }
 
@@ -214,7 +214,7 @@ class GlassScreenshotTest : ScreenshotTest() {
     var style by mutableStateOf(
       GlassStyle {
         tint(DefaultTint)
-        optics(refractionStrength = 0.25f, depth = 0.15f)
+        optics(GlassOptics(refractionStrength = 0.25f, depth = OpticalSizeValue.Fixed(0.15f)))
         specularIntensity(0.35f)
       },
     )
@@ -228,7 +228,7 @@ class GlassScreenshotTest : ScreenshotTest() {
     captureRoot("low")
 
     style = style.then {
-      optics(refractionStrength = 0.6f, depth = 0.5f)
+      optics(GlassOptics(refractionStrength = 0.6f, depth = OpticalSizeValue.Fixed(0.5f)))
       specularIntensity(0.7f)
     }
     waitForIdle()
@@ -240,7 +240,7 @@ class GlassScreenshotTest : ScreenshotTest() {
     val shape = RoundedCornerShape(28.dp)
     val style = GlassStyle {
       tint(Color.White.copy(alpha = 0.08f))
-      optics(refractionStrength = 0f, depth = 1f, blurRadius = 32.dp)
+      optics(GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(1f), blurRadius = OpticalSizeValue.Fixed(32.dp)))
       specularIntensity(0f)
       ambientResponse(0f)
       edgeSoftness(0.dp)
@@ -300,7 +300,7 @@ class GlassScreenshotTest : ScreenshotTest() {
     val zeroBlurPixels = captureRootPixels().snapshot()
 
     style = style.then {
-      optics(refractionStrength = 0f, depth = 1f, blurRadius = 300.dp)
+      optics(GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(1f), blurRadius = OpticalSizeValue.Fixed(300.dp)))
     }
     waitForIdle()
     val densityOnePixels = captureRootPixels().snapshot()
@@ -312,7 +312,7 @@ class GlassScreenshotTest : ScreenshotTest() {
 
     density = Density(3f)
     style = style.then {
-      optics(refractionStrength = 0f, depth = 1f, blurRadius = 100.dp)
+      optics(GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(1f), blurRadius = OpticalSizeValue.Fixed(100.dp)))
     }
     waitForIdle()
     val densityThreePixels = captureRootPixels().snapshot()
@@ -354,7 +354,7 @@ class GlassScreenshotTest : ScreenshotTest() {
     var style by mutableStateOf(
       GlassStyle {
         tint(Color.White.copy(alpha = 0.08f))
-        optics(refractionStrength = 0.85f, depth = 0.9f, blurRadius = 0.dp)
+        optics(GlassOptics(refractionStrength = 0.85f, depth = OpticalSizeValue.Fixed(0.9f), blurRadius = OpticalSizeValue.Fixed(0.dp)))
         specularIntensity(0f)
         ambientResponse(0f)
         edgeSoftness(0.dp)
@@ -374,7 +374,7 @@ class GlassScreenshotTest : ScreenshotTest() {
     captureRoot("zero")
 
     style = style.then {
-      optics(refractionStrength = 0.85f, depth = 0.9f, blurRadius = 32.dp)
+      optics(GlassOptics(refractionStrength = 0.85f, depth = OpticalSizeValue.Fixed(0.9f), blurRadius = OpticalSizeValue.Fixed(32.dp)))
     }
     waitForIdle()
     captureRoot("strong")
@@ -492,7 +492,7 @@ class GlassScreenshotTest : ScreenshotTest() {
     var style by mutableStateOf(
       GlassStyle {
         tint(DefaultTint)
-        optics(refractionHeightFraction = 0.32f, depth = 0.45f)
+        optics(GlassOptics(refractionHeightFraction = 0.32f, depth = OpticalSizeValue.Fixed(0.45f)))
         specularIntensity(0.6f)
         shape(RoundedCornerShape(24.dp))
       },
@@ -507,7 +507,7 @@ class GlassScreenshotTest : ScreenshotTest() {
     captureRoot("rounded")
 
     style = style.then {
-      optics(refractionHeightFraction = 0.18f, depth = 0.45f)
+      optics(GlassOptics(refractionHeightFraction = 0.18f, depth = OpticalSizeValue.Fixed(0.45f)))
     }
     waitForIdle()
     captureRoot("shallow")
@@ -518,7 +518,7 @@ class GlassScreenshotTest : ScreenshotTest() {
     var style by mutableStateOf(
       GlassStyle {
         tint(DefaultTint)
-        optics(refractionStrength = 0.8f, depth = 0.4f)
+        optics(GlassOptics(refractionStrength = 0.8f, depth = OpticalSizeValue.Fixed(0.4f)))
         chromaticAberrationStrength(0.0f)
         edgeSoftness(14.dp)
         shape(RoundedCornerShape(20.dp))
@@ -543,7 +543,7 @@ class GlassScreenshotTest : ScreenshotTest() {
     var style by mutableStateOf(
       GlassStyle {
         tint(DefaultTint)
-        optics(refractionHeightFraction = 0.28f, depth = 0.4f)
+        optics(GlassOptics(refractionHeightFraction = 0.28f, depth = OpticalSizeValue.Fixed(0.4f)))
         specularIntensity(0.5f)
         shape(RoundedCornerShape(24.dp))
         surfaceProfile(SurfaceProfile.Squircle)
@@ -572,7 +572,7 @@ class GlassScreenshotTest : ScreenshotTest() {
     var style by mutableStateOf(
       GlassStyle {
         tint(DefaultTint)
-        optics(refractionStrength = 0.8f, depth = 0.45f)
+        optics(GlassOptics(refractionStrength = 0.8f, depth = OpticalSizeValue.Fixed(0.45f)))
         chromaticAberrationStrength(0.3f)
         edgeSoftness(14.dp)
         shape(RoundedCornerShape(20.dp))

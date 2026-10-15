@@ -47,7 +47,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
@@ -110,7 +109,6 @@ internal fun CameraXSample(
 }
 
 @Composable
-@OptIn(ExperimentalHazeApi::class)
 private fun CameraXCamera(
   effect: SampleEffect,
   onBack: () -> Unit,
