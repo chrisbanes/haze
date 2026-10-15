@@ -68,7 +68,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -99,6 +98,7 @@ import dev.chrisbanes.haze.glass.material3.material3
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.roundToInt
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -243,7 +243,6 @@ public fun GlassContainerShowcaseSampleContent(
   modifier: Modifier = Modifier,
 ) {
   val hazeState = rememberHazeState()
-  val scope = rememberCoroutineScope()
 
   Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
     // Any press in the scene hands control to the user. The demo controls sit outside this box,
@@ -282,7 +281,6 @@ public fun GlassContainerShowcaseSampleContent(
       LibraryBar(
         hazeState = hazeState,
         state = state,
-        onSearchDragStopped = { scope.launch { state.settleSearch() } },
         modifier = Modifier
           .align(Alignment.BottomCenter)
           .windowInsetsPadding(WindowInsets.safeDrawing)
@@ -431,7 +429,6 @@ private fun SelectButton(
 private fun LibraryBar(
   hazeState: HazeState,
   state: GlassContainerShowcaseState,
-  onSearchDragStopped: () -> Unit,
   modifier: Modifier = Modifier,
 ) = BoxWithConstraints(modifier) {
   // Narrow windows, such as phones, shrink the pills so that the bar and Search's split fit.
@@ -493,7 +490,9 @@ private fun LibraryBar(
   }
 
   val searchTravelPx = with(LocalDensity.current) { searchTravel.toPx() }
-  val currentOnSearchDragStopped by rememberUpdatedState(onSearchDragStopped)
+  // A new drag takes Search over from its return spring, so the two don't both move it.
+  val scope = rememberCoroutineScope()
+  var settleJob by remember { mutableStateOf<Job?>(null) }
 
   CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
     // Anchor the bar's start, so members joining or leaving at the end don't shift the tabs.
@@ -549,7 +548,8 @@ private fun LibraryBar(
                 },
                 orientation = Orientation.Horizontal,
                 interactionSource = interactionSource,
-                onDragStopped = { currentOnSearchDragStopped() },
+                onDragStarted = { settleJob?.cancel() },
+                onDragStopped = { settleJob = scope.launch { state.settleSearch() } },
               )
               .size(memberSize)
               .hazeGlass(
