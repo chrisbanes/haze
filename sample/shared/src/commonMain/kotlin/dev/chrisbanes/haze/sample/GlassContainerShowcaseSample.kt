@@ -33,11 +33,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -83,6 +85,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -268,6 +271,8 @@ public fun GlassContainerShowcaseSampleContent(
   modifier: Modifier = Modifier,
 ) {
   val hazeState = rememberHazeState()
+  // Where the title block ends, which grows with the user's font size.
+  var titleBottom by remember { mutableStateOf(0.dp) }
 
   BoxWithConstraints(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
     // Any press in the scene hands control to the user. The demo controls sit outside this box,
@@ -289,6 +294,7 @@ public fun GlassContainerShowcaseSampleContent(
       PhotoLibrary(
         hazeState = hazeState,
         state = state,
+        onTitleBottomChange = { titleBottom = it },
         modifier = Modifier.fillMaxSize(),
       )
 
@@ -317,10 +323,17 @@ public fun GlassContainerShowcaseSampleContent(
     val controlsBesideBar = maxWidth >= 900.dp
     AnimatedVisibility(
       visible = !state.recordingMode,
-      modifier = Modifier
-        .align(if (controlsBesideBar) Alignment.BottomStart else Alignment.TopStart)
-        .windowInsetsPadding(WindowInsets.safeDrawing)
-        .padding(start = 24.dp, top = if (controlsBesideBar) 24.dp else 112.dp, end = 24.dp, bottom = 24.dp),
+      modifier = if (controlsBesideBar) {
+        Modifier
+          .align(Alignment.BottomStart)
+          .windowInsetsPadding(WindowInsets.safeDrawing)
+          .padding(24.dp)
+      } else {
+        Modifier
+          .align(Alignment.TopStart)
+          .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+          .padding(start = 24.dp, top = titleBottom + 12.dp)
+      },
     ) {
       DemoChrome(
         hazeState = hazeState,
@@ -339,8 +352,10 @@ public fun GlassContainerShowcaseSampleContent(
 private fun PhotoLibrary(
   hazeState: HazeState,
   state: GlassContainerShowcaseState,
+  onTitleBottomChange: (Dp) -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val density = LocalDensity.current
   Box(modifier.hazeSource(hazeState)) {
     LazyVerticalGrid(
       columns = GridCells.Adaptive(minSize = 176.dp),
@@ -404,24 +419,31 @@ private fun PhotoLibrary(
     }
 
     // A scrim keeps the title readable over any photo, in both themes.
-    Column(
+    Box(
       Modifier
         .fillMaxWidth()
         .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent)))
-        .windowInsetsPadding(WindowInsets.safeDrawing)
-        .padding(start = 32.dp, top = 24.dp, end = 32.dp, bottom = 48.dp),
+        .padding(bottom = 48.dp),
     ) {
-      Text(
-        "Library",
-        color = Color.White,
-        style = MaterialTheme.typography.displaySmall,
-        fontWeight = FontWeight.Bold,
-      )
-      Text(
-        "$PHOTO_COUNT photos",
-        color = Color.White.copy(alpha = 0.8f),
-        style = MaterialTheme.typography.titleMedium,
-      )
+      Column(
+        Modifier
+          // Measured before the insets and padding, so the size is the title's bottom edge.
+          .onSizeChanged { onTitleBottomChange(with(density) { it.height.toDp() }) }
+          .windowInsetsPadding(WindowInsets.safeDrawing)
+          .padding(start = 32.dp, top = 24.dp, end = 32.dp),
+      ) {
+        Text(
+          "Library",
+          color = Color.White,
+          style = MaterialTheme.typography.displaySmall,
+          fontWeight = FontWeight.Bold,
+        )
+        Text(
+          "$PHOTO_COUNT photos",
+          color = Color.White.copy(alpha = 0.8f),
+          style = MaterialTheme.typography.titleMedium,
+        )
+      }
     }
   }
 }

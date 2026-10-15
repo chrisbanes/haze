@@ -23,16 +23,23 @@ import kotlin.test.Test
 
 class GlassContainerShowcaseDesktopScreenshotTest : ScreenshotTest() {
   @Test fun showcaseDark() = runScreenshotTest(size = Size(1280f, 720f)) {
-    captureGlassContainerShowcase(isDark = true) { content -> CheckerboardPhotos(isDark = true, content) }
+    captureGlassContainerShowcase(isDark = true) { content -> CheckerboardPhotos(isDark = true, content = content) }
   }
 
   @Test fun showcaseLight() = runScreenshotTest(size = Size(1280f, 720f)) {
-    captureGlassContainerShowcase(isDark = false) { content -> CheckerboardPhotos(isDark = false, content) }
+    captureGlassContainerShowcase(isDark = false) { content -> CheckerboardPhotos(isDark = false, content = content) }
   }
 
   // The sample is also reachable on phones, where the bar shrinks to fit.
   @Test fun showcasePhoneDark() = runScreenshotTest(size = Size(360f, 760f)) {
-    captureGlassContainerShowcase(isDark = true) { content -> CheckerboardPhotos(isDark = true, content) }
+    captureGlassContainerShowcase(isDark = true) { content -> CheckerboardPhotos(isDark = true, content = content) }
+  }
+
+  // With large text the title grows, and the demo controls must stay below it.
+  @Test fun showcasePhoneLargeTextDark() = runScreenshotTest(size = Size(360f, 760f)) {
+    captureGlassContainerShowcase(isDark = true) { content ->
+      CheckerboardPhotos(isDark = true, fontScale = 2f, content = content)
+    }
   }
 }
 
@@ -41,10 +48,14 @@ class GlassContainerShowcaseDesktopScreenshotTest : ScreenshotTest() {
 // follows the system appearance, so match it to the sample's theme.
 @OptIn(ExperimentalCoilApi::class)
 @Composable
-private fun CheckerboardPhotos(isDark: Boolean, content: @Composable () -> Unit) {
+private fun CheckerboardPhotos(
+  isDark: Boolean,
+  fontScale: Float = 1f,
+  content: @Composable () -> Unit,
+) {
   CompositionLocalProvider(
     LocalSystemTheme provides if (isDark) SystemTheme.Dark else SystemTheme.Light,
-    LocalDensity provides Density(1f),
+    LocalDensity provides Density(1f, fontScale),
     LocalInspectionMode provides true,
     LocalAsyncImagePreviewHandler provides AsyncImagePreviewHandler { checkerboardImage() },
     content = content,
