@@ -18,6 +18,9 @@ performance guidance.
 
 ### Added
 
+- Added `GlassOptics.regular` and `GlassOptics.clear` as reusable optical configurations, and
+  `optics { copy(...) }` to modify the optics established by earlier style writes.
+
 - Added `Modifier.hazeGlassContainer`, which merges nearby compatible Glass
   members into Glass clusters and gives them one container-wide optical size
   ([#1472](https://github.com/chrisbanes/haze/pull/1472)). Each member's interaction transforms and
@@ -74,12 +77,17 @@ performance guidance.
   [#1397](https://github.com/chrisbanes/haze/pull/1397),
   [#1532](https://github.com/chrisbanes/haze/pull/1532)).
 
+### Deprecated
+
+- Deprecated `GlassDefaults.optics` in favour of `GlassOptics.regular`. The old property forwards
+  to the same configuration; `GlassOptics()` constructor defaults are unchanged.
+
 ### Removed
 
 - Removed the `GlassStyleScope.optics(refractionStrength = ..., ...)` overload. Its defaults were
   the `GlassOptics()` constructor defaults rather than Regular's, so setting one value reset the
   others. Pass a `GlassOptics` instead; to change part of Regular, use
-  `optics(GlassDefaults.optics.copy(...))` ([#1547](https://github.com/chrisbanes/haze/pull/1547)).
+  `optics(GlassOptics.regular.copy(...))` ([#1547](https://github.com/chrisbanes/haze/pull/1547)).
 - Removed both `GlassStyle.Material3()` overloads. Use `GlassStyle.material3()` for the Material 3
   colors alone, or `style.material3()` to apply them under another Style ([#1547](https://github.com/chrisbanes/haze/pull/1547)).
 

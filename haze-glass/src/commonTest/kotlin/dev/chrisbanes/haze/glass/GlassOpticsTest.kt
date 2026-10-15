@@ -24,12 +24,12 @@ class GlassOpticsTest {
 
   @Test
   fun default_isSizeAwareOptics() {
-    assertThat(GlassDefaults.optics.blurRadius)
+    assertThat(GlassOptics.regular.blurRadius)
       .isInstanceOf<OpticalSizeValue.Responsive<*>>()
-    assertThat(GlassDefaults.optics.depth)
+    assertThat(GlassOptics.regular.depth)
       .isInstanceOf<OpticalSizeValue.Responsive<*>>()
     assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle).optics)
-      .isEqualTo(GlassDefaults.optics)
+      .isEqualTo(GlassOptics.regular)
   }
 
   @Test

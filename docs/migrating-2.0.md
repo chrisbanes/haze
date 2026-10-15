@@ -216,7 +216,7 @@ generated API reference for property-specific ranges.
 | implicit source/content | explicit `HazeInput.Backdrop`, `HazeInput.Sources`, or `HazeInput.Content` |
 | `GlassOptics.Absolute` and `GlassOptics.Fixed` | `GlassOptics` with fixed `OpticalSizeValue` values; this is an intentional source break with no alias or compatibility bridge |
 | `GlassOptics.Adaptive` used as a complete Style | `GlassStyle.regular` |
-| `GlassOptics.Adaptive` supplied through `optics(...)` | `optics(GlassDefaults.optics)` |
+| `GlassOptics.Adaptive` supplied through `optics(...)` | `optics(GlassOptics.regular)` |
 | `lightPosition(Offset)` and `Offset.Unspecified` | `lightPosition(Alignment)`; omit the write or use `Alignment.Center` for the former automatic center |
 
 Use `optics(...)` for inline fixed values. Keep a `GlassOptics` value when the configuration needs
@@ -224,7 +224,7 @@ to be reused or selected programmatically. Use `OpticalSizeValue.Responsive` for
 shortest-dimension-dependent blur or depth.
 
 `GlassOptics()` creates fixed optics and is not a replacement for `GlassOptics.Adaptive`. Use
-`GlassStyle.regular` when selecting the complete built-in Style, or `GlassDefaults.optics` when only
+`GlassStyle.regular` when selecting the complete built-in Style, or `GlassOptics.regular` when only
 the optics value needs to be supplied or copied.
 
 Glass light position is now an intentional source break from pixel `Offset` to semantic

@@ -25,25 +25,12 @@ public object GlassDefaults {
     stiffness = Spring.StiffnessMedium,
   )
 
-  /** Default size-aware Haze optical material. */
-  public val optics: GlassOptics = GlassOptics(
-    // Compact controls retain refracted detail; larger surfaces fully diffuse the backdrop.
-    depth = OpticalSizeValue.Responsive(
-      OpticalSizePoint(64.dp, 0.65f),
-      OpticalSizePoint(176.dp, 1f),
-      OpticalSizePoint(220.dp, 1f),
-    ),
-    blurRadius = OpticalSizeValue.Responsive(
-      OpticalSizePoint(64.dp, 20.dp),
-      OpticalSizePoint(176.dp, 24.dp),
-      OpticalSizePoint(220.dp, 25.dp),
-    ),
-    refractionDisplacement = 48.dp,
-    refractionProfile = RefractionProfile.Edge(20.dp),
-    refractionHeightFraction = 0.15f,
-    refractionFoldStrength = 0f,
-    refractionDetailIntensity = 0f,
+  /** The optics used by [GlassStyle.regular]. */
+  @Deprecated(
+    "Use GlassOptics.regular",
+    ReplaceWith("GlassOptics.regular", "dev.chrisbanes.haze.glass.GlassOptics"),
   )
+  public val optics: GlassOptics get() = GlassOptics.regular
 
   /** Default intensity of specular highlights, in the range `0f..1f`. */
   public const val specularIntensity: Float = 0.48f

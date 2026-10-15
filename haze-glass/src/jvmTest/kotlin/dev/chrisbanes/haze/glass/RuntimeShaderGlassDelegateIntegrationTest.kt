@@ -567,7 +567,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   @Test
   fun backgroundOpacityChange_updatesRetainedBlurNormalization() = runComposeUiTest {
     val base = GlassStyle.regular.then {
-      optics(GlassDefaults.optics.copy(progressive = HazeProgressive.verticalGradient()))
+      optics(GlassOptics.regular.copy(progressive = HazeProgressive.verticalGradient()))
     }
     val effect = GlassRuntimeEffect()
     val style = mutableStateOf(base.then { backgroundColor(Color.White) })
@@ -628,7 +628,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   @Test
   fun edgeWidthChange_refreshesBothSamplingPassesAndZeroReleasesDetail() = runComposeUiTest {
     val effect = runtimeInteractiveEffect()
-    val optics = GlassStyle.clearOptics
+    val optics = GlassOptics.clear
     val style = mutableStateOf(effect.style.then { optics(optics) })
     setContent { RuntimeGlassTestContent(effect, tag = "glass", style = style.value) }
     waitForIdle()

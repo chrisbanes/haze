@@ -167,7 +167,7 @@ class GlassBoundaryShaderTest {
         }
         if (customOptics) optics(GlassOptics())
         if (progressiveBlur) {
-          optics(GlassDefaults.optics.copy(progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)))
+          optics(GlassOptics.regular.copy(progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)))
         }
       }
     }
