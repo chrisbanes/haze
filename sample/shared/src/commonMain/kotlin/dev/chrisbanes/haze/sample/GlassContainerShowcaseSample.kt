@@ -134,6 +134,7 @@ public class GlassContainerShowcaseState {
   public var selectedPhotos: Set<Int> by mutableStateOf(emptySet())
     private set
   public var selectedTab: Int by mutableIntStateOf(0)
+    private set
 
   /**
    * Search's distance from the tabs, as a fraction of how far the script moves it. The script and
@@ -152,7 +153,7 @@ public class GlassContainerShowcaseState {
     currentProgress = progress
     val frame = glassContainerShowcaseFrame(progress)
     searchOffset = frame.searchDetachFraction
-    if (frame.selecting != selecting) updateSelecting(frame.selecting, ScriptedSelection)
+    if (frame.selecting != selecting) applySelecting(frame.selecting, ScriptedSelection)
   }
 
   public fun togglePlayback() {
@@ -163,21 +164,42 @@ public class GlassContainerShowcaseState {
     isPlaying = false
   }
 
+  /**
+   * Hands the scene to the user, so the script can't undo what they do. Every user action calls
+   * this, including keyboard and accessibility actions, which send no pointer press.
+   */
+  public fun takeOver() {
+    pause()
+    recordingMode = false
+  }
+
   public fun updateRecordingMode(value: Boolean) {
     recordingMode = value
   }
 
-  /** Entering selection replaces the selection. Leaving keeps it, so the count doesn't change while it fades. */
   public fun updateSelecting(value: Boolean, initialSelection: Set<Int> = emptySet()) {
+    takeOver()
+    applySelecting(value, initialSelection)
+  }
+
+  /** Entering selection replaces the selection. Leaving keeps it, so the count doesn't change while it fades. */
+  private fun applySelecting(value: Boolean, initialSelection: Set<Int>) {
     if (value && !selecting) selectedPhotos = initialSelection
     selecting = value
   }
 
   public fun togglePhoto(index: Int) {
+    takeOver()
     selectedPhotos = if (index in selectedPhotos) selectedPhotos - index else selectedPhotos + index
   }
 
+  public fun selectTab(index: Int) {
+    takeOver()
+    selectedTab = index
+  }
+
   public fun dragSearchBy(delta: Float, maxOffset: Float) {
+    takeOver()
     searchOffset = (searchOffset + delta).coerceIn(0f, maxOffset)
   }
 
@@ -258,8 +280,7 @@ public fun GlassContainerShowcaseSampleContent(
             while (true) {
               val event = awaitPointerEvent(PointerEventPass.Initial)
               if (event.type == PointerEventType.Press) {
-                state.pause()
-                state.updateRecordingMode(false)
+                state.takeOver()
               }
             }
           }
@@ -536,7 +557,7 @@ private fun LibraryBar(
                 tabWidth = (tabsPillWidth - 12.dp) / LibraryTabLabels.size,
                 tabHeight = memberSize - 12.dp,
                 selectedTab = state.selectedTab,
-                onTabSelected = { state.selectedTab = it },
+                onTabSelected = state::selectTab,
               )
             }
           }

@@ -45,6 +45,17 @@ class GlassContainerShowcaseTimelineTest {
   }
 
   @Test
+  fun updateSelecting_pausesTheScriptSoItCannotUndoTheUsersAction() {
+    val state = GlassContainerShowcaseState()
+    state.seek(0.6f)
+    assertThat(state.isPlaying).isTrue()
+
+    state.updateSelecting(false)
+    assertThat(state.isPlaying).isFalse()
+    assertThat(state.selecting).isFalse()
+  }
+
+  @Test
   fun glassContainerShowcaseFrame_rejectsProgressOutsideTheLoop() {
     assertFailure { glassContainerShowcaseFrame(1.5f) }.isInstanceOf<IllegalArgumentException>()
     assertFailure { glassContainerShowcaseFrame(Float.NaN) }.isInstanceOf<IllegalArgumentException>()
