@@ -1,17 +1,21 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(dev.chrisbanes.haze.InternalHazeApi::class)
+
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.runtime.Immutable
+import dev.chrisbanes.haze.Poko
 import kotlin.math.PI
 import kotlin.math.cos
 
 internal const val SHOWCASE_LOOP_DURATION_MILLIS = 10_000
 
 @Immutable
-internal data class GlassContainerShowcaseFrame(
+@Poko
+internal class GlassContainerShowcaseFrame(
   /** 0 when Search sits next to the tabs, 1 when it has moved far enough to split away. */
   val searchDetachFraction: Float,
   val selecting: Boolean,

@@ -29,11 +29,16 @@ class GlassContainerShowcaseDesktopScreenshotTest : ScreenshotTest() {
   @Test fun showcaseLight() = runScreenshotTest(size = Size(1280f, 720f)) {
     captureGlassContainerShowcase(isDark = false) { content -> CheckerboardPhotos(isDark = false, content) }
   }
+
+  // The sample is also reachable on phones, where the bar shrinks to fit.
+  @Test fun showcasePhoneDark() = runScreenshotTest(size = Size(360f, 760f)) {
+    captureGlassContainerShowcase(isDark = true) { content -> CheckerboardPhotos(isDark = true, content) }
+  }
 }
 
 // Tests run offline, so stand in for the sample's photos with a high-contrast pattern. A density of 1
-// lays the sample out as it appears in the 1280x720 dp window used for recordings. Glass follows the
-// system appearance, so match it to the sample's theme.
+// makes the capture size the layout size in dp, such as the 1280x720 dp recording window. Glass
+// follows the system appearance, so match it to the sample's theme.
 @OptIn(ExperimentalCoilApi::class)
 @Composable
 private fun CheckerboardPhotos(isDark: Boolean, content: @Composable () -> Unit) {

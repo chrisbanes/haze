@@ -26,6 +26,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -84,6 +85,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -106,10 +108,14 @@ private const val PHOTO_COUNT = 48
 private val ScriptedSelection = setOf(8, 9, 16)
 
 private val BarHeight = 64.dp
+private val CompactBarHeight = 56.dp
 private val BarGap = 6.dp
 private val TabsPillWidth = 360.dp
 private val SelectionPillWidth = 208.dp
 private val SearchTravel = 120.dp
+
+// Search must move more than half the container spacing to split away from the tabs.
+private val MinSearchTravel = 24.dp
 private val GridDriftDistance = 160.dp
 
 @Stable
@@ -125,7 +131,12 @@ public class GlassContainerShowcaseState {
   public var selectedPhotos: Set<Int> by mutableStateOf(emptySet())
     private set
   public var selectedTab: Int by mutableIntStateOf(0)
-  public var searchDragOffset: Float by mutableFloatStateOf(0f)
+
+  /**
+   * Search's distance from the tabs, as a fraction of how far the script moves it. The script and
+   * dragging both move it, so Search can be dragged back after the script is interrupted.
+   */
+  public var searchOffset: Float by mutableFloatStateOf(0f)
     private set
   internal var autoplayGeneration by mutableIntStateOf(0)
     private set
@@ -136,8 +147,9 @@ public class GlassContainerShowcaseState {
   public fun seek(progress: Float) {
     require(progress.isFinite() && progress in 0f..1f)
     currentProgress = progress
-    val frameSelecting = glassContainerShowcaseFrame(progress).selecting
-    if (frameSelecting != selecting) updateSelecting(frameSelecting, ScriptedSelection)
+    val frame = glassContainerShowcaseFrame(progress)
+    searchOffset = frame.searchDetachFraction
+    if (frame.selecting != selecting) updateSelecting(frame.selecting, ScriptedSelection)
   }
 
   public fun togglePlayback() {
@@ -163,15 +175,15 @@ public class GlassContainerShowcaseState {
   }
 
   public fun dragSearchBy(delta: Float, maxOffset: Float) {
-    searchDragOffset = (searchDragOffset + delta).coerceIn(0f, maxOffset)
+    searchOffset = (searchOffset + delta).coerceIn(0f, maxOffset)
   }
 
   public suspend fun settleSearch() {
     animate(
-      initialValue = searchDragOffset,
+      initialValue = searchOffset,
       targetValue = 0f,
       animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMediumLow),
-    ) { value, _ -> searchDragOffset = value }
+    ) { value, _ -> searchOffset = value }
   }
 
   internal suspend fun runAutoplayLoop() {
@@ -193,7 +205,7 @@ public class GlassContainerShowcaseState {
     selecting = false
     selectedPhotos = emptySet()
     selectedTab = 0
-    searchDragOffset = 0f
+    searchOffset = 0f
     recordingMode = false
     isPlaying = true
     autoplayGeneration++
@@ -201,6 +213,7 @@ public class GlassContainerShowcaseState {
 
   internal fun disableAutoplay() {
     currentProgress = 0f
+    searchOffset = 0f
     isPlaying = false
   }
 }
@@ -420,7 +433,18 @@ private fun LibraryBar(
   state: GlassContainerShowcaseState,
   onSearchDragStopped: () -> Unit,
   modifier: Modifier = Modifier,
-) {
+) = BoxWithConstraints(modifier) {
+  // Narrow windows, such as phones, shrink the pills so that the bar and Search's split fit.
+  val available = maxWidth - 32.dp
+  val memberSize = if (available >= TabsPillWidth + BarGap + BarHeight + SearchTravel * 2) BarHeight else CompactBarHeight
+  val tabsPillWidth = minOf(TabsPillWidth, available - BarGap - memberSize - MinSearchTravel * 2).coerceAtLeast(160.dp)
+  val selectionPillWidth = minOf(SelectionPillWidth, available - (BarGap + memberSize) * 3).coerceAtLeast(120.dp)
+  val restWidth = tabsPillWidth + BarGap + memberSize
+  // The bar is centred on its wider row, the tabs with Search or the selection with its actions.
+  val barWidth = maxOf(restWidth, selectionPillWidth + (BarGap + memberSize) * 3)
+  val maxSearchTravel = ((available - barWidth) / 2 + barWidth - restWidth).coerceAtLeast(MinSearchTravel)
+  val searchTravel = minOf(SearchTravel, maxSearchTravel)
+
   val selecting = state.selecting
 
   // Members join and leave one at a time. The bar has at most four members in a cluster, so
@@ -450,7 +474,7 @@ private fun LibraryBar(
   }
 
   val pillWidth by animateDpAsState(
-    targetValue = if (compactPill) SelectionPillWidth else TabsPillWidth,
+    targetValue = if (compactPill) selectionPillWidth else tabsPillWidth,
     animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
   )
 
@@ -468,12 +492,12 @@ private fun LibraryBar(
     }
   }
 
-  val searchTravelPx = with(LocalDensity.current) { SearchTravel.toPx() }
+  val searchTravelPx = with(LocalDensity.current) { searchTravel.toPx() }
   val currentOnSearchDragStopped by rememberUpdatedState(onSearchDragStopped)
 
   CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
     // Anchor the bar's start, so members joining or leaving at the end don't shift the tabs.
-    Box(modifier.width(TabsPillWidth + BarGap + BarHeight), contentAlignment = Alignment.CenterStart) {
+    Box(Modifier.width(barWidth), contentAlignment = Alignment.CenterStart) {
       Row(
         modifier = Modifier.hazeGlassContainer(
           spacing = 32.dp,
@@ -485,7 +509,7 @@ private fun LibraryBar(
         Box(
           Modifier
             .testTag("glass_container_showcase_pill")
-            .size(width = pillWidth, height = BarHeight)
+            .size(width = pillWidth, height = memberSize)
             .hazeGlass(input = HazeInput.Sources(hazeState), style = pillStyle)
             // This clip is inside the effect node, so it only constrains the pill's content.
             .clip(CircleShape),
@@ -499,6 +523,8 @@ private fun LibraryBar(
               )
             } else {
               LibraryTabs(
+                tabWidth = (tabsPillWidth - 12.dp) / LibraryTabLabels.size,
+                tabHeight = memberSize - 12.dp,
                 selectedTab = state.selectedTab,
                 onTabSelected = { state.selectedTab = it },
               )
@@ -512,19 +538,20 @@ private fun LibraryBar(
           exit = fadeOut(tween(120)),
         ) {
           val interactionSource = remember { MutableInteractionSource() }
-          val searchOffset = { state.searchDragOffset + searchTravelPx * glassContainerShowcaseFrame(state.progress()).searchDetachFraction }
           Box(
             Modifier
               .testTag("glass_container_showcase_search")
               // Offset comes before hazeGlass, so the glass moves with the button.
-              .offset { IntOffset(searchOffset().roundToInt(), 0) }
+              .offset { IntOffset((state.searchOffset * searchTravelPx).roundToInt(), 0) }
               .draggable(
-                state = rememberDraggableState { state.dragSearchBy(it, maxOffset = searchTravelPx * 2) },
+                state = rememberDraggableState {
+                  state.dragSearchBy(it / searchTravelPx, maxOffset = maxSearchTravel / searchTravel)
+                },
                 orientation = Orientation.Horizontal,
                 interactionSource = interactionSource,
                 onDragStopped = { currentOnSearchDragStopped() },
               )
-              .size(BarHeight)
+              .size(memberSize)
               .hazeGlass(
                 input = HazeInput.Sources(hazeState),
                 style = buttonStyle,
@@ -546,7 +573,7 @@ private fun LibraryBar(
             val interactionSource = remember { MutableInteractionSource() }
             Box(
               Modifier
-                .size(BarHeight)
+                .size(memberSize)
                 .hazeGlass(
                   input = HazeInput.Sources(hazeState),
                   style = buttonStyle,
@@ -582,6 +609,8 @@ private val LibraryTabLabels = listOf("Library", "Albums", "For You")
 
 @Composable
 private fun LibraryTabs(
+  tabWidth: Dp,
+  tabHeight: Dp,
   selectedTab: Int,
   onTabSelected: (Int) -> Unit,
 ) {
@@ -593,7 +622,7 @@ private fun LibraryTabs(
       val selected = index == selectedTab
       Box(
         Modifier
-          .size(width = 116.dp, height = BarHeight - 12.dp)
+          .size(width = tabWidth, height = tabHeight)
           .clip(CircleShape)
           .background(if (selected) LocalContentColor.current.copy(alpha = 0.12f) else Color.Transparent)
           .clickable { onTabSelected(index) },
@@ -601,6 +630,7 @@ private fun LibraryTabs(
       ) {
         Text(
           label,
+          maxLines = 1,
           style = MaterialTheme.typography.labelLarge,
           fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
         )

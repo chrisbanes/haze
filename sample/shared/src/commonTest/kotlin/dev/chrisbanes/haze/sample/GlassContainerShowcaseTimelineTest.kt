@@ -34,6 +34,17 @@ class GlassContainerShowcaseTimelineTest {
   }
 
   @Test
+  fun dragSearchBy_rejoinsSearchAfterInterruptingTheScriptedSplit() {
+    val state = GlassContainerShowcaseState()
+    state.seek(0.27f)
+    state.pause()
+    assertThat(state.searchOffset).isEqualTo(1f)
+
+    state.dragSearchBy(-1f, maxOffset = 3f)
+    assertThat(state.searchOffset).isEqualTo(0f)
+  }
+
+  @Test
   fun glassContainerShowcaseFrame_rejectsProgressOutsideTheLoop() {
     assertFailure { glassContainerShowcaseFrame(1.5f) }.isInstanceOf<IllegalArgumentException>()
     assertFailure { glassContainerShowcaseFrame(Float.NaN) }.isInstanceOf<IllegalArgumentException>()
