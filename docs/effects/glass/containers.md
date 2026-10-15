@@ -157,9 +157,15 @@ their own tint and background color; where members overlap, the earlier member's
 Per-member press lighting is still drawn. See [Fallbacks](index.md#fallbacks) for what else
 fallback rendering omits.
 
-## Sample
+## Samples
 
 The `Glass — Container` sample shows a merging toolbar, two draggable members with a spacing
 control, a member added and removed with `AnimatedVisibility`, and a cluster of members with
 different tints. Its source is in
 [`GlassContainerSample.kt`](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerSample.kt).
+
+The `Glass — Container Showcase` sample puts a container in a photo library. Its floating bar
+merges a tab pill with a Search button, which you can drag away until it separates. In selection
+mode, Search retracts into the pill and the Share, Favorite and Delete actions grow out of it. The
+sample plays this as a loop until you interact with it. Its source is in
+[`GlassContainerShowcaseSample.kt`](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerShowcaseSample.kt).
