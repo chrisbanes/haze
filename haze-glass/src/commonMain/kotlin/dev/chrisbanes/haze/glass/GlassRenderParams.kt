@@ -565,9 +565,11 @@ private fun ResolvedGlassStyle.withAccessibility(
     return this
   }
   val optics = if (settings.reduceTransparency) {
-    // A stronger, fully diffused blur makes content behind the material less legible.
+    // A stronger, fully diffused blur makes content behind the material less legible. A
+    // progressive mask would leave low-intensity regions sharp, so blur applies everywhere.
     resolvedOptics.copy(
       depth = 1f,
+      progressive = null,
       blurRadiusPx = maxOf(resolvedOptics.blurRadiusPx * 1.5f, minimumReducedTransparencyBlurPx)
         .coerceAtMost(SemanticBlurKernel.MAX_SUPPORTED_RADIUS_PX),
     )

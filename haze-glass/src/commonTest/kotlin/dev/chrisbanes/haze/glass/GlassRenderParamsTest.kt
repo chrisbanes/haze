@@ -33,7 +33,9 @@ import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
+import assertk.assertions.isNull
 import assertk.assertions.isTrue
+import dev.chrisbanes.haze.HazeProgressive
 import kotlin.math.sqrt
 import kotlin.test.Test
 
@@ -114,6 +116,25 @@ class GlassRenderParamsTest {
     )
 
     assertThat(resolved.resolvedOptics.blurRadiusPx).isEqualTo(20f)
+  }
+
+  @Test
+  fun reduceTransparency_removesProgressiveMask() {
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle {
+        optics(GlassOptics(progressive = HazeProgressive.verticalGradient()))
+      }
+      accessibilitySettings = GlassAccessibilitySettings(reduceTransparency = true)
+    }
+
+    val resolved = resolveGlassStyle(
+      effect = effect,
+      materialSizePx = Size(100f, 100f),
+      density = Density(1f),
+      layoutDirection = LayoutDirection.Ltr,
+    )
+
+    assertThat(resolved.resolvedOptics.progressive).isNull()
   }
 
   @Test
