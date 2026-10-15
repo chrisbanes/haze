@@ -1057,6 +1057,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#deprecated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deprecated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#removed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4378,6 +4389,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#deprecated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deprecated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#removed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -7583,7 +7605,12 @@ while each member keeps its own interaction effects and can animate as it joins 
 performance guidance.</p>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">¶</a></h3>
 <ul>
-<li>Added <code>Modifier.hazeGlassContainer</code>, which merges nearby compatible Glass
+<li>
+<p>Added <code>GlassOptics.regular</code> and <code>GlassOptics.clear</code> as reusable optical configurations, and
+  <code>optics { copy(...) }</code> to modify the optics established by earlier style writes.</p>
+</li>
+<li>
+<p>Added <code>Modifier.hazeGlassContainer</code>, which merges nearby compatible Glass
   members into Glass clusters and gives them one container-wide optical size
   (<a href="https://github.com/chrisbanes/haze/pull/1472">#1472</a>). Each member's interaction transforms and
   lighting apply to its part of a cluster
@@ -7592,7 +7619,8 @@ performance guidance.</p>
   (<a href="https://github.com/chrisbanes/haze/pull/1479">#1479</a>) and keeps per-member press lights
   (<a href="https://github.com/chrisbanes/haze/pull/1487">#1487</a>). <code>GlassMemberTransition</code> and
   <code>hazeGlass(memberTransition = ...)</code> animate members as they join or leave a container
-  (<a href="https://github.com/chrisbanes/haze/pull/1482">#1482</a>).</li>
+  (<a href="https://github.com/chrisbanes/haze/pull/1482">#1482</a>).</p>
+</li>
 <li>Added the <code>Glass — Container</code> sample and Glass container documentation and performance guidance
   (<a href="https://github.com/chrisbanes/haze/pull/1491">#1491</a>).</li>
 <li>Added a <code>hazeGlassContainer(spacing, scrollState)</code> overload. Members of a lazy layout appear and
@@ -7639,12 +7667,17 @@ performance guidance.</p>
   <a href="https://github.com/chrisbanes/haze/pull/1397">#1397</a>,
   <a href="https://github.com/chrisbanes/haze/pull/1532">#1532</a>).</li>
 </ul>
+<h3 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">¶</a></h3>
+<ul>
+<li>Deprecated <code>GlassDefaults.optics</code> in favour of <code>GlassOptics.regular</code>. The old property forwards
+  to the same configuration; <code>GlassOptics()</code> constructor defaults are unchanged.</li>
+</ul>
 <h3 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">¶</a></h3>
 <ul>
 <li>Removed the <code>GlassStyleScope.optics(refractionStrength = ..., ...)</code> overload. Its defaults were
   the <code>GlassOptics()</code> constructor defaults rather than Regular's, so setting one value reset the
   others. Pass a <code>GlassOptics</code> instead; to change part of Regular, use
-  <code>optics(GlassDefaults.optics.copy(...))</code> (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
+  <code>optics(GlassOptics.regular.copy(...))</code> (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
 <li>Removed both <code>GlassStyle.Material3()</code> overloads. Use <code>GlassStyle.material3()</code> for the Material 3
   colors alone, or <code>style.material3()</code> to apply them under another Style (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
 </ul>

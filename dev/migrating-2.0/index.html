@@ -1772,7 +1772,7 @@ generated API reference for property-specific ranges.</p>
 </tr>
 <tr>
 <td><code>GlassOptics.Adaptive</code> supplied through <code>optics(...)</code></td>
-<td><code>optics(GlassDefaults.optics)</code></td>
+<td><code>optics(GlassOptics.regular)</code></td>
 </tr>
 <tr>
 <td><code>lightPosition(Offset)</code> and <code>Offset.Unspecified</code></td>
@@ -1784,7 +1784,7 @@ generated API reference for property-specific ranges.</p>
 to be reused or selected programmatically. Use <code>OpticalSizeValue.Responsive</code> for
 shortest-dimension-dependent blur or depth.</p>
 <p><code>GlassOptics()</code> creates fixed optics and is not a replacement for <code>GlassOptics.Adaptive</code>. Use
-<code>GlassStyle.regular</code> when selecting the complete built-in Style, or <code>GlassDefaults.optics</code> when only
+<code>GlassStyle.regular</code> when selecting the complete built-in Style, or <code>GlassOptics.regular</code> when only
 the optics value needs to be supplied or copied.</p>
 <p>Glass light position is now an intentional source break from pixel <code>Offset</code> to semantic
 <code>Alignment</code>, with no compatibility overload. Use <code>Alignment.Center</code> (or omit the write) for the
