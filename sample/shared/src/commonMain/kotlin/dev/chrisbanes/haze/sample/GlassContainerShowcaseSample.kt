@@ -452,9 +452,13 @@ private fun LibraryBar(
   var compactPill by remember { mutableStateOf(selecting) }
   var searchVisible by remember { mutableStateOf(!selecting) }
   var visibleActions by remember { mutableIntStateOf(if (selecting) 3 else 0) }
-  // A new drag takes Search over from its return spring, so the two don't both move it.
+  // A new drag, resuming playback or a reset takes Search over from its return spring, so the
+  // two don't both move it.
   val scope = rememberCoroutineScope()
   var settleJob by remember { mutableStateOf<Job?>(null) }
+  LaunchedEffect(state.isPlaying, state.autoplayGeneration) {
+    if (state.isPlaying) settleJob?.cancel()
+  }
 
   LaunchedEffect(selecting) {
     if (selecting) {
