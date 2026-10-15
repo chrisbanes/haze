@@ -37,12 +37,14 @@ performance guidance.
 ### Changed
 
 - Glass APIs in `haze-glass` and `haze-glass-material3` are stable and no longer require opting in
-  to `@ExperimentalHazeApi`.
+  to `@ExperimentalHazeApi` ([#1547](https://github.com/chrisbanes/haze/pull/1547)).
 - `GlassAccessibilitySettings.reduceTransparency` now makes Glass more opaque, with a stronger,
-  fully diffused blur. Previously it reduced blur, which made content behind Glass more visible.
+  fully diffused blur. Previously it reduced blur, which made content behind Glass more visible
+  ([#1547](https://github.com/chrisbanes/haze/pull/1547)).
 - Renamed `GlassDefaults.positionAnimationSpec` to `GlassDefaults.interactionPositionAnimationSpec`,
-  matching `GlassStyleScope.interactionPositionAnimationSpec`.
-- Documented that `GlassReducedMotionPolicy` also controls Glass container member transitions.
+  matching `GlassStyleScope.interactionPositionAnimationSpec` ([#1547](https://github.com/chrisbanes/haze/pull/1547)).
+- Documented that `GlassReducedMotionPolicy` also controls Glass container member transitions
+  ([#1547](https://github.com/chrisbanes/haze/pull/1547)).
 - Documented that `HazeSourceRetention.KeepLastFrame` does not guarantee frozen pixels: on Android,
   retained Glass output can redraw from live or changed source content after its source is lost
   ([#1432](https://github.com/chrisbanes/haze/pull/1432)).
@@ -77,9 +79,9 @@ performance guidance.
 - Removed the `GlassStyleScope.optics(refractionStrength = ..., ...)` overload. Its defaults were
   the `GlassOptics()` constructor defaults rather than Regular's, so setting one value reset the
   others. Pass a `GlassOptics` instead; to change part of Regular, use
-  `optics(GlassDefaults.optics.copy(...))`.
+  `optics(GlassDefaults.optics.copy(...))` ([#1547](https://github.com/chrisbanes/haze/pull/1547)).
 - Removed both `GlassStyle.Material3()` overloads. Use `GlassStyle.material3()` for the Material 3
-  colors alone, or `style.material3()` to apply them under another Style.
+  colors alone, or `style.material3()` to apply them under another Style ([#1547](https://github.com/chrisbanes/haze/pull/1547)).
 
 ### Fixed
 
