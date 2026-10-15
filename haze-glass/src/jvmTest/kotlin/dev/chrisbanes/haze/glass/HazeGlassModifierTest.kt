@@ -543,6 +543,7 @@ class HazeGlassModifierTest : ContextTest() {
   @Test
   fun rememberedStyleStateReads_updateRenderWithoutRecomposition() = runComposeUiTest {
     val radius = mutableStateOf(8.dp)
+    val blur = mutableStateOf(4.dp)
     val fade = mutableFloatStateOf(0.4f)
     val recompositions = mutableIntStateOf(0)
     val factory = RecordingGlassFactory()
@@ -559,6 +560,7 @@ class HazeGlassModifierTest : ContextTest() {
                 GlassStyle {
                   shape(RoundedCornerShape(radius.value))
                   alpha(fade.floatValue)
+                  optics { copy(blurRadius = OpticalSizeValue.Fixed(blur.value)) }
                 }
               },
               performanceMode = HazePerformanceMode.Default,
@@ -571,6 +573,7 @@ class HazeGlassModifierTest : ContextTest() {
     waitForIdle()
     recompositions.intValue = 0
 
+    blur.value = 8.dp
     radius.value = 24.dp
     fade.floatValue = 0.7f
     waitForIdle()
@@ -579,10 +582,21 @@ class HazeGlassModifierTest : ContextTest() {
     val runtime = factory.effects.single().delegate
     val expectedRadius = with(density) { 24.dp.toPx() }
     assertThat(recompositions.intValue).isEqualTo(0)
+    assertThat(runtime.optics.blurRadius).isEqualTo(OpticalSizeValue.Fixed(8.dp))
     assertThat(runtime.alpha).isEqualTo(0.7f)
     val prepared = checkNotNull(runtime.preparedRender)
     assertThat(prepared.alpha).isEqualTo(0.7f)
     assertThat(prepared.params.cornerRadii).isEqualTo(uniformRadii(expectedRadius, prepared))
+
+    // An optics-only state change must invalidate the observed style too.
+    blur.value = 12.dp
+    waitForIdle()
+    onRoot().captureToImage()
+    assertThat(recompositions.intValue).isEqualTo(0)
+    assertThat(runtime.optics.blurRadius).isEqualTo(OpticalSizeValue.Fixed(12.dp))
+    val updated = checkNotNull(runtime.preparedRender)
+    assertThat(updated.params.blurRadiusPx)
+      .isEqualTo(with(density) { 12.dp.toPx() } * updated.params.coordinates.scaleFactor)
   }
 
   @Test
@@ -877,7 +891,7 @@ class HazeGlassModifierTest : ContextTest() {
     val explicitStyle = GlassStyle {
       alpha(0.6f)
       specularIntensity(0.6f)
-      optics(GlassDefaults.optics)
+      optics(GlassOptics.regular)
       pressed {
         lightingIntensity(0.5f)
         refractionMultiplier(1.5f)

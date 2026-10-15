@@ -35,6 +35,51 @@ import kotlin.test.Test
 class GlassStyleTest {
 
   @Test
+  fun opticsTransform_usesInheritedValuesAndReplaysWithoutAccumulating() {
+    val custom = GlassOptics.clear.copy(refractionStrength = 0.4f)
+    val local = GlassStyle { optics(custom) }
+    val adjustment = GlassStyle { optics { copy(refractionStrength = refractionStrength + 0.1f) } }
+    repeat(2) {
+      assertThat(resolveGlassStyleValues(local, adjustment).optics)
+        .isEqualTo(custom.copy(refractionStrength = 0.5f))
+    }
+    assertThat(resolveGlassStyleValues(GlassStyle, adjustment).optics)
+      .isEqualTo(GlassOptics.regular.copy(refractionStrength = 0.8f))
+  }
+
+  @Test
+  fun opticsTransform_respectsOrderedReplacementAndBuiltInStyles() {
+    val adjustment = GlassStyle { optics { copy(blurRadius = OpticalSizeValue.Fixed(4.dp)) } }
+    for ((style, optics) in listOf(GlassStyle.regular to GlassOptics.regular, GlassStyle.clear to GlassOptics.clear)) {
+      assertThat(resolveGlassStyleValues(GlassStyle, style.then(adjustment)).optics)
+        .isEqualTo(optics.copy(blurRadius = OpticalSizeValue.Fixed(4.dp)))
+      assertThat(resolveGlassStyleValues(GlassStyle, adjustment.then(style)).optics)
+        .isSameInstanceAs(optics)
+    }
+    val replacement = GlassOptics(depth = OpticalSizeValue.Fixed(0.2f))
+    assertThat(resolveGlassStyleValues(GlassStyle, adjustment.then { optics(replacement) }).optics)
+      .isSameInstanceAs(replacement)
+  }
+
+  @Test
+  fun opticsTransform_validatesWhenEvaluated() {
+    val style = GlassStyle { optics { copy(refractionStrength = -1f) } }
+    assertFailure { resolveGlassStyleValues(GlassStyle, style) }
+      .isInstanceOf<IllegalArgumentException>()
+  }
+
+  @Suppress("DEPRECATION")
+  @Test
+  fun defaultOpticsAlias_preservesRegularAndConstructorDefaults() {
+    assertThat(GlassDefaults.optics).isSameInstanceAs(GlassOptics.regular)
+    val custom = GlassOptics()
+    assertThat(custom.blurRadius).isEqualTo(OpticalSizeValue.Fixed(14.dp))
+    assertThat(custom.refractionProfile).isEqualTo(RefractionProfile.Surface)
+    assertThat(custom.refractionDisplacement).isEqualTo(15.dp)
+    assertThat(custom.refractionDetailIntensity).isEqualTo(0.76f)
+  }
+
+  @Test
   fun lightPosition_defaultsToCenter() {
     assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle).lightPosition)
       .isEqualTo(Alignment.Center)
@@ -64,18 +109,18 @@ class GlassStyleTest {
   @Test
   fun completeOptics_preservesResponsiveAndProgrammaticValues() {
     val sharedOptics = GlassOptics(depth = OpticalSizeValue.Fixed(0.4f))
-    val programmaticallySelected: GlassOptics = listOf(GlassDefaults.optics, sharedOptics).last()
+    val programmaticallySelected: GlassOptics = listOf(GlassOptics.regular, sharedOptics).last()
 
     val responsive = resolveGlassStyleValues(
       GlassStyle,
-      GlassStyle { optics(GlassDefaults.optics) },
+      GlassStyle { optics(GlassOptics.regular) },
     )
     val selected = resolveGlassStyleValues(
       GlassStyle,
       GlassStyle { optics(programmaticallySelected) },
     )
 
-    assertThat(responsive.optics).isSameInstanceAs(GlassDefaults.optics)
+    assertThat(responsive.optics).isSameInstanceAs(GlassOptics.regular)
     assertThat(selected.optics).isSameInstanceAs(sharedOptics)
   }
 
@@ -487,8 +532,8 @@ class GlassStyleTest {
     val regular = resolveGlassStyleValues(GlassStyle, GlassStyle.regular)
     val clear = resolveGlassStyleValues(GlassStyle, GlassStyle.clear)
 
-    assertThat(regular.optics).isSameInstanceAs(GlassDefaults.optics)
-    assertThat(clear.optics).isSameInstanceAs(GlassStyle.clearOptics)
+    assertThat(regular.optics).isSameInstanceAs(GlassOptics.regular)
+    assertThat(clear.optics).isSameInstanceAs(GlassOptics.clear)
     assertThat(clear.optics).isNotEqualTo(regular.optics)
     assertThat(clear.whitePoint).isNotEqualTo(regular.whitePoint)
     assertThat(clear.chromaMultiplier).isNotEqualTo(regular.chromaMultiplier)

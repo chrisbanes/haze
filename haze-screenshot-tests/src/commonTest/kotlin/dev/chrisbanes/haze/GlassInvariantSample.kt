@@ -50,7 +50,6 @@ import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isTrue
-import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
@@ -376,7 +375,7 @@ internal fun ScreenshotUiTest.assertGlassMedialAxesContinuous() {
   )
   val profiles = listOf(SurfaceProfile.Circle, SurfaceProfile.Squircle)
   val opticsCases = listOf(
-    GlassDefaults.optics,
+    GlassOptics.regular,
     GlassOptics(
       refractionStrength = 1f,
       refractionHeightFraction = 0.75f,

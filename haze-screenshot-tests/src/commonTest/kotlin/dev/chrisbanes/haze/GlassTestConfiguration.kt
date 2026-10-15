@@ -38,7 +38,7 @@ internal class GlassTestConfiguration {
   var style: GlassStyle by mutableStateOf(GlassStyle)
 
   private var hasOpticsOverride by mutableStateOf(false)
-  private var opticsOverride by mutableStateOf(GlassDefaults.optics)
+  private var opticsOverride by mutableStateOf(GlassOptics.regular)
   var optics: GlassOptics
     get() = opticsOverride
     set(value) {

@@ -69,7 +69,6 @@ import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
-import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.GlassTransformPivot
@@ -194,8 +193,8 @@ fun ScaffoldSample(
           tint = glassTint,
           performanceMode = performanceMode,
           optics = when (mode) {
-            ScaffoldSampleMode.Progressive -> GlassDefaults.optics.copy(progressive = progressive)
-            else -> GlassDefaults.optics
+            ScaffoldSampleMode.Progressive -> GlassOptics.regular.copy(progressive = progressive)
+            else -> GlassOptics.regular
           },
           title = "Glass shaped boundary".takeIf { mode == ScaffoldSampleMode.Mask },
           onBack = if (navigationEnabled) ({ navController.navigateUp() }) else null,
@@ -356,7 +355,7 @@ private fun GlassScaffoldNavigationBar(
     backgroundColor = backgroundColor,
     tint = tint,
     performanceMode = performanceMode,
-    optics = GlassDefaults.optics,
+    optics = GlassOptics.regular,
     shape = RoundedCornerShape(32.dp),
     modifier = modifier
       .windowInsetsPadding(WindowInsets.navigationBars)

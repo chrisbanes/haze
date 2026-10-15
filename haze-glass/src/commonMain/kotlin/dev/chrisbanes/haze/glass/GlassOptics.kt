@@ -55,6 +55,41 @@ public data class GlassOptics(
   /** Sampling profile. The default preserves refraction derived from [SurfaceProfile]. */
   val refractionProfile: RefractionProfile = RefractionProfile.Surface,
 ) {
+  /** Optical configurations used by the built-in Glass styles. */
+  public companion object {
+    /** Size-responsive optics used by [GlassStyle.regular]. Copy to customise Regular. */
+    public val regular: GlassOptics = GlassOptics(
+      // Compact controls retain refracted detail; larger surfaces fully diffuse the backdrop.
+      depth = OpticalSizeValue.Responsive(
+        OpticalSizePoint(64.dp, 0.65f),
+        OpticalSizePoint(176.dp, 1f),
+        OpticalSizePoint(220.dp, 1f),
+      ),
+      blurRadius = OpticalSizeValue.Responsive(
+        OpticalSizePoint(64.dp, 20.dp),
+        OpticalSizePoint(176.dp, 24.dp),
+        OpticalSizePoint(220.dp, 25.dp),
+      ),
+      refractionDisplacement = 48.dp,
+      refractionProfile = RefractionProfile.Edge(20.dp),
+      refractionHeightFraction = 0.15f,
+      refractionFoldStrength = 0f,
+      refractionDetailIntensity = 0f,
+    )
+
+    /** Shallow diffusion and edge refraction used by [GlassStyle.clear]. Copy to customise Clear. */
+    public val clear: GlassOptics = GlassOptics(
+      refractionStrength = 0.85f,
+      refractionHeightFraction = 0.35f,
+      refractionDisplacement = 56.dp,
+      refractionProfile = RefractionProfile.Edge(28.dp),
+      // Clear keeps a shallow diffusion layer at every size, without a sharp-source overlay.
+      depth = OpticalSizeValue.Fixed(1f),
+      blurRadius = OpticalSizeValue.Fixed(1.25.dp),
+      refractionDetailIntensity = 0.76f,
+    )
+  }
+
   init {
     requireFiniteInRange(
       "refractionStrength",

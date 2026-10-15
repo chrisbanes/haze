@@ -70,19 +70,8 @@ public sealed interface GlassStyle {
   /** The empty Glass Style, which performs no writes. */
   public companion object : GlassStyle {
 
-    internal val clearOptics: GlassOptics = GlassOptics(
-      refractionStrength = 0.85f,
-      refractionHeightFraction = 0.35f,
-      refractionDisplacement = 56.dp,
-      refractionProfile = RefractionProfile.Edge(28.dp),
-      // Clear keeps a shallow diffusion layer at every size, without a sharp-source overlay.
-      depth = OpticalSizeValue.Fixed(1f),
-      blurRadius = OpticalSizeValue.Fixed(1.25.dp),
-      refractionDetailIntensity = 0.76f,
-    )
-
     internal val regularLight: GlassStyle = GlassStyle {
-      optics(GlassDefaults.optics)
+      optics(GlassOptics.regular)
       specularIntensity(GlassDefaults.specularIntensity)
       edgeShadow(GlassDefaults.edgeShadow)
       ambientResponse(GlassDefaults.ambientResponse)
@@ -117,7 +106,7 @@ public sealed interface GlassStyle {
     public val regular: GlassStyle = BuiltInGlassStyle.Regular
 
     internal val clearLight: GlassStyle = GlassStyle {
-      optics(clearOptics)
+      optics(GlassOptics.clear)
       specularIntensity(0.55f)
       edgeShadow(Color.Black.copy(alpha = 0.1f))
       ambientResponse(0.42f)
@@ -283,10 +272,25 @@ public class GlassStyleScope internal constructor(
    * Sets the optical model used to refract and blur captured content.
    *
    * Replaces the whole model. To change part of the built-in model, copy it, for example
-   * `optics(GlassDefaults.optics.copy(blurRadius = OpticalSizeValue.Fixed(30.dp)))`.
+   * `optics(GlassOptics.regular.copy(blurRadius = OpticalSizeValue.Fixed(30.dp)))`.
    */
   public fun optics(optics: GlassOptics) {
     values.optics = optics
+  }
+
+  /**
+   * Transforms the optics established by defaults and earlier Style writes.
+   *
+   * For example, `GlassStyle.clear.then { optics { copy(blurRadius = OpticalSizeValue.Fixed(4.dp)) } }`
+   * changes Clear's blur without replacing its other optical values. Later optics writes or
+   * built-in styles can replace the result.
+   *
+   * [transform] runs on each Style evaluation, not when the Style is constructed. Snapshot state
+   * reads are observed by each consuming node. Keep it free of side effects. Invalid values are
+   * rejected by [GlassOptics] construction, including [GlassOptics.copy].
+   */
+  public fun optics(transform: GlassOptics.() -> GlassOptics) {
+    values.optics = values.optics.transform()
   }
 
   /** Sets finite specular-highlight intensity in the inclusive range `0f..1f`. */
@@ -450,7 +454,7 @@ private fun validateLightPositionBiases(horizontalBias: Float, verticalBias: Flo
 @Poko
 internal class GlassStyleValues(
   var shape: RoundedCornerShape = GlassDefaults.shape,
-  var optics: GlassOptics = GlassDefaults.optics,
+  var optics: GlassOptics = GlassOptics.regular,
   var specularIntensity: Float = GlassDefaults.specularIntensity,
   var edgeShadow: Color = GlassDefaults.edgeShadow,
   var ambientResponse: Float = GlassDefaults.ambientResponse,

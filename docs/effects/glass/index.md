@@ -45,7 +45,7 @@ val regular = GlassStyle.regular.material3()
 val clear = GlassStyle.clear.material3(tint = Color.White.copy(alpha = 0.16f))
 
 val custom = remember {
-  GlassStyle { optics(GlassDefaults.optics.copy(refractionStrength = 0.8f)) }
+  GlassStyle { optics(GlassOptics.regular.copy(refractionStrength = 0.8f)) }
 }
 Modifier.hazeGlass(
   input = HazeInput.Backdrop(hazeState),
@@ -129,7 +129,7 @@ Compose `ColorSpace`.
 val baseStyle = GlassStyle {
   backgroundColor(Color.White)
   tint(Color.White.copy(alpha = 0.16f))
-  optics(GlassDefaults.optics.copy(refractionStrength = 0.8f))
+  optics(GlassOptics.regular.copy(refractionStrength = 0.8f))
   shape(RoundedCornerShape(20.dp))
 }
 val emphasizedStyle = baseStyle.then { specularIntensity(0.7f) }
@@ -239,9 +239,31 @@ GlassStyle {
 }
 ```
 
-`optics()` replaces the whole optical model. The `GlassOptics` constructor defaults are not
+Use `optics { copy(...) }` to adjust the optical configuration established by earlier style writes:
+
+```kotlin
+val softerClear = GlassStyle.clear.then {
+  optics { copy(blurRadius = OpticalSizeValue.Fixed(4.dp)) }
+}
+```
+
+The receiver is the currently accumulated optics, including inherited and earlier explicit writes.
+The block runs on every style evaluation and can read snapshot state without recomposing the call
+site. Keep it free of side effects. Later `optics(value)` writes or built-in styles replace its result.
+
+For a configuration you want to store or choose outside a style, copy `GlassOptics.regular` or
+`GlassOptics.clear`:
+
+```kotlin
+val softerClearOptics = GlassOptics.clear.copy(blurRadius = OpticalSizeValue.Fixed(4.dp))
+val softerClear = GlassStyle.clear.then { optics(softerClearOptics) }
+```
+
+`GlassDefaults.optics` is deprecated; replace it with `GlassOptics.regular`.
+
+`optics(value)` replaces the whole optical model. The `GlassOptics` constructor defaults are not
 Regular's, so to change part of Regular, copy it:
-`optics(GlassDefaults.optics.copy(refractionStrength = 0.8f))`. To vary blur or depth with size, give `GlassOptics` points keyed
+`optics(GlassOptics.regular.copy(refractionStrength = 0.8f))`. To vary blur or depth with size, give `GlassOptics` points keyed
 by the surface's shortest side. Values hold at the end points and blend smoothly between them. Each
 responsive value needs at least two points with positive, finite, strictly increasing sizes:
 
@@ -271,7 +293,7 @@ Optics also accept a progressive intensity:
 GlassStyle {
   tint(Color.White.copy(alpha = 0.20f))
   optics(
-    GlassDefaults.optics.copy(
+    GlassOptics.regular.copy(
       progressive = HazeProgressive.verticalGradient(
         startIntensity = 1f,
         endIntensity = 0.25f,

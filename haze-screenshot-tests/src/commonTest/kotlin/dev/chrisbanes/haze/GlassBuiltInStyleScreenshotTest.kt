@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
-import dev.chrisbanes.haze.glass.GlassDefaults
+import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
@@ -84,9 +84,9 @@ class GlassBuiltInStyleScreenshotTest : ScreenshotTest() {
               input = HazeInput.Sources(hazeState),
               style = GlassStyle.regular.then {
                 optics(
-                  GlassDefaults.optics.copy(
+                  GlassOptics.regular.copy(
                     refractionStrength = 0f,
-                    blurRadius = if (blurEnabled) GlassDefaults.optics.blurRadius else OpticalSizeValue.Fixed(0.dp),
+                    blurRadius = if (blurEnabled) GlassOptics.regular.blurRadius else OpticalSizeValue.Fixed(0.dp),
                   ),
                 )
               },
