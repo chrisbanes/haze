@@ -1057,6 +1057,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#removed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1157,7 +1168,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#removed" class="md-nav__link">
+  <a href="#removed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Removed
@@ -4367,6 +4378,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#removed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4467,7 +4489,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#removed" class="md-nav__link">
+  <a href="#removed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Removed
@@ -7552,14 +7574,16 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">¶</a></h2>
-<p>This release adds experimental Glass containers. Wrap nearby Glass surfaces in
+<p>Glass is now stable: <code>haze-glass</code> and <code>haze-glass-material3</code> no longer require
+<code>@ExperimentalHazeApi</code>. A few APIs changed before freezing; see the Changed and Removed sections.</p>
+<p>This release also adds Glass containers. Wrap nearby Glass surfaces in
 <code>Modifier.hazeGlassContainer</code>, and compatible members merge into one cluster with shared optics,
 while each member keeps its own interaction effects and can animate as it joins or leaves. See
 <a href="https://chrisbanes.github.io/haze/effects/glass/containers/">Glass containers</a> for usage and
 performance guidance.</p>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">¶</a></h3>
 <ul>
-<li>Added the experimental <code>Modifier.hazeGlassContainer</code>, which merges nearby compatible Glass
+<li>Added <code>Modifier.hazeGlassContainer</code>, which merges nearby compatible Glass
   members into Glass clusters and gives them one container-wide optical size
   (<a href="https://github.com/chrisbanes/haze/pull/1472">#1472</a>). Each member's interaction transforms and
   lighting apply to its part of a cluster
@@ -7577,6 +7601,15 @@ performance guidance.</p>
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">¶</a></h3>
 <ul>
+<li>Glass APIs in <code>haze-glass</code> and <code>haze-glass-material3</code> are stable and no longer require opting in
+  to <code>@ExperimentalHazeApi</code> (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
+<li><code>GlassAccessibilitySettings.reduceTransparency</code> now makes Glass more opaque, with a stronger,
+  fully diffused blur. Previously it reduced blur, which made content behind Glass more visible
+  (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
+<li>Renamed <code>GlassDefaults.positionAnimationSpec</code> to <code>GlassDefaults.interactionPositionAnimationSpec</code>,
+  matching <code>GlassStyleScope.interactionPositionAnimationSpec</code> (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
+<li>Documented that <code>GlassReducedMotionPolicy</code> also controls Glass container member transitions
+  (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
 <li>Documented that <code>HazeSourceRetention.KeepLastFrame</code> does not guarantee frozen pixels: on Android,
   retained Glass output can redraw from live or changed source content after its source is lost
   (<a href="https://github.com/chrisbanes/haze/pull/1432">#1432</a>).</li>
@@ -7605,6 +7638,15 @@ performance guidance.</p>
   (<a href="https://github.com/chrisbanes/haze/pull/1396">#1396</a>,
   <a href="https://github.com/chrisbanes/haze/pull/1397">#1397</a>,
   <a href="https://github.com/chrisbanes/haze/pull/1532">#1532</a>).</li>
+</ul>
+<h3 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">¶</a></h3>
+<ul>
+<li>Removed the <code>GlassStyleScope.optics(refractionStrength = ..., ...)</code> overload. Its defaults were
+  the <code>GlassOptics()</code> constructor defaults rather than Regular's, so setting one value reset the
+  others. Pass a <code>GlassOptics</code> instead; to change part of Regular, use
+  <code>optics(GlassDefaults.optics.copy(...))</code> (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
+<li>Removed both <code>GlassStyle.Material3()</code> overloads. Use <code>GlassStyle.material3()</code> for the Material 3
+  colors alone, or <code>style.material3()</code> to apply them under another Style (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
@@ -7722,7 +7764,7 @@ input, shareable Style, performance policy, and rendering behavior explicitly.</
 <li>Fixed progressive Blur coverage and tint behavior on Android 12 and 12L, and refined Glass
   rendering, colour handling, rounded edges, fallback behavior, and animation performance.</li>
 </ul>
-<h3 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">¶</a></h3>
+<h3 id="removed_1">Removed<a class="headerlink" href="#removed_1" title="Permanent link">¶</a></h3>
 <ul>
 <li>Removed the Haze 1 Blur surface and the temporary Haze 2 prerelease adapters, including
   <code>Modifier.hazeEffect</code> Blur overloads, legacy <code>HazeStyle</code>/<code>HazeTint</code> aliases, mutable effect

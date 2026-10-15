@@ -1623,26 +1623,26 @@ color:</p>
 <span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-glass-material3:&lt;version&gt;"</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p><code>GlassStyle.Material3()</code> uses <code>MaterialTheme.colorScheme.surface</code> as its background color. Pass
-<code>containerColor</code> to use a different color. It leaves the tint unset unless you pass one. These
-functions are composable, so the Style follows theme changes when the call site recomposes.</p>
+<p><code>material3()</code> uses <code>MaterialTheme.colorScheme.surface</code> as its background color. Pass
+<code>containerColor</code> to use a different color. It leaves the tint unset unless you pass one. It is
+composable, so the Style follows theme changes when the call site recomposes.</p>
 <p>Material 3 supplies only colors. Regular and Clear still pick their light or dark response from the
 system appearance, not from <code>MaterialTheme</code>, and you don't need Material 3 for that.</p>
-<p>Apply Material 3 to a built-in or custom Style with <code>material3()</code>:</p>
+<p>Apply Material 3 to a built-in or custom Style with <code>material3()</code>. The Material 3 colors are
+written first, so the receiver Style can override either:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">regular</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">material3</span><span class="p">()</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">clear</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">clear</span><span class="p">.</span><span class="na">material3</span><span class="p">(</span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
+
+<span class="kd">val</span><span class="w"> </span><span class="nv">custom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">optics</span><span class="p">(</span><span class="n">GlassDefaults</span><span class="p">.</span><span class="na">optics</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">))</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+<span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
-<span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">Material3</span><span class="p">(</span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">optics</span><span class="p">(</span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">)</span>
-<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">custom</span><span class="p">.</span><span class="na">material3</span><span class="p">(</span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">)),</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>The container color and tint are written before the block, so the block can override either. The
-block overload returns a new Style on every call; to read animated state in the block, build the
-Style with <code>GlassStyle { }</code> inside <code>remember</code> instead. Material 3 also works as a subtree default:</p>
-<div class="highlight"><pre><span></span><code><span class="n">CompositionLocalProvider</span><span class="p">(</span><span class="n">LocalGlassStyle</span><span class="w"> </span><span class="n">provides</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">Material3</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<p>Call it on <code>GlassStyle</code> for the Material 3 colors alone, for example as a subtree default:</p>
+<div class="highlight"><pre><span></span><code><span class="n">CompositionLocalProvider</span><span class="p">(</span><span class="n">LocalGlassStyle</span><span class="w"> </span><span class="n">provides</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">material3</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="c1">// Glass modifiers in this subtree inherit the Material 3 surface background.</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -1702,7 +1702,7 @@ Compose <code>ColorSpace</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">baseStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">backgroundColor</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">)</span>
 <span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span>
-<span class="w">  </span><span class="n">optics</span><span class="p">(</span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">)</span>
+<span class="w">  </span><span class="n">optics</span><span class="p">(</span><span class="n">GlassDefaults</span><span class="p">.</span><span class="na">optics</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">))</span>
 <span class="w">  </span><span class="n">shape</span><span class="p">(</span><span class="n">RoundedCornerShape</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">))</span>
 <span class="p">}</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">emphasizedStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">baseStyle</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">specularIntensity</span><span class="p">(</span><span class="m">0.7f</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
@@ -1738,11 +1738,11 @@ provide it where Glass is used:</p>
 <span class="w">    </span><span class="n">showBorders</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">showBorders</span><span class="p">,</span>
 <span class="w">  </span><span class="p">),</span>
 <span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="c1">// Glass here reduces background diffusion or strengthens its separating edge when requested.</span>
+<span class="w">  </span><span class="c1">// Glass here diffuses the background more or strengthens its separating edge when requested.</span>
 <span class="p">}</span>
 </code></pre></div>
 <p>The defaults leave the Style unchanged, and the settings never modify your Style values.
-<code>reduceTransparency</code> reduces blur. <code>increaseContrast</code> raises tone contrast and enforces a visible
+<code>reduceTransparency</code> makes the material more opaque with a stronger, fully diffused blur. <code>increaseContrast</code> raises tone contrast and enforces a visible
 edge. <code>showBorders</code> enforces a visible edge without changing tone. The edge appears even when the
 Style has zero edge softness.</p>
 <h3 id="light-alignment">Light alignment<a class="headerlink" href="#light-alignment" title="Permanent link">¶</a></h3>
@@ -1773,16 +1773,20 @@ in a custom Style:</p>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">optics</span><span class="p">(</span>
-<span class="w">    </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span><span class="p">,</span>
-<span class="w">    </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">,</span>
-<span class="w">    </span><span class="n">refractionHeightFraction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.3f</span><span class="p">,</span>
-<span class="w">    </span><span class="n">refractionDisplacement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">18.</span><span class="n">dp</span><span class="p">,</span>
-<span class="w">    </span><span class="n">refractionFoldStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.65f</span><span class="p">,</span>
-<span class="w">    </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">,</span>
+<span class="w">    </span><span class="n">GlassOptics</span><span class="p">(</span>
+<span class="w">      </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">),</span>
+<span class="w">      </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">,</span>
+<span class="w">      </span><span class="n">refractionHeightFraction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.3f</span><span class="p">,</span>
+<span class="w">      </span><span class="n">refractionDisplacement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">18.</span><span class="n">dp</span><span class="p">,</span>
+<span class="w">      </span><span class="n">refractionFoldStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.65f</span><span class="p">,</span>
+<span class="w">      </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="m">0.5f</span><span class="p">),</span>
+<span class="w">    </span><span class="p">),</span>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p><code>optics(...)</code> sets fixed values. To vary blur or depth with size, give <code>GlassOptics</code> points keyed
+<p><code>optics()</code> replaces the whole optical model. The <code>GlassOptics</code> constructor defaults are not
+Regular's, so to change part of Regular, copy it:
+<code>optics(GlassDefaults.optics.copy(refractionStrength = 0.8f))</code>. To vary blur or depth with size, give <code>GlassOptics</code> points keyed
 by the surface's shortest side. Values hold at the end points and blend smoothly between them. Each
 responsive value needs at least two points with positive, finite, strictly increasing sizes:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">responsiveOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">(</span>
@@ -1804,9 +1808,11 @@ responsive value needs at least two points with positive, finite, strictly incre
 <div class="highlight"><pre><span></span><code><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.20f</span><span class="p">))</span>
 <span class="w">  </span><span class="n">optics</span><span class="p">(</span>
-<span class="w">    </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span>
-<span class="w">      </span><span class="n">startIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span>
-<span class="w">      </span><span class="n">endIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.25f</span><span class="p">,</span>
+<span class="w">    </span><span class="n">GlassDefaults</span><span class="p">.</span><span class="na">optics</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span>
+<span class="w">      </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span>
+<span class="w">        </span><span class="n">startIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span>
+<span class="w">        </span><span class="n">endIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.25f</span><span class="p">,</span>
+<span class="w">      </span><span class="p">),</span>
 <span class="w">    </span><span class="p">),</span>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
@@ -1997,7 +2003,7 @@ animates the light towards focus and other <code>InteractionSource</code>-derive
 </ul>
 <p>Omit a state block from a replacement Style to remove that response.</p>
 <h2 id="containers">Containers<a class="headerlink" href="#containers" title="Permanent link">¶</a></h2>
-<p>Wrap nearby Glass surfaces in the experimental <code>Modifier.hazeGlassContainer</code> to merge them into one
+<p>Wrap nearby Glass surfaces in <code>Modifier.hazeGlassContainer</code> to merge them into one
 shape, for controls that should read as one object, such as a toolbar or a segmented control. See
 <a href="containers/">Glass containers</a> for the merge rule, transitions, lazy layouts and fallbacks.</p>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">¶</a></h2>
@@ -2009,9 +2015,11 @@ shape, for controls that should read as one object, such as a toolbar or a segme
 <span class="w">      </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span>
 <span class="w">        </span><span class="n">optics</span><span class="p">(</span>
-<span class="w">          </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">,</span>
-<span class="w">          </span><span class="n">refractionHeightFraction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.32f</span><span class="p">,</span>
-<span class="w">          </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">,</span>
+<span class="w">          </span><span class="n">GlassOptics</span><span class="p">(</span>
+<span class="w">            </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">,</span>
+<span class="w">            </span><span class="n">refractionHeightFraction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.32f</span><span class="p">,</span>
+<span class="w">            </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="m">0.5f</span><span class="p">),</span>
+<span class="w">          </span><span class="p">),</span>
 <span class="w">        </span><span class="p">)</span>
 <span class="w">        </span><span class="n">specularIntensity</span><span class="p">(</span><span class="m">0.7f</span><span class="p">)</span>
 <span class="w">        </span><span class="n">ambientResponse</span><span class="p">(</span><span class="m">0.7f</span><span class="p">)</span>

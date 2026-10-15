@@ -1795,8 +1795,10 @@ former <code>Offset.Unspecified</code> behavior, logical start/end alignments fo
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">glassStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.12f</span><span class="p">))</span>
 <span class="w">  </span><span class="n">optics</span><span class="p">(</span>
-<span class="w">    </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">,</span>
-<span class="w">    </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">,</span>
+<span class="w">    </span><span class="n">GlassOptics</span><span class="p">(</span>
+<span class="w">      </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">,</span>
+<span class="w">      </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="m">0.4f</span><span class="p">),</span>
+<span class="w">    </span><span class="p">),</span>
 <span class="w">  </span><span class="p">)</span>
 <span class="w">  </span><span class="n">specularIntensity</span><span class="p">(</span><span class="m">0.4f</span><span class="p">)</span>
 <span class="w">  </span><span class="n">edgeSoftness</span><span class="p">(</span><span class="m">12.</span><span class="n">dp</span><span class="p">)</span>
