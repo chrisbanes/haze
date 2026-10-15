@@ -31,7 +31,7 @@ performance guidance.
 - Added the `Glass — Container` sample and Glass container documentation and performance guidance
   ([#1491](https://github.com/chrisbanes/haze/pull/1491)).
 - Added the `Glass — Container Showcase` sample, a photo library whose Glass bar merges, splits
-  and grows actions in a scripted loop.
+  and grows actions in a scripted loop ([#1552](https://github.com/chrisbanes/haze/pull/1552)).
 - Added a `hazeGlassContainer(spacing, scrollState)` overload. Members of a lazy layout appear and
   disappear without a transition while it scrolls
   ([#1544](https://github.com/chrisbanes/haze/pull/1544)).
