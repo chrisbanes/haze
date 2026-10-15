@@ -1,6 +1,8 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(dev.chrisbanes.haze.InternalHazeApi::class)
+
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.animation.AnimatedVisibility
@@ -91,6 +93,7 @@ import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.glass.hazeGlassContainer
@@ -449,8 +452,16 @@ private fun LibraryBar(
   var compactPill by remember { mutableStateOf(selecting) }
   var searchVisible by remember { mutableStateOf(!selecting) }
   var visibleActions by remember { mutableIntStateOf(if (selecting) 3 else 0) }
+  // A new drag takes Search over from its return spring, so the two don't both move it.
+  val scope = rememberCoroutineScope()
+  var settleJob by remember { mutableStateOf<Job?>(null) }
+
   LaunchedEffect(selecting) {
     if (selecting) {
+      // Search may have been dragged or split away. Send it home as it leaves, so it returns
+      // next to the tabs when selection ends.
+      settleJob?.cancel()
+      settleJob = scope.launch { state.settleSearch() }
       searchVisible = false
       compactPill = true
       delay(550)
@@ -490,10 +501,6 @@ private fun LibraryBar(
   }
 
   val searchTravelPx = with(LocalDensity.current) { searchTravel.toPx() }
-  // A new drag takes Search over from its return spring, so the two don't both move it.
-  val scope = rememberCoroutineScope()
-  var settleJob by remember { mutableStateOf<Job?>(null) }
-
   CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
     // Anchor the bar's start, so members joining or leaving at the end don't shift the tabs.
     Box(Modifier.width(barWidth), contentAlignment = Alignment.CenterStart) {
@@ -597,6 +604,7 @@ private fun LibraryBar(
   }
 }
 
+@Poko
 private class SelectionAction(val label: String, val icon: ImageVector, val tint: Color? = null)
 
 private val SelectionActions = listOf(
