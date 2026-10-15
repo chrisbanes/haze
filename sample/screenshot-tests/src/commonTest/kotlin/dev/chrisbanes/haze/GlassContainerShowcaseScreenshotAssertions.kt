@@ -43,4 +43,9 @@ internal fun ScreenshotUiTest.captureGlassContainerShowcase(
   state.seek(0.6f)
   waitForIdle()
   captureRoot("selecting", unmatchedPixelThreshold)
+
+  // The demo controls, which must not cover the bar.
+  state.updateRecordingMode(false)
+  waitForIdle()
+  captureRoot("controls", unmatchedPixelThreshold)
 }

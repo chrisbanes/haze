@@ -269,7 +269,7 @@ public fun GlassContainerShowcaseSampleContent(
 ) {
   val hazeState = rememberHazeState()
 
-  Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+  BoxWithConstraints(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
     // Any press in the scene hands control to the user. The demo controls sit outside this box,
     // so pressing them doesn't pause the loop.
     Box(
@@ -312,12 +312,15 @@ public fun GlassContainerShowcaseSampleContent(
       )
     }
 
+    // On narrow windows, such as phones, the bar spans the bottom, so the controls go below the
+    // title instead.
+    val controlsBesideBar = maxWidth >= 900.dp
     AnimatedVisibility(
       visible = !state.recordingMode,
       modifier = Modifier
-        .align(Alignment.BottomStart)
+        .align(if (controlsBesideBar) Alignment.BottomStart else Alignment.TopStart)
         .windowInsetsPadding(WindowInsets.safeDrawing)
-        .padding(24.dp),
+        .padding(start = 24.dp, top = if (controlsBesideBar) 24.dp else 112.dp, end = 24.dp, bottom = 24.dp),
     ) {
       DemoChrome(
         hazeState = hazeState,
