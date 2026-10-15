@@ -50,6 +50,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -90,8 +92,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.toSize
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.HazeInput
@@ -271,10 +276,16 @@ public fun GlassContainerShowcaseSampleContent(
   modifier: Modifier = Modifier,
 ) {
   val hazeState = rememberHazeState()
-  // Where the title block ends, which grows with the user's font size.
-  var titleBottom by remember { mutableStateOf(0.dp) }
+  // The title block's size, which grows with the user's font size.
+  var titleSize by remember { mutableStateOf(DpSize.Zero) }
+  var selectWidth by remember { mutableStateOf(0.dp) }
+  val density = LocalDensity.current
 
   BoxWithConstraints(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+    // Select sits beside the title when both fit, and below it otherwise, such as with large text
+    // on a phone. The end padding keeps it clear of the sample browser's settings button.
+    val selectBelowTitle = titleSize.width + selectWidth + 72.dp > maxWidth
+
     // Any press in the scene hands control to the user. The demo controls sit outside this box,
     // so pressing them doesn't pause the loop.
     Box(
@@ -294,7 +305,7 @@ public fun GlassContainerShowcaseSampleContent(
       PhotoLibrary(
         hazeState = hazeState,
         state = state,
-        onTitleBottomChange = { titleBottom = it },
+        onTitleSizeChange = { titleSize = it },
         modifier = Modifier.fillMaxSize(),
       )
 
@@ -304,8 +315,18 @@ public fun GlassContainerShowcaseSampleContent(
         onClick = { state.updateSelecting(!state.selecting) },
         modifier = Modifier
           .align(Alignment.TopEnd)
-          .windowInsetsPadding(WindowInsets.safeDrawing)
-          .padding(top = 32.dp, end = 72.dp),
+          .then(
+            if (selectBelowTitle) {
+              Modifier
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                .padding(top = titleSize.height + 12.dp, end = 24.dp)
+            } else {
+              Modifier
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(top = 32.dp, end = 72.dp)
+            },
+          )
+          .onSizeChanged { selectWidth = with(density) { it.width.toDp() } },
       )
 
       LibraryBar(
@@ -332,7 +353,7 @@ public fun GlassContainerShowcaseSampleContent(
         Modifier
           .align(Alignment.TopStart)
           .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
-          .padding(start = 24.dp, top = titleBottom + 12.dp)
+          .padding(start = 24.dp, top = titleSize.height + 12.dp + if (selectBelowTitle) 44.dp + 12.dp else 0.dp)
       },
     ) {
       DemoChrome(
@@ -352,7 +373,7 @@ public fun GlassContainerShowcaseSampleContent(
 private fun PhotoLibrary(
   hazeState: HazeState,
   state: GlassContainerShowcaseState,
-  onTitleBottomChange: (Dp) -> Unit,
+  onTitleSizeChange: (DpSize) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val density = LocalDensity.current
@@ -427,8 +448,8 @@ private fun PhotoLibrary(
     ) {
       Column(
         Modifier
-          // Measured before the insets and padding, so the size is the title's bottom edge.
-          .onSizeChanged { onTitleBottomChange(with(density) { it.height.toDp() }) }
+          // Measured before the insets and padding, so the size reaches the title's bottom and end.
+          .onSizeChanged { onTitleSizeChange(with(density) { it.toSize().toDpSize() }) }
           .windowInsetsPadding(WindowInsets.safeDrawing)
           .padding(start = 32.dp, top = 24.dp, end = 32.dp),
       ) {
@@ -574,6 +595,7 @@ private fun LibraryBar(
           Crossfade(targetState = selecting) { showSelection ->
             if (showSelection) {
               SelectionSummary(
+                width = selectionPillWidth,
                 count = state.selectedPhotos.size,
                 onClose = { state.updateSelecting(false) },
               )
@@ -686,11 +708,19 @@ private fun LibraryTabs(
           .clickable { onTabSelected(index) },
         contentAlignment = Alignment.Center,
       ) {
-        Text(
+        // Large font scales would overflow the tab, so the label shrinks to fit, but never grows
+        // past the user's chosen size.
+        val style = MaterialTheme.typography.labelLarge
+        BasicText(
           label,
           maxLines = 1,
-          style = MaterialTheme.typography.labelLarge,
-          fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+          softWrap = false,
+          style = style.copy(
+            color = LocalContentColor.current,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+          ),
+          autoSize = TextAutoSize.StepBased(minFontSize = 6.sp, maxFontSize = style.fontSize),
+          modifier = Modifier.padding(horizontal = 6.dp),
         )
       }
     }
@@ -699,16 +729,30 @@ private fun LibraryTabs(
 
 @Composable
 private fun SelectionSummary(
+  width: Dp,
   count: Int,
   onClose: () -> Unit,
 ) {
   Row(
-    modifier = Modifier.wrapContentWidth(Alignment.Start, unbounded = true).padding(start = 8.dp),
+    // Laid out at the pill's final width, so the count fits once the pill finishes narrowing.
+    modifier = Modifier
+      .wrapContentWidth(Alignment.Start, unbounded = true)
+      .width(width)
+      .padding(start = 8.dp, end = 20.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     IconButton(onClick = onClose) {
       Icon(Icons.Filled.Close, contentDescription = "End selection")
     }
-    Text("$count Selected", style = MaterialTheme.typography.titleSmall)
+    // Large font scales would overflow the pill, so the count shrinks to fit, but never grows past
+    // the user's chosen size.
+    val style = MaterialTheme.typography.titleSmall
+    BasicText(
+      "$count Selected",
+      maxLines = 1,
+      softWrap = false,
+      style = style.copy(color = LocalContentColor.current),
+      autoSize = TextAutoSize.StepBased(minFontSize = 6.sp, maxFontSize = style.fontSize),
+    )
   }
 }
