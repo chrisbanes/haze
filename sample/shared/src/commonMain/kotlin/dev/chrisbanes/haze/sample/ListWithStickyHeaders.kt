@@ -28,7 +28,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
@@ -39,7 +38,6 @@ import dev.chrisbanes.haze.rememberHazeState
 
 @OptIn(
   ExperimentalMaterial3Api::class,
-  ExperimentalHazeApi::class,
   ExperimentalFoundationApi::class,
 )
 @Composable

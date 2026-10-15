@@ -203,7 +203,7 @@ internal class GlassTestConfiguration {
     GlassTransformPivot.Pointer,
   )
   var interactionPositionAnimationSpec: FiniteAnimationSpec<Offset> by mutableStateOf(
-    GlassDefaults.positionAnimationSpec,
+    GlassDefaults.interactionPositionAnimationSpec,
   )
   var interactionReducedMotionPolicy: GlassReducedMotionPolicy by mutableStateOf(
     GlassReducedMotionPolicy.System,

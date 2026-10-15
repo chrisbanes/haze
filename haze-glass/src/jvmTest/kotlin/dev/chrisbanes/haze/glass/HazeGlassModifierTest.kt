@@ -868,7 +868,7 @@ class HazeGlassModifierTest : ContextTest() {
     val localStyle = GlassStyle {
       alpha(0.3f)
       whitePoint(0.2f)
-      optics(depth = 0.2f, blurRadius = 12.dp)
+      optics(GlassOptics(depth = OpticalSizeValue.Fixed(0.2f), blurRadius = OpticalSizeValue.Fixed(12.dp)))
       pressed {
         lightingIntensity(0.2f)
         refractionMultiplier(1.2f)
@@ -884,12 +884,12 @@ class HazeGlassModifierTest : ContextTest() {
       }
     }.then {
       alpha(0.8f)
-      optics(depth = 0.7f)
+      optics(GlassOptics(depth = OpticalSizeValue.Fixed(0.7f)))
       pressed { lightingIntensity(0.9f) }
     }
     val completeFinalOptics = GlassOptics(refractionStrength = 0.4f)
     val completeFinalStyle = explicitStyle.then { optics(completeFinalOptics) }
-    val directFinalStyle = completeFinalStyle.then { optics(depth = 0.9f) }
+    val directFinalStyle = completeFinalStyle.then { optics(GlassOptics(depth = OpticalSizeValue.Fixed(0.9f))) }
     val factory = RecordingGlassFactory { effect ->
       effect.appearanceReader = { GlassSystemAppearance.Light }
     }
@@ -1059,7 +1059,7 @@ class HazeGlassModifierTest : ContextTest() {
     assertThat(effect.delegate.interactionLightRadiusFraction)
       .isEqualTo(GlassDefaults.interactionLightRadiusFraction)
     assertThat(effect.delegate.interactionPositionAnimationSpec)
-      .isEqualTo(GlassDefaults.positionAnimationSpec)
+      .isEqualTo(GlassDefaults.interactionPositionAnimationSpec)
   }
 
   @Test

@@ -85,7 +85,7 @@ again and redraws without recomposition. Glass renderers are never shared betwee
 - **haze-blur**: Blur effect
 - **haze-blur-materials**: ready-made Blur Styles, such as `HazeMaterials.thin()`
 - **haze-blur-material3**: optional Compose Material 3 Blur Style factory
-- **haze-glass**: experimental Glass effect
+- **haze-glass**: Glass effect
 - **haze-glass-material3**: optional Compose Material 3 Glass Style factory
 - **haze-utils**: shared internal utilities, included transitively; you don't add it yourself
 

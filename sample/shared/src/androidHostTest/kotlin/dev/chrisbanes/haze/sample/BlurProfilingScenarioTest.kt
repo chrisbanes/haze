@@ -1,8 +1,6 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(ExperimentalHazeApi::class)
-
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.ui.unit.dp
@@ -10,7 +8,6 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNull
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazePerformanceMode
 import kotlin.test.Test
 

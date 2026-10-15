@@ -12,17 +12,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.ExperimentalHazeApi
 
 /** Light-calibrated default values used by `hazeGlass` and [GlassStyle] resolution. */
-@ExperimentalHazeApi
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 public object GlassDefaults {
   /** Default interaction light radius as a fraction of the material's shortest side. */
   public const val interactionLightRadiusFraction: Float = 0.7f
 
   /** Default animation used for focus and [InteractionSource]-derived positions. */
-  public val positionAnimationSpec: FiniteAnimationSpec<Offset> = spring(
+  public val interactionPositionAnimationSpec: FiniteAnimationSpec<Offset> = spring(
     dampingRatio = 1f,
     stiffness = Spring.StiffnessMedium,
   )

@@ -42,7 +42,6 @@ import com.kashif.cameraK.enums.CameraLens
 import com.kashif.cameraK.permissions.providePermissions
 import com.kashif.cameraK.state.CameraConfiguration
 import com.kashif.cameraK.state.CameraKState
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
@@ -131,7 +130,6 @@ internal fun KameraSample(
 }
 
 @Composable
-@OptIn(ExperimentalHazeApi::class)
 private fun KameraCamera(
   controller: CameraController,
   effect: SampleEffect,

@@ -1,8 +1,6 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(ExperimentalHazeApi::class)
-
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.runtime.mutableStateOf
@@ -15,7 +13,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isTrue
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import kotlin.test.Test
 
 class GlassTiltVisualsTest {

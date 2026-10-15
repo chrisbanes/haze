@@ -33,13 +33,13 @@ dependencies {
     implementation("dev.chrisbanes.haze:haze-blur:<version>")
     implementation("dev.chrisbanes.haze:haze-blur-materials:<version>")
 
-    // Experimental Glass
+    // Glass
     implementation("dev.chrisbanes.haze:haze-glass:<version>")
 }
 ```
 
 Add `haze` plus only the effect modules you use, and keep every Haze artifact on the same version.
-Glass APIs require opting in to `@ExperimentalHazeApi`. See [Architecture](architecture.md) for
+See [Architecture](architecture.md) for
 the full module list.
 
 ## Acknowledgements

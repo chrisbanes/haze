@@ -46,8 +46,4 @@ kotlin {
       }
     }
   }
-
-  compilerOptions {
-    optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
-  }
 }

@@ -239,8 +239,10 @@ Write each property through the Style scope, then pass the Style and structural 
 val glassStyle = GlassStyle {
   tint(Color.White.copy(alpha = 0.12f))
   optics(
-    refractionStrength = 0.7f,
-    depth = 0.4f,
+    GlassOptics(
+      refractionStrength = 0.7f,
+      depth = OpticalSizeValue.Fixed(0.4f),
+    ),
   )
   specularIntensity(0.4f)
   edgeSoftness(12.dp)

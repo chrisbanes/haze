@@ -3,8 +3,6 @@
 
 package dev.chrisbanes.haze.glass
 
-import dev.chrisbanes.haze.ExperimentalHazeApi
-
 /**
  * How a Glass member's material enters and leaves its [hazeGlassContainer].
  *
@@ -29,7 +27,6 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
  * }
  * ```
  */
-@ExperimentalHazeApi
 public enum class GlassMemberTransition {
   /**
    * A member that attaches within the container's spacing of a compatible member grows out of it,

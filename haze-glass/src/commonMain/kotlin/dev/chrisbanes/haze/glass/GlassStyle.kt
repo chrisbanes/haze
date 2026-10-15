@@ -19,8 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.Poko
 
 /**
@@ -31,7 +29,6 @@ import dev.chrisbanes.haze.Poko
  * Style may be shared safely by concurrent nodes. Styles compare by identity, so provide a
  * remembered or hoisted Style.
  */
-@ExperimentalHazeApi
 public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
   compositionLocalOf { GlassStyle }
 
@@ -62,7 +59,6 @@ public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
  * channels, approximate supported lighting, and omit unsupported base and interaction optics.
  * Selection is automatic; callers do not need a capability check or a second fallback Style.
  */
-@ExperimentalHazeApi
 @Immutable
 public sealed interface GlassStyle {
   /** Returns a Style which replays [other] after this Style. */
@@ -167,7 +163,6 @@ public sealed interface GlassStyle {
  * hoist a Style rather than constructing one in each composition. Invalid values throw
  * [IllegalArgumentException] when [block] runs.
  */
-@ExperimentalHazeApi
 public fun GlassStyle(block: GlassStyleScope.() -> Unit): GlassStyle = EvaluatedGlassStyle(block)
 
 @Immutable
@@ -219,7 +214,6 @@ private fun combineGlassStyles(
 
 /** Marks the nested receiver scopes used while building a [GlassStyle]. */
 @DslMarker
-@ExperimentalHazeApi
 public annotation class GlassStyleDsl
 
 /**
@@ -230,7 +224,6 @@ public annotation class GlassStyleDsl
  * [shape] corner radii are treated as zero, so animation overshoot never throws. Calling a
  * function again writes a later value which takes precedence.
  */
-@ExperimentalHazeApi
 @GlassStyleDsl
 public class GlassStyleScope internal constructor(
   private val values: GlassStyleValues,
@@ -286,37 +279,11 @@ public class GlassStyleScope internal constructor(
     values.shape = shape
   }
 
-  /** Sets a complete fixed optical model used to refract and blur captured content. */
-  public fun optics(
-    refractionStrength: Float = 0.7f,
-    refractionHeightFraction: Float = 0.25f,
-    refractionDisplacement: Dp = 15.dp,
-    depth: Float = 1f,
-    blurRadius: Dp = 14.dp,
-    progressive: HazeProgressive? = null,
-    refractionFoldStrength: Float = 0f,
-    refractionDetailIntensity: Float = 0.76f,
-    refractionProfile: RefractionProfile = RefractionProfile.Surface,
-  ) {
-    optics(
-      GlassOptics(
-        refractionStrength = refractionStrength,
-        refractionHeightFraction = refractionHeightFraction,
-        refractionDisplacement = refractionDisplacement,
-        depth = OpticalSizeValue.Fixed(depth),
-        blurRadius = OpticalSizeValue.Fixed(blurRadius),
-        progressive = progressive,
-        refractionFoldStrength = refractionFoldStrength,
-        refractionDetailIntensity = refractionDetailIntensity,
-        refractionProfile = refractionProfile,
-      ),
-    )
-  }
-
   /**
    * Sets the optical model used to refract and blur captured content.
    *
-   * Complete optics values retain the contracts enforced by their concrete [GlassOptics] type.
+   * Replaces the whole model. To change part of the built-in model, copy it, for example
+   * `optics(GlassDefaults.optics.copy(blurRadius = OpticalSizeValue.Fixed(30.dp)))`.
    */
   public fun optics(optics: GlassOptics) {
     values.optics = optics
@@ -506,7 +473,7 @@ internal class GlassStyleValues(
   var pressedInteraction: GlassInteractionResponse? = null,
   var interactionLightRadiusFraction: Float = GlassDefaults.interactionLightRadiusFraction,
   var interactionPositionAnimationSpec: FiniteAnimationSpec<Offset> =
-    GlassDefaults.positionAnimationSpec,
+    GlassDefaults.interactionPositionAnimationSpec,
 )
 
 internal fun resolveGlassStyleValues(

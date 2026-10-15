@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.SystemTheme
@@ -133,7 +134,7 @@ class GlassMaterial3Test {
     lateinit var recomposedStyle: GlassStyle
 
     setContent {
-      val style = GlassStyle.Material3()
+      val style = GlassStyle.material3()
       val isRecomposed = recomposed.value
       SideEffect {
         if (isRecomposed) recomposedStyle = style else initialStyle = style
@@ -148,15 +149,14 @@ class GlassMaterial3Test {
   }
 
   @Test
-  fun material3_explicitAndBlockWritesOverrideEarlierWrites() = runComposeUiTest {
+  fun material3_receiverWritesOverrideMaterial3Writes() = runComposeUiTest {
     val blockOverridesTint = mutableStateOf(false)
 
     setContent {
       MaterialTheme(colorScheme = lightColorScheme(surface = Color.Green)) {
         GlassMaterial3Content(
-          GlassStyle.Material3(containerColor = Color.Red, tint = Color.Blue) {
-            if (blockOverridesTint.value) tint(Color.Yellow)
-          },
+          remember { GlassStyle { if (blockOverridesTint.value) tint(Color.Yellow) } }
+            .material3(containerColor = Color.Red, tint = Color.Blue),
         )
       }
     }
@@ -179,7 +179,7 @@ class GlassMaterial3Test {
           LocalGlassStyle provides localStyle,
           LocalContentColor provides Color.Green,
         ) {
-          GlassMaterial3Content(GlassStyle.Material3(tint = null))
+          GlassMaterial3Content(GlassStyle.material3(tint = null))
         }
       }
     }

@@ -68,10 +68,10 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun accessibilitySettings_reduceBlurAndStrengthenMaterialSeparation() {
+  fun accessibilitySettings_diffuseBlurAndStrengthenMaterialSeparation() {
     val effect = GlassRuntimeEffect().apply {
       style = GlassStyle {
-        optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(10.dp)))
+        optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(30.dp), depth = OpticalSizeValue.Fixed(0f)))
         specularIntensity(0f)
         edgeShadow(androidx.compose.ui.graphics.Color.Transparent)
         edgeSoftness(0.dp)
@@ -91,11 +91,29 @@ class GlassRenderParamsTest {
       layoutDirection = LayoutDirection.Ltr,
     )
 
-    assertThat(resolved.resolvedOptics.blurRadiusPx).isEqualTo(6.5f)
+    assertThat(resolved.resolvedOptics.blurRadiusPx).isEqualTo(45f)
+    assertThat(resolved.resolvedOptics.depth).isEqualTo(1f)
     assertThat(resolved.contrast).isEqualTo(0.16f)
     assertThat(resolved.specularIntensity).isEqualTo(0.58f)
     assertThat(resolved.edgeSoftnessPx).isEqualTo(1f)
     assertThat(resolved.edgeShadow.alpha).isCloseTo(0.32f, 0.002f)
+  }
+
+  @Test
+  fun reduceTransparency_raisesShallowBlurToMinimum() {
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle { optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(1.dp))) }
+      accessibilitySettings = GlassAccessibilitySettings(reduceTransparency = true)
+    }
+
+    val resolved = resolveGlassStyle(
+      effect = effect,
+      materialSizePx = Size(100f, 100f),
+      density = Density(1f),
+      layoutDirection = LayoutDirection.Ltr,
+    )
+
+    assertThat(resolved.resolvedOptics.blurRadiusPx).isEqualTo(20f)
   }
 
   @Test

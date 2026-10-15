@@ -29,7 +29,6 @@ import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
-import dev.chrisbanes.haze.HazeProgressive
 import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class)
@@ -60,70 +59,6 @@ class GlassStyleTest {
     val values = resolveGlassStyleValues(local, explicit)
 
     assertThat(values.lightPosition).isEqualTo(Alignment.BottomCenter)
-  }
-
-  @Test
-  fun directOptics_constructsTheCompleteFixedValue() {
-    val progressive = HazeProgressive.verticalGradient()
-    val style = GlassStyle {
-      optics(
-        refractionStrength = 0.8f,
-        refractionHeightFraction = 0.4f,
-        refractionDisplacement = 24.dp,
-        depth = 0.6f,
-        blurRadius = 20.dp,
-        progressive = progressive,
-        refractionFoldStrength = 0.65f,
-        refractionProfile = RefractionProfile.Edge(28.dp),
-      )
-    }
-
-    assertThat(resolveGlassStyleValues(GlassStyle, style).optics).isEqualTo(
-      GlassOptics(
-        refractionStrength = 0.8f,
-        refractionHeightFraction = 0.4f,
-        refractionDisplacement = 24.dp,
-        depth = OpticalSizeValue.Fixed(0.6f),
-        blurRadius = OpticalSizeValue.Fixed(20.dp),
-        progressive = progressive,
-        refractionFoldStrength = 0.65f,
-        refractionProfile = RefractionProfile.Edge(28.dp),
-      ),
-    )
-  }
-
-  @Test
-  fun directOptics_usesFixedValidationWhenEvaluated() {
-    assertFixedAndDirectOpticsFailure(
-      "refractionStrength must be finite and in 0f..1f",
-      fixed = { GlassOptics(refractionStrength = Float.NaN) },
-      direct = { optics(refractionStrength = Float.NaN) },
-    )
-    assertFixedAndDirectOpticsFailure(
-      "refractionFoldStrength must be finite and in 0f..1f",
-      fixed = { GlassOptics(refractionFoldStrength = Float.NaN) },
-      direct = { optics(refractionFoldStrength = Float.NaN) },
-    )
-    assertFixedAndDirectOpticsFailure(
-      "refractionHeightFraction must be finite and in 0f..1f",
-      fixed = { GlassOptics(refractionHeightFraction = 1.1f) },
-      direct = { optics(refractionHeightFraction = 1.1f) },
-    )
-    assertFixedAndDirectOpticsFailure(
-      "refractionDisplacement must be specified, finite, and non-negative",
-      fixed = { GlassOptics(refractionDisplacement = Dp.Unspecified) },
-      direct = { optics(refractionDisplacement = Dp.Unspecified) },
-    )
-    assertFixedAndDirectOpticsFailure(
-      "depth must be finite and in 0f..1f",
-      fixed = { GlassOptics(depth = OpticalSizeValue.Fixed(Float.NEGATIVE_INFINITY)) },
-      direct = { optics(depth = Float.NEGATIVE_INFINITY) },
-    )
-    assertFixedAndDirectOpticsFailure(
-      "blurRadius must be specified, finite, and non-negative",
-      fixed = { GlassOptics(blurRadius = OpticalSizeValue.Fixed((-1).dp)) },
-      direct = { optics(blurRadius = (-1).dp) },
-    )
   }
 
   @Test
@@ -169,7 +104,7 @@ class GlassStyleTest {
     assertThat(defaults.interactionLightRadiusFraction)
       .isEqualTo(GlassDefaults.interactionLightRadiusFraction)
     assertThat(defaults.interactionPositionAnimationSpec)
-      .isEqualTo(GlassDefaults.positionAnimationSpec)
+      .isEqualTo(GlassDefaults.interactionPositionAnimationSpec)
     assertThat(resolved.hoveredInteraction?.lightingIntensity?.value).isEqualTo(0.4f)
     assertThat(resolved.focusedInteraction?.lightingIntensity?.value).isEqualTo(0.5f)
     assertThat(resolved.pressedInteraction?.lightingIntensity?.value).isEqualTo(0.3f)
@@ -293,7 +228,7 @@ class GlassStyleTest {
     var appendedExecutions = 0
     val base = GlassStyle {
       baseExecutions++
-      optics(depth = 0.2f)
+      optics(GlassOptics(depth = OpticalSizeValue.Fixed(0.2f)))
       pressed {
         lightingIntensity(0.2f)
         refractionMultiplier(1.2f)
@@ -301,7 +236,7 @@ class GlassStyleTest {
     }
     val override = GlassStyle {
       overrideExecutions++
-      optics(depth = 0.6f)
+      optics(GlassOptics(depth = OpticalSizeValue.Fixed(0.6f)))
       pressed { lightingIntensity(0.7f) }
     }
     val combined = base.then(override).then {
@@ -797,17 +732,6 @@ private class InvalidFloatWrite(
   val invalidValues: List<Float>,
   val write: GlassStyleScope.(Float) -> Unit,
 )
-
-private fun assertFixedAndDirectOpticsFailure(
-  message: String,
-  fixed: () -> Unit,
-  direct: GlassStyleScope.() -> Unit,
-) {
-  assertFailure { fixed() }
-    .isInstanceOf<IllegalArgumentException>()
-    .hasMessage(message)
-  assertEvaluationFailure(message, direct)
-}
 
 /** Asserts that constructing a Style succeeds and resolving it throws [message]. */
 private fun assertEvaluationFailure(message: String, block: GlassStyleScope.() -> Unit) {

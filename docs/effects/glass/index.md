@@ -30,35 +30,33 @@ dependencies {
 }
 ```
 
-`GlassStyle.Material3()` uses `MaterialTheme.colorScheme.surface` as its background color. Pass
-`containerColor` to use a different color. It leaves the tint unset unless you pass one. These
-functions are composable, so the Style follows theme changes when the call site recomposes.
+`material3()` uses `MaterialTheme.colorScheme.surface` as its background color. Pass
+`containerColor` to use a different color. It leaves the tint unset unless you pass one. It is
+composable, so the Style follows theme changes when the call site recomposes.
 
 Material 3 supplies only colors. Regular and Clear still pick their light or dark response from the
 system appearance, not from `MaterialTheme`, and you don't need Material 3 for that.
 
-Apply Material 3 to a built-in or custom Style with `material3()`:
+Apply Material 3 to a built-in or custom Style with `material3()`. The Material 3 colors are
+written first, so the receiver Style can override either:
 
 ```kotlin
 val regular = GlassStyle.regular.material3()
 val clear = GlassStyle.clear.material3(tint = Color.White.copy(alpha = 0.16f))
-```
 
-```kotlin
+val custom = remember {
+  GlassStyle { optics(GlassDefaults.optics.copy(refractionStrength = 0.8f)) }
+}
 Modifier.hazeGlass(
   input = HazeInput.Backdrop(hazeState),
-  style = GlassStyle.Material3(tint = Color.White.copy(alpha = 0.16f)) {
-    optics(refractionStrength = 0.8f)
-  },
+  style = custom.material3(tint = Color.White.copy(alpha = 0.16f)),
 )
 ```
 
-The container color and tint are written before the block, so the block can override either. The
-block overload returns a new Style on every call; to read animated state in the block, build the
-Style with `GlassStyle { }` inside `remember` instead. Material 3 also works as a subtree default:
+Call it on `GlassStyle` for the Material 3 colors alone, for example as a subtree default:
 
 ```kotlin
-CompositionLocalProvider(LocalGlassStyle provides GlassStyle.Material3()) {
+CompositionLocalProvider(LocalGlassStyle provides GlassStyle.material3()) {
   // Glass modifiers in this subtree inherit the Material 3 surface background.
 }
 ```
@@ -131,7 +129,7 @@ Compose `ColorSpace`.
 val baseStyle = GlassStyle {
   backgroundColor(Color.White)
   tint(Color.White.copy(alpha = 0.16f))
-  optics(refractionStrength = 0.8f)
+  optics(GlassDefaults.optics.copy(refractionStrength = 0.8f))
   shape(RoundedCornerShape(20.dp))
 }
 val emphasizedStyle = baseStyle.then { specularIntensity(0.7f) }
@@ -176,12 +174,12 @@ CompositionLocalProvider(
     showBorders = showBorders,
   ),
 ) {
-  // Glass here reduces background diffusion or strengthens its separating edge when requested.
+  // Glass here diffuses the background more or strengthens its separating edge when requested.
 }
 ```
 
 The defaults leave the Style unchanged, and the settings never modify your Style values.
-`reduceTransparency` reduces blur. `increaseContrast` raises tone contrast and enforces a visible
+`reduceTransparency` makes the material more opaque with a stronger, fully diffused blur. `increaseContrast` raises tone contrast and enforces a visible
 edge. `showBorders` enforces a visible edge without changing tone. The edge appears even when the
 Style has zero edge softness.
 
@@ -229,17 +227,21 @@ val regular = GlassStyle.regular
 ```kotlin
 GlassStyle {
   optics(
-    blurRadius = 20.dp,
-    refractionStrength = 0.8f,
-    refractionHeightFraction = 0.3f,
-    refractionDisplacement = 18.dp,
-    refractionFoldStrength = 0.65f,
-    depth = 0.5f,
+    GlassOptics(
+      blurRadius = OpticalSizeValue.Fixed(20.dp),
+      refractionStrength = 0.8f,
+      refractionHeightFraction = 0.3f,
+      refractionDisplacement = 18.dp,
+      refractionFoldStrength = 0.65f,
+      depth = OpticalSizeValue.Fixed(0.5f),
+    ),
   )
 }
 ```
 
-`optics(...)` sets fixed values. To vary blur or depth with size, give `GlassOptics` points keyed
+`optics()` replaces the whole optical model. The `GlassOptics` constructor defaults are not
+Regular's, so to change part of Regular, copy it:
+`optics(GlassDefaults.optics.copy(refractionStrength = 0.8f))`. To vary blur or depth with size, give `GlassOptics` points keyed
 by the surface's shortest side. Values hold at the end points and blend smoothly between them. Each
 responsive value needs at least two points with positive, finite, strictly increasing sizes:
 
@@ -269,9 +271,11 @@ Optics also accept a progressive intensity:
 GlassStyle {
   tint(Color.White.copy(alpha = 0.20f))
   optics(
-    progressive = HazeProgressive.verticalGradient(
-      startIntensity = 1f,
-      endIntensity = 0.25f,
+    GlassDefaults.optics.copy(
+      progressive = HazeProgressive.verticalGradient(
+        startIntensity = 1f,
+        endIntensity = 0.25f,
+      ),
     ),
   )
 }
@@ -457,7 +461,7 @@ Omit a state block from a replacement Style to remove that response.
 
 ## Containers
 
-Wrap nearby Glass surfaces in the experimental `Modifier.hazeGlassContainer` to merge them into one
+Wrap nearby Glass surfaces in `Modifier.hazeGlassContainer` to merge them into one
 shape, for controls that should read as one object, such as a toolbar or a segmented control. See
 [Glass containers](containers.md) for the merge rule, transitions, lazy layouts and fallbacks.
 
@@ -472,9 +476,11 @@ Box(
       style = GlassStyle {
         tint(Color.White.copy(alpha = 0.16f))
         optics(
-          refractionStrength = 0.8f,
-          refractionHeightFraction = 0.32f,
-          depth = 0.5f,
+          GlassOptics(
+            refractionStrength = 0.8f,
+            refractionHeightFraction = 0.32f,
+            depth = OpticalSizeValue.Fixed(0.5f),
+          ),
         )
         specularIntensity(0.7f)
         ambientResponse(0.7f)

@@ -40,7 +40,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.hazeBlur
@@ -53,7 +52,6 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 @Composable
-@OptIn(ExperimentalHazeApi::class)
 fun LayerTransformations(
   effect: SampleEffect,
   onBack: () -> Unit,

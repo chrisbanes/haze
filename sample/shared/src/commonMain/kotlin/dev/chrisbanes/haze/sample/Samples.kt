@@ -61,7 +61,6 @@ import androidx.navigation.compose.rememberNavController
 import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.LocalHazeBlurStyle
@@ -85,7 +84,6 @@ internal fun List<Sample>.forEffect(effect: SampleEffect): List<Sample> = filter
   effect in it.effects
 }
 
-@OptIn(ExperimentalHazeApi::class)
 val CommonSamples: List<Sample> = listOf(
   Sample.Scaffold,
   Sample.ScaffoldProgressive,
@@ -108,7 +106,6 @@ val CommonSamples: List<Sample> = listOf(
   Sample.GlassContainer,
 )
 
-@OptIn(ExperimentalHazeApi::class)
 class Sample(
   val route: String,
   val title: String,

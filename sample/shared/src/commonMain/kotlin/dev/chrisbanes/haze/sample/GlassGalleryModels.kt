@@ -1,8 +1,6 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(ExperimentalHazeApi::class)
-
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.animation.core.FiniteAnimationSpec
@@ -10,7 +8,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
-import dev.chrisbanes.haze.ExperimentalHazeApi
 
 internal val DefaultGlassHoverAnimationSpec: FiniteAnimationSpec<Float> = spring(
   dampingRatio = 1f,

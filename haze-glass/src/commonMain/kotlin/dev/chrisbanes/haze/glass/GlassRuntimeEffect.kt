@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.Bitmask
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectBackdrop
 import dev.chrisbanes.haze.HazeEffectContentTransform
 import dev.chrisbanes.haze.HazeEffectDrawScope
@@ -129,7 +128,6 @@ private val IdleInteractionSignals = GlassInteractionSignals()
  * Style evaluation, attachment state, delegates, caches, controllers, and platform resources all
  * belong to this instance.
  */
-@ExperimentalHazeApi
 @Stable
 @OptIn(InternalHazeApi::class)
 internal class GlassRuntimeEffect() :

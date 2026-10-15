@@ -181,7 +181,7 @@ internal class GlassInteractionController(
 
   private var configuration = GlassInteractionControllerConfiguration(
     slots = GlassInteractionSlots(),
-    positionAnimationSpec = GlassDefaults.positionAnimationSpec,
+    positionAnimationSpec = GlassDefaults.interactionPositionAnimationSpec,
     reducedMotion = false,
     forceFullMotion = false,
   )

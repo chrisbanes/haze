@@ -1,7 +1,7 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(ExperimentalFoundationApi::class, ExperimentalHazeApi::class)
+@file:OptIn(ExperimentalFoundationApi::class)
 
 package dev.chrisbanes.haze.sample
 
@@ -51,7 +51,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.rememberHazeState

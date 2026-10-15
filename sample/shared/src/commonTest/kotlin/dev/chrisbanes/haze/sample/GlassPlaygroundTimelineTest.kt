@@ -1,8 +1,6 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(ExperimentalHazeApi::class)
-
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.ui.geometry.Offset
@@ -13,7 +11,6 @@ import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isSameInstanceAs
-import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.GlassStyle
 import kotlin.test.Test
 

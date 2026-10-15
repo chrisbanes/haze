@@ -4,10 +4,8 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.animation.core.FiniteAnimationSpec
-import dev.chrisbanes.haze.ExperimentalHazeApi
 
 /** Selects which visual layers receive the interaction scale transform. */
-@ExperimentalHazeApi
 public enum class GlassTransformTarget {
   /** Scales the generated Glass material while leaving the composable content unchanged. */
   MaterialOnly,
@@ -17,7 +15,6 @@ public enum class GlassTransformTarget {
 }
 
 /** Selects the pivot used by the interaction scale transform. */
-@ExperimentalHazeApi
 public enum class GlassTransformPivot {
   /** Uses the current pointer or interaction position as the transform pivot. */
   Pointer,
@@ -26,16 +23,23 @@ public enum class GlassTransformPivot {
   Center,
 }
 
-/** Controls whether interaction motion is reduced. */
-@ExperimentalHazeApi
+/**
+ * Controls whether Glass motion is reduced.
+ *
+ * `hazeGlass` applies it to interaction responses. [hazeGlassContainer] applies it to member
+ * transitions, where reduced motion keeps the morph with a critically damped spring.
+ */
 public enum class GlassReducedMotionPolicy {
   /** Follows the current platform motion-duration scale. */
   System,
 
-  /** Disables interaction scale motion and snaps animated responses to their targets. */
+  /**
+   * Reduces motion: interaction scale motion is disabled and animated responses snap to their
+   * targets, and container transitions use a critically damped spring.
+   */
   Reduced,
 
-  /** Preserves full interaction motion regardless of the platform motion-duration scale. */
+  /** Preserves full motion regardless of the platform motion-duration scale. */
   Full,
 }
 
@@ -45,7 +49,6 @@ public enum class GlassReducedMotionPolicy {
  * This sealed receiver is implemented by Haze and is a declaration DSL, not a consumer
  * implementation point. Each node evaluates these declarations into node-owned runtime state.
  */
-@ExperimentalHazeApi
 @GlassStyleDsl
 public sealed interface GlassInteractionScope {
   /** Sets the finite lighting multiplier in the inclusive range `0f..1f`. */
