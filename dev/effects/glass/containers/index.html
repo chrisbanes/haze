@@ -1484,7 +1484,12 @@ container's first draw never animate.</p>
 <p>Without <code>RuntimeShader</code> support, or when a cluster is too large to render in full, each cluster
 draws as one surface clipped to the hard union of the member shapes, with no bridge. Members keep
 their own tint and background color; where members overlap, the earlier member's colors apply.
-Per-member press lighting is still drawn. See <a href="../#fallbacks">Fallbacks</a> for what else
+Each member resolves <code>GlassAccessibilitySettings</code> and appearance in its own context. With
+<code>reduceTransparency</code>, it draws an opaque white/light or black/dark base (or its opaque
+<code>reducedTransparencyFallbackColor</code> override), then its authored background colour and tint. Earlier
+members still own overlapping regions, and overall alpha still fades the material. Disabling the
+preference restores that member's ordinary fallback appearance.</p>
+<p>Per-member press lighting is still drawn. See <a href="../#fallbacks">Fallbacks</a> for what else
 fallback rendering omits.</p>
 <h2 id="samples">Samples<a class="headerlink" href="#samples" title="Permanent link">¶</a></h2>
 <p>The <code>Glass — Container</code> sample shows a merging toolbar, two draggable members with a spacing

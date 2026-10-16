@@ -1742,7 +1742,16 @@ provide it where Glass is used:</p>
 <span class="p">}</span>
 </code></pre></div>
 <p>The defaults leave the Style unchanged, and the settings never modify your Style values.
-<code>reduceTransparency</code> makes the material more opaque with a stronger, fully diffused blur. <code>increaseContrast</code> raises tone contrast and enforces a visible
+<code>reduceTransparency</code> uses a stronger, fully diffused blur during full rendering. In fallback rendering,
+it hides source detail with an opaque base: white in light appearance (also the default when appearance
+is unknown), or black in dark appearance. Set <code>reducedTransparencyFallbackColor</code> to an opaque <code>Color</code>
+to override this base; null selects the automatic colour. Translucent and unspecified overrides are
+rejected.</p>
+<p>Fallback draws this base, then your background colour, then tint. Overall <code>alpha</code> still fades the
+whole material, so source detail is hidden at alpha 1 and can show through during a fade. Turning
+<code>reduceTransparency</code> off restores ordinary fallback rendering. The colour override only affects
+reduced-transparency fallback; full rendering keeps its stronger blur.</p>
+<p><code>increaseContrast</code> raises tone contrast and enforces a visible
 edge. <code>showBorders</code> enforces a visible edge without changing tone. The edge appears even when the
 Style has zero edge softness.</p>
 <h3 id="light-alignment">Light alignment<a class="headerlink" href="#light-alignment" title="Permanent link">¶</a></h3>
