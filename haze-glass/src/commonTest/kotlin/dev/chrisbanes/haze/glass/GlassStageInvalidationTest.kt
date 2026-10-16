@@ -484,6 +484,58 @@ class GlassStageInvalidationTest {
   }
 
   @Test
+  fun resolveGlassInteractionLightingKey_ignoresOpticalChangesButRetainsLightingChanges() {
+    val coordinates = GlassCoordinates(
+      sampleSize = Size(100f, 80f),
+      materialOrigin = Offset.Zero,
+      materialSize = Size(100f, 80f),
+      scaleFactor = 1f,
+    )
+    val radii = CornerRadii(8f, 8f, 8f, 8f)
+    fun field(lightPosition: Offset, opticalPosition: Offset, refractionMultiplier: Float) = mergedField(
+      mergedMember(
+        0f,
+        0f,
+        40f,
+        40f,
+        lightPosition = lightPosition,
+        lightRadius = 10f,
+        lightIntensity = 0.7f,
+        opticalPosition = opticalPosition,
+        opticalRadius = 12f,
+        refractionMultiplier = refractionMultiplier,
+      ),
+    )
+    val previous = resolveGlassInteractionLightingKey(
+      previous = null,
+      coordinates = coordinates,
+      edgeSoftnessPx = 2f,
+      cornerRadii = radii,
+      mergedField = field(Offset(2f, 3f), Offset(4f, 5f), 1.4f),
+    )
+
+    val opticalUpdate = resolveGlassInteractionLightingKey(
+      previous,
+      coordinates,
+      2f,
+      radii,
+      field(Offset(2f, 3f), Offset(8f, 9f), 1.8f),
+    )
+    val lightingUpdate = resolveGlassInteractionLightingKey(
+      previous,
+      coordinates,
+      2f,
+      radii,
+      field(Offset(6f, 7f), Offset(8f, 9f), 1.8f),
+    )
+
+    assertThat(opticalUpdate).isSameInstanceAs(previous)
+    assertThat(lightingUpdate).isNotSameInstanceAs(previous)
+    assertThat(previous.mergedField?.members?.single()?.lightPosition).isEqualTo(Offset(2f, 3f))
+    assertThat(previous.mergedField?.members?.single()?.refractionMultiplier).isEqualTo(1f)
+  }
+
+  @Test
   fun resolveGlassRuntimeSourceState_drawableInputWithoutSnapshotForcesRecapture() {
     val state = resolveGlassRuntimeSourceState(
       captureScale = .5f,

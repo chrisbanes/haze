@@ -2333,7 +2333,7 @@ internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
   setFloatUniform("contentNormalBlend", key.contentNormalBlend)
   setFloatUniform("fresnelExponent", key.fresnelExponent)
   setColorUniform("tintColor", key.tint)
-  key.mergedField?.let { setMergedFieldUniforms(it, includeTint = true) }
+  key.mergedField?.let { setMergedFieldUniforms(it, includeTint = true, includeOptics = true) }
 }
 
 internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
@@ -2356,7 +2356,7 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
   setFloatUniform("detailWidth", key.detailWidthPx)
   setFloatUniform("detailIntensity", key.detailIntensity)
   setFloatUniform("detailVisibility", key.detailVisibility)
-  key.mergedField?.let { setMergedFieldUniforms(it) }
+  key.mergedField?.let { setMergedFieldUniforms(it, includeOptics = true) }
 }
 
 internal fun RuntimeShaderUniformProvider.setRimUniforms(

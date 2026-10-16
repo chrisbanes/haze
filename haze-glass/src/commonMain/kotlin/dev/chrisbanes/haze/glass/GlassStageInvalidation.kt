@@ -222,14 +222,15 @@ internal fun resolveGlassInteractionLightingKey(
   cornerRadii: CornerRadii,
   mergedField: GlassMergedField?,
 ): GlassInteractionLightingKey {
+  val lightingField = mergedField?.withoutOptics
   if (
     previous != null &&
     previous.coordinates == coordinates &&
     previous.edgeSoftnessPx.compareTo(edgeSoftnessPx) == 0 &&
     previous.cornerRadii == cornerRadii &&
-    previous.mergedField == mergedField
+    previous.mergedField == lightingField
   ) {
     return previous
   }
-  return GlassInteractionLightingKey(coordinates, edgeSoftnessPx, cornerRadii, mergedField)
+  return GlassInteractionLightingKey(coordinates, edgeSoftnessPx, cornerRadii, lightingField)
 }

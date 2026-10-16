@@ -212,7 +212,13 @@ internal class GlassRuntimeEffect() :
       is HazePerformanceMode.Fixed -> mode.qualityFraction
       HazePerformanceMode.Adaptive -> (HazePerformanceMode.Default as HazePerformanceMode.Fixed).qualityFraction
     }
-    binding.publish(this, context.surface, material, glassMergeKey(binding.input, binding.expandLayerBounds, quality, this, material, context.currentValueOf(LocalLayoutDirection)))
+    binding.publish(
+      this,
+      context.surface,
+      material,
+      glassMergeKey(binding.input, binding.expandLayerBounds, quality, this, material, context.currentValueOf(LocalLayoutDirection)),
+      resolvedInteractionTopology.maxRefractionMultiplier,
+    )
   }
 
   private fun onRuntimeConfigurationChanged(fields: Int) {
@@ -743,6 +749,7 @@ internal class GlassRuntimeEffect() :
     reconciledInteractionTopology = topology
     if (topology.maxRefractionMultiplier != (previous?.maxRefractionMultiplier ?: 1f)) {
       context.invalidateLayerBounds()
+      memberBinding?.node?.changed()
     }
     val controller = interactionController ?: return topologyChanged
     if (!hasDeclaredInteractions && !controller.hasPendingResponseWork) {
@@ -1149,9 +1156,9 @@ internal class GlassRuntimeEffect() :
   }
 
   internal fun calculateLayerBounds(rect: Rect, density: Density): Rect {
-    val multiplier = maximumInteractionRefractionMultiplier()
     // Containers draw the snapshot material, so there is nothing of ours to cache.
-    surfaceSnapshot?.let { return rect.inflate(samplePaddingPx(it.material, multiplier)) }
+    surfaceSnapshot?.let { return rect.inflate(samplePaddingPx(it.material, it.maxRefractionMultiplier)) }
+    val multiplier = maximumInteractionRefractionMultiplier()
     if (
       !layerPaddingCacheValid ||
       layerPaddingCacheSize != rect.size ||

@@ -15,6 +15,8 @@ import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.MutableIntState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -55,6 +57,127 @@ import kotlin.test.Test
 import kotlinx.coroutines.runBlocking
 
 class GlassContainerInteractionTest : ContextTest() {
+  @Test
+  fun opticalWhitePointDelta_isMemberLocalAndCancelRestoresBase() = runComposeUiTest {
+    val fixture = cluster(checkerboard = true, optical = true, pressed = GlassStyle { pressed { whitePointDelta(0.3f) } })
+    val idle = fixture.capture()
+    val firstPress = fixture.press(fixture.firstSource)
+    val firstActive = fixture.capture()
+    assertThat(regionDifference(firstActive, idle, 40, 60, 140, 140)).isGreaterThan(0.01f)
+    assertThat(regionDifference(firstActive, idle, 160, 60, 260, 140)).isLessThan(1f / 255f)
+
+    val secondPress = fixture.press(fixture.secondSource)
+    val bothActive = fixture.capture()
+    assertThat(regionDifference(bothActive, idle, 160, 60, 260, 140)).isGreaterThan(0.01f)
+    fixture.release(fixture.firstSource, firstPress)
+    val secondOnly = fixture.capture()
+    assertThat(regionDifference(secondOnly, idle, 40, 60, 140, 140)).isLessThan(1f / 255f)
+    assertThat(regionDifference(secondOnly, idle, 160, 60, 260, 140)).isGreaterThan(0.01f)
+    runBlocking { fixture.secondSource.emit(PressInteraction.Cancel(secondPress)) }
+    waitForIdle()
+    assertThat(regionDifference(fixture.capture(), idle, 40, 60, 260, 140)).isLessThan(0.01f)
+  }
+
+  @Test
+  fun opticalWhitePointDelta_survivesSeparateMergedAndSplitLayouts() = runComposeUiTest {
+    val fixture = cluster(
+      gap = 25,
+      adjustableGap = true,
+      checkerboard = true,
+      optical = true,
+      pressed = GlassStyle { pressed { whitePointDelta(0.3f) } },
+    )
+    assertThat(fixture.owner().model.surfaces).hasSize(2)
+    val firstNode = checkNotNull(fixture.first.memberBindingForTest).node
+    val idleSeparate = fixture.capture()
+    val press = fixture.press(fixture.firstSource)
+    val activeSeparate = fixture.capture()
+    assertThat(regionDifference(activeSeparate, idleSeparate, 40, 60, 140, 140)).isGreaterThan(0.01f)
+    assertThat(regionDifference(activeSeparate, idleSeparate, 160, 60, 260, 140)).isLessThan(1f / 255f)
+
+    fixture.setGap(10)
+    assertThat(fixture.owner().model.surfaces).hasSize(1)
+    val activeMerged = fixture.capture()
+    assertThat(fixture.field().members.first().whitePointDelta)
+      .isEqualTo(0.3f)
+    assertThat(fixture.field().members.last().whitePointDelta)
+      .isEqualTo(0f)
+    assertThat(fixture.first.memberBindingForTest?.node).isSameInstanceAs(firstNode)
+    assertThat(regionDifference(activeMerged, idleSeparate, 40, 60, 140, 140)).isGreaterThan(0.01f)
+    fixture.release(fixture.firstSource, press)
+    val idleMerged = fixture.capture()
+    assertThat(regionDifference(activeMerged, idleMerged, 40, 60, 140, 140)).isGreaterThan(0.01f)
+    assertThat(regionDifference(activeMerged, idleMerged, 160, 60, 260, 140)).isLessThan(1f / 255f)
+
+    val mergedPress = fixture.press(fixture.firstSource)
+    val mergedActiveAgain = fixture.capture()
+    assertThat(regionDifference(mergedActiveAgain, idleMerged, 40, 60, 140, 140)).isGreaterThan(0.01f)
+    fixture.release(fixture.firstSource, mergedPress)
+    val mergedReleased = fixture.capture()
+    assertThat(regionDifference(mergedReleased, idleMerged, 40, 60, 140, 140)).isLessThan(1f / 255f)
+
+    fixture.setGap(25)
+    assertThat(fixture.owner().model.surfaces).hasSize(2)
+    val idleSplit = fixture.capture()
+    fixture.setGap(10)
+    assertThat(fixture.owner().model.surfaces).hasSize(1)
+    val splitPress = fixture.press(fixture.firstSource)
+    fixture.setGap(25)
+    assertThat(fixture.owner().model.surfaces).hasSize(2)
+    val activeSplit = fixture.capture()
+    assertThat(fixture.first.memberBindingForTest?.node).isSameInstanceAs(firstNode)
+    assertThat(regionDifference(activeSplit, idleSplit, 40, 60, 140, 140)).isGreaterThan(0.01f)
+    assertThat(regionDifference(activeSplit, idleSplit, 160, 60, 260, 140)).isLessThan(1f / 255f)
+    runBlocking { fixture.firstSource.emit(PressInteraction.Cancel(splitPress)) }
+    waitForIdle()
+    val splitCancelled = fixture.capture()
+    assertThat(regionDifference(splitCancelled, idleSplit, 40, 60, 140, 140)).isLessThan(1f / 255f)
+    assertThat(regionDifference(splitCancelled, idleSplit, 160, 60, 260, 140)).isLessThan(1f / 255f)
+  }
+
+  @Test
+  fun opticalRefractionMultiplier_survivesSeparateMergedAndSplitLayouts() = runComposeUiTest {
+    val fixture = cluster(
+      gap = 25,
+      adjustableGap = true,
+      checkerboard = true,
+      optical = true,
+      pressed = GlassStyle { pressed { refractionMultiplier(1.8f) } },
+    )
+    assertThat(fixture.owner().model.surfaces).hasSize(2)
+    val idleSeparate = fixture.capture()
+    fixture.press(fixture.firstSource)
+    val activeSeparate = fixture.capture()
+    assertThat(regionDifference(activeSeparate, idleSeparate, 40, 60, 140, 140)).isGreaterThan(0.005f)
+    assertThat(regionDifference(activeSeparate, idleSeparate, 160, 60, 260, 140)).isLessThan(1f / 255f)
+    fixture.setGap(10)
+    assertThat(fixture.owner().model.surfaces).hasSize(1)
+    val activeMerged = fixture.capture()
+    assertThat(fixture.owner().renderer.runtimeSurfaces.single().delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
+    assertThat(regionDifference(activeMerged, idleSeparate, 40, 60, 140, 140)).isGreaterThan(0.005f)
+    fixture.release(fixture.firstSource, fixture.activePress!!)
+    val idleMerged = fixture.capture()
+    assertThat(regionDifference(activeMerged, idleMerged, 40, 60, 140, 140)).isGreaterThan(0.005f)
+    val mergedPress = fixture.press(fixture.firstSource)
+    val mergedActiveAgain = fixture.capture()
+    assertThat(regionDifference(mergedActiveAgain, idleMerged, 40, 60, 140, 140)).isGreaterThan(0.005f)
+    fixture.release(fixture.firstSource, mergedPress)
+    val mergedReleased = fixture.capture()
+    assertThat(regionDifference(mergedReleased, idleMerged, 40, 60, 140, 140)).isLessThan(1f / 255f)
+    fixture.setGap(25)
+    assertThat(fixture.owner().model.surfaces).hasSize(2)
+    val splitIdle = fixture.capture()
+    fixture.setGap(10)
+    assertThat(fixture.owner().model.surfaces).hasSize(1)
+    val splitPress = fixture.press(fixture.firstSource)
+    fixture.setGap(25)
+    assertThat(fixture.owner().model.surfaces).hasSize(2)
+    val activeSplit = fixture.capture()
+    assertThat(regionDifference(activeSplit, splitIdle, 40, 60, 140, 140)).isGreaterThan(0.005f)
+    fixture.cancel(fixture.firstSource, splitPress)
+    assertThat(regionDifference(fixture.capture(), splitIdle, 40, 60, 140, 140)).isLessThan(1f / 255f)
+  }
+
   @Test
   fun pressMergedMember_doesNotThrowAndStaysOneSurface() = runComposeUiTest {
     val fixture = cluster()
@@ -249,6 +372,28 @@ class GlassContainerInteractionTest : ContextTest() {
   }
 
   @Test
+  fun unavailableRuntime_opticalOnlyChangeKeepsFallbackPaths() = runComposeUiTest {
+    val fixture = cluster(
+      pressed = GlassStyle { pressed { whitePointDelta(0.3f) } },
+      unavailable = true,
+      optical = true,
+    )
+    fixture.assertFallback()
+    fixture.capture()
+    val idlePaths = fixture.mergedPaths()
+
+    fixture.press(fixture.firstSource)
+    fixture.capture()
+    assertThat(fixture.field().members.first().whitePointDelta).isEqualTo(0.3f)
+    assertThat(fixture.mergedPaths()).isSameInstanceAs(idlePaths)
+
+    fixture.cancel(fixture.firstSource, checkNotNull(fixture.activePress))
+    fixture.capture()
+    assertThat(fixture.field().members.first().whitePointDelta).isEqualTo(0f)
+    assertThat(fixture.mergedPaths()).isSameInstanceAs(idlePaths)
+  }
+
+  @Test
   fun pressAnimation_doesNotReRunMemberUpdatesPerFrame() = runComposeUiTest {
     val linear = tween<Float>(300, easing = LinearEasing)
     val fixture = cluster(pressed = GlassStyle { pressed { animate(linear, linear) { scale(0.9f) } } })
@@ -285,7 +430,9 @@ class GlassContainerInteractionTest : ContextTest() {
     val second: GlassRuntimeEffect,
     val firstSource: MutableInteractionSource,
     val secondSource: MutableInteractionSource,
+    val gap: MutableIntState,
   ) {
+    var activePress: PressInteraction.Press? = null
     fun resetUpdateCounts() {
       first.updateCallsForTest = 0
       second.updateCallsForTest = 0
@@ -315,11 +462,24 @@ class GlassContainerInteractionTest : ContextTest() {
       val press = PressInteraction.Press(position)
       runBlocking { source.emit(press) }
       test.waitForIdle()
+      activePress = press
       return press
     }
 
     fun release(source: MutableInteractionSource, press: PressInteraction.Press) {
       runBlocking { source.emit(PressInteraction.Release(press)) }
+      test.waitForIdle()
+      activePress = null
+    }
+
+    fun cancel(source: MutableInteractionSource, press: PressInteraction.Press) {
+      runBlocking { source.emit(PressInteraction.Cancel(press)) }
+      test.waitForIdle()
+      activePress = null
+    }
+
+    fun setGap(value: Int) {
+      test.runOnIdle { gap.intValue = value }
       test.waitForIdle()
     }
   }
@@ -332,6 +492,9 @@ class GlassContainerInteractionTest : ContextTest() {
     pivot: GlassTransformPivot = GlassTransformPivot.Center,
     firstModifier: Modifier = Modifier,
     unavailable: Boolean = false,
+    adjustableGap: Boolean = false,
+    checkerboard: Boolean = false,
+    optical: Boolean = false,
   ): ClusterFixture {
     val first = GlassRuntimeEffect()
     val second = GlassRuntimeEffect()
@@ -342,20 +505,52 @@ class GlassContainerInteractionTest : ContextTest() {
     }
     val firstSource = MutableInteractionSource()
     val secondSource = MutableInteractionSource()
+    val gapState = mutableIntStateOf(gap)
     val state = HazeState()
     setContent {
       Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
-        Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White)) {
+          if (checkerboard) {
+            repeat(36) { index ->
+              Box(
+                Modifier.offset((index * 10).dp, 0.dp).size(10.dp, 240.dp)
+                  .background(if (index % 2 == 0) Color.Black else Color.White),
+              )
+            }
+          }
+        }
         Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(spacing.dp)) {
           Box(
             Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).then(firstModifier).hazeGlass(
-              HazeEffectFactory { first }, HazeInput.Sources(state), containerTestStyle(Color.Red).then(pressed),
+              HazeEffectFactory { first }, HazeInput.Sources(state),
+              containerTestStyle(if (optical) Color.Transparent else Color.Red).let { base ->
+                if (optical) {
+                  base.then(
+                    GlassStyle {
+                      optics(GlassOptics(refractionStrength = 0.8f, refractionDisplacement = 40.dp, refractionHeightFraction = 0.5f))
+                    },
+                  )
+                } else {
+                  base
+                }
+              }.then(pressed),
               HazePerformanceMode.Quality, true, firstSource, GlassTransformTarget.MaterialOnly, pivot, policy,
             ),
           )
           Box(
-            Modifier.offset((140 + gap).dp, 60.dp).size(100.dp, 80.dp).hazeGlass(
-              HazeEffectFactory { second }, HazeInput.Sources(state), containerTestStyle(Color.Blue).then(pressed),
+            Modifier.offset((140 + if (adjustableGap) gapState.intValue else gap).dp, 60.dp).size(100.dp, 80.dp).hazeGlass(
+              HazeEffectFactory { second }, HazeInput.Sources(state),
+              containerTestStyle(if (optical) Color.Transparent else Color.Blue).let { base ->
+                if (optical) {
+                  base.then(
+                    GlassStyle {
+                      optics(GlassOptics(refractionStrength = 0.8f, refractionDisplacement = 40.dp, refractionHeightFraction = 0.5f))
+                    },
+                  )
+                } else {
+                  base
+                }
+              }.then(pressed),
               HazePerformanceMode.Quality, true, secondSource, GlassTransformTarget.MaterialOnly, pivot, policy,
             ),
           )
@@ -363,8 +558,27 @@ class GlassContainerInteractionTest : ContextTest() {
       }
     }
     waitForIdle()
-    return ClusterFixture(this, first, second, firstSource, secondSource)
+    return ClusterFixture(this, first, second, firstSource, secondSource, gapState)
   }
+}
+
+private fun regionDifference(
+  first: androidx.compose.ui.graphics.PixelMap,
+  second: androidx.compose.ui.graphics.PixelMap,
+  left: Int,
+  top: Int,
+  right: Int,
+  bottom: Int,
+): Float {
+  var difference = 0f
+  var count = 0
+  for (y in top until bottom) for (x in left until right) {
+    val a = first[x, y]
+    val b = second[x, y]
+    difference += kotlin.math.abs(a.red - b.red) + kotlin.math.abs(a.green - b.green) + kotlin.math.abs(a.blue - b.blue)
+    count += 3
+  }
+  return difference / count
 }
 
 internal fun FallbackMergedPaths.exclusiveBuilt(): Boolean = javaClass.getDeclaredField("exclusive\$delegate").run {

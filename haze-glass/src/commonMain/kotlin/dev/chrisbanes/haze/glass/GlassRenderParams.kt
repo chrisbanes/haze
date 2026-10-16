@@ -272,7 +272,7 @@ internal val GlassRenderParams.sourceBackgroundColor: Color
 
 /** The merged field whose member background colours fill the source, when any is visible. */
 internal val GlassRenderParams.mergedBackground: GlassMergedField?
-  get() = mergedField?.withoutLights?.takeIf { it.hasBackground }
+  get() = mergedField?.withoutInteractions?.takeIf { it.hasBackground }
 
 internal data class GlassOpticalEffectKey(
   val coordinates: GlassCoordinates,
@@ -406,7 +406,7 @@ internal fun GlassRenderParams.rimEffectKey() = GlassRimEffectKey(
   cornerRadii = cornerRadii,
   lightPosition = lightPosition,
   sampleStepPx = sampleStepPx,
-  mergedField = mergedField?.withoutLights,
+  mergedField = mergedField?.withoutInteractions,
 )
 
 internal data class GlassInteractionLightingKey(
@@ -1059,7 +1059,7 @@ private fun GlassRenderParams.hasSameRimEffectInputs(other: GlassRenderParams): 
     specularExponent == other.specularExponent &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
     cornerRadii == other.cornerRadii &&
-    mergedField?.withoutLights == other.mergedField?.withoutLights &&
+    mergedField?.withoutInteractions == other.mergedField?.withoutInteractions &&
     lightPosition == other.lightPosition &&
     sampleStepPx == other.sampleStepPx
 
