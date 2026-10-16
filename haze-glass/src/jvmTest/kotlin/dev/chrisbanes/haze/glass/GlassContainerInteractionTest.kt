@@ -109,6 +109,13 @@ class GlassContainerInteractionTest : ContextTest() {
     assertThat(regionDifference(activeMerged, idleMerged, 40, 60, 140, 140)).isGreaterThan(0.01f)
     assertThat(regionDifference(activeMerged, idleMerged, 160, 60, 260, 140)).isLessThan(1f / 255f)
 
+    val mergedPress = fixture.press(fixture.firstSource)
+    val mergedActiveAgain = fixture.capture()
+    assertThat(regionDifference(mergedActiveAgain, idleMerged, 40, 60, 140, 140)).isGreaterThan(0.01f)
+    fixture.release(fixture.firstSource, mergedPress)
+    val mergedReleased = fixture.capture()
+    assertThat(regionDifference(mergedReleased, idleMerged, 40, 60, 140, 140)).isLessThan(1f / 255f)
+
     fixture.setGap(25)
     assertThat(fixture.owner().model.surfaces).hasSize(2)
     val idleSplit = fixture.capture()
@@ -123,7 +130,9 @@ class GlassContainerInteractionTest : ContextTest() {
     assertThat(regionDifference(activeSplit, idleSplit, 160, 60, 260, 140)).isLessThan(1f / 255f)
     runBlocking { fixture.firstSource.emit(PressInteraction.Cancel(splitPress)) }
     waitForIdle()
-    assertThat(regionDifference(fixture.capture(), idleSplit, 40, 60, 260, 140)).isLessThan(0.01f)
+    val splitCancelled = fixture.capture()
+    assertThat(regionDifference(splitCancelled, idleSplit, 40, 60, 140, 140)).isLessThan(1f / 255f)
+    assertThat(regionDifference(splitCancelled, idleSplit, 160, 60, 260, 140)).isLessThan(1f / 255f)
   }
 
   @Test
@@ -149,6 +158,12 @@ class GlassContainerInteractionTest : ContextTest() {
     fixture.release(fixture.firstSource, fixture.activePress!!)
     val idleMerged = fixture.capture()
     assertThat(regionDifference(activeMerged, idleMerged, 40, 60, 140, 140)).isGreaterThan(0.005f)
+    val mergedPress = fixture.press(fixture.firstSource)
+    val mergedActiveAgain = fixture.capture()
+    assertThat(regionDifference(mergedActiveAgain, idleMerged, 40, 60, 140, 140)).isGreaterThan(0.005f)
+    fixture.release(fixture.firstSource, mergedPress)
+    val mergedReleased = fixture.capture()
+    assertThat(regionDifference(mergedReleased, idleMerged, 40, 60, 140, 140)).isLessThan(1f / 255f)
     fixture.setGap(25)
     assertThat(fixture.owner().model.surfaces).hasSize(2)
     val splitIdle = fixture.capture()
@@ -160,7 +175,7 @@ class GlassContainerInteractionTest : ContextTest() {
     val activeSplit = fixture.capture()
     assertThat(regionDifference(activeSplit, splitIdle, 40, 60, 140, 140)).isGreaterThan(0.005f)
     fixture.cancel(fixture.firstSource, splitPress)
-    assertThat(regionDifference(fixture.capture(), splitIdle, 40, 60, 260, 140)).isLessThan(0.01f)
+    assertThat(regionDifference(fixture.capture(), splitIdle, 40, 60, 140, 140)).isLessThan(1f / 255f)
   }
 
   @Test
@@ -354,6 +369,28 @@ class GlassContainerInteractionTest : ContextTest() {
     val litPaths = fixture.mergedPaths()
     assertThat(litPaths.exclusiveBuilt()).isFalse()
     assertThat(litPaths).isSameInstanceAs(idlePaths)
+  }
+
+  @Test
+  fun unavailableRuntime_opticalOnlyChangeKeepsFallbackPaths() = runComposeUiTest {
+    val fixture = cluster(
+      pressed = GlassStyle { pressed { whitePointDelta(0.3f) } },
+      unavailable = true,
+      optical = true,
+    )
+    fixture.assertFallback()
+    fixture.capture()
+    val idlePaths = fixture.mergedPaths()
+
+    fixture.press(fixture.firstSource)
+    fixture.capture()
+    assertThat(fixture.field().members.first().whitePointDelta).isEqualTo(0.3f)
+    assertThat(fixture.mergedPaths()).isSameInstanceAs(idlePaths)
+
+    fixture.cancel(fixture.firstSource, checkNotNull(fixture.activePress))
+    fixture.capture()
+    assertThat(fixture.field().members.first().whitePointDelta).isEqualTo(0f)
+    assertThat(fixture.mergedPaths()).isSameInstanceAs(idlePaths)
   }
 
   @Test

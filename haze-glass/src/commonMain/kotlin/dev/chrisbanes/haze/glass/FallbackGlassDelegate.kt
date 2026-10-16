@@ -52,7 +52,7 @@ internal class FallbackGlassDelegate(
     val previous = preparedDraw
     if (previous?.size != size || previous.style != style || previous.interaction != interaction) {
       // Lights are not drawn here, so a light-only change keeps the member paths.
-      val mergedPaths = style.mergedField?.withoutLights?.let { field ->
+      val mergedPaths = style.mergedField?.withoutInteractions?.let { field ->
         previous?.mergedPaths?.takeIf { it.field == field } ?: FallbackMergedPaths(field)
       }
       val shapePath = mergedPaths?.union ?: previous

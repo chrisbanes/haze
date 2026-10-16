@@ -11,6 +11,7 @@ import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -42,11 +43,11 @@ import org.robolectric.annotation.Config
 class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
   @Test
   @Config(sdk = [35])
-  fun sdk35_fusedWhitePointDelta_isMemberLocalAndCancelRestoresBase() = assertWhitePointDelta()
+  fun sdk35_fusedDistinctOpticalResponses_areIndependent() = assertDistinctOpticalResponses()
 
   @Test
   @Config(sdk = [37])
-  fun sdk37_fusedWhitePointDelta_isMemberLocalAndCancelRestoresBase() = assertWhitePointDelta()
+  fun sdk37_fusedDistinctOpticalResponses_areIndependent() = assertDistinctOpticalResponses()
 
   @Test
   @Config(sdk = [35])
@@ -72,11 +73,27 @@ class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
   @Config(sdk = [37])
   fun sdk37_whitePointDelta_survivesSeparateMergedAndSplitLayouts() = assertOpticalChannelSurvivesLayouts(refractionMultiplier = false)
 
-  private fun assertOpticalChannelSurvivesLayouts(refractionMultiplier: Boolean) = runScreenshotTest(size = Size(360f, 240f)) {
+  @Test
+  @Config(sdk = [35])
+  fun sdk35_reducedScaleAndNoDetail_keepMergedInteractionOptics() =
+    assertOpticalChannelSurvivesLayouts(refractionMultiplier = true, inputScale = 0.75f, detailIntensity = 0f)
+
+  @Test
+  @Config(sdk = [35])
+  fun sdk35_successiveOpticalOnlyUpdates_refreshTheCurrentOutput() =
+    assertOpticalChannelSurvivesLayouts(refractionMultiplier = true, successiveOpticalUpdates = true)
+
+  private fun assertOpticalChannelSurvivesLayouts(
+    refractionMultiplier: Boolean,
+    inputScale: Float = 1f,
+    detailIntensity: Float = 0.76f,
+    successiveOpticalUpdates: Boolean = false,
+  ) = runScreenshotTest(size = Size(360f, 240f)) {
     val state = HazeState()
     val gap = mutableIntStateOf(0)
     val firstSource = MutableInteractionSource()
     val secondSource = MutableInteractionSource()
+    val radiusFraction = mutableFloatStateOf(2f)
     val firstEffect = GlassRuntimeEffect()
     val secondEffect = GlassRuntimeEffect()
     val responseStyle = GlassStyle {
@@ -84,9 +101,9 @@ class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
         if (refractionMultiplier) refractionMultiplier(1.8f) else whitePointDelta(0.3f)
       }
     }
-    val baseStyle = opticalStyle()
-    val interactiveStyle = baseStyle.then(responseStyle)
     setContent {
+      val baseStyle = opticalStyle(radiusFraction.floatValue, detailIntensity)
+      val interactiveStyle = baseStyle.then(responseStyle)
       Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
         Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White)) {
           repeat(36) { index ->
@@ -96,11 +113,11 @@ class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
         Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(gap.intValue.dp)) {
           Box(
             Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp)
-              .hazeGlass(HazeEffectFactory { firstEffect }, HazeInput.Sources(state), interactiveStyle, HazePerformanceMode.Quality, true, firstSource),
+              .hazeGlass(HazeEffectFactory { firstEffect }, HazeInput.Sources(state), interactiveStyle, HazePerformanceMode.Fixed(inputScale), true, firstSource),
           )
           Box(
             Modifier.offset(150.dp, 60.dp).size(100.dp, 80.dp)
-              .hazeGlass(HazeEffectFactory { secondEffect }, HazeInput.Sources(state), baseStyle, HazePerformanceMode.Quality, true, secondSource),
+              .hazeGlass(HazeEffectFactory { secondEffect }, HazeInput.Sources(state), baseStyle, HazePerformanceMode.Fixed(inputScale), true, secondSource),
           )
         }
       }
@@ -117,8 +134,44 @@ class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
     fun assertWhitePointDifference(active: PixelMap, idle: PixelMap) {
       assertThat(active.diff(idle, 40f, 140f)).isGreaterThan(0.005f)
     }
+    fun multiplierDifference(active: PixelMap, idle: PixelMap): Float {
+      val verticalBands = if (inputScale < 1f) listOf(80f to 90f, 90f to 100f, 100f to 110f, 110f to 120f) else listOf(90f to 110f)
+      return verticalBands.maxOf { (top, bottom) ->
+        maxOf(active.diff(idle, 40f, 55f, top, bottom), active.diff(idle, 125f, 140f, top, bottom))
+      }
+    }
+    fun changedPixels(active: PixelMap, idle: PixelMap, left: Float, right: Float, top: Float, bottom: Float): Int {
+      val leftPx = (bounds.left + left * bounds.width / 360f).roundToInt()
+      val rightPx = (bounds.left + right * bounds.width / 360f).roundToInt()
+      val topPx = (bounds.top + top * bounds.height / 240f).roundToInt()
+      val bottomPx = (bounds.top + bottom * bounds.height / 240f).roundToInt()
+      var count = 0
+      for (y in topPx until bottomPx) for (x in leftPx until rightPx) {
+        val activeColor = active[x, y]
+        val idleColor = idle[x, y]
+        if (maxOf(
+            abs(activeColor.red - idleColor.red),
+            abs(activeColor.green - idleColor.green),
+            abs(activeColor.blue - idleColor.blue),
+          ) > 1f / 255f
+        ) {
+          count++
+        }
+      }
+      return count
+    }
+    fun multiplierChangedPixels(active: PixelMap, idle: PixelMap): Int {
+      val verticalBands = if (inputScale < 1f) listOf(80f to 90f, 90f to 100f, 100f to 110f, 110f to 120f) else listOf(90f to 110f)
+      return verticalBands.maxOf { (top, bottom) ->
+        maxOf(changedPixels(active, idle, 40f, 55f, top, bottom), changedPixels(active, idle, 125f, 140f, top, bottom))
+      }
+    }
     fun assertMultiplierDifference(active: PixelMap, idle: PixelMap) {
-      assertThat(maxOf(active.diff(idle, 40f, 55f, 90f, 110f), active.diff(idle, 125f, 140f, 90f, 110f))).isGreaterThan(0.005f)
+      if (inputScale < 1f) {
+        assertThat(multiplierChangedPixels(active, idle)).isGreaterThan(10)
+      } else {
+        assertThat(multiplierDifference(active, idle)).isGreaterThan(0.005f)
+      }
     }
     val owner = checkNotNull(firstEffect.memberBindingForTest?.node?.container)
     val firstNode = checkNotNull(firstEffect.memberBindingForTest).node
@@ -141,8 +194,38 @@ class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
     val activeMerged = captureRootPixels()
     assertThat(owner.model.surfaces.size).isEqualTo(1)
     assertThat(owner.renderer.runtimeSurfaces.size).isEqualTo(1)
+    if (successiveOpticalUpdates) {
+      val beforeUpdateRuntime = owner.renderer.runtimeSurfaces.single()
+      val beforeUpdate = checkNotNull(beforeUpdateRuntime.preparedRender)
+      val beforePlan = beforeUpdate.plan
+      composeTestRule.runOnIdle { radiusFraction.floatValue = 1.75f }
+      waitForIdle()
+      val updatedPixels = captureRootPixels()
+      val updatedRuntime = owner.renderer.runtimeSurfaces.single()
+      val updatedRender = checkNotNull(updatedRuntime.preparedRender)
+      assertThat(updatedRender.opticalKey).isNotEqualTo(beforeUpdate.opticalKey)
+      assertThat(updatedRender.plan).isEqualTo(beforePlan)
+      assertThat(updatedRender.params.mergedField?.members?.first()?.opticalRadius)
+        .isNotEqualTo(beforeUpdate.params.mergedField?.members?.first()?.opticalRadius)
+      assertThat(updatedPixels.diff(activeMerged, 40f, 55f, 90f, 110f)).isGreaterThan(0f)
+      assertThat((updatedRuntime.delegate as RuntimeShaderGlassDelegate).lastSuccessfulStageInputs?.optical)
+        .isEqualTo(updatedRender.opticalKey)
+      assertThat((updatedRuntime.delegate as RuntimeShaderGlassDelegate).opticalRecordCount).isGreaterThan(0)
+      assertThat(owner.model.surfaces.size).isEqualTo(1)
+      assertThat(owner.renderer.runtimeSurfaces.size).isEqualTo(1)
+    }
     val mergedRuntime = owner.renderer.runtimeSurfaces.single()
     val mergedMembers = checkNotNull(mergedRuntime.preparedRender).params.mergedField!!.members
+    val mergedPreparedRender = checkNotNull(mergedRuntime.preparedRender)
+    if (inputScale < 1f) {
+      assertThat(mergedPreparedRender.params.coordinates.scaleFactor).isLessThan(1f)
+    } else {
+      assertThat(mergedPreparedRender.params.coordinates.scaleFactor).isEqualTo(1f)
+    }
+    if (detailIntensity == 0f) {
+      assertThat(mergedPreparedRender.refractionDetailKey).isEqualTo(null)
+      assertThat((mergedRuntime.delegate as RuntimeShaderGlassDelegate).fusedShader != null).isEqualTo(true)
+    }
     assertThat(mergedMembers.first().refractionMultiplier).isEqualTo(if (refractionMultiplier) 1.8f else 1f)
     assertThat(mergedMembers.first().whitePointDelta).isEqualTo(if (refractionMultiplier) 0f else 0.3f)
     assertThat(mergedMembers.last().refractionMultiplier).isEqualTo(1f)
@@ -155,6 +238,24 @@ class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
     val idleMerged = captureRootPixels()
     if (refractionMultiplier) assertMultiplierDifference(activeMerged, idleMerged) else assertWhitePointDifference(activeMerged, idleMerged)
     assertThat(activeMerged.diff(idleMerged, 160f, 260f)).isLessThan(1f / 255f)
+
+    val mergedPress = PressInteraction.Press(Offset(50f, 40f))
+    runBlocking { firstSource.emit(mergedPress) }
+    waitForIdle()
+    val mergedActiveAgain = captureRootPixels()
+    if (refractionMultiplier) assertMultiplierDifference(mergedActiveAgain, idleMerged) else assertWhitePointDifference(mergedActiveAgain, idleMerged)
+    runBlocking { firstSource.emit(PressInteraction.Release(mergedPress)) }
+    waitForIdle()
+    val mergedReleased = captureRootPixels()
+    if (refractionMultiplier) {
+      if (inputScale < 1f) {
+        assertThat(multiplierChangedPixels(mergedReleased, idleMerged)).isEqualTo(0)
+      } else {
+        assertThat(multiplierDifference(mergedReleased, idleMerged)).isLessThan(1f / 255f)
+      }
+    } else {
+      assertThat(mergedReleased.diff(idleMerged, 40f, 140f)).isLessThan(1f / 255f)
+    }
 
     composeTestRule.runOnIdle { gap.intValue = 0 }
     waitForIdle()
@@ -180,14 +281,24 @@ class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
     assertThat(secondEffect.memberBindingForTest?.node).isSameInstanceAs(secondNode)
     runBlocking { firstSource.emit(PressInteraction.Cancel(splitPress)) }
     waitForIdle()
-    assertThat(captureRootPixels().diff(idleSplit, 40f, 260f)).isLessThan(0.01f)
+    val splitCancelled = captureRootPixels()
+    if (refractionMultiplier) {
+      if (inputScale < 1f) {
+        assertThat(multiplierChangedPixels(splitCancelled, idleSplit)).isEqualTo(0)
+      } else {
+        assertThat(multiplierDifference(splitCancelled, idleSplit)).isLessThan(1f / 255f)
+      }
+    } else {
+      assertThat(splitCancelled.diff(idleSplit, 40f, 140f)).isLessThan(1f / 255f)
+    }
   }
 
-  private fun assertWhitePointDelta() = runScreenshotTest(size = Size(360f, 240f)) {
+  private fun assertDistinctOpticalResponses() = runScreenshotTest(size = Size(360f, 240f)) {
     val state = HazeState()
     val sources = List(2) { MutableInteractionSource() }
     val effects = List(2) { GlassRuntimeEffect() }
-    val pressed = opticalStyle().then(GlassStyle { pressed { whitePointDelta(0.3f) } })
+    val firstPressed = opticalStyle().then(GlassStyle { pressed { refractionMultiplier(1.8f) } })
+    val secondPressed = opticalStyle().then(GlassStyle { pressed { whitePointDelta(0.3f) } })
     setContent {
       Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
         Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White)) {
@@ -199,42 +310,60 @@ class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
           effects.forEachIndexed { index, effect ->
             Box(
               Modifier.offset((40 + index * 110).dp, 60.dp).size(100.dp, 80.dp)
-                .hazeGlass(HazeEffectFactory { effect }, HazeInput.Sources(state), pressed, HazePerformanceMode.Quality, true, sources[index]),
+                .hazeGlass(HazeEffectFactory { effect }, HazeInput.Sources(state), if (index == 0) firstPressed else secondPressed, HazePerformanceMode.Quality, true, sources[index]),
             )
           }
         }
       }
     }
+    val owner = checkNotNull(effects.first().memberBindingForTest?.node?.container)
     val bounds = onNodeWithTag("root").fetchSemanticsNode().boundsInRoot
-    fun PixelMap.diff(other: PixelMap, left: Float, right: Float): Float = regionDifference(
+    fun PixelMap.diff(other: PixelMap, left: Float, right: Float, top: Float = 60f, bottom: Float = 140f): Float = regionDifference(
       this,
       other,
       (bounds.left + left * bounds.width / 360f).roundToInt(),
-      (bounds.top + 60f * bounds.height / 240f).roundToInt(),
+      (bounds.top + top * bounds.height / 240f).roundToInt(),
       (bounds.left + right * bounds.width / 360f).roundToInt(),
-      (bounds.top + 140f * bounds.height / 240f).roundToInt(),
+      (bounds.top + bottom * bounds.height / 240f).roundToInt(),
     )
     val idle = captureRootPixels()
-    val firstPress = PressInteraction.Press(Offset(50f, 40f))
-    runBlocking { sources[0].emit(firstPress) }
-    waitForIdle()
-    val firstActive = captureRootPixels()
-    assertThat(firstActive.diff(idle, 40f, 140f)).isGreaterThan(0.005f)
-    assertThat(firstActive.diff(idle, 160f, 260f)).isLessThan(1f / 255f)
+    val idleOpticalKey = checkNotNull(owner.renderer.runtimeSurfaces.single().preparedRender).opticalKey
     val secondPress = PressInteraction.Press(Offset(50f, 40f))
     runBlocking { sources[1].emit(secondPress) }
     waitForIdle()
+    val secondActive = captureRootPixels()
+    assertThat(secondActive.diff(idle, 160f, 260f)).isGreaterThan(0.005f)
+    assertThat(secondActive.diff(idle, 40f, 55f, 90f, 110f)).isLessThan(1f / 255f)
+    val firstPress = PressInteraction.Press(Offset(50f, 40f))
+    runBlocking { sources[0].emit(firstPress) }
+    waitForIdle()
     val bothActive = captureRootPixels()
+    assertThat(maxOf(bothActive.diff(secondActive, 40f, 55f, 90f, 110f), bothActive.diff(secondActive, 125f, 140f, 90f, 110f))).isGreaterThan(0.005f)
     assertThat(bothActive.diff(idle, 160f, 260f)).isGreaterThan(0.005f)
+    val bothMembers = checkNotNull(owner.renderer.runtimeSurfaces.single().preparedRender).params.mergedField!!.members
+    assertThat(bothMembers.first().refractionMultiplier).isEqualTo(1.8f)
+    assertThat(bothMembers.first().whitePointDelta).isEqualTo(0f)
+    assertThat(bothMembers.last().refractionMultiplier).isEqualTo(1f)
+    assertThat(bothMembers.last().whitePointDelta).isEqualTo(0.3f)
     runBlocking { sources[0].emit(PressInteraction.Release(firstPress)) }
     waitForIdle()
     val secondOnly = captureRootPixels()
-    assertThat(secondOnly.diff(idle, 40f, 140f)).isLessThan(1f / 255f)
+    assertThat(effects[0].currentInteractionState.refractionMultiplier).isEqualTo(1f)
+    val secondOnlyRender = checkNotNull(owner.renderer.runtimeSurfaces.single().preparedRender)
+    val secondOnlyMembers = secondOnlyRender.params.mergedField!!.members
+    assertThat(secondOnlyMembers.first().refractionMultiplier).isEqualTo(1f)
+    assertThat(secondOnlyMembers.last().whitePointDelta).isEqualTo(0.3f)
+    assertThat(secondOnlyRender.opticalKey).isNotEqualTo(idleOpticalKey)
+    assertThat(maxOf(secondOnly.diff(secondActive, 40f, 55f, 90f, 110f), secondOnly.diff(secondActive, 125f, 140f, 90f, 110f))).isLessThan(1f / 255f)
     assertThat(secondOnly.diff(idle, 160f, 260f)).isGreaterThan(0.005f)
+    assertThat(secondOnly.diff(secondActive, 175f, 225f)).isLessThan(1f / 255f)
     runBlocking { sources[1].emit(PressInteraction.Cancel(secondPress)) }
     waitForIdle()
-    assertThat(captureRootPixels().diff(idle, 40f, 260f)).isLessThan(0.01f)
-    val owner = checkNotNull(effects.first().memberBindingForTest?.node?.container)
+    val cancelled = captureRootPixels()
+    assertThat(effects[0].currentInteractionState.refractionMultiplier).isEqualTo(1f)
+    assertThat(effects[1].currentInteractionState.whitePointDelta).isEqualTo(0f)
+    assertThat(cancelled.diff(idle, 40f, 55f, 90f, 110f)).isLessThan(1f / 255f)
+    assertThat(cancelled.diff(idle, 160f, 260f)).isLessThan(1f / 255f)
     assertThat(owner.renderer.runtimeSurfaces.size).isEqualTo(1)
     val runtime = owner.renderer.runtimeSurfaces.single()
     val delegate = runtime.delegate as RuntimeShaderGlassDelegate
@@ -312,8 +441,8 @@ class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
     assertThat(captureRootPixels().diff(idle, 40f, 140f)).isLessThan(0.01f)
   }
 
-  private fun opticalStyle(lightRadiusFraction: Float = 2f) = GlassStyle {
-    optics(GlassOptics(refractionStrength = 0.4f, refractionDisplacement = 40.dp, refractionHeightFraction = 0.5f, refractionDetailIntensity = 0.76f))
+  private fun opticalStyle(lightRadiusFraction: Float = 2f, detailIntensity: Float = 0.76f) = GlassStyle {
+    optics(GlassOptics(refractionStrength = 0.4f, refractionDisplacement = 40.dp, refractionHeightFraction = 0.5f, refractionDetailIntensity = detailIntensity))
     interactionLightRadiusFraction(lightRadiusFraction)
     tint(Color.Transparent)
     backgroundColor(Color.Transparent)
