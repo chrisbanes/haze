@@ -36,8 +36,16 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
         with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
+
+      - name: Cache Kotlin/Native
+        uses: actions/cache@v6
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('gradle/libs.versions.toml') }}-${{ github.job }}
 
       - name: Compile Apple targets, run iOS simulator and macOS host tests, link macOS sample
         run: >
@@ -77,8 +85,13 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
         with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
+
+      - name: Test docs deployment routing
+        run: python3 -m unittest discover -s scripts -p test_docs_push_needs_build.py
 
       - name: Assemble and check
         run: >
@@ -130,6 +143,8 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
         with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
 
@@ -176,6 +191,8 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
         with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
 
@@ -244,8 +261,16 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
         with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
+
+      - name: Cache Kotlin/Native
+        uses: actions/cache@v6
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('gradle/libs.versions.toml') }}-${{ github.job }}
 
       - name: Deploy to Sonatype
         run: ./gradlew publish --no-configuration-cache
