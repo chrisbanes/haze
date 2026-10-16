@@ -11,6 +11,13 @@ else
   git fetch --no-tags --depth=1 origin "$before"
 fi
 
+# GitHub path filters inspect only 300 files, so larger pushes cannot rely on Build running.
+changed_paths=$(git diff --name-only --no-renames "$before" "$after")
+if [ "$(printf '%s\n' "$changed_paths" | wc -l)" -gt 300 ]; then
+  echo true
+  exit 0
+fi
+
 # Mixed pushes get their docs deployment after Build has published the snapshot.
 if git diff --quiet --no-renames "$before" "$after" -- . \
     ':(exclude,glob)**/*.md' ':(exclude,glob)docs/**'; then

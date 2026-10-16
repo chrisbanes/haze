@@ -50,6 +50,22 @@ class DocsPushNeedsBuildTest(unittest.TestCase):
         self.commit({"README.md": "updated", "src/Main.kt": "updated"})
         self.assertEqual(self.decision().stdout.strip(), "false")
 
+    def test_large_mixed_push_builds_docs_when_path_filters_may_skip_build(self):
+        files = {f"docs/page-{index:03}.md": "new" for index in range(300)}
+        files["src/Main.kt"] = "updated"
+        self.commit(files)
+        self.assertEqual(self.decision().stdout.strip(), "true")
+
+    def test_mixed_push_at_the_300_file_limit_still_defers(self):
+        files = {f"docs/page-{index:03}.md": "new" for index in range(299)}
+        files["src/Main.kt"] = "updated"
+        self.commit(files)
+        self.assertEqual(self.decision().stdout.strip(), "false")
+
+    def test_large_docs_only_push_still_builds_docs(self):
+        self.commit({f"docs/page-{index:03}.md": "new" for index in range(301)})
+        self.assertEqual(self.decision().stdout.strip(), "true")
+
     def test_checks_the_whole_push_not_only_the_last_commit(self):
         self.commit({"src/Main.kt": "updated"})
         self.commit({"README.md": "updated"})
