@@ -8,9 +8,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -62,6 +65,98 @@ import sun.misc.Unsafe
 
 @OptIn(ExperimentalTestApi::class, InternalHazeApi::class)
 class FallbackGlassDelegateTest {
+
+  @Test
+  fun reducedTransparency_downgradeInputDoesNotLeakThroughSingletonOrWinningMergedMember() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle {
+        tint(Color.Transparent)
+        backgroundColor(Color.Transparent)
+        edgeSoftness(0.dp)
+        edgeShadow(Color.Transparent)
+        specularIntensity(0f)
+        ambientResponse(0f)
+      }
+    }
+    val fallback = FallbackGlassDelegate(effect)
+    setContent {
+      CompositionLocalProvider(LocalGlassAccessibilitySettings provides GlassAccessibilitySettings(reduceTransparency = true)) {
+        FallbackTestContent(FallbackOnlyVisualEffect(effect, fallback, forceInput = true)) {
+          Box(Modifier.size(120.dp).background(Color.Red))
+        }
+      }
+    }
+    fun pixels() = onNodeWithTag(FALLBACK_TAG).captureToImage().toPixelMap()
+    assertThat(pixels()[55, 55]).isEqualTo(Color.White)
+    effect.mergedField = GlassMergedField(
+      listOf(
+        GlassMergedMember(Rect(0f, 0f, 90f, 120f), CornerRadii.zero, Color.Transparent, Color.Transparent, fallbackBaseColor = Color.White),
+        GlassMergedMember(Rect(60f, 0f, 120f, 120f), CornerRadii.zero, Color.Transparent, Color.Transparent),
+      ),
+      40f, Size(120f, 120f),
+    )
+    val merged = pixels()
+    assertThat(merged[55, 55]).isEqualTo(Color.White)
+    assertThat(merged[75, 55]).isEqualTo(Color.White)
+    assertThat(merged[110, 55]).isEqualTo(Color.Red)
+  }
+
+  @Test
+  fun reducedTransparency_livePolicyHidesDetailedInputAndPreservesFades() = runComposeUiTest {
+    val source = mutableStateOf(Color.Red)
+    val settings = mutableStateOf(GlassAccessibilitySettings(reduceTransparency = true))
+    val appearance = mutableStateOf(GlassSystemAppearance.Light)
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle {
+        backgroundColor(Color.Transparent)
+        tint(Color.Transparent)
+        specularIntensity(0f)
+        ambientResponse(0f)
+        edgeShadow(Color.Transparent)
+        edgeSoftness(0.dp)
+      }
+      accessibilitySettings = GlassAccessibilitySettings(reduceTransparency = true)
+    }
+    effect.appearanceReader = { appearance.value }
+    val fallback = FallbackGlassDelegate(effect)
+    setContent {
+      CompositionLocalProvider(LocalGlassAccessibilitySettings provides settings.value) {
+        FallbackTestContent(FallbackOnlyVisualEffect(effect, fallback)) {
+          Box(
+            Modifier.size(120.dp).drawBehind {
+              for (x in 0 until 12) for (y in 0 until 12) {
+                drawRect(
+                  if ((x + y) % 2 == 0) source.value else Color.Blue,
+                  topLeft = Offset(x * 10f, y * 10f),
+                  size = Size(10f, 10f),
+                )
+              }
+            },
+          )
+        }
+      }
+    }
+    fun pixel() = onNodeWithTag(FALLBACK_TAG).captureToImage().toPixelMap()[55, 55]
+    assertThat(pixel()).isEqualTo(Color.White)
+    runOnIdle { source.value = Color.Green }
+    assertThat(pixel()).isEqualTo(Color.White)
+    runOnIdle { appearance.value = GlassSystemAppearance.Dark }
+    assertThat(pixel()).isEqualTo(Color.Black)
+    runOnIdle { settings.value = GlassAccessibilitySettings(true, reducedTransparencyFallbackColor = Color.Yellow) }
+    assertThat(pixel()).isEqualTo(Color.Yellow)
+    effect.style = effect.style.then { alpha(0.5f) }
+    assertThat(abs(pixel().alpha - 0.5f)).isLessThan(0.02f)
+    effect.style = effect.style.then { alpha(0f) }
+    assertThat(pixel().alpha).isEqualTo(0f)
+    effect.style = effect.style.then {
+      alpha(1f)
+      backgroundColor(Color.White)
+    }
+    runOnIdle { settings.value = GlassAccessibilitySettings() }
+    assertThat(pixel()).isEqualTo(Color.Green)
+    runOnIdle { source.value = Color.Red }
+    assertThat(pixel()).isEqualTo(Color.Red)
+  }
 
   @Test
   fun boundedFractionalAlpha_preparesAndReusesGroupLayer() {
@@ -468,6 +563,7 @@ private const val FALLBACK_TAG = "fallback"
 private class FallbackOnlyVisualEffect(
   private val glass: GlassRuntimeEffect,
   private val fallback: FallbackGlassDelegate,
+  private val forceInput: Boolean = false,
 ) :
   HazeEffectRenderer<Unit>,
   HazeEffectRendererLifecycle<Unit>,
@@ -489,12 +585,12 @@ private class FallbackOnlyVisualEffect(
 
   override fun HazeEffectDrawScope.draw(style: Unit) {
     val context = this as HazeEffectRuntimeDrawScope
-    with(fallback) { draw(context) }
+    if (glass.alpha > 0f) with(fallback) { draw(context, forceInput = forceInput) }
   }
 
   override fun HazeEffectRuntimeDrawScope.drawForeground(style: Unit) {
     val context = this
-    with(fallback) { drawForeground(context) }
+    if (glass.alpha > 0f) with(fallback) { drawForeground(context) }
   }
 
   override fun attach(scope: HazeEffectLifecycleScope) {

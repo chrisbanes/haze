@@ -491,6 +491,7 @@ internal data class ResolvedGlassStyle(
   val fresnelExponent: Float,
   val cornerRadii: CornerRadii,
   val mergedField: GlassMergedField? = null,
+  val fallbackBaseColor: Color? = null,
 )
 
 internal fun resolveGlassStyle(
@@ -543,6 +544,12 @@ internal fun resolveGlassStyle(
     fresnelExponent = effect.fresnelExponent,
     cornerRadii = cornerRadii,
     mergedField = effect.mergedField,
+    fallbackBaseColor = if (effect.accessibilitySettings.reduceTransparency) {
+      effect.accessibilitySettings.reducedTransparencyFallbackColor
+        ?: if (effect.systemAppearance == GlassSystemAppearance.Dark) Color.Black else Color.White
+    } else {
+      null
+    },
   ).withAccessibility(
     settings = effect.accessibilitySettings,
     minimumBorderSoftnessPx = defaultEdgeSoftnessPx,
@@ -659,7 +666,7 @@ internal fun buildGlassRenderParams(
     specularExponent = style.specularExponent,
     fresnelExponent = style.fresnelExponent,
     cornerRadii = style.cornerRadii * scaleFactor,
-    mergedField = style.mergedField?.scaled(scaleFactor),
+    mergedField = style.mergedField?.withoutFallbackBase?.scaled(scaleFactor),
     lightPosition = style.lightPosition * scaleFactor,
     sampleStepPx = 2f * scaleFactor,
     refractionDetailIntensity = resolvedOptics.refractionDetailIntensity,

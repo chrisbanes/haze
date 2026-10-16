@@ -179,7 +179,18 @@ CompositionLocalProvider(
 ```
 
 The defaults leave the Style unchanged, and the settings never modify your Style values.
-`reduceTransparency` makes the material more opaque with a stronger, fully diffused blur. `increaseContrast` raises tone contrast and enforces a visible
+`reduceTransparency` uses a stronger, fully diffused blur during full rendering. In fallback rendering,
+it hides source detail with an opaque base: white in light appearance (also the default when appearance
+is unknown), or black in dark appearance. Set `reducedTransparencyFallbackColor` to an opaque `Color`
+to override this base; null selects the automatic colour. Translucent and unspecified overrides are
+rejected.
+
+Fallback draws this base, then your background colour, then tint. Overall `alpha` still fades the
+whole material, so source detail is hidden at alpha 1 and can show through during a fade. Turning
+`reduceTransparency` off restores ordinary fallback rendering. The colour override only affects
+reduced-transparency fallback; full rendering keeps its stronger blur.
+
+`increaseContrast` raises tone contrast and enforces a visible
 edge. `showBorders` enforces a visible edge without changing tone. The edge appears even when the
 Style has zero edge softness.
 

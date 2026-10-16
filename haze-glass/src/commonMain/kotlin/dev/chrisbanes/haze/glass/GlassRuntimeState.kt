@@ -171,6 +171,7 @@ internal abstract class GlassRuntimeState {
       if (field !== value) {
         HazeLogger.d(TAG) { "style changed. Current: $field. New: $value" }
         field = value
+        markDirty(GlassDirtyFields.Accessibility)
         updateInheritedStyleValues()
         markDirty(GlassDirtyFields.Style)
       }

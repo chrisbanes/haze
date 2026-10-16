@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
@@ -63,6 +64,55 @@ import kotlin.test.Test
 import kotlinx.coroutines.runBlocking
 
 class GlassContainerTransitionTest : ContextTest() {
+  @Test
+  fun reducedTransparency_detachedGhostDrawsCapturedOverride() = runComposeUiTest {
+    val settings = GlassAccessibilitySettings(true, reducedTransparencyFallbackColor = Color.Yellow)
+    val fixture = fixture(
+      unavailable = true,
+      bTint = Color.Transparent,
+      bAccessibility = settings,
+      transition = GlassMemberTransition.Materialize,
+    )
+    assertThat(fixture.capture()[210, 100]).isEqualTo(Color.Yellow)
+    fixture.removeB()
+    assertThat(fixture.b.memberBindingForTest).isNull()
+    assertThat(fixture.b().identity).isInstanceOf<GlassMemberGhost>()
+    assertThat(fixture.b().material.fallbackBaseColor).isEqualTo(Color.Yellow)
+    assertThat(fixture.capture()[210, 100]).isEqualTo(Color.Yellow)
+    fixture.advance(144)
+    val faded = fixture.capture()[210, 100]
+    assertThat(faded.red).isGreaterThan(0.95f)
+    assertThat(faded.green).isGreaterThan(0.95f)
+    assertThat(faded.blue).isGreaterThan(0.3f)
+    assertThat(faded.blue).isLessThan(0.7f)
+    fixture.settle()
+  }
+
+  @Test
+  fun fallbackBase_transitionTakesTargetPolicyImmediatelyAndGhostKeepsCapturedBase() = runComposeUiTest {
+    val ordinary = mergedMember(0f, 0f, 100f, 80f)
+    val reduced = GlassMergedMember(
+      ordinary.rect,
+      ordinary.cornerRadii,
+      ordinary.tint,
+      ordinary.backgroundColor,
+      fallbackBaseColor = Color.Yellow,
+    )
+    for (fraction in listOf(0f, 0.5f, 1f)) {
+      assertThat(lerpGlassMergedMember(ordinary, reduced, fraction).fallbackBaseColor).isEqualTo(Color.Yellow)
+      assertThat(lerpGlassMergedMember(reduced, ordinary, fraction).fallbackBaseColor).isNull()
+    }
+    val fixture = fixture()
+    val captured = fixture.b().copy(material = fixture.b().material.copy(fallbackBaseColor = Color.Yellow))
+    val neighbour = fixture.a().copy(material = fixture.a().material.copy(fallbackBaseColor = Color.Black))
+    val ghost = GlassMemberGhost(captured, fixture.aNode, checkNotNull(fixture.aNode))
+    assertThat(ghost.snapshot(neighbour).material.fallbackBaseColor).isEqualTo(Color.Yellow)
+    assertThat(ghost.snapshot(null).material.fallbackBaseColor).isEqualTo(Color.Yellow)
+    assertThat(captured.morphedFrom(neighbour, 0f).second.fallbackBaseColor).isEqualTo(Color.Yellow)
+    fixture.toggle()
+    assertThat(fixture.b().identity).isInstanceOf<GlassMemberGhost>()
+  }
+
   @Test
   fun initialMembers_doNotAnimate() = runComposeUiTest {
     val fixture = fixture()
@@ -1069,6 +1119,7 @@ class GlassContainerTransitionTest : ContextTest() {
     policy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.Full,
     bSize: Size = Size(100f, 80f),
     bTint: Color = Color.Blue,
+    bAccessibility: GlassAccessibilitySettings = GlassAccessibilitySettings(),
     bStyle: GlassStyle = GlassStyle { },
     bPivot: GlassTransformPivot = GlassTransformPivot.Pointer,
     withA: Boolean = true,
@@ -1113,19 +1164,21 @@ class GlassContainerTransitionTest : ContextTest() {
               .then(if (nested.value) Modifier.hazeGlassContainer(40.dp) else Modifier),
           ) {
             if (bPresent.value) {
-              Box(
-                Modifier.offset((140 + gap).dp, 60.dp).size(bSize.width.dp, bSize.height.dp).graphicsLayer { rotationZ = fixture.bRotation.value }.hazeGlass(
-                  HazeEffectFactory { b },
-                  HazeInput.Sources(state),
-                  containerTestStyle(bTint).then(bStyle).then(fixture.bExtra.value),
-                  HazePerformanceMode.Quality,
-                  true,
-                  fixture.bSource,
-                  interactionTransformPivot = bPivot,
-                  memberTransition = transition,
-                ),
-              ) {
-                Box(Modifier.size(10.dp).background(Color.Green))
+              CompositionLocalProvider(LocalGlassAccessibilitySettings provides bAccessibility) {
+                Box(
+                  Modifier.offset((140 + gap).dp, 60.dp).size(bSize.width.dp, bSize.height.dp).graphicsLayer { rotationZ = fixture.bRotation.value }.hazeGlass(
+                    HazeEffectFactory { b },
+                    HazeInput.Sources(state),
+                    containerTestStyle(bTint).then(bStyle).then(fixture.bExtra.value),
+                    HazePerformanceMode.Quality,
+                    true,
+                    fixture.bSource,
+                    interactionTransformPivot = bPivot,
+                    memberTransition = transition,
+                  ),
+                ) {
+                  Box(Modifier.size(10.dp).background(Color.Green))
+                }
               }
             }
           }

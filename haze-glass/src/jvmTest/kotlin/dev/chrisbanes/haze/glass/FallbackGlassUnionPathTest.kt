@@ -33,6 +33,34 @@ import kotlin.test.Test
 
 class FallbackGlassUnionPathTest {
   @Test
+  fun inputMasks_excludeWinningReducedMemberIncludingDowngrade() {
+    val reduced = GlassMergedMember(
+      Rect(20f, 20f, 120f, 100f),
+      CornerRadii.zero,
+      Color.Transparent,
+      Color.Transparent,
+      fallbackBaseColor = Color.White,
+    )
+    val ordinary = GlassMergedMember(
+      Rect(90f, 20f, 190f, 100f),
+      CornerRadii.zero,
+      Color.Transparent,
+      Color.Red,
+    )
+    val paths = FallbackMergedPaths(field(reduced, ordinary))
+    for (path in listOf(checkNotNull(paths.inputMask), checkNotNull(paths.forceInputMask))) {
+      val image = rasterize(path)
+      assertThat(image, 60, 60).isEmpty()
+      assertThat(image, 105, 60).isEmpty()
+      assertThat(image, 150, 60).isFilled()
+    }
+    val reversed = FallbackMergedPaths(field(ordinary, reduced))
+    val image = rasterize(checkNotNull(reversed.forceInputMask))
+    assertThat(image, 105, 60).isFilled()
+    assertThat(image, 60, 60).isEmpty()
+  }
+
+  @Test
   fun fallbackUnionPath_oneMember_matchesRoundRect() {
     val rect = Rect(20f, 20f, 120f, 100f)
     val path = field(member(rect, radius = 12f)).fallbackUnionPath()

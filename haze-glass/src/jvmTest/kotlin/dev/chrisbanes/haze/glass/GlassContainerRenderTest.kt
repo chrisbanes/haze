@@ -10,10 +10,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ComposeUiTest
@@ -63,6 +68,72 @@ internal fun containerTestStyle(tint: Color, alpha: Float = 1f, background: Colo
 }
 
 class GlassContainerRenderTest : ContextTest() {
+  @Test
+  fun reducedTransparency_memberContextColoursAndLivePolicyHideSource() = runComposeUiTest {
+    val state = HazeState()
+    val source = mutableStateOf(Color.Red)
+    val firstSettings = mutableStateOf(GlassAccessibilitySettings(reduceTransparency = true))
+    val firstAppearance = mutableStateOf(GlassSystemAppearance.Light)
+    val first = GlassRuntimeEffect().apply { appearanceReader = { firstAppearance.value } }
+    val second = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Dark } }
+    listOf(first, second).forEach {
+      it.runtimeEffectFactory = GlassRuntimeEffectFactory { throw RuntimeShaderRenderEffectException(IllegalStateException("test fallback")) }
+    }
+    // Already fully diffused at the supported clamp: toggling reduction keeps merge optics equal.
+    val compatibleOptics = GlassStyle {
+      optics(GlassOptics(depth = OpticalSizeValue.Fixed(1f), blurRadius = OpticalSizeValue.Fixed(SemanticBlurKernel.MAX_SUPPORTED_RADIUS_PX.dp)))
+    }
+    val background = Color.Red.copy(alpha = 0.25f)
+    val tint = Color.Blue.copy(alpha = 0.5f)
+    setContent {
+      Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
+        Box(
+          Modifier.size(360.dp, 240.dp).hazeSource(state).drawBehind {
+            for (x in 0 until 36) for (y in 0 until 24) {
+              drawRect(
+                if ((x + y) % 2 == 0) source.value else Color.Green,
+                topLeft = Offset(x * 10f, y * 10f),
+                size = Size(10f, 10f),
+              )
+            }
+          },
+        )
+        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp)) {
+          CompositionLocalProvider(LocalGlassAccessibilitySettings provides firstSettings.value) {
+            Box(Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { first }, HazeInput.Sources(state), containerTestStyle(Color.Transparent).then(compatibleOptics), HazePerformanceMode.Quality, true, null))
+          }
+          CompositionLocalProvider(LocalGlassAccessibilitySettings provides GlassAccessibilitySettings(reduceTransparency = true)) {
+            Box(Modifier.offset(100.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { second }, HazeInput.Sources(state), containerTestStyle(tint, background = background).then(compatibleOptics), HazePerformanceMode.Quality, true, null))
+          }
+        }
+      }
+    }
+    fun pixels() = onNodeWithTag("root").captureToImage().toPixelMap()
+    val expectedSecond = tint.compositeOver(background.compositeOver(Color.Black))
+    var image = pixels()
+    assertThat(checkNotNull(first.memberBindingForTest?.node?.container).renderer.surfaceCount).isEqualTo(1)
+    assertThat(image[75, 95]).isEqualTo(Color.White)
+    assertThat(image[125, 105]).isEqualTo(Color.White)
+    assertThat(image[175, 95]).isCloseTo(expectedSecond, tolerance = 2f / 255f)
+    runOnIdle { source.value = Color.Blue }
+    image = pixels()
+    assertThat(image[75, 95]).isEqualTo(Color.White)
+    assertThat(image[175, 95]).isCloseTo(expectedSecond, tolerance = 2f / 255f)
+    runOnIdle { firstAppearance.value = GlassSystemAppearance.Dark }
+    assertThat(pixels()[75, 95]).isEqualTo(Color.Black)
+    runOnIdle { firstSettings.value = GlassAccessibilitySettings(true, reducedTransparencyFallbackColor = Color.Yellow) }
+    assertThat(pixels()[75, 95]).isEqualTo(Color.Yellow)
+    runOnIdle { firstSettings.value = GlassAccessibilitySettings() }
+    image = pixels()
+    assertThat(checkNotNull(first.memberBindingForTest?.node?.container).renderer.surfaceCount).isEqualTo(1)
+    assertThat(image[75, 95]).isEqualTo(Color.Blue)
+    assertThat(image[125, 105]).isEqualTo(Color.Blue)
+    assertThat(image[175, 95]).isCloseTo(expectedSecond, tolerance = 2f / 255f)
+    runOnIdle { source.value = Color.Red }
+    assertThat(pixels()[75, 95]).isEqualTo(Color.Red)
+    assertThat(pixels()[175, 95]).isCloseTo(expectedSecond, tolerance = 2f / 255f)
+  }
+
   @Test
   fun contentCluster_recordsBothMemberInputsInClusterCoordinates() = runComposeUiTest {
     val first = GlassRuntimeEffect()
