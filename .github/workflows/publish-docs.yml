@@ -76,6 +76,15 @@ jobs:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
           cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
 
+      # Persist Gradle's encrypted project state separately from Gradle User Home.
+      - name: Cache Gradle configuration
+        if: env.GRADLE_ENCRYPTION_KEY != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache@v6
+        with:
+          path: .gradle/configuration-cache
+          key: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-${{ github.event.workflow_run.head_sha || github.sha }}
+          restore-keys: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-
+
       - name: Cache Kotlin/Native
         uses: actions/cache@v6
         with:

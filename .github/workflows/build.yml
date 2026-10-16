@@ -67,6 +67,15 @@ jobs:
           gradle-home-cache-excludes: |
             caches/build-cache-1
 
+      # Persist Gradle's encrypted project state separately from Gradle User Home.
+      - name: Cache Gradle configuration
+        if: env.GRADLE_ENCRYPTION_KEY != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache@v6
+        with:
+          path: .gradle/configuration-cache
+          key: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-${{ github.sha }}
+          restore-keys: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-
+
       - name: Cache Kotlin/Native
         uses: actions/cache@v6
         with:
@@ -116,6 +125,14 @@ jobs:
           cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
+
+      - name: Cache Gradle configuration
+        if: env.GRADLE_ENCRYPTION_KEY != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache@v6
+        with:
+          path: .gradle/configuration-cache
+          key: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-${{ github.sha }}
+          restore-keys: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-
 
       - name: Assemble and check
         run: >
@@ -173,6 +190,14 @@ jobs:
           gradle-home-cache-excludes: |
             caches/build-cache-1
 
+      - name: Cache Gradle configuration
+        if: env.GRADLE_ENCRYPTION_KEY != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache@v6
+        with:
+          path: .gradle/configuration-cache
+          key: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-${{ github.sha }}
+          restore-keys: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-
+
       - name: Run screenshot tests
         run: >
           ./gradlew :haze-screenshot-tests:verifyScreenshotMatrixAndroid
@@ -221,6 +246,14 @@ jobs:
           cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
+
+      - name: Cache Gradle configuration
+        if: env.GRADLE_ENCRYPTION_KEY != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache@v6
+        with:
+          path: .gradle/configuration-cache
+          key: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ matrix.api-level }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-${{ github.sha }}
+          restore-keys: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ matrix.api-level }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-
 
       - name: Enable KVM
         run: |
