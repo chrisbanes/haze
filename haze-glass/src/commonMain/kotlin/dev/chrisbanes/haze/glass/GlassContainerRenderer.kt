@@ -23,6 +23,7 @@ internal class GlassSurfaceSnapshot(
   val material: ResolvedGlassStyle,
   val field: GlassMergedField,
   val opticalSize: Size,
+  val maxRefractionMultiplier: Float = 1f,
 )
 
 /** Retains one independent renderer per capped cluster; singleton shaders stay local. */
@@ -61,12 +62,24 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
         spacing,
         opticalSize,
       )
+      val maxRefractionMultiplier = maxOf(
+        members.maxOfOrNull { member ->
+          (member.identity as? GlassMemberNode)?.binding?.maxRefractionMultiplier ?: 1f
+        } ?: 1f,
+        field.members.maxOf { it.refractionMultiplier },
+      )
       val first = members.first()
       val configuration = GlassNodeConfiguration(
         style = GlassStyle,
         performanceMode = HazePerformanceMode.Fixed(first.key.qualityFraction),
         interactionSource = null,
-        surfaceSnapshot = GlassSurfaceSnapshot(first.key, first.material, field, opticalSize),
+        surfaceSnapshot = GlassSurfaceSnapshot(
+          first.key,
+          first.material,
+          field,
+          opticalSize,
+          maxRefractionMultiplier,
+        ),
       )
       val slot = slots.getOrPut(cluster.slotKey()) {
         val runtime = GlassRuntimeEffect().also {

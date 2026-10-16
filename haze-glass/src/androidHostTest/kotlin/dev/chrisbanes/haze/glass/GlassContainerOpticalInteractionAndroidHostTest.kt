@@ -15,12 +15,14 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
@@ -41,6 +43,121 @@ import org.junit.Test
 import org.robolectric.annotation.Config
 
 class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
+  @Test
+  @Config(sdk = [35])
+  fun sdk35_mergedCapturePadding_tracksDeclaredAndLiveRefractionMaximum() = runScreenshotTest(size = Size(360f, 240f)) {
+    val state = HazeState()
+    val multiplier = mutableFloatStateOf(1.4f)
+    val firstSource = MutableInteractionSource()
+    val secondSource = MutableInteractionSource()
+    val firstEffect = GlassRuntimeEffect()
+    val secondEffect = GlassRuntimeEffect()
+    val optics = GlassOptics(
+      refractionStrength = 0.1f,
+      refractionDisplacement = 40.dp,
+      depth = OpticalSizeValue.Fixed(0f),
+      blurRadius = OpticalSizeValue.Fixed(0.dp),
+      refractionDetailIntensity = 0f,
+    )
+    setContent {
+      val firstStyle = GlassStyle {
+        optics(optics)
+        interactionLightRadiusFraction(2f)
+        pressed { refractionMultiplier(multiplier.floatValue) }
+        tint(Color.Transparent)
+        backgroundColor(Color.Transparent)
+      }
+      val secondStyle = GlassStyle {
+        optics(optics)
+        tint(Color.Transparent)
+        backgroundColor(Color.Transparent)
+      }
+      Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White)) {
+          repeat(36) { index ->
+            Box(
+              Modifier.offset((index % 6 * 10).dp, (index / 6 * 10).dp)
+                .size(10.dp)
+                .background(if ((index / 6 + index % 6) % 2 == 0) Color.Black else Color.White),
+            )
+          }
+        }
+        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp)) {
+          Box(
+            Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp)
+              .hazeGlass(HazeEffectFactory { firstEffect }, HazeInput.Sources(state), firstStyle, HazePerformanceMode.Fixed(1f), true, firstSource),
+          )
+          Box(
+            Modifier.offset(150.dp, 60.dp).size(100.dp, 80.dp)
+              .hazeGlass(HazeEffectFactory { secondEffect }, HazeInput.Sources(state), secondStyle, HazePerformanceMode.Fixed(1f), true, secondSource),
+          )
+        }
+      }
+    }
+    waitForIdle()
+    captureRootPixels()
+
+    val owner = checkNotNull(firstEffect.memberBindingForTest?.node?.container)
+    val initialRuntime = owner.renderer.runtimeSurfaces.single()
+    val boundsRect = Rect(0f, 0f, 200f, 160f)
+    val initialDensity = checkNotNull(initialRuntime.attachedContextForTest).requireDensity()
+    fun captureInitialBounds() = initialRuntime.calculateLayerBounds(boundsRect, initialDensity)
+    fun expectedPadding(refractionMultiplier: Float): Float {
+      val params = checkNotNull(initialRuntime.preparedRender).params
+      return calculateGlassSamplePaddingPx(
+        blurRadiusPx = if (params.depth <= 0f) 0f else params.blurRadiusPx,
+        refractionScale = params.refractionScalePx,
+        refractionStrength = (params.refractionStrength * refractionMultiplier).coerceIn(0f, 1f),
+        chromaticAberrationStrength = params.chromaticAberrationStrength,
+        edgeSoftnessPx = params.edgeSoftnessPx,
+        foregroundOutsetPx = 0f,
+      )
+    }
+    fun assertCaptureUsesMultiplier(runtime: GlassRuntimeEffect, expectedMultiplier: Float, currentMultiplier: Float? = null) {
+      val prepared = checkNotNull(runtime.preparedRender)
+      val density = checkNotNull(runtime.attachedContextForTest).requireDensity()
+      currentMultiplier?.let {
+        assertThat(prepared.params.mergedField!!.members.first().refractionMultiplier).isEqualTo(it)
+      }
+      assertThat(runtime.calculateLayerBounds(boundsRect, density).left).isEqualTo(-expectedPadding(expectedMultiplier))
+    }
+
+    val idleBounds = captureInitialBounds()
+    assertThat(idleBounds.left).isEqualTo(-expectedPadding(1.4f))
+    assertThat(idleBounds.left).isLessThan(-expectedPadding(1f))
+    assertThat(owner.model.surfaces).hasSize(1)
+
+    val press = PressInteraction.Press(Offset(50f, 40f))
+    runBlocking { firstSource.emit(press) }
+    waitForIdle()
+    captureRootPixels()
+    assertThat(firstEffect.currentInteractionState.refractionMultiplier).isEqualTo(1.4f)
+    assertCaptureUsesMultiplier(initialRuntime, 1.4f, currentMultiplier = 1.4f)
+    val firstDeclaredBounds = initialRuntime.calculateLayerBounds(boundsRect, initialDensity)
+
+    composeTestRule.runOnIdle { multiplier.floatValue = 2f }
+    waitForIdle()
+    captureRootPixels()
+    assertCaptureUsesMultiplier(initialRuntime, 2f, currentMultiplier = 2f)
+    val updatedDeclaredBounds = initialRuntime.calculateLayerBounds(boundsRect, initialDensity)
+    assertThat(updatedDeclaredBounds.left).isLessThan(firstDeclaredBounds.left)
+    assertThat(owner.model.surfaces).hasSize(1)
+    assertThat(owner.renderer.runtimeSurfaces).hasSize(1)
+
+    composeTestRule.runOnIdle { multiplier.floatValue = 1.2f }
+    waitForIdle()
+    captureRootPixels()
+    assertCaptureUsesMultiplier(initialRuntime, 1.2f, currentMultiplier = 1.2f)
+    val reducedDeclaredBounds = initialRuntime.calculateLayerBounds(boundsRect, initialDensity)
+    assertThat(reducedDeclaredBounds.left).isGreaterThan(firstDeclaredBounds.left)
+    assertThat(owner.model.surfaces).hasSize(1)
+
+    runBlocking { firstSource.emit(PressInteraction.Release(press)) }
+    waitForIdle()
+    captureRootPixels()
+    assertCaptureUsesMultiplier(initialRuntime, 1.2f, currentMultiplier = 1f)
+  }
+
   @Test
   @Config(sdk = [35])
   fun sdk35_fusedDistinctOpticalResponses_areIndependent() = assertDistinctOpticalResponses()

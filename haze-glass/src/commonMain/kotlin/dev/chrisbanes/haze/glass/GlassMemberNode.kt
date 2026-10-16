@@ -30,13 +30,25 @@ internal class GlassMemberBinding(val input: HazeInput, val expandLayerBounds: B
   var surface: HazeEffectSurface? = null
   var material: ResolvedGlassStyle? = null
   var key: GlassMergeKey? = null
+  var maxRefractionMultiplier: Float = 1f
+    private set
 
-  fun publish(runtime: GlassRuntimeEffect, surface: HazeEffectSurface, material: ResolvedGlassStyle, key: GlassMergeKey) {
+  fun publish(
+    runtime: GlassRuntimeEffect,
+    surface: HazeEffectSurface,
+    material: ResolvedGlassStyle,
+    key: GlassMergeKey,
+    maxRefractionMultiplier: Float,
+  ) {
     this.runtime = runtime
     this.surface = surface
-    if (this.material != material || this.key != key) {
+    if (
+      this.material != material || this.key != key ||
+      this.maxRefractionMultiplier != maxRefractionMultiplier
+    ) {
       this.material = material
       this.key = key
+      this.maxRefractionMultiplier = maxRefractionMultiplier
       node?.changed()
     }
     node?.connect()
@@ -48,11 +60,13 @@ internal class GlassMemberBinding(val input: HazeInput, val expandLayerBounds: B
     surface = surface ?: previous.surface
     material = material ?: previous.material
     key = key ?: previous.key
+    maxRefractionMultiplier = previous.maxRefractionMultiplier
     previous.node = null
     previous.runtime = null
     previous.surface = null
     previous.material = null
     previous.key = null
+    previous.maxRefractionMultiplier = 1f
   }
 
   fun release(runtime: GlassRuntimeEffect) {
@@ -62,6 +76,7 @@ internal class GlassMemberBinding(val input: HazeInput, val expandLayerBounds: B
     surface = null
     material = null
     key = null
+    maxRefractionMultiplier = 1f
     node?.changed()
   }
 }
