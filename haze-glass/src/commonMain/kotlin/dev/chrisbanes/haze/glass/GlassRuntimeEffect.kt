@@ -217,7 +217,7 @@ internal class GlassRuntimeEffect() :
       context.surface,
       material,
       glassMergeKey(binding.input, binding.expandLayerBounds, quality, this, material, context.currentValueOf(LocalLayoutDirection)),
-      interactionTopologySnapshot.maxRefractionMultiplier,
+      resolvedInteractionTopology.maxRefractionMultiplier,
     )
   }
 
@@ -348,7 +348,7 @@ internal class GlassRuntimeEffect() :
   internal val interactionSlots: GlassInteractionSlots
     get() = resolvedInteractionSlots
 
-  internal val interactionTopologySnapshot: GlassInteractionTopology
+  private val interactionTopologySnapshot: GlassInteractionTopology
     get() = interactionController?.renderTopology ?: resolvedInteractionTopology
 
   override val observesPointerEvents: Boolean

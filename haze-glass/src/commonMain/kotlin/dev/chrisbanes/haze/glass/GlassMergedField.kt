@@ -109,6 +109,33 @@ internal class GlassMergedField(
     }
   }
 
+  /** Lighting-only stages keep each member's light and geometry while ignoring optical state. */
+  val withoutOptics: GlassMergedField by lazy(LazyThreadSafetyMode.NONE) {
+    if (members.all {
+        it.opticalPosition == Offset.Zero && it.opticalRadius == 0f &&
+          it.refractionMultiplier == 1f && it.whitePointDelta == 0f
+      }
+    ) {
+      this
+    } else {
+      GlassMergedField(
+        members.map {
+          GlassMergedMember(
+            it.rect,
+            it.cornerRadii,
+            it.tint,
+            it.backgroundColor,
+            lightPosition = it.lightPosition,
+            lightRadius = it.lightRadius,
+            lightIntensity = it.lightIntensity,
+          )
+        },
+        spacingPx,
+        opticalSize,
+      )
+    }
+  }
+
   /** Shape/colour projection for stages that must ignore both interaction channels. */
   val withoutInteractions: GlassMergedField by lazy(LazyThreadSafetyMode.NONE) {
     if (members.all {

@@ -855,8 +855,11 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       runtime(effect).setPressedForTest(Offset(80f, 60f))
       waitForIdle()
       drawFrame()
+      val opticalKey = checkNotNull(runtime(effect).preparedRender).opticalKey
+      val interactionLightingKey = checkNotNull(delegate.interactionLighting.key)
+      val interactionLightingLayer = checkNotNull(delegate.layers.interactionLighting)
+      val interactionLightingEffect = checkNotNull(delegate.interactionLighting.composeEffect)
       style.value = style.value.then {
-        ambientResponse(0.6f)
         optics(effect.optics.copy(refractionDisplacement = 18.dp))
       }
       waitForIdle()
@@ -864,7 +867,17 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
       assertThat(delegate.fusedShader).isSameInstanceAs(fusedShader)
       assertThat(delegate.refractionDetailShader).isSameInstanceAs(detailShader)
-      assertThat(delegate.layers.interactionLighting).isNotNull()
+      assertThat(checkNotNull(runtime(effect).preparedRender).opticalKey).isNotEqualTo(opticalKey)
+      assertThat(delegate.interactionLighting.key).isSameInstanceAs(interactionLightingKey)
+      assertThat(delegate.layers.interactionLighting).isSameInstanceAs(interactionLightingLayer)
+      assertThat(delegate.interactionLighting.composeEffect).isSameInstanceAs(interactionLightingEffect)
+
+      runtime(effect).setPressedForTest(Offset(40f, 30f))
+      waitForIdle()
+      drawFrame()
+
+      assertThat(delegate.interactionLighting.key).isNotSameInstanceAs(interactionLightingKey)
+      assertThat(delegate.interactionLighting.composeEffect).isNotSameInstanceAs(interactionLightingEffect)
     }
 
   @Test

@@ -280,6 +280,40 @@ class GlassMergedFieldTest {
   }
 
   @Test
+  fun withoutOptics_preservesLightingAndGeometry() {
+    val field = mergedField(
+      mergedMember(
+        1f,
+        2f,
+        10f,
+        12f,
+        radius = 3f,
+        lightPosition = Offset(4f, 5f),
+        lightRadius = 6f,
+        lightIntensity = 0.7f,
+        opticalPosition = Offset(7f, 8f),
+        opticalRadius = 9f,
+        refractionMultiplier = 1.6f,
+        whitePointDelta = 0.2f,
+      ),
+    )
+
+    val projected = field.withoutOptics
+    val member = projected.members.single()
+
+    assertThat(projected).isNotEqualTo(field)
+    assertThat(member.rect).isEqualTo(field.members.single().rect)
+    assertThat(member.cornerRadii).isEqualTo(field.members.single().cornerRadii)
+    assertThat(member.lightPosition).isEqualTo(Offset(4f, 5f))
+    assertThat(member.lightRadius).isEqualTo(6f)
+    assertThat(member.lightIntensity).isEqualTo(0.7f)
+    assertThat(member.opticalPosition).isEqualTo(Offset.Zero)
+    assertThat(member.opticalRadius).isEqualTo(0f)
+    assertThat(member.refractionMultiplier).isEqualTo(1f)
+    assertThat(member.whitePointDelta).isEqualTo(0f)
+  }
+
+  @Test
   fun buildGlassPreparedRender_lightOnlyChangeKeepsStageKeys() {
     val size = Size(240f, 80f)
     val style = resolveGlassStyle(GlassRuntimeEffect(), size, Density(1f), LayoutDirection.Ltr)

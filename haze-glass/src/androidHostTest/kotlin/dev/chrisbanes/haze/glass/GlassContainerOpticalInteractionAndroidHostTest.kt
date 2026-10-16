@@ -28,6 +28,8 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNotNull
+import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
@@ -340,8 +342,8 @@ class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
       assertThat(mergedPreparedRender.params.coordinates.scaleFactor).isEqualTo(1f)
     }
     if (detailIntensity == 0f) {
-      assertThat(mergedPreparedRender.refractionDetailKey).isEqualTo(null)
-      assertThat((mergedRuntime.delegate as RuntimeShaderGlassDelegate).fusedShader != null).isEqualTo(true)
+      assertThat(mergedPreparedRender.refractionDetailKey).isNull()
+      assertThat((mergedRuntime.delegate as RuntimeShaderGlassDelegate).fusedShader).isNotNull()
     }
     assertThat(mergedMembers.first().refractionMultiplier).isEqualTo(if (refractionMultiplier) 1.8f else 1f)
     assertThat(mergedMembers.first().whitePointDelta).isEqualTo(if (refractionMultiplier) 0f else 0.3f)
@@ -484,7 +486,7 @@ class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
     assertThat(owner.renderer.runtimeSurfaces.size).isEqualTo(1)
     val runtime = owner.renderer.runtimeSurfaces.single()
     val delegate = runtime.delegate as RuntimeShaderGlassDelegate
-    assertThat(delegate.fusedShader != null).isEqualTo(true)
+    assertThat(delegate.fusedShader).isNotNull()
     assertThat(checkNotNull(runtime.preparedRender).params.mergedField?.members?.size).isEqualTo(2)
   }
 
