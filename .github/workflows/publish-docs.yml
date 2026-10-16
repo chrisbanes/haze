@@ -2,13 +2,8 @@ name: Publish docs
 
 on:
   push:
-    branches:
-      - main
     tags:
       - '*'
-    paths:
-      - '**.md'
-      - 'docs/**'
   pull_request:
   workflow_run:
     workflows:
@@ -43,31 +38,13 @@ permissions:
   id-token: write
 
 jobs:
-  docs_trigger:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    outputs:
-      build: ${{ steps.trigger.outputs.build }}
-    steps:
-      - uses: actions/checkout@v7
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-      - name: Select docs build trigger
-        id: trigger
-        env:
-          BEFORE_SHA: ${{ github.event.before }}
-        run: |
-          build=true
-          if [ "$GITHUB_EVENT_NAME" = push ] && [ "$GITHUB_REF" = refs/heads/main ]; then
-            build=$(sh scripts/docs_push_needs_build.sh "$BEFORE_SHA" "$GITHUB_SHA")
-          fi
-          echo "build=$build" >> "$GITHUB_OUTPUT"
-
   build_docs:
-    needs: docs_trigger
-    if: needs.docs_trigger.outputs.build == 'true'
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       github.event.workflow_run.head_branch == 'main' &&
+       (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch'))
     runs-on: macos-26
     env:
       DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib

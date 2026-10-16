@@ -4,10 +4,10 @@ import unittest
 from pathlib import Path
 
 
-SCRIPT = Path(__file__).with_name("docs_push_needs_build.sh")
+SCRIPT = Path(__file__).with_name("is_docs_only_push.sh")
 
 
-class DocsPushNeedsBuildTest(unittest.TestCase):
+class DocsOnlyPushTest(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
@@ -42,27 +42,27 @@ class DocsPushNeedsBuildTest(unittest.TestCase):
             cwd=cwd or self.repo, check=check, capture_output=True, text=True,
         )
 
-    def test_builds_docs_only_changes_and_deletions(self):
+    def test_detects_docs_only_changes_and_deletions(self):
         self.commit({"README.md": None, "nested/guide.md": "new", "docs/image.png": "new"})
         self.assertEqual(self.decision().stdout.strip(), "true")
 
-    def test_defers_mixed_push_until_build_completes(self):
+    def test_mixed_push_is_not_docs_only(self):
         self.commit({"README.md": "updated", "src/Main.kt": "updated"})
         self.assertEqual(self.decision().stdout.strip(), "false")
 
-    def test_large_mixed_push_builds_docs_when_path_filters_may_skip_build(self):
+    def test_large_mixed_push_is_not_docs_only(self):
         files = {f"docs/page-{index:03}.md": "new" for index in range(300)}
         files["src/Main.kt"] = "updated"
         self.commit(files)
-        self.assertEqual(self.decision().stdout.strip(), "true")
+        self.assertEqual(self.decision().stdout.strip(), "false")
 
-    def test_mixed_push_at_the_300_file_limit_still_defers(self):
+    def test_mixed_push_at_the_300_file_limit_is_not_docs_only(self):
         files = {f"docs/page-{index:03}.md": "new" for index in range(299)}
         files["src/Main.kt"] = "updated"
         self.commit(files)
         self.assertEqual(self.decision().stdout.strip(), "false")
 
-    def test_large_docs_only_push_still_builds_docs(self):
+    def test_large_docs_only_push_is_docs_only(self):
         self.commit({f"docs/page-{index:03}.md": "new" for index in range(301)})
         self.assertEqual(self.decision().stdout.strip(), "true")
 
@@ -75,7 +75,7 @@ class DocsPushNeedsBuildTest(unittest.TestCase):
         self.commit({"docs-extra/config.yml": "new", "README.md": "updated"})
         self.assertEqual(self.decision().stdout.strip(), "false")
 
-    def test_renaming_code_into_docs_still_requires_build(self):
+    def test_renaming_code_into_docs_is_not_docs_only(self):
         self.git("mv", "src/Main.kt", "docs.md")
         self.git("commit", "-qm", "Rename")
         self.assertEqual(self.decision().stdout.strip(), "false")
