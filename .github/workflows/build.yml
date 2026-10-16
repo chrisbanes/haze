@@ -6,9 +6,6 @@ on:
     branches:
       - main
       - v1
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
   pull_request:
     paths-ignore:
       - '**.md'
@@ -16,11 +13,40 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Keep publishing builds queued when a later docs-only push skips deployment.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/v1' }}
+  queue: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1') && 'max' || 'single' }}
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      run_build: ${{ steps.changes.outputs.run_build }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Test push classification
+        run: python3 -m unittest discover -s scripts -p test_is_docs_only_push.py
+
+      - name: Detect code changes
+        id: changes
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          run_build=true
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            docs_only=$(sh scripts/is_docs_only_push.sh "$BEFORE_SHA" "$GITHUB_SHA")
+            if [ "$docs_only" = true ]; then
+              run_build=false
+            fi
+          fi
+          echo "run_build=$run_build" >> "$GITHUB_OUTPUT"
+
   mac_build:
-    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    needs: changes
+    if: needs.changes.outputs.run_build == 'true' && !contains(github.event.head_commit.message, 'skip ci')
 
     runs-on: macos-26
     timeout-minutes: 45
@@ -36,8 +62,25 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
         with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
+
+      # Persist Gradle's encrypted project state separately from Gradle User Home.
+      - name: Cache Gradle configuration
+        if: env.GRADLE_ENCRYPTION_KEY != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache@v6
+        with:
+          path: .gradle/configuration-cache
+          key: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-${{ github.sha }}
+          restore-keys: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-
+
+      - name: Cache Kotlin/Native
+        uses: actions/cache@v6
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('gradle/libs.versions.toml') }}-${{ github.job }}
 
       - name: Compile Apple targets, run iOS simulator and macOS host tests, link macOS sample
         run: >
@@ -61,7 +104,8 @@ jobs:
             **/build/test-results/**
 
   linux_build:
-    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    needs: changes
+    if: needs.changes.outputs.run_build == 'true' && !contains(github.event.head_commit.message, 'skip ci')
 
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -77,8 +121,18 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
         with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
+
+      - name: Cache Gradle configuration
+        if: env.GRADLE_ENCRYPTION_KEY != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache@v6
+        with:
+          path: .gradle/configuration-cache
+          key: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-${{ github.sha }}
+          restore-keys: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-
 
       - name: Assemble and check
         run: >
@@ -114,7 +168,8 @@ jobs:
 
   screenshot_tests:
     name: Screenshot tests (android)
-    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    needs: changes
+    if: needs.changes.outputs.run_build == 'true' && !contains(github.event.head_commit.message, 'skip ci')
 
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -130,8 +185,18 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
         with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
+
+      - name: Cache Gradle configuration
+        if: env.GRADLE_ENCRYPTION_KEY != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache@v6
+        with:
+          path: .gradle/configuration-cache
+          key: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-${{ github.sha }}
+          restore-keys: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-
 
       - name: Run screenshot tests
         run: >
@@ -154,7 +219,8 @@ jobs:
             haze-screenshot-tests/build/outputs/roborazzi/**
 
   emulator_tests_matrix:
-    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    needs: changes
+    if: needs.changes.outputs.run_build == 'true' && !contains(github.event.head_commit.message, 'skip ci')
 
     strategy:
       fail-fast: false
@@ -176,8 +242,18 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
         with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
+
+      - name: Cache Gradle configuration
+        if: env.GRADLE_ENCRYPTION_KEY != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache@v6
+        with:
+          path: .gradle/configuration-cache
+          key: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ matrix.api-level }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-${{ github.sha }}
+          restore-keys: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ matrix.api-level }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-
 
       - name: Enable KVM
         run: |
@@ -212,8 +288,10 @@ jobs:
             **/build/outputs/androidTest-results/**
 
   emulator_tests:
-    if: always() && !contains(github.event.head_commit.message, 'skip ci')
-    needs: emulator_tests_matrix
+    if: always() && needs.changes.result == 'success' && needs.changes.outputs.run_build == 'true' && !contains(github.event.head_commit.message, 'skip ci')
+    needs:
+      - changes
+      - emulator_tests_matrix
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -223,10 +301,11 @@ jobs:
         run: test "$MATRIX_RESULT" = success
 
   deploy:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1'
+    if: needs.changes.outputs.run_build == 'true' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1')
 
     runs-on: macos-26
     needs:
+      - changes
       - linux_build
       - mac_build
       - screenshot_tests
@@ -244,8 +323,16 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
         with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
+
+      - name: Cache Kotlin/Native
+        uses: actions/cache@v6
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('gradle/libs.versions.toml') }}-${{ github.job }}
 
       - name: Deploy to Sonatype
         run: ./gradlew publish --no-configuration-cache

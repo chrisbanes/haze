@@ -2,13 +2,8 @@ name: Publish docs
 
 on:
   push:
-    branches:
-      - main
     tags:
       - '*'
-    paths:
-      - '**.md'
-      - 'docs/**'
   pull_request:
   workflow_run:
     workflows:
@@ -44,7 +39,12 @@ permissions:
 
 jobs:
   build_docs:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       github.event.workflow_run.head_branch == 'main' &&
+       (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch'))
     runs-on: macos-26
     env:
       DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
@@ -72,9 +72,32 @@ jobs:
           python3 -m pip install -r pip-requirements.txt
 
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+
+      # Persist Gradle's encrypted project state separately from Gradle User Home.
+      - name: Cache Gradle configuration
+        if: env.GRADLE_ENCRYPTION_KEY != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache@v6
+        with:
+          path: .gradle/configuration-cache
+          key: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-${{ github.event.workflow_run.head_sha || github.sha }}
+          restore-keys: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-
+
+      - name: Cache Kotlin/Native
+        uses: actions/cache@v6
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('gradle/libs.versions.toml') }}-${{ github.job }}
 
       - name: Build docs
         run: ./scripts/build_docs.sh build
+        env:
+          ORG_GRADLE_PROJECT_remoteBuildCacheUrl: ${{ secrets.GRADLE_REMOTE_CACHE_URL }}
+          ORG_GRADLE_PROJECT_remoteBuildCacheUsername: ${{ secrets.GRADLE_REMOTE_CACHE_USERNAME }}
+          ORG_GRADLE_PROJECT_remoteBuildCachePassword: ${{ secrets.GRADLE_REMOTE_CACHE_PASSWORD }}
+          ORG_GRADLE_PROJECT_remoteBuildCachePush: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
 
       - name: Upload docs
         uses: actions/upload-artifact@v7
@@ -93,7 +116,7 @@ jobs:
     if: github.event_name == 'workflow_run' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: https://chrisbanes.github.io/haze/
     env:
       DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
 
@@ -114,7 +137,7 @@ jobs:
           python3 -m pip install -r pip-requirements.txt
 
       - name: Get Docs Version
-        run: cat gradle.properties | grep --color=never VERSION_NAME >> $GITHUB_OUTPUT
+        run: grep --color=never VERSION_NAME gradle.properties >> "$GITHUB_OUTPUT"
         id: version
 
       - name: Resolve docs deployment
@@ -181,7 +204,9 @@ jobs:
         env:
           DOCS_ALIASES: ${{ steps.docs.outputs.aliases }}
           HAZE_VERSION: ${{ steps.docs.outputs.version }}
-        run: mike deploy -u "$HAZE_VERSION" $DOCS_ALIASES
+        run: |
+          read -r -a docs_aliases <<< "$DOCS_ALIASES"
+          mike deploy -u "$HAZE_VERSION" "${docs_aliases[@]}"
 
       - name: Delete old doc versions
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.delete_old_versions }}
