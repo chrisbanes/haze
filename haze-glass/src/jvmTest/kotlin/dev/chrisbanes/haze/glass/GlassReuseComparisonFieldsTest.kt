@@ -25,8 +25,9 @@ class GlassReuseComparisonFieldsTest {
 
   @Test
   fun resolvedStyleFields_matchGlassRuntimeEffectReuseComparison() {
-    // Update ResolvedGlassStyle.hasSameRenderParams in GlassRuntimeEffect.kt before changing this.
-    assertThat(fieldCount<ResolvedGlassStyle>()).isEqualTo(20)
+    // Audit ResolvedGlassStyle.hasSameRenderParams in GlassRuntimeEffect.kt before changing this.
+    // fallbackBaseColor is deliberately excluded: fallback-only, never a GlassRenderParams input.
+    assertThat(fieldCount<ResolvedGlassStyle>()).isEqualTo(21)
   }
 
   private inline fun <reified T> fieldCount(): Int =

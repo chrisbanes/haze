@@ -207,6 +207,7 @@ internal abstract class GlassRuntimeState {
     set(value) {
       if (field != value) {
         field = value
+        markDirty(GlassDirtyFields.Accessibility)
         updateInheritedStyleValues()
       }
     }

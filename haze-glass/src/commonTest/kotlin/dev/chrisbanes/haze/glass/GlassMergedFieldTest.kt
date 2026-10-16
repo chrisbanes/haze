@@ -21,6 +21,7 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
@@ -62,6 +63,27 @@ internal fun mergedField(
 ) = GlassMergedField(members.toList(), spacingPx, opticalSize)
 
 class GlassMergedFieldTest {
+  @Test
+  fun fallbackBase_survivesMaterialProjectionsButIsAbsentFromFullRenderer() {
+    val member = GlassMergedMember(
+      Rect(0f, 0f, 100f, 80f), CornerRadii.zero,
+      Color.Transparent, Color.Transparent, lightPosition = Offset(20f, 20f), lightRadius = 30f,
+      lightIntensity = 1f, opticalPosition = Offset(30f, 30f), opticalRadius = 40f,
+      refractionMultiplier = 1.5f, fallbackBaseColor = Color.Green,
+    )
+    val field = mergedField(member)
+    for (projection in listOf(field.scaled(0.5f), field.withoutLights, field.withoutOptics, field.withoutInteractions)) {
+      assertThat(projection.members.single().fallbackBaseColor).isEqualTo(Color.Green)
+    }
+    val resolved = resolveGlassStyle(GlassRuntimeEffect(), Size(100f, 80f), Density(1f), LayoutDirection.Ltr)
+    val coordinates = GlassCoordinates(Size(100f, 80f), Offset.Zero, Size(100f, 80f), 1f)
+    val withBase = buildGlassRenderParams(resolved.copy(mergedField = field), coordinates)
+    val withoutBase = buildGlassRenderParams(resolved.copy(mergedField = field.withoutFallbackBase), coordinates)
+    assertThat(withBase).isEqualTo(withoutBase)
+    assertThat(withBase.mergedField?.members?.single()?.fallbackBaseColor).isNull()
+    assertThat(withBase.mergedField?.members?.single()?.refractionMultiplier).isEqualTo(1.5f)
+  }
+
   @Test
   fun init_rejectsZeroOrFiveMembers() {
     assertFailure { GlassMergedField(emptyList(), 40f, Size(10f, 10f)) }

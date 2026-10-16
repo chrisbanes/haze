@@ -212,17 +212,20 @@ internal class FallbackGlassDelegate(
       val visible = effect.windowBoundsInEffect()
       val inputBounds = Rect(Offset.Zero, size).visiblePart(visible)
 
-      if (forceInput && mergedPaths == null && backgroundColor.alpha <= 0f && !inputBounds.isEmpty) {
+      if (forceInput && style.fallbackBaseColor == null && mergedPaths == null && backgroundColor.alpha <= 0f && !inputBounds.isEmpty) {
         drawInputWithAlpha(context, alpha = 1f, bounds = inputBounds)
       }
 
       fun DrawScope.drawFallback(alphaMultiplier: Float) {
         fun DrawScope.drawBase() {
+          style.fallbackBaseColor?.let { drawRect(it.copy(alpha = it.alpha * alphaMultiplier)) }
           if (backgroundColor.alpha > 0f) {
             drawRect(
               color = backgroundColor.copy(alpha = backgroundColor.alpha * alphaMultiplier),
             )
-            if (!inputBounds.isEmpty) this@drawBase.drawInputWithAlpha(context, alphaMultiplier, inputBounds)
+            if (style.fallbackBaseColor == null && !inputBounds.isEmpty) {
+              this@drawBase.drawInputWithAlpha(context, alphaMultiplier, inputBounds)
+            }
           }
           if (tint.alpha > 0f) {
             drawRect(color = tint.copy(alpha = tint.alpha * alphaMultiplier))
@@ -408,9 +411,12 @@ private fun DrawScope.drawMergedBase(
   visible: Rect?,
 ) {
   val members = paths.field.members
+  if (members.any { it.fallbackBaseColor != null }) {
+    drawMergedColours(paths, alphaMultiplier, visible) { it.fallbackBaseColor ?: Color.Transparent }
+  }
   if (paths.field.hasBackground) drawMergedColours(paths, alphaMultiplier, visible) { it.backgroundColor }
-  // Input appears only where the winning member has a background, or everywhere on the downgrade frame.
-  val inputPath = if (forceInput) paths.union else paths.inputMask
+  // Reduced members never replay captured input, including on the downgrade frame.
+  val inputPath = if (forceInput) paths.forceInputMask else paths.inputMask
   // Both masks lie within the union, so its visible bounds hold the input.
   val inputBounds = paths.unionBounds.visiblePart(visible)
   if (!inputBounds.isEmpty) {
@@ -464,15 +470,15 @@ internal class FallbackMergedPaths(val field: GlassMergedField) {
   val members: List<Path> = field.members.map { it.fallbackPath() }
   val union: Path = unionOf(members)
 
-  /**
-   * Where the winning member has a visible background. Built as one path from the last member to
-   * the first, so an earlier member without a background removes input from what it covers.
-   */
-  val inputMask: Path? = when {
-    !field.hasBackground -> null
-    field.members.all { it.backgroundColor.alpha > 0f } -> union
+  /** Ordinary input and downgrade input both respect the winning member's fallback policy. */
+  val inputMask: Path? = inputMask { it.fallbackBaseColor == null && it.backgroundColor.alpha > 0f }
+  val forceInputMask: Path? = inputMask { it.fallbackBaseColor == null }
+
+  private fun inputMask(include: (GlassMergedMember) -> Boolean): Path? = when {
+    field.members.none(include) -> null
+    field.members.all(include) -> union
     else -> members.indices.reversed().fold(Path()) { mask, index ->
-      val operation = if (field.members[index].backgroundColor.alpha > 0f) PathOperation.Union else PathOperation.Difference
+      val operation = if (include(field.members[index])) PathOperation.Union else PathOperation.Difference
       Path().apply { op(mask, members[index], operation) }
     }
   }

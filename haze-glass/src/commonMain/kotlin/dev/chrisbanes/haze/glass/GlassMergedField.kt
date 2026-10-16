@@ -32,6 +32,7 @@ internal class GlassMergedMember(
   val opticalRadius: Float = 0f,
   val refractionMultiplier: Float = 1f,
   val whitePointDelta: Float = 0f,
+  val fallbackBaseColor: Color? = null,
 ) {
   init {
     require(
@@ -97,6 +98,7 @@ internal class GlassMergedField(
             it.cornerRadii,
             it.tint,
             it.backgroundColor,
+            fallbackBaseColor = it.fallbackBaseColor,
             opticalPosition = it.opticalPosition,
             opticalRadius = it.opticalRadius,
             refractionMultiplier = it.refractionMultiplier,
@@ -125,6 +127,7 @@ internal class GlassMergedField(
             it.cornerRadii,
             it.tint,
             it.backgroundColor,
+            fallbackBaseColor = it.fallbackBaseColor,
             lightPosition = it.lightPosition,
             lightRadius = it.lightRadius,
             lightIntensity = it.lightIntensity,
@@ -146,7 +149,26 @@ internal class GlassMergedField(
     ) {
       this
     } else {
-      GlassMergedField(members.map { GlassMergedMember(it.rect, it.cornerRadii, it.tint, it.backgroundColor) }, spacingPx, opticalSize)
+      GlassMergedField(members.map { GlassMergedMember(it.rect, it.cornerRadii, it.tint, it.backgroundColor, fallbackBaseColor = it.fallbackBaseColor) }, spacingPx, opticalSize)
+    }
+  }
+
+  /** Fallback policy is material metadata, never an input to the full renderer or its keys. */
+  val withoutFallbackBase: GlassMergedField by lazy(LazyThreadSafetyMode.NONE) {
+    if (members.all { it.fallbackBaseColor == null }) {
+      this
+    } else {
+      GlassMergedField(
+        members.map {
+          GlassMergedMember(
+            it.rect, it.cornerRadii, it.tint, it.backgroundColor,
+            it.lightPosition, it.lightRadius, it.lightIntensity,
+            it.opticalPosition, it.opticalRadius, it.refractionMultiplier, it.whitePointDelta,
+          )
+        },
+        spacingPx,
+        opticalSize,
+      )
     }
   }
 
@@ -186,6 +208,7 @@ internal class GlassMergedField(
         cornerRadii = member.cornerRadii * scaleFactor,
         tint = member.tint,
         backgroundColor = member.backgroundColor,
+        fallbackBaseColor = member.fallbackBaseColor,
         lightPosition = member.lightPosition * scaleFactor,
         lightRadius = member.lightRadius * scaleFactor,
         lightIntensity = member.lightIntensity,

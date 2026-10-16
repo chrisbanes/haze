@@ -41,6 +41,29 @@ import kotlin.test.Test
 
 class GlassRenderParamsTest {
   @Test
+  fun reducedTransparencyFallbackColor_requiresSpecifiedOpaqueOverride() {
+    for (color in listOf(Color.Unspecified, Color.Transparent, Color.Red.copy(alpha = 0.5f))) {
+      assertFailure { GlassAccessibilitySettings(reducedTransparencyFallbackColor = color) }
+        .isInstanceOf<IllegalArgumentException>()
+    }
+  }
+
+  @Test
+  fun reducedTransparencyFallbackColor_doesNotChangeFullRendererOptics() {
+    val effect = GlassRuntimeEffect().apply {
+      accessibilitySettings = GlassAccessibilitySettings(reduceTransparency = true)
+    }
+    fun resolve() = resolveGlassStyle(effect, Size(100f, 100f), Density(1f), LayoutDirection.Ltr)
+    val automatic = resolve()
+    effect.accessibilitySettings = GlassAccessibilitySettings(true, reducedTransparencyFallbackColor = Color.Green)
+    val overridden = resolve()
+    assertThat(overridden.copy(fallbackBaseColor = automatic.fallbackBaseColor)).isEqualTo(automatic)
+    assertThat(overridden.fallbackBaseColor).isEqualTo(Color.Green)
+    val coordinates = GlassCoordinates(Size(100f, 100f), Offset.Zero, Size(100f, 100f), 1f)
+    assertThat(buildGlassRenderParams(overridden, coordinates)).isEqualTo(buildGlassRenderParams(automatic, coordinates))
+  }
+
+  @Test
   fun edgeWidth_resolvesIndependentlyOfMaterialSizeAndSurfaceHeight() {
     for (size in listOf(Size(240f, 64f), Size(280f, 176f), Size.Zero)) {
       val optics = GlassOptics(refractionProfile = RefractionProfile.Edge(28.dp))

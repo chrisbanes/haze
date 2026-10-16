@@ -152,6 +152,7 @@ private fun GlassMemberSnapshot.toMergedMember(origin: Offset): GlassMergedMembe
     cornerRadii = material.cornerRadii * minOf(scaleX, scaleY),
     tint = material.tint,
     backgroundColor = material.backgroundColor,
+    fallbackBaseColor = material.fallbackBaseColor,
     lightPosition = interaction?.position?.takeIf { it.x.isFinite() && it.y.isFinite() }?.let { topLeft + Offset(it.x * scaleX, it.y * scaleY) } ?: fieldRect.center,
     lightRadius = (rect.minDimension * (interaction?.radiusFraction ?: 0f)).takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f,
     lightIntensity = interaction?.lightingIntensity ?: 0f,
