@@ -736,6 +736,77 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun matchedGeometry_detachFromPressedMember_retractsFromItsDrawnOutline() {
+    val departingRects = mutableMapOf<GlassTransformPivot, Rect>()
+    for (pivot in listOf(GlassTransformPivot.Center, GlassTransformPivot.Pointer)) {
+      runComposeUiTest {
+        val fixture = fixture(bStyle = GlassStyle { shape(RoundedCornerShape(20.dp)) }, bPivot = pivot)
+        fixture.pressA()
+        fixture.pressB(Offset(20f, 15f))
+        val departing = fixture.b().drawnShape()
+        assertThat(departing.rect).isNotEqualTo(fixture.b().layoutRect)
+        assertThat(departing.cornerRadii.topLeft).isCloseTo(18.8f, 0.1f)
+        fixture.removeB()
+        val firstGhost = fixture.b()
+        val ghost = firstGhost.identity as GlassMemberGhost
+        departingRects[pivot] = departing.rect
+        assertThat(ghost.progress.value).isEqualTo(1f)
+        assertThat(ghost.last.drawnShape().rect).isCloseTo(departing.rect, 0.1f)
+        assertThat(firstGhost.rect).isCloseTo(departing.rect, 0.1f)
+        assertThat(firstGhost.material.cornerRadii.topLeft).isCloseTo(departing.cornerRadii.topLeft, 0.1f)
+
+        fixture.advance(80)
+        val currentGhost = fixture.b()
+        val progress = (currentGhost.identity as GlassMemberGhost).progress.value
+        val expected = lerpGlassMergedMember(fixture.a().drawnShape(), departing, progress)
+        assertThat(currentGhost.rect).isCloseTo(expected.rect, 0.1f)
+        assertThat(currentGhost.material.cornerRadii.topLeft).isCloseTo(expected.cornerRadii.topLeft, 0.1f)
+        fixture.settle()
+      }
+    }
+    assertThat(departingRects[GlassTransformPivot.Center]).isNotEqualTo(departingRects[GlassTransformPivot.Pointer])
+  }
+
+  @Test
+  fun materialize_detachFromPressedMember_fadesItsDrawnOutlineInPlace() {
+    val departingRects = mutableMapOf<GlassTransformPivot, Rect>()
+    for (pivot in listOf(GlassTransformPivot.Center, GlassTransformPivot.Pointer)) {
+      runComposeUiTest {
+        val fixture = fixture(
+          gap = 100,
+          transition = GlassMemberTransition.Materialize,
+          bStyle = GlassStyle { shape(RoundedCornerShape(20.dp)) },
+          bPivot = pivot,
+        )
+        fixture.pressB(Offset(20f, 15f))
+        val departing = fixture.b().drawnShape()
+        assertThat(departing.rect).isNotEqualTo(fixture.b().layoutRect)
+        assertThat(departing.cornerRadii.topLeft).isCloseTo(18.8f, 0.1f)
+        fixture.removeB()
+        val ghost = fixture.b().identity as GlassMemberGhost
+        departingRects[pivot] = departing.rect
+        assertThat(ghost.progress.value).isEqualTo(1f)
+        assertThat(ghost.last.drawnShape().rect).isCloseTo(departing.rect, 0.1f)
+        assertFadingGhostMatches(fixture.b(), departing)
+        fixture.capture()
+        val ghostField = checkNotNull(fixture.owner().renderer.runtimeSurfaces.single().mergedField)
+        assertThat(ghostField.members.single().cornerRadii.topLeft).isCloseTo(departing.cornerRadii.topLeft, 0.1f)
+        fixture.advance(80)
+        assertFadingGhostMatches(fixture.b(), departing)
+        assertThat(fixture.b().material.alpha).isLessThan(1f)
+        fixture.settle()
+      }
+    }
+    assertThat(departingRects[GlassTransformPivot.Center]).isNotEqualTo(departingRects[GlassTransformPivot.Pointer])
+  }
+
+  private fun assertFadingGhostMatches(ghost: GlassMemberSnapshot, expected: GlassMergedMember) {
+    assertThat(ghost.rect).isCloseTo(expected.rect, 0.1f)
+    assertThat(ghost.material.cornerRadii.topLeft).isCloseTo(expected.cornerRadii.topLeft, 0.1f)
+    assertThat(ghost.fading).isTrue()
+  }
+
+  @Test
   fun matchedGeometry_attachIntoSourceMixedCluster_materializes() = runComposeUiTest {
     // B resolves a zIndex 1 source as well, so A and B already form a cluster that mixes sources.
     val fixture = fixture(cOffset = 40 to 150)
@@ -902,6 +973,7 @@ class GlassContainerTransitionTest : ContextTest() {
     val spacing = mutableStateOf(40)
 
     val aSource = MutableInteractionSource()
+    val bSource = MutableInteractionSource()
 
     val aNode: GlassMemberNode? by lazy { a.memberBindingForTest?.node }
     lateinit var owner: GlassContainerNode
@@ -925,6 +997,20 @@ class GlassContainerTransitionTest : ContextTest() {
       advance(16)
     }
 
+    /** Gives B a 20dp shape that snaps to 0.94 when pressed, then presses at [position]. */
+    fun pressB(position: Offset) {
+      test.runOnIdle {
+        bExtra.value = GlassStyle {
+          shape(RoundedCornerShape(20.dp))
+          interactionPositionAnimationSpec(snap())
+          pressed { animate(snap(), snap()) { scale(0.94f) } }
+        }
+      }
+      advance(16)
+      runBlocking { bSource.emit(PressInteraction.Press(position)) }
+      advance(16)
+    }
+
     /** B's snapshot: the live member or its ghost. */
     fun b(): GlassMemberSnapshot {
       bNode = b.memberBindingForTest?.node ?: bNode
@@ -938,6 +1024,13 @@ class GlassContainerTransitionTest : ContextTest() {
       owner()
       if (present.value) b()
       test.runOnIdle { present.value = !present.value }
+      advance(16)
+    }
+
+    fun removeB() {
+      owner()
+      b()
+      test.runOnIdle { present.value = false }
       advance(16)
     }
 
@@ -959,6 +1052,7 @@ class GlassContainerTransitionTest : ContextTest() {
     bSize: Size = Size(100f, 80f),
     bTint: Color = Color.Blue,
     bStyle: GlassStyle = GlassStyle { },
+    bPivot: GlassTransformPivot = GlassTransformPivot.Pointer,
     withA: Boolean = true,
     unavailable: Boolean = false,
     cOffset: Pair<Int, Int>? = null,
@@ -1008,7 +1102,8 @@ class GlassContainerTransitionTest : ContextTest() {
                   containerTestStyle(bTint).then(bStyle).then(fixture.bExtra.value),
                   HazePerformanceMode.Quality,
                   true,
-                  null,
+                  fixture.bSource,
+                  interactionTransformPivot = bPivot,
                   memberTransition = transition,
                 ),
               ) {
