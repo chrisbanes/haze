@@ -800,6 +800,24 @@ class GlassContainerTransitionTest : ContextTest() {
     assertThat(departingRects[GlassTransformPivot.Center]).isNotEqualTo(departingRects[GlassTransformPivot.Pointer])
   }
 
+  @Test
+  fun materialize_detachFromCollapsedDrawnRect_skipsInvalidGhost() = runComposeUiTest {
+    val fixture = fixture(transition = GlassMemberTransition.Materialize, bPivot = GlassTransformPivot.Center)
+    val bNode = fixture.b().identity
+    fixture.pressB(Offset(20f, 15f), scale = 1e-8f)
+    val layoutBounds = checkNotNull(fixture.b.memberBindingForTest?.surface?.boundsInOwner())
+    assertThat(layoutBounds).isEqualTo(Rect(150f, 60f, 250f, 140f))
+    assertThat(fixture.owner().model.surfaces.flatMap { it.members }.none { it.identity === bNode }).isTrue()
+    fixture.test.runOnIdle { fixture.present.value = false }
+    fixture.advance(16)
+
+    val remaining = fixture.owner().model.surfaces.flatMap { it.members }
+      .filter { snapshot -> snapshot.identity === bNode || (snapshot.identity as? GlassMemberGhost)?.last?.identity === bNode }
+      .map { snapshot -> snapshot.rect to snapshot.layoutRect }
+    assertThat(remaining).isEmpty()
+    fixture.settle()
+  }
+
   private fun assertFadingGhostMatches(ghost: GlassMemberSnapshot, expected: GlassMergedMember) {
     assertThat(ghost.rect).isCloseTo(expected.rect, 0.1f)
     assertThat(ghost.material.cornerRadii.topLeft).isCloseTo(expected.cornerRadii.topLeft, 0.1f)
@@ -998,12 +1016,12 @@ class GlassContainerTransitionTest : ContextTest() {
     }
 
     /** Gives B a 20dp shape that snaps to 0.94 when pressed, then presses at [position]. */
-    fun pressB(position: Offset) {
+    fun pressB(position: Offset, scale: Float = 0.94f) {
       test.runOnIdle {
         bExtra.value = GlassStyle {
           shape(RoundedCornerShape(20.dp))
           interactionPositionAnimationSpec(snap())
-          pressed { animate(snap(), snap()) { scale(0.94f) } }
+          pressed { animate(snap(), snap()) { scale(scale) } }
         }
       }
       advance(16)

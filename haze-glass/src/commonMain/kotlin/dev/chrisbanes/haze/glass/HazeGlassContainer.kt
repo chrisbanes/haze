@@ -241,7 +241,11 @@ internal class GlassContainerNode(
     // An axis-aligned field rect cannot draw a rotated or scaled member's glass.
     // A Content member's glass samples its own content, which leaves with it; another member's
     // surface would draw unrelated content in its place.
-    if (!isAttached || suppressTransitions || member.transition == GlassMemberTransition.None || !last.translationOnly || last.key.input is HazeInput.Content) return null
+    if (!isAttached || suppressTransitions || member.transition == GlassMemberTransition.None || !last.translationOnly ||
+      !last.layoutRect.isValidGlassMember() || !last.rect.isValidGlassMember() || last.key.input is HazeInput.Content
+    ) {
+      return null
+    }
     // Only members that can draw now may carry a ghost or split its neighbour's run; a collapsed
     // member keeps a stale snapshot.
     val live = liveSnapshots().filterValues { it.layoutRect.isValidGlassMember() }.keys
