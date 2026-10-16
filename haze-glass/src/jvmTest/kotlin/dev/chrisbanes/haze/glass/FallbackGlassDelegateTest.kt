@@ -114,9 +114,16 @@ class FallbackGlassDelegateTest {
         ambientResponse(0f)
         edgeShadow(Color.Transparent)
         edgeSoftness(0.dp)
+        contrast(0f)
+        whitePoint(0f)
+        chromaMultiplier(1f)
       }
       accessibilitySettings = GlassAccessibilitySettings(reduceTransparency = true)
     }
+    // A hoisted custom style can evaluate identically in both appearances; policy still changes.
+    val hoistedStyle = effect.style
+    assertThat(resolveGlassStyleValues(GlassStyle, hoistedStyle, GlassSystemAppearance.Light))
+      .isEqualTo(resolveGlassStyleValues(GlassStyle, hoistedStyle, GlassSystemAppearance.Dark))
     effect.appearanceReader = { appearance.value }
     val fallback = FallbackGlassDelegate(effect)
     setContent {

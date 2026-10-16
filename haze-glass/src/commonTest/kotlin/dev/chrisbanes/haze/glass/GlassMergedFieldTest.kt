@@ -21,6 +21,7 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
@@ -79,7 +80,7 @@ class GlassMergedFieldTest {
     val withBase = buildGlassRenderParams(resolved.copy(mergedField = field), coordinates)
     val withoutBase = buildGlassRenderParams(resolved.copy(mergedField = field.withoutFallbackBase), coordinates)
     assertThat(withBase).isEqualTo(withoutBase)
-    assertThat(withBase.mergedField?.members?.single()?.fallbackBaseColor).isEqualTo(null)
+    assertThat(withBase.mergedField?.members?.single()?.fallbackBaseColor).isNull()
     assertThat(withBase.mergedField?.members?.single()?.refractionMultiplier).isEqualTo(1.5f)
   }
 
