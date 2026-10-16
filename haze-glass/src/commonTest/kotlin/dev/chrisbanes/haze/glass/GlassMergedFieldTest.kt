@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.containsExactly
@@ -36,6 +37,10 @@ internal fun mergedMember(
   lightPosition: Offset = Offset.Zero,
   lightRadius: Float = 0f,
   lightIntensity: Float = 0f,
+  opticalPosition: Offset = Offset.Zero,
+  opticalRadius: Float = 0f,
+  refractionMultiplier: Float = 1f,
+  whitePointDelta: Float = 0f,
 ) = GlassMergedMember(
   rect = Rect(left, top, left + width, top + height),
   cornerRadii = CornerRadii(radius, radius, radius, radius),
@@ -44,6 +49,10 @@ internal fun mergedMember(
   lightPosition = lightPosition,
   lightRadius = lightRadius,
   lightIntensity = lightIntensity,
+  opticalPosition = opticalPosition,
+  opticalRadius = opticalRadius,
+  refractionMultiplier = refractionMultiplier,
+  whitePointDelta = whitePointDelta,
 )
 
 internal fun mergedField(
@@ -71,6 +80,14 @@ class GlassMergedFieldTest {
       .isInstanceOf<IllegalArgumentException>()
     assertFailure { mergedMember(Float.NaN, 0f, 10f, 10f) }.isInstanceOf<IllegalArgumentException>()
     assertFailure { mergedMember(0f, 0f, 10f, 10f, radius = Float.POSITIVE_INFINITY) }
+      .isInstanceOf<IllegalArgumentException>()
+    assertFailure { mergedMember(0f, 0f, 10f, 10f, opticalPosition = Offset(Float.NaN, 0f)) }
+      .isInstanceOf<IllegalArgumentException>()
+    assertFailure { mergedMember(0f, 0f, 10f, 10f, opticalRadius = Float.POSITIVE_INFINITY) }
+      .isInstanceOf<IllegalArgumentException>()
+    assertFailure { mergedMember(0f, 0f, 10f, 10f, refractionMultiplier = 2.1f) }
+      .isInstanceOf<IllegalArgumentException>()
+    assertFailure { mergedMember(0f, 0f, 10f, 10f, whitePointDelta = -1.1f) }
       .isInstanceOf<IllegalArgumentException>()
   }
 
@@ -177,6 +194,30 @@ class GlassMergedFieldTest {
   }
 
   @Test
+  fun setMergedFieldUniforms_padsOpticalArraysWithNeutralResponses() {
+    val recorded = mutableMapOf<String, List<Float>>()
+    recordingUniforms(recorded).setMergedFieldUniforms(
+      mergedField(
+        mergedMember(
+          0f,
+          0f,
+          10f,
+          10f,
+          opticalPosition = Offset(3f, 4f),
+          opticalRadius = 5f,
+          refractionMultiplier = 1.8f,
+          whitePointDelta = 0.3f,
+        ),
+      ),
+      includeOptics = true,
+    )
+    assertThat(recorded.getValue("memberOpticalPositions")).isEqualTo(listOf(3f, 4f) + List(6) { 0f })
+    assertThat(recorded.getValue("memberOpticalRadii")).isEqualTo(listOf(5f, 0f, 0f, 0f))
+    assertThat(recorded.getValue("memberRefractionMultipliers")).isEqualTo(listOf(1.8f, 1f, 1f, 1f))
+    assertThat(recorded.getValue("memberWhitePointDeltas")).isEqualTo(listOf(0.3f, 0f, 0f, 0f))
+  }
+
+  @Test
   fun scaled_scalesLightPositionAndRadius() {
     val member = mergedField(
       mergedMember(0f, 0f, 10f, 10f, lightPosition = Offset(4f, 6f), lightRadius = 8f, lightIntensity = 0.5f),
@@ -187,13 +228,79 @@ class GlassMergedFieldTest {
   }
 
   @Test
+  fun scaled_scalesOpticalPositionAndRadius_butKeepsResponsesDimensionless() {
+    val member = mergedField(
+      mergedMember(
+        0f,
+        0f,
+        10f,
+        10f,
+        opticalPosition = Offset(4f, 6f),
+        opticalRadius = 8f,
+        refractionMultiplier = 1.8f,
+        whitePointDelta = 0.3f,
+      ),
+    ).scaled(0.5f).members.single()
+    assertThat(member.opticalPosition).isEqualTo(Offset(2f, 3f))
+    assertThat(member.opticalRadius).isEqualTo(4f)
+    assertThat(member.refractionMultiplier).isEqualTo(1.8f)
+    assertThat(member.whitePointDelta).isEqualTo(0.3f)
+  }
+
+  @Test
+  fun withoutInteractions_stripsNeutralOpticalPositionAndRadius() {
+    val active = mergedField(
+      mergedMember(
+        0f,
+        0f,
+        10f,
+        10f,
+        lightPosition = Offset(3f, 4f),
+        lightRadius = 5f,
+        lightIntensity = 1f,
+        opticalPosition = Offset(8f, 9f),
+        opticalRadius = 12f,
+        refractionMultiplier = 1.8f,
+        whitePointDelta = 0.3f,
+      ),
+    ).withoutLights.members.single()
+    assertThat(active.lightIntensity).isEqualTo(0f)
+    assertThat(active.opticalPosition).isEqualTo(Offset(8f, 9f))
+    assertThat(active.opticalRadius).isEqualTo(12f)
+    assertThat(active.refractionMultiplier).isEqualTo(1.8f)
+    assertThat(active.whitePointDelta).isEqualTo(0.3f)
+
+    val field = mergedField(
+      mergedMember(0f, 0f, 10f, 10f, opticalPosition = Offset(8f, 9f), opticalRadius = 12f),
+    )
+    val projected = field.withoutInteractions
+    assertThat(projected).isNotEqualTo(field)
+    assertThat(projected.members.single().opticalPosition).isEqualTo(Offset.Zero)
+    assertThat(projected.members.single().opticalRadius).isEqualTo(0f)
+  }
+
+  @Test
   fun buildGlassPreparedRender_lightOnlyChangeKeepsStageKeys() {
     val size = Size(240f, 80f)
     val style = resolveGlassStyle(GlassRuntimeEffect(), size, Density(1f), LayoutDirection.Ltr)
     val coordinates = GlassCoordinates(size, Offset.Zero, size, 1f)
-    fun prepare(intensity: Float, previous: GlassPreparedRender? = null): GlassPreparedRender {
+    fun prepare(
+      intensity: Float,
+      lightPosition: Offset,
+      lightRadius: Float,
+      previous: GlassPreparedRender? = null,
+    ): GlassPreparedRender {
       val field = mergedField(
-        mergedMember(20f, 20f, 100f, 40f, backgroundColor = Color.White, lightPosition = Offset(70f, 40f), lightRadius = 20f, lightIntensity = intensity),
+        mergedMember(
+          20f,
+          20f,
+          100f,
+          40f,
+          backgroundColor = Color.White,
+          lightPosition = lightPosition,
+          lightRadius = lightRadius,
+          lightIntensity = intensity,
+        ),
         mergedMember(130f, 20f, 100f, 40f),
       )
       return buildGlassPreparedRender(
@@ -204,13 +311,94 @@ class GlassMergedFieldTest {
         previous = previous,
       )
     }
-    val dim = prepare(0.5f)
-    val bright = prepare(1f, previous = dim)
+    val dim = prepare(0.5f, lightPosition = Offset(70f, 40f), lightRadius = 20f)
+    val bright = prepare(1f, lightPosition = Offset(94f, 31f), lightRadius = 52f, previous = dim)
     assertThat(bright.opticalKey).isSameInstanceAs(dim.opticalKey)
     assertThat(bright.refractionDetailKey).isSameInstanceAs(dim.refractionDetailKey)
     assertThat(bright.rimKey).isSameInstanceAs(dim.rimKey)
     assertThat(bright.params.mergedBackground).isEqualTo(dim.params.mergedBackground)
     assertThat(bright.params.mergedField).isNotEqualTo(dim.params.mergedField)
+    assertThat(bright.params.mergedField?.members?.first()?.opticalPosition).isEqualTo(Offset.Zero)
+    assertThat(bright.params.mergedField?.members?.first()?.opticalRadius).isEqualTo(0f)
+  }
+
+  @Test
+  fun buildGlassPreparedRender_opticalOnlyChangeInvalidatesOpticsAndKeepsOtherStages() {
+    val size = Size(240f, 80f)
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle {
+        optics(
+          GlassOptics(
+            refractionStrength = 0.6f,
+            refractionDisplacement = 40.dp,
+            refractionHeightFraction = 0.5f,
+            refractionDetailIntensity = 0.7f,
+          ),
+        )
+      }
+    }
+    val style = resolveGlassStyle(effect, size, Density(1f), LayoutDirection.Ltr)
+    val coordinates = GlassCoordinates(size, Offset.Zero, size, 1f)
+    fun prepare(multiplier: Float, delta: Float, previous: GlassPreparedRender? = null): GlassPreparedRender {
+      val field = mergedField(
+        mergedMember(
+          20f,
+          20f,
+          100f,
+          40f,
+          backgroundColor = Color.White,
+          opticalPosition = Offset(70f, 40f),
+          opticalRadius = 20f,
+          refractionMultiplier = multiplier,
+          whitePointDelta = delta,
+        ),
+        mergedMember(130f, 20f, 100f, 40f),
+      )
+      return buildGlassPreparedRender(
+        params = buildGlassRenderParams(style.copy(mergedField = field), coordinates),
+        interactionUniforms = GlassInteractionUniforms(Offset.Zero, 0f, 0f, 1f, 0f),
+        alpha = 1f,
+        outputSize = IntSize(240, 80),
+        previous = previous,
+      )
+    }
+    val idle = prepare(1f, 0f)
+    val multiplierOnly = prepare(1.8f, 0f, idle)
+    val whitePointOnly = prepare(1f, 0.3f, idle)
+    val active = prepare(1.8f, 0.3f, idle)
+    assertThat(multiplierOnly.opticalKey).isNotEqualTo(idle.opticalKey)
+    assertThat(multiplierOnly.refractionDetailKey).isNotEqualTo(idle.refractionDetailKey)
+    assertThat(whitePointOnly.opticalKey).isNotEqualTo(idle.opticalKey)
+    assertThat(active.opticalKey).isNotEqualTo(idle.opticalKey)
+    assertThat(active.refractionDetailKey).isNotEqualTo(idle.refractionDetailKey)
+    assertThat(active.blurKey).isSameInstanceAs(idle.blurKey)
+    assertThat(active.rimKey).isSameInstanceAs(idle.rimKey)
+    assertThat(active.params.mergedBackground).isEqualTo(idle.params.mergedBackground)
+
+    val lit = prepare(1f, 0f, idle).params.copy(
+      mergedField = idle.params.mergedField?.let { field ->
+        mergedField(
+          field.members[0].let {
+            mergedMember(
+              it.rect.left,
+              it.rect.top,
+              it.rect.width,
+              it.rect.height,
+              backgroundColor = it.backgroundColor,
+              lightPosition = Offset(70f, 40f),
+              lightRadius = 20f,
+              lightIntensity = 1f,
+              opticalPosition = it.opticalPosition,
+              opticalRadius = it.opticalRadius,
+              refractionMultiplier = it.refractionMultiplier,
+              whitePointDelta = it.whitePointDelta,
+            )
+          },
+          field.members[1],
+        )
+      },
+    )
+    assertThat(lit.opticalEffectKey()).isEqualTo(idle.opticalKey)
   }
 }
 

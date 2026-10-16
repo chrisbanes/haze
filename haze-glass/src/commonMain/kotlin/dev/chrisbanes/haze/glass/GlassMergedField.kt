@@ -17,7 +17,7 @@ internal const val MAX_GLASS_MERGED_MEMBERS = 4
 
 /**
  * One rounded-rectangle member of a [GlassMergedField], in material-local pixels, with its own
- * interaction light. An idle member has zero [lightIntensity].
+ * interaction lighting and optical response.
  */
 @Poko
 internal class GlassMergedMember(
@@ -28,6 +28,10 @@ internal class GlassMergedMember(
   val lightPosition: Offset = Offset.Zero,
   val lightRadius: Float = 0f,
   val lightIntensity: Float = 0f,
+  val opticalPosition: Offset = Offset.Zero,
+  val opticalRadius: Float = 0f,
+  val refractionMultiplier: Float = 1f,
+  val whitePointDelta: Float = 0f,
 ) {
   init {
     require(
@@ -39,6 +43,10 @@ internal class GlassMergedMember(
     require(lightPosition.x.isFinite() && lightPosition.y.isFinite()) { "lightPosition must be finite" }
     require(lightRadius.isFinite() && lightRadius >= 0f) { "lightRadius must be finite and non-negative" }
     require(lightIntensity.isFinite() && lightIntensity >= 0f) { "lightIntensity must be finite and non-negative" }
+    require(opticalPosition.x.isFinite() && opticalPosition.y.isFinite()) { "opticalPosition must be finite" }
+    require(opticalRadius.isFinite() && opticalRadius >= 0f) { "opticalRadius must be finite and non-negative" }
+    require(refractionMultiplier.isFinite() && refractionMultiplier in 0f..2f) { "refractionMultiplier must be finite and in [0, 2]" }
+    require(whitePointDelta.isFinite() && whitePointDelta in -1f..1f) { "whitePointDelta must be finite and in [-1, 1]" }
   }
 
   val hasLighting: Boolean get() = lightIntensity > 0f && lightRadius > 0f
@@ -75,11 +83,40 @@ internal class GlassMergedField(
   val hasInteractionLighting: Boolean get() = members.any { it.hasLighting }
 
   /**
-   * This field with idle member lights. Stages that read only shape and colour key on it, so a
-   * light-only change re-records just the lighting stage.
+   * This field with idle member lights. Optical values remain because optical stages consume them;
+   * shape/colour-only stages use [withoutInteractions].
    */
   val withoutLights: GlassMergedField by lazy(LazyThreadSafetyMode.NONE) {
     if (members.all { it.lightPosition == Offset.Zero && it.lightRadius == 0f && it.lightIntensity == 0f }) {
+      this
+    } else {
+      GlassMergedField(
+        members.map {
+          GlassMergedMember(
+            it.rect,
+            it.cornerRadii,
+            it.tint,
+            it.backgroundColor,
+            opticalPosition = it.opticalPosition,
+            opticalRadius = it.opticalRadius,
+            refractionMultiplier = it.refractionMultiplier,
+            whitePointDelta = it.whitePointDelta,
+          )
+        },
+        spacingPx,
+        opticalSize,
+      )
+    }
+  }
+
+  /** Shape/colour projection for stages that must ignore both interaction channels. */
+  val withoutInteractions: GlassMergedField by lazy(LazyThreadSafetyMode.NONE) {
+    if (members.all {
+        it.lightPosition == Offset.Zero && it.lightRadius == 0f && it.lightIntensity == 0f &&
+          it.opticalPosition == Offset.Zero && it.opticalRadius == 0f &&
+          it.refractionMultiplier == 1f && it.whitePointDelta == 0f
+      }
+    ) {
       this
     } else {
       GlassMergedField(members.map { GlassMergedMember(it.rect, it.cornerRadii, it.tint, it.backgroundColor) }, spacingPx, opticalSize)
@@ -125,6 +162,10 @@ internal class GlassMergedField(
         lightPosition = member.lightPosition * scaleFactor,
         lightRadius = member.lightRadius * scaleFactor,
         lightIntensity = member.lightIntensity,
+        opticalPosition = member.opticalPosition * scaleFactor,
+        opticalRadius = member.opticalRadius * scaleFactor,
+        refractionMultiplier = member.refractionMultiplier,
+        whitePointDelta = member.whitePointDelta,
       )
     },
     spacingPx = spacingPx * scaleFactor,
@@ -138,6 +179,7 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
   includeTint: Boolean = false,
   includeBackground: Boolean = false,
   includeLighting: Boolean = false,
+  includeOptics: Boolean = false,
 ) {
   val rects = FloatArray(MAX_GLASS_MERGED_MEMBERS * 4)
   val radii = FloatArray(MAX_GLASS_MERGED_MEMBERS * 4)
@@ -169,6 +211,23 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
     setFloatUniform("memberLightPositions", positions)
     setFloatUniform("memberLightRadii", lightRadii)
     setFloatUniform("memberLightIntensities", intensities)
+  }
+  if (includeOptics) {
+    val positions = FloatArray(MAX_GLASS_MERGED_MEMBERS * 2)
+    val opticalRadii = FloatArray(MAX_GLASS_MERGED_MEMBERS)
+    val multipliers = FloatArray(MAX_GLASS_MERGED_MEMBERS) { 1f }
+    val whitePointDeltas = FloatArray(MAX_GLASS_MERGED_MEMBERS)
+    field.members.forEachIndexed { index, member ->
+      positions[index * 2] = member.opticalPosition.x
+      positions[index * 2 + 1] = member.opticalPosition.y
+      opticalRadii[index] = member.opticalRadius
+      multipliers[index] = member.refractionMultiplier
+      whitePointDeltas[index] = member.whitePointDelta
+    }
+    setFloatUniform("memberOpticalPositions", positions)
+    setFloatUniform("memberOpticalRadii", opticalRadii)
+    setFloatUniform("memberRefractionMultipliers", multipliers)
+    setFloatUniform("memberWhitePointDeltas", whitePointDeltas)
   }
   for (index in 0 until MAX_GLASS_MERGED_MEMBERS) {
     val member = field.members.getOrNull(index)

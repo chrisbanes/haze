@@ -62,7 +62,7 @@ internal object GlassShaders {
       return clamp(coord, vec2(0.0), materialSize);
     }
 
-    ${sdfHelpers()}${mergedShapeHelpers(merged, tint = true)}
+    ${sdfHelpers()}${mergedShapeHelpers(merged, tint = true)}${if (merged) MERGED_OPTICAL_HELPERS else ""}
 
     ${surfaceAndDisplacementHelpers(merged)}
 
@@ -86,7 +86,13 @@ internal object GlassShaders {
       float shapeMask = edgeSoftness <= 0.0
         ? 1.0
         : smootherstep(clamp(outputDistToEdge / max(edgeSoftness, 0.0001), 0.0, 1.0));
-      ${if (interactionOptics) {
+      ${if (merged) {
+    """
+      vec2 memberOptics = mergedOpticalValues(localCoord);
+      float localizedRefractionMultiplier = memberOptics.x;
+      float localizedWhitePoint = clamp(whitePoint + memberOptics.y, -1.0, 1.0);
+      """
+  } else if (interactionOptics) {
     """
       float localizedRefractionMultiplier = 1.0;
       float localizedWhitePoint = whitePoint;
@@ -112,7 +118,7 @@ internal object GlassShaders {
         localCoord,
         heightNorm,
         edgeRefractionWidth >= 0.0 ? outputDistToEdge : opticalDistance,
-        ${if (interactionOptics) "localizedRefractionMultiplier" else "1.0"},
+        ${if (interactionOptics || merged) "localizedRefractionMultiplier" else "1.0"},
         fieldWeight
       );
       vec2 refractCoord = clampSample(coord + displacement);
@@ -147,7 +153,7 @@ internal object GlassShaders {
       }
       vec3 gradedColor = applyColorGrading(
         refractedStraightColor,
-        ${if (interactionOptics) "localizedWhitePoint" else "whitePoint"}
+        ${if (interactionOptics || merged) "localizedWhitePoint" else "whitePoint"}
       );
       gradedColor = clamp(gradedColor, 0.0, 1.0);
       ${tintedColor(merged)}
@@ -160,7 +166,7 @@ internal object GlassShaders {
     """
       float detailAlpha = 0.0;
       float maxPossibleDisplacement = min(
-        ${if (interactionOptics) {
+        ${if (interactionOptics || merged) {
       "abs(refractionScale * refractionStrength) * max(1.0, localizedRefractionMultiplier)"
     } else {
       "abs(refractionScale * refractionStrength)"
@@ -285,7 +291,7 @@ internal object GlassShaders {
       return clamp(coord, vec2(0.0), materialSize);
     }
 
-    ${sdfHelpers()}${mergedShapeHelpers(merged, tint = true)}
+    ${sdfHelpers()}${mergedShapeHelpers(merged, tint = true)}${if (merged) MERGED_OPTICAL_HELPERS else ""}
 
     ${surfaceAndDisplacementHelpers(merged)}
 
@@ -309,7 +315,13 @@ internal object GlassShaders {
       float shapeMask = edgeSoftness <= 0.0
         ? 1.0
         : smootherstep(clamp(distToEdge / max(edgeSoftness, 0.0001), 0.0, 1.0));
-      ${if (interactive) {
+      ${if (merged) {
+    """
+      vec2 memberOptics = mergedOpticalValues(localCoord);
+      float localizedRefractionMultiplier = memberOptics.x;
+      float localizedWhitePoint = clamp(whitePoint + memberOptics.y, -1.0, 1.0);
+      """
+  } else if (interactive) {
     """
       float interactionWeight = interactionFalloff(coord);
       float localizedRefractionMultiplier =
@@ -332,7 +344,7 @@ internal object GlassShaders {
         localCoord,
         heightNorm,
         edgeRefractionWidth >= 0.0 ? distToEdge : opticalDistance,
-        ${if (interactive) "localizedRefractionMultiplier" else "1.0"},
+        ${if (interactive || merged) "localizedRefractionMultiplier" else "1.0"},
         fieldWeight
       );
       vec2 refractCoord = clampSample(coord + displacement);
@@ -366,7 +378,7 @@ internal object GlassShaders {
       vec3 opticalColor = refractedStraightColor;
       vec3 gradedColor = applyColorGrading(
         opticalColor,
-        ${if (interactive) "localizedWhitePoint" else "whitePoint"}
+        ${if (interactive || merged) "localizedWhitePoint" else "whitePoint"}
       );
       gradedColor = clamp(gradedColor, 0.0, 1.0);
       ${tintedColor(merged)}
@@ -417,7 +429,7 @@ internal object GlassShaders {
     """
   }}
 
-    ${sdfHelpers()}${mergedShapeHelpers(merged)}
+    ${sdfHelpers()}${mergedShapeHelpers(merged)}${if (merged) MERGED_OPTICAL_HELPERS else ""}
 
     ${surfaceAndDisplacementHelpers(merged)}
 
@@ -430,7 +442,11 @@ internal object GlassShaders {
       if (coverage <= 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
-      ${if (interactive) {
+      ${if (merged) {
+    """
+      float localizedRefractionMultiplier = mergedOpticalValues(localCoord).x;
+      """
+  } else if (interactive) {
     """
       float interactionWeight = interactionFalloff(coord);
       float localizedRefractionMultiplier =
@@ -441,7 +457,7 @@ internal object GlassShaders {
   }}
       float sampleDiagonal = length(sampleSize);
       float maxPossibleDisplacement = min(
-        abs(refractionScale * refractionStrength)${if (interactive) " * max(1.0, localizedRefractionMultiplier)" else ""},
+        abs(refractionScale * refractionStrength)${if (interactive || merged) " * max(1.0, localizedRefractionMultiplier)" else ""},
         sampleDiagonal
       );
       if (outputDistToEdge > detailWidth + maxPossibleDisplacement) return vec4(0.0);
@@ -454,7 +470,7 @@ internal object GlassShaders {
         localCoord,
         heightNorm,
         edgeRefractionWidth >= 0.0 ? outputDistToEdge : opticalDistance,
-        ${if (interactive) "localizedRefractionMultiplier" else "1.0"},
+        ${if (interactive || merged) "localizedRefractionMultiplier" else "1.0"},
         fieldWeight
       );
       ${if (coverageOnly) "" else "vec2 refractCoord = clampSample(coord + displacement);"}
@@ -1258,6 +1274,30 @@ internal object GlassShaders {
         light += w[i] * memberLightIntensities[i] * (1.0 - smootherstep(clamp(normalized, 0.0, 1.0)));
       }
       return light;
+    }
+    """
+
+  /** Member-local optical response, weighted by field ownership and the existing radial falloff. */
+  private const val MERGED_OPTICAL_HELPERS = """
+    uniform float2 memberOpticalPositions[4];
+    uniform float memberOpticalRadii[4];
+    uniform float memberRefractionMultipliers[4];
+    uniform float memberWhitePointDeltas[4];
+
+    vec2 mergedOpticalValues(vec2 localCoord) {
+      vec4 w = memberWeights(localCoord);
+      float multiplierDelta = 0.0;
+      float whitePointDelta = 0.0;
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        float normalized = distance(localCoord, memberOpticalPositions[i]) /
+          max(memberOpticalRadii[i], 0.0001);
+        float interactionWeight = 1.0 - smootherstep(clamp(normalized, 0.0, 1.0));
+        float weight = w[i] * interactionWeight;
+        multiplierDelta += weight * (memberRefractionMultipliers[i] - 1.0);
+        whitePointDelta += weight * memberWhitePointDeltas[i];
+      }
+      return vec2(clamp(1.0 + multiplierDelta, 0.0, 2.0), whitePointDelta);
     }
     """
 

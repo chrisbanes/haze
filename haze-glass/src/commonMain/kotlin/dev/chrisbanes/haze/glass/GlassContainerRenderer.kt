@@ -128,16 +128,32 @@ private fun GlassMemberSnapshot.toMergedMember(origin: Offset): GlassMergedMembe
   val scaleY = rect.height / layoutRect.height
   // Ghosts carry no interaction.
   val runtime = (identity as? GlassMemberNode)?.binding?.runtime
-  val light = runtime?.let { resolveGlassInteraction(it.currentInteractionState, it.interactionLightRadiusFraction) }
+  val interaction = runtime?.let { resolveGlassInteraction(it.currentInteractionState, it.interactionLightRadiusFraction) }
   val topLeft = rect.topLeft - origin
   val fieldRect = Rect(topLeft, rect.size)
+  val refractionMultiplier = interaction?.refractionMultiplier ?: 1f
+  val whitePointDelta = interaction?.whitePointDelta ?: 0f
+  val hasOpticalResponse = refractionMultiplier != 1f || whitePointDelta != 0f
   return GlassMergedMember(
     rect = fieldRect,
     cornerRadii = material.cornerRadii * minOf(scaleX, scaleY),
     tint = material.tint,
     backgroundColor = material.backgroundColor,
-    lightPosition = light?.position?.takeIf { it.x.isFinite() && it.y.isFinite() }?.let { topLeft + Offset(it.x * scaleX, it.y * scaleY) } ?: fieldRect.center,
-    lightRadius = (rect.minDimension * (light?.radiusFraction ?: 0f)).takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f,
-    lightIntensity = light?.lightingIntensity ?: 0f,
+    lightPosition = interaction?.position?.takeIf { it.x.isFinite() && it.y.isFinite() }?.let { topLeft + Offset(it.x * scaleX, it.y * scaleY) } ?: fieldRect.center,
+    lightRadius = (rect.minDimension * (interaction?.radiusFraction ?: 0f)).takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f,
+    lightIntensity = interaction?.lightingIntensity ?: 0f,
+    opticalPosition = if (hasOpticalResponse) {
+      interaction?.position?.takeIf { it.x.isFinite() && it.y.isFinite() }
+        ?.let { topLeft + Offset(it.x * scaleX, it.y * scaleY) } ?: fieldRect.center
+    } else {
+      Offset.Zero
+    },
+    opticalRadius = if (hasOpticalResponse) {
+      (rect.minDimension * (interaction?.radiusFraction ?: 0f)).takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f
+    } else {
+      0f
+    },
+    refractionMultiplier = refractionMultiplier,
+    whitePointDelta = whitePointDelta,
   )
 }
