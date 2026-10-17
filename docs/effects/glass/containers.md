@@ -97,7 +97,7 @@ the transition with `hazeGlass(memberTransition = ...)`:
 `transitionSpec` times the animation and defaults to `spring()`. Members with
 `GlassMemberTransition.None` do not animate. Under reduced motion, as `reducedMotionPolicy`
 resolves it, the morph is kept but uses a critically damped spring, so it does not overshoot. The
-spring keeps `transitionSpec`'s stiffness when it is a spring, and the morph runs at full duration
+spring keeps `transitionSpec`'s stiffness when it is a spring and otherwise uses medium stiffness, and the morph runs at full duration
 even when the system turns animations off. `GlassReducedMotionPolicy.System` resolves to reduced
 motion only when the system motion-duration scale is zero, and otherwise follows that scale.
 `Full` never reduces. Changes to `transitionSpec` and `reducedMotionPolicy` apply from the next

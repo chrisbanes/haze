@@ -267,7 +267,7 @@ val softerClear = GlassStyle.clear.then {
 ```
 
 The receiver starts from `GlassOptics.regular` and then includes optics from `LocalGlassStyle` and
-earlier explicit writes in the Style.
+earlier writes in the Style, including built-in Styles it extends.
 The block runs on every style evaluation and can read snapshot state without recomposing the call
 site. Keep it free of side effects. Later `optics(value)` writes or built-in styles replace its result.
 
@@ -492,8 +492,9 @@ GlassStyle {
 
 - `interactionTransformTarget` transforms the material only, or the material and its content.
 - `interactionTransformPivot` scales around the `Pointer` or the `Center`.
-- `interactionReducedMotionPolicy`: `System` follows the system animation scale, `Reduced` snaps
-  lighting and optics and suppresses transforms, and `Full` always animates.
+- `interactionReducedMotionPolicy`: `System` follows the system animation scale and behaves as
+  `Reduced` when that scale is zero, `Reduced` snaps lighting and optics and suppresses transforms,
+  and `Full` always animates.
 
 Omit a state block from a replacement Style to remove that response.
 
