@@ -221,7 +221,7 @@ generated API reference for property-specific ranges.
 
 Pass a `GlassOptics` to `optics(value)`. To change part of the built-in model, use
 `optics(GlassOptics.regular.copy(...))`, or `optics { copy(...) }` to adjust the optics accumulated
-so far. The `GlassOptics` constructor defaults are not Regular's. Keep a `GlassOptics` value when
+so far. Keep a `GlassOptics` value when
 the configuration needs to be reused or selected programmatically. Use `OpticalSizeValue.Responsive` for
 shortest-dimension-dependent blur or depth.
 

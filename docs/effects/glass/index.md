@@ -231,16 +231,16 @@ Box(
 
 ### Choosing optics
 
-Use `GlassStyle.regular` for the built-in material. For direct optical control, call `optics(...)`
-in a custom Style.
-
-The `GlassOptics` constructor defaults are not Regular's. For example, the constructor defaults to a
-`15.dp` refraction displacement and `RefractionProfile.Surface`, while Regular uses `48.dp` and
-`Edge(20.dp)`. To change part of the built-in material, start from `GlassOptics.regular.copy(...)`:
+Use `GlassStyle.regular` for the built-in material:
 
 ```kotlin
 val regular = GlassStyle.regular
 ```
+
+For direct optical control, call `optics(...)` in a custom Style. The `GlassOptics` constructor
+defaults are not Regular's. For example, the constructor defaults to a `15.dp` refraction
+displacement and `RefractionProfile.Surface`, while Regular uses `48.dp` and `Edge(20.dp)`. To
+change part of the built-in material, start from `GlassOptics.regular.copy(...)`:
 
 ```kotlin
 GlassStyle {
