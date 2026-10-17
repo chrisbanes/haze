@@ -32,7 +32,7 @@ On Android 12 (API 31) and below, Haze redraws Blur more often than strictly nec
 
 On API 31 only, Blur that reads `HazeInput.Sources`, including a `HazeInput.Backdrop` using its source fallback, also recaptures its input after any snapshot state change in the app, whichever window holds the source. With a hardware-accelerated canvas, Blur also rebuilds all of its effects, including every progressive band. With a software canvas, it blurs again with RenderScript instead. A running animation therefore does this once per frame, even if the animation is unrelated to the content behind the Blur. Blur that uses `HazeInput.Content` is not affected. This cost has not been measured. If you target API 31, profile your screens and [disable Blur](usage.md#enabling-blur) where it is too slow.
 
-Sources in another window have a similar cost on other API levels and platforms. See [Dialogs](../core-concepts.md#dialogs).
+Sources in another window have a similar cost on other API levels, and on platforms where Haze detects separate windows. See [Dialogs](../core-concepts.md#dialogs).
 
 ### Android 11 and below
 
