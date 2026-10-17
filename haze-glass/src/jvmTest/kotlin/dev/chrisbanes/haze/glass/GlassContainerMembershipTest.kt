@@ -33,6 +33,7 @@ import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
@@ -310,6 +311,33 @@ class GlassContainerMembershipTest : ContextTest() {
     assertThat(members()).isEqualTo(1)
     runOnIdle { active.value = true }
     waitForIdle()
+    assertThat(members()).isEqualTo(2)
+  }
+
+  @Test
+  fun membership_containerReactivationWithUnchangedLayoutReclustersMembers() = runComposeUiTest {
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    val active = mutableStateOf(true)
+    setContent {
+      ReusableContentHost(active.value) {
+        Row(Modifier.hazeGlassContainer(40.dp)) {
+          Member(first)
+          Member(second)
+        }
+      }
+    }
+    waitForIdle()
+    val node = container(first)
+    fun members() = node.model.surfaces.sumOf { it.members.size }
+    assertThat(members()).isEqualTo(2)
+    runOnIdle { active.value = false }
+    waitForIdle()
+    assertThat(members()).isEqualTo(0)
+    runOnIdle { active.value = true }
+    waitForIdle()
+    assertThat(container(first)).isSameInstanceAs(node)
+    assertThat(node.surfaceCoordinates).isNotNull()
     assertThat(members()).isEqualTo(2)
   }
 
