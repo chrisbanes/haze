@@ -1057,17 +1057,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#deprecated" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Deprecated
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#removed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4389,17 +4378,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#deprecated" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Deprecated
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#removed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -7625,14 +7603,21 @@ performance guidance.</p>
   (<a href="https://github.com/chrisbanes/haze/pull/1491">#1491</a>).</li>
 <li>Added the <code>Glass — Container Showcase</code> sample, a photo library whose Glass bar merges, splits
   and grows actions in a scripted loop (<a href="https://github.com/chrisbanes/haze/pull/1552">#1552</a>).</li>
-<li>Added a <code>hazeGlassContainer(spacing, scrollState)</code> overload. Members of a lazy layout appear and
+<li>Added an optional <code>scrollState</code> to <code>hazeGlassContainer</code>. Members of a lazy layout appear and
   disappear without a transition while it scrolls
-  (<a href="https://github.com/chrisbanes/haze/pull/1544">#1544</a>).</li>
+  (<a href="https://github.com/chrisbanes/haze/pull/1544">#1544</a>,
+  <a href="https://github.com/chrisbanes/haze/pull/1571">#1571</a>).</li>
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">¶</a></h3>
 <ul>
 <li>Glass APIs in <code>haze-glass</code> and <code>haze-glass-material3</code> are stable and no longer require opting in
   to <code>@ExperimentalHazeApi</code> (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
+<li>Glass is not binary-compatible with the experimental 2.0.x API. Recompile code that uses Glass
+  against this release (<a href="https://github.com/chrisbanes/haze/pull/1571">#1571</a>).</li>
+<li><code>GlassOptics</code> and <code>GlassAccessibilitySettings</code> are no longer data classes, so they no longer
+  support destructuring. Named-argument construction and <code>copy</code> are unchanged, and future
+  properties can be added without breaking binaries
+  (<a href="https://github.com/chrisbanes/haze/pull/1571">#1571</a>).</li>
 <li><code>GlassAccessibilitySettings.reduceTransparency</code> now makes Glass more opaque, with a stronger,
   fully diffused blur. Previously it reduced blur, which made content behind Glass more visible
   (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
@@ -7669,13 +7654,10 @@ performance guidance.</p>
   <a href="https://github.com/chrisbanes/haze/pull/1397">#1397</a>,
   <a href="https://github.com/chrisbanes/haze/pull/1532">#1532</a>).</li>
 </ul>
-<h3 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">¶</a></h3>
-<ul>
-<li>Deprecated <code>GlassDefaults.optics</code> in favour of <code>GlassOptics.regular</code>. The old property forwards
-  to the same configuration; <code>GlassOptics()</code> constructor defaults are unchanged.</li>
-</ul>
 <h3 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">¶</a></h3>
 <ul>
+<li>Removed <code>GlassDefaults.optics</code>. Use <code>GlassOptics.regular</code>
+  (<a href="https://github.com/chrisbanes/haze/pull/1571">#1571</a>).</li>
 <li>Removed the <code>GlassStyleScope.optics(refractionStrength = ..., ...)</code> overload. Its defaults were
   the <code>GlassOptics()</code> constructor defaults rather than Regular's, so setting one value reset the
   others. Pass a <code>GlassOptics</code> instead; to change part of Regular, use
