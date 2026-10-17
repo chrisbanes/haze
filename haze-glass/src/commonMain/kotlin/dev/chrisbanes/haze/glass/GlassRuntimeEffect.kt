@@ -722,9 +722,12 @@ internal class GlassRuntimeEffect() :
       onResponseCompleted = ::onInteractionResponseCompleted,
     ).also { interactionController = it }
     controller.updateConfiguration(controllerConfiguration(systemMotionScale(context)))
-    controller.updateInteractionSource(interactionSource, context.modifierSize)
-    // update() observes reads; animated channel state must not re-run it every frame.
-    Snapshot.withoutReadObservation { reconcileInteractionCompletion(context) }
+    // update() observes reads; animated channel and pointer position state must not re-run it
+    // every frame.
+    Snapshot.withoutReadObservation {
+      controller.updateInteractionSource(interactionSource, context.modifierSize)
+      reconcileInteractionCompletion(context)
+    }
   }
 
   private fun onInteractionResponseCompleted(controller: GlassInteractionController) {

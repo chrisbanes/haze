@@ -876,6 +876,31 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun rawPointerMoves_afterStyleUpdateDuringPress_doNotReRunUpdate() = runComposeUiTest {
+    val effect = runtimeInteractiveEffect()
+    val style = mutableStateOf(effect.style)
+    setContent { RuntimeGlassTestContent(effect, tag = "glass", style = style.value) }
+    waitForIdle()
+
+    onNodeWithTag("glass").performTouchInput { down(Offset(20f, 20f)) }
+    mainClock.advanceTimeBy(100)
+    waitForIdle()
+    // The update re-syncs the controller while the pointer is still at its pressed position.
+    style.value = style.value.then { ambientResponse(0.6f) }
+    waitForIdle()
+
+    val runtime = runtime(effect)
+    runtime.updateCallsForTest = 0
+    repeat(3) { step ->
+      onNodeWithTag("glass").performTouchInput { moveTo(Offset(40f + step * 20f, 50f)) }
+      mainClock.advanceTimeBy(32)
+      waitForIdle()
+    }
+
+    assertThat(runtime.updateCallsForTest).isEqualTo(0)
+  }
+
+  @Test
   fun interactionOpticalEffect_reusesStableLayerEffectAndUpdatesNewTargets() = runComposeUiTest {
     val effect = runtimeInteractiveEffect()
     val style = mutableStateOf(effect.style)
