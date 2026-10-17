@@ -26,9 +26,11 @@ import androidx.compose.ui.node.TraversableNode.Companion.TraverseDescendantsAct
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
+import androidx.compose.ui.node.requireLayoutCoordinates
 import androidx.compose.ui.node.traverseDescendants
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import dev.chrisbanes.haze.HazeEffectContentTransform
 import dev.chrisbanes.haze.HazeEffectSurface
 import dev.chrisbanes.haze.HazeEffectSurfaceOwner
@@ -149,6 +151,7 @@ internal class GlassContainerNode(
     if (Snapshot.withoutReadObservation { state.isScrollInProgress }) suppressTransitions = true
   }
   private var children: GraphicsLayer? = null
+  private var membersClaimed = false
   private var refreshing = false
   private var spacingCheckPending = false
   private var overflow = emptyList<GlassClusterOverflow>()
@@ -159,11 +162,15 @@ internal class GlassContainerNode(
 
   override fun onAttach() {
     children = requireGraphicsContext().createGraphicsLayer()
+    // Reactivation with an unchanged layout is not placed again (#1473), so members reattaching
+    // after this node would find no coordinates and never recluster; a first attach is unmeasured.
+    val coordinates = requireLayoutCoordinates()
+    if (coordinates.isAttached && coordinates.size != IntSize.Zero) surfaceCoordinates = coordinates
   }
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    val firstPlacement = surfaceCoordinates == null
     surfaceCoordinates = coordinates
-    if (firstPlacement) {
+    if (!membersClaimed) {
+      membersClaimed = true
       // Claim members that were placed before this container: an unchanged member is not re-placed
       // or re-published, so nothing else reconnects it.
       traverseDescendants(GlassMemberTraversalKey) {
@@ -421,7 +428,9 @@ internal class GlassContainerNode(
 
   override fun ContentDrawScope.draw() {
     if (spacingCheckPending) memberChanged(layoutComplete = true)
-    drawHazeEffectSurfaces(this@GlassContainerNode, { renderer.reconcile() }, checkNotNull(children))
+    // A detached node (deactivated reusable content) can still be drawn once more.
+    val layer = children ?: return
+    drawHazeEffectSurfaces(this@GlassContainerNode, { renderer.reconcile() }, layer)
     suppressTransitions = false
   }
 
@@ -429,6 +438,7 @@ internal class GlassContainerNode(
     // Releasing member surfaces below reclusters; without coordinates that pass returns early
     // instead of restoring the overrides this resets.
     surfaceCoordinates = null
+    membersClaimed = false
     renderer.release()
     // Detaching cancels coroutineScope, so transitions end here without completing.
     members.forEach {
@@ -440,6 +450,7 @@ internal class GlassContainerNode(
     pending.clear()
     attaching.clear()
     latest.clear()
+    model = GlassClusterModel(emptyList(), null, emptyList())
     suppressTransitions = true
     children?.let { requireGraphicsContext().releaseGraphicsLayer(it) }
     children = null
