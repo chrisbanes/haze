@@ -1,7 +1,7 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(InternalHazeApi::class, androidx.compose.ui.test.ExperimentalTestApi::class)
+@file:OptIn(InternalHazeApi::class, androidx.compose.ui.test.ExperimentalTestApi::class, androidx.compose.ui.ExperimentalComposeUiApi::class)
 
 package dev.chrisbanes.haze
 
@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.awt.LocalAwtWindow
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
@@ -45,6 +47,8 @@ import assertk.assertions.isBetween
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
+import assertk.assertions.isNotEmpty
+import java.awt.Frame
 import kotlin.test.Test
 
 class HazeEffectSurfaceDrawTest {
@@ -361,6 +365,53 @@ class HazeEffectSurfaceDrawTest {
   }
 
   @Test
+  fun relocatedMember_layeredCrossWindowSourceChangeRedrawsOwner() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val factory = SurfaceFactory(owner)
+    val state = HazeState()
+    val sourceColor = mutableStateOf(Color.Red)
+    val sourceWindow = createTestWindow("SourceWindow")
+    val effectWindow = createTestWindow("EffectWindow")
+    try {
+      setContent {
+        Box(Modifier.size(160.dp).testTag("root").background(Color.White)) {
+          CompositionLocalProvider(LocalAwtWindow provides sourceWindow) {
+            Box(Modifier.size(60.dp).hazeSource(state).background(sourceColor.value))
+          }
+          // Hides the source so only the owner's recorded member output shows its color.
+          Box(Modifier.fillMaxSize().background(Color.White))
+          CompositionLocalProvider(LocalAwtWindow provides effectWindow) {
+            Box(Modifier.size(120.dp).then(OwnerElement(owner))) {
+              // The layer stands in for AnimatedVisibility: the member can redraw
+              // without redrawing the owner.
+              Box(Modifier.graphicsLayer {}.size(60.dp).hazeEffect(factory, HazeInput.Sources(state), Unit))
+            }
+          }
+        }
+      }
+      waitForIdle()
+
+      assertThat(state.areas.single().preDrawListeners).isNotEmpty()
+      assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[30, 30]).isEqualTo(Color.Red)
+      val before = owner.draws
+
+      mainClock.advanceTimeByFrame()
+      mainClock.advanceTimeByFrame()
+      waitForIdle()
+      assertThat(owner.draws).isEqualTo(before)
+
+      sourceColor.value = Color.Blue
+      waitForIdle()
+
+      assertThat(owner.draws).isGreaterThan(before)
+      assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[30, 30]).isEqualTo(Color.Blue)
+    } finally {
+      (sourceWindow as? Frame)?.dispose()
+      (effectWindow as? Frame)?.dispose()
+    }
+  }
+
+  @Test
   fun relocatedSources_movedSelectedSourceUpdatesPixelsWithoutSelectingSibling() = runComposeUiTest {
     val owner = SurfaceOwnerNode()
     val factory = SurfaceFactory(owner)
@@ -613,6 +664,7 @@ class HazeEffectSurfaceDrawTest {
       surfaceCoordinates = coordinates
     }
     var changes = 0
+    var draws = 0
     override fun onSurfaceChanged(surface: HazeEffectSurface) {
       changes++
       if (surface !in surfaces) surfaces += surface
@@ -625,6 +677,7 @@ class HazeEffectSurfaceDrawTest {
     }
     override fun canComposeNativeSurfaces(bounds: Rect): Boolean = true
     override fun ContentDrawScope.draw() {
+      draws++
       beforeRecord()
       drawHazeEffectSurfaces(this@SurfaceOwnerNode, { resolveSurfaces?.invoke() ?: surfaces.toList() }, children)
       afterRecord()

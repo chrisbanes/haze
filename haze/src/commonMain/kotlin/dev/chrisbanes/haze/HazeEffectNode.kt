@@ -447,6 +447,7 @@ internal class HazeEffectNode(
         if (!needsPreDrawInvalidation) {
           needsPreDrawInvalidation = true
           invalidateHazeDraw(HazeInvalidationReason.PreDraw)
+          invalidateSurfaceOwnerDraw()
         }
       },
     )
@@ -1366,8 +1367,8 @@ internal class HazeEffectNode(
 
   /**
    * A relocated member's output is drawn by its owner, whose recorded draw this node's own
-   * invalidation does not reach when a layer separates them. Moving sources need a redraw only, so
-   * this does not notify the owner, which would recluster its members.
+   * invalidation does not reach when a layer separates them. Moving sources and pre-draw refreshes
+   * need a redraw only, so this does not notify the owner, which would recluster its members.
    */
   private fun invalidateSurfaceOwnerDraw() {
     val owner = surface.owner as? DrawModifierNode ?: return
