@@ -50,12 +50,15 @@ def archive_result(
         if len(metric["runs"]) != iterations:
             raise ValueError(f"Metric {name} has {len(metric['runs'])} runs, expected {iterations}")
     # An iteration that drew nothing still counts as a run, so the run-count check cannot see it.
-    for i, frames in enumerate(metrics.get("frameCount", {}).get("runs", [])):
-        if frames < min_frames:
-            raise ValueError(
-                f"frameCount iteration {i}: {frames} frames is below the minimum of {min_frames}"
-                " (pass --min-frames 0 to allow)"
-            )
+    if min_frames > 0:
+        if "frameCount" not in metrics:
+            raise ValueError("Metric frameCount is missing from the report (pass --min-frames 0 to allow)")
+        for i, frames in enumerate(metrics["frameCount"]["runs"]):
+            if frames < min_frames:
+                raise ValueError(
+                    f"frameCount iteration {i}: {frames} frames is below the minimum of {min_frames}"
+                    " (pass --min-frames 0 to allow)"
+                )
     check_gates(metrics, per_frame or {}, positive)
 
     cases = [
@@ -140,7 +143,7 @@ def main() -> None:
         type=int,
         default=1,
         metavar="N",
-        help="Require frameCount to be at least N in every iteration; 0 disables the check (default: 1)",
+        help="Require frameCount to be present and at least N in every iteration; 0 disables the check (default: 1)",
     )
     parser.add_argument("--outputs", type=Path, default=Path(__file__).parent / "build/outputs")
     args = parser.parse_args()

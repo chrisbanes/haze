@@ -24,6 +24,7 @@ class ArchiveResultTest(unittest.TestCase):
             "className": "Example",
             "name": "sample",
             "repeatIterations": 8,
+            "metrics": {"frameCount": {"runs": [180.0] * 8}},
             "profilerOutputs": [
                 {"type": "PerfettoTrace", "filename": f"iter{i}.perfetto-trace"}
                 for i in range(8)
@@ -117,7 +118,7 @@ class ArchiveResultTest(unittest.TestCase):
             self.archive(positive=["hazeGlassRuntimeDrawCount"])
 
     def test_rejects_non_positive_metric(self):
-        self.benchmark["metrics"] = {"hazeGlassRuntimeDrawCount": {"runs": [2.0] * 7 + [0.0]}}
+        self.benchmark["metrics"]["hazeGlassRuntimeDrawCount"] = {"runs": [2.0] * 7 + [0.0]}
         with self.assertRaisesRegex(ValueError, "not positive"):
             self.archive(positive=["hazeGlassRuntimeDrawCount"])
 
@@ -140,6 +141,15 @@ class ArchiveResultTest(unittest.TestCase):
     def test_accepts_all_valid_frame_counts(self):
         self.benchmark["metrics"] = {"frameCount": {"runs": [180.0] * 8}}
         self.archive()
+
+    def test_rejects_missing_frame_count(self):
+        del self.benchmark["metrics"]["frameCount"]
+        with self.assertRaisesRegex(ValueError, "frameCount is missing"):
+            self.archive()
+
+    def test_allows_missing_frame_count_when_floor_disabled(self):
+        del self.benchmark["metrics"]["frameCount"]
+        self.archive(min_frames=0)
 
     def test_rejects_negative_frame_floor(self):
         with self.assertRaisesRegex(ValueError, "Minimum frames"):

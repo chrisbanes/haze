@@ -173,7 +173,7 @@ row-specific. They also detect a cluster that failed to form: a container row th
 per frame does not exercise the cluster, and the comparison is invalid. `archive_result.py` enforces
 these bands with `--per-frame` and `--positive`, and fails any archive in which a single-value
 metric has fewer runs than iterations or an iteration recorded fewer than `--min-frames` frames
-(default 1; `--min-frames 0` disables the floor).
+(a missing `frameCount` also fails; default 1; `--min-frames 0` disables the floor).
 
 CPU frame time does not measure GPU shader cost. Compare the container row's layer, which covers
 both members and the bridge between them, with the two independent layers using peak GPU memory and
