@@ -35,14 +35,21 @@ performance guidance.
   ([#1491](https://github.com/chrisbanes/haze/pull/1491)).
 - Added the `Glass — Container Showcase` sample, a photo library whose Glass bar merges, splits
   and grows actions in a scripted loop ([#1552](https://github.com/chrisbanes/haze/pull/1552)).
-- Added a `hazeGlassContainer(spacing, scrollState)` overload. Members of a lazy layout appear and
+- Added an optional `scrollState` to `hazeGlassContainer`. Members of a lazy layout appear and
   disappear without a transition while it scrolls
-  ([#1544](https://github.com/chrisbanes/haze/pull/1544)).
+  ([#1544](https://github.com/chrisbanes/haze/pull/1544),
+  [#1571](https://github.com/chrisbanes/haze/pull/1571)).
 
 ### Changed
 
 - Glass APIs in `haze-glass` and `haze-glass-material3` are stable and no longer require opting in
   to `@ExperimentalHazeApi` ([#1547](https://github.com/chrisbanes/haze/pull/1547)).
+- Glass is not binary-compatible with the experimental 2.0.x API. Recompile code that uses Glass
+  against this release ([#1571](https://github.com/chrisbanes/haze/pull/1571)).
+- `GlassOptics` and `GlassAccessibilitySettings` are no longer data classes, so they no longer
+  support destructuring. Named-argument construction and `copy` are unchanged, and future
+  properties can be added without breaking binaries
+  ([#1571](https://github.com/chrisbanes/haze/pull/1571)).
 - `GlassAccessibilitySettings.reduceTransparency` now makes Glass more opaque, with a stronger,
   fully diffused blur. Previously it reduced blur, which made content behind Glass more visible
   ([#1547](https://github.com/chrisbanes/haze/pull/1547)).
@@ -79,13 +86,10 @@ performance guidance.
   [#1397](https://github.com/chrisbanes/haze/pull/1397),
   [#1532](https://github.com/chrisbanes/haze/pull/1532)).
 
-### Deprecated
-
-- Deprecated `GlassDefaults.optics` in favour of `GlassOptics.regular`. The old property forwards
-  to the same configuration; `GlassOptics()` constructor defaults are unchanged.
-
 ### Removed
 
+- Removed `GlassDefaults.optics`. Use `GlassOptics.regular`
+  ([#1571](https://github.com/chrisbanes/haze/pull/1571)).
 - Removed the `GlassStyleScope.optics(refractionStrength = ..., ...)` overload. Its defaults were
   the `GlassOptics()` constructor defaults rather than Regular's, so setting one value reset the
   others. Pass a `GlassOptics` instead; to change part of Regular, use

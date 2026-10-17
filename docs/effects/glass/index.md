@@ -270,8 +270,6 @@ val softerClearOptics = GlassOptics.clear.copy(blurRadius = OpticalSizeValue.Fix
 val softerClear = GlassStyle.clear.then { optics(softerClearOptics) }
 ```
 
-`GlassDefaults.optics` is deprecated; replace it with `GlassOptics.regular`.
-
 `optics(value)` replaces the whole optical model. The `GlassOptics` constructor defaults are not
 Regular's, so to change part of Regular, copy it:
 `optics(GlassOptics.regular.copy(refractionStrength = 0.8f))`. To vary blur or depth with size, give `GlassOptics` points keyed

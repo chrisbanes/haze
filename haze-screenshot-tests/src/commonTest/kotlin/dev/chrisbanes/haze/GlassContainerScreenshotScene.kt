@@ -211,7 +211,7 @@ private fun GlassContainerScreenshotScene(
           drawRect(colour, Offset(x.toFloat(), y.toFloat()), Size(12f, 12f))
         }
       }
-      Box(Modifier.size(360.dp, 240.dp).then(if (enabled) Modifier.hazeGlassContainer(40.dp, transitionSpec) else Modifier)) {
+      Box(Modifier.size(360.dp, 240.dp).then(if (enabled) Modifier.hazeGlassContainer(40.dp, transitionSpec = transitionSpec) else Modifier)) {
         when (scene) {
           GlassContainerScene.Overflow -> repeat(6) { index ->
             GlassContainerSceneMember(state, 20 + index * 34, 60, 30, 80, sceneStyle(if (index % 2 == 0) Color.Red else Color.Blue))

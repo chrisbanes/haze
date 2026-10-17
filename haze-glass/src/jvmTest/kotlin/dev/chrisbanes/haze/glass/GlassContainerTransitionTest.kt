@@ -315,7 +315,7 @@ class GlassContainerTransitionTest : ContextTest() {
     setContent {
       Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
         Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
-        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp, tween(300, easing = LinearEasing), GlassReducedMotionPolicy.Full)) {
+        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp, transitionSpec = tween(300, easing = LinearEasing), reducedMotionPolicy = GlassReducedMotionPolicy.Full)) {
           Box(Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { a }, input, containerTestStyle(Color.Red), HazePerformanceMode.Quality, true, null))
           Box(Modifier.offset(240.dp, 60.dp).size(100.dp, 80.dp).hazeSource(state, zIndex = 1f)) {
             if (present.value) {
@@ -358,7 +358,7 @@ class GlassContainerTransitionTest : ContextTest() {
     setContent {
       Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
         Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
-        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp, tween(300, easing = LinearEasing), GlassReducedMotionPolicy.Full)) {
+        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp, transitionSpec = tween(300, easing = LinearEasing), reducedMotionPolicy = GlassReducedMotionPolicy.Full)) {
           Box(Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { a }, input, containerTestStyle(Color.Red), HazePerformanceMode.Quality, true, null))
           Box(Modifier.offset(150.dp, 60.dp).size(100.dp, 80.dp).hazeSource(state, zIndex = 1f)) {
             if (present.value) {
@@ -695,7 +695,7 @@ class GlassContainerTransitionTest : ContextTest() {
         val b = GlassRuntimeEffect()
         val present = mutableStateOf(true)
         setContent {
-          Box(Modifier.size(360.dp, 240.dp).background(Color.White).hazeGlassContainer(40.dp, tween(300, easing = LinearEasing), GlassReducedMotionPolicy.Full)) {
+          Box(Modifier.size(360.dp, 240.dp).background(Color.White).hazeGlassContainer(40.dp, transitionSpec = tween(300, easing = LinearEasing), reducedMotionPolicy = GlassReducedMotionPolicy.Full)) {
             Box(Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { a }, HazeInput.Content, containerTestStyle(Color.Red), HazePerformanceMode.Quality, true, null).background(Color.Yellow))
             if (present.value) {
               Box(
@@ -1149,7 +1149,7 @@ class GlassContainerTransitionTest : ContextTest() {
     setContent {
       Box(Modifier.size(width.dp, 240.dp).testTag("root").background(Color.White)) {
         Box(Modifier.size(width.dp, 240.dp).hazeSource(state).background(Color.White))
-        Box(Modifier.size(width.dp, 240.dp).then(if (enabled.value) Modifier.hazeGlassContainer(fixture.spacing.value.dp, spec, policy) else Modifier)) {
+        Box(Modifier.size(width.dp, 240.dp).then(if (enabled.value) Modifier.hazeGlassContainer(fixture.spacing.value.dp, transitionSpec = spec, reducedMotionPolicy = policy) else Modifier)) {
           if (aPresent.value) {
             Box(
               Modifier.offset(40.dp, 60.dp).size(aWidth.value.dp, 80.dp).graphicsLayer {

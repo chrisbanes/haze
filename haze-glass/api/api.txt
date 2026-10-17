@@ -11,13 +11,9 @@ package dev.chrisbanes.haze.glass {
     property public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.glass.GlassAccessibilitySettings> LocalGlassAccessibilitySettings;
   }
 
-  @androidx.compose.runtime.Immutable public final class GlassAccessibilitySettings {
+  @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.Poko public final class GlassAccessibilitySettings {
     ctor public GlassAccessibilitySettings();
     ctor @KotlinOnly public GlassAccessibilitySettings(optional boolean reduceTransparency, optional boolean increaseContrast, optional boolean showBorders, optional androidx.compose.ui.graphics.Color? reducedTransparencyFallbackColor);
-    method public boolean component1();
-    method public boolean component2();
-    method public boolean component3();
-    method @KotlinOnly public operator androidx.compose.ui.graphics.Color? component4();
     method @KotlinOnly public dev.chrisbanes.haze.glass.GlassAccessibilitySettings copy(optional boolean reduceTransparency, optional boolean increaseContrast, optional boolean showBorders, optional androidx.compose.ui.graphics.Color? reducedTransparencyFallbackColor);
     method @InaccessibleFromKotlin public boolean getIncreaseContrast();
     method @InaccessibleFromKotlin public boolean getReduceTransparency();
@@ -31,7 +27,6 @@ package dev.chrisbanes.haze.glass {
   public final class GlassDefaults {
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.ChromaticAberrationMode getChromaticAberrationMode();
     method @InaccessibleFromKotlin public androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.geometry.Offset> getInteractionPositionAnimationSpec();
-    method @InaccessibleFromKotlin @Deprecated public dev.chrisbanes.haze.glass.GlassOptics getOptics();
     method @InaccessibleFromKotlin public androidx.compose.foundation.shape.RoundedCornerShape getShape();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.SurfaceProfile getSurfaceProfile();
     property public static float alpha;
@@ -47,7 +42,6 @@ package dev.chrisbanes.haze.glass {
     property public static float fresnelExponent;
     property public static float interactionLightRadiusFraction;
     property public androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.geometry.Offset> interactionPositionAnimationSpec;
-    property @Deprecated public dev.chrisbanes.haze.glass.GlassOptics optics;
     property public androidx.compose.foundation.shape.RoundedCornerShape shape;
     property public static float specularExponent;
     property public static float specularIntensity;
@@ -83,18 +77,9 @@ package dev.chrisbanes.haze.glass {
     enum_constant public static final dev.chrisbanes.haze.glass.GlassMemberTransition None;
   }
 
-  @androidx.compose.runtime.Immutable public final class GlassOptics {
+  @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.Poko public final class GlassOptics {
     ctor public GlassOptics();
     ctor @KotlinOnly public GlassOptics(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> depth, optional dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength, optional float refractionDetailIntensity, optional dev.chrisbanes.haze.glass.RefractionProfile refractionProfile);
-    method public float component1();
-    method public float component2();
-    method @KotlinOnly public operator androidx.compose.ui.unit.Dp component3();
-    method public dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> component4();
-    method public dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> component5();
-    method public dev.chrisbanes.haze.HazeProgressive? component6();
-    method public float component7();
-    method public float component8();
-    method public dev.chrisbanes.haze.glass.RefractionProfile component9();
     method @KotlinOnly public dev.chrisbanes.haze.glass.GlassOptics copy(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> depth, optional dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength, optional float refractionDetailIntensity, optional dev.chrisbanes.haze.glass.RefractionProfile refractionProfile);
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> getBlurRadius();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> getDepth();
@@ -190,8 +175,7 @@ package dev.chrisbanes.haze.glass {
   }
 
   public final class HazeGlassContainerKt {
-    method @KotlinOnly @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeGlassContainer(androidx.compose.ui.Modifier, androidx.compose.ui.unit.Dp spacing, optional androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> transitionSpec, optional dev.chrisbanes.haze.glass.GlassReducedMotionPolicy reducedMotionPolicy);
-    method @KotlinOnly @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeGlassContainer(androidx.compose.ui.Modifier, androidx.compose.ui.unit.Dp spacing, androidx.compose.foundation.gestures.ScrollableState scrollState, optional androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> transitionSpec, optional dev.chrisbanes.haze.glass.GlassReducedMotionPolicy reducedMotionPolicy);
+    method @KotlinOnly @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeGlassContainer(androidx.compose.ui.Modifier, androidx.compose.ui.unit.Dp spacing, optional androidx.compose.foundation.gestures.ScrollableState? scrollState, optional androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> transitionSpec, optional dev.chrisbanes.haze.glass.GlassReducedMotionPolicy reducedMotionPolicy);
   }
 
   public final class HazeGlassKt {

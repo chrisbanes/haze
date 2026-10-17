@@ -243,7 +243,7 @@ class GlassContainerLazyLayoutTest : ContextTest() {
           Modifier
             .offset(0.dp, 80.dp)
             .size(360.dp, 80.dp)
-            .hazeGlassContainer(16.dp, tween(TRANSITION_MILLIS, easing = LinearEasing), GlassReducedMotionPolicy.Full),
+            .hazeGlassContainer(16.dp, transitionSpec = tween(TRANSITION_MILLIS, easing = LinearEasing), reducedMotionPolicy = GlassReducedMotionPolicy.Full),
         ) { constraints ->
           val fixed = Constraints.fixed(80.dp.roundToPx(), 80.dp.roundToPx())
           val items = placed.value.map { index -> index to subcompose(index, content(index)).map { it.measure(fixed) } }
@@ -386,7 +386,7 @@ class GlassContainerLazyLayoutTest : ContextTest() {
               if (withScrollState) {
                 Modifier.hazeGlassContainer(16.dp, state, spec, GlassReducedMotionPolicy.Full)
               } else {
-                Modifier.hazeGlassContainer(16.dp, spec, GlassReducedMotionPolicy.Full)
+                Modifier.hazeGlassContainer(16.dp, transitionSpec = spec, reducedMotionPolicy = GlassReducedMotionPolicy.Full)
               },
             ),
           horizontalArrangement = Arrangement.spacedBy(8.dp),

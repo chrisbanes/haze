@@ -68,40 +68,22 @@ import kotlinx.coroutines.launch
  * [reducedMotionPolicy] changes apply from the next transition. Leaving members never count
  * towards the shared optical size. Haze animates only the glass, so callers animate member content
  * themselves, for example with `AnimatedVisibility`. Cap diagnostics follow [HazeLogger.enabled].
- * Items of a lazy layout that scroll into view animate like any member that attaches after the
- * first draw; use the overload that takes a [ScrollableState] for lazy layouts.
- */
-@Stable
-public fun Modifier.hazeGlassContainer(
-  spacing: Dp,
-  transitionSpec: FiniteAnimationSpec<Float> = spring(),
-  reducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
-): Modifier = glassContainer(spacing, null, transitionSpec, reducedMotionPolicy)
-
-/**
- * A [hazeGlassContainer] for the items of a scrollable layout, such as a `LazyRow` or `LazyColumn`
- * and its [scrollState].
  *
- * While [scrollState] [is scrolling][ScrollableState.isScrollInProgress], including the frame in
- * which it stops, members that attach appear immediately and members that detach disappear
- * immediately, whatever their [GlassMemberTransition], so items do not animate as they scroll into
- * or out of view. Members that attach or detach while the layout is idle animate as usual.
- * Position changes made outside a scroll, such as `LazyListState.requestScrollToItem`, are not
- * scrolls.
+ * For the items of a scrollable layout, such as a `LazyRow` or `LazyColumn`, pass its
+ * [scrollState]. While [scrollState] [is scrolling][ScrollableState.isScrollInProgress], including
+ * the frame in which it stops, members that attach appear immediately and members that detach
+ * disappear immediately, whatever their [GlassMemberTransition], so items do not animate as they
+ * scroll into or out of view. Members that attach or detach while the layout is idle animate as
+ * usual. Position changes made outside a scroll, such as `LazyListState.requestScrollToItem`, are
+ * not scrolls. Without a [scrollState], items of a lazy layout that scroll into view animate like
+ * any member that attaches after the first draw.
  */
 @Stable
 public fun Modifier.hazeGlassContainer(
   spacing: Dp,
-  scrollState: ScrollableState,
+  scrollState: ScrollableState? = null,
   transitionSpec: FiniteAnimationSpec<Float> = spring(),
   reducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
-): Modifier = glassContainer(spacing, scrollState, transitionSpec, reducedMotionPolicy)
-
-private fun Modifier.glassContainer(
-  spacing: Dp,
-  scrollState: ScrollableState?,
-  transitionSpec: FiniteAnimationSpec<Float>,
-  reducedMotionPolicy: GlassReducedMotionPolicy,
 ): Modifier {
   require(spacing.value.isFinite() && spacing.value >= 0f) { "spacing must be finite and non-negative" }
   return then(GlassContainerElement(spacing, scrollState, transitionSpec, reducedMotionPolicy))
