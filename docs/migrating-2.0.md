@@ -219,8 +219,10 @@ generated API reference for property-specific ranges.
 | `GlassOptics.Adaptive` supplied through `optics(...)` | `optics(GlassOptics.regular)` |
 | `lightPosition(Offset)` and `Offset.Unspecified` | `lightPosition(Alignment)`; omit the write or use `Alignment.Center` for the former automatic center |
 
-Use `optics(...)` for inline fixed values. Keep a `GlassOptics` value when the configuration needs
-to be reused or selected programmatically. Use `OpticalSizeValue.Responsive` for
+Pass a `GlassOptics` to `optics(value)`. To change part of the built-in model, use
+`optics(GlassOptics.regular.copy(...))`, or `optics { copy(...) }` to adjust the optics accumulated
+so far. The `GlassOptics` constructor defaults are not Regular's. Keep a `GlassOptics` value when
+the configuration needs to be reused or selected programmatically. Use `OpticalSizeValue.Responsive` for
 shortest-dimension-dependent blur or depth.
 
 `GlassOptics()` creates fixed optics and is not a replacement for `GlassOptics.Adaptive`. Use
@@ -239,7 +241,7 @@ Write each property through the Style scope, then pass the Style and structural 
 val glassStyle = GlassStyle {
   tint(Color.White.copy(alpha = 0.12f))
   optics(
-    GlassOptics(
+    GlassOptics.regular.copy(
       refractionStrength = 0.7f,
       depth = OpticalSizeValue.Fixed(0.4f),
     ),

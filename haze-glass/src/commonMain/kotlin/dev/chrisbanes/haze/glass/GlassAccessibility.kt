@@ -21,14 +21,18 @@ import dev.chrisbanes.haze.Poko
 public class GlassAccessibilitySettings(
   /**
    * Makes Glass materials more opaque by fully diffusing a stronger blur, so content behind them
-   * is less legible. Fallback rendering uses an opaque appearance-aware base instead.
+   * is less legible. Fallback rendering uses an opaque base that follows the platform system
+   * appearance, not the app theme. Set [reducedTransparencyFallbackColor] to match an in-app theme.
    */
   public val reduceTransparency: Boolean = false,
   /** Enforces minimum tone contrast and edge separation. */
   public val increaseContrast: Boolean = false,
   /** Enforces a visible edge without changing tone contrast. */
   public val showBorders: Boolean = false,
-  /** Opaque base for reduced-transparency fallback, or null for white/light and black/dark. */
+  /**
+   * Opaque base for reduced-transparency fallback, or null for white in light and black in dark
+   * system appearance. Set it when the app theme differs from the system appearance.
+   */
   public val reducedTransparencyFallbackColor: Color? = null,
 ) {
   init {
