@@ -121,6 +121,30 @@ class ArchiveResultTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not positive"):
             self.archive(positive=["hazeGlassRuntimeDrawCount"])
 
+    def test_rejects_zero_frame_iteration(self):
+        self.benchmark["metrics"] = {"frameCount": {"runs": [180.0, 180.0, 0.0] + [180.0] * 5}}
+        with self.assertRaisesRegex(ValueError, "frameCount iteration 2: 0.0 frames"):
+            self.archive()
+        self.assertTrue(list(self.destination.rglob("*-benchmarkData.json")))
+
+    def test_rejects_iteration_below_frame_floor(self):
+        self.benchmark["metrics"] = {"frameCount": {"runs": [5.0] + [180.0] * 7}}
+        with self.assertRaisesRegex(ValueError, "below the minimum of 10"):
+            self.archive(min_frames=10)
+
+    def test_allows_low_frame_iteration_when_floor_disabled(self):
+        self.benchmark["metrics"] = {"frameCount": {"runs": [180.0, 180.0, 0.0] + [180.0] * 5}}
+        self.archive(min_frames=0)
+        self.assertEqual(len(list(self.destination.rglob("*.perfetto-trace"))), 8)
+
+    def test_accepts_all_valid_frame_counts(self):
+        self.benchmark["metrics"] = {"frameCount": {"runs": [180.0] * 8}}
+        self.archive()
+
+    def test_rejects_negative_frame_floor(self):
+        with self.assertRaisesRegex(ValueError, "Minimum frames"):
+            self.archive(min_frames=-1)
+
     def test_rejects_missing_outputs(self):
         with self.assertRaises(FileNotFoundError):
             archive_result(self.root / "missing", self.destination, "Example#sample", 8)
