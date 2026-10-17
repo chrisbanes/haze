@@ -6,6 +6,7 @@ import dev.chrisbanes.gradle.addDefaultHazeTargets
 import java.time.Duration
 import java.util.Properties
 import java.util.zip.ZipFile
+import org.gradle.api.tasks.testing.AbstractTestTask
 plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
@@ -207,4 +208,9 @@ tasks.configureEach {
   if (name == "copyAndroidDeviceTestComposeResourcesToAndroidAssets") {
     enabled = false
   }
+}
+
+// A process deadline also stops synchronous UI idling that coroutine cancellation cannot preempt.
+tasks.withType<AbstractTestTask>().configureEach {
+  timeout.convention(Duration.ofMinutes(5))
 }

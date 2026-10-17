@@ -77,6 +77,7 @@ class FallbackGlassDelegateTest {
         specularIntensity(0f)
         ambientResponse(0f)
       }
+      appearanceReader = { GlassSystemAppearance.Light }
     }
     val fallback = FallbackGlassDelegate(effect)
     setContent {

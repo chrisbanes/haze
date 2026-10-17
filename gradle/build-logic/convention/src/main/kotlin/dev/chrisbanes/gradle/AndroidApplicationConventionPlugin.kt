@@ -15,6 +15,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
       }
 
       configureAndroidApplication()
+      configureRobolectricRuntime(testTaskNames = setOf("testDebugUnitTest"))
     }
   }
 }

@@ -3,6 +3,8 @@
 
 
 import dev.chrisbanes.gradle.addDefaultHazeTargets
+import java.time.Duration
+import org.gradle.api.tasks.testing.AbstractTestTask
 
 plugins {
   id("dev.chrisbanes.android.library")
@@ -129,4 +131,9 @@ poko {
 
 tasks.withType<Test>().matching { it.name == "testAndroidHostTest" }.configureEach {
   systemProperty("robolectric.pixelCopyRenderMode", "hardware")
+}
+
+// A process deadline also stops synchronous UI idling that coroutine cancellation cannot preempt.
+tasks.withType<AbstractTestTask>().configureEach {
+  timeout.convention(Duration.ofMinutes(5))
 }

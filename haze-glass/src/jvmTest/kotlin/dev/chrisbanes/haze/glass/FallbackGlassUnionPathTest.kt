@@ -61,9 +61,9 @@ class FallbackGlassUnionPathTest {
   }
 
   @Test
-  fun fallbackUnionPath_oneMember_matchesRoundRect() {
+  fun fallbackMergedPaths_oneMember_unionMatchesRoundRect() {
     val rect = Rect(20f, 20f, 120f, 100f)
-    val path = field(member(rect, radius = 12f)).fallbackUnionPath()
+    val path = FallbackMergedPaths(field(member(rect, radius = 12f))).union
     val pixels = rasterize(path)
     assertThat(pixels, 70, 60).isFilled()
     assertThat(pixels, 21, 21).isEmpty()
@@ -72,8 +72,10 @@ class FallbackGlassUnionPathTest {
   }
 
   @Test
-  fun fallbackUnionPath_twoOverlappingMembers_fillsUnion() {
-    val path = field(member(Rect(20f, 20f, 120f, 100f)), member(Rect(90f, 40f, 190f, 120f))).fallbackUnionPath()
+  fun fallbackMergedPaths_twoOverlappingMembers_unionFillsBoth() {
+    val path = FallbackMergedPaths(
+      field(member(Rect(20f, 20f, 120f, 100f)), member(Rect(90f, 40f, 190f, 120f))),
+    ).union
     val pixels = rasterize(path)
     assertThat(pixels, 70, 60).isFilled()
     assertThat(pixels, 140, 80).isFilled()
@@ -83,9 +85,11 @@ class FallbackGlassUnionPathTest {
   }
 
   @Test
-  fun fallbackUnionPath_twoSeparateMembers_hasNoBridge() {
+  fun fallbackMergedPaths_twoSeparateMembers_unionHasNoBridge() {
     // The gap of 10 is under half the spacing, so the shader field would bridge it.
-    val path = field(member(Rect(20f, 20f, 100f, 100f)), member(Rect(110f, 20f, 190f, 100f))).fallbackUnionPath()
+    val path = FallbackMergedPaths(
+      field(member(Rect(20f, 20f, 100f, 100f)), member(Rect(110f, 20f, 190f, 100f))),
+    ).union
     val pixels = rasterize(path)
     assertThat(pixels, 60, 60).isFilled()
     assertThat(pixels, 150, 60).isFilled()
@@ -93,9 +97,9 @@ class FallbackGlassUnionPathTest {
   }
 
   @Test
-  fun fallbackUnionPath_threeMembers_fillsEachMember() {
+  fun fallbackMergedPaths_threeMembers_unionFillsEachMember() {
     val rects = listOf(Rect(10f, 20f, 70f, 80f), Rect(80f, 20f, 140f, 80f), Rect(130f, 60f, 190f, 120f))
-    val path = field(*rects.map { member(it) }.toTypedArray()).fallbackUnionPath()
+    val path = FallbackMergedPaths(field(*rects.map { member(it) }.toTypedArray())).union
     val pixels = rasterize(path)
     rects.forEach { assertThat(pixels, it.center.x.toInt(), it.center.y.toInt()).isFilled() }
     assertThat(pixels, 40, 110).isEmpty()
@@ -103,27 +107,18 @@ class FallbackGlassUnionPathTest {
   }
 
   @Test
-  fun fallbackUnionPath_fourMembers_fillsEachMember() {
+  fun fallbackMergedPaths_fourMembers_unionFillsEachMember() {
     val rects = listOf(
       Rect(10f, 10f, 70f, 70f),
       Rect(60f, 10f, 120f, 70f),
       Rect(10f, 80f, 70f, 140f),
       Rect(170f, 90f, 230f, 150f),
     )
-    val path = field(*rects.map { member(it, radius = 8f) }.toTypedArray()).fallbackUnionPath()
+    val path = FallbackMergedPaths(field(*rects.map { member(it, radius = 8f) }.toTypedArray())).union
     val pixels = rasterize(path)
     rects.forEach { assertThat(pixels, it.center.x.toInt(), it.center.y.toInt()).isFilled() }
     assertThat(pixels, 120, 110).isEmpty()
     assertThat(path.getBounds()).isEqualTo(Rect(10f, 10f, 230f, 150f))
-  }
-
-  @Test
-  fun fallbackUnionPath_subset_excludesUnselectedMembers() {
-    val first = member(Rect(20f, 20f, 100f, 100f))
-    val second = member(Rect(110f, 20f, 190f, 100f))
-    val pixels = rasterize(field(first, second).fallbackUnionPath { it == first })
-    assertThat(pixels, 60, 60).isFilled()
-    assertThat(pixels, 150, 60).isEmpty()
   }
 
   @Test

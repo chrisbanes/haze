@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.sample.android
 
+import android.content.Intent
 import android.os.Bundle
 import android.os.Process
 import androidx.activity.ComponentActivity
@@ -35,29 +36,45 @@ class MainActivity : ComponentActivity() {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
 
-    val initialSelection = intent.getStringExtra(BENCHMARK_SAMPLE_ROUTE_EXTRA)?.let { route ->
-      val effect = requireNotNull(intent.getStringExtra(BENCHMARK_SAMPLE_EFFECT_EXTRA)) {
-        "$BENCHMARK_SAMPLE_EFFECT_EXTRA is required with $BENCHMARK_SAMPLE_ROUTE_EXTRA"
-      }
-      when (
-        val request = resolveSampleLaunch(
-          query = mapOf("sample" to route, "effect" to effect),
-          samples = dev.chrisbanes.haze.sample.Samples,
-        )
-      ) {
-        is SampleLaunchRequest.Selected -> request
-        is SampleLaunchRequest.Invalid -> error(request.message)
-        SampleLaunchRequest.Normal -> error("Benchmark sample selection was not resolved")
-      }
-    }
+    val launchRequest = intent.toBenchmarkLaunchRequest()
 
     setContent {
       Samples(
         appTitle = title.toString(),
-        forceBlur = intent.getBooleanExtra(FORCE_BLUR_EXTRA, false),
-        initialSelection = initialSelection,
-        initialProfilingScenarioId = intent.getStringExtra(BENCHMARK_SCENARIO_EXTRA),
+        forceBlur = launchRequest.forceBlur,
+        initialSelection = launchRequest.initialSelection,
+        initialProfilingScenarioId = launchRequest.initialProfilingScenarioId,
       )
     }
   }
+}
+
+internal class BenchmarkLaunchRequest(
+  val initialSelection: SampleLaunchRequest.Selected?,
+  val forceBlur: Boolean,
+  val initialProfilingScenarioId: String?,
+)
+
+internal fun Intent.toBenchmarkLaunchRequest(): BenchmarkLaunchRequest {
+  val initialSelection = getStringExtra(BENCHMARK_SAMPLE_ROUTE_EXTRA)?.let { route ->
+    val effect = requireNotNull(getStringExtra(BENCHMARK_SAMPLE_EFFECT_EXTRA)) {
+      "$BENCHMARK_SAMPLE_EFFECT_EXTRA is required with $BENCHMARK_SAMPLE_ROUTE_EXTRA"
+    }
+    when (
+      val request = resolveSampleLaunch(
+        query = mapOf("sample" to route, "effect" to effect),
+        samples = Samples,
+      )
+    ) {
+      is SampleLaunchRequest.Selected -> request
+      is SampleLaunchRequest.Invalid -> error(request.message)
+      SampleLaunchRequest.Normal -> error("Benchmark sample selection was not resolved")
+    }
+  }
+
+  return BenchmarkLaunchRequest(
+    initialSelection = initialSelection,
+    forceBlur = getBooleanExtra(FORCE_BLUR_EXTRA, false),
+    initialProfilingScenarioId = getStringExtra(BENCHMARK_SCENARIO_EXTRA),
+  )
 }

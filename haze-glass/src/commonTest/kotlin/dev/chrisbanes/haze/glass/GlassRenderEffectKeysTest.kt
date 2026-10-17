@@ -167,13 +167,39 @@ class GlassRenderEffectKeysTest {
       ),
       radiusFraction = 0.7f,
     )
+    val topology = GlassInteractionTopology(
+      hasOptics = true,
+      hasLighting = true,
+      maxRefractionMultiplier = 1.08f,
+    )
+    val first = buildGlassPreparedRender(
+      params = params,
+      interactionUniforms = idle,
+      interactionTopology = topology,
+      interactionRadiusFraction = 0.7f,
+      alpha = 1f,
+      outputSize = IntSize(640, 480),
+    )
+    val updated = buildGlassPreparedRender(
+      params = params,
+      interactionUniforms = pressed,
+      interactionTopology = topology,
+      interactionRadiusFraction = 0.7f,
+      alpha = 1f,
+      outputSize = IntSize(640, 480),
+      previous = first,
+    )
 
-    assertThat(params.blurEffectKey()).isEqualTo(params.blurEffectKey())
-    assertThat(params.opticalEffectKey()).isEqualTo(params.opticalEffectKey())
-    assertThat(params.refractionDetailEffectKey())
-      .isEqualTo(params.refractionDetailEffectKey())
-    assertThat(params.rimEffectKey()).isEqualTo(params.rimEffectKey())
     assertThat(idle).isNotEqualTo(pressed)
+    assertThat(updated.interactionUniforms).isEqualTo(pressed)
+    assertThat(first.blurKey).isNotNull()
+    assertThat(first.refractionDetailKey).isNotNull()
+    assertThat(first.rimKey).isNotNull()
+    assertThat(updated.blurKey).isSameInstanceAs(first.blurKey)
+    assertThat(updated.opticalKey).isSameInstanceAs(first.opticalKey)
+    assertThat(updated.refractionDetailKey).isSameInstanceAs(first.refractionDetailKey)
+    assertThat(updated.rimKey).isSameInstanceAs(first.rimKey)
+    assertThat(updated.plan).isSameInstanceAs(first.plan)
   }
 
   @Test
