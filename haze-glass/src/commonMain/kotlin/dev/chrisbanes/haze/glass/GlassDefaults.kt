@@ -25,13 +25,6 @@ public object GlassDefaults {
     stiffness = Spring.StiffnessMedium,
   )
 
-  /** The optics used by [GlassStyle.regular]. */
-  @Deprecated(
-    "Use GlassOptics.regular",
-    ReplaceWith("GlassOptics.regular", "dev.chrisbanes.haze.glass.GlassOptics"),
-  )
-  public val optics: GlassOptics get() = GlassOptics.regular
-
   /** Default intensity of specular highlights, in the range `0f..1f`. */
   public const val specularIntensity: Float = 0.48f
 

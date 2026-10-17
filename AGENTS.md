@@ -21,9 +21,10 @@ in `sample/`; library screenshots in `haze-screenshot-tests`, sample screenshots
   Apply Spotless to changed modules before committing.
 - Keep public packages under `dev.chrisbanes.haze.*`; use PascalCase for composables, camelCase
   for parameters, and `*Defaults` for reusable configuration containers.
-- Prefer `@Poko` for internal/private value types. Configure
-  `pokoAnnotation.set("dev/chrisbanes/haze/Poko")`; use `data class` when `copy` or destructuring
-  is intentional.
+- Prefer `@Poko` for value types. Configure `pokoAnnotation.set("dev/chrisbanes/haze/Poko")`. For
+  internal or private types, use `data class` when `copy` or destructuring is intentional. Public
+  value types use `@Poko` with an explicit `copy`, because adding a property to a public
+  `data class` breaks binary compatibility.
 - Use AssertK for value, type, collection, boolean, and exception assertions, including custom
   assertion helpers. Do not use assertions from `kotlin.test`, JUnit, or Truth. Prefer semantic
   assertions (`isNull`, `contains`, `isInstanceOf`); use `isTrue`/`isFalse` only for boolean results.

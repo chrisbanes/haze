@@ -68,15 +68,24 @@ class GlassStyleTest {
       .isInstanceOf<IllegalArgumentException>()
   }
 
-  @Suppress("DEPRECATION")
   @Test
-  fun defaultOpticsAlias_preservesRegularAndConstructorDefaults() {
-    assertThat(GlassDefaults.optics).isSameInstanceAs(GlassOptics.regular)
+  fun glassOpticsConstructor_keepsDefaults() {
     val custom = GlassOptics()
     assertThat(custom.blurRadius).isEqualTo(OpticalSizeValue.Fixed(14.dp))
     assertThat(custom.refractionProfile).isEqualTo(RefractionProfile.Surface)
     assertThat(custom.refractionDisplacement).isEqualTo(15.dp)
     assertThat(custom.refractionDetailIntensity).isEqualTo(0.76f)
+  }
+
+  @Test
+  fun copy_replacesOnlyGivenValues() {
+    val optics = GlassOptics.regular.copy(refractionStrength = 0.2f)
+    assertThat(optics.refractionStrength).isEqualTo(0.2f)
+    assertThat(optics.copy(refractionStrength = GlassOptics.regular.refractionStrength))
+      .isEqualTo(GlassOptics.regular)
+
+    val settings = GlassAccessibilitySettings(reduceTransparency = true).copy(showBorders = true)
+    assertThat(settings).isEqualTo(GlassAccessibilitySettings(reduceTransparency = true, showBorders = true))
   }
 
   @Test
