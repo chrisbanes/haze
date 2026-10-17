@@ -404,7 +404,7 @@ only XML, so it cannot check the gates below. Run a gated diagnostic for that, t
 two measured passes, the second in the opposite order, so that order and thermal drift do not
 favour one row. Each loop archives every method with `archive_result.py`, which checks the
 iteration count, a passing XML testcase, distinct traces, a full set of runs for every single-value
-metric, at least `--min-frames` frames (default 1) in every iteration, and the per-method gates
+metric, a recorded `frameCount` of at least `--min-frames` (default 1) in every iteration, and the per-method gates
 from [Glass container comparison](#glass-container-comparison).
 
 Define the per-method gates once in the shell that runs the loops:
