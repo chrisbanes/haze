@@ -12,6 +12,7 @@ import android.os.Build
 import android.renderscript.RenderScript
 import android.view.Surface
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
@@ -190,44 +191,69 @@ internal class RenderScriptBlurVisualEffectDelegate(
     }
 
     layer.record(size = size.toIntSize()) {
-      drawScaledContent(
-        offset = -offset,
-        scaledSize = size * scaleFactor,
-        clip = blurVisualEffect.shouldClipToNodeBounds(),
-      ) {
-        output?.let(::drawLayer)
-      }
-
       val expandedSize = size.expand(
         expansionWidth = max(offset.x, 0f) * 2,
         expansionHeight = max(offset.y, 0f) * 2,
       )
+      val colorEffects = blurVisualEffect.colorEffects.orEmpty()
 
-      // Draw the noise on top...
-      val noiseFactor = blurVisualEffect.noiseFactor
-      if (noiseFactor.hasVisibleNoise()) {
-        translate(offset = -offset) {
-          PaintPool.usePaint { paint ->
-            paint.isAntiAlias = true
-            paint.alpha = noiseFactor.coerceIn(0f, 1f)
-            paint.shader = noiseShaders.get(platformContext, scaleFactor)
-            paint.blendMode = BlendMode.SrcAtop
-            drawContext.canvas.drawRect(expandedSize.toRect(), paint)
+      // The blurred output, then the noise on top...
+      fun DrawScope.drawOutputAndNoise() {
+        drawScaledContent(
+          offset = -offset,
+          scaledSize = size * scaleFactor,
+          clip = blurVisualEffect.shouldClipToNodeBounds(),
+        ) {
+          output?.let(::drawLayer)
+        }
+
+        val noiseFactor = blurVisualEffect.noiseFactor
+        if (noiseFactor.hasVisibleNoise()) {
+          translate(offset = -offset) {
+            PaintPool.usePaint { paint ->
+              paint.isAntiAlias = true
+              paint.alpha = noiseFactor.coerceIn(0f, 1f)
+              paint.shader = noiseShaders.get(platformContext, scaleFactor)
+              paint.blendMode = BlendMode.SrcAtop
+              drawContext.canvas.drawRect(expandedSize.toRect(), paint)
+            }
           }
         }
       }
 
-      // Then the tints...
-      translate(offset = -offset) {
-        for (colorEffect in blurVisualEffect.colorEffects.orEmpty()) {
-          drawScrim(
-            colorEffect = colorEffect,
-            context = context,
-            offset = offset,
-            expandedSize = expandedSize,
-          )
+      // ...then the colour effects, in order. A colour filter filters everything drawn below it, as
+      // the RenderEffect path does, so the stack is drawn again inside a layer carrying the filter
+      // and blend mode.
+      // shortcut: replays the stack per colour filter (2^n draws); record into a retained layer if
+      // styles stack several filters.
+      fun DrawScope.drawStack(count: Int) {
+        if (count == 0) {
+          drawOutputAndNoise()
+          return
+        }
+        drawStack(count - 1)
+        val colorEffect = colorEffects[count - 1]
+        if (colorEffect is ColorFilterHazeColorEffect) {
+          PaintPool.usePaint { paint ->
+            paint.colorFilter = colorEffect.colorFilter
+            paint.blendMode = colorEffect.blendMode
+            val canvas = drawContext.canvas
+            canvas.saveLayer(Rect(-offset, expandedSize), paint)
+            drawStack(count - 1)
+            canvas.restore()
+          }
+        } else {
+          translate(offset = -offset) {
+            drawScrim(
+              colorEffect = colorEffect,
+              context = context,
+              offset = offset,
+              expandedSize = expandedSize,
+            )
+          }
         }
       }
+      drawStack(colorEffects.size)
 
       // Progressive intensity first, then the user's mask fades the complete output.
       if (progressiveMask != null) {
