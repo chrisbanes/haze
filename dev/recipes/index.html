@@ -980,6 +980,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#navigation3-transitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Navigation3 transitions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sticky-headers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1193,6 +1204,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#navigation3-transitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Navigation3 transitions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sticky-headers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1285,6 +1307,51 @@
 </code></pre></div>
 <p>Pass the scaffold padding to the scrolling content as <code>contentPadding</code> rather than padding the
 source. Content then scrolls behind the translucent bars while staying reachable.</p>
+<h2 id="navigation3-transitions">Navigation3 transitions<a class="headerlink" href="#navigation3-transitions" title="Permanent link">¶</a></h2>
+<p>Capture the complete <code>NavDisplay</code> and place translucent navigation in a sibling slot, such as
+<code>Scaffold.bottomBar</code>. Keep the source viewport full-size and apply the scaffold's <code>contentPadding</code>
+inside each scene's scrolling content:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">backStack</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">mutableStateListOf</span><span class="p">(</span><span class="s">"home"</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+
+<span class="n">Scaffold</span><span class="p">(</span>
+<span class="w">  </span><span class="n">bottomBar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">NavigationBar</span><span class="p">(</span>
+<span class="w">      </span><span class="n">containerColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Transparent</span><span class="p">,</span>
+<span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
+<span class="w">        </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">        </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">(),</span>
+<span class="w">      </span><span class="p">),</span>
+<span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// Navigation items update backStack.</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">contentPadding</span><span class="w"> </span><span class="o">-&gt;</span>
+<span class="w">  </span><span class="n">NavDisplay</span><span class="p">(</span>
+<span class="w">    </span><span class="n">backStack</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">backStack</span><span class="p">,</span>
+<span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">fillMaxSize</span><span class="p">().</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">    </span><span class="n">onBack</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">backStack</span><span class="p">.</span><span class="na">size</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="m">1</span><span class="p">)</span><span class="w"> </span><span class="n">backStack</span><span class="p">.</span><span class="na">removeAt</span><span class="p">(</span><span class="n">backStack</span><span class="p">.</span><span class="na">lastIndex</span><span class="p">)</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="n">entryProvider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">-&gt;</span>
+<span class="w">      </span><span class="n">NavEntry</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">LazyColumn</span><span class="p">(</span>
+<span class="w">          </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">fillMaxSize</span><span class="p">(),</span>
+<span class="w">          </span><span class="n">contentPadding</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">contentPadding</span><span class="p">,</span>
+<span class="w">        </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">items</span><span class="p">(</span><span class="m">100</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">index</span><span class="w"> </span><span class="o">-&gt;</span>
+<span class="w">            </span><span class="n">Text</span><span class="p">(</span><span class="s">"</span><span class="si">$</span><span class="n">key</span><span class="s">: </span><span class="si">$</span><span class="n">index</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">padding</span><span class="p">(</span><span class="m">16.</span><span class="n">dp</span><span class="p">))</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">  </span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Keep the effect-backed navigation outside the source subtree. Capturing the complete <code>NavDisplay</code>
+lets the effect follow its transition compositing. The same sibling arrangement applies to a
+navigation rail: keep the source viewport full-size behind the rail, rather than measuring the
+source beside it.</p>
 <h2 id="sticky-headers">Sticky headers<a class="headerlink" href="#sticky-headers" title="Permanent link">¶</a></h2>
 <p>Don't mark the whole <code>LazyColumn</code> as a source when the header inside it applies the effect. Mark
 the non-header items instead:</p>
