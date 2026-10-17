@@ -30,7 +30,11 @@ Lower-resolution modes, such as [HazePerformanceMode.Balanced](../api/haze/dev.c
 
 On Android 12 (API 31) and below, Haze redraws Blur more often than strictly necessary so that it stays in sync with the content behind it.
 
-On API 31 only, Blur that reads `HazeInput.Sources`, including a `HazeInput.Backdrop` using its source fallback, recaptures its input and rebuilds all of its effects, including every progressive band, after any snapshot state change in the app. A running animation therefore does this once per frame, even if the animation is unrelated to the content behind the Blur. Blur that uses `HazeInput.Content` is not affected. This cost has not been measured. If you target API 31, profile your screens and [disable Blur](usage.md#enabling-blur) where it is too slow.
+Blur that reads `HazeInput.Sources` from another window, such as a dialog over the window that holds the source, recaptures its input after any snapshot state change in the app. This applies on every platform. A running animation therefore causes a recapture once per frame, even if the animation is unrelated to the content behind the Blur.
+
+On API 31 only, the same recapture applies to sources in the same window, and Blur also rebuilds all of its effects, including every progressive band. This covers `HazeInput.Backdrop` using its source fallback, as well as `HazeInput.Sources`. Blur that uses `HazeInput.Content` is not affected.
+
+These costs have not been measured. If you target API 31, or blur sources from another window, profile your screens and [disable Blur](usage.md#enabling-blur) where it is too slow.
 
 ### Android 11 and below
 
