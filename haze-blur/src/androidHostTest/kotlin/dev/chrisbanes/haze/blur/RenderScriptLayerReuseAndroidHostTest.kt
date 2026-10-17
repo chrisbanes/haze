@@ -18,6 +18,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -124,6 +126,34 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
     val pixels = frame()
 
     assertThat(pixels[4, 40].green).isCloseTo(0.5f, 0.06f)
+  }
+
+  @Test
+  @Config(sdk = [30])
+  fun drawPresentation_saturationColorFilter_desaturatesTheOutput() = runScreenshotTest {
+    val h = Harness(DESATURATED)
+    setContent { h.Content() }
+
+    // The output is magenta at its left edge. Filtering it gives grey; filtering a white rectangle
+    // instead would cover the output with white.
+    val pixel = frame()[4, 40]
+
+    assertThat(pixel.red).isCloseTo(pixel.green, 0.03f)
+    assertThat(pixel.green).isCloseTo(pixel.blue, 0.03f)
+    assertThat(pixel.red).isLessThan(0.9f)
+  }
+
+  @Test
+  @Config(sdk = [30])
+  fun drawPresentation_colorFilterAfterTint_filtersTheTintedOutput() = runScreenshotTest {
+    val h = Harness(TINTED_THEN_DESATURATED)
+    setContent { h.Content() }
+
+    val pixel = frame()[4, 40]
+
+    assertThat(pixel.red).isCloseTo(pixel.green, 0.03f)
+    assertThat(pixel.green).isCloseTo(pixel.blue, 0.03f)
+    assertThat(pixel.red).isLessThan(0.9f)
   }
 
   @Test
@@ -358,4 +388,21 @@ private val NOISY = HazeBlurStyle {
   noiseFactor(0.5f)
   alpha(0.75f)
   colorEffects(listOf(HazeColorEffect.tint(Color.Blue.copy(alpha = 0.2f))))
+}
+
+private val DESATURATE = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
+
+private val DESATURATED = HazeBlurStyle {
+  noiseFactor(0f)
+  colorEffects(listOf(HazeColorEffect.colorFilter(DESATURATE)))
+}
+
+private val TINTED_THEN_DESATURATED = HazeBlurStyle {
+  noiseFactor(0f)
+  colorEffects(
+    listOf(
+      HazeColorEffect.tint(Color.Blue.copy(alpha = 0.5f)),
+      HazeColorEffect.colorFilter(DESATURATE),
+    ),
+  )
 }

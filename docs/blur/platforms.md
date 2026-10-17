@@ -38,6 +38,8 @@ Blur is disabled by default. Haze draws a translucent scrim instead:
 
 ![Scrim effect](../media/scrim.webp)
 
+The scrim has no blurred content to filter. It draws a `HazeColorEffect.colorFilter(...)` as a white scrim passed through the filter, using the effect's blend mode, so a color filter that is the first color effect or the `fallbackColorEffect` may not look as intended. Set a tint as the `fallbackColorEffect` for a predictable scrim.
+
 #### RenderScript blurring
 
 You can [enable Blur](usage.md#enabling-blur) on these versions, which uses [RenderScript](https://developer.android.com/guide/topics/renderscript/compute).
@@ -47,6 +49,8 @@ You can [enable Blur](usage.md#enabling-blur) on these versions, which uses [Ren
     Blur on Android 11 and below is experimental. It may become the default in a future release, or be removed if it proves unstable. Please raise issues if you find problems.
 
 This path is slower than on Android 12 and newer. To avoid dropping frames, Haze blurs on a background thread and skips frames while it is busy, so the Blur usually trails content changes by a frame or more. It can look laggy when the content behind it changes quickly. Progressive Blur uses a gradient mask, as described above.
+
+A `HazeColorEffect.colorFilter(...)` filters the blurred output, as it does on Android 12 and newer and on Skiko. It also filters the noise and any color effects before it in the list.
 
 ![type:video](../media/renderscript.mp4)
 

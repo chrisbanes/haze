@@ -134,6 +134,8 @@ performance guidance.
   progressive ([#1382](https://github.com/chrisbanes/haze/pull/1382)); and unbounded work from
   reverse bounds-relative progressive gradients on API 31–32
   ([#1379](https://github.com/chrisbanes/haze/pull/1379)).
+- `HazeColorEffect.colorFilter` on the RenderScript blur path (Android 11 and below) now filters the
+  blurred output instead of drawing a filtered white rectangle over it.
 - Glass fixes: stale Skiko interaction input and doubled mask
   ([#1425](https://github.com/chrisbanes/haze/pull/1425)), blank material when a pressed style
   changes during an exit animation ([#1406](https://github.com/chrisbanes/haze/pull/1406)), and a
