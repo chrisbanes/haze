@@ -16,10 +16,13 @@ def archive_result(
     iterations: int,
     per_frame: dict[str, tuple[float, float]] | None = None,
     positive: Iterable[str] = (),
+    min_frames: int = 1,
 ) -> None:
     class_name, method_name = method.split("#")
     if iterations < 1:
         raise ValueError("Expected iterations must be positive")
+    if min_frames < 0:
+        raise ValueError("Minimum frames must not be negative")
     # Never replace an earlier result, including evidence from a failed verification.
     destination.mkdir(parents=True, exist_ok=False)
     for source, target in (
@@ -46,6 +49,16 @@ def archive_result(
     for name, metric in metrics.items():
         if len(metric["runs"]) != iterations:
             raise ValueError(f"Metric {name} has {len(metric['runs'])} runs, expected {iterations}")
+    # An iteration that drew nothing still counts as a run, so the run-count check cannot see it.
+    if min_frames > 0:
+        if "frameCount" not in metrics:
+            raise ValueError("Metric frameCount is missing from the report (pass --min-frames 0 to allow)")
+        for i, frames in enumerate(metrics["frameCount"]["runs"]):
+            if frames < min_frames:
+                raise ValueError(
+                    f"frameCount iteration {i}: {frames} frames is below the minimum of {min_frames}"
+                    " (pass --min-frames 0 to allow)"
+                )
     check_gates(metrics, per_frame or {}, positive)
 
     cases = [
@@ -125,6 +138,13 @@ def main() -> None:
         metavar="NAME",
         help="Require NAME to be above zero in every iteration (repeatable)",
     )
+    parser.add_argument(
+        "--min-frames",
+        type=int,
+        default=1,
+        metavar="N",
+        help="Require frameCount to be present and at least N in every iteration; 0 disables the check (default: 1)",
+    )
     parser.add_argument("--outputs", type=Path, default=Path(__file__).parent / "build/outputs")
     args = parser.parse_args()
     try:
@@ -135,6 +155,7 @@ def main() -> None:
             args.iterations,
             per_frame=dict(args.per_frame),
             positive=args.positive,
+            min_frames=args.min_frames,
         )
     except (OSError, ValueError, KeyError, ElementTree.ParseError) as error:
         parser.exit(1, f"Archive verification failed: {error}\nEvidence retained at {args.destination}\n")

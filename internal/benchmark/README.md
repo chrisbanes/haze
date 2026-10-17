@@ -172,7 +172,8 @@ The slice is named by the platform and counts any offscreen Compose layer, so th
 row-specific. They also detect a cluster that failed to form: a container row that shows two layers
 per frame does not exercise the cluster, and the comparison is invalid. `archive_result.py` enforces
 these bands with `--per-frame` and `--positive`, and fails any archive in which a single-value
-metric has fewer runs than iterations.
+metric has fewer runs than iterations or an iteration recorded fewer than `--min-frames` frames
+(a missing `frameCount` also fails; default 1; `--min-frames 0` disables the floor).
 
 CPU frame time does not measure GPU shader cost. Compare the container row's layer, which covers
 both members and the bridge between them, with the two independent layers using peak GPU memory and
@@ -403,7 +404,8 @@ only XML, so it cannot check the gates below. Run a gated diagnostic for that, t
 two measured passes, the second in the opposite order, so that order and thermal drift do not
 favour one row. Each loop archives every method with `archive_result.py`, which checks the
 iteration count, a passing XML testcase, distinct traces, a full set of runs for every single-value
-metric, and the per-method gates from [Glass container comparison](#glass-container-comparison).
+metric, a recorded `frameCount` of at least `--min-frames` (default 1) in every iteration, and the per-method gates
+from [Glass container comparison](#glass-container-comparison).
 
 Define the per-method gates once in the shell that runs the loops:
 
