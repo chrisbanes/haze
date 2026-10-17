@@ -353,7 +353,8 @@ internal class RuntimeShaderGlassDelegate(
     if (currentPreparedRender.interactionTopology.hasLighting) {
       val patch = interactionPatch ?: return null
       recordInteractionLighting(
-        key = GlassInteractionLightingKey(
+        key = resolveGlassInteractionLightingKey(
+          previous = interactionLighting.key,
           coordinates = patch.coordinates,
           edgeSoftnessPx = params.edgeSoftnessPx,
           cornerRadii = params.cornerRadii,
@@ -411,7 +412,8 @@ internal class RuntimeShaderGlassDelegate(
     if (render.interactionTopology.hasLighting) {
       updateInteractionLightingEffect(
         layer = checkNotNull(layers.interactionLighting),
-        key = GlassInteractionLightingKey(
+        key = resolveGlassInteractionLightingKey(
+          previous = interactionLighting.key,
           coordinates = patch.coordinates,
           edgeSoftnessPx = params.edgeSoftnessPx,
           cornerRadii = params.cornerRadii,

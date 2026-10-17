@@ -33,6 +33,10 @@ internal class InteractionEffectSlot<K : Any>(
   var layer: GraphicsLayer? = null
     private set
 
+  /** How many times [bind] rebuilt the effect, so tests can count builds per frame. */
+  var buildCount: Int = 0
+    private set
+
   /**
    * Rebuilds the effect when [key] or [uniforms] changed and attaches it to [layer] when it
    * changed or [layer] is new. This is inline so a cache hit allocates no uniform lambda.
@@ -54,6 +58,7 @@ internal class InteractionEffectSlot<K : Any>(
       composeEffect = effect.asComposeRenderEffect()
       this.key = key
       this.uniforms = uniforms
+      buildCount++
     }
     if (!attach) {
       this.layer = null
