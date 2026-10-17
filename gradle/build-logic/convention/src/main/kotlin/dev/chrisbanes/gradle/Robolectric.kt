@@ -22,7 +22,9 @@ import org.gradle.process.CommandLineArgumentProvider
  * Resolves the Robolectric `android-all-instrumented` runtime jars as ordinary Gradle dependencies,
  * so setup-gradle can cache and retry them, and points Robolectric at them so tests never download.
  */
-internal fun Project.configureRobolectricRuntime() {
+internal fun Project.configureRobolectricRuntime(
+  testTaskNames: Set<String> = setOf("testAndroidHostTest"),
+) {
   val robolectricVersion = libs.findVersion("robolectric").get().requiredVersion
 
   val sdkProvider = configurations.create("robolectricSdkProvider") {
@@ -57,11 +59,15 @@ internal fun Project.configureRobolectricRuntime() {
     }
   }
 
-  tasks.withType<Test>().matching { it.name == "testAndroidHostTest" }.configureEach {
+  tasks.withType<Test>().matching { it.name in testTaskNames }.configureEach {
     dependsOn(writeDeps)
     // The jar contents key the build cache; their machine-specific location does not.
     inputs.files(runtimeJars).withPathSensitivity(PathSensitivity.NONE).withPropertyName("robolectricRuntimeJars")
     jvmArgumentProviders.add(RobolectricOfflineArguments(depsFile))
+    if (name.endsWith("UnitTest")) {
+      // Robolectric 4.17 accesses FileDescriptor internals through SharedSecrets on Java 17+.
+      jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED")
+    }
   }
 }
 

@@ -70,4 +70,8 @@ dependencies {
   debugImplementation(libs.leakcanary)
 
   baselineProfile(projects.internal.benchmark)
+
+  testImplementation(kotlin("test-junit"))
+  testImplementation(libs.assertk)
+  testImplementation(libs.robolectric)
 }

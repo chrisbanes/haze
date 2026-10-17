@@ -10,13 +10,27 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.CompositionLocal
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.test.core.app.ApplicationProvider
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -26,18 +40,26 @@ import assertk.assertions.isLessThan
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectRenderer
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.HazeSampling
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.asBrush
 import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import dev.chrisbanes.haze.test.runScreenshotTest
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
+import kotlinx.coroutines.CoroutineScope
 import org.robolectric.annotation.Config
 
 /**
@@ -76,6 +98,84 @@ class BlurRenderEffectReuseAndroidHostTest : ScreenshotTest() {
   @Config(sdk = [31])
   fun api31_ordinary_everyRecaptureBuildsAFreshEffect() =
     assertUnchangedDrawsReuse(ORDINARY, freshEffectPerRecapture = true)
+
+  @Test
+  @Config(sdk = [35])
+  fun api35_softwareCanvas_selectsScrimFallbackAndRecoversAfterStyleChange() {
+    val context = SoftwareDrawContext()
+    val scope = HostLifecycleScope(ApplicationProvider.getApplicationContext())
+    val effect = BlurVisualEffect()
+    val tinted = BlurConfiguration(
+      HazeBlurStyle { fallbackColorEffect(HazeColorEffect.tint(Color.Red)) },
+      HazePerformanceMode.Quality,
+    )
+    val untinted = BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Quality)
+
+    effect.update(scope, tinted, HazeSampling.FullResolution)
+    val fallbackOutput = context.draw(effect, tinted).toPixelMap()
+    assertThat(context.wasHardwareAccelerated).isFalse()
+    assertThat(effect.delegate).isInstanceOf<ScrimBlurVisualEffectDelegate>()
+    assertThat(effect.shouldDrawContentBehind()).isTrue()
+    assertThat(fallbackOutput[32, 32]).isEqualTo(Color.Red)
+
+    effect.update(scope, untinted, HazeSampling.FullResolution)
+    val untintedOutput = context.draw(effect, untinted).toPixelMap()
+    assertThat(untintedOutput[32, 32]).isEqualTo(Color.Blue)
+
+    effect.update(scope, tinted, HazeSampling.FullResolution)
+    val recoveredOutput = context.draw(effect, tinted).toPixelMap()
+    assertThat(recoveredOutput[32, 32]).isEqualTo(fallbackOutput[32, 32])
+  }
+
+  @Test
+  @Config(sdk = [35])
+  fun api35_sourceDescendantLayerChange_matchesFreshEffectAttachment() = runScreenshotTest {
+    val state = HazeState()
+    val probe = Probe()
+    var alpha by mutableStateOf(1f)
+    var effectAttachment by mutableStateOf(0)
+
+    setContent {
+      Box(Modifier.fillMaxSize().background(Color.Black)) {
+        Box(Modifier.fillMaxSize().hazeSource(state)) {
+          Box(Modifier.fillMaxSize().graphicsLayer {}) {
+            Column(Modifier.fillMaxSize().graphicsLayer { this.alpha = alpha }) {
+              Box(Modifier.weight(1f).fillMaxSize().background(Color.Red))
+              Box(Modifier.weight(1f).fillMaxSize().background(Color.Yellow))
+            }
+          }
+        }
+
+        key(effectAttachment) {
+          Box(
+            Modifier
+              .fillMaxSize()
+              .hazeEffect(
+                factory = probe,
+                input = HazeInput.Sources(state),
+                style = BlurConfiguration(blurStyle(null), HazePerformanceMode.Quality),
+              ),
+          )
+        }
+      }
+    }
+
+    frame()
+    assertThat(probe.effect.delegate).isInstanceOf(RenderEffectBlurVisualEffectDelegate::class)
+    val initial = captureRootPixels()
+
+    // This updates the descendant graphics layer without changing or explicitly invalidating the
+    // parent hazeSource node. The same attached source must nevertheless refresh its capture.
+    alpha = 0.4f
+    frame()
+    val changed = captureRootPixels()
+    assertThat(maxDifference(initial, changed)).isGreaterThan(0.01f)
+
+    // Reattaching only the effect establishes the expected output at the same source alpha.
+    effectAttachment++
+    frame()
+    assertThat(maxDifference(changed, captureRootPixels())).isLessThan(0.01f)
+  }
 
   @Test
   @Config(sdk = [31])
@@ -476,6 +576,51 @@ private fun blurStyle(progressive: HazeProgressive?) = HazeBlurStyle {
 }
 
 private fun layeredStyle(progressive: HazeProgressive.LinearGradient) = blurStyle(progressive)
+
+@OptIn(dev.chrisbanes.haze.InternalHazeApi::class)
+private class SoftwareDrawContext(
+  private val drawScope: CanvasDrawScope = CanvasDrawScope(),
+) : HazeEffectRuntimeDrawScope, DrawScope by drawScope {
+  override val modifierSize: Size = Size(64f, 64f)
+  override val modifierBounds: Rect = Rect(Offset.Zero, modifierSize)
+  override val sampling: HazeSampling = HazeSampling.FullResolution
+  override val layerSize: Size = modifierSize
+  override val layerOffset: Offset = Offset.Zero
+  override val hasDrawableInput: Boolean = false
+  override val inputSnapshot: HazeEffectInputSnapshot? = null
+  override val coroutineScope: CoroutineScope = CoroutineScope(EmptyCoroutineContext)
+
+  var wasHardwareAccelerated: Boolean = true
+    private set
+
+  fun draw(effect: BlurVisualEffect, configuration: BlurConfiguration): ImageBitmap {
+    val bitmap = ImageBitmap(64, 64)
+    drawScope.draw(
+      density = Density(1f),
+      layoutDirection = LayoutDirection.Ltr,
+      canvas = Canvas(bitmap),
+      size = modifierSize,
+    ) {
+      this@SoftwareDrawContext.wasHardwareAccelerated =
+        drawContext.canvas.nativeCanvas.isHardwareAccelerated
+      drawRect(Color.Blue)
+      with(effect) { this@SoftwareDrawContext.draw(configuration) }
+    }
+    return bitmap
+  }
+
+  override fun requirePlatformContext(): PlatformContext =
+    ApplicationProvider.getApplicationContext()
+
+  override fun requireGraphicsContext() = error("The scrim fallback does not need graphics layers")
+  override fun requireDensity(): Density = Density(1f)
+
+  @Suppress("UNCHECKED_CAST")
+  override fun <T> currentValueOf(local: CompositionLocal<T>): T = HazeBlurStyle as T
+  override fun invalidateDraw() = Unit
+  override fun drawInput() = Unit
+  override fun DrawScope.drawInput() = Unit
+}
 
 private val ORDINARY = blurStyle(null)
 private val LINEAR = blurStyle(HazeProgressive.verticalGradient(startIntensity = 0.5f, endIntensity = 0.5f))

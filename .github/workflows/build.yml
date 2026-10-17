@@ -27,8 +27,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Test push classification
-        run: python3 -m unittest discover -s scripts -p test_is_docs_only_push.py
+      - name: Test verification scripts
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
 
       - name: Detect code changes
         id: changes

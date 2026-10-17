@@ -44,6 +44,56 @@ Scaffold(
 Pass the scaffold padding to the scrolling content as `contentPadding` rather than padding the
 source. Content then scrolls behind the translucent bars while staying reachable.
 
+## Navigation3 transitions
+
+Capture the complete `NavDisplay` and place translucent navigation in a sibling slot, such as
+`Scaffold.bottomBar`. Keep the source viewport full-size and apply the scaffold's `contentPadding`
+inside each scene's scrolling content:
+
+```kotlin
+val hazeState = rememberHazeState()
+val backStack = remember { mutableStateListOf("home") }
+
+Scaffold(
+  bottomBar = {
+    NavigationBar(
+      containerColor = Color.Transparent,
+      modifier = Modifier.hazeBlur(
+        input = HazeInput.Sources(hazeState),
+        style = HazeMaterials.thin(),
+      ),
+    ) {
+      // Navigation items update backStack.
+    }
+  },
+) { contentPadding ->
+  NavDisplay(
+    backStack = backStack,
+    modifier = Modifier.fillMaxSize().hazeSource(hazeState),
+    onBack = {
+      if (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
+    },
+    entryProvider = { key ->
+      NavEntry(key) {
+        LazyColumn(
+          modifier = Modifier.fillMaxSize(),
+          contentPadding = contentPadding,
+        ) {
+          items(100) { index ->
+            Text("$key: $index", Modifier.padding(16.dp))
+          }
+        }
+      }
+    },
+  )
+}
+```
+
+Keep the effect-backed navigation outside the source subtree. Capturing the complete `NavDisplay`
+lets the effect follow its transition compositing. The same sibling arrangement applies to a
+navigation rail: keep the source viewport full-size behind the rail, rather than measuring the
+source beside it.
+
 ## Sticky headers
 
 Don't mark the whole `LazyColumn` as a source when the header inside it applies the effect. Mark

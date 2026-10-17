@@ -568,7 +568,7 @@ class GlassStageInvalidationTest {
     val input = TestInputSnapshot(1)
     val base = snapshot(inputSnapshot = input)
 
-    assertThat(base).isEqualTo(base)
+    assertThat(snapshot(inputSnapshot = input)).isEqualTo(base)
     assertThat(snapshot(captureScale = .5f)).isNotEqualTo(base)
     assertThat(snapshot(layerSize = Size(120f, 80f))).isNotEqualTo(base)
     assertThat(snapshot(layerOffset = Offset(8f, 2f))).isNotEqualTo(base)

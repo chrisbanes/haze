@@ -36,7 +36,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
 
     blurRadius.value = 20.dp
 
-    awaitIdleWithTimeout("after blurRadius mutation")
+    awaitIdle()
   }
 
   @Test
@@ -53,7 +53,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
 
     colorEffects.value = listOf(HazeColorEffect.tint(Color.Blue.copy(alpha = 0.5f)))
 
-    awaitIdleWithTimeout("after colorEffects mutation")
+    awaitIdle()
   }
 
   @Test
@@ -76,7 +76,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
       blurRadius(20.dp)
     }
 
-    awaitIdleWithTimeout("after style mutation")
+    awaitIdle()
   }
 
   @Test
@@ -91,7 +91,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
 
     blurEnabled.value = false
 
-    awaitIdleWithTimeout("after blurEnabled toggle")
+    awaitIdle()
   }
 
   @Test
@@ -109,7 +109,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
       endIntensity = 0f,
     )
 
-    awaitIdleWithTimeout("after progressive mutation")
+    awaitIdle()
   }
 
   @Test
@@ -124,7 +124,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
 
     noiseFactor.value = 0.5f
 
-    awaitIdleWithTimeout("after noiseFactor mutation")
+    awaitIdle()
   }
 
   @Test
@@ -139,7 +139,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
 
     backgroundColor.value = Color.Black
 
-    awaitIdleWithTimeout("after backgroundColor mutation")
+    awaitIdle()
   }
 
   @Test
@@ -154,7 +154,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
 
     alpha.value = 0.5f
 
-    awaitIdleWithTimeout("after alpha mutation")
+    awaitIdle()
   }
 
   @Test
@@ -171,7 +171,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
       colors = listOf(Color.Transparent, Color.Black),
     )
 
-    awaitIdleWithTimeout("after mask mutation")
+    awaitIdle()
   }
 
   @Test
@@ -186,7 +186,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
 
     fallbackTint.value = HazeColorEffect.tint(Color.Gray)
 
-    awaitIdleWithTimeout("after fallbackTint mutation")
+    awaitIdle()
   }
 
   @Test
@@ -201,7 +201,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
 
     blurredEdgeTreatment.value = androidx.compose.ui.draw.BlurredEdgeTreatment.Unbounded
 
-    awaitIdleWithTimeout("after blurredEdgeTreatment mutation")
+    awaitIdle()
   }
 
   @Test
@@ -226,7 +226,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
         blurRadius.value = 10.dp
         colorEffects.value = listOf(HazeColorEffect.tint(Color.Red.copy(alpha = 0.3f)))
       }
-      awaitIdleWithTimeout("on alternating mutation #$index")
+      awaitIdle()
     }
   }
 
@@ -259,11 +259,11 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
     // Attach and remove different sources while mutating effect to stress source bookkeeping.
     showSecondarySource.value = true
     blurRadius.value = 18.dp
-    awaitIdleWithTimeout("after attaching secondary source and mutating blur")
+    awaitIdle()
 
     showPrimarySource.value = false
     blurRadius.value = 12.dp
-    awaitIdleWithTimeout("after removing primary source and mutating blur")
+    awaitIdle()
   }
 
   @Test
@@ -300,7 +300,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
         colorEffects(listOf(HazeColorEffect.tint(Color.Cyan.copy(alpha = 0.3f))))
       }
     }
-    awaitIdleWithTimeout("after combined source and style mutation")
+    awaitIdle()
   }
 
   @Test
@@ -324,7 +324,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
         alpha.value = if (toggled) 0.55f else 1f
         noiseFactor.value = if (toggled) 0.4f else 0f
       }
-      awaitIdleWithTimeout("after rapid combined mutation #$index")
+      awaitIdle()
     }
   }
 

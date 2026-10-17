@@ -506,11 +506,6 @@ private fun GlassMergedMember.fallbackPath(): Path = Path().apply {
   addRoundRect(cornerRadii.toRoundRect(rect.size).translate(rect.topLeft))
 }
 
-/** The hard union of the [include]d members' rounded rects, with no bridge between them. */
-internal fun GlassMergedField.fallbackUnionPath(
-  include: (GlassMergedMember) -> Boolean = { true },
-): Path = unionOf(members.filter(include).map { it.fallbackPath() })
-
 private fun unionOf(paths: List<Path>): Path = paths.reduceOrNull { union, path ->
   Path().apply { op(union, path, PathOperation.Union) }
 } ?: Path()
