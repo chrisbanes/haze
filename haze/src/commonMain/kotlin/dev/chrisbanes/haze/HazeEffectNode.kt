@@ -93,6 +93,10 @@ internal class HazeEffectNode(
         if (previousInput is HazeInput.Backdrop && value !is HazeInput.Backdrop) {
           releaseBackdropRenderer()
         }
+        // The content layer is only drawn for Content; free it now rather than at detach.
+        if (isAttached && previousInput === HazeInput.Content) {
+          contentDrawArea.releaseContentLayer(requireGraphicsContext())
+        }
         refreshResolvedSourcesInput(previousSources)
       }
     }

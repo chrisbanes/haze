@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
@@ -125,6 +126,42 @@ class HazeEffectInputTest {
 
     assertThat(area.captureConsumerCount).isEqualTo(0)
     assertThat(area.contentLayer).isNull()
+  }
+
+  @Test
+  fun contentInputSwitchedToSources_releasesAndRecreatesContentLayer() = runComposeUiTest {
+    val state = HazeState()
+    val input = mutableStateOf<HazeInput>(HazeInput.Content)
+    var node: HazeEffectNode? = null
+
+    setContent {
+      Box(
+        Modifier
+          .size(100.dp)
+          .testTag("effect")
+          .hazeEffect(TestEffectFactory, input.value, Unit)
+          .captureEffectNode { node = it }
+          .background(Color.Red),
+      )
+    }
+    waitForIdle()
+
+    val area = checkNotNull(node).areas.single()
+    val layer = checkNotNull(area.contentLayer)
+    assertThat(layer.isReleased).isFalse()
+
+    input.value = HazeInput.Sources(state)
+    waitForIdle()
+
+    assertThat(area.contentLayer).isNull()
+    assertThat(layer.isReleased).isTrue()
+
+    input.value = HazeInput.Content
+    waitForIdle()
+
+    assertThat(area.contentLayer).isNotNull()
+    val pixels = onNodeWithTag("effect").captureToImage().toPixelMap()
+    assertThat(pixels[50, 50]).isEqualTo(Color.Red)
   }
 
   @Test
