@@ -29,6 +29,7 @@ import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
+import dev.chrisbanes.haze.HazeProgressive
 import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class)
@@ -79,13 +80,53 @@ class GlassStyleTest {
 
   @Test
   fun copy_replacesOnlyGivenValues() {
-    val optics = GlassOptics.regular.copy(refractionStrength = 0.2f)
-    assertThat(optics.refractionStrength).isEqualTo(0.2f)
-    assertThat(optics.copy(refractionStrength = GlassOptics.regular.refractionStrength))
-      .isEqualTo(GlassOptics.regular)
+    // Distinct values in every field, so a swapped copy parameter changes the result.
+    val optics = GlassOptics(
+      refractionStrength = 0.11f,
+      refractionHeightFraction = 0.22f,
+      refractionDisplacement = 33.dp,
+      depth = OpticalSizeValue.Fixed(0.44f),
+      blurRadius = OpticalSizeValue.Fixed(5.dp),
+      progressive = HazeProgressive.verticalGradient(),
+      refractionFoldStrength = 0.66f,
+      refractionDetailIntensity = 0.77f,
+      refractionProfile = RefractionProfile.Edge(8.dp),
+    )
+    assertThat(optics.copy()).isEqualTo(optics)
+    assertThat(optics.copy(refractionStrength = 0.2f)).isEqualTo(
+      GlassOptics(
+        refractionStrength = 0.2f,
+        refractionHeightFraction = 0.22f,
+        refractionDisplacement = 33.dp,
+        depth = OpticalSizeValue.Fixed(0.44f),
+        blurRadius = OpticalSizeValue.Fixed(5.dp),
+        progressive = HazeProgressive.verticalGradient(),
+        refractionFoldStrength = 0.66f,
+        refractionDetailIntensity = 0.77f,
+        refractionProfile = RefractionProfile.Edge(8.dp),
+      ),
+    )
 
-    val settings = GlassAccessibilitySettings(reduceTransparency = true).copy(showBorders = true)
-    assertThat(settings).isEqualTo(GlassAccessibilitySettings(reduceTransparency = true, showBorders = true))
+    val settings = GlassAccessibilitySettings(reduceTransparency = true, reducedTransparencyFallbackColor = Color.Blue)
+    assertThat(settings.copy()).isEqualTo(settings)
+    assertThat(settings.copy(increaseContrast = true)).isEqualTo(
+      GlassAccessibilitySettings(reduceTransparency = true, increaseContrast = true, reducedTransparencyFallbackColor = Color.Blue),
+    )
+    assertThat(settings.copy(showBorders = true)).isEqualTo(
+      GlassAccessibilitySettings(reduceTransparency = true, showBorders = true, reducedTransparencyFallbackColor = Color.Blue),
+    )
+  }
+
+  @Test
+  fun copy_preservesAndClearsNullableValues() {
+    val progressive = HazeProgressive.verticalGradient()
+    val optics = GlassOptics(progressive = progressive)
+    assertThat(optics.copy(refractionStrength = 0.2f).progressive).isEqualTo(progressive)
+    assertThat(optics.copy(progressive = null).progressive).isNull()
+
+    val settings = GlassAccessibilitySettings(reducedTransparencyFallbackColor = Color.Blue)
+    assertThat(settings.copy(showBorders = true).reducedTransparencyFallbackColor).isEqualTo(Color.Blue)
+    assertThat(settings.copy(reducedTransparencyFallbackColor = null).reducedTransparencyFallbackColor).isNull()
   }
 
   @Test
