@@ -560,6 +560,48 @@ class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
     assertThat(captureRootPixels().diff(idle, 40f, 140f)).isLessThan(0.01f)
   }
 
+  @Test
+  @Config(sdk = [35])
+  fun mergedPressedMember_buildsLightingEffectOncePerFrame() = runScreenshotTest(size = Size(360f, 240f)) {
+    val state = HazeState()
+    val source = MutableInteractionSource()
+    val effect = GlassRuntimeEffect()
+    val secondEffect = GlassRuntimeEffect()
+    setContent {
+      val pressed = opticalStyle().then(
+        GlassStyle {
+          pressed {
+            refractionMultiplier(1.8f)
+            whitePointDelta(0.1f)
+            lightingIntensity(1f)
+          }
+        },
+      )
+      Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp)) {
+          Box(
+            Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp)
+              .hazeGlass(HazeEffectFactory { effect }, HazeInput.Sources(state), pressed, HazePerformanceMode.Quality, true, source),
+          )
+          Box(
+            Modifier.offset(150.dp, 60.dp).size(100.dp, 80.dp)
+              .hazeGlass(HazeEffectFactory { secondEffect }, HazeInput.Sources(state), opticalStyle(), HazePerformanceMode.Quality, true, null),
+          )
+        }
+      }
+    }
+    captureRootPixels()
+    val owner = checkNotNull(effect.memberBindingForTest?.node?.container)
+    runBlocking { source.emit(PressInteraction.Press(Offset(50f, 40f))) }
+    waitForIdle()
+    captureRootPixels()
+
+    val delegate = owner.renderer.runtimeSurfaces.single().delegate as RuntimeShaderGlassDelegate
+    assertThat(checkNotNull(delegate.interactionLighting.key).mergedField).isNotNull()
+    assertThat(delegate.interactionLighting.buildCount).isEqualTo(1)
+  }
+
   private fun opticalStyle(lightRadiusFraction: Float = 2f, detailIntensity: Float = 0.76f) = GlassStyle {
     optics(GlassOptics(refractionStrength = 0.4f, refractionDisplacement = 40.dp, refractionHeightFraction = 0.5f, refractionDetailIntensity = detailIntensity))
     interactionLightRadiusFraction(lightRadiusFraction)

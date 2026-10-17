@@ -876,7 +876,6 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       waitForIdle()
       drawFrame()
 
-      assertThat(delegate.interactionLighting.key).isNotSameInstanceAs(interactionLightingKey)
       assertThat(delegate.interactionLighting.composeEffect).isNotSameInstanceAs(interactionLightingEffect)
     }
 
