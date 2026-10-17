@@ -181,11 +181,12 @@ CompositionLocalProvider(
 The defaults leave the Style unchanged, and the settings never modify your Style values.
 `reduceTransparency` uses a stronger, fully diffused blur during full rendering. In fallback rendering,
 it hides source detail with an opaque base: white in light appearance (also the default when appearance
-is unknown), or black in dark appearance. Light or dark comes from the platform system appearance:
+is unknown), or black in dark appearance. Light or dark comes from the system appearance that the Compose host supplies:
 `LocalConfiguration.uiMode` on Android, where anything other than night mode is light, and
-`LocalSystemTheme` on other platforms. It does not follow `MaterialTheme` or another in-app theme.
-Set `reducedTransparencyFallbackColor` to an opaque `Color` to override this base, for example when
-your app has its own light and dark setting; null selects the automatic colour. Translucent and
+`LocalSystemTheme` on other platforms. An app or window override of those values is followed.
+`MaterialTheme` and other in-app theme state are not read. Set `reducedTransparencyFallbackColor`
+to an opaque `Color` to override this base, for example when your app has its own light and dark
+setting; null selects the automatic colour. Translucent and
 unspecified overrides are rejected.
 
 Fallback draws this base, then your background colour, then tint. Overall `alpha` still fades the
