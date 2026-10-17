@@ -329,16 +329,16 @@ class GlassContainerMembershipTest : ContextTest() {
     }
     waitForIdle()
     val node = container(first)
-    fun members() = node.model.surfaces.sumOf { it.members.size }
-    assertThat(members()).isEqualTo(2)
+    fun clusterSizes() = node.model.surfaces.map { it.members.size }
+    assertThat(clusterSizes()).isEqualTo(listOf(2))
     runOnIdle { active.value = false }
     waitForIdle()
-    assertThat(members()).isEqualTo(0)
+    assertThat(clusterSizes()).isEqualTo(emptyList())
     runOnIdle { active.value = true }
     waitForIdle()
     assertThat(container(first)).isSameInstanceAs(node)
     assertThat(node.surfaceCoordinates).isNotNull()
-    assertThat(members()).isEqualTo(2)
+    assertThat(clusterSizes()).isEqualTo(listOf(2))
   }
 
   @Test
