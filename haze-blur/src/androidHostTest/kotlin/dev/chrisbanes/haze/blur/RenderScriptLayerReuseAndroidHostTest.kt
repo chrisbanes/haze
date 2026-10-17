@@ -149,11 +149,13 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
     val h = Harness(TINTED_THEN_DESATURATED)
     setContent { h.Content() }
 
+    // The half-alpha blue tint turns the magenta edge into about (0.5, 0, 1), which desaturates to
+    // a luminance of about 0.18. Without the tint the filtered output would be about 0.29.
     val pixel = frame()[4, 40]
 
     assertThat(pixel.red).isCloseTo(pixel.green, 0.03f)
     assertThat(pixel.green).isCloseTo(pixel.blue, 0.03f)
-    assertThat(pixel.red).isLessThan(0.9f)
+    assertThat(pixel.red).isCloseTo(0.18f, 0.04f)
   }
 
   @Test
