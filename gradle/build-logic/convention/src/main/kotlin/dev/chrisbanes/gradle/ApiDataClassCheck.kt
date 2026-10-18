@@ -72,6 +72,12 @@ internal fun findClasses(signature: String): Map<String, Boolean> {
   return result
 }
 
+/**
+ * Returns the [allowlist] entries that [classes] declares without `componentN()`. Each module sees
+ * only its own classes, so an entry for a class in another module isn't stale.
+ */
+internal fun staleAllowlistEntries(classes: Map<String, Boolean>, allowlist: Set<String>): List<String> = allowlist.filter { classes[it] == false }
+
 abstract class CheckApiDataClassesTask : DefaultTask() {
   @get:InputFile
   @get:PathSensitive(PathSensitivity.RELATIVE)
@@ -92,8 +98,7 @@ abstract class CheckApiDataClassesTask : DefaultTask() {
           "API_DATA_CLASS_ALLOWLIST in $ALLOWLIST_PATH.",
       )
     }
-    // Each module sees only its own classes, so an entry for a class in another module isn't stale here.
-    val stale = allowlist.get().filter { classes[it] == false }
+    val stale = staleAllowlistEntries(classes, allowlist.get())
     if (stale.isNotEmpty()) {
       throw GradleException(
         "$path: these API_DATA_CLASS_ALLOWLIST entries no longer declare componentN(): " +

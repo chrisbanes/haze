@@ -4,6 +4,7 @@
 package dev.chrisbanes.gradle
 
 import assertk.assertThat
+import assertk.assertions.containsExactly
 import assertk.assertions.containsOnly
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
@@ -103,5 +104,19 @@ class ApiDataClassCheckTest {
     assertThat(findClasses(signature)).isEqualTo(
       mapOf("dev.chrisbanes.haze.HazeInput.Sources" to false, "dev.chrisbanes.haze.Point" to true),
     )
+  }
+
+  @Test
+  fun staleAllowlistEntries_reportsDeclaredEntryWithoutComponents() {
+    val classes = mapOf("a.Converted" to false, "a.Kept" to true)
+
+    assertThat(staleAllowlistEntries(classes, setOf("a.Converted", "a.Kept"))).containsExactly("a.Converted")
+  }
+
+  @Test
+  fun staleAllowlistEntries_ignoresEntryFromAnotherModule() {
+    val classes = mapOf("a.Kept" to true)
+
+    assertThat(staleAllowlistEntries(classes, setOf("a.Kept", "b.Elsewhere"))).isEmpty()
   }
 }
