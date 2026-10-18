@@ -7623,8 +7623,11 @@ performance guidance.</p>
   (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
 <li>Renamed <code>GlassDefaults.positionAnimationSpec</code> to <code>GlassDefaults.interactionPositionAnimationSpec</code>,
   matching <code>GlassStyleScope.interactionPositionAnimationSpec</code> (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
-<li>Documented that <code>GlassReducedMotionPolicy</code> also controls Glass container member transitions
-  (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
+<li><code>GlassReducedMotionPolicy</code> also controls Glass container member transitions. Under <code>System</code>, with
+  animations off (a zero motion scale), members now snap with no transition, as with
+  <code>GlassMemberTransition.None</code>. <code>Reduced</code> keeps a critically damped morph at full duration
+  (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>,
+  <a href="https://github.com/chrisbanes/haze/pull/1591">#1591</a>).</li>
 <li>Documented that <code>HazeSourceRetention.KeepLastFrame</code> does not guarantee frozen pixels: on Android,
   retained Glass output can redraw from live or changed source content after its source is lost
   (<a href="https://github.com/chrisbanes/haze/pull/1432">#1432</a>).</li>

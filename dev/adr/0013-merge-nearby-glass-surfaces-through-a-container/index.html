@@ -1215,7 +1215,9 @@ its glass samples leaves with it
 <p>Haze doesn't animate member content, so callers fade content themselves.</p>
 <p>Under reduced motion, the transition keeps its morph but uses a critically damped animation
 instead of the spring, so it doesn't overshoot. <code>reducedMotionPolicy</code> uses the existing
-<code>GlassReducedMotionPolicy</code> values.</p>
+<code>GlassReducedMotionPolicy</code> values. When <code>GlassReducedMotionPolicy.System</code> sees a zero platform
+motion scale (animations off), member transitions snap instead
+(<a href="https://github.com/chrisbanes/haze/issues/1560">#1560</a>).</p>
 <h2 id="considered-options">Considered options<a class="headerlink" href="#considered-options" title="Permanent link">¶</a></h2>
 <ul>
 <li><strong>Members registering through an explicit state object.</strong> Rejected. It matches the <code>HazeState</code>
