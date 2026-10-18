@@ -1451,14 +1451,18 @@ merging and loses its matched-geometry transition.</p>
 <li>the member is rotated or scaled;</li>
 <li>no remaining member uses the same input and sources, including when the last member leaves.</li>
 </ul>
-<p>A member that moves to another container appears there immediately. A running transition ends
+<p>A member whose nearest container changes while it stays in the layout, for example when a nested
+container is added or removed around it, appears in the new container immediately. Moving
+a member with <code>movableContentOf</code> detaches and reattaches it, so it detaches from the old container
+and attaches to the new one, each with the transition described above. A running transition ends
 without animating when the member it grows from or retracts into leaves, or moves beyond the
 spacing.</p>
 <h2 id="lazy-layouts">Lazy layouts<a class="headerlink" href="#lazy-layouts" title="Permanent link">¶</a></h2>
 <p>Pass the lazy layout's state to <code>hazeGlassContainer</code> as <code>scrollState</code>. While that state is
 scrolling, including the frame in which it stops, members appear and disappear without a
 transition, whatever their <code>memberTransition</code>. Items inserted or removed while the layout is idle
-still animate.</p>
+still animate, but a scroll that starts while an item's glass is still animating out ends that
+animation immediately.</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// Styles compare by identity, so remember the style.</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">shape</span><span class="p">(</span><span class="n">CircleShape</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">listState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberLazyListState</span><span class="p">()</span>
