@@ -33,7 +33,17 @@ spotless {
   }
 }
 
+testing {
+  suites {
+    named<JvmTestSuite>("test") {
+      useJUnitJupiter()
+    }
+  }
+}
+
 dependencies {
+  testImplementation(libs.assertk)
+
   compileOnly(libs.android.gradlePlugin)
   compileOnly(libs.kotlin.gradlePlugin)
   compileOnly(libs.spotless.gradlePlugin)
