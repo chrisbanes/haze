@@ -296,9 +296,9 @@ internal class GlassContainerNode(
         }
         var live = liveSnapshots()
         // A collapsed member keeps its last full-size snapshot, which would become its ghost when it
-        // leaves. A released surface (a member leaving) is not collapsed and keeps its departure snapshot.
+        // leaves. A leaving member's release pass still has valid bounds, so it keeps its departure snapshot.
         registered.forEach { member ->
-          if (member.binding.surface?.let { it.boundsInOwner() == null } == true) latest.remove(member)
+          if (member !in live && member.binding.surface?.let { it.boundsInOwner() == null } == true) latest.remove(member)
         }
         // Liveness and compatibility hold on every pass; spacing is checked once layout is complete.
         val broken = attaching.filter { (member, attach) ->
