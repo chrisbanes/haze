@@ -95,13 +95,18 @@ the transition with `hazeGlass(memberTransition = ...)`:
 - `GlassMemberTransition.None` applies no transition.
 
 `transitionSpec` times the animation and defaults to `spring()`. Members with
-`GlassMemberTransition.None` do not animate. Under reduced motion, as `reducedMotionPolicy`
-resolves it, the morph is kept but uses a critically damped spring, so it does not overshoot. The
-spring keeps `transitionSpec`'s stiffness when it is a spring and otherwise uses medium stiffness, and the morph runs at full duration
-even when the system turns animations off. `GlassReducedMotionPolicy.System` resolves to reduced
-motion only when the system motion-duration scale is zero, and otherwise follows that scale.
-`Full` never reduces. Changes to `transitionSpec` and `reducedMotionPolicy` apply from the next
-transition.
+`GlassMemberTransition.None` do not animate. `reducedMotionPolicy` decides how the transition
+responds to the platform motion-duration scale:
+
+- `GlassReducedMotionPolicy.System`, the default, follows the scale. Above zero, transitions run
+  under that scale. At zero, because animations are off, members snap: they appear and disappear
+  with no transition, as with `GlassMemberTransition.None`.
+- `GlassReducedMotionPolicy.Reduced` keeps the morph but uses a critically damped spring, so it
+  does not overshoot, at full duration whatever the scale is. The spring keeps `transitionSpec`'s
+  stiffness when it is a spring and otherwise uses medium stiffness.
+- `GlassReducedMotionPolicy.Full` uses `transitionSpec` as written, whatever the scale is.
+
+Changes to `transitionSpec` and `reducedMotionPolicy` apply from the next transition.
 
 Haze animates only the glass. Animate member content yourself, for example with
 `AnimatedVisibility` and fades. Don't animate a member's layout scale: a scaled member stops

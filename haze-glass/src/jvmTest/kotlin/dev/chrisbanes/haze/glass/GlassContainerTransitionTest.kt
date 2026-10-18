@@ -251,14 +251,37 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
-  fun reducedMotion_keepsMorphWhenSystemRemovesAnimations() = runComposeUiTest(effectContext = NoMotion) {
+  fun systemPolicyAtZeroScale_snapsMemberTransitions() = runComposeUiTest(effectContext = NoMotion) {
     val fixture = fixture(present = false, policy = GlassReducedMotionPolicy.System)
     fixture.toggle()
+    assertThat(fixture.b()).prop(GlassMemberSnapshot::rect).isCloseTo(Rect(150f, 60f, 250f, 140f))
+    assertThat(fixture.b.transitionAlpha).isEqualTo(1f)
+    fixture.toggle()
+    assertThat(fixture.owner().model.surfaces.single().members.single().identity).isEqualTo(fixture.aNode)
+    fixture.settle()
+  }
+
+  @Test
+  fun reducedPolicyAtZeroScale_morphsWithoutOvershoot() = runComposeUiTest(effectContext = NoMotion) {
+    val fixture = fixture(
+      present = false,
+      policy = GlassReducedMotionPolicy.Reduced,
+      spec = spring(dampingRatio = 0.3f, stiffness = 200f),
+    )
+    fixture.toggle()
     fixture.advance(48)
-    val right = fixture.b().rect.right
-    assertThat(right).isGreaterThan(141f)
-    assertThat(right).isLessThan(249f)
-    fixture.settle(millis = 1_000)
+    val early = fixture.b().rect.right
+    assertThat(early).isGreaterThan(141f)
+    assertThat(early).isLessThan(249f)
+    var max = early
+    repeat(30) {
+      fixture.advance(16)
+      max = maxOf(max, fixture.b().rect.right)
+    }
+    assertThat(max).isLessThanOrEqualTo(250.01f)
+    // Detaching the container cancels the remaining spring instead of running it out.
+    runOnIdle { fixture.enabled.value = false }
+    fixture.advance(16)
   }
 
   @Test
