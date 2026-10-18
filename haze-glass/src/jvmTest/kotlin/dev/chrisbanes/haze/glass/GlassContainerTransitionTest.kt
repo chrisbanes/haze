@@ -496,6 +496,25 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun collapsedMember_removal_createsNoGhost() = runComposeUiTest {
+    val fixture = fixture()
+    // A frame must draw first, or the container still suppresses transitions.
+    fixture.advance(16)
+    val bNode = fixture.b().identity
+    // B sits in a fixed-size wrapper, so collapsing it does not place the container again: the
+    // container sees only an unplaced surface, never a zero-sized rect.
+    runOnIdle { fixture.bCollapsed.value = true }
+    fixture.advance(16)
+    assertThat(checkNotNull(fixture.b.memberBindingForTest?.surface).boundsInOwner()).isNull()
+    runOnIdle { fixture.present.value = false }
+    fixture.advance(16)
+    val remaining = fixture.owner().model.surfaces.flatMap { it.members }
+      .filter { it.identity === bNode || (it.identity as? GlassMemberGhost)?.last?.identity === bNode }
+    assertThat(remaining).isEmpty()
+    fixture.settle()
+  }
+
+  @Test
   fun undrawableMember_isNotBorrowedAsAnchor() = runComposeUiTest {
     // A is nearer B than C, but cannot draw when B leaves (its material is unpublished, as during
     // a binding swap), so only its last snapshot remains; C must carry the ghost.
@@ -1038,6 +1057,7 @@ class GlassContainerTransitionTest : ContextTest() {
     val aScaleY = mutableStateOf(1f)
     val aExtra = mutableStateOf(GlassStyle { })
     val bSourced = mutableStateOf(false)
+    val bCollapsed = mutableStateOf(false)
     val spacing = mutableStateOf(40)
 
     val aSource = MutableInteractionSource()
@@ -1166,7 +1186,7 @@ class GlassContainerTransitionTest : ContextTest() {
             if (bPresent.value) {
               CompositionLocalProvider(LocalGlassAccessibilitySettings provides bAccessibility) {
                 Box(
-                  Modifier.offset((140 + gap).dp, 60.dp).size(bSize.width.dp, bSize.height.dp).graphicsLayer { rotationZ = fixture.bRotation.value }.hazeGlass(
+                  Modifier.offset((140 + gap).dp, 60.dp).size(if (fixture.bCollapsed.value) 0.dp else bSize.width.dp, bSize.height.dp).graphicsLayer { rotationZ = fixture.bRotation.value }.hazeGlass(
                     HazeEffectFactory { b },
                     HazeInput.Sources(state),
                     containerTestStyle(bTint).then(bStyle).then(fixture.bExtra.value),

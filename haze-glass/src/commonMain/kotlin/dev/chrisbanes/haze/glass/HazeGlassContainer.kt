@@ -235,8 +235,8 @@ internal class GlassContainerNode(
     ) {
       return null
     }
-    // Only members that can draw now may carry a ghost or split its neighbour's run; a collapsed
-    // member keeps a stale snapshot.
+    // Only members that can draw now may carry a ghost or split its neighbour's run; a member whose
+    // material is unpublished keeps a stale snapshot.
     val live = liveSnapshots().filterValues { it.layoutRect.isValidGlassMember() }.keys
     val ordered = registrations.mapNotNull { if (it === member) last else latest[it] }
       .filter { it.identity === member || it.identity !is GlassMemberNode || it.identity in live }
@@ -287,6 +287,11 @@ internal class GlassContainerNode(
           runtime.refreshMemberMaterial()
         }
         var live = liveSnapshots()
+        // A collapsed member keeps its last full-size snapshot, which would become its ghost when it
+        // leaves. A released surface (a member leaving) is not collapsed and keeps its departure snapshot.
+        registered.forEach { member ->
+          if (member.binding.surface?.let { it.boundsInOwner() == null } == true) latest.remove(member)
+        }
         // Liveness and compatibility hold on every pass; spacing is checked once layout is complete.
         val broken = attaching.filter { (member, attach) ->
           val neighbour = attach.neighbour ?: return@filter false
