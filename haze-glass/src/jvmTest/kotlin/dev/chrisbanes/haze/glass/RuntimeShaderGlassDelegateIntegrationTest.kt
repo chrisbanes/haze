@@ -921,13 +921,15 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     onNodeWithTag("glass").performTouchInput { down(Offset(20f, 20f)) }
     repeat(3) { mainClock.advanceTimeByFrame() }
     // updateConfiguration evaluates renderTopology inside update(); the animation must not make
-    // that read re-run update() on every frame.
-    style.value = style.value.then { interactionPositionAnimationSpec(tween(200)) }
-    mainClock.advanceTimeByFrame()
-    mainClock.advanceTimeByFrame()
-
+    // that read re-run update() after the change.
     val runtime = runtime(effect)
     val controller = checkNotNull(runtime.interactionControllerForTest)
+    style.value = style.value.then { interactionPositionAnimationSpec(tween(200)) }
+    mainClock.advanceTimeByFrame()
+
+    // The configuration-change update ran, with the animation still in flight. Count from here: a
+    // read leaked by that update re-runs update() at most once, on the next animation frame.
+    assertThat(controller.configurationForTest.positionAnimationSpec).isEqualTo(tween<Offset>(200))
     assertThat(controller.hasRunningResponseAnimations).isTrue()
     runtime.updateCallsForTest = 0
     repeat(5) { mainClock.advanceTimeByFrame() }
