@@ -138,8 +138,13 @@ internal fun ScreenshotUiTest.assertGlassContainerTransitionSequence(grow: Boole
     assertMerged(pixels)
   }
   captureRoot("frame0")
-  // Whole 16ms frames: 144ms of the 300ms transition.
-  mainClock.advanceTimeBy(150)
+  // About nine whole 16ms frames of the 300ms transition. The container reclusters in a draw, and
+  // the Android host clock draws only for a capture, so draw once after the first frame, where the
+  // new member composes and its transition starts, rather than only at the end of the jump.
+  mainClock.advanceTimeBy(16)
+  waitForIdle()
+  captureRootPixels()
+  mainClock.advanceTimeBy(134)
   waitForIdle()
   pixels = captureRootPixels()
   // B's tint is mid-interpolation from A's red, so it is mixed rather than blue-dominant.
