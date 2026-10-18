@@ -76,7 +76,8 @@ import kotlinx.coroutines.launch
  * the frame in which it stops, members that attach appear immediately and members that detach
  * disappear immediately, whatever their [GlassMemberTransition], so items do not animate as they
  * scroll into or out of view. Members that attach or detach while the layout is idle animate as
- * usual. Position changes made outside a scroll, such as `LazyListState.requestScrollToItem`, are
+ * usual. A scroll that starts while a member's glass is still animating out ends that animation
+ * immediately. Position changes made outside a scroll, such as `LazyListState.requestScrollToItem`, are
  * not scrolls. Without a [scrollState], items of a lazy layout that scroll into view animate like
  * any member that attaches after the first draw.
  */
@@ -148,7 +149,11 @@ internal class GlassContainerNode(
   private fun observeScroll() {
     if (suppressTransitions) return
     val state = scrollState ?: return
-    if (Snapshot.withoutReadObservation { state.isScrollInProgress }) suppressTransitions = true
+    if (Snapshot.withoutReadObservation { state.isScrollInProgress }) {
+      suppressTransitions = true
+      // A ghost's rect is fixed in owner space, so it would stay behind scrolled content.
+      endGhosts { true }
+    }
   }
   private var children: GraphicsLayer? = null
   private var membersClaimed = false

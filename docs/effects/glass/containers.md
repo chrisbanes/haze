@@ -122,7 +122,8 @@ spacing.
 Pass the lazy layout's state to `hazeGlassContainer` as `scrollState`. While that state is
 scrolling, including the frame in which it stops, members appear and disappear without a
 transition, whatever their `memberTransition`. Items inserted or removed while the layout is idle
-still animate.
+still animate, but a scroll that starts while an item's glass is still animating out ends that
+animation immediately.
 
 ```kotlin
 // Styles compare by identity, so remember the style.
