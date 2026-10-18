@@ -67,7 +67,7 @@ optics use that size, whether or not it is in a cluster, so a small member next 
 takes on the large member's diffusion, even when the two don't merge.
 
 The size updates immediately, without animation, when a member is added, removed or resized.
-Members that are animating out don't count.
+Members that are animating out, or whose bounds have collapsed to zero area, don't count.
 
 ## Where Glass samples from
 

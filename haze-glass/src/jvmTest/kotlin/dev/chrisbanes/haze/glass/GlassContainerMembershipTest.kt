@@ -175,6 +175,38 @@ class GlassContainerMembershipTest : ContextTest() {
     assertThat(container(pill).model.opticalSize).isEqualTo(Size(100f, 100f))
   }
 
+  @Test
+  fun membership_degenerateMemberDoesNotCountTowardOpticalSize() = runComposeUiTest {
+    val card = GlassRuntimeEffect()
+    val pill = GlassRuntimeEffect()
+    val scale = mutableStateOf(1f)
+    setContent {
+      Row(Modifier.hazeGlassContainer(40.dp)) {
+        Member(
+          card,
+          Modifier.graphicsLayer {
+            scaleX = scale.value
+            scaleY = scale.value
+          }.size(300.dp, 100.dp),
+        )
+        Member(pill, Modifier.size(140.dp, 64.dp))
+      }
+    }
+    waitForIdle()
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+    runOnIdle { scale.value = 0f }
+    waitForIdle()
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(64f, 64f))
+    assertThat(container(pill).model.opticalSize).isEqualTo(Size(64f, 64f))
+    runOnIdle { scale.value = 0.5f }
+    waitForIdle()
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+    runOnIdle { scale.value = 1f }
+    waitForIdle()
+    assertThat(card.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+  }
+
   /** Moving content with `movableContentOf` detaches and reattaches its node, so it transitions like any other member. */
   @Test
   fun movableContent_betweenContainers_detachesAndReattaches() = runComposeUiTest {
