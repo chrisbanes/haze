@@ -47,6 +47,7 @@ internal enum class GlassProfilingScenario(
   val memberGap: Dp = 0.dp,
   val containerSpacing: Dp? = null,
   val scrollsSource: Boolean = false,
+  val scrollsLazyContainer: Boolean = false,
 ) {
   EffectAttach(
     id = "effect_attach",
@@ -304,7 +305,25 @@ internal enum class GlassProfilingScenario(
     performanceMode = HazePerformanceMode.Balanced,
     scrollsSource = true,
   ),
+
+  // The 12 dp gap is at least half of the 16 dp spacing, so every member is its own cluster. That
+  // keeps the GPU work per member constant and isolates the CPU cost of reclustering while the
+  // grid scrolls.
+  LazyContainerScroll(
+    id = "lazy_container_scroll",
+    performanceMode = HazePerformanceMode.Balanced,
+    memberGap = 12.dp,
+    containerSpacing = 16.dp,
+    scrollsLazyContainer = true,
+  ),
 }
+
+// A fixed box that shows about nine rows of five members each, so 40-45 members are visible.
+internal val ProfilingLazyContainerSize = DpSize(360.dp, 560.dp)
+internal val ProfilingLazyMemberHeight = 56.dp
+internal val ProfilingLazyScrollDistance = 1_200.dp
+internal const val PROFILING_LAZY_COLUMN_COUNT: Int = 5
+internal const val PROFILING_LAZY_ITEM_COUNT: Int = 1_000
 
 internal val ProfilingSurfaceSize = DpSize(280.dp, 180.dp)
 private val ProfilingResizeStartSize = DpSize(196.dp, 126.dp)
@@ -407,6 +426,7 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.InteractionUpdate9,
     GlassProfilingScenario.SourceScrollBalanced,
     GlassProfilingScenario.SourceScrollBalanced9,
+    GlassProfilingScenario.LazyContainerScroll,
     -> base
     GlassProfilingScenario.RetainedReuse -> base.copy(
       markerOffset = lerp(-0.4f, 0.4f, progress),

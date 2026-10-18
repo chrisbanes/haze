@@ -12,6 +12,7 @@ see the [performance guide](../../docs/performance.md); published historical mea
 | Observe combined Blur noise/tint reconstruction | [Noise/tint construction](#noisetint-construction) |
 | Diagnose one controlled scenario or run Gallery journeys | [Run a profile](#run-a-profile) |
 | Compare a merged Glass cluster with independent surfaces | [Glass container comparison](#glass-container-comparison) |
+| Compare container reclustering cost while a lazy grid scrolls | [Lazy container scroll workload](#lazy-container-scroll-workload) |
 | Compare source and native backdrop paths | [Android 37.2 comparisons](#android-372-sourcebackdrop-comparisons) |
 | Find artifacts and interpret metrics or traces | [Results](#results) |
 | Generate and verify library baseline profiles | [Baseline-profile maintenance](BASELINE_PROFILES.md) |
@@ -179,6 +180,25 @@ CPU frame time does not measure GPU shader cost. Compare the container row's lay
 both members and the bridge between them, with the two independent layers using peak GPU memory and
 system GPU data alongside CPU frame duration.
 
+#### Lazy container scroll workload
+
+`lazy_container_scroll` measures the CPU cost of a Glass container whose members move every frame
+(#1567). It runs as `GlassProfilingBenchmark#lazyContainerScroll`:
+
+- a fixed 360×560 dp `LazyVerticalGrid` of five columns, with 56 dp tall members 12 dp apart, shows
+  about nine rows, so 40-45 members are visible;
+- the grid is `hazeGlassContainer(spacing = 16.dp, scrollState = gridState)`. The 12 dp gap is at
+  least half of the spacing, so every member is its own cluster. The GPU cost per member stays
+  constant, and the workload isolates the reclustering cost: every member notification reclusters
+  all members, so a frame costs on the order of the member count squared in pair checks;
+- there are 1,000 items, scrolled linearly by 1,200 dp over the three-second window inside
+  `gridState.scroll { }`, so `isScrollInProgress` is true, as it is for a real drag;
+- `HazeInput.Sources` over the scene's stationary source, the Regular style and `Balanced`.
+
+The row records frame timing, frame overrun and peak memory. It has no per-frame layer gate: every
+member is its own cluster, so the layer count follows the number of visible members. Compare it
+across builds only, with [Run the lazy container scroll comparison](#run-the-lazy-container-scroll-comparison).
+
 ## Noise/tint construction
 
 `BlurNoiseTintBenchmark` measures the Android combined noise-and-single-SrcOver-tint path.
@@ -336,6 +356,55 @@ Copy each archive out of its worktree before the next build replaces outputs. Re
 model and build, refresh rate, thermal and battery state, both builds' SHAs and APK SHA-256 hashes,
 and the run order. Before attributing an apparent guard regression to the code, report its
 per-iteration CPU placement as described in
+[Check CPU placement before attributing a regression](#check-cpu-placement-before-attributing-a-regression).
+
+## Run the lazy container scroll comparison
+
+The maintainer performs this comparison on a physical device. It compares build A, the commit that
+adds `lazy_container_scroll` without a library change, with build B, the change under test. Create a
+worktree at each, prepare the device as described above, and use eight measured iterations. Do not
+add results here; they go in the Glass containers section of
+[benchmark results](../../docs/benchmark-results.md).
+
+First dry-run `GlassProfilingBenchmark#lazyContainerScroll` once in each worktree, with
+`-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true`, and check
+that the XML result names its method. Do not archive a dry run as a measurement.
+
+Then run this loop in each worktree, in the order A, B, then B, A. `sourceUpdateIndependent2` and
+`sourceUpdateContainer2` are guards: they keep their `gates_for` gates from
+[Run the Glass container comparison](#run-the-glass-container-comparison), defined in the same shell,
+and should not regress beyond single-pass uncertainty.
+
+```bash
+(
+set -e
+trap 'adb shell cmd power set-fixed-performance-mode-enabled false' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+adb shell cmd power set-fixed-performance-mode-enabled true
+mkdir -p internal/benchmark/build/benchmark-results
+results_dir=$(mktemp -d internal/benchmark/build/benchmark-results/lazy-container.XXXXXX)
+echo "Results: $results_dir"
+for method in lazyContainerScroll sourceUpdateIndependent2 sourceUpdateContainer2; do
+  if adb shell dumpsys window | grep -q "isKeyguardShowing=true"; then
+    echo "Keyguard showing before $method; unlock the device and restart"
+    exit 3
+  fi
+  gates=()
+  if [ "$method" != lazyContainerScroll ]; then gates_for "$method"; fi
+  ./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
+    -Pandroid.testInstrumentationRunnerArguments.class="dev.chrisbanes.haze.GlassProfilingBenchmark#${method}"
+  python3 internal/benchmark/archive_result.py \
+    --method "dev.chrisbanes.haze.GlassProfilingBenchmark#${method}" \
+    "${gates[@]}" \
+    --destination "$results_dir/$method"
+done
+)
+```
+
+Copy each archive out of its worktree before the next build replaces outputs. Record the device
+model and build, refresh rate, thermal and battery state, both builds' SHAs and APK SHA-256 hashes,
+and the run order. Report per-iteration CPU placement as described in
 [Check CPU placement before attributing a regression](#check-cpu-placement-before-attributing-a-regression).
 
 ## Run the fixed-quality sweep

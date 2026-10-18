@@ -19,9 +19,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -129,6 +135,7 @@ private fun GlassProfilingScene(
   }
 
   val hazeState = rememberHazeState()
+  val gridState = rememberLazyGridState()
   val interactionSource = remember { MutableInteractionSource() }
   val density = LocalDensity.current
   val surfaceSize = glassProfilingScenarioSize(scenario) { state.progress }
@@ -198,6 +205,23 @@ private fun GlassProfilingScene(
         interactionSource.emit(PressInteraction.Release(press))
         delay(GLASS_PROFILING_DURATION_MILLIS.toLong() / 2)
       }
+      GlassProfilingScenario.LazyContainerScroll -> {
+        // Scroll inside scroll {} so isScrollInProgress is true, as it is for a real drag.
+        val distancePx = with(density) { ProfilingLazyScrollDistance.toPx() }
+        var scrolledPx = 0f
+        gridState.scroll {
+          Animatable(0f).animateTo(
+            targetValue = distancePx,
+            animationSpec = tween(
+              durationMillis = GLASS_PROFILING_DURATION_MILLIS,
+              easing = LinearEasing,
+            ),
+          ) {
+            scrollBy(value - scrolledPx)
+            scrolledPx = value
+          }
+        }
+      }
       else -> {
         Animatable(0f).animateTo(
           targetValue = 1f,
@@ -252,7 +276,21 @@ private fun GlassProfilingScene(
       }
     }
 
-    if (scenario.glassEnabled && attachGlass) {
+    if (scenario.scrollsLazyContainer) {
+      GlassProfilingLazyContainer(
+        hazeState = hazeState,
+        gridState = gridState,
+        style = styles.single(),
+        performanceMode = scenario.performanceMode,
+        interactionSource = interactionSource,
+        memberGap = scenario.memberGap,
+        containerSpacing = checkNotNull(scenario.containerSpacing),
+        modifier = Modifier
+          .align(Alignment.Center)
+          .size(ProfilingLazyContainerSize)
+          .testTag("glass_profiling_container"),
+      )
+    } else if (scenario.glassEnabled && attachGlass) {
       GlassProfilingEffectGrid(
         hazeState = hazeState,
         usesBackdrop = scenario.usesBackdrop,
@@ -320,6 +358,42 @@ private fun GlassProfilingScene(
           Text("Start")
         }
       }
+    }
+  }
+}
+
+@Composable
+private fun GlassProfilingLazyContainer(
+  hazeState: dev.chrisbanes.haze.HazeState,
+  gridState: LazyGridState,
+  style: GlassStyle,
+  performanceMode: HazePerformanceMode,
+  interactionSource: MutableInteractionSource,
+  memberGap: Dp,
+  containerSpacing: Dp,
+  modifier: Modifier = Modifier,
+) {
+  LazyVerticalGrid(
+    columns = GridCells.Fixed(PROFILING_LAZY_COLUMN_COUNT),
+    state = gridState,
+    horizontalArrangement = Arrangement.spacedBy(memberGap),
+    verticalArrangement = Arrangement.spacedBy(memberGap),
+    modifier = modifier.hazeGlassContainer(containerSpacing, scrollState = gridState),
+  ) {
+    items(PROFILING_LAZY_ITEM_COUNT) { index ->
+      Box(
+        Modifier
+          .fillMaxWidth()
+          .height(ProfilingLazyMemberHeight)
+          .hazeGlass(
+            input = HazeInput.Sources(hazeState),
+            style = style,
+            performanceMode = performanceMode,
+            interactionSource = interactionSource,
+            interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+          )
+          .testTag("glass_profiling_lazy_member_$index"),
+      )
     }
   }
 }
@@ -465,6 +539,7 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.SourceUpdateContainer2,
     GlassProfilingScenario.SourceScrollBalanced,
     GlassProfilingScenario.SourceScrollBalanced9,
+    GlassProfilingScenario.LazyContainerScroll,
     -> Unit
   }
 }.then {
