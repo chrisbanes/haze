@@ -15,6 +15,7 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -31,6 +32,7 @@ import androidx.compose.ui.node.traverseDescendants
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.HazeEffectContentTransform
 import dev.chrisbanes.haze.HazeEffectSurface
 import dev.chrisbanes.haze.HazeEffectSurfaceOwner
@@ -284,7 +286,7 @@ internal class GlassContainerNode(
       Snapshot.withoutReadObservation {
         if (pending.isNotEmpty()) startTransitions(liveSnapshots())
         val registered = members
-        val opticalSize = glassOpticalSize(registered.mapNotNull { it.binding.surface?.boundsInOwner() })
+        val opticalSize = glassOpticalSize(registered.mapNotNull { it.localSize() })
         registered.forEach { member ->
           val runtime = member.binding.runtime ?: return@forEach
           val alpha = attaching[member]?.takeIf { it.neighbour == null }?.progress?.value?.coerceIn(0f, 1f) ?: 1f
@@ -349,7 +351,7 @@ internal class GlassContainerNode(
           }
           snapshots.forEach { latest[it.identity] = it }
           // Optical size changes immediately and counts live layout rects only, never ghosts.
-          model = clusterGlassMembers(snapshots, spacingPx, glassOpticalSize(live.values.map { it.layoutRect }))
+          model = clusterGlassMembers(snapshots, spacingPx, glassOpticalSize(live.keys.mapNotNull { it.localSize() }))
           val split = model.surfaces.flatMap { cluster ->
             cluster.members.filter { member -> member.link != null && cluster.members.none { it.identity === member.link } }
           }.map { it.identity }
@@ -390,6 +392,10 @@ internal class GlassContainerNode(
     }
     return true
   }
+
+  /** The member's untransformed size, or null until it is placed; owner-space bounds would grow with rotation or scale. */
+  private fun GlassMemberNode.localSize(): Size? =
+    if (isAttached && binding.surface?.boundsInOwner() != null) this.requireLayoutCoordinates().size.toSize() else null
 
   private fun liveSnapshots(): Map<GlassMemberNode, GlassMemberSnapshot> = members.mapNotNull { member ->
     val binding = member.binding
