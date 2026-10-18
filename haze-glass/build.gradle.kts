@@ -105,3 +105,8 @@ poko {
 tasks.withType<Test>().matching { it.name == "testAndroidHostTest" }.configureEach {
   systemProperty("robolectric.pixelCopyRenderMode", "hardware")
 }
+
+// The CPU-bound Skiko Desktop suite ran as a single 17-minute fork on CI's critical path.
+tasks.withType<Test>().matching { it.name == "jvmTest" }.configureEach {
+  maxParallelForks = 4
+}

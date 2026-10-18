@@ -103,9 +103,33 @@ jobs:
             **/build/reports/**
             **/build/test-results/**
 
-  linux_build:
+  # The Skiko-rendered Desktop suites saturate a 4-core runner, so linux_build fans out across
+  # shards and keeps its required check name as the aggregate result below.
+  linux_build_shards:
+    name: ${{ matrix.name }}
     needs: changes
     if: needs.changes.outputs.run_build == 'true' && !contains(github.event.head_commit.message, 'skip ci')
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: checks
+            name: linux_build (checks)
+            tasks: >-
+              check assembleDebug
+              -x :haze-glass:jvmTest
+              -x :haze-screenshot-tests:jvmTest
+              -x :sample:screenshot-tests:jvmTest
+              -x :haze-screenshot-tests:testAndroidHostTest
+          - shard: glass-desktop-tests
+            name: linux_build (Glass desktop tests)
+            tasks: :haze-glass:jvmTest
+          - shard: desktop-screenshots
+            name: linux_build (desktop screenshots)
+            tasks: >-
+              :haze-screenshot-tests:verifyScreenshotMatrixJvm
+              :sample:screenshot-tests:jvmTest
 
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -131,13 +155,12 @@ jobs:
         uses: actions/cache@v6
         with:
           path: .gradle/configuration-cache
-          key: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-${{ github.sha }}
-          restore-keys: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-
+          key: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ matrix.shard }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-${{ github.sha }}
+          restore-keys: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ matrix.shard }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-
 
       - name: Assemble and check
         run: >
-          ./gradlew check assembleDebug :haze-screenshot-tests:verifyScreenshotMatrixJvm
-          -x :haze-screenshot-tests:testAndroidHostTest
+          ./gradlew ${{ matrix.tasks }}
           -Phaze.disableAppleTargets
           -Pandroidx.baselineprofile.skipgeneration
         env:
@@ -147,10 +170,12 @@ jobs:
           ORG_GRADLE_PROJECT_remoteBuildCachePush: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1') }}
 
       - name: Install Desktop display prerequisites
+        if: matrix.shard == 'checks'
         run: sudo apt-get update && sudo apt-get install -y xvfb xauth
 
       # See docs/agents/desktop-window-tests.md for prerequisites, commands, and coverage limits.
       - name: Verify real Desktop window rendering
+        if: matrix.shard == 'checks'
         run: >
           SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp'
           ./gradlew :haze:verifyDesktopWindowTests -Phaze.disableAppleTargets
@@ -159,12 +184,27 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: linux-reports
+          name: linux-reports-${{ matrix.shard }}
           path: |
             **/build/reports/**
             **/build/outputs/roborazzi/**
             haze/build/test-results/desktopWindowTest/**
             haze/build/outputs/desktop-window-tests/**
+
+  # Required check: keep this job name. `always()` turns a failed or cancelled shard into a
+  # failure here rather than a skipped (and therefore passing) check.
+  linux_build:
+    if: always() && needs.changes.result == 'success' && needs.changes.outputs.run_build == 'true' && !contains(github.event.head_commit.message, 'skip ci')
+    needs:
+      - changes
+      - linux_build_shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check linux_build shards
+        env:
+          SHARDS_RESULT: ${{ needs.linux_build_shards.result }}
+        run: test "$SHARDS_RESULT" = success
 
   screenshot_tests:
     name: Screenshot tests (android)
