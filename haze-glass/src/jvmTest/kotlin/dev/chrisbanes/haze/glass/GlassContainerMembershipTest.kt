@@ -148,6 +148,33 @@ class GlassContainerMembershipTest : ContextTest() {
     assertThat(pill.opticalSizeOverride).isEqualTo(Size(64f, 64f))
   }
 
+  @Test
+  fun membership_rotatedAndScaledMembersUseUntransformedOpticalSize() = runComposeUiTest {
+    val card = GlassRuntimeEffect()
+    val pill = GlassRuntimeEffect()
+    val rotation = mutableStateOf(0f)
+    setContent {
+      Row(Modifier.hazeGlassContainer(40.dp)) {
+        // Owner-space bounds would be about 600x200 for the card and 144x144 for the pill.
+        Member(
+          card,
+          Modifier.graphicsLayer {
+            scaleX = 2f
+            scaleY = 2f
+          }.size(300.dp, 100.dp),
+        )
+        Member(pill, Modifier.graphicsLayer { rotationZ = rotation.value }.size(140.dp, 64.dp))
+      }
+    }
+    waitForIdle()
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+    runOnIdle { rotation.value = 45f }
+    waitForIdle()
+    assertThat(card.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+    assertThat(container(pill).model.opticalSize).isEqualTo(Size(100f, 100f))
+  }
+
   /** Moving content with `movableContentOf` detaches and reattaches its node, so it transitions like any other member. */
   @Test
   fun movableContent_betweenContainers_detachesAndReattaches() = runComposeUiTest {

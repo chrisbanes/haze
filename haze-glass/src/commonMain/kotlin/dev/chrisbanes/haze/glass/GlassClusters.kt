@@ -94,9 +94,10 @@ internal fun Rect.isValidGlassMember(): Boolean =
   left.isFinite() && top.isFinite() && right.isFinite() && bottom.isFinite() &&
     width > 0f && height > 0f
 
-internal fun glassOpticalSize(rects: List<Rect>): Size? = rects
-  .filter { it.isValidGlassMember() }
-  .maxOfOrNull { minOf(it.width, it.height) }
+/** [sizes] are members' untransformed layout sizes, so rotation or scale never changes the optical size. */
+internal fun glassOpticalSize(sizes: List<Size>): Size? = sizes
+  .filter { it.width.isFinite() && it.height.isFinite() && it.minDimension > 0f }
+  .maxOfOrNull { it.minDimension }
   ?.let { Size(it, it) }
 
 /** Euclidean distance between closest rectangle points, including diagonal gaps. */
@@ -109,7 +110,7 @@ internal fun glassMemberGap(a: Rect, b: Rect): Float = hypot(
 internal fun clusterGlassMembers(
   members: List<GlassMemberSnapshot>,
   spacingPx: Float,
-  opticalSize: Size? = glassOpticalSize(members.filter { it.rect.isValidGlassMember() }.map { it.layoutRect }),
+  opticalSize: Size? = glassOpticalSize(members.filter { it.rect.isValidGlassMember() }.map { it.layoutRect.size }),
 ): GlassClusterModel {
   require(spacingPx.isFinite() && spacingPx >= 0f)
   val valid = members.filter { it.rect.isValidGlassMember() }
