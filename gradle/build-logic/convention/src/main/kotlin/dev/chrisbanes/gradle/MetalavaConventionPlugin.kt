@@ -47,10 +47,14 @@ class MetalavaConventionPlugin : Plugin<Project> {
       }
     }
 
+    // shortcut: reads the signature the plugin's metalavaCheckCompatibility task generates from the
+    // current sources (build/metalava/current.txt, a plugin-internal path); revisit on plugin upgrades.
+    // This catches data classes added without regenerating the checked-in api/api.txt.
     val checkApiDataClasses = tasks.register<CheckApiDataClassesTask>("checkApiDataClasses") {
       group = "verification"
-      description = "Checks that the public API signature declares no unintended data classes."
-      apiFile.set(layout.projectDirectory.file("api/api.txt"))
+      description = "Checks that the public API generated from sources declares no unintended data classes."
+      dependsOn(tasks.named { it.startsWith("metalavaCheckCompatibility") })
+      signatureFile.set(layout.buildDirectory.file("metalava/current.txt"))
       allowlist.set(API_DATA_CLASS_ALLOWLIST)
     }
     tasks.named("check") { dependsOn(checkApiDataClasses) }

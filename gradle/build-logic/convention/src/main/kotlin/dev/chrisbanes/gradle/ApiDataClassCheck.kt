@@ -15,7 +15,7 @@ import org.gradle.api.tasks.TaskAction
 
 /**
  * Fully qualified names of public classes that are allowed to declare `componentN()` functions in
- * the checked-in API signatures, which is how a Kotlin `data class` appears there.
+ * the Metalava API signature, which is how a Kotlin `data class` appears there.
  *
  * Adding a property to a public `data class` changes its constructor, `copy` and `componentN` JVM
  * signatures, so it breaks binary compatibility. These classes shipped as data classes and are
@@ -66,18 +66,18 @@ internal fun findComponentClasses(signature: String): Set<String> {
 abstract class CheckApiDataClassesTask : DefaultTask() {
   @get:InputFile
   @get:PathSensitive(PathSensitivity.RELATIVE)
-  abstract val apiFile: RegularFileProperty
+  abstract val signatureFile: RegularFileProperty
 
   @get:Input
   abstract val allowlist: SetProperty<String>
 
   @TaskAction
   fun check() {
-    val offenders = findComponentClasses(apiFile.get().asFile.readText()) - allowlist.get()
+    val offenders = findComponentClasses(signatureFile.get().asFile.readText()) - allowlist.get()
     if (offenders.isNotEmpty()) {
       throw GradleException(
-        "$path: ${apiFile.get().asFile} declares componentN() on non-allowlisted classes: " +
-          "${offenders.joinToString()}. Public value types must use @Poko with an explicit copy " +
+        "$path: the public API generated from sources declares componentN() on non-allowlisted " +
+          "classes: ${offenders.joinToString()}. Public value types must use @Poko with an explicit copy " +
           "(see AGENTS.md). If destructuring is intentional, add the class to " +
           "API_DATA_CLASS_ALLOWLIST in " +
           "gradle/build-logic/convention/src/main/kotlin/dev/chrisbanes/gradle/ApiDataClassCheck.kt.",
