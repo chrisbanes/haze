@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -15,8 +16,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReusableContentHost
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
@@ -29,9 +32,11 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
+import assertk.assertions.contains
 import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
@@ -39,6 +44,9 @@ import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazePerformanceMode
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
@@ -138,6 +146,78 @@ class GlassContainerMembershipTest : ContextTest() {
     runOnIdle { enabled.value = true }
     waitForIdle()
     assertThat(pill.opticalSizeOverride).isEqualTo(Size(64f, 64f))
+  }
+
+  /** Moving content with `movableContentOf` detaches and reattaches its node, so it transitions like any other member. */
+  @Test
+  fun movableContent_betweenContainers_detachesAndReattaches() = runComposeUiTest {
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    val moved = GlassRuntimeEffect()
+    val state = HazeState()
+    val inFirst = mutableStateOf(true)
+    setContent {
+      val movable = remember {
+        movableContentOf {
+          Box(
+            Modifier.size(60.dp, 40.dp).hazeGlass(
+              HazeEffectFactory { moved },
+              HazeInput.Sources(state),
+              containerTestStyle(Color.Red),
+              HazePerformanceMode.Quality,
+              true,
+              null,
+              memberTransition = GlassMemberTransition.Materialize,
+            ),
+          )
+        }
+      }
+      Box(Modifier.size(400.dp, 100.dp)) {
+        Box(Modifier.size(400.dp, 100.dp).hazeSource(state))
+        Row {
+          for ((effect, shown) in listOf(first to inFirst.value, second to !inFirst.value)) {
+            Box(
+              Modifier.size(200.dp, 100.dp).hazeGlassContainer(
+                40.dp,
+                transitionSpec = tween(300, easing = LinearEasing),
+                reducedMotionPolicy = GlassReducedMotionPolicy.Full,
+              ),
+            ) {
+              Box(
+                Modifier.size(60.dp, 40.dp).hazeGlass(
+                  HazeEffectFactory { effect },
+                  HazeInput.Sources(state),
+                  containerTestStyle(Color.Blue),
+                  HazePerformanceMode.Quality,
+                  true,
+                  null,
+                ),
+              )
+              if (shown) movable()
+            }
+          }
+        }
+      }
+    }
+    waitForIdle()
+    mainClock.autoAdvance = false
+    mainClock.advanceTimeBy(16)
+    val node = checkNotNull(moved.memberBindingForTest?.node)
+    val oldContainer = checkNotNull(node.container)
+    assertThat(oldContainer).isSameInstanceAs(container(first))
+
+    runOnIdle { inFirst.value = false }
+    mainClock.advanceTimeBy(16)
+    waitForIdle()
+
+    // The same node reattached: a change of nearest container while attached would skip the transition.
+    assertThat(moved.memberBindingForTest?.node).isSameInstanceAs(node)
+    assertThat(node.container).isSameInstanceAs(container(second))
+    assertThat(moved.transitionAlpha).isLessThan(1f)
+    assertThat(oldContainer.model.surfaces.flatMap { it.members }.map { (it.identity as? GlassMemberGhost)?.last?.identity })
+      .contains(node)
+    mainClock.advanceTimeBy(320)
+    waitForIdle()
   }
 
   @Test

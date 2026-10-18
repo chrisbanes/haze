@@ -66,7 +66,10 @@ import kotlinx.coroutines.launch
  *
  * A running transition ends without animating when the member it grows from, retracts into or is
  * drawn through leaves, or when its member is no longer within [spacing] of that member. A member
- * moving to another container appears there immediately. [transitionSpec] and
+ * whose nearest container changes while it stays in the layout, for example when a nested
+ * container is added or removed around it, appears in the new container immediately. Moving a member
+ * with `movableContentOf` detaches and reattaches it, so it detaches from the old container and
+ * attaches to the new one, each with the transition described above. [transitionSpec] and
  * [reducedMotionPolicy] changes apply from the next transition. Leaving members never count
  * towards the shared optical size. Haze animates only the glass, so callers animate member content
  * themselves, for example with `AnimatedVisibility`. Cap diagnostics follow [HazeLogger.enabled].
@@ -77,8 +80,8 @@ import kotlinx.coroutines.launch
  * disappear immediately, whatever their [GlassMemberTransition], so items do not animate as they
  * scroll into or out of view. Members that attach or detach while the layout is idle animate as
  * usual. A scroll that starts while a member's glass is still animating out ends that animation
- * immediately. Position changes made outside a scroll, such as `LazyListState.requestScrollToItem`, are
- * not scrolls. Without a [scrollState], items of a lazy layout that scroll into view animate like
+ * immediately. Position changes made outside a scroll, such as `LazyListState.requestScrollToItem`,
+ * are not scrolls. Without a [scrollState], items of a lazy layout that scroll into view animate like
  * any member that attaches after the first draw.
  */
 @Stable
