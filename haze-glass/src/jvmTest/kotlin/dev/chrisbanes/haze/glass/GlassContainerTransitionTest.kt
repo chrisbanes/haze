@@ -545,14 +545,16 @@ class GlassContainerTransitionTest : ContextTest() {
     val owner = fixture.owner()
     val aBinding = checkNotNull(fixture.aNode).binding
     val bNode = checkNotNull(fixture.b.memberBindingForTest?.node)
-    lateinit var ghost: GlassMemberGhost
-    runOnIdle {
-      val material = aBinding.material
-      aBinding.material = null
-      owner.remove(bNode)
-      ghost = owner.model.surfaces.flatMap { it.members }.single { it.identity is GlassMemberGhost }.identity as GlassMemberGhost
-      aBinding.material = material
+    val material = runOnIdle {
+      aBinding.material.also {
+        aBinding.material = null
+        owner.remove(bNode)
+      }
     }
+    // The container reclusters in its next draw, while A is still unable to draw.
+    fixture.advance(16)
+    val ghost = owner.model.surfaces.flatMap { it.members }.single { it.identity is GlassMemberGhost }.identity as GlassMemberGhost
+    runOnIdle { aBinding.material = material }
     assertThat(ghost.anchor).isEqualTo(fixture.c.memberBindingForTest?.node)
     fixture.settle()
   }
@@ -956,14 +958,16 @@ class GlassContainerTransitionTest : ContextTest() {
     val owner = fixture.owner()
     val bBinding = checkNotNull(fixture.b.memberBindingForTest?.node).binding
     val cNode = checkNotNull(fixture.c.memberBindingForTest?.node)
-    lateinit var ghost: GlassMemberGhost
-    runOnIdle {
-      val material = bBinding.material
-      bBinding.material = null
-      owner.remove(cNode)
-      ghost = owner.model.surfaces.flatMap { it.members }.single { it.identity is GlassMemberGhost }.identity as GlassMemberGhost
-      bBinding.material = material
+    val material = runOnIdle {
+      bBinding.material.also {
+        bBinding.material = null
+        owner.remove(cNode)
+      }
     }
+    // The container reclusters in its next draw, while B is still unable to draw.
+    fixture.advance(16)
+    val ghost = owner.model.surfaces.flatMap { it.members }.single { it.identity is GlassMemberGhost }.identity as GlassMemberGhost
+    runOnIdle { bBinding.material = material }
     assertThat(ghost.neighbour).isEqualTo(fixture.aNode)
     fixture.settle()
   }
@@ -1002,10 +1006,11 @@ class GlassContainerTransitionTest : ContextTest() {
       nodes.forEach { owner.add(it) }
       nodes.zip(materials).forEach { (node, material) -> node.binding.material = material }
       owner.memberChanged()
-      // The pass that ends the grow already draws B transparent, before its fade's first frame.
-      assertThat(fixture.b()).prop(GlassMemberSnapshot::fading).isTrue()
-      assertThat(fixture.b.transitionAlpha).isEqualTo(0f)
     }
+    fixture.advance(16)
+    // The pass that ends the grow already draws B transparent, before its fade's first frame.
+    assertThat(fixture.b()).prop(GlassMemberSnapshot::fading).isTrue()
+    assertThat(fixture.b.transitionAlpha).isEqualTo(0f)
     fixture.advance(16)
     // C's fade splits B from A before B draws a morphed frame, so B fades in place.
     assertThat(fixture.b()).all {

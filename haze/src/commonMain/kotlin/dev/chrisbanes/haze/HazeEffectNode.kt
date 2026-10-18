@@ -584,7 +584,7 @@ internal class HazeEffectNode(
     return completed
   }
 
-  // Outside both read scopes: the owner reclusters synchronously.
+  // Outside both read scopes: the owner is notified here, and reclusters on its next draw.
   private fun notifySurfaceIfGeometryChanged() {
     val owner = surface.owner ?: run {
       notifiedSurfaceOwner = null

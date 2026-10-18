@@ -34,6 +34,7 @@ import assertk.assertThat
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotEmpty
 import assertk.assertions.isNotNull
@@ -229,6 +230,43 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     fixture.assertAnimating(100)
   }
 
+  /** Every member placed in a scrolling frame notifies the container, but the frame reclusters once. */
+  @Test
+  fun lazyContainer_scrollingMembers_reclusterOncePerFrame() = runComposeUiTest {
+    val fixture = lazyFixture(GlassMemberTransition.MatchedGeometry, withScrollState = true)
+    fixture.settle()
+    val owner = fixture.owner()
+    // Inside a scroll, as a drag is, so leaving items make no ghosts and no pass is forced early.
+    fixture.startScroll(count = 16, px = 6f)
+    // Item 0 has scrolled out and item 5 in by now; the next item changes at about frame 15, and
+    // an item entering or leaving adds a pass for its own release or registration.
+    fixture.frames(4)
+
+    val perFrame = List(6) {
+      val frameStart = owner.reclusterPasses
+      fixture.frames(1)
+      owner.reclusterPasses - frameStart
+    }
+    assertThat(perFrame).isEqualTo(List(6) { 1 })
+
+    val visible = fixture.visibleItems()
+    assertThat(visible.size).isGreaterThanOrEqualTo(5)
+    assertThat(owner.model.surfaces.flatMap { it.members }.map { it.identity }.filterIsInstance<GlassMemberNode>().toSet())
+      .isEqualTo(visible.mapNotNull { fixture.node(it) }.toSet())
+  }
+
+  @Test
+  fun lazyContainer_idleFrame_doesNotRecluster() = runComposeUiTest {
+    val fixture = lazyFixture(GlassMemberTransition.MatchedGeometry, withScrollState = true)
+    fixture.settle()
+    val owner = fixture.owner()
+    val before = owner.reclusterPasses
+
+    fixture.frames(1)
+
+    assertThat(owner.reclusterPasses - before).isEqualTo(0)
+  }
+
   /** Lazy prefetch precomposes and premeasures an item without placing it. */
   @Test
   fun prefetchedItem_registersButDoesNotAnimateUntilPlaced() = runComposeUiTest {
@@ -316,11 +354,15 @@ class GlassContainerLazyLayoutTest : ContextTest() {
   ) {
     val viewport = Rect(0f, 0f, 360f, 80f)
 
-    private fun node(index: Int): GlassMemberNode? = effects[index]?.memberBindingForTest?.node
+    fun node(index: Int): GlassMemberNode? = effects[index]?.memberBindingForTest?.node
 
-    private fun members(): List<GlassMemberSnapshot> {
-      val container = effects.values.firstNotNullOf { it.memberBindingForTest?.node?.container }
-      return container.model.surfaces.flatMap { it.members }
+    fun owner(): GlassContainerNode = effects.values.firstNotNullOf { it.memberBindingForTest?.node?.container }
+
+    private fun members(): List<GlassMemberSnapshot> = owner().model.surfaces.flatMap { it.members }
+
+    /** Items whose layout bounds overlap the viewport. */
+    fun visibleItems(): List<Int> = effects.keys.filter { index ->
+      node(index)?.binding?.surface?.boundsInOwner()?.overlaps(viewport) == true
     }
 
     fun member(index: Int): GlassMemberSnapshot? = members().firstOrNull { it.identity === node(index) }

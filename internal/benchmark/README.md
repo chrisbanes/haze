@@ -189,8 +189,8 @@ system GPU data alongside CPU frame duration.
   about nine rows, so 40-45 members are visible;
 - the grid is `hazeGlassContainer(spacing = 16.dp, scrollState = gridState)`. The 12 dp gap is at
   least half of the spacing, so every member is its own cluster. The GPU cost per member stays
-  constant, and the workload isolates the reclustering cost: every member notification reclusters
-  all members, so a frame costs on the order of the member count squared in pair checks;
+  constant, and the workload isolates the reclustering cost. Before #1567, every member notification
+  reclustered all members, so a frame cost on the order of the member count squared in pair checks;
 - there are 1,000 items, scrolled linearly by 1,200 dp over the three-second window inside
   `gridState.scroll { }`, so `isScrollInProgress` is true, as it is for a real drag;
 - `HazeInput.Sources` over the scene's stationary source, the Regular style and `Balanced`.
