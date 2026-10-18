@@ -27,21 +27,21 @@ public enum class GlassTransformPivot {
  * Controls whether Glass motion is reduced.
  *
  * `hazeGlass` applies it to interaction responses. [hazeGlassContainer] applies it to member
- * transitions, where reduced motion keeps the morph with a critically damped spring.
+ * transitions.
  */
 public enum class GlassReducedMotionPolicy {
   /**
    * Follows the current platform motion-duration scale. At a non-zero scale, interaction responses
-   * and container member transitions run under that scale. At zero (animations off), this behaves
-   * as [Reduced]: interaction responses snap, and container member transitions still morph with a
-   * critically damped spring at full duration.
+   * and container member transitions run under that scale. At zero (animations off), interaction
+   * responses behave as [Reduced] and snap, and container member transitions snap with no
+   * transition, as with [GlassMemberTransition.None].
    */
   System,
 
   /**
    * Reduces motion: interaction scale motion is disabled and animated responses snap to their
-   * targets. Container transitions use a critically damped spring at full duration, whatever the
-   * platform motion-duration scale is.
+   * targets. Container member transitions keep the morph with a critically damped spring at full
+   * duration, with no overshoot, whatever the platform motion-duration scale is.
    */
   Reduced,
 

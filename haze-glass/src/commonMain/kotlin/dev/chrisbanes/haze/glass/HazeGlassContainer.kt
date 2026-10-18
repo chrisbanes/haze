@@ -58,8 +58,9 @@ import kotlinx.coroutines.launch
  *
  * Members that attach or detach after the container's first draw animate their glass as each
  * member's [GlassMemberTransition] declares, timed by [transitionSpec], which defaults to
- * `spring()`. Under reduced motion, as resolved by [reducedMotionPolicy], the transition keeps its
- * morph with a critically damped spring, even when the system removes animations.
+ * `spring()`. [GlassReducedMotionPolicy.Reduced] keeps the morph with a critically damped spring at
+ * full duration, whatever the platform scale is. [GlassReducedMotionPolicy.System] snaps,
+ * as with [GlassMemberTransition.None], when the platform motion-duration scale is zero.
  *
  * A detached member's glass is drawn by the container through a live member with the same input,
  * resolving the same sources, until its animation ends. When no such member remains, for example

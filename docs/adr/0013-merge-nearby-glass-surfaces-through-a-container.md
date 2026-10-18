@@ -73,7 +73,9 @@ Haze doesn't animate member content, so callers fade content themselves.
 
 Under reduced motion, the transition keeps its morph but uses a critically damped animation
 instead of the spring, so it doesn't overshoot. `reducedMotionPolicy` uses the existing
-`GlassReducedMotionPolicy` values.
+`GlassReducedMotionPolicy` values. When `GlassReducedMotionPolicy.System` sees a zero platform
+motion scale (animations off), member transitions snap instead
+([#1560](https://github.com/chrisbanes/haze/issues/1560)).
 
 ## Considered options
 
