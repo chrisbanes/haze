@@ -281,6 +281,9 @@ public class GlassStyleScope internal constructor(
   /**
    * Transforms the optics established by defaults and earlier Style writes.
    *
+   * Every Style evaluation starts from [GlassStyle.regular], so the receiver is
+   * [GlassOptics.regular] as modified by [LocalGlassStyle] and earlier writes in this Style.
+   *
    * For example, `GlassStyle.clear.then { optics { copy(blurRadius = OpticalSizeValue.Fixed(4.dp)) } }`
    * changes Clear's blur without replacing its other optical values. Later optics writes or
    * built-in styles can replace the result.

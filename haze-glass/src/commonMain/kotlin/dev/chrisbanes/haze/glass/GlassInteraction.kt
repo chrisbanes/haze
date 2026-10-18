@@ -30,12 +30,18 @@ public enum class GlassTransformPivot {
  * transitions, where reduced motion keeps the morph with a critically damped spring.
  */
 public enum class GlassReducedMotionPolicy {
-  /** Follows the current platform motion-duration scale. */
+  /**
+   * Follows the current platform motion-duration scale. At a non-zero scale, interaction responses
+   * and container member transitions run under that scale. At zero (animations off), this behaves
+   * as [Reduced]: interaction responses snap, and container member transitions still morph with a
+   * critically damped spring at full duration.
+   */
   System,
 
   /**
    * Reduces motion: interaction scale motion is disabled and animated responses snap to their
-   * targets, and container transitions use a critically damped spring.
+   * targets. Container transitions use a critically damped spring at full duration, whatever the
+   * platform motion-duration scale is.
    */
   Reduced,
 

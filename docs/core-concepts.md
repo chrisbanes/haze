@@ -301,6 +301,14 @@ Box {
 }
 ```
 
+A blur that reads a source in another window recaptures its input after any snapshot state change
+in the app. A running animation therefore causes a recapture once per frame, even if the animation is
+unrelated to the source. With RenderScript, each recapture also starts a new blur pass. This applies
+to `HazeInput.Sources` and to a `HazeInput.Backdrop` using its source fallback. Haze does not detect
+separate windows on macOS or Web, so it does not apply there. This cost has not been measured, so
+profile screens that blur another window's content and [disable Blur](blur/usage.md#enabling-blur)
+where it is too slow.
+
 ## Screenshot testing
 
 On Android, run Robolectric screenshot tests against SDK 35 or newer. Earlier Robolectric SDK

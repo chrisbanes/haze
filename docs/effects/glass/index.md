@@ -181,9 +181,13 @@ CompositionLocalProvider(
 The defaults leave the Style unchanged, and the settings never modify your Style values.
 `reduceTransparency` uses a stronger, fully diffused blur during full rendering. In fallback rendering,
 it hides source detail with an opaque base: white in light appearance (also the default when appearance
-is unknown), or black in dark appearance. Set `reducedTransparencyFallbackColor` to an opaque `Color`
-to override this base; null selects the automatic colour. Translucent and unspecified overrides are
-rejected.
+is unknown), or black in dark appearance. Light or dark comes from the system appearance that the Compose host supplies:
+`LocalConfiguration.uiMode` on Android, where anything other than night mode is light, and
+`LocalSystemTheme` on other platforms. An app or window override of those values is followed.
+`MaterialTheme` and other in-app theme state are not read. Set `reducedTransparencyFallbackColor`
+to an opaque `Color` to override this base, for example when your app has its own light and dark
+setting; null selects the automatic colour. Translucent and
+unspecified overrides are rejected.
 
 Fallback draws this base, then your background colour, then tint. Overall `alpha` still fades the
 whole material, so source detail is hidden at alpha 1 and can show through during a fade. Turning
@@ -228,17 +232,21 @@ Box(
 
 ### Choosing optics
 
-Use `GlassStyle.regular` for the built-in material. For direct optical control, call `optics(...)`
-in a custom Style:
+Use `GlassStyle.regular` for the built-in material:
 
 ```kotlin
 val regular = GlassStyle.regular
 ```
 
+For direct optical control, call `optics(...)` in a custom Style. The `GlassOptics` constructor
+defaults are not Regular's. For example, the constructor defaults to a `15.dp` refraction
+displacement and `RefractionProfile.Surface`, while Regular uses `48.dp` and `Edge(20.dp)`. To
+change part of the built-in material, start from `GlassOptics.regular.copy(...)`:
+
 ```kotlin
 GlassStyle {
   optics(
-    GlassOptics(
+    GlassOptics.regular.copy(
       blurRadius = OpticalSizeValue.Fixed(20.dp),
       refractionStrength = 0.8f,
       refractionHeightFraction = 0.3f,
@@ -258,7 +266,8 @@ val softerClear = GlassStyle.clear.then {
 }
 ```
 
-The receiver is the currently accumulated optics, including inherited and earlier explicit writes.
+The receiver starts from `GlassOptics.regular` and then includes optics from `LocalGlassStyle` and
+earlier writes in the Style, including built-in Styles it extends.
 The block runs on every style evaluation and can read snapshot state without recomposing the call
 site. Keep it free of side effects. Later `optics(value)` writes or built-in styles replace its result.
 
@@ -270,14 +279,12 @@ val softerClearOptics = GlassOptics.clear.copy(blurRadius = OpticalSizeValue.Fix
 val softerClear = GlassStyle.clear.then { optics(softerClearOptics) }
 ```
 
-`optics(value)` replaces the whole optical model. The `GlassOptics` constructor defaults are not
-Regular's, so to change part of Regular, copy it:
-`optics(GlassOptics.regular.copy(refractionStrength = 0.8f))`. To vary blur or depth with size, give `GlassOptics` points keyed
-by the surface's shortest side. Values hold at the end points and blend smoothly between them. Each
+`optics(value)` replaces the whole optical model. To vary blur or depth with size, give
+`GlassOptics` points keyed by the surface's shortest side. Values hold at the end points and blend smoothly between them. Each
 responsive value needs at least two points with positive, finite, strictly increasing sizes:
 
 ```kotlin
-val responsiveOptics = GlassOptics(
+val responsiveOptics = GlassOptics.regular.copy(
   blurRadius = OpticalSizeValue.Responsive(
     OpticalSizePoint(176.dp, 8.dp),
     OpticalSizePoint(300.dp, 12.dp),
@@ -290,7 +297,7 @@ val style = GlassStyle { optics(responsiveOptics) }
 Keep a `GlassOptics` value when it is reused, stored, copied, or selected programmatically:
 
 ```kotlin
-val reusableOptics = GlassOptics(
+val reusableOptics = GlassOptics.regular.copy(
   blurRadius = OpticalSizeValue.Fixed(20.dp),
 )
 val style = GlassStyle { optics(reusableOptics) }
@@ -485,8 +492,9 @@ GlassStyle {
 
 - `interactionTransformTarget` transforms the material only, or the material and its content.
 - `interactionTransformPivot` scales around the `Pointer` or the `Center`.
-- `interactionReducedMotionPolicy`: `System` follows the system animation scale, `Reduced` snaps
-  lighting and optics and suppresses transforms, and `Full` always animates.
+- `interactionReducedMotionPolicy`: `System` follows the system animation scale and behaves as
+  `Reduced` when that scale is zero, `Reduced` snaps lighting and optics and suppresses transforms,
+  and `Full` always animates.
 
 Omit a state block from a replacement Style to remove that response.
 
@@ -507,7 +515,7 @@ Box(
       style = GlassStyle {
         tint(Color.White.copy(alpha = 0.16f))
         optics(
-          GlassOptics(
+          GlassOptics.regular.copy(
             refractionStrength = 0.8f,
             refractionHeightFraction = 0.32f,
             depth = OpticalSizeValue.Fixed(0.5f),

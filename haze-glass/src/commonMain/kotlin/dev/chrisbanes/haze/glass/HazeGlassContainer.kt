@@ -55,9 +55,9 @@ import kotlinx.coroutines.launch
  * tint and background; where members overlap, the earlier registered member's colours apply.
  *
  * Members that attach or detach after the container's first draw animate their glass as each
- * member's [GlassMemberTransition] declares, timed by [transitionSpec]. Under reduced motion, as
- * resolved by [reducedMotionPolicy], the transition keeps its morph with a critically damped
- * spring, even when the system removes animations.
+ * member's [GlassMemberTransition] declares, timed by [transitionSpec], which defaults to
+ * `spring()`. Under reduced motion, as resolved by [reducedMotionPolicy], the transition keeps its
+ * morph with a critically damped spring, even when the system removes animations.
  *
  * A detached member's glass is drawn by the container through a live member with the same input,
  * resolving the same sources, until its animation ends. When no such member remains, for example
