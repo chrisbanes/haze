@@ -1233,8 +1233,10 @@ motion scale (animations off), member transitions snap instead
   two don't merge.</li>
 <li><strong>One layer covering every member.</strong> Rejected. A sparse container would pay for a container-sized
   layer while nothing merges.</li>
-<li><strong>Snapping transitions under reduced motion.</strong> Rejected. iOS keeps the morph and removes its
-  elasticity.</li>
+<li><strong>Snapping transitions under reduced motion.</strong> Rejected for <code>GlassReducedMotionPolicy.Reduced</code>.
+  iOS keeps the morph and removes its elasticity. Turning animations off is different:
+  <code>GlassReducedMotionPolicy.System</code> snaps at a zero platform motion scale
+  (<a href="https://github.com/chrisbanes/haze/issues/1560">#1560</a>).</li>
 <li><strong><code>glassEffectID</code>-style identifiers and <code>glassEffectUnion</code>-style forced unions.</strong> Deferred.
   Identifiers add nothing over node identity for neighbour morphs. A forced union needs grouping
   rules that the first version doesn't need.</li>
