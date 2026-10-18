@@ -151,6 +151,14 @@ internal class GlassContainerNode(
    */
   private var suppressTransitions = true
 
+  /**
+   * Whether the system has turned animations off under [GlassReducedMotionPolicy.System], in which
+   * case members snap as with [GlassMemberTransition.None]. Read it only while attached.
+   */
+  private val transitionsOff: Boolean
+    get() = reducedMotionPolicy == GlassReducedMotionPolicy.System &&
+      coroutineScope.coroutineContext[MotionDurationScale]?.scaleFactor == 0f
+
   private fun observeScroll() {
     if (suppressTransitions) return
     val state = scrollState ?: return
@@ -240,7 +248,7 @@ internal class GlassContainerNode(
     // An axis-aligned field rect cannot draw a rotated or scaled member's glass.
     // A Content member's glass samples its own content, which leaves with it; another member's
     // surface would draw unrelated content in its place.
-    if (!isAttached || suppressTransitions || member.transition == GlassMemberTransition.None || !last.translationOnly ||
+    if (!isAttached || suppressTransitions || transitionsOff || member.transition == GlassMemberTransition.None || !last.translationOnly ||
       !last.layoutRect.isValidGlassMember() || !last.rect.isValidGlassMember() || last.key.input is HazeInput.Content
     ) {
       return null
@@ -265,7 +273,7 @@ internal class GlassContainerNode(
   private fun animate(progress: Animatable<Float, AnimationVector1D>, target: Float, onEnd: () -> Unit): Job {
     val systemScale = coroutineScope.coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f
     val (reduced, full) = reducedMotion(reducedMotionPolicy, systemScale)
-    // Reduced motion keeps a non-overshooting morph even when the system removes animations.
+    // Reduced keeps a non-overshooting morph at a zero scale; System at zero snaps before reaching here.
     return coroutineScope.launch(if (reduced || full) FullMotionDurationScale else EmptyCoroutineContext) {
       progress.animateTo(target, glassTransitionSpec(transitionSpec, reduced)) { memberChanged() }
       onEnd()
@@ -381,7 +389,7 @@ internal class GlassContainerNode(
   private fun endGrow(member: GlassMemberNode): Boolean {
     val attach = attaching.remove(member) ?: return false
     attach.job?.cancel()
-    if (attach.neighbour == null || attach.progress.value != 0f || suppressTransitions) return false
+    if (attach.neighbour == null || attach.progress.value != 0f || suppressTransitions || transitionsOff) return false
     val fade = GlassMemberAttach(null)
     attaching[member] = fade
     fade.job = animate(fade.progress, 1f) { attaching.remove(member) }
@@ -436,7 +444,7 @@ internal class GlassContainerNode(
     for (member in pending.toList()) {
       val snapshot = live[member] ?: continue
       pending -= member
-      if (suppressTransitions || member.transition == GlassMemberTransition.None) continue
+      if (suppressTransitions || transitionsOff || member.transition == GlassMemberTransition.None) continue
       val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(snapshot, ordered, spacingPx, excluded = appearing) else null
       val attach = GlassMemberAttach(neighbour?.identity as GlassMemberNode?)
       attaching[member] = attach
