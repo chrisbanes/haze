@@ -901,6 +901,45 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun animationFrames_afterConfigurationChangeDuringPress_doNotReRunUpdate() = runComposeUiTest {
+    val effect = runtimeInteractiveEffect().apply {
+      style = style.then {
+        pressed {
+          animate(toSpec = tween(1000), fromSpec = tween(1000)) {
+            lightingIntensity(1f)
+            refractionMultiplier(1.08f)
+            whitePointDelta(0.04f)
+          }
+        }
+      }
+    }
+    val style = mutableStateOf(effect.style)
+    setContent { RuntimeGlassTestContent(effect, tag = "glass", style = style.value) }
+    waitForIdle()
+    mainClock.autoAdvance = false
+
+    onNodeWithTag("glass").performTouchInput { down(Offset(20f, 20f)) }
+    repeat(3) { mainClock.advanceTimeByFrame() }
+    // updateConfiguration evaluates renderTopology inside update(); the animation must not make
+    // that read re-run update() on every frame.
+    style.value = style.value.then { interactionPositionAnimationSpec(tween(200)) }
+    mainClock.advanceTimeByFrame()
+    mainClock.advanceTimeByFrame()
+
+    val runtime = runtime(effect)
+    val controller = checkNotNull(runtime.interactionControllerForTest)
+    assertThat(controller.hasRunningResponseAnimations).isTrue()
+    runtime.updateCallsForTest = 0
+    repeat(5) { mainClock.advanceTimeByFrame() }
+
+    assertThat(controller.hasRunningResponseAnimations).isTrue()
+    assertThat(runtime.updateCallsForTest).isEqualTo(0)
+    mainClock.autoAdvance = true
+    setContent {}
+    waitForIdle()
+  }
+
+  @Test
   fun interactionOpticalEffect_reusesStableLayerEffectAndUpdatesNewTargets() = runComposeUiTest {
     val effect = runtimeInteractiveEffect()
     val style = mutableStateOf(effect.style)
