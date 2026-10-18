@@ -1413,7 +1413,7 @@ cluster draws as a separate surface.</p>
 optics use that size, whether or not it is in a cluster, so a small member next to a large one
 takes on the large member's diffusion, even when the two don't merge.</p>
 <p>The size updates immediately, without animation, when a member is added, removed or resized.
-Members that are animating out don't count.</p>
+Members that are animating out, or whose bounds have collapsed to zero area, don't count.</p>
 <h2 id="where-glass-samples-from">Where Glass samples from<a class="headerlink" href="#where-glass-samples-from" title="Permanent link">¶</a></h2>
 <p>A container draws all of its members' Glass behind all of its children. With
 <code>HazeInput.Backdrop</code>, the glass samples only content drawn before the container. With
