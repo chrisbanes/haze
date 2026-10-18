@@ -66,7 +66,10 @@ import kotlinx.coroutines.launch
  *
  * A running transition ends without animating when the member it grows from, retracts into or is
  * drawn through leaves, or when its member is no longer within [spacing] of that member. A member
- * moving to another container appears there immediately. [transitionSpec] and
+ * whose nearest container changes while it stays in the layout, for example when a nested
+ * container is added or removed around it, appears in the new container immediately. Moving a member
+ * with `movableContentOf` detaches and reattaches it, so it detaches from the old container and
+ * attaches to the new one, each with the transition described above. [transitionSpec] and
  * [reducedMotionPolicy] changes apply from the next transition. Leaving members never count
  * towards the shared optical size. Haze animates only the glass, so callers animate member content
  * themselves, for example with `AnimatedVisibility`. Cap diagnostics follow [HazeLogger.enabled].
@@ -76,8 +79,9 @@ import kotlinx.coroutines.launch
  * the frame in which it stops, members that attach appear immediately and members that detach
  * disappear immediately, whatever their [GlassMemberTransition], so items do not animate as they
  * scroll into or out of view. Members that attach or detach while the layout is idle animate as
- * usual. Position changes made outside a scroll, such as `LazyListState.requestScrollToItem`, are
- * not scrolls. Without a [scrollState], items of a lazy layout that scroll into view animate like
+ * usual. A scroll that starts while a member's glass is still animating out ends that animation
+ * immediately. Position changes made outside a scroll, such as `LazyListState.requestScrollToItem`,
+ * are not scrolls. Without a [scrollState], items of a lazy layout that scroll into view animate like
  * any member that attaches after the first draw.
  */
 @Stable
@@ -148,7 +152,11 @@ internal class GlassContainerNode(
   private fun observeScroll() {
     if (suppressTransitions) return
     val state = scrollState ?: return
-    if (Snapshot.withoutReadObservation { state.isScrollInProgress }) suppressTransitions = true
+    if (Snapshot.withoutReadObservation { state.isScrollInProgress }) {
+      suppressTransitions = true
+      // A ghost's rect is fixed in owner space, so it would stay behind scrolled content.
+      endGhosts { true }
+    }
   }
   private var children: GraphicsLayer? = null
   private var membersClaimed = false
@@ -235,8 +243,8 @@ internal class GlassContainerNode(
     ) {
       return null
     }
-    // Only members that can draw now may carry a ghost or split its neighbour's run; a collapsed
-    // member keeps a stale snapshot.
+    // Only members that can draw now may carry a ghost or split its neighbour's run; a member whose
+    // material is unpublished keeps a stale snapshot.
     val live = liveSnapshots().filterValues { it.layoutRect.isValidGlassMember() }.keys
     val ordered = registrations.mapNotNull { if (it === member) last else latest[it] }
       .filter { it.identity === member || it.identity !is GlassMemberNode || it.identity in live }
@@ -287,6 +295,11 @@ internal class GlassContainerNode(
           runtime.refreshMemberMaterial()
         }
         var live = liveSnapshots()
+        // A collapsed member keeps its last full-size snapshot, which would become its ghost when it
+        // leaves. A leaving member's release pass still has valid bounds, so it keeps its departure snapshot.
+        registered.forEach { member ->
+          if (member !in live && member.binding.surface?.let { it.boundsInOwner() == null } == true) latest.remove(member)
+        }
         // Liveness and compatibility hold on every pass; spacing is checked once layout is complete.
         val broken = attaching.filter { (member, attach) ->
           val neighbour = attach.neighbour ?: return@filter false

@@ -188,6 +188,23 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     assertThat(fixture.ghosts()).isEmpty()
   }
 
+  /** A ghost's rect is fixed in owner space, so a scroll that starts mid-fade must not leave it behind. */
+  @Test
+  fun lazyItem_withScrollState_scrollStartingMidFade_endsGhost() = runComposeUiTest {
+    val fixture = lazyFixture(GlassMemberTransition.Materialize, withScrollState = true)
+    fixture.frames(1)
+    runOnIdle { fixture.keys.remove(2) }
+    fixture.frames(1)
+    assertThat(fixture.ghosts()).isNotEmpty()
+
+    fixture.startScroll(count = 8, px = 6f)
+    repeat(4) {
+      fixture.frames(1)
+      assertThat(fixture.ghosts()).isEmpty()
+    }
+    fixture.settle()
+  }
+
   /** A state change is not a scroll, so an item inserted while the list is idle still animates. */
   @Test
   fun lazyItem_withScrollState_insertWhileIdle_animates() = runComposeUiTest {
@@ -329,6 +346,25 @@ class GlassContainerLazyLayoutTest : ContextTest() {
           scrollBy(px)
           withFrameNanos {}
         }
+      }
+    }
+
+    /** Launches a scroll of [count] frames at [px] each, then advances until the state reports it in progress. */
+    fun startScroll(count: Int, px: Float) {
+      test.runOnIdle {
+        scope.launch {
+          state.scroll {
+            repeat(count) {
+              scrollBy(px)
+              withFrameNanos {}
+            }
+          }
+        }
+      }
+      var waited = 0
+      while (!test.runOnIdle { state.isScrollInProgress }) {
+        check(waited++ < 3) { "The scroll did not start" }
+        frames(1)
       }
     }
 

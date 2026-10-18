@@ -113,7 +113,10 @@ The glass disappears immediately, without a transition, when:
 - the member is rotated or scaled;
 - no remaining member uses the same input and sources, including when the last member leaves.
 
-A member that moves to another container appears there immediately. A running transition ends
+A member whose nearest container changes while it stays in the layout, for example when a nested
+container is added or removed around it, appears in the new container immediately. Moving
+a member with `movableContentOf` detaches and reattaches it, so it detaches from the old container
+and attaches to the new one, each with the transition described above. A running transition ends
 without animating when the member it grows from or retracts into leaves, or moves beyond the
 spacing.
 
@@ -122,7 +125,8 @@ spacing.
 Pass the lazy layout's state to `hazeGlassContainer` as `scrollState`. While that state is
 scrolling, including the frame in which it stops, members appear and disappear without a
 transition, whatever their `memberTransition`. Items inserted or removed while the layout is idle
-still animate.
+still animate, but a scroll that starts while an item's glass is still animating out ends that
+animation immediately.
 
 ```kotlin
 // Styles compare by identity, so remember the style.
