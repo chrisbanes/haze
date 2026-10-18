@@ -7,6 +7,7 @@ import me.tylerbwong.gradle.metalava.extension.MetalavaExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
+import org.gradle.kotlin.dsl.register
 
 private const val METALAVA_VERSION = "1.0.0-alpha14"
 
@@ -45,6 +46,14 @@ class MetalavaConventionPlugin : Plugin<Project> {
         if (contents != normalized) apiFile.writeText(normalized)
       }
     }
+
+    val checkApiDataClasses = tasks.register<CheckApiDataClassesTask>("checkApiDataClasses") {
+      group = "verification"
+      description = "Checks that the public API signature declares no unintended data classes."
+      apiFile.set(layout.projectDirectory.file("api/api.txt"))
+      allowlist.set(API_DATA_CLASS_ALLOWLIST)
+    }
+    tasks.named("check") { dependsOn(checkApiDataClasses) }
 
     tasks.named { it.startsWith("metalavaCheckCompatibility") }.configureEach {
       dependsOn(tasks.named { it.startsWith("generateResourceAccessors") })

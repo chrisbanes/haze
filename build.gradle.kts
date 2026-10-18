@@ -35,6 +35,8 @@ val checkPublicApiDocumentation = tasks.register("checkPublicApiDocumentation") 
 
 tasks.named("check") {
   dependsOn(checkPublicApiDocumentation)
+  // gradle/build-logic is an included build, so `check` doesn't reach its tests by name.
+  dependsOn(gradle.includedBuild("build-logic").task(":convention:test"))
 }
 
 // gradle/build-logic is an included build, so `check` and `spotlessCheck` don't reach its tasks by name.
