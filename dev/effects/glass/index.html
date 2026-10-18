@@ -1744,9 +1744,13 @@ provide it where Glass is used:</p>
 <p>The defaults leave the Style unchanged, and the settings never modify your Style values.
 <code>reduceTransparency</code> uses a stronger, fully diffused blur during full rendering. In fallback rendering,
 it hides source detail with an opaque base: white in light appearance (also the default when appearance
-is unknown), or black in dark appearance. Set <code>reducedTransparencyFallbackColor</code> to an opaque <code>Color</code>
-to override this base; null selects the automatic colour. Translucent and unspecified overrides are
-rejected.</p>
+is unknown), or black in dark appearance. Light or dark comes from the system appearance that the Compose host supplies:
+<code>LocalConfiguration.uiMode</code> on Android, where anything other than night mode is light, and
+<code>LocalSystemTheme</code> on other platforms. An app or window override of those values is followed.
+<code>MaterialTheme</code> and other in-app theme state are not read. Set <code>reducedTransparencyFallbackColor</code>
+to an opaque <code>Color</code> to override this base, for example when your app has its own light and dark
+setting; null selects the automatic colour. Translucent and
+unspecified overrides are rejected.</p>
 <p>Fallback draws this base, then your background colour, then tint. Overall <code>alpha</code> still fades the
 whole material, so source detail is hidden at alpha 1 and can show through during a fade. Turning
 <code>reduceTransparency</code> off restores ordinary fallback rendering. The colour override only affects
@@ -1776,13 +1780,16 @@ for a subtree, and pass an explicit Style when one element needs to differ.</p>
 <span class="p">)</span>
 </code></pre></div>
 <h3 id="choosing-optics">Choosing optics<a class="headerlink" href="#choosing-optics" title="Permanent link">¶</a></h3>
-<p>Use <code>GlassStyle.regular</code> for the built-in material. For direct optical control, call <code>optics(...)</code>
-in a custom Style:</p>
+<p>Use <code>GlassStyle.regular</code> for the built-in material:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">regular</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span>
 </code></pre></div>
+<p>For direct optical control, call <code>optics(...)</code> in a custom Style. The <code>GlassOptics</code> constructor
+defaults are not Regular's. For example, the constructor defaults to a <code>15.dp</code> refraction
+displacement and <code>RefractionProfile.Surface</code>, while Regular uses <code>48.dp</code> and <code>Edge(20.dp)</code>. To
+change part of the built-in material, start from <code>GlassOptics.regular.copy(...)</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">optics</span><span class="p">(</span>
-<span class="w">    </span><span class="n">GlassOptics</span><span class="p">(</span>
+<span class="w">    </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span>
 <span class="w">      </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">),</span>
 <span class="w">      </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">,</span>
 <span class="w">      </span><span class="n">refractionHeightFraction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.3f</span><span class="p">,</span>
@@ -1798,7 +1805,8 @@ in a custom Style:</p>
 <span class="w">  </span><span class="n">optics</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">copy</span><span class="p">(</span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="m">4.</span><span class="n">dp</span><span class="p">))</span><span class="w"> </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>The receiver is the currently accumulated optics, including inherited and earlier explicit writes.
+<p>The receiver starts from <code>GlassOptics.regular</code> and then includes optics from <code>LocalGlassStyle</code> and
+earlier writes in the Style, including built-in Styles it extends.
 The block runs on every style evaluation and can read snapshot state without recomposing the call
 site. Keep it free of side effects. Later <code>optics(value)</code> writes or built-in styles replace its result.</p>
 <p>For a configuration you want to store or choose outside a style, copy <code>GlassOptics.regular</code> or
@@ -1806,12 +1814,10 @@ site. Keep it free of side effects. Later <code>optics(value)</code> writes or b
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">softerClearOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">clear</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="m">4.</span><span class="n">dp</span><span class="p">))</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">softerClear</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">clear</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">optics</span><span class="p">(</span><span class="n">softerClearOptics</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
-<p><code>optics(value)</code> replaces the whole optical model. The <code>GlassOptics</code> constructor defaults are not
-Regular's, so to change part of Regular, copy it:
-<code>optics(GlassOptics.regular.copy(refractionStrength = 0.8f))</code>. To vary blur or depth with size, give <code>GlassOptics</code> points keyed
-by the surface's shortest side. Values hold at the end points and blend smoothly between them. Each
+<p><code>optics(value)</code> replaces the whole optical model. To vary blur or depth with size, give
+<code>GlassOptics</code> points keyed by the surface's shortest side. Values hold at the end points and blend smoothly between them. Each
 responsive value needs at least two points with positive, finite, strictly increasing sizes:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">responsiveOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">(</span>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">responsiveOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span>
 <span class="w">  </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Responsive</span><span class="p">(</span>
 <span class="w">    </span><span class="n">OpticalSizePoint</span><span class="p">(</span><span class="m">176.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="m">8.</span><span class="n">dp</span><span class="p">),</span>
 <span class="w">    </span><span class="n">OpticalSizePoint</span><span class="p">(</span><span class="m">300.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="m">12.</span><span class="n">dp</span><span class="p">),</span>
@@ -1821,7 +1827,7 @@ responsive value needs at least two points with positive, finite, strictly incre
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">optics</span><span class="p">(</span><span class="n">responsiveOptics</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
 <p>Keep a <code>GlassOptics</code> value when it is reused, stored, copied, or selected programmatically:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">reusableOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">(</span>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">reusableOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span>
 <span class="w">  </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">),</span>
 <span class="p">)</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">optics</span><span class="p">(</span><span class="n">reusableOptics</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
@@ -2020,8 +2026,9 @@ animates the light towards focus and other <code>InteractionSource</code>-derive
 <ul>
 <li><code>interactionTransformTarget</code> transforms the material only, or the material and its content.</li>
 <li><code>interactionTransformPivot</code> scales around the <code>Pointer</code> or the <code>Center</code>.</li>
-<li><code>interactionReducedMotionPolicy</code>: <code>System</code> follows the system animation scale, <code>Reduced</code> snaps
-  lighting and optics and suppresses transforms, and <code>Full</code> always animates.</li>
+<li><code>interactionReducedMotionPolicy</code>: <code>System</code> follows the system animation scale and behaves as
+  <code>Reduced</code> when that scale is zero, <code>Reduced</code> snaps lighting and optics and suppresses transforms,
+  and <code>Full</code> always animates.</li>
 </ul>
 <p>Omit a state block from a replacement Style to remove that response.</p>
 <h2 id="containers">Containers<a class="headerlink" href="#containers" title="Permanent link">¶</a></h2>
@@ -2037,7 +2044,7 @@ shape, for controls that should read as one object, such as a toolbar or a segme
 <span class="w">      </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span>
 <span class="w">        </span><span class="n">optics</span><span class="p">(</span>
-<span class="w">          </span><span class="n">GlassOptics</span><span class="p">(</span>
+<span class="w">          </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span>
 <span class="w">            </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">,</span>
 <span class="w">            </span><span class="n">refractionHeightFraction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.32f</span><span class="p">,</span>
 <span class="w">            </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="m">0.5f</span><span class="p">),</span>

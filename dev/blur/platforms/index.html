@@ -1506,7 +1506,9 @@
 <p>With a full-resolution performance mode, such as <a href="../../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-quality.html">HazePerformanceMode.Quality</a>, linear <a href="../../api/haze/dev.chrisbanes.haze/-haze-progressive/">HazeProgressive</a> effects are drawn several times. This costs more, so measure it for your workload.</p>
 <p>Lower-resolution modes, such as <a href="../../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-balanced.html">HazePerformanceMode.Balanced</a>, and all non-linear progressive types use a gradient mask instead. This blends between blurred and unblurred content rather than varying the blur strength.</p>
 <h4 id="extra-redraws">Extra redraws<a class="headerlink" href="#extra-redraws" title="Permanent link">¶</a></h4>
-<p>On Android 12 (API 31) and below, Haze redraws Blur more often than strictly necessary so that it stays in sync with the content behind it. This should not cause noticeable performance issues, but you can <a href="../usage/#enabling-blur">disable Blur</a> if needed.</p>
+<p>On Android 12 (API 31) and below, Haze redraws Blur more often than strictly necessary so that it stays in sync with the content behind it.</p>
+<p>On API 31 only, Blur that reads <code>HazeInput.Sources</code>, including a <code>HazeInput.Backdrop</code> using its source fallback, also recaptures its input after any snapshot state change in the app, whichever window holds the source. With a hardware-accelerated canvas, Blur also rebuilds all of its effects, including every progressive band. With a software canvas, it blurs again with RenderScript instead. A running animation therefore does this once per frame, even if the animation is unrelated to the content behind the Blur. Blur that uses <code>HazeInput.Content</code> is not affected. This cost has not been measured. If you target API 31, profile your screens and <a href="../usage/#enabling-blur">disable Blur</a> where it is too slow.</p>
+<p>Sources in another window also recapture their input on every snapshot change on other API levels, and on platforms where Haze detects separate windows. See <a href="../../core-concepts/#dialogs">Dialogs</a>.</p>
 <h3 id="android-11-and-below">Android 11 and below<a class="headerlink" href="#android-11-and-below" title="Permanent link">¶</a></h3>
 <p>SDK Levels: 30 and below</p>
 <p>Blur is disabled by default. Haze draws a translucent scrim instead:</p>
@@ -1519,6 +1521,7 @@
 <p>Blur on Android 11 and below is experimental. It may become the default in a future release, or be removed if it proves unstable. Please raise issues if you find problems.</p>
 </div>
 <p>This path is slower than on Android 12 and newer. To avoid dropping frames, Haze blurs on a background thread and skips frames while it is busy, so the Blur usually trails content changes by a frame or more. It can look laggy when the content behind it changes quickly. Progressive Blur uses a gradient mask, as described above.</p>
+<p>RenderScript draws noise over the blur at the noise factor's opacity. On API 31 and newer with hardware acceleration, and on other platforms, noise uses the soft-light blend mode. The grain therefore looks different on the RenderScript path. API 31 and newer also use that path when the canvas is not hardware accelerated.</p>
 <p>A <code>HazeColorEffect.colorFilter(...)</code> filters the blurred output, as it does on Android 12 and newer and on Skiko. It also filters the noise and any color effects before it in the list.</p>
 <p><div class="video-container"><video style="width:100%;height:30rem" loop muted autoplay alt="type:video"><source src="../../media/renderscript.mp4" type="video/mp4"></source></video></div></p>
 <div class="admonition info">

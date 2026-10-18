@@ -1717,6 +1717,13 @@ because the native backdrop can't cross windows; Haze aligns the two automatical
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
+<p>A blur that reads a source in another window recaptures its input after any snapshot state change
+in the app. A running animation therefore causes a recapture once per frame, even if the animation is
+unrelated to the source. With RenderScript, each recapture also starts a new blur pass. This applies
+to <code>HazeInput.Sources</code> and to a <code>HazeInput.Backdrop</code> using its source fallback. Haze does not detect
+separate windows on macOS or Web, so it does not apply there. This cost has not been measured, so
+profile screens that blur another window's content and <a href="../blur/usage/#enabling-blur">disable Blur</a>
+where it is too slow.</p>
 <h2 id="screenshot-testing">Screenshot testing<a class="headerlink" href="#screenshot-testing" title="Permanent link">¶</a></h2>
 <p>On Android, run Robolectric screenshot tests against SDK 35 or newer. Earlier Robolectric SDK
 levels render effect edges differently:</p>

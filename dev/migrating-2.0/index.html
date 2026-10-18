@@ -1780,8 +1780,10 @@ generated API reference for property-specific ranges.</p>
 </tr>
 </tbody>
 </table>
-<p>Use <code>optics(...)</code> for inline fixed values. Keep a <code>GlassOptics</code> value when the configuration needs
-to be reused or selected programmatically. Use <code>OpticalSizeValue.Responsive</code> for
+<p>Pass a <code>GlassOptics</code> to <code>optics(value)</code>. To change part of the built-in model, use
+<code>optics(GlassOptics.regular.copy(...))</code>, or <code>optics { copy(...) }</code> to adjust the optics accumulated
+so far. Keep a <code>GlassOptics</code> value when
+the configuration needs to be reused or selected programmatically. Use <code>OpticalSizeValue.Responsive</code> for
 shortest-dimension-dependent blur or depth.</p>
 <p><code>GlassOptics()</code> creates fixed optics and is not a replacement for <code>GlassOptics.Adaptive</code>. Use
 <code>GlassStyle.regular</code> when selecting the complete built-in Style, or <code>GlassOptics.regular</code> when only
@@ -1795,7 +1797,7 @@ former <code>Offset.Unspecified</code> behavior, logical start/end alignments fo
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">glassStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.12f</span><span class="p">))</span>
 <span class="w">  </span><span class="n">optics</span><span class="p">(</span>
-<span class="w">    </span><span class="n">GlassOptics</span><span class="p">(</span>
+<span class="w">    </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span>
 <span class="w">      </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">,</span>
 <span class="w">      </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="m">0.4f</span><span class="p">),</span>
 <span class="w">    </span><span class="p">),</span>

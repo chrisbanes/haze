@@ -1434,9 +1434,14 @@ the transition with <code>hazeGlass(memberTransition = ...)</code>:</p>
   on its own until it is fully opaque.</li>
 <li><code>GlassMemberTransition.None</code> applies no transition.</li>
 </ul>
-<p><code>transitionSpec</code> times the animation. Under reduced motion, as <code>reducedMotionPolicy</code> resolves it,
-the morph is kept but does not overshoot. Changes to <code>transitionSpec</code> and <code>reducedMotionPolicy</code>
-apply from the next transition.</p>
+<p><code>transitionSpec</code> times the animation and defaults to <code>spring()</code>. Members with
+<code>GlassMemberTransition.None</code> do not animate. Under reduced motion, as <code>reducedMotionPolicy</code>
+resolves it, the morph is kept but uses a critically damped spring, so it does not overshoot. The
+spring keeps <code>transitionSpec</code>'s stiffness when it is a spring and otherwise uses medium stiffness, and the morph runs at full duration
+even when the system turns animations off. <code>GlassReducedMotionPolicy.System</code> resolves to reduced
+motion only when the system motion-duration scale is zero, and otherwise follows that scale.
+<code>Full</code> never reduces. Changes to <code>transitionSpec</code> and <code>reducedMotionPolicy</code> apply from the next
+transition.</p>
 <p>Haze animates only the glass. Animate member content yourself, for example with
 <code>AnimatedVisibility</code> and fades. Don't animate a member's layout scale: a scaled member stops
 merging and loses its matched-geometry transition.</p>
