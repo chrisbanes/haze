@@ -42,10 +42,16 @@ private val COMPONENT_METHOD = Regex("""^ {4}method .*\bcomponent[1-9][0-9]*\(\)
  * zero-argument `componentN()` method. Metalava doesn't print `operator` on every such method, so
  * the method name is what identifies a data class.
  */
-internal fun findComponentClasses(signature: String): Set<String> {
+internal fun findComponentClasses(signature: String): Set<String> = findClasses(signature).filterValues { it }.keys
+
+/**
+ * Returns every class declared in a Metalava signature file, mapped to whether it declares a
+ * zero-argument `componentN()` method.
+ */
+internal fun findClasses(signature: String): Map<String, Boolean> {
   var packageName = ""
   var className: String? = null
-  val result = linkedSetOf<String>()
+  val result = linkedMapOf<String, Boolean>()
   for (line in signature.lineSequence()) {
     val packageMatch = PACKAGE_LINE.find(line)
     val classMatch = CLASS_LINE.find(line)
@@ -55,13 +61,22 @@ internal fun findComponentClasses(signature: String): Set<String> {
         className = null
       }
 
-      classMatch != null -> className = "$packageName.${classMatch.groupValues[1]}"
+      classMatch != null -> {
+        className = "$packageName.${classMatch.groupValues[1]}"
+        result.putIfAbsent(className, false)
+      }
 
-      COMPONENT_METHOD.containsMatchIn(line) -> className?.let(result::add)
+      COMPONENT_METHOD.containsMatchIn(line) -> className?.let { result[it] = true }
     }
   }
   return result
 }
+
+/**
+ * Returns the [allowlist] entries that [classes] declares without `componentN()`. Each module sees
+ * only its own classes, so an entry for a class in another module isn't stale.
+ */
+internal fun staleAllowlistEntries(classes: Map<String, Boolean>, allowlist: Set<String>): List<String> = allowlist.filter { classes[it] == false }
 
 abstract class CheckApiDataClassesTask : DefaultTask() {
   @get:InputFile
@@ -73,15 +88,24 @@ abstract class CheckApiDataClassesTask : DefaultTask() {
 
   @TaskAction
   fun check() {
-    val offenders = findComponentClasses(signatureFile.get().asFile.readText()) - allowlist.get()
+    val classes = findClasses(signatureFile.get().asFile.readText())
+    val offenders = classes.filterValues { it }.keys - allowlist.get()
     if (offenders.isNotEmpty()) {
       throw GradleException(
         "$path: the public API generated from sources declares componentN() on non-allowlisted " +
           "classes: ${offenders.joinToString()}. Public value types must use @Poko with an explicit copy " +
           "(see AGENTS.md). If destructuring is intentional, add the class to " +
-          "API_DATA_CLASS_ALLOWLIST in " +
-          "gradle/build-logic/convention/src/main/kotlin/dev/chrisbanes/gradle/ApiDataClassCheck.kt.",
+          "API_DATA_CLASS_ALLOWLIST in $ALLOWLIST_PATH.",
+      )
+    }
+    val stale = staleAllowlistEntries(classes, allowlist.get())
+    if (stale.isNotEmpty()) {
+      throw GradleException(
+        "$path: these API_DATA_CLASS_ALLOWLIST entries no longer declare componentN(): " +
+          "${stale.joinToString()}. Remove them from $ALLOWLIST_PATH.",
       )
     }
   }
 }
+
+private const val ALLOWLIST_PATH = "gradle/build-logic/convention/src/main/kotlin/dev/chrisbanes/gradle/ApiDataClassCheck.kt"
