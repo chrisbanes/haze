@@ -297,6 +297,36 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun neighbourLeavesGrowAtStartAfterAnimationsTurnOff_snapsMember() {
+    val motion = SwitchableMotion()
+    runComposeUiTest(effectContext = motion) {
+      val fixture = fixture(policy = GlassReducedMotionPolicy.System)
+      val owner = fixture.owner()
+      val aNode = checkNotNull(fixture.aNode)
+      val bNode = checkNotNull(fixture.b.memberBindingForTest?.node)
+      runOnIdle {
+        // B re-registers without a material, so the next pass starts it growing out of A.
+        owner.remove(bNode, leaving = false)
+        val material = bNode.binding.material
+        bNode.binding.material = null
+        owner.add(bNode)
+        bNode.binding.material = material
+        owner.memberChanged()
+      }
+      // This draw starts the grow; its animation records its start on this frame, so it stays at 0.
+      fixture.advance(16)
+      assertThat(fixture.b().link).isEqualTo(aNode)
+      runOnIdle {
+        motion.scaleFactor = 0f
+        // A grow ended before its first morphed frame would fade in, but animations are now off.
+        owner.remove(aNode)
+        assertThat(fixture.b.transitionAlpha).isEqualTo(1f)
+      }
+      fixture.settle()
+    }
+  }
+
+  @Test
   fun materializeGhost_drawsThroughBorrowedAnchorWithoutDisturbingIt() = runComposeUiTest {
     val fixture = fixture(gap = 100, transition = GlassMemberTransition.Materialize, bTint = Color.Red)
     val before = fixture.capture()
@@ -1254,6 +1284,10 @@ class GlassContainerTransitionTest : ContextTest() {
 
   private object NoMotion : MotionDurationScale {
     override val scaleFactor: Float = 0f
+  }
+
+  private class SwitchableMotion : MotionDurationScale {
+    override var scaleFactor: Float = 1f
   }
 }
 

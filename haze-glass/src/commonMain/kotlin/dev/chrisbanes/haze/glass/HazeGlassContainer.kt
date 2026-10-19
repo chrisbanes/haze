@@ -297,7 +297,7 @@ internal class GlassContainerNode(
    * passes through here, so this only marks the container dirty; [recluster] runs once per frame.
    */
   fun memberChanged() {
-    // onPlaced reclusters once this container has coordinates; a member can register first.
+    // A member can register before this container has coordinates; onPlaced marks it dirty then.
     if (!isAttached || refreshing || surfaceCoordinates == null) return
     // A scroll that ends before the next draw must still suppress transitions.
     observeScroll()
@@ -496,8 +496,8 @@ internal class GlassContainerNode(
   }
 
   override fun onDetach() {
-    // Releasing member surfaces below reclusters; without coordinates that pass returns early
-    // instead of restoring the overrides this resets.
+    // Releasing member surfaces below notifies memberChanged; without coordinates it returns early,
+    // so no later pass restores the overrides this resets.
     surfaceCoordinates = null
     membersClaimed = false
     renderer.release()
