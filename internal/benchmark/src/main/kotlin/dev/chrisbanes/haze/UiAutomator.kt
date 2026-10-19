@@ -94,7 +94,14 @@ internal fun UiDevice.navigateToCreditCard() {
   waitForIdle()
 }
 
-internal fun UiDevice.waitForBlurProfilingScenario(scenarioId: String) {
+/**
+ * [awaitStableStart] settles the Start button before the click. Pass false from a measured block
+ * that never clicks it, so the wait does not extend the measured window.
+ */
+internal fun UiDevice.waitForBlurProfilingScenario(
+  scenarioId: String,
+  awaitStableStart: Boolean = true,
+) {
   waitForProfilingObject(
     effectName = "Blur",
     scenarioId = scenarioId,
@@ -107,7 +114,7 @@ internal fun UiDevice.waitForBlurProfilingScenario(scenarioId: String) {
     expectedPhase = "ready",
     selector = By.res("blur_profiling_start"),
   )
-  waitForStableBounds(By.res("blur_profiling_start"))
+  if (awaitStableStart) waitForStableBounds(By.res("blur_profiling_start"))
 }
 
 internal fun UiDevice.runBlurProfilingScenario(scenarioId: String) {

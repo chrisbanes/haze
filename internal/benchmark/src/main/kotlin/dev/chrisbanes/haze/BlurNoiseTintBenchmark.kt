@@ -66,7 +66,7 @@ class BlurNoiseTintBenchmark {
       ) {
         if (cold) {
           startActivityAndWait { it.selectBenchmarkSample("blur-profiling", "blur", scenario) }
-          device.waitForBlurProfilingScenario(scenario)
+          device.waitForBlurProfilingScenario(scenario, awaitStableStart = false)
         } else {
           device.startNoiseTintRun()
           check(device.waitForObjectOrNull(By.res("blur_profiling_phase_complete"), 8.seconds) != null) {
