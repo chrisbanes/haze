@@ -424,11 +424,16 @@ internal class GlassContainerNode(
   }
 
   /**
-   * The member's untransformed size, or null until it is placed or while its owner-space bounds are degenerate,
-   * matching its exclusion from clusters. Owner-space bounds would grow with rotation or scale, so they only gate.
+   * The member's untransformed size, or null until it is placed or while its owner-space bounds or interaction rect
+   * are degenerate, matching its exclusion from clusters. Those rects would grow with rotation or scale, so they only gate.
    */
-  private fun GlassMemberNode.localSize(): Size? =
-    if (isAttached && binding.surface?.boundsInOwner()?.isValidGlassMember() == true) this.requireLayoutCoordinates().size.toSize() else null
+  private fun GlassMemberNode.localSize(): Size? {
+    if (!isAttached) return null
+    val bounds = binding.surface?.boundsInOwner()?.takeIf { it.isValidGlassMember() } ?: return null
+    val transform = binding.runtime?.currentInteractionTransform(bounds.size)
+    if (transform != null && !bounds.transformedBy(transform).isValidGlassMember()) return null
+    return requireLayoutCoordinates().size.toSize()
+  }
 
   private fun liveSnapshots(): Map<GlassMemberNode, GlassMemberSnapshot> = members.mapNotNull { member ->
     val binding = member.binding
