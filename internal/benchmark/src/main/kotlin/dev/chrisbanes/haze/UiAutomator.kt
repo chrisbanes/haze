@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import android.content.Intent
 import android.graphics.Point
+import android.graphics.Rect
 import android.os.SystemClock
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
@@ -16,6 +17,7 @@ import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 import kotlin.math.roundToInt
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 internal const val FORCE_BLUR_EXTRA = "dev.chrisbanes.haze.sample.android.FORCE_BLUR"
@@ -105,6 +107,7 @@ internal fun UiDevice.waitForBlurProfilingScenario(scenarioId: String) {
     expectedPhase = "ready",
     selector = By.res("blur_profiling_start"),
   )
+  waitForStableBounds(By.res("blur_profiling_start"))
 }
 
 internal fun UiDevice.runBlurProfilingScenario(scenarioId: String) {
@@ -157,6 +160,7 @@ internal fun UiDevice.waitForGlassProfilingScenario(scenarioId: String) {
     expectedPhase = "ready",
     selector = By.res("glass_profiling_start"),
   )
+  waitForStableBounds(By.res("glass_profiling_start"))
 }
 
 internal fun UiDevice.runGlassProfilingScenario(scenarioId: String) {
@@ -168,6 +172,29 @@ internal fun UiDevice.runGlassProfilingScenario(scenarioId: String) {
   ).click()
   SystemClock.sleep(GLASS_PROFILING_MEASURE_MILLIS)
   requireProfilingComplete(effectName = "Glass", scenarioId = scenarioId, tagPrefix = "glass")
+}
+
+/**
+ * The scenario screen animates in after launch, and UI Automator reports the button mid-flight.
+ * Clicking it then lands on the sample list underneath and navigates away. Run from setup so the
+ * wait stays outside the measured window.
+ */
+private fun UiDevice.waitForStableBounds(selector: BySelector, stableFor: Duration = 500.milliseconds) {
+  var last: Rect? = null
+  var since = SystemClock.elapsedRealtime()
+  val deadline = since + 15.seconds.inWholeMilliseconds
+  while (SystemClock.elapsedRealtime() < deadline) {
+    val bounds = findObject(selector)?.visibleBounds
+    val now = SystemClock.elapsedRealtime()
+    if (bounds != last) {
+      last = bounds
+      since = now
+    } else if (bounds != null && now - since >= stableFor.inWholeMilliseconds) {
+      return
+    }
+    SystemClock.sleep(50)
+  }
+  error("Bounds of [$selector] never settled: $last")
 }
 
 /**
