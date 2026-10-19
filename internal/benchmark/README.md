@@ -668,6 +668,10 @@ JSON reports and Perfetto traces are copied to:
 internal/benchmark/build/outputs/connected_android_test_additional_output/
 ```
 
+A Blur or Glass profiling iteration fails with a `phase=complete` timeout when its scenario never
+started, for example because the start click was lost. It is not a measurement; rerun the method.
+An iteration that ran but recorded no frames is instead rejected by `archive_result.py --min-frames`.
+
 Use `frameOverrunMs` for deadline misses and `frameDurationCpuMs` for UI-thread and RenderThread
 cost. A positive `hazeGlassRuntimeDrawCount` confirms that a Glass scenario used the modern runtime
 delegate. It counts UI-thread recording, not rendered frames: with source input, a changing source
