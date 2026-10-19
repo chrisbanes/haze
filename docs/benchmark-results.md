@@ -33,53 +33,58 @@ sample.
 
 | Workload | Quality | Balanced | Performance |
 | --- | ---: | ---: | ---: |
-| Stable source | 4.60 / -6.85 | 4.67 / -6.93 | 4.58 / -7.02 |
-| Continuously changing source | 5.49 / -4.91 | 5.35 / -5.50 | 5.47 / -5.70 |
+| Stable source | 4.77 / -9.16 | 4.73 / -9.10 | 4.46 / -9.13 |
+| Continuously changing source | 5.11 / -6.05 | 5.20 / -6.82 | 5.12 / -7.37 |
 
 ### Glass
 
 | Workload | Quality | Balanced | Performance |
 | --- | ---: | ---: | ---: |
-| Stable source | 4.53 / -9.80 | 4.10 / -10.13 | 3.93 / -10.07 |
-| Continuously changing source | 4.45 / -6.95 | 4.27 / -8.08 | 4.08 / -8.99 |
+| Stable source | 4.38 / -10.20 | 4.41 / -10.14 | 4.50 / -10.12 |
+| Continuously changing source | 5.00 / -6.58 | 5.05 / -7.72 | 4.83 / -8.97 |
 
 All configurations had spare time at P90. For changing-input Glass, `Balanced` left about
-8.1 ms of deadline margin, compared with 7.0 ms for `Quality`. `Performance` used roughly
+7.7 ms of deadline margin, compared with 6.6 ms for `Quality`. `Performance` used roughly
 9% less peak GPU memory than `Quality` in both workloads. For each workload and mode, this
-compares the mean of the two pass-level `memoryGpuMaxKb` medians: 100,148 KB versus 110,226 KB
-for the stable source, and 100,467 KB versus 110,223 KB for the changing source.
+compares the mean of the two pass-level `memoryGpuMaxKb` medians: 96,558 KB versus 106,430 KB
+for the stable source, and 96,660 KB versus 106,430 KB for the changing source. CPU frame
+duration differences between modes were small and did not follow one ordering across workloads.
 
 !!! warning "These results are not a universal mode ranking"
 
-    Reversing the run order moved some per-pass CPU P90s by more than 2 ms. Averaging the two
-    passes reduces order bias, but normal Android scheduling still allowed CPU-placement and
-    background-load variation. CPU frame duration also does not measure GPU shader cost. Compare
-    appearance and repeat measurements on your screen before choosing an override.
+    The two passes of the same method differed by up to 0.35 ms in CPU P90. Averaging them
+    reduces order bias, but normal Android scheduling still allowed CPU-placement and
+    background-load variation, and CPU placement was not analysed for this run. CPU frame
+    duration also does not measure GPU shader cost. Compare appearance and repeat measurements
+    on your screen before choosing an override.
 
 ??? info "Measurement details"
 
-    The `benchmarkRelease` build used commit `b4688410`; the Android build was
-    `CP41.260814.003.B1`. The device was on AC power at 100% charge and reported thermal
-    status 0 before both passes. The first pass started at a battery temperature of 28.1°C;
-    after cooling, the reverse pass started at 28.6°C. Automatic brightness remained enabled
-    with the setting value unchanged at 10. Glass kept the other `GlassDefaults` values unchanged.
+    The `benchmarkRelease` library code was commit `c1b1c58b4`. The benchmark harness also
+    included the wait for the profiling Start button to settle before clicking it
+    ([#1597](https://github.com/chrisbanes/haze/pull/1597), as first written, before its change that
+    skips the wait for cold Blur noise/tint runs). Without it, Glass
+    iterations intermittently clicked the sample list underneath the animating scenario screen and
+    failed. The wait runs in setup, outside the measured window. The sample APK SHA-256 was
+    `5734c0b6d7005540341a334eaa8a097220ab774e25b421110dfe5576b2b9eb8c` and the benchmark APK
+    `5c0173051077cfba1e64fcb7763318465c997a0f1eebe742b997d05c4f94d9e9`. The Android build was
+    `CP41.260831.016`. The device was on AC power at 80% charge and reported thermal status 0
+    before both passes. The forward pass started at a battery temperature of 30.0°C and the
+    reverse pass, after cooling, at 29.0°C.
 
-    The original calibration ran 16 methods in both orders, producing 256 measured iterations
-    and 256 Perfetto traces. The first pass ran Blur stable, Blur changing, Glass stable, then
-    Glass changing; each group ran the then-configured adaptive input-scale policy, Quality,
-    Balanced, then Performance. This page retains the fixed-mode results only. The second pass
-    reversed the complete method order.
-
-    Every method was dry-run and measured through its own selector. JSON method identity, XML
-    success, iteration count, and trace count were verified before continuing. The first reverse
-    attempt failed before measurement because the secure keyguard prevented activity-launch
-    confirmation. Its failed XML was preserved and excluded; the exact retry passed after the
-    device was unlocked. The Google app was temporarily disabled to avoid its known Chromium
-    trace-producer delay, then restored after measurement.
+    The twelve methods ran in both orders, producing 192 measured iterations and 192 Perfetto
+    traces. The first pass ran Blur stable, Blur changing, Glass stable, then Glass changing;
+    each group ran Quality, Balanced, then Performance. The second pass reversed the complete
+    method order. Each method ran in its own Gradle invocation, and JSON method identity, XML
+    success, iteration count, and trace count were verified before continuing. Blur methods were
+    dry-run first; the Glass methods were validated by their measured runs, which fail when a
+    scenario never completes. Earlier attempts with the previous harness failed on the Glass start
+    click and are not included. The Google app was temporarily disabled to avoid its known Chromium
+    trace-producer delay, then restored after the run.
 
     Blur rows did not all record GPU memory. Raw JSON, benchmark messages, and traces are
-    retained locally under `internal/benchmark/build/benchmark-results/` in
-    `performance-levels-20260918-forward/` and `performance-levels-20260918-reverse/`.
+    retained locally under `internal/benchmark/build/benchmark-results/modes-20261019/`, in
+    `forward/` and `reverse/`.
 
     See [ADR-0004][blur-adr] and [ADR-0005][glass-adr] for adaptive-policy decisions, and
     [ADR-0006][performance-mode-adr] for the public terminology.

@@ -90,8 +90,8 @@ subtree, provide `LocalHazePerformanceMode`; an explicit `performanceMode` argum
 !!! note "Measured quality trade-offs"
 
     In a two-pass test on a Pixel 8a (Android 17, 60 Hz, fixed-performance mode) with a changing
-    background, Glass `Balanced` left about **8.1 ms** of frame-deadline headroom at P90,
-    compared with **7.0 ms** for `Quality`. Glass `Performance` used roughly **9% less peak GPU
+    background, Glass `Balanced` left about **7.7 ms** of frame-deadline headroom at P90,
+    compared with **6.6 ms** for `Quality`. Glass `Performance` used roughly **9% less peak GPU
     memory** than `Quality` in both stable and changing-background tests, comparing the mean of
     the two pass-level medians for each mode and workload. Each method ran eight iterations per
     pass. These are reference points, not guaranteed savings on another screen. See the [full mode
