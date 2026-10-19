@@ -77,8 +77,10 @@ duration differences between modes were small and did not follow one ordering ac
     each group ran Quality, Balanced, then Performance. The second pass reversed the complete
     method order. Each method ran in its own Gradle invocation, and JSON method identity, XML
     success, iteration count, and trace count were verified before continuing. Blur methods were
-    dry-run first; the Glass methods were validated by their measured runs, which fail when a
-    scenario never completes. Earlier attempts with the previous harness failed on the Glass start
+    dry-run before measurement. The Glass methods were measured without a preceding dry run
+    on the final harness, because their start click was failing; each Glass method was then
+    dry-run individually after both passes, on the harness as merged in #1597, and all six passed.
+    Earlier attempts with the previous harness failed on the Glass start
     click and are not included. The Google app was temporarily disabled to avoid its known Chromium
     trace-producer delay, then restored after the run.
 
