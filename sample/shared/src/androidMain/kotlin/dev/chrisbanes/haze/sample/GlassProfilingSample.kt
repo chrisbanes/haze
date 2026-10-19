@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -342,6 +343,8 @@ private fun GlassProfilingScene(
     Column(
       modifier = Modifier
         .align(Alignment.TopStart)
+        // Below the status bar, so UI Automator can still find the phase once Start is gone.
+        .statusBarsPadding()
         .padding(16.dp)
         .testTag("glass_profiling_selected_${scenario.id}"),
       verticalArrangement = Arrangement.spacedBy(8.dp),
