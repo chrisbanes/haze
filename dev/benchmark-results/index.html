@@ -906,6 +906,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Glass containers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lazy-container-scroll" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lazy container scroll
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1335,6 +1352,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Glass containers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lazy-container-scroll" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lazy container scroll
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1771,6 +1805,87 @@ between 4.2 and 4.7 ms in both groups.</p>
 retained locally under <code>internal/benchmark/build/benchmark-results/container.dy8ZmS/</code>. The
 on-device sample check is recorded in the
 <a href="https://github.com/chrisbanes/haze/issues/1448#issuecomment-6120179344">replan report</a>.</p>
+</details>
+<p><a id="glass-container-lazy-scroll"></a></p>
+<h3 id="lazy-container-scroll">Lazy container scroll<a class="headerlink" href="#lazy-container-scroll" title="Permanent link">¶</a></h3>
+<p>This comparison scrolls a five-column <code>LazyVerticalGrid</code> with 40–45 visible members inside
+<code>hazeGlassContainer(spacing = 16.dp)</code>. Every member is its own cluster, so the workload isolates
+reclustering. Build A reclusters on every member notification. Build B coalesces them into one
+pass per frame (<a href="https://github.com/chrisbanes/haze/issues/1567">#1567</a>). It used a Pixel 8a running
+Android 17 at 60 Hz, with fixed-performance mode enabled and normal CPU scheduling.</p>
+<p>Each per-pass value pools the frames of that pass's eight iterations; the table shows the
+<strong>arithmetic mean of the two per-pass values</strong> for each build.</p>
+<table>
+<thead>
+<tr>
+<th>Build</th>
+<th style="text-align: right;">CPU frame duration P50 (ms)</th>
+<th style="text-align: right;">CPU frame duration P90 (ms)</th>
+<th style="text-align: right;">CPU frame duration P99 (ms)</th>
+<th style="text-align: right;">Frame overrun P50 (ms)</th>
+<th style="text-align: right;">Frame overrun P90 (ms)</th>
+<th style="text-align: right;">Measured frames, both passes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A: recluster per notification</td>
+<td style="text-align: right;">33.2</td>
+<td style="text-align: right;">49.7</td>
+<td style="text-align: right;">65.6</td>
+<td style="text-align: right;">35.1</td>
+<td style="text-align: right;">56.6</td>
+<td style="text-align: right;">2,376</td>
+</tr>
+<tr>
+<td>B: one recluster per frame</td>
+<td style="text-align: right;">27.7</td>
+<td style="text-align: right;">32.5</td>
+<td style="text-align: right;">35.7</td>
+<td style="text-align: right;">18.6</td>
+<td style="text-align: right;">24.5</td>
+<td style="text-align: right;">2,830</td>
+</tr>
+</tbody>
+</table>
+<p>Build B cut main-thread running time inside the measured window from a mean of 3,005 ms to
+1,412 ms, out of about 3,330 ms. In build A the main thread was busy for almost the whole window.
+RenderThread running time stayed similar, at 2,006 ms and 2,149 ms. Build B delivered about
+19% more frames and roughly halved the overrun.</p>
+<p>Neither build met the 60 Hz deadline: 94% (A) and 97% (B) of frames overran. In build B neither
+thread was busy for the whole window: RenderThread ran for about 65% of it while drawing about 40
+separate Glass layers. These runs did not measure GPU timings, so they don't show where the
+remaining frame time goes. The result describes this deliberately dense scene, not a typical
+container.</p>
+<p>The two-member container workloads above ran as guards in the same passes. The container row's
+mean CPU P90 was 4.82 ms (A) and 4.80 ms (B). The independent row's was 4.86 ms and 5.48 ms, but
+that difference came from one B pass at 6.31 ms; the other B pass, at 4.66 ms, was below both A
+passes. Neither guard missed its deadline at P90.</p>
+<details class="info">
+<summary>Measurement details</summary>
+<p>Build A was commit <code>7ffbcc45</code>, which adds the scenario without a library change. Build B was
+commit <code>68217119</code>, the head of <a href="https://github.com/chrisbanes/haze/pull/1592">#1592</a>. The sample
+APK SHA-256 was <code>b08454af9eb5bb363f8796339022994532ca0a00a45d0b8bdccf65e6edeb6c63</code> for A and
+<code>b31b86e4e3951c999005cd969cfacd270ec333bd65ed7efe4c8ecee35a8a8b70</code> for B; both used benchmark
+APK <code>6dc136d3dacc31b813554622d8b2a518bad3748a63160d4f6822feb30172f93f</code>. The Android build was
+<code>CP41.260831.016</code>. The device was on AC power at 80% charge and reported thermal status 0
+before and after every pass. Battery temperature rose from 28.8°C to 33.9°C across the run.</p>
+<p>The passes ran in the order A, B, B, A, each running the lazy scroll and then both two-member
+guards, eight measured iterations per method in its own Gradle invocation. Each build was
+dry-run first. This produced 96 iterations and 96 Perfetto traces. The Google app was
+temporarily disabled to prevent its Chromium trace producer from delaying collection; an
+earlier pass that hit that delay was discarded and rerun.</p>
+<p>Build A slowed as the device warmed: its per-pass CPU P90 was 40.9 ms in the first pass and
+58.6 ms in the last. Build B's per-pass CPU P90 was 32.6 ms and 32.5 ms. Using only the first,
+coolest A pass, build B still lowered CPU P90 by 8.3 ms and overrun P50 by 10.5 ms.</p>
+<p>CPU placement differed between builds. In every A iteration the main thread ran mostly on the
+big core and RenderThread mostly on the middle cluster. In every B iteration the scheduler
+swapped them. Build B's main-thread reduction was therefore measured on slower cores. Two of the
+32 lazy-scroll traces, one per B pass, had no scheduler data in the measured window and are
+excluded from the running-time means. Build B's iterations split into two groups, with CPU P50
+of 17.5–20.9 ms and 28.2–30.4 ms, without a matching placement difference.</p>
+<p>Raw JSON, benchmark messages, traces, per-pass device readbacks, and the discarded pass are
+retained locally under <code>internal/benchmark/build/benchmark-results/lazy-container-2026-10-18/</code>.</p>
 </details>
 <p><a id="blur-noise-tint"></a></p>
 <h2 id="blur-noise-and-tint-shader-reuse">Blur noise and tint shader reuse<a class="headerlink" href="#blur-noise-and-tint-shader-reuse" title="Permanent link">¶</a></h2>
