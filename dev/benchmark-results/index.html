@@ -1462,15 +1462,15 @@ sample.</p>
 <tbody>
 <tr>
 <td>Stable source</td>
-<td style="text-align: right;">4.60 / -6.85</td>
-<td style="text-align: right;">4.67 / -6.93</td>
-<td style="text-align: right;">4.58 / -7.02</td>
+<td style="text-align: right;">4.77 / -9.16</td>
+<td style="text-align: right;">4.73 / -9.10</td>
+<td style="text-align: right;">4.46 / -9.13</td>
 </tr>
 <tr>
 <td>Continuously changing source</td>
-<td style="text-align: right;">5.49 / -4.91</td>
-<td style="text-align: right;">5.35 / -5.50</td>
-<td style="text-align: right;">5.47 / -5.70</td>
+<td style="text-align: right;">5.11 / -6.05</td>
+<td style="text-align: right;">5.20 / -6.82</td>
+<td style="text-align: right;">5.12 / -7.37</td>
 </tr>
 </tbody>
 </table>
@@ -1487,51 +1487,59 @@ sample.</p>
 <tbody>
 <tr>
 <td>Stable source</td>
-<td style="text-align: right;">4.53 / -9.80</td>
-<td style="text-align: right;">4.10 / -10.13</td>
-<td style="text-align: right;">3.93 / -10.07</td>
+<td style="text-align: right;">4.38 / -10.20</td>
+<td style="text-align: right;">4.41 / -10.14</td>
+<td style="text-align: right;">4.50 / -10.12</td>
 </tr>
 <tr>
 <td>Continuously changing source</td>
-<td style="text-align: right;">4.45 / -6.95</td>
-<td style="text-align: right;">4.27 / -8.08</td>
-<td style="text-align: right;">4.08 / -8.99</td>
+<td style="text-align: right;">5.00 / -6.58</td>
+<td style="text-align: right;">5.05 / -7.72</td>
+<td style="text-align: right;">4.83 / -8.97</td>
 </tr>
 </tbody>
 </table>
 <p>All configurations had spare time at P90. For changing-input Glass, <code>Balanced</code> left about
-8.1 ms of deadline margin, compared with 7.0 ms for <code>Quality</code>. <code>Performance</code> used roughly
+7.7 ms of deadline margin, compared with 6.6 ms for <code>Quality</code>. <code>Performance</code> used roughly
 9% less peak GPU memory than <code>Quality</code> in both workloads. For each workload and mode, this
-compares the mean of the two pass-level <code>memoryGpuMaxKb</code> medians: 100,148 KB versus 110,226 KB
-for the stable source, and 100,467 KB versus 110,223 KB for the changing source.</p>
+compares the mean of the two pass-level <code>memoryGpuMaxKb</code> medians: 96,558 KB versus 106,430 KB
+for the stable source, and 96,660 KB versus 106,430 KB for the changing source. CPU frame
+duration differences between modes were small and did not follow one ordering across workloads.</p>
 <div class="admonition warning">
 <p class="admonition-title">These results are not a universal mode ranking</p>
-<p>Reversing the run order moved some per-pass CPU P90s by more than 2 ms. Averaging the two
-passes reduces order bias, but normal Android scheduling still allowed CPU-placement and
-background-load variation. CPU frame duration also does not measure GPU shader cost. Compare
-appearance and repeat measurements on your screen before choosing an override.</p>
+<p>The two passes of the same method differed by up to 0.35 ms in CPU P90. Averaging them
+reduces order bias, but normal Android scheduling still allowed CPU-placement and
+background-load variation, and CPU placement was not analysed for this run. CPU frame
+duration also does not measure GPU shader cost. Compare appearance and repeat measurements
+on your screen before choosing an override.</p>
 </div>
 <details class="info">
 <summary>Measurement details</summary>
-<p>The <code>benchmarkRelease</code> build used commit <code>b4688410</code>; the Android build was
-<code>CP41.260814.003.B1</code>. The device was on AC power at 100% charge and reported thermal
-status 0 before both passes. The first pass started at a battery temperature of 28.1°C;
-after cooling, the reverse pass started at 28.6°C. Automatic brightness remained enabled
-with the setting value unchanged at 10. Glass kept the other <code>GlassDefaults</code> values unchanged.</p>
-<p>The original calibration ran 16 methods in both orders, producing 256 measured iterations
-and 256 Perfetto traces. The first pass ran Blur stable, Blur changing, Glass stable, then
-Glass changing; each group ran the then-configured adaptive input-scale policy, Quality,
-Balanced, then Performance. This page retains the fixed-mode results only. The second pass
-reversed the complete method order.</p>
-<p>Every method was dry-run and measured through its own selector. JSON method identity, XML
-success, iteration count, and trace count were verified before continuing. The first reverse
-attempt failed before measurement because the secure keyguard prevented activity-launch
-confirmation. Its failed XML was preserved and excluded; the exact retry passed after the
-device was unlocked. The Google app was temporarily disabled to avoid its known Chromium
-trace-producer delay, then restored after measurement.</p>
+<p>The <code>benchmarkRelease</code> library code was commit <code>c1b1c58b4</code>. The benchmark harness also
+included the wait for the profiling Start button to settle before clicking it
+(<a href="https://github.com/chrisbanes/haze/pull/1597">#1597</a>, as first written, before its change that
+skips the wait for cold Blur noise/tint runs). Without it, Glass
+iterations intermittently clicked the sample list underneath the animating scenario screen and
+failed. The wait runs in setup, outside the measured window. The sample APK SHA-256 was
+<code>5734c0b6d7005540341a334eaa8a097220ab774e25b421110dfe5576b2b9eb8c</code> and the benchmark APK
+<code>5c0173051077cfba1e64fcb7763318465c997a0f1eebe742b997d05c4f94d9e9</code>. The Android build was
+<code>CP41.260831.016</code>. The device was on AC power at 80% charge and reported thermal status 0
+before both passes. The forward pass started at a battery temperature of 30.0°C and the
+reverse pass, after cooling, at 29.0°C.</p>
+<p>The twelve methods ran in both orders, producing 192 measured iterations and 192 Perfetto
+traces. The first pass ran Blur stable, Blur changing, Glass stable, then Glass changing;
+each group ran Quality, Balanced, then Performance. The second pass reversed the complete
+method order. Each method ran in its own Gradle invocation, and JSON method identity, XML
+success, iteration count, and trace count were verified before continuing. Blur methods were
+dry-run before measurement. The Glass methods were measured without a preceding dry run
+on the final harness, because their start click was failing; each Glass method was then
+dry-run individually after both passes, on the harness as merged in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/1597" title="GitHub Issue chrisbanes/haze #1597">#1597</a>, and all six passed.
+Earlier attempts with the previous harness failed on the Glass start
+click and are not included. The Google app was temporarily disabled to avoid its known Chromium
+trace-producer delay, then restored after the run.</p>
 <p>Blur rows did not all record GPU memory. Raw JSON, benchmark messages, and traces are
-retained locally under <code>internal/benchmark/build/benchmark-results/</code> in
-<code>performance-levels-20260918-forward/</code> and <code>performance-levels-20260918-reverse/</code>.</p>
+retained locally under <code>internal/benchmark/build/benchmark-results/modes-20261019/</code>, in
+<code>forward/</code> and <code>reverse/</code>.</p>
 <p>See <a href="../adr/0004-use-quality-gated-adaptive-input-scaling-for-blur/">ADR-0004</a> and <a href="../adr/0005-use-cadence-weighted-adaptive-input-scaling-for-glass/">ADR-0005</a> for adaptive-policy decisions, and
 <a href="../adr/0006-reconcile-built-in-performance-mode-terminology/">ADR-0006</a> for the public terminology.</p>
 </details>
