@@ -220,6 +220,9 @@ class GlassProfilingBenchmark {
     includeRedrawMetrics = true,
   )
 
+  @Test
+  fun lazyContainerScroll() = measureScenario("lazy_container_scroll", includeMemory = true)
+
   private fun measureColdInitializationScenario(scenarioId: String) {
     measureScenario(
       scenarioId = scenarioId,

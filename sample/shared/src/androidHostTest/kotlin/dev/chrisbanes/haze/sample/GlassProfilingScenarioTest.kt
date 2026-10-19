@@ -184,6 +184,7 @@ class GlassProfilingScenarioTest {
         "shape_update_balanced_9",
         "source_scroll_balanced",
         "source_scroll_balanced_9",
+        "lazy_container_scroll",
       ),
     )
     assertThat(
@@ -401,6 +402,7 @@ class GlassProfilingScenarioTest {
     val containerPair = setOf(
       GlassProfilingScenario.SourceUpdateIndependent2,
       GlassProfilingScenario.SourceUpdateContainer2,
+      GlassProfilingScenario.LazyContainerScroll,
     )
     (GlassProfilingScenario.entries - containerPair).forEach { scenario ->
       assertThat(scenario.memberGap, name = scenario.id).isEqualTo(0.dp)

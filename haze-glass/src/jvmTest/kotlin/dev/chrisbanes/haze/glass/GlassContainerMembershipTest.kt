@@ -491,10 +491,12 @@ class GlassContainerMembershipTest : ContextTest() {
       }
     }
     waitForIdle()
+    val container = runOnIdle { container(pill) }
+    val before = runOnIdle { checkNotNull(pill.memberBindingForTest?.material).resolvedOptics }
+    runOnIdle { container.remove(checkNotNull(card.memberBindingForTest?.node)) }
+    // The container reclusters in its next draw.
+    waitForIdle()
     runOnIdle {
-      val container = container(pill)
-      val before = checkNotNull(pill.memberBindingForTest?.material).resolvedOptics
-      container.remove(checkNotNull(card.memberBindingForTest?.node))
       val context = checkNotNull(pill.attachedContextForTest)
       val expected = resolveGlassStyle(pill, context.modifierSize, context.requireDensity(), LayoutDirection.Ltr).resolvedOptics
       assertThat(expected).isNotEqualTo(before)

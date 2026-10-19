@@ -61,6 +61,24 @@ class GlassClustersTest {
   }
 
   @Test
+  fun cluster_linkedOrNearMembersMergeOnlyWithEqualKeys() {
+    val first = member(0, 0f).copy(identity = "first")
+    // 300 px away, well beyond the 40 px spacing: only the link can merge it.
+    val linked = member(1, 400f).copy(identity = "linked", link = first.identity)
+    assertThat(clusterGlassMembers(listOf(first, linked), 40f).surfaces.map { it.members.size })
+      .containsExactly(2)
+
+    val differentKey = linked.copy(key = key.copy(alpha = 0.4f))
+    assertThat(clusterGlassMembers(listOf(first, differentKey), 40f).surfaces.map { it.members.size })
+      .containsExactly(1, 1)
+
+    // 10 px apart, within spacing / 2: proximity alone does not override a different key.
+    val near = member(2, 110f).copy(key = key.copy(alpha = 0.4f))
+    assertThat(clusterGlassMembers(listOf(first, near), 40f).surfaces.map { it.members.size })
+      .containsExactly(1, 1)
+  }
+
+  @Test
   fun cluster_chainUsesConnectedComponents() {
     val result = clusterGlassMembers(List(3) { member(it) }, 40f)
     assertThat(result.surfaces.single().members.map { it.identity }).containsExactly(0, 1, 2)

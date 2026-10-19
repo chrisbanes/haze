@@ -153,6 +153,8 @@ class GlassContainerRenderAndroidHostTest : ScreenshotTest() {
       assertThat(ShadowLog.getLogsForTag("GlassContainer").count { "cap 4 by 2" in it.msg }).isEqualTo(1)
       composeTestRule.runOnIdle { count.value = 7 }
       waitForIdle()
+      // The container reclusters in a draw, and the new member's transition needs a second one.
+      repeat(2) { captureRootPixels() }
       assertThat(ShadowLog.getLogsForTag("GlassContainer").count { "cap 4 by 3" in it.msg }).isEqualTo(1)
     } finally {
       HazeLogger.enabled = previous

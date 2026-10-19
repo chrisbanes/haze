@@ -173,6 +173,13 @@ internal class GlassContainerNode(
   private var membersClaimed = false
   private var refreshing = false
   private var spacingCheckPending = false
+
+  /** Set by [memberChanged]; the next draw (or a leaving member's ghost) reclusters once for all of them. */
+  private var reclusterPending = false
+
+  /** Reclustering passes run so far; tests count them to prove a frame reclusters once. */
+  internal var reclusterPasses = 0
+    private set
   private var overflow = emptyList<GlassClusterOverflow>()
   internal val renderer = GlassContainerRenderer(this)
   internal val spacingPx: Float get() = with(requireDensity()) { spacing.toPx() }
@@ -215,6 +222,9 @@ internal class GlassContainerNode(
   /** [leaving] is false when the member moves to another container, where it stays visible. */
   fun remove(member: GlassMemberNode, leaving: Boolean = true) {
     observeScroll()
+    // ghostOf reads latest, so the pass that records this member's departure snapshot (or drops a
+    // collapsed member's) runs before it is removed. While suppressed or off, no ghost is made.
+    if (leaving && reclusterPending && !suppressTransitions && !transitionsOff) recluster(layoutComplete = false)
     renderer.releaseMember(member)
     pending -= member
     attaching.remove(member)?.job?.cancel()
@@ -282,16 +292,28 @@ internal class GlassContainerNode(
     }
   }
 
-  fun memberChanged(layoutComplete: Boolean = false) {
+  /**
+   * Notes that a member, its material or a transition changed. Every placement during a scroll
+   * passes through here, so this only marks the container dirty; [recluster] runs once per frame.
+   */
+  fun memberChanged() {
     // onPlaced reclusters once this container has coordinates; a member can register first.
     if (!isAttached || refreshing || surfaceCoordinates == null) return
-    // Each placement during a scroll passes through here, including one forced inside the scroll.
+    // A scroll that ends before the next draw must still suppress transitions.
     observeScroll()
+    reclusterPending = true
+    invalidateDraw()
+  }
+
+  private fun recluster(layoutComplete: Boolean) {
+    if (!isAttached || refreshing || surfaceCoordinates == null) return
+    reclusterPending = false
+    reclusterPasses++
     if (layoutComplete) spacingCheckPending = false
     refreshing = true
     try {
-      // Reached synchronously from a member's observed update(): the animated interaction and
-      // transition reads below must not re-run that update every frame.
+      // Reached from a draw or a member's removal: the animated interaction and transition reads
+      // below must not make that draw observe them and re-run every frame.
       Snapshot.withoutReadObservation {
         if (pending.isNotEmpty()) startTransitions(liveSnapshots())
         val registered = members
@@ -375,7 +397,6 @@ internal class GlassContainerNode(
             HazeLogger.d("GlassContainer") { "Glass component exceeds cap $MAX_GLASS_MERGED_MEMBERS by ${component.excessCount}" }
           }
         }
-        invalidateDraw()
       }
     } finally {
       refreshing = false
@@ -458,10 +479,19 @@ internal class GlassContainerNode(
   override fun canComposeNativeSurfaces(bounds: Rect): Boolean = renderer.canComposeNativeSurfaces(bounds)
 
   override fun ContentDrawScope.draw() {
-    if (spacingCheckPending) memberChanged(layoutComplete = true)
+    if (reclusterPending || spacingCheckPending) recluster(layoutComplete = true)
     // A detached node (deactivated reusable content) can still be drawn once more.
     val layer = children ?: return
-    drawHazeEffectSurfaces(this@GlassContainerNode, { renderer.reconcile() }, layer)
+    drawHazeEffectSurfaces(
+      this@GlassContainerNode,
+      {
+        // Recording the children can publish a member's first material, which would otherwise
+        // reach the model a frame late.
+        if (reclusterPending) recluster(layoutComplete = true)
+        renderer.reconcile()
+      },
+      layer,
+    )
     suppressTransitions = false
   }
 
@@ -481,6 +511,7 @@ internal class GlassContainerNode(
     pending.clear()
     attaching.clear()
     latest.clear()
+    reclusterPending = false
     model = GlassClusterModel(emptyList(), null, emptyList())
     suppressTransitions = true
     children?.let { requireGraphicsContext().releaseGraphicsLayer(it) }

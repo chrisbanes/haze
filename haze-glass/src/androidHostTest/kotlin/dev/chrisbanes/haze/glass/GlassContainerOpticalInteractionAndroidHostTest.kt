@@ -295,9 +295,10 @@ class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
     val owner = checkNotNull(firstEffect.memberBindingForTest?.node?.container)
     val firstNode = checkNotNull(firstEffect.memberBindingForTest).node
     val secondNode = checkNotNull(secondEffect.memberBindingForTest).node
+    // The container reclusters in its first draw.
+    val idleSeparate = captureRootPixels()
     assertThat(owner.model.surfaces.size).isEqualTo(2)
     assertThat(owner.renderer.runtimeSurfaces).isEmpty()
-    val idleSeparate = captureRootPixels()
 
     val firstPress = PressInteraction.Press(Offset(50f, 40f))
     runBlocking { firstSource.emit(firstPress) }
@@ -383,6 +384,7 @@ class GlassContainerOpticalInteractionAndroidHostTest : ScreenshotTest() {
     assertThat(owner.renderer.runtimeSurfaces).isEmpty()
     composeTestRule.runOnIdle { gap.intValue = 40 }
     waitForIdle()
+    captureRootPixels()
     assertThat(owner.model.surfaces.size).isEqualTo(1)
     val splitPress = PressInteraction.Press(Offset(50f, 40f))
     runBlocking { firstSource.emit(splitPress) }

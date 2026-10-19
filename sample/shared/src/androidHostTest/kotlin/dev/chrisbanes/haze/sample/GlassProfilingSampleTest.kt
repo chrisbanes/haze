@@ -4,7 +4,10 @@
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.runtime.remember
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
@@ -17,6 +20,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.contains
+import assertk.assertions.isBetween
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isTrue
@@ -87,6 +91,32 @@ class GlassProfilingSampleTest : ContextTest() {
     onNodeWithTag("glass_profiling_surface_0").assertIsDisplayed()
     onNodeWithTag("glass_profiling_surface_1").assertIsDisplayed()
     onNodeWithTag("glass_profiling_container").assertExists()
+  }
+
+  @Test
+  fun lazyContainerScroll_shows30To50ContainerMembers() = runComposeUiTest {
+    setContent {
+      GlassProfilingSampleContent(
+        state = remember { GlassProfilingState() },
+        onBack = {},
+      )
+    }
+
+    onNodeWithTag("glass_profiling_select_lazy_container_scroll")
+      .performScrollTo()
+      .performClick()
+    onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_container").assertExists()
+    val memberCount = onAllNodes(
+      SemanticsMatcher("tag starts with glass_profiling_lazy_member_") { node ->
+        node.config.getOrNull(SemanticsProperties.TestTag)
+          ?.startsWith("glass_profiling_lazy_member_") == true
+      },
+    ).fetchSemanticsNodes().size
+    assertThat(memberCount).isBetween(30, 50)
+
+    onNodeWithTag("glass_profiling_start").performClick()
+    onNodeWithTag("glass_profiling_phase_complete").assertIsDisplayed()
   }
 
   @Test

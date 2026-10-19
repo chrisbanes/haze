@@ -126,13 +126,14 @@ internal fun clusterGlassMembers(
       while (iterator.hasNext()) {
         val index = iterator.next()
         val candidate = valid[index]
+        // The gap or link test is cheap and rejects most pairs; the key comparison is a deep equals.
         if (
           member.translationOnly && candidate.translationOnly && !member.fading && !candidate.fading &&
-          member.key == candidate.key &&
           (
             glassMemberGap(member.rect, candidate.rect) < spacingPx / 2f ||
               member.link === candidate.identity || candidate.link === member.identity
-            )
+            ) &&
+          member.key == candidate.key
         ) {
           component += index
           iterator.remove()
