@@ -115,6 +115,7 @@ internal fun UiDevice.runBlurProfilingScenario(scenarioId: String) {
     selector = By.res("blur_profiling_start"),
   ).click()
   SystemClock.sleep(BLUR_PROFILING_MEASURE_MILLIS)
+  requireProfilingComplete(effectName = "Blur", scenarioId = scenarioId, tagPrefix = "blur")
 }
 
 internal fun UiDevice.waitForGlassProduct() = waitForObject(By.res("glass_product_page_0"))
@@ -166,6 +167,22 @@ internal fun UiDevice.runGlassProfilingScenario(scenarioId: String) {
     selector = By.res("glass_profiling_start"),
   ).click()
   SystemClock.sleep(GLASS_PROFILING_MEASURE_MILLIS)
+  requireProfilingComplete(effectName = "Glass", scenarioId = scenarioId, tagPrefix = "glass")
+}
+
+/**
+ * Fails the iteration when the scenario never ran, for example because the start click was lost.
+ * Checked after the measured window so it adds no UI Automator work while frames are recorded.
+ * Otherwise the iteration would silently record a static screen with no frames (#1587).
+ */
+private fun UiDevice.requireProfilingComplete(effectName: String, scenarioId: String, tagPrefix: String) {
+  waitForProfilingObject(
+    effectName = effectName,
+    scenarioId = scenarioId,
+    expectedPhase = "complete",
+    selector = By.res("${tagPrefix}_profiling_phase_complete"),
+    timeout = 2.seconds,
+  )
 }
 
 private fun UiDevice.waitForProfilingObject(
