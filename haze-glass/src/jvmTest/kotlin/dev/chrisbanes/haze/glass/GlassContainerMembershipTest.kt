@@ -6,7 +6,10 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.offset
@@ -22,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -33,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.contains
+import assertk.assertions.containsExactly
 import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
@@ -49,6 +54,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlinx.coroutines.runBlocking
 
 class GlassContainerMembershipTest : ContextTest() {
   @Composable
@@ -204,6 +210,43 @@ class GlassContainerMembershipTest : ContextTest() {
     runOnIdle { scale.value = 1f }
     waitForIdle()
     assertThat(card.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+  }
+
+  @Test
+  fun membership_pressCollapsedMemberDoesNotCountTowardOpticalSize() = runComposeUiTest {
+    val card = GlassRuntimeEffect()
+    val pill = GlassRuntimeEffect()
+    val source = MutableInteractionSource()
+    // The smallest valid pressed scale collapses the card's interaction rect, as a spring undershoot can.
+    val collapsed = GlassStyle { pressed { animate(snap(), snap()) { scale(Float.MIN_VALUE) } } }
+    setContent {
+      Row(Modifier.hazeGlassContainer(40.dp)) {
+        Box(
+          Modifier.size(300.dp, 100.dp).hazeGlass(
+            HazeEffectFactory { card },
+            HazeInput.Content,
+            collapsed,
+            null,
+            true,
+            source,
+            GlassTransformTarget.MaterialOnly,
+            GlassTransformPivot.Center,
+            GlassReducedMotionPolicy.Full,
+          ),
+        )
+        Member(pill, Modifier.size(140.dp, 64.dp))
+      }
+    }
+    waitForIdle()
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+    val press = PressInteraction.Press(Offset(150f, 50f))
+    runBlocking { source.emit(press) }
+    waitForIdle()
+    assertThat(container(pill).model.surfaces.flatMap { it.members }.map { it.identity }).containsExactly(pill.memberBindingForTest?.node)
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(64f, 64f))
+    runBlocking { source.emit(PressInteraction.Release(press)) }
+    waitForIdle()
     assertThat(pill.opticalSizeOverride).isEqualTo(Size(100f, 100f))
   }
 
