@@ -35,6 +35,13 @@ kotlin {
       dependencies {
         implementation(kotlin("test"))
         implementation(libs.assertk)
+        implementation(libs.compose.ui.test)
+      }
+    }
+
+    jvmTest {
+      dependencies {
+        implementation(compose.desktop.currentOs)
       }
     }
   }

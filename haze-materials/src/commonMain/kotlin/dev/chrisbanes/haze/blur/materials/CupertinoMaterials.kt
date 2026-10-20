@@ -5,7 +5,7 @@ package dev.chrisbanes.haze.blur.materials
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
@@ -28,7 +28,6 @@ public object CupertinoMaterials {
    * A [dev.chrisbanes.haze.blur.HazeBlurStyle] which implements a mostly translucent material.
    */
   @Composable
-  @ReadOnlyComposable
   public fun ultraThin(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeBlurStyle = cupertinoMaterialStyle(
@@ -44,7 +43,6 @@ public object CupertinoMaterials {
    * more translucent than [regular].
    */
   @Composable
-  @ReadOnlyComposable
   public fun thin(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeBlurStyle = cupertinoMaterialStyle(
@@ -60,7 +58,6 @@ public object CupertinoMaterials {
    * more translucent than [thick].
    */
   @Composable
-  @ReadOnlyComposable
   public fun regular(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeBlurStyle = cupertinoMaterialStyle(
@@ -75,7 +72,6 @@ public object CupertinoMaterials {
    * A [dev.chrisbanes.haze.blur.HazeBlurStyle] which implements a mostly opaque material. More opaque than [regular].
    */
   @Composable
-  @ReadOnlyComposable
   public fun thick(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeBlurStyle = cupertinoMaterialStyle(
@@ -87,6 +83,7 @@ public object CupertinoMaterials {
   )
 }
 
+@Composable
 internal fun cupertinoMaterialStyle(
   containerColor: Color,
   isDark: Boolean = containerColor.luminance() < 0.5f,
@@ -94,7 +91,14 @@ internal fun cupertinoMaterialStyle(
   lightForegroundColor: Color,
   darkBackgroundColor: Color,
   darkForegroundColor: Color,
-): HazeBlurStyle {
+): HazeBlurStyle = remember(
+  containerColor,
+  isDark,
+  lightBackgroundColor,
+  lightForegroundColor,
+  darkBackgroundColor,
+  darkForegroundColor,
+) {
   val (backgroundColor, colorEffects) = cupertinoMaterialValues(
     containerColor = containerColor,
     isDark = isDark,
@@ -103,7 +107,7 @@ internal fun cupertinoMaterialStyle(
     darkBackgroundColor = darkBackgroundColor,
     darkForegroundColor = darkForegroundColor,
   )
-  return HazeBlurStyle {
+  HazeBlurStyle {
     blurRadius(24.dp)
     backgroundColor(backgroundColor)
     colorEffects(colorEffects)

@@ -88,7 +88,7 @@ A negative `blurRadius`, such as spring overshoot, is treated as zero. `noiseFac
 clamped into `0f..1f`. Other invalid values throw `IllegalArgumentException` when the block runs.
 
 An explicit `colorEffects(emptyList())` clears inherited effects. Haze copies lists you pass each
-time the block runs.
+time the block runs, so mutating a list afterwards does not schedule an update.
 
 ### Other Blur API changes
 
@@ -187,8 +187,12 @@ performance before choosing a replacement.
 
 ## Lifecycle and sharing
 
-Styles are immutable and safe to share. Supply a replacement Style through recomposition when the
-appearance changes.
+Styles are safe to share across nodes; each node observes the snapshot state the Style block reads
+and updates itself. Change appearance by writing that state (no recomposition is needed), or supply
+a replacement Style through recomposition. A plain captured value or a mutated list does not
+schedule an update, so give a remembered Style keys or use `rememberUpdatedState` for non-state
+inputs that change. The built-in presets such as `HazeMaterials.regular()` are memoized by their
+inputs.
 
 ## Other Haze 2 migrations
 
