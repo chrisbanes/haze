@@ -318,20 +318,24 @@ private fun DrawingPalette(state: GlassContainerShowcaseState, hazeState: HazeSt
 
   BoxWithConstraints(modifier) {
     val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
-    val playbackSpace = if (state.recordingMode) 0.dp else 96.dp
-    val verticalHeight = (maxHeight - 64.dp - playbackSpace - 24.dp) / 3
+    val regularPlaybackSpace = if (state.recordingMode) 0.dp else 96.dp
+    val verticalHeight = (maxHeight - 64.dp - regularPlaybackSpace - 24.dp) / 3
     // Both Brush labels need two text lines; use the available width before clipping them.
-    val vertical = maxWidth < 900.dp && (maxWidth < 600.dp || verticalHeight >= 48.dp * fontScale + 8.dp)
+    val minimumHeight = 48.dp * fontScale + 8.dp
+    val vertical = maxWidth < 900.dp && (maxWidth < 600.dp || verticalHeight >= minimumHeight)
     val compactHorizontal = !vertical && maxWidth < 900.dp
-    val travel = if (vertical) 64.dp else 88.dp
+    val compactVertical = vertical && verticalHeight < minimumHeight
+    val playbackSpace = if (state.recordingMode) 0.dp else if (compactVertical) 64.dp else 96.dp
+    val travel = if (compactVertical) 32.dp else if (vertical) 64.dp else if (compactHorizontal) 56.dp else 88.dp
     val bottomSpace = travel + playbackSpace
     val preferredHeight = (if (vertical || compactHorizontal) 88.dp else 104.dp) * fontScale
     // Keep room for all three controls, both gaps, detachment travel and the playback controls.
-    val height = if (vertical) minOf(preferredHeight, ((maxHeight - bottomSpace - 24.dp) / 3).coerceAtLeast(0.dp)) else preferredHeight
-    val compactWidth = (maxWidth - travel - 24.dp) / 3
-    val penWidth = if (vertical) minOf(248.dp, maxWidth) else if (compactHorizontal) compactWidth else 280.dp
-    val strokeWidth = if (vertical) minOf(248.dp, maxWidth) else if (compactHorizontal) compactWidth else 232.dp
-    val colorWidth = if (vertical) minOf(248.dp, maxWidth) else if (compactHorizontal) compactWidth else 256.dp
+    val availableHeight = (maxHeight - bottomSpace - 24.dp) / 3
+    val height = if (vertical) minOf(preferredHeight, availableHeight.coerceAtLeast(24.dp * fontScale + 16.dp)) else preferredHeight
+    val compactWidth = maxWidth - travel - 24.dp
+    val penWidth = if (vertical) minOf(248.dp, maxWidth) else if (compactHorizontal) compactWidth * 0.36f else 280.dp
+    val strokeWidth = if (vertical) minOf(248.dp, maxWidth) else if (compactHorizontal) compactWidth * 0.32f else 232.dp
+    val colorWidth = if (vertical) minOf(248.dp, maxWidth) else if (compactHorizontal) compactWidth * 0.32f else 256.dp
     val travelPx = with(LocalDensity.current) { travel.toPx() }
     val containerModifier = Modifier.hazeGlassContainer(spacing = 40.dp, transitionSpec = memberSpec)
 
@@ -350,10 +354,12 @@ private fun DrawingPalette(state: GlassContainerShowcaseState, hazeState: HazeSt
           Icon(Icons.Default.Edit, contentDescription = null, tint = foreground, modifier = Modifier.size(32.dp))
         }
         Column(Modifier.weight(1f)) {
-          Text("INK", color = foreground.copy(alpha = 0.65f), fontSize = 11.sp, letterSpacing = 2.sp)
+          if (!compactHorizontal && !compactVertical) Text("INK", color = foreground.copy(alpha = 0.65f), fontSize = 11.sp, letterSpacing = 2.sp)
           Text("Brush", color = foreground, fontSize = if (vertical || compactHorizontal) 22.sp else 26.sp, fontWeight = FontWeight.Medium)
         }
-        Icon(if (state.expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = null, tint = foreground)
+        if (!compactHorizontal) {
+          Icon(if (state.expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = null, tint = foreground)
+        }
       }
       AnimatedVisibility(
         state.expanded,
@@ -370,8 +376,10 @@ private fun DrawingPalette(state: GlassContainerShowcaseState, hazeState: HazeSt
           verticalArrangement = Arrangement.Center,
         ) {
           Text("Stroke", color = foreground, fontSize = 16.sp)
-          Canvas(Modifier.width(strokeWidth - 56.dp).height(24.dp)) {
-            drawLine(foreground, Offset(0f, size.height / 2), Offset(size.width, size.height / 2), (3 + state.strokeIndex * 3).dp.toPx(), StrokeCap.Round)
+          if (!compactVertical) {
+            Canvas(Modifier.width(strokeWidth - 56.dp).height(24.dp)) {
+              drawLine(foreground, Offset(0f, size.height / 2), Offset(size.width, size.height / 2), (3 + state.strokeIndex * 3).dp.toPx(), StrokeCap.Round)
+            }
           }
         }
       }
@@ -412,8 +420,9 @@ private fun DrawingPalette(state: GlassContainerShowcaseState, hazeState: HazeSt
               Modifier.size(minOf(44.dp, (colorWidth - 32.dp) / 4)).clip(CircleShape).selectable(selected = state.colorIndex == index, role = Role.RadioButton, onClick = { state.selectColor(index) })
                 .semantics { contentDescription = "${InkNames[index]} ink" },
             ) {
-              drawCircle(color, radius = 14.dp.toPx())
-              if (state.colorIndex == index) drawCircle(foreground, radius = 19.dp.toPx(), style = Stroke(1.5.dp.toPx()))
+              val scale = size.minDimension / 44.dp.toPx()
+              drawCircle(color, radius = 14.dp.toPx() * scale)
+              if (state.colorIndex == index) drawCircle(foreground, radius = 19.dp.toPx() * scale, style = Stroke(1.5.dp.toPx() * scale))
             }
           }
         }

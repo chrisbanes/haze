@@ -49,9 +49,53 @@ import kotlin.math.abs
 import kotlin.test.Test
 
 class GlassContainerShowcaseInteractionTest {
+  @Test fun compactColourSelectionRingRemainsVisible() = checkCompactSelection(Size(688f, 360f))
+
+  @Test fun narrowCompactColourSelectionRingRemainsVisible() = checkCompactSelection(Size(648f, 360f))
+
+  private fun checkCompactSelection(size: Size) = runSkikoComposeUiTest(size = size, density = Density(1f)) {
+    val state = GlassContainerShowcaseState().apply {
+      pause()
+      seek(4f / 14)
+    }
+    setContent {
+      SamplesTheme {
+        CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 2f)) {
+          GlassContainerShowcaseSampleContent(state, onBack = {})
+        }
+      }
+    }
+    fun markerPixels(name: String): Int {
+      val pixels = onNodeWithContentDescription("$name ink").captureToImage().toPixelMap()
+      return (0 until pixels.width).sumOf { x ->
+        (0 until pixels.height).count { y ->
+          val pixel = pixels[x, y]
+          abs(pixel.red - 37f / 255) < 0.04f && abs(pixel.green - 43f / 255) < 0.04f && abs(pixel.blue - 58f / 255) < 0.04f
+        }
+      }
+    }
+    assertThat(markerPixels("Blue"), "Selected Blue ring must be visible").isGreaterThan(5)
+    onNodeWithContentDescription("Coral ink").performClick()
+    assertThat(markerPixels("Blue"), "Unselected Blue must lose its ring").isEqualTo(0)
+    assertThat(markerPixels("Coral"), "Selected Coral ring must be visible").isGreaterThan(5)
+    onNodeWithContentDescription("Blue ink").performClick()
+    assertThat(markerPixels("Blue"), "Reselected Blue ring must be visible").isGreaterThan(5)
+    assertThat(markerPixels("Coral"), "Unselected Coral must lose its ring").isEqualTo(0)
+  }
+
   @Test fun landscapeLargeTextLabelsFitWithoutClipping() = checkLargeTextLandscape(Size(760f, 360f))
 
   @Test fun landscapeLargeTextLabelsFitAtLayoutBoundary() = checkLargeTextLandscape(Size(760f, 448f))
+
+  @Test fun landscapeLargeTextLabelsFitBelowFormerWidthBoundary() = checkLargeTextLandscape(Size(647f, 360f))
+
+  @Test fun narrowLandscapeLargeTextLabelsFitWithoutClipping() = checkLargeTextLandscape(Size(640f, 360f))
+
+  @Test fun shortPhoneLargeTextLabelsFitWithoutClipping() = checkLargeTextLandscape(Size(360f, 543f))
+
+  @Test fun shortestPhoneLargeTextLabelsFitWithoutClipping() = checkLargeTextLandscape(Size(360f, 400f))
+
+  @Test fun squarePhoneLargeTextLabelsFitWithoutClipping() = checkLargeTextLandscape(Size(360f, 360f))
 
   private fun checkLargeTextLandscape(size: Size) = runSkikoComposeUiTest(size = size, density = Density(1f)) {
     val state = GlassContainerShowcaseState().apply {
@@ -65,7 +109,7 @@ class GlassContainerShowcaseInteractionTest {
         }
       }
     }
-    listOf("INK", "Brush", "Stroke").forEach { label ->
+    listOf("Brush", "Stroke").forEach { label ->
       val node = onNodeWithText(label, useUnmergedTree = true).assertIsDisplayed()
       val results = mutableListOf<TextLayoutResult>()
       node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
