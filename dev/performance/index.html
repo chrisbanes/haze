@@ -1404,13 +1404,13 @@ subtree, provide <code>LocalHazePerformanceMode</code>; an explicit <code>perfor
 <code>Fixed(1f)</code>. The fraction describes quality, not a percentage reduction in rendering time.</p>
 <div class="admonition note">
 <p class="admonition-title">Measured quality trade-offs</p>
-<p>In a two-pass test on a Pixel 8a (Android 17, 60 Hz, fixed-performance mode) with a changing
-background, Glass <code>Balanced</code> left about <strong>7.7 ms</strong> of frame-deadline headroom at P90,
+<p>In a single-pass test on a Pixel 8a (Android 17, 60 Hz, fixed-performance mode) with a changing
+background, Glass <code>Balanced</code> left about <strong>7.8 ms</strong> of frame-deadline headroom at P90,
 compared with <strong>6.6 ms</strong> for <code>Quality</code>. Glass <code>Performance</code> used roughly <strong>9% less peak GPU
-memory</strong> than <code>Quality</code> in both stable and changing-background tests, comparing the mean of
-the two pass-level medians for each mode and workload. Each method ran eight iterations per
-pass. These are reference points, not guaranteed savings on another screen. See the <a href="../benchmark-results/#performance-mode-calibration">full mode
-comparison</a>.</p>
+memory</strong> than <code>Quality</code> in both stable and changing-background tests, comparing each method's
+peak-memory median. Each method ran eight measured iterations. These are reference points,
+not guaranteed savings or a universal mode ranking. See the <a href="../benchmark-results/#performance-mode-calibration">full mode comparison and its
+repeat-coverage limits</a>.</p>
 </div>
 <p>Keep a fixed override only when repeated measurements and visual checks show a useful benefit.
 A lower quality setting does not guarantee a lower CPU frame time in every workload.</p>
