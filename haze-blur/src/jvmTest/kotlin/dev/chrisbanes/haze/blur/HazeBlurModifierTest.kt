@@ -340,7 +340,7 @@ class HazeBlurModifierTest {
   }
 
   @Test
-  fun rememberedStyleStateReads_updateRuntimeOnNextFrame() = runComposeUiTest {
+  fun rememberedStyleStateReads_drawUpdatedValuesOnNextFrame() = runComposeUiTest {
     val radius = mutableStateOf(8.dp)
     val alpha = mutableStateOf(0.4f)
     val renderer = RecordingBlurRenderer()
@@ -350,6 +350,8 @@ class HazeBlurModifierTest {
 
     assertThat(renderer.blurRadius).isEqualTo(8.dp)
     assertThat(renderer.alpha).isEqualTo(0.4f)
+    assertThat(renderer.drawnBlurRadius).isEqualTo(8.dp)
+    assertThat(renderer.drawnAlpha).isEqualTo(0.4f)
 
     mainClock.autoAdvance = false
     val boundsBefore = renderer.layerBoundsInvalidations
@@ -362,11 +364,14 @@ class HazeBlurModifierTest {
     assertThat(renderer.alpha).isEqualTo(0.7f)
     assertThat(renderer.layerBoundsInvalidations).isEqualTo(boundsBefore + 1)
     assertThat(renderer.drawCount).isGreaterThan(drawsBefore)
+    assertThat(renderer.drawnBlurRadius).isEqualTo(24.dp)
+    assertThat(renderer.drawnAlpha).isEqualTo(0.7f)
 
     radius.value = (-4).dp
     mainClock.advanceTimeByFrame()
 
     assertThat(renderer.blurRadius).isEqualTo(0.dp)
+    assertThat(renderer.drawnBlurRadius).isEqualTo(0.dp)
   }
 
   @Test
@@ -405,7 +410,7 @@ class HazeBlurModifierTest {
   }
 
   @Test
-  fun rememberedStyleAlphaFromZero_updatesAndDraws() = runComposeUiTest {
+  fun rememberedStyleAlphaFromZero_drawsOnNextFrame() = runComposeUiTest {
     val alpha = mutableStateOf(0f)
     val renderer = RecordingBlurRenderer()
 
@@ -417,10 +422,10 @@ class HazeBlurModifierTest {
     mainClock.autoAdvance = false
     alpha.value = 0.5f
     mainClock.advanceTimeByFrame()
-    mainClock.advanceTimeByFrame()
 
     assertThat(renderer.alpha).isEqualTo(0.5f)
     assertThat(renderer.drawCount).isGreaterThan(0)
+    assertThat(renderer.drawnAlpha).isEqualTo(0.5f)
   }
 
   @Test
@@ -640,6 +645,10 @@ private class RecordingBlurRenderer :
   private var retainedOutputAvailable = false
   val blurRadius get() = effect.blurRadius
   val alpha get() = effect.alpha
+  var drawnBlurRadius: Dp? = null
+    private set
+  var drawnAlpha: Float? = null
+    private set
   var drawCount = 0
     private set
   var layerBoundsInvalidations = 0
@@ -692,6 +701,8 @@ private class RecordingBlurRenderer :
       drawnLayerSize = it.layerSize
       drawnLayerOffset = it.layerOffset
     }
+    drawnBlurRadius = effect.blurRadius
+    drawnAlpha = effect.alpha
     drawInput()
     retainedOutputAvailable = true
   }

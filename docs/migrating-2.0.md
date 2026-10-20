@@ -76,8 +76,9 @@ value is retained.
 
 The block runs each time a node resolves its style, and it may read snapshot state, such as an
 animated value. Each node observes those reads and applies a change on the next frame without
-recomposing the `hazeBlur` call site. Styles you build compare by identity (the built-in presets compare by value), so `remember` or hoist a Style:
-constructing a new Style in each composition replaces it on every node.
+recomposing the `hazeBlur` call site. Styles you build compare by identity (the built-in presets
+compare by value), so `remember` or hoist a Style: constructing a new Style in each composition
+replaces it on every node.
 
 ```kotlin
 val radius by animateDpAsState(if (expanded) 24.dp else 0.dp)

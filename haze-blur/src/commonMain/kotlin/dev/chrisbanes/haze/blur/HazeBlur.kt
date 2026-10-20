@@ -22,8 +22,8 @@ import dev.chrisbanes.haze.hazeEffect
  * cache, and lifecycle resources.
  *
  * Snapshot state read by a Style block is observed by this node: a change resolves the Style again
- * and redraws on the next frame without recomposition. Styles compare by identity, so `remember` or
- * hoist [style].
+ * and redraws on the next frame without recomposition. Styles created with [HazeBlurStyle] compare
+ * by identity, so `remember` or hoist them. Built-in material presets compare by value.
  *
  * @param input Source-backed content or this modifier's own content.
  * @param style Explicit Blur Style applied after [LocalHazeBlurStyle].

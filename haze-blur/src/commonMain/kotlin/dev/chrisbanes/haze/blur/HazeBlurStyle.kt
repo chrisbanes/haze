@@ -39,8 +39,8 @@ public val LocalHazeBlurStyle: ProvidableCompositionLocal<HazeBlurStyle> =
  *
  * A block may read snapshot state, such as an animated value. Each consuming node observes those
  * reads; when the state changes the node resolves the Style again and redraws on the next frame
- * without recomposition. Styles compare by identity, so `remember` or hoist a Style: constructing
- * a new Style in each composition replaces it on every node. A Style never owns renderer or
+ * without recomposition. Styles created with [HazeBlurStyle] compare by identity, so `remember` or
+ * hoist them. Built-in material presets compare by value. A Style never owns renderer or
  * platform resources. Lists passed to [HazeBlurStyleScope.colorEffects] are snapshotted each time
  * the block runs.
  */
@@ -102,8 +102,8 @@ private class CombinedHazeBlurStyle(
  *
  * [block] does not run during this call. It may run on any frame, so it must not have side
  * effects. It may read snapshot state: each consuming node observes those reads and applies a
- * change on the next frame without recomposition. Styles compare by identity, so `remember` or
- * hoist a Style rather than constructing one in each composition. Invalid values throw
+ * change on the next frame without recomposition. Styles created here compare by identity, so
+ * `remember` or hoist a Style rather than constructing one in each composition. Invalid values throw
  * [IllegalArgumentException] when [block] runs.
  */
 public fun HazeBlurStyle(block: HazeBlurStyleScope.() -> Unit): HazeBlurStyle =

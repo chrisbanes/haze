@@ -81,7 +81,7 @@ Box {
 }
 ```
 
-`HazeInput.Sources` renders captured `hazeSource` content. Use `HazeInput.Content` to blur the modifier's own content instead. `HazeBlurStyle` is immutable and reusable; use `then` to derive a variation or supply a replacement Style when its appearance changes.
+`HazeInput.Sources` renders captured `hazeSource` content. Use `HazeInput.Content` to blur the modifier's own content instead. Share a `HazeBlurStyle` between modifiers and use `then` to derive variations. Snapshot state read inside a remembered Style block updates each node without recomposition; supply a replacement Style to change the selected Style.
 
 The optional [Blur material presets](https://chrisbanes.github.io/haze/blur/materials/) provide `HazeMaterials.ultraThin()`, `thin()`, `regular()`, `thick()`, and `ultraThick()`. The [`haze-blur-material3` integration](https://chrisbanes.github.io/haze/blur/material3/) provides `HazeBlurStyle.Material3()` for a Style based on the current Material 3 surface.
 

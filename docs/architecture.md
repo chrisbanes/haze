@@ -19,7 +19,8 @@ interface HazeEffectRenderer<Style> {
 }
 ```
 
-- A Style is the complete, immutable effect configuration.
+- A Style describes the effect configuration. Built-in Blur and Glass Style blocks can read snapshot
+  state, so their resolved values can change without replacing the Style.
 - A factory is a stateless descriptor that many modifiers can share.
 - A renderer owns the mutable state and resources for exactly one modifier.
 
@@ -69,9 +70,10 @@ selection, ordering, and cross-window alignment for you.
 
 ## Built-in Blur
 
-`hazeBlur` takes a `HazeBlurStyle`. Styles and the Blur factory are stateless, so you can share a
-Style between modifiers. Each modifier resolves `HazeBlurDefaults.style`, `LocalHazeBlurStyle`, and
-the explicit Style, in that order, whenever the Style changes.
+`hazeBlur` takes a `HazeBlurStyle`, resolved from `HazeBlurDefaults.style`, `LocalHazeBlurStyle`, and
+the explicit Style, in that order. Snapshot state read inside a Style block is observed: when it
+changes, Blur resolves the Style again and redraws without recomposition. Styles and the Blur
+factory can be shared; each modifier owns its resolved values and renderer.
 
 ## Built-in Glass
 
