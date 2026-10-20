@@ -7,9 +7,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocal
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -27,6 +30,7 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
@@ -39,6 +43,7 @@ import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeEffectDrawScope
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
+import dev.chrisbanes.haze.HazeEffectLayoutScope
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeEffectRendererDrawHooks
@@ -335,6 +340,219 @@ class HazeBlurModifierTest {
   }
 
   @Test
+  fun rememberedStyleStateReads_drawUpdatedValuesOnNextFrame() = runComposeUiTest {
+    val radius = mutableStateOf(8.dp)
+    val alpha = mutableStateOf(0.4f)
+    val renderer = RecordingBlurRenderer()
+
+    setContent { RecordingBlurBox(renderer, remember { stateStyle(radius, alpha) }) }
+    waitForIdle()
+
+    assertThat(renderer.blurRadius).isEqualTo(8.dp)
+    assertThat(renderer.alpha).isEqualTo(0.4f)
+    assertThat(renderer.drawnBlurRadius).isEqualTo(8.dp)
+    assertThat(renderer.drawnAlpha).isEqualTo(0.4f)
+
+    mainClock.autoAdvance = false
+    val boundsBefore = renderer.layerBoundsInvalidations
+    val drawsBefore = renderer.drawCount
+    radius.value = 24.dp
+    alpha.value = 0.7f
+    mainClock.advanceTimeByFrame()
+
+    assertThat(renderer.blurRadius).isEqualTo(24.dp)
+    assertThat(renderer.alpha).isEqualTo(0.7f)
+    assertThat(renderer.layerBoundsInvalidations).isEqualTo(boundsBefore + 1)
+    assertThat(renderer.drawCount).isGreaterThan(drawsBefore)
+    assertThat(renderer.drawnBlurRadius).isEqualTo(24.dp)
+    assertThat(renderer.drawnAlpha).isEqualTo(0.7f)
+
+    radius.value = (-4).dp
+    mainClock.advanceTimeByFrame()
+
+    assertThat(renderer.blurRadius).isEqualTo(0.dp)
+    assertThat(renderer.drawnBlurRadius).isEqualTo(0.dp)
+  }
+
+  @Test
+  fun rememberedStyleRadiusChange_expandsAndCollapsesCaptureLayer() = runComposeUiTest {
+    val radius = mutableStateOf(8.dp)
+    val renderer = RecordingBlurRenderer()
+
+    setContent {
+      RecordingBlurBox(renderer, remember { stateStyle(radius, mutableStateOf(1f)) })
+    }
+    waitForIdle()
+
+    fun assertGeometry(expectedRadiusPx: Float) {
+      val modifier = renderer.lastModifierBounds
+      assertThat(renderer.lastRadiusPx).isEqualTo(expectedRadiusPx)
+      val expected = if (expectedRadiusPx >= 1f) modifier.inflate(expectedRadiusPx) else modifier
+      assertThat(renderer.lastLayerBounds).isEqualTo(expected)
+      assertThat(renderer.drawnLayerSize).isEqualTo(expected.size)
+      assertThat(renderer.drawnLayerOffset).isEqualTo(Offset.Zero - expected.topLeft)
+    }
+
+    val smallPx = renderer.lastRadiusPx
+    assertThat(smallPx).isGreaterThan(0f)
+    assertGeometry(smallPx)
+
+    mainClock.autoAdvance = false
+    radius.value = 24.dp
+    repeat(3) { mainClock.advanceTimeByFrame() }
+    val largePx = renderer.lastRadiusPx
+    assertThat(largePx).isGreaterThan(smallPx)
+    assertGeometry(largePx)
+
+    radius.value = 0.dp
+    repeat(3) { mainClock.advanceTimeByFrame() }
+    assertGeometry(0f)
+  }
+
+  @Test
+  fun rememberedStyleAlphaFromZero_drawsOnNextFrame() = runComposeUiTest {
+    val alpha = mutableStateOf(0f)
+    val renderer = RecordingBlurRenderer()
+
+    setContent { RecordingBlurBox(renderer, remember { stateStyle(mutableStateOf(8.dp), alpha) }) }
+    waitForIdle()
+    assertThat(renderer.alpha).isEqualTo(0f)
+    assertThat(renderer.drawCount).isEqualTo(0)
+
+    mainClock.autoAdvance = false
+    alpha.value = 0.5f
+    mainClock.advanceTimeByFrame()
+
+    assertThat(renderer.alpha).isEqualTo(0.5f)
+    assertThat(renderer.drawCount).isGreaterThan(0)
+    assertThat(renderer.drawnAlpha).isEqualTo(0.5f)
+  }
+
+  @Test
+  fun rememberedStyleSharedAcrossNodes_updatesEveryNode() = runComposeUiTest {
+    val radius = mutableStateOf(8.dp)
+    val first = RecordingBlurRenderer()
+    val second = RecordingBlurRenderer()
+
+    setContent {
+      val style = remember { stateStyle(radius, mutableStateOf(1f)) }
+      RecordingBlurBox(first, style)
+      RecordingBlurBox(second, style)
+    }
+    waitForIdle()
+    val firstBounds = first.layerBoundsInvalidations
+    val secondBounds = second.layerBoundsInvalidations
+
+    mainClock.autoAdvance = false
+    radius.value = 20.dp
+    mainClock.advanceTimeByFrame()
+
+    assertThat(first.blurRadius).isEqualTo(20.dp)
+    assertThat(second.blurRadius).isEqualTo(20.dp)
+    assertThat(first.layerBoundsInvalidations).isEqualTo(firstBounds + 1)
+    assertThat(second.layerBoundsInvalidations).isEqualTo(secondBounds + 1)
+  }
+
+  @Test
+  fun rememberedStyleConditionalDependency_tracksTheBranchLastRead() = runComposeUiTest {
+    val useFirst = mutableStateOf(true)
+    val first = mutableStateOf(8.dp)
+    val second = mutableStateOf(16.dp)
+    val renderer = RecordingBlurRenderer()
+
+    setContent {
+      val style = remember {
+        HazeBlurStyle { blurRadius(if (useFirst.value) first.value else second.value) }
+      }
+      RecordingBlurBox(renderer, style)
+    }
+    waitForIdle()
+    mainClock.autoAdvance = false
+
+    val boundsBefore = renderer.layerBoundsInvalidations
+    second.value = 18.dp
+    mainClock.advanceTimeByFrame()
+    assertThat(renderer.blurRadius).isEqualTo(8.dp)
+    assertThat(renderer.layerBoundsInvalidations).isEqualTo(boundsBefore)
+
+    useFirst.value = false
+    mainClock.advanceTimeByFrame()
+    assertThat(renderer.blurRadius).isEqualTo(18.dp)
+
+    first.value = 30.dp
+    mainClock.advanceTimeByFrame()
+    assertThat(renderer.blurRadius).isEqualTo(18.dp)
+
+    second.value = 22.dp
+    mainClock.advanceTimeByFrame()
+    assertThat(renderer.blurRadius).isEqualTo(22.dp)
+  }
+
+  @Test
+  fun unchangedStyleInstance_doesNotInvalidateBoundsOnUnrelatedRecomposition() = runComposeUiTest {
+    val tick = mutableStateOf(0)
+    val renderer = RecordingBlurRenderer()
+    val style = HazeBlurStyle { blurRadius(12.dp) }
+
+    setContent {
+      tick.value
+      RecordingBlurBox(renderer, style)
+    }
+    waitForIdle()
+    val boundsBefore = renderer.layerBoundsInvalidations
+
+    tick.value++
+    waitForIdle()
+
+    assertThat(renderer.layerBoundsInvalidations).isEqualTo(boundsBefore)
+  }
+
+  @Test
+  fun hazeBlur_rememberedStyleStateChangeRedrawsWithoutRecomposition() = runComposeUiTest {
+    val hazeState = HazeState()
+    val tint = mutableStateOf(Color.Blue)
+    var compositions = 0
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Box(
+          Modifier
+            .fillMaxSize()
+            .hazeSource(hazeState)
+            .background(Color.Red),
+        )
+        compositions++
+        Box(
+          Modifier
+            .fillMaxSize()
+            .testTag("effect")
+            .hazeBlur(
+              input = HazeInput.Sources(hazeState),
+              style = remember {
+                HazeBlurStyle {
+                  blurEnabled(false)
+                  fallbackColorEffect(HazeColorEffect.tint(tint.value))
+                }
+              },
+              performanceMode = HazePerformanceMode.Quality,
+              expandLayerBounds = false,
+            ),
+        )
+      }
+    }
+    assertThat(onNodeWithTag("effect").captureToImage().toPixelMap()[50, 50])
+      .isEqualTo(Color.Blue)
+    val compositionsBefore = compositions
+
+    tint.value = Color.Green
+    waitForIdle()
+
+    assertThat(onNodeWithTag("effect").captureToImage().toPixelMap()[50, 50])
+      .isEqualTo(Color.Green)
+    assertThat(compositions).isEqualTo(compositionsBefore)
+  }
+
+  @Test
   fun sharedFactory_createsIsolatedRuntimesAndStyleReplacementReusesRuntime() {
     val sharedStyle = HazeBlurStyle {
       blurRadius(12.dp)
@@ -395,6 +613,29 @@ private fun testBlurStyle(alpha: Float): HazeBlurStyle = HazeBlurStyle {
   alpha(alpha)
 }
 
+private fun stateStyle(
+  radius: State<Dp>,
+  alpha: State<Float>,
+): HazeBlurStyle = HazeBlurStyle {
+  blurRadius(radius.value)
+  alpha(alpha.value)
+}
+
+@Composable
+private fun RecordingBlurBox(renderer: RecordingBlurRenderer, style: HazeBlurStyle) {
+  Box(
+    Modifier
+      .size(100.dp)
+      .hazeEffect(
+        factory = remember(renderer) { HazeEffectFactory<HazeBlurStyle> { renderer } },
+        input = HazeInput.Content,
+        style = style,
+        sampling = HazeSampling.FullResolution,
+        expandLayerBounds = true,
+      ),
+  )
+}
+
 private class RecordingBlurRenderer :
   HazeEffectRenderer<HazeBlurStyle>,
   HazeEffectRendererLifecycle<HazeBlurStyle>,
@@ -402,9 +643,27 @@ private class RecordingBlurRenderer :
   HazeEffectRendererRetainedOutput {
   private val effect = BlurVisualEffect()
   private var retainedOutputAvailable = false
+  val blurRadius get() = effect.blurRadius
+  val alpha get() = effect.alpha
+  var drawnBlurRadius: Dp? = null
+    private set
+  var drawnAlpha: Float? = null
+    private set
   var drawCount = 0
     private set
+  var layerBoundsInvalidations = 0
+    private set
   var clearCount = 0
+    private set
+  var lastModifierBounds: Rect = Rect.Zero
+    private set
+  var lastLayerBounds: Rect = Rect.Zero
+    private set
+  var lastRadiusPx = 0f
+    private set
+  var drawnLayerSize: Size = Size.Zero
+    private set
+  var drawnLayerOffset: Offset = Offset.Zero
     private set
 
   override fun attach(scope: HazeEffectLifecycleScope) = effect.attach(scope)
@@ -413,13 +672,37 @@ private class RecordingBlurRenderer :
     scope: HazeEffectLifecycleScope,
     style: HazeBlurStyle,
     sampling: HazeSampling,
-  ) = effect.update(scope, BlurConfiguration(style, HazePerformanceMode.Default), sampling)
+  ) {
+    val counting = object : HazeEffectLifecycleScope by scope {
+      override fun invalidateLayerBounds() {
+        layerBoundsInvalidations++
+        scope.invalidateLayerBounds()
+      }
+    }
+    effect.update(counting, BlurConfiguration(style, HazePerformanceMode.Default), sampling)
+  }
 
   override fun shouldPrepareDraw(style: HazeBlurStyle): Boolean =
     effect.shouldPrepareDraw(BlurConfiguration(style, HazePerformanceMode.Default))
 
+  override fun HazeEffectLayoutScope.calculateLayerBounds(style: HazeBlurStyle): Rect {
+    val bounds = with(effect) {
+      calculateLayerBounds(BlurConfiguration(style, HazePerformanceMode.Default))
+    }
+    lastModifierBounds = modifierBounds
+    lastLayerBounds = bounds
+    lastRadiusPx = effect.blurRadius.toPx()
+    return bounds
+  }
+
   override fun HazeEffectDrawScope.draw(style: HazeBlurStyle) {
     drawCount++
+    (this as? HazeEffectRuntimeDrawScope)?.let {
+      drawnLayerSize = it.layerSize
+      drawnLayerOffset = it.layerOffset
+    }
+    drawnBlurRadius = effect.blurRadius
+    drawnAlpha = effect.alpha
     drawInput()
     retainedOutputAvailable = true
   }

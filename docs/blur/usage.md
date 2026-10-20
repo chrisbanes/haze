@@ -148,11 +148,22 @@ val compact = HazeMaterials.thin().then {
 }
 ```
 
-Properties a Style doesn't write keep their inherited value. Styles are immutable and safe to
-share; create a new Style to change the appearance.
+Properties a Style doesn't write keep their inherited value. The block runs each time a node
+resolves its Style, under snapshot observation: a change to snapshot state the block reads, such as
+an animated value, updates the node on the next frame without recomposition.
 
-`colorEffects` copies the list you pass, so later changes to your list have no effect. An empty
-list clears inherited color effects:
+```kotlin
+val radius by animateDpAsState(if (expanded) 24.dp else 0.dp)
+val style = remember { HazeBlurStyle { blurRadius(radius) } }
+```
+
+Only snapshot state schedules an update. A plain captured value, or a `MutableList` you mutate, does
+not. A remembered block keeps what it captured, so give `remember` keys or use
+`rememberUpdatedState` for non-state inputs that change. The built-in presets compare by value, so
+calling a preset again with the same inputs yields an equal Style and does not update nodes.
+
+`colorEffects` copies the list you pass each time the block runs, so mutating your list afterwards
+does not schedule an update. An empty list clears inherited color effects:
 
 ```kotlin
 val noColorEffects = HazeBlurStyle {

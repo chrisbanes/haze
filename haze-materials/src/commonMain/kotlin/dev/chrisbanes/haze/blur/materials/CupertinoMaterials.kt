@@ -1,6 +1,8 @@
 // Copyright 2024, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(InternalHazeApi::class)
+
 package dev.chrisbanes.haze.blur.materials
 
 import androidx.compose.material3.MaterialTheme
@@ -10,8 +12,10 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.valueBackedHazeBlurStyle
 
 /**
  * A class which contains functions to build [dev.chrisbanes.haze.blur.HazeBlurStyle]s which implement 'material' styles similar
@@ -103,7 +107,15 @@ internal fun cupertinoMaterialStyle(
     darkBackgroundColor = darkBackgroundColor,
     darkForegroundColor = darkForegroundColor,
   )
-  return HazeBlurStyle {
+  return valueBackedHazeBlurStyle(
+    "CupertinoMaterials",
+    containerColor,
+    isDark,
+    lightBackgroundColor,
+    lightForegroundColor,
+    darkBackgroundColor,
+    darkForegroundColor,
+  ) {
     blurRadius(24.dp)
     backgroundColor(backgroundColor)
     colorEffects(colorEffects)

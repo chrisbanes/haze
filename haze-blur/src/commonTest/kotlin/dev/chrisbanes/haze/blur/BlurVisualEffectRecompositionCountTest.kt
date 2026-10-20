@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -17,6 +18,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.isEqualTo
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeProgressive
@@ -51,6 +53,44 @@ class BlurVisualEffectRecompositionCountTest : ContextTest() {
 
     assertThat(effectCounter.intValue, "effect recompositions after blurRadius change")
       .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
+  }
+
+  @Test
+  fun rememberedStyleStateReads_doNotRecompose() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effectCounter = mutableIntStateOf(0)
+    val blurRadius = mutableStateOf(10.dp)
+    val alpha = mutableStateOf(0.5f)
+
+    setContent {
+      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
+        RecompositionCounter(effectCounter) {
+          BlurTestGradientBox(
+            Modifier
+              .hazeBlur(
+                input = HazeInput.Sources(hazeState),
+                style = remember {
+                  HazeBlurStyle {
+                    blurRadius(blurRadius.value)
+                    alpha(alpha.value)
+                  }
+                },
+              )
+              .size(100.dp),
+          )
+        }
+      }
+    }
+    waitForIdle()
+
+    effectCounter.intValue = 0
+
+    blurRadius.value = 20.dp
+    alpha.value = 0.9f
+    waitForIdle()
+
+    assertThat(effectCounter.intValue, "effect recompositions after remembered style state change")
+      .isEqualTo(0)
   }
 
   @Test

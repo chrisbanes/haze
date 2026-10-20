@@ -107,6 +107,7 @@ internal class BlurVisualEffect(
       scope.invalidateDraw()
     }
     compositionLocalStyle = scope.currentValueOf(LocalHazeBlurStyle)
+    resolveStyle()
     if (styleChanged) {
       needsDelegateSelection = true
       if (needsLayerBoundsInvalidation) {
@@ -226,22 +227,8 @@ internal class BlurVisualEffect(
   internal fun resolveInputScaleFactor(): Float = constrainInputScaleForBrushes(performanceMode.resolveBlurInputScale())
 
   private var compositionLocalStyle: HazeBlurStyle = HazeBlurStyle
-    set(value) {
-      if (field !== value) {
-        HazeLogger.d(TAG) { "LocalHazeBlurStyle changed. Current: $field. New: $value" }
-        field = value
-        resolveStyle()
-      }
-    }
 
   private var style: HazeBlurStyle = HazeBlurStyle
-    set(value) {
-      if (field !== value) {
-        HazeLogger.d(TAG) { "style changed. Current: $field. New: $value" }
-        field = value
-        resolveStyle()
-      }
-    }
 
   internal var performanceMode: HazePerformanceMode = HazePerformanceMode.Default
     private set(value) {
