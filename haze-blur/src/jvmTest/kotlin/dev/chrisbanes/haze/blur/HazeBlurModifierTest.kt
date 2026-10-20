@@ -43,6 +43,7 @@ import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeEffectDrawScope
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
+import dev.chrisbanes.haze.HazeEffectLayoutScope
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeEffectRendererDrawHooks
@@ -369,6 +370,41 @@ class HazeBlurModifierTest {
   }
 
   @Test
+  fun rememberedStyleRadiusChange_expandsAndCollapsesCaptureLayer() = runComposeUiTest {
+    val radius = mutableStateOf(8.dp)
+    val renderer = RecordingBlurRenderer()
+
+    setContent {
+      RecordingBlurBox(renderer, remember { stateStyle(radius, mutableStateOf(1f)) })
+    }
+    waitForIdle()
+
+    fun assertGeometry(expectedRadiusPx: Float) {
+      val modifier = renderer.lastModifierBounds
+      assertThat(renderer.lastRadiusPx).isEqualTo(expectedRadiusPx)
+      val expected = if (expectedRadiusPx >= 1f) modifier.inflate(expectedRadiusPx) else modifier
+      assertThat(renderer.lastLayerBounds).isEqualTo(expected)
+      assertThat(renderer.drawnLayerSize).isEqualTo(expected.size)
+      assertThat(renderer.drawnLayerOffset).isEqualTo(Offset.Zero - expected.topLeft)
+    }
+
+    val smallPx = renderer.lastRadiusPx
+    assertThat(smallPx).isGreaterThan(0f)
+    assertGeometry(smallPx)
+
+    mainClock.autoAdvance = false
+    radius.value = 24.dp
+    repeat(3) { mainClock.advanceTimeByFrame() }
+    val largePx = renderer.lastRadiusPx
+    assertThat(largePx).isGreaterThan(smallPx)
+    assertGeometry(largePx)
+
+    radius.value = 0.dp
+    repeat(3) { mainClock.advanceTimeByFrame() }
+    assertGeometry(0f)
+  }
+
+  @Test
   fun rememberedStyleAlphaFromZero_updatesAndDraws() = runComposeUiTest {
     val alpha = mutableStateOf(0f)
     val renderer = RecordingBlurRenderer()
@@ -590,6 +626,7 @@ private fun RecordingBlurBox(renderer: RecordingBlurRenderer, style: HazeBlurSty
         input = HazeInput.Content,
         style = style,
         sampling = HazeSampling.FullResolution,
+        expandLayerBounds = true,
       ),
   )
 }
@@ -608,6 +645,16 @@ private class RecordingBlurRenderer :
   var layerBoundsInvalidations = 0
     private set
   var clearCount = 0
+    private set
+  var lastModifierBounds: Rect = Rect.Zero
+    private set
+  var lastLayerBounds: Rect = Rect.Zero
+    private set
+  var lastRadiusPx = 0f
+    private set
+  var drawnLayerSize: Size = Size.Zero
+    private set
+  var drawnLayerOffset: Offset = Offset.Zero
     private set
 
   override fun attach(scope: HazeEffectLifecycleScope) = effect.attach(scope)
@@ -629,8 +676,22 @@ private class RecordingBlurRenderer :
   override fun shouldPrepareDraw(style: HazeBlurStyle): Boolean =
     effect.shouldPrepareDraw(BlurConfiguration(style, HazePerformanceMode.Default))
 
+  override fun HazeEffectLayoutScope.calculateLayerBounds(style: HazeBlurStyle): Rect {
+    val bounds = with(effect) {
+      calculateLayerBounds(BlurConfiguration(style, HazePerformanceMode.Default))
+    }
+    lastModifierBounds = modifierBounds
+    lastLayerBounds = bounds
+    lastRadiusPx = effect.blurRadius.toPx()
+    return bounds
+  }
+
   override fun HazeEffectDrawScope.draw(style: HazeBlurStyle) {
     drawCount++
+    (this as? HazeEffectRuntimeDrawScope)?.let {
+      drawnLayerSize = it.layerSize
+      drawnLayerOffset = it.layerOffset
+    }
     drawInput()
     retainedOutputAvailable = true
   }

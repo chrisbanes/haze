@@ -76,7 +76,7 @@ value is retained.
 
 The block runs each time a node resolves its style, and it may read snapshot state, such as an
 animated value. Each node observes those reads and applies a change on the next frame without
-recomposing the `hazeBlur` call site. Styles compare by identity, so `remember` or hoist a Style:
+recomposing the `hazeBlur` call site. Styles you build compare by identity (the built-in presets compare by value), so `remember` or hoist a Style:
 constructing a new Style in each composition replaces it on every node.
 
 ```kotlin
@@ -191,8 +191,8 @@ Styles are safe to share across nodes; each node observes the snapshot state the
 and updates itself. Change appearance by writing that state (no recomposition is needed), or supply
 a replacement Style through recomposition. A plain captured value or a mutated list does not
 schedule an update, so give a remembered Style keys or use `rememberUpdatedState` for non-state
-inputs that change. The built-in presets such as `HazeMaterials.regular()` are memoized by their
-inputs.
+inputs that change. The built-in presets such as `HazeMaterials.regular()` compare by value: the same
+inputs yield an equal Style.
 
 ## Other Haze 2 migrations
 

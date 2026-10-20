@@ -1,14 +1,17 @@
 // Copyright 2024, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(InternalHazeApi::class)
+
 package dev.chrisbanes.haze.blur.materials
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.materials.HazeMaterials.regular
@@ -16,6 +19,7 @@ import dev.chrisbanes.haze.blur.materials.HazeMaterials.thick
 import dev.chrisbanes.haze.blur.materials.HazeMaterials.thin
 import dev.chrisbanes.haze.blur.materials.HazeMaterials.ultraThick
 import dev.chrisbanes.haze.blur.materials.HazeMaterials.ultraThin
+import dev.chrisbanes.haze.blur.valueBackedHazeBlurStyle
 
 /**
  * A class which contains functions to build [HazeBlurStyle]s which implement 'material-like' styles.
@@ -28,6 +32,7 @@ public object HazeMaterials {
    * A [HazeBlurStyle] which implements a mostly translucent material.
    */
   @Composable
+  @ReadOnlyComposable
   public fun ultraThin(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeBlurStyle = hazeMaterial(
@@ -41,6 +46,7 @@ public object HazeMaterials {
    * more translucent than [regular].
    */
   @Composable
+  @ReadOnlyComposable
   public fun thin(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeBlurStyle = hazeMaterial(
@@ -54,6 +60,7 @@ public object HazeMaterials {
    * more translucent than [thick].
    */
   @Composable
+  @ReadOnlyComposable
   public fun regular(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeBlurStyle = hazeMaterial(
@@ -67,6 +74,7 @@ public object HazeMaterials {
    * more translucent than [ultraThick].
    */
   @Composable
+  @ReadOnlyComposable
   public fun thick(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeBlurStyle = hazeMaterial(
@@ -79,6 +87,7 @@ public object HazeMaterials {
    * A [HazeBlurStyle] which implements a nearly opaque material.
    */
   @Composable
+  @ReadOnlyComposable
   public fun ultraThick(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeBlurStyle = hazeMaterial(
@@ -87,24 +96,21 @@ public object HazeMaterials {
     darkAlpha = 0.97f,
   )
 
-  @Composable
   private fun hazeMaterial(
     containerColor: Color,
     lightAlpha: Float,
     darkAlpha: Float,
-  ): HazeBlurStyle = remember(containerColor, lightAlpha, darkAlpha) {
-    HazeBlurStyle {
-      blurRadius(24.dp)
-      backgroundColor(containerColor)
-      colorEffects(
-        listOf(
-          HazeColorEffect.tint(
-            containerColor.copy(
-              alpha = if (containerColor.luminance() >= 0.5) lightAlpha else darkAlpha,
-            ),
+  ): HazeBlurStyle = valueBackedHazeBlurStyle("HazeMaterials", containerColor, lightAlpha, darkAlpha) {
+    blurRadius(24.dp)
+    backgroundColor(containerColor)
+    colorEffects(
+      listOf(
+        HazeColorEffect.tint(
+          containerColor.copy(
+            alpha = if (containerColor.luminance() >= 0.5) lightAlpha else darkAlpha,
           ),
         ),
-      )
-    }
+      ),
+    )
   }
 }

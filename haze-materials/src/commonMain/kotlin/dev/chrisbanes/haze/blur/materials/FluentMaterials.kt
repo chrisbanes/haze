@@ -1,18 +1,22 @@
 // Copyright 2024, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(InternalHazeApi::class)
+
 package dev.chrisbanes.haze.blur.materials
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.valueBackedHazeBlurStyle
 
 /**
  * A class which contains functions to build [HazeBlurStyle]s which implement 'material' styles similar
@@ -29,6 +33,7 @@ public object FluentMaterials {
    * A [HazeBlurStyle] which implements a mostly translucent material.
    */
   @Composable
+  @ReadOnlyComposable
   public fun thinAcrylic(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeBlurStyle = hazeAcrylicMaterial(
@@ -53,6 +58,7 @@ public object FluentMaterials {
    * A [HazeBlurStyle] which implements a translucent material used for the most translucent layer with accent color.
    */
   @Composable
+  @ReadOnlyComposable
   public fun accentAcrylicBase(
     accentColor: Color = MaterialTheme.colorScheme.primaryContainer,
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
@@ -69,6 +75,7 @@ public object FluentMaterials {
    * A [HazeBlurStyle] which implements a translucent material used for the popup container background with accent color.
    */
   @Composable
+  @ReadOnlyComposable
   public fun accentAcrylicDefault(
     accentColor: Color = MaterialTheme.colorScheme.primaryContainer,
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
@@ -85,9 +92,10 @@ public object FluentMaterials {
    * A [HazeBlurStyle] which implements a translucent material used for the most translucent layer.
    */
   @Composable
+  @ReadOnlyComposable
   public fun acrylicBase(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
-  ): HazeBlurStyle = remember(isDark) { acrylicBaseStyle(isDark) }
+  ): HazeBlurStyle = acrylicBaseStyle(isDark)
 
   internal fun acrylicBaseStyle(
     isDark: Boolean,
@@ -114,6 +122,7 @@ public object FluentMaterials {
    * A [HazeBlurStyle] which implements a translucent material used for the popup container background.
    */
   @Composable
+  @ReadOnlyComposable
   public fun acrylicDefault(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeBlurStyle = hazeAcrylicMaterial(
@@ -138,6 +147,7 @@ public object FluentMaterials {
    * A [HazeBlurStyle] which implements a translucent application background material.
    */
   @Composable
+  @ReadOnlyComposable
   public fun mica(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeBlurStyle = hazeMicaMaterial(
@@ -157,6 +167,7 @@ public object FluentMaterials {
    * A [HazeBlurStyle] which implements a translucent application background material used for the tab experience.
    */
   @Composable
+  @ReadOnlyComposable
   public fun micaAlt(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeBlurStyle = hazeMicaMaterial(
@@ -172,6 +183,7 @@ public object FluentMaterials {
     darkLuminosityOpacity = 1f,
   )
 
+  @ReadOnlyComposable
   @Composable
   private fun hazeMaterial(
     containerColor: Color = MaterialTheme.colorScheme.surface,
@@ -183,29 +195,17 @@ public object FluentMaterials {
     lightLuminosityOpacity: Float,
     darkTintOpacity: Float,
     darkLuminosityOpacity: Float,
-  ): HazeBlurStyle = remember(
-    containerColor,
-    fallbackColor,
-    isDark,
-    blurRadius,
-    noiseFactor,
-    lightTintOpacity,
-    lightLuminosityOpacity,
-    darkTintOpacity,
-    darkLuminosityOpacity,
-  ) {
-    hazeMaterialStyle(
-      containerColor = containerColor,
-      fallbackColor = fallbackColor,
-      isDark = isDark,
-      blurRadius = blurRadius,
-      noiseFactor = noiseFactor,
-      lightTintOpacity = lightTintOpacity,
-      lightLuminosityOpacity = lightLuminosityOpacity,
-      darkTintOpacity = darkTintOpacity,
-      darkLuminosityOpacity = darkLuminosityOpacity,
-    )
-  }
+  ): HazeBlurStyle = hazeMaterialStyle(
+    containerColor = containerColor,
+    fallbackColor = fallbackColor,
+    isDark = isDark,
+    blurRadius = blurRadius,
+    noiseFactor = noiseFactor,
+    lightTintOpacity = lightTintOpacity,
+    lightLuminosityOpacity = lightLuminosityOpacity,
+    darkTintOpacity = darkTintOpacity,
+    darkLuminosityOpacity = darkLuminosityOpacity,
+  )
 
   private fun hazeMaterialStyle(
     containerColor: Color,
@@ -217,7 +217,18 @@ public object FluentMaterials {
     lightLuminosityOpacity: Float,
     darkTintOpacity: Float,
     darkLuminosityOpacity: Float,
-  ): HazeBlurStyle = HazeBlurStyle {
+  ): HazeBlurStyle = valueBackedHazeBlurStyle(
+    "FluentMaterials",
+    containerColor,
+    isDark,
+    fallbackColor,
+    blurRadius,
+    noiseFactor,
+    lightTintOpacity,
+    lightLuminosityOpacity,
+    darkTintOpacity,
+    darkLuminosityOpacity,
+  ) {
     blurRadius(blurRadius)
     noiseFactor(noiseFactor)
     backgroundColor(containerColor)
@@ -240,6 +251,7 @@ public object FluentMaterials {
     fallbackColorEffect(HazeColorEffect.tint(fallbackColor))
   }
 
+  @ReadOnlyComposable
   @Composable
   private fun hazeAcrylicMaterial(
     containerColor: Color = MaterialTheme.colorScheme.surface,
@@ -249,25 +261,15 @@ public object FluentMaterials {
     lightLuminosityOpacity: Float,
     darkTintOpacity: Float,
     darkLuminosityOpacity: Float,
-  ): HazeBlurStyle = remember(
-    containerColor,
-    fallbackColor,
-    isDark,
-    lightTintOpacity,
-    lightLuminosityOpacity,
-    darkTintOpacity,
-    darkLuminosityOpacity,
-  ) {
-    hazeAcrylicMaterialStyle(
-      containerColor = containerColor,
-      fallbackColor = fallbackColor,
-      isDark = isDark,
-      lightTintOpacity = lightTintOpacity,
-      lightLuminosityOpacity = lightLuminosityOpacity,
-      darkTintOpacity = darkTintOpacity,
-      darkLuminosityOpacity = darkLuminosityOpacity,
-    )
-  }
+  ): HazeBlurStyle = hazeAcrylicMaterialStyle(
+    containerColor = containerColor,
+    fallbackColor = fallbackColor,
+    isDark = isDark,
+    lightTintOpacity = lightTintOpacity,
+    lightLuminosityOpacity = lightLuminosityOpacity,
+    darkTintOpacity = darkTintOpacity,
+    darkLuminosityOpacity = darkLuminosityOpacity,
+  )
 
   private fun hazeAcrylicMaterialStyle(
     containerColor: Color,
@@ -289,6 +291,7 @@ public object FluentMaterials {
     noiseFactor = 0.02f,
   )
 
+  @ReadOnlyComposable
   @Composable
   private fun hazeMicaMaterial(
     containerColor: Color = MaterialTheme.colorScheme.surface,

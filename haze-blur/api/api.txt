@@ -28,6 +28,7 @@ package dev.chrisbanes.haze.blur {
   public final class HazeBlurStyleKt {
     method public static dev.chrisbanes.haze.blur.HazeBlurStyle HazeBlurStyle(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.blur.HazeBlurStyleScope,kotlin.Unit> block);
     method @InaccessibleFromKotlin public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.blur.HazeBlurStyle> getLocalHazeBlurStyle();
+    method @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.blur.HazeBlurStyle valueBackedHazeBlurStyle(Object?[] inputs, kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.blur.HazeBlurStyleScope,kotlin.Unit> block);
     property public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.blur.HazeBlurStyle> LocalHazeBlurStyle;
   }
 

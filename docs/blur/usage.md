@@ -159,8 +159,8 @@ val style = remember { HazeBlurStyle { blurRadius(radius) } }
 
 Only snapshot state schedules an update. A plain captured value, or a `MutableList` you mutate, does
 not. A remembered block keeps what it captured, so give `remember` keys or use
-`rememberUpdatedState` for non-state inputs that change. The built-in presets are memoized by their
-inputs, so an unchanged preset keeps the same instance across recompositions.
+`rememberUpdatedState` for non-state inputs that change. The built-in presets compare by value, so
+calling a preset again with the same inputs yields an equal Style and does not update nodes.
 
 `colorEffects` copies the list you pass each time the block runs, so mutating your list afterwards
 does not schedule an update. An empty list clears inherited color effects:

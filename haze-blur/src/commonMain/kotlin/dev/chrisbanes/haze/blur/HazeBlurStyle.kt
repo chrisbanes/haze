@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.Poko
 
 /**
@@ -66,9 +67,29 @@ private class EvaluatedHazeBlurStyle(
 }
 
 @Immutable
+private class ValueHazeBlurStyle(
+  private val inputs: List<Any?>,
+  private val block: HazeBlurStyleScope.() -> Unit,
+) : HazeBlurStyle {
+  fun replay(scope: HazeBlurStyleScope) {
+    scope.block()
+  }
+
+  override fun equals(other: Any?): Boolean =
+    this === other || (other is ValueHazeBlurStyle && inputs == other.inputs)
+
+  override fun hashCode(): Int = inputs.hashCode()
+}
+
+@Immutable
 private class CombinedHazeBlurStyle(
   val styles: List<HazeBlurStyle>,
 ) : HazeBlurStyle {
+  override fun equals(other: Any?): Boolean =
+    this === other || (other is CombinedHazeBlurStyle && styles == other.styles)
+
+  override fun hashCode(): Int = styles.hashCode()
+
   fun replay(scope: HazeBlurStyleScope) {
     for (style in styles) {
       style.replay(scope)
@@ -88,6 +109,17 @@ private class CombinedHazeBlurStyle(
 public fun HazeBlurStyle(block: HazeBlurStyleScope.() -> Unit): HazeBlurStyle =
   EvaluatedHazeBlurStyle(block)
 
+/**
+ * Creates a [HazeBlurStyle] which compares by value: two Styles are equal when their [inputs] are
+ * equal. [inputs] must contain every value [block] captures, plus an identifier of the block
+ * itself. Otherwise behaves like [HazeBlurStyle].
+ */
+@InternalHazeApi
+public fun valueBackedHazeBlurStyle(
+  vararg inputs: Any?,
+  block: HazeBlurStyleScope.() -> Unit,
+): HazeBlurStyle = ValueHazeBlurStyle(inputs.toList(), block)
+
 private fun combineHazeBlurStyles(
   first: HazeBlurStyle,
   second: HazeBlurStyle,
@@ -103,6 +135,7 @@ internal fun HazeBlurStyle.replay(scope: HazeBlurStyleScope) {
   when (this) {
     HazeBlurStyle -> Unit
     is EvaluatedHazeBlurStyle -> replay(scope)
+    is ValueHazeBlurStyle -> replay(scope)
     is CombinedHazeBlurStyle -> replay(scope)
   }
 }
