@@ -273,7 +273,7 @@ class GlassContainerRenderTest : ContextTest() {
     val bridge = pixels[149, 100]
     assertThat(bridge.red).isGreaterThan(0.3f)
     assertThat(bridge.blue).isGreaterThan(0.3f)
-    // Gap19 is just inside the strict boundary and its edge pixel has partial coverage.
+    // Gap19 is just inside the bridge threshold and its edge pixel has partial coverage.
     assertThat(bridge.green).isLessThan(0.8f)
     assertThat(pixels[45, 65]).isEqualTo(Color.Green)
     assertThat(fixture.first.mergedField).isNull()
@@ -301,7 +301,7 @@ class GlassContainerRenderTest : ContextTest() {
     val owner = fixture.owner()
     val firstRuntime = owner.renderer.runtimeSurfaces.single()
     val source = checkNotNull((firstRuntime.delegate as RuntimeShaderGlassDelegate).layers.source)
-    runOnIdle { gap.value = 30 }
+    runOnIdle { gap.value = 45 }
     waitForIdle()
     assertThat(owner.renderer.surfaceCount).isEqualTo(2)
     assertThat(owner.renderer.runtimeSurfaces.size).isEqualTo(0)

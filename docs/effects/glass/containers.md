@@ -4,6 +4,22 @@ A Glass container draws its Glass members' surfaces together, so that nearby mem
 one shape. Use it for controls that should read as one object, such as a toolbar or a segmented
 control, and for surfaces that appear next to an existing one and should grow out of it.
 
+=== "Video"
+
+    ![type:video](../../media/glass-container.mp4){ style="width:100%;height:auto" playsinline aria-label="Glass drawing palette expanding, separating and merging" }
+
+=== "Interactive demo"
+
+    <iframe data-haze-sample-src="../../../sample/wasm/index.html?embed=true&amp;sample=glass-container-showcase&amp;effect=glass&amp;theme=light" title="Interactive Glass drawing palette" style="width:100%;height:560px;border:0"></iframe>
+
+    Open Brush to reveal the controls, then drag the colour control away and release it to rejoin.
+    Use the speed button to switch between normal and half speed.
+    Switching back to Video resets the demo.
+    [Open the sample on its own](../../sample/wasm/index.html?embed=true&sample=glass-container-showcase&effect=glass&theme=light).
+
+The brush palette expands into connected stroke and colour controls. The colour control separates
+and rejoins before the palette collapses.
+
 This page assumes you are familiar with [Glass](index.md) styles, inputs and interaction.
 
 ## Container and members
@@ -36,9 +52,10 @@ container is unchanged.
 
 ## Merge rule
 
-Members join a cluster when the gap between them is less than half of the spacing. The container
-draws each cluster as one surface, with smooth bridges between the members. A member that joins no
-cluster draws as a separate surface.
+Members join a cluster when the gap between them is less than the spacing. The container draws
+each cluster as one surface: facing edges gradually stretch towards each other, and a bridge forms
+when the gap drops below half the spacing. A member that joins no cluster draws as a separate
+surface.
 
 Members merge only when all of these hold:
 
@@ -184,8 +201,8 @@ control, a member added and removed with `AnimatedVisibility`, and a cluster of 
 different tints. Its source is in
 [`GlassContainerSample.kt`](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerSample.kt).
 
-The `Glass — Container Showcase` sample puts a container in a photo library. Its floating bar
-merges a tab pill with a Search button, which you can drag away until it separates. In selection
-mode, Search retracts into the pill and the Share, Favorite and Delete actions grow out of it. The
-sample plays this as a loop until you interact with it. Its source is in
+The `Glass — Container Showcase` sample places a drawing palette over two brushstrokes. Open
+Brush to reveal stroke-width and colour controls, then drag the colour control away to separate it
+from the palette. Releasing it rejoins the controls, and closing Brush retracts them. The sample
+plays these transitions as a loop until you interact with it. Its source is in
 [`GlassContainerShowcaseSample.kt`](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerShowcaseSample.kt).

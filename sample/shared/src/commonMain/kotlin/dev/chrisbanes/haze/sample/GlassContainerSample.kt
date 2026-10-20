@@ -183,8 +183,8 @@ public fun GlassContainerSampleContent(
         .padding(start = 24.dp, top = 56.dp, end = 24.dp, bottom = 16.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-      // 1. Toolbar. Glass members inside a container merge when the gap between them is less
-      // than half of the spacing: the 4 dp gaps here are well inside 8 dp.
+      // 1. Toolbar. Members start stretching within the spacing and bridge below half of it:
+      // the 4 dp gaps here are well inside the 8 dp bridge threshold.
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Toolbar", color = Color.White, style = MaterialTheme.typography.titleMedium)
         Row(

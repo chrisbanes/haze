@@ -130,7 +130,8 @@ internal fun clusterGlassMembers(
         if (
           member.translationOnly && candidate.translationOnly && !member.fading && !candidate.fading &&
           (
-            glassMemberGap(member.rect, candidate.rect) < spacingPx / 2f ||
+            // Start the field before its bridge closes, so facing edges stretch continuously.
+            glassMemberGap(member.rect, candidate.rect) < spacingPx ||
               member.link === candidate.identity || candidate.link === member.identity
             ) &&
           member.key == candidate.key

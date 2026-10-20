@@ -19,6 +19,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.createRuntimeEffect
 import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
 import kotlin.math.abs
@@ -28,6 +29,28 @@ import org.jetbrains.skia.RuntimeEffect
 
 /** Runs the merged field helpers in Skia and encodes their values into a readable pixel. */
 class MergedGlassFieldShaderTest {
+  @Test
+  fun approachingMembers_deformContinuouslyBeforeTheBridgeForms() {
+    val effect = GlassRuntimeEffect()
+    val material = resolveGlassStyle(effect, Size(100f, 40f), Density(1f), LayoutDirection.Ltr)
+    val key = glassMergeKey(HazeInput.Content, true, 1f, effect, material, LayoutDirection.Ltr)
+    fun edgeDistance(gap: Float): Float {
+      val members = listOf(mergedMember(0f, 0f, 100f, 40f, radius = 20f), mergedMember(100f + gap, 0f, 100f, 40f, radius = 20f))
+      val snapshots = members.mapIndexed { index, member ->
+        GlassMemberSnapshot(index, member.rect, key, material, translationOnly = true, layoutRect = member.rect)
+      }
+      val cluster = clusterGlassMembers(snapshots, 40f).surfaces.first()
+      val field = mergedField(*cluster.members.map { members[it.identity as Int] }.toTypedArray(), spacingPx = 40f)
+      return probe(field, Offset(100f, 20f), "shapeSd(probe)", scale = 16f)
+    }
+    for (threshold in listOf(40f, 20f)) {
+      val before = edgeDistance(threshold + 0.1f)
+      val after = edgeDistance(threshold - 0.1f)
+      assertThat(abs(after - before), "edge movement across a $threshold px gap").isLessThan(0.2f)
+    }
+    assertThat(edgeDistance(30f), "surfaces start stretching before the 20 px bridge threshold").isLessThan(-0.5f)
+  }
+
   @Test
   fun bridge_formsBelowHalfSpacingOnly() {
     for ((gap, bridged) in listOf(19f to true, 20f to false, 21f to false)) {

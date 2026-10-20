@@ -74,6 +74,7 @@ playback, reset, and recording controls; navigation back to the sample browser i
 | Glass — Product | `glass-product` | `glass` |
 | Glass — Playground | `glass-playground` | `glass` |
 | Glass — Container | `glass-container` | `glass` |
+| Glass — Container Showcase | `glass-container-showcase` | `glass` |
 
 Check a release's `sample/web/README.md` for embedding support, then pin that exact documentation
 version in the article. A query string cannot add this feature to an older release.

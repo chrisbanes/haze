@@ -88,6 +88,7 @@ Read the relevant guide before starting that work:
 | --- | --- |
 | Android physical-device benchmarks | [Runbook](internal/benchmark/README.md) |
 | Screenshot tests | [Agent rules](docs/agents/screenshot-tests.md) and [commands, profiles, recording](docs/screenshot-tests.md) |
+| Record or update documentation demo videos | [JVM recording, encoding and playback checks](docs/agents/demo-videos.md) |
 | Built-in effect runtimes | [Implementation patterns](docs/agents/effect-runtimes.md) |
 | Release changelog | [Release guidance](docs/agents/releases.md) |
 | Issues and PRDs | [Issue tracker](docs/agents/issue-tracker.md) |
