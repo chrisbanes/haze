@@ -48,11 +48,14 @@ android {
 baselineProfile {
   managedDevices += "pixel5Api30"
   managedDevices += "pixel5Api34"
-  useConnectedDevices = false
+  useConnectedDevices = providers.gradleProperty("haze.baselineProfile.connectedDevices")
+    .map { it.toBoolean() }
+    .getOrElse(false)
   enableEmulatorDisplay = false
 }
 
 dependencies {
+  implementation(libs.assertk)
   implementation(libs.androidx.benchmark.macro)
   implementation(libs.androidx.test.ext.junit)
   implementation(libs.androidx.test.uiautomator)

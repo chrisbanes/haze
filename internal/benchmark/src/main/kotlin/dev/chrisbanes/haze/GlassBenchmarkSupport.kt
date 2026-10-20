@@ -44,7 +44,7 @@ internal fun requireBackdropBenchmarkDevice() {
   )
 }
 
-private fun isBackdropSdkSupported(): Boolean {
+internal fun isBackdropSdkSupported(): Boolean {
   val fullSdkInt = if (Build.VERSION.SDK_INT < 36) {
     Build.VERSION.SDK_INT * 100_000
   } else {

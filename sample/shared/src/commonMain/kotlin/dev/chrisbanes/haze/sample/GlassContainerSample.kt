@@ -178,6 +178,7 @@ public fun GlassContainerSampleContent(
       modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
+        .testTag("glass_container_scroll")
         .padding(WindowInsets.safeDrawing.asPaddingValues())
         .padding(start = 24.dp, top = 56.dp, end = 24.dp, bottom = 16.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp),
