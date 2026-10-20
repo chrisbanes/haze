@@ -10,6 +10,8 @@ import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.MotionDurationScale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
@@ -27,14 +29,19 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
+import androidx.navigation.compose.rememberNavController
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEqualTo
+import dev.chrisbanes.haze.sample.GlassContainerShowcaseSample
 import dev.chrisbanes.haze.sample.GlassContainerShowcaseSampleContent
 import dev.chrisbanes.haze.sample.GlassContainerShowcaseState
 import dev.chrisbanes.haze.sample.SamplesTheme
@@ -42,6 +49,81 @@ import kotlin.math.abs
 import kotlin.test.Test
 
 class GlassContainerShowcaseInteractionTest {
+  @Test fun landscapeLargeTextLabelsFitWithoutClipping() = checkLargeTextLandscape(Size(760f, 360f))
+
+  @Test fun landscapeLargeTextLabelsFitAtLayoutBoundary() = checkLargeTextLandscape(Size(760f, 448f))
+
+  private fun checkLargeTextLandscape(size: Size) = runSkikoComposeUiTest(size = size, density = Density(1f)) {
+    val state = GlassContainerShowcaseState().apply {
+      pause()
+      seek(4f / 14)
+    }
+    setContent {
+      SamplesTheme {
+        CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 2f)) {
+          GlassContainerShowcaseSampleContent(state, onBack = {})
+        }
+      }
+    }
+    listOf("INK", "Brush", "Stroke").forEach { label ->
+      val node = onNodeWithText(label, useUnmergedTree = true).assertIsDisplayed()
+      val results = mutableListOf<TextLayoutResult>()
+      node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+      assertThat(results.single().lineCount, "$label must fit on one line").isEqualTo(1)
+      val bounds = node.fetchSemanticsNode().boundsInRoot
+      assertThat(bounds.height, "$label must not be clipped by its control").isGreaterThan(results.single().getLineBottom(0) - 1f)
+    }
+    state.seek(7f / 14)
+    onNodeWithContentDescription("Graphite ink").assertIsDisplayed().performClick()
+    assertThat(state.colorIndex).isEqualTo(3)
+  }
+
+  @Test fun noMotionSpeedChangesKeepClosedPaletteClosed() = runSkikoComposeUiTest(
+    size = Size(688f, 560f),
+    density = Density(1f),
+    effectContext = object : MotionDurationScale {
+      override val scaleFactor = 0f
+    },
+  ) {
+    setContent { SamplesTheme { GlassContainerShowcaseSample(rememberNavController()) } }
+    onNodeWithText("Stroke").assertIsDisplayed()
+    onNodeWithText("Brush").performClick()
+    onNodeWithText("Stroke").assertDoesNotExist()
+    onNodeWithContentDescription("Slow motion").performClick().assertIsOn()
+    onNodeWithText("Stroke").assertDoesNotExist()
+    onNodeWithContentDescription("Slow motion").performClick().assertIsOff()
+    onNodeWithText("Stroke").assertDoesNotExist()
+  }
+
+  @Test fun rejoinAccessibilityActionCancelsActiveReturn() = runSkikoComposeUiTest(size = Size(688f, 560f), density = Density(1f)) {
+    val state = GlassContainerShowcaseState().apply {
+      pause()
+      seek(7f / 14)
+    }
+    setContent { SamplesTheme { GlassContainerShowcaseSampleContent(state, onBack = {}) } }
+    mainClock.autoAdvance = false
+    val colors = onNodeWithContentDescription("Ink colors")
+    colors.performTouchInput {
+      down(center)
+      moveBy(Offset(0f, 40f), delayMillis = 16)
+      up()
+    }
+    repeat(3) {
+      mainClock.advanceTimeByFrame()
+      waitForIdle()
+    }
+    assertThat(state.colorOffset).isGreaterThan(0f)
+    assertThat(state.colorOffset).isLessThan(1f)
+    val action = colors.fetchSemanticsNode().config[SemanticsActions.CustomActions].single()
+    assertThat(action.label).isEqualTo("Rejoin palette")
+    runOnIdle { action.action() }
+    repeat(20) {
+      mainClock.advanceTimeByFrame()
+      waitForIdle()
+      assertThat(state.colorOffset).isEqualTo(0f)
+    }
+  }
+
   @Test fun largeTextControlsFitInShortViewport() = runSkikoComposeUiTest(size = Size(360f, 560f), density = Density(1f)) {
     val state = GlassContainerShowcaseState().apply {
       pause()

@@ -71,7 +71,16 @@ internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerSce
       assertThat(pixels[80, 110].red).isGreaterThan(pixels[80, 110].blue)
       assertThat(pixels[220, 110].blue).isGreaterThan(pixels[220, 110].red)
     }
-    GlassContainerScene.Separate, GlassContainerScene.MixedKeys -> assertThat(pixels[149, 110]).isEqualTo(sceneBackground(149, 110))
+    GlassContainerScene.Separate -> {
+      if (fallback) {
+        assertThat(pixels[149, 110]).isEqualTo(sceneBackground(149, 110))
+      } else {
+        // At half spacing the stretched edges touch with antialiasing, but no filled bridge.
+        assertThat(pixels[149, 110].green).isGreaterThan(0.8f)
+        assertThat(pixels[149, 60]).isEqualTo(sceneBackground(149, 60))
+      }
+    }
+    GlassContainerScene.MixedKeys -> assertThat(pixels[149, 110]).isEqualTo(sceneBackground(149, 110))
     GlassContainerScene.Overflow -> {
       assertThat(pixels[52, 110].green).isLessThan(0.5f)
       assertThat(pixels[154, 110]).isEqualTo(sceneBackground(154, 110))

@@ -219,7 +219,7 @@ public fun GlassContainerShowcaseSample(navController: NavHostController) {
   val state = remember { GlassContainerShowcaseState() }
   SampleChromeVisibilityEffect(visible = !state.recordingMode)
   LaunchedEffect(state.isPlaying, state.autoplayGeneration, state.isSlowMotion) {
-    if ((coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f) <= 0f) {
+    if (state.isPlaying && (coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f) <= 0f) {
       state.disableAutoplay()
     } else if (state.isPlaying) {
       state.runAutoplayLoop()
@@ -317,15 +317,21 @@ private fun DrawingPalette(state: GlassContainerShowcaseState, hazeState: HazeSt
   val memberSpec = remember(durationScale) { spring<Float>(stiffness = Spring.StiffnessMedium / (durationScale * durationScale)) }
 
   BoxWithConstraints(modifier) {
-    val vertical = maxWidth < 900.dp
+    val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
+    val playbackSpace = if (state.recordingMode) 0.dp else 96.dp
+    val verticalHeight = (maxHeight - 64.dp - playbackSpace - 24.dp) / 3
+    // Both Brush labels need two text lines; use the available width before clipping them.
+    val vertical = maxWidth < 900.dp && (maxWidth < 600.dp || verticalHeight >= 48.dp * fontScale + 8.dp)
+    val compactHorizontal = !vertical && maxWidth < 900.dp
     val travel = if (vertical) 64.dp else 88.dp
-    val bottomSpace = travel + if (state.recordingMode) 0.dp else 96.dp
-    val preferredHeight = (if (vertical) 88.dp else 104.dp) * LocalDensity.current.fontScale.coerceAtLeast(1f)
+    val bottomSpace = travel + playbackSpace
+    val preferredHeight = (if (vertical || compactHorizontal) 88.dp else 104.dp) * fontScale
     // Keep room for all three controls, both gaps, detachment travel and the playback controls.
     val height = if (vertical) minOf(preferredHeight, ((maxHeight - bottomSpace - 24.dp) / 3).coerceAtLeast(0.dp)) else preferredHeight
-    val penWidth = if (vertical) minOf(248.dp, maxWidth) else 280.dp
-    val strokeWidth = if (vertical) minOf(248.dp, maxWidth) else 232.dp
-    val colorWidth = if (vertical) minOf(248.dp, maxWidth) else 256.dp
+    val compactWidth = (maxWidth - travel - 24.dp) / 3
+    val penWidth = if (vertical) minOf(248.dp, maxWidth) else if (compactHorizontal) compactWidth else 280.dp
+    val strokeWidth = if (vertical) minOf(248.dp, maxWidth) else if (compactHorizontal) compactWidth else 232.dp
+    val colorWidth = if (vertical) minOf(248.dp, maxWidth) else if (compactHorizontal) compactWidth else 256.dp
     val travelPx = with(LocalDensity.current) { travel.toPx() }
     val containerModifier = Modifier.hazeGlassContainer(spacing = 40.dp, transitionSpec = memberSpec)
 
@@ -336,16 +342,16 @@ private fun DrawingPalette(state: GlassContainerShowcaseState, hazeState: HazeSt
           .hazeGlass(input = HazeInput.Sources(hazeState), style = style)
           .clip(CircleShape)
           .clickable(role = Role.Button, onClickLabel = if (state.expanded) "Close tools" else "Open tools") { state.toggleExpanded() }
-          .padding(horizontal = 24.dp),
+          .padding(horizontal = if (compactHorizontal) 16.dp else 24.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (compactHorizontal) 8.dp else 16.dp),
       ) {
-        if (!vertical) {
+        if (!vertical && !compactHorizontal) {
           Icon(Icons.Default.Edit, contentDescription = null, tint = foreground, modifier = Modifier.size(32.dp))
         }
         Column(Modifier.weight(1f)) {
           Text("INK", color = foreground.copy(alpha = 0.65f), fontSize = 11.sp, letterSpacing = 2.sp)
-          Text("Brush", color = foreground, fontSize = if (vertical) 22.sp else 26.sp, fontWeight = FontWeight.Medium)
+          Text("Brush", color = foreground, fontSize = if (vertical || compactHorizontal) 22.sp else 26.sp, fontWeight = FontWeight.Medium)
         }
         Icon(if (state.expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = null, tint = foreground)
       }
@@ -391,6 +397,7 @@ private fun DrawingPalette(state: GlassContainerShowcaseState, hazeState: HazeSt
               contentDescription = "Ink colors"
               customActions = listOf(
                 CustomAccessibilityAction(if (state.colorOffset > 0f) "Rejoin palette" else "Detach palette") {
+                  settleJob?.cancel()
                   state.dragColorBy(if (state.colorOffset > 0f) -1f else 1f)
                   true
                 },
@@ -402,7 +409,7 @@ private fun DrawingPalette(state: GlassContainerShowcaseState, hazeState: HazeSt
         ) {
           InkColors.forEachIndexed { index, color ->
             Canvas(
-              Modifier.size(44.dp).clip(CircleShape).selectable(selected = state.colorIndex == index, role = Role.RadioButton, onClick = { state.selectColor(index) })
+              Modifier.size(minOf(44.dp, (colorWidth - 32.dp) / 4)).clip(CircleShape).selectable(selected = state.colorIndex == index, role = Role.RadioButton, onClick = { state.selectColor(index) })
                 .semantics { contentDescription = "${InkNames[index]} ink" },
             ) {
               drawCircle(color, radius = 14.dp.toPx())
@@ -416,7 +423,10 @@ private fun DrawingPalette(state: GlassContainerShowcaseState, hazeState: HazeSt
     if (vertical) {
       Column(containerModifier.padding(bottom = bottomSpace), horizontalAlignment = Alignment.CenterHorizontally) { Members() }
     } else {
-      Row(containerModifier.padding(end = travel), verticalAlignment = Alignment.CenterVertically) { Members() }
+      Row(
+        containerModifier.padding(end = travel, bottom = if (compactHorizontal) playbackSpace else 0.dp),
+        verticalAlignment = Alignment.CenterVertically,
+      ) { Members() }
     }
   }
 }
