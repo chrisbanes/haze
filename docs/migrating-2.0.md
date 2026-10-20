@@ -57,7 +57,7 @@ Use `HazeInput.Content` for foreground or own-content Blur.
 
 ## Migrate Styles
 
-`HazeBlurStyle` is no longer a readable value patch with `copy`. It records Blur-specific writes:
+`HazeBlurStyle` is no longer a readable value patch with `copy`. It is a block of Blur-specific writes:
 
 ```kotlin
 val base = HazeBlurStyle {
@@ -74,8 +74,21 @@ Resolution is defaults, then `LocalHazeBlurStyle`, then the explicit modifier St
 wins. Replacing `compact` with `base` removes the 12 dp write immediately; no previous resolved
 value is retained.
 
-An explicit `colorEffects(emptyList())` clears inherited effects. Haze copies lists you pass, so
-changing a list afterwards does not affect the Style.
+The block runs each time a node resolves its style, and it may read snapshot state, such as an
+animated value. Each node observes those reads and applies a change on the next frame without
+recomposing the `hazeBlur` call site. Styles compare by identity, so `remember` or hoist a Style:
+constructing a new Style in each composition replaces it on every node.
+
+```kotlin
+val radius by animateDpAsState(if (expanded) 24.dp else 0.dp)
+val style = remember { HazeBlurStyle { blurRadius(radius) } }
+```
+
+A negative `blurRadius`, such as spring overshoot, is treated as zero. `noiseFactor` and `alpha` are
+clamped into `0f..1f`. Other invalid values throw `IllegalArgumentException` when the block runs.
+
+An explicit `colorEffects(emptyList())` clears inherited effects. Haze copies lists you pass each
+time the block runs.
 
 ### Other Blur API changes
 

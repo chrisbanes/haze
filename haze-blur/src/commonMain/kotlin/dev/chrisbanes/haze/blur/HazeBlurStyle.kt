@@ -29,19 +29,26 @@ public val LocalHazeBlurStyle: ProvidableCompositionLocal<HazeBlurStyle> =
   compositionLocalOf { HazeBlurStyle }
 
 /**
- * An opaque, stateless, and shareable program of Blur Style writes.
+ * An opaque, shareable sequence of Blur Style writes.
  *
- * A Style never owns renderer or platform resources. Calling [then] creates a new Style whose
- * writes replay after this one, so the last write to each property wins. Values retained by a Style
- * must be immutable after construction; lists passed to [HazeBlurStyleScope.colorEffects] are
- * snapshotted. Provide a replacement Style when a value changes.
+ * The block passed to [HazeBlurStyle] runs each time a [hazeBlur] node resolves its style, into a
+ * fresh node-owned accumulator. It may run on any frame and must not have side effects. Calling
+ * [then] creates a new Style whose writes apply after this one, so the last write to each property
+ * wins.
+ *
+ * A block may read snapshot state, such as an animated value. Each consuming node observes those
+ * reads; when the state changes the node resolves the Style again and redraws on the next frame
+ * without recomposition. Styles compare by identity, so `remember` or hoist a Style: constructing
+ * a new Style in each composition replaces it on every node. A Style never owns renderer or
+ * platform resources. Lists passed to [HazeBlurStyleScope.colorEffects] are snapshotted each time
+ * the block runs.
  */
 @Immutable
 public sealed interface HazeBlurStyle {
-  /** Returns a Style that replays [other] after this Style. */
+  /** Returns a Style that applies [other] after this Style. */
   public fun then(other: HazeBlurStyle): HazeBlurStyle = combineHazeBlurStyles(this, other)
 
-  /** Returns a Style that replays [block] after this Style. */
+  /** Returns a Style that runs [block] after this Style. */
   public fun then(block: HazeBlurStyleScope.() -> Unit): HazeBlurStyle =
     then(HazeBlurStyle(block))
 
@@ -50,50 +57,68 @@ public sealed interface HazeBlurStyle {
 }
 
 @Immutable
-@Poko
-private class RecordedHazeBlurStyle(
-  private val writes: List<HazeBlurStyleWrite>,
+private class EvaluatedHazeBlurStyle(
+  private val block: HazeBlurStyleScope.() -> Unit,
 ) : HazeBlurStyle {
   fun replay(scope: HazeBlurStyleScope) {
-    for (write in writes) {
-      write.replay(scope)
-    }
+    scope.block()
   }
-
-  fun then(other: RecordedHazeBlurStyle): HazeBlurStyle =
-    RecordedHazeBlurStyle(writes + other.writes)
 }
 
-/** Creates an opaque, replayable Blur Style from [block]. */
+@Immutable
+private class CombinedHazeBlurStyle(
+  val styles: List<HazeBlurStyle>,
+) : HazeBlurStyle {
+  fun replay(scope: HazeBlurStyleScope) {
+    for (style in styles) {
+      style.replay(scope)
+    }
+  }
+}
+
+/**
+ * Creates a [HazeBlurStyle] which runs [block] whenever a node resolves its style.
+ *
+ * [block] does not run during this call. It may run on any frame, so it must not have side
+ * effects. It may read snapshot state: each consuming node observes those reads and applies a
+ * change on the next frame without recomposition. Styles compare by identity, so `remember` or
+ * hoist a Style rather than constructing one in each composition. Invalid values throw
+ * [IllegalArgumentException] when [block] runs.
+ */
 public fun HazeBlurStyle(block: HazeBlurStyleScope.() -> Unit): HazeBlurStyle =
-  RecordedHazeBlurStyle(recordWrites(block))
+  EvaluatedHazeBlurStyle(block)
 
 private fun combineHazeBlurStyles(
   first: HazeBlurStyle,
   second: HazeBlurStyle,
-): HazeBlurStyle = when (first) {
-  HazeBlurStyle -> second
-  is RecordedHazeBlurStyle -> when (second) {
-    HazeBlurStyle -> first
-    is RecordedHazeBlurStyle -> first.then(second)
-  }
+): HazeBlurStyle {
+  if (first === HazeBlurStyle) return second
+  if (second === HazeBlurStyle) return first
+  val firstStyles = if (first is CombinedHazeBlurStyle) first.styles else listOf(first)
+  val secondStyles = if (second is CombinedHazeBlurStyle) second.styles else listOf(second)
+  return CombinedHazeBlurStyle(firstStyles + secondStyles)
 }
 
 internal fun HazeBlurStyle.replay(scope: HazeBlurStyleScope) {
   when (this) {
     HazeBlurStyle -> Unit
-    is RecordedHazeBlurStyle -> replay(scope)
+    is EvaluatedHazeBlurStyle -> replay(scope)
+    is CombinedHazeBlurStyle -> replay(scope)
   }
 }
 
 /**
- * Blur-specific property functions available while constructing a [HazeBlurStyle].
+ * Blur-specific property functions available while building a [HazeBlurStyle].
+ *
+ * Property functions validate values when the Style's block runs. Invalid values throw
+ * [IllegalArgumentException], except that [blurRadius], [noiseFactor] and [alpha] are clamped into
+ * their valid ranges, so animation overshoot never throws.
  */
 public sealed interface HazeBlurStyleScope {
   /** Enables or disables the blur pass. */
   public fun blurEnabled(enabled: Boolean)
 
-  /** Sets the non-negative blur [radius]. */
+  /** Sets the blur [radius]. A negative radius, such as animation overshoot, is treated as zero. */
   public fun blurRadius(radius: Dp)
 
   /** Sets the noise opacity, coerced to the range `0f..1f`. */
@@ -130,95 +155,6 @@ public sealed interface HazeBlurStyleScope {
   public fun blurredEdgeTreatment(treatment: BlurredEdgeTreatment)
 }
 
-private enum class HazeBlurStyleProperty {
-  BlurEnabled,
-  BlurRadius,
-  NoiseFactor,
-  BackgroundColor,
-  ColorEffects,
-  FallbackColorEffect,
-  Alpha,
-  Mask,
-  Progressive,
-  BlurredEdgeTreatment,
-}
-
-@Poko
-private class HazeBlurStyleWrite(
-  private val property: HazeBlurStyleProperty,
-  private val value: Any?,
-) {
-  @Suppress("UNCHECKED_CAST")
-  fun replay(scope: HazeBlurStyleScope) {
-    with(scope) {
-      when (property) {
-        HazeBlurStyleProperty.BlurEnabled -> blurEnabled(value as Boolean)
-        HazeBlurStyleProperty.BlurRadius -> blurRadius(value as Dp)
-        HazeBlurStyleProperty.NoiseFactor -> noiseFactor(value as Float)
-        HazeBlurStyleProperty.BackgroundColor -> backgroundColor(value as Color)
-        HazeBlurStyleProperty.ColorEffects -> colorEffects(value as List<HazeColorEffect>)
-        HazeBlurStyleProperty.FallbackColorEffect ->
-          fallbackColorEffect(value as HazeColorEffect?)
-        HazeBlurStyleProperty.Alpha -> alpha(value as Float)
-        HazeBlurStyleProperty.Mask -> mask(value as Brush?)
-        HazeBlurStyleProperty.Progressive -> progressive(value as HazeProgressive?)
-        HazeBlurStyleProperty.BlurredEdgeTreatment ->
-          blurredEdgeTreatment(value as BlurredEdgeTreatment)
-      }
-    }
-  }
-}
-
-private fun recordWrites(
-  block: HazeBlurStyleScope.() -> Unit,
-): List<HazeBlurStyleWrite> = buildList {
-  RecordingHazeBlurStyleScope(this).block()
-}
-
-private class RecordingHazeBlurStyleScope(
-  private val writes: MutableList<HazeBlurStyleWrite>,
-) : HazeBlurStyleScope {
-  override fun blurEnabled(enabled: Boolean) {
-    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.BlurEnabled, enabled)
-  }
-
-  override fun blurRadius(radius: Dp) {
-    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.BlurRadius, radius)
-  }
-
-  override fun noiseFactor(factor: Float) {
-    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.NoiseFactor, factor)
-  }
-
-  override fun backgroundColor(color: Color) {
-    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.BackgroundColor, color)
-  }
-
-  override fun colorEffects(effects: List<HazeColorEffect>) {
-    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.ColorEffects, effects.toList())
-  }
-
-  override fun fallbackColorEffect(effect: HazeColorEffect?) {
-    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.FallbackColorEffect, effect)
-  }
-
-  override fun alpha(alpha: Float) {
-    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.Alpha, alpha)
-  }
-
-  override fun mask(mask: Brush?) {
-    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.Mask, mask)
-  }
-
-  override fun progressive(progressive: HazeProgressive?) {
-    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.Progressive, progressive)
-  }
-
-  override fun blurredEdgeTreatment(treatment: BlurredEdgeTreatment) {
-    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.BlurredEdgeTreatment, treatment)
-  }
-}
-
 @Poko
 internal class ResolvedHazeBlurStyle(
   val blurEnabled: Boolean,
@@ -250,8 +186,8 @@ private class HazeBlurStyleAccumulator : HazeBlurStyleScope {
   }
 
   override fun blurRadius(radius: Dp) {
-    require(radius.isSpecified && radius >= 0.dp) { "blurRadius must be specified and non-negative" }
-    blurRadius = radius
+    require(radius.isSpecified) { "blurRadius must be specified" }
+    blurRadius = if (radius < 0.dp) 0.dp else radius
   }
 
   override fun noiseFactor(factor: Float) {

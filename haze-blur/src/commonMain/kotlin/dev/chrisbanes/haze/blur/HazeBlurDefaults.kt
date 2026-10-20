@@ -31,7 +31,7 @@ public object HazeBlurDefaults {
   /**
    * Complete default Blur Style.
    *
-   * This Style is replayed before composition-local and explicit Styles.
+   * This Style is applied before composition-local and explicit Styles.
    */
   public val style: HazeBlurStyle = HazeBlurStyle {
     blurEnabled(isBlurEnabledByDefault())

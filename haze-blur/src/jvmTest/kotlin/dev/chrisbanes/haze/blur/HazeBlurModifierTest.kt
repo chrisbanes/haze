@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocal
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -335,6 +336,48 @@ class HazeBlurModifierTest {
   }
 
   @Test
+  fun rememberedStyleStateReads_updateRuntimeOnNextFrame() = runComposeUiTest {
+    val radius = mutableStateOf(8.dp)
+    val alpha = mutableStateOf(0.4f)
+    val renderer = RecordingBlurRenderer()
+    val factory = HazeEffectFactory<HazeBlurStyle> { renderer }
+
+    setContent {
+      Box(
+        Modifier
+          .size(100.dp)
+          .hazeEffect(
+            factory = factory,
+            input = HazeInput.Content,
+            style = remember {
+              HazeBlurStyle {
+                blurRadius(radius.value)
+                alpha(alpha.value)
+              }
+            },
+            sampling = HazeSampling.FullResolution,
+          ),
+      )
+    }
+    waitForIdle()
+
+    assertThat(renderer.blurRadius).isEqualTo(8.dp)
+    assertThat(renderer.alpha).isEqualTo(0.4f)
+
+    radius.value = 24.dp
+    alpha.value = 0.7f
+    waitForIdle()
+
+    assertThat(renderer.blurRadius).isEqualTo(24.dp)
+    assertThat(renderer.alpha).isEqualTo(0.7f)
+
+    radius.value = (-4).dp
+    waitForIdle()
+
+    assertThat(renderer.blurRadius).isEqualTo(0.dp)
+  }
+
+  @Test
   fun sharedFactory_createsIsolatedRuntimesAndStyleReplacementReusesRuntime() {
     val sharedStyle = HazeBlurStyle {
       blurRadius(12.dp)
@@ -402,6 +445,8 @@ private class RecordingBlurRenderer :
   HazeEffectRendererRetainedOutput {
   private val effect = BlurVisualEffect()
   private var retainedOutputAvailable = false
+  val blurRadius get() = effect.blurRadius
+  val alpha get() = effect.alpha
   var drawCount = 0
     private set
   var clearCount = 0

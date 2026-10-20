@@ -3,9 +3,11 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
@@ -34,35 +36,28 @@ class HazeBlurStyleTest {
   }
 
   @Test
-  fun equivalentStylePrograms_areEqual() {
-    val first = HazeBlurStyle {
-      blurEnabled(true)
-      blurRadius(24.dp)
-      backgroundColor(Color.Black)
-      colorEffects(listOf(HazeColorEffect.tint(Color.Red)))
-      alpha(0.8f)
-    }.then {
-      noiseFactor(0.2f)
-    }
-    val second = HazeBlurStyle {
-      blurEnabled(true)
-      blurRadius(24.dp)
-      backgroundColor(Color.Black)
-      colorEffects(listOf(HazeColorEffect.tint(Color.Red)))
-      alpha(0.8f)
-    }.then {
-      noiseFactor(0.2f)
-    }
+  fun styles_compareByIdentity() {
+    val first = HazeBlurStyle { blurRadius(24.dp) }
+    val second = HazeBlurStyle { blurRadius(24.dp) }
 
-    assertThat(first).isEqualTo(second)
+    assertThat(first).isEqualTo(first)
+    assertThat(first).isNotEqualTo(second)
   }
 
   @Test
-  fun differentStylePrograms_areNotEqual() {
-    val first = HazeBlurStyle { blurRadius(24.dp) }
-    val second = HazeBlurStyle { blurRadius(25.dp) }
+  fun styleBlock_runsOnEachResolutionAndReadsCurrentState() {
+    val radius = mutableStateOf(8.dp)
+    var runs = 0
+    val style = HazeBlurStyle {
+      runs++
+      blurRadius(radius.value)
+    }
 
-    assertThat(first).isNotEqualTo(second)
+    assertThat(runs).isEqualTo(0)
+    assertThat(resolveHazeBlurStyle(HazeBlurStyle, style).blurRadius).isEqualTo(8.dp)
+    radius.value = 20.dp
+    assertThat(resolveHazeBlurStyle(HazeBlurStyle, style).blurRadius).isEqualTo(20.dp)
+    assertThat(runs).isEqualTo(2)
   }
 
   @Test
@@ -173,7 +168,7 @@ class HazeBlurStyleTest {
   }
 
   @Test
-  fun colorEffects_snapshotsCallerOwnedList() {
+  fun colorEffects_snapshotsCallerOwnedListWhenResolved() {
     val first = HazeColorEffect.tint(Color.Red)
     val second = HazeColorEffect.tint(Color.Blue)
     val input = mutableListOf(first)
@@ -181,10 +176,10 @@ class HazeBlurStyleTest {
       colorEffects(input)
     }
 
+    val resolved = resolveHazeBlurStyle(HazeBlurStyle, style)
     input += second
 
-    assertThat(resolveHazeBlurStyle(HazeBlurStyle, style).colorEffects)
-      .containsExactly(first)
+    assertThat(resolved.colorEffects).containsExactly(first)
   }
 
   @Test
@@ -209,12 +204,21 @@ class HazeBlurStyleTest {
   }
 
   @Test
-  fun blurRadius_rejectsNegativeValues() {
+  fun blurRadius_clampsNegativeValuesToZero() {
+    val style = HazeBlurStyle {
+      blurRadius((-1).dp)
+    }
+
+    assertThat(resolveHazeBlurStyle(HazeBlurStyle, style).blurRadius).isEqualTo(0.dp)
+  }
+
+  @Test
+  fun blurRadius_rejectsUnspecifiedValues() {
     assertFailure {
       resolveHazeBlurStyle(
         HazeBlurStyle,
         HazeBlurStyle {
-          blurRadius((-1).dp)
+          blurRadius(Dp.Unspecified)
         },
       )
     }.isInstanceOf<IllegalArgumentException>()
