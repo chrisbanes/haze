@@ -1574,7 +1574,7 @@ and per-modifier settings such as performance mode. The preferred Blur API is no
 </code></pre></div>
 <p>Use <code>HazeInput.Content</code> for foreground or own-content Blur.</p>
 <h2 id="migrate-styles">Migrate Styles<a class="headerlink" href="#migrate-styles" title="Permanent link">¶</a></h2>
-<p><code>HazeBlurStyle</code> is no longer a readable value patch with <code>copy</code>. It records Blur-specific writes:</p>
+<p><code>HazeBlurStyle</code> is no longer a readable value patch with <code>copy</code>. It is a block of Blur-specific writes:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">base</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">blurRadius</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">)</span>
 <span class="w">  </span><span class="n">noiseFactor</span><span class="p">(</span><span class="m">0.15f</span><span class="p">)</span>
@@ -1587,8 +1587,18 @@ and per-modifier settings such as performance mode. The preferred Blur API is no
 <p>Resolution is defaults, then <code>LocalHazeBlurStyle</code>, then the explicit modifier Style. The last write
 wins. Replacing <code>compact</code> with <code>base</code> removes the 12 dp write immediately; no previous resolved
 value is retained.</p>
-<p>An explicit <code>colorEffects(emptyList())</code> clears inherited effects. Haze copies lists you pass, so
-changing a list afterwards does not affect the Style.</p>
+<p>The block runs each time a node resolves its style, and it may read snapshot state, such as an
+animated value. Each node observes those reads and applies a change on the next frame without
+recomposing the <code>hazeBlur</code> call site. Styles you build compare by identity (the built-in presets
+compare by value), so <code>remember</code> or hoist a Style: constructing a new Style in each composition
+replaces it on every node.</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">radius</span><span class="w"> </span><span class="k">by</span><span class="w"> </span><span class="n">animateDpAsState</span><span class="p">(</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">expanded</span><span class="p">)</span><span class="w"> </span><span class="m">24.</span><span class="n">dp</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="m">0.</span><span class="n">dp</span><span class="p">)</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">(</span><span class="n">radius</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<p>A negative <code>blurRadius</code>, such as spring overshoot, is treated as zero. <code>noiseFactor</code> and <code>alpha</code> are
+clamped into <code>0f..1f</code>. Other invalid values throw <code>IllegalArgumentException</code> when the block runs.</p>
+<p>An explicit <code>colorEffects(emptyList())</code> clears inherited effects. Haze copies lists you pass each
+time the block runs, so mutating a list afterwards does not schedule an update.</p>
 <h3 id="other-blur-api-changes">Other Blur API changes<a class="headerlink" href="#other-blur-api-changes" title="Permanent link">¶</a></h3>
 <p>Build every Blur Style with <code>HazeBlurStyle { ... }</code>, and extend the defaults with
 <code>HazeBlurDefaults.style.then { ... }</code>. The <code>HazeStyle(...)</code> constructor, <code>HazeStyle.Unspecified</code>,
@@ -1678,8 +1688,12 @@ fractions are not equivalent to the same <code>qualityFraction</code> value; com
 performance before choosing a replacement.
 <code>HazeSampling</code> remains the generic policy used by custom effects.</p>
 <h2 id="lifecycle-and-sharing">Lifecycle and sharing<a class="headerlink" href="#lifecycle-and-sharing" title="Permanent link">¶</a></h2>
-<p>Styles are immutable and safe to share. Supply a replacement Style through recomposition when the
-appearance changes.</p>
+<p>Styles are safe to share across nodes; each node observes the snapshot state the Style block reads
+and updates itself. Change appearance by writing that state (no recomposition is needed), or supply
+a replacement Style through recomposition. A plain captured value or a mutated list does not
+schedule an update, so give a remembered Style keys or use <code>rememberUpdatedState</code> for non-state
+inputs that change. The built-in presets such as <code>HazeMaterials.regular()</code> compare by value: the same
+inputs yield an equal Style.</p>
 <h2 id="other-haze-2-migrations">Other Haze 2 migrations<a class="headerlink" href="#other-haze-2-migrations" title="Permanent link">¶</a></h2>
 <p>The typed Blur API does not change the other Haze 2 migrations.</p>
 <h3 id="glass-migration">Glass migration<a class="headerlink" href="#glass-migration" title="Permanent link">¶</a></h3>

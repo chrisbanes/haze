@@ -1472,10 +1472,18 @@ Style:</p>
 <span class="w">  </span><span class="n">noiseFactor</span><span class="p">(</span><span class="m">0f</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Properties a Style doesn't write keep their inherited value. Styles are immutable and safe to
-share; create a new Style to change the appearance.</p>
-<p><code>colorEffects</code> copies the list you pass, so later changes to your list have no effect. An empty
-list clears inherited color effects:</p>
+<p>Properties a Style doesn't write keep their inherited value. The block runs each time a node
+resolves its Style, under snapshot observation: a change to snapshot state the block reads, such as
+an animated value, updates the node on the next frame without recomposition.</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">radius</span><span class="w"> </span><span class="k">by</span><span class="w"> </span><span class="n">animateDpAsState</span><span class="p">(</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">expanded</span><span class="p">)</span><span class="w"> </span><span class="m">24.</span><span class="n">dp</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="m">0.</span><span class="n">dp</span><span class="p">)</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">(</span><span class="n">radius</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<p>Only snapshot state schedules an update. A plain captured value, or a <code>MutableList</code> you mutate, does
+not. A remembered block keeps what it captured, so give <code>remember</code> keys or use
+<code>rememberUpdatedState</code> for non-state inputs that change. The built-in presets compare by value, so
+calling a preset again with the same inputs yields an equal Style and does not update nodes.</p>
+<p><code>colorEffects</code> copies the list you pass each time the block runs, so mutating your list afterwards
+does not schedule an update. An empty list clears inherited color effects:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">noColorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">colorEffects</span><span class="p">(</span><span class="n">emptyList</span><span class="p">())</span>
 <span class="p">}</span>

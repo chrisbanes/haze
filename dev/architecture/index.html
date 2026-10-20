@@ -1349,7 +1349,8 @@
 <span class="p">}</span>
 </code></pre></div>
 <ul>
-<li>A Style is the complete, immutable effect configuration.</li>
+<li>A Style describes the effect configuration. Built-in Blur and Glass Style blocks can read snapshot
+  state, so their resolved values can change without replacing the Style.</li>
 <li>A factory is a stateless descriptor that many modifiers can share.</li>
 <li>A renderer owns the mutable state and resources for exactly one modifier.</li>
 </ul>
@@ -1389,9 +1390,10 @@ request larger layer bounds.</p>
 <p>Source geometry, windows, and captured layers aren't exposed to renderers; Haze handles source
 selection, ordering, and cross-window alignment for you.</p>
 <h2 id="built-in-blur">Built-in Blur<a class="headerlink" href="#built-in-blur" title="Permanent link">¶</a></h2>
-<p><code>hazeBlur</code> takes a <code>HazeBlurStyle</code>. Styles and the Blur factory are stateless, so you can share a
-Style between modifiers. Each modifier resolves <code>HazeBlurDefaults.style</code>, <code>LocalHazeBlurStyle</code>, and
-the explicit Style, in that order, whenever the Style changes.</p>
+<p><code>hazeBlur</code> takes a <code>HazeBlurStyle</code>, resolved from <code>HazeBlurDefaults.style</code>, <code>LocalHazeBlurStyle</code>, and
+the explicit Style, in that order. Snapshot state read inside a Style block is observed: when it
+changes, Blur resolves the Style again and redraws without recomposition. Styles and the Blur
+factory can be shared; each modifier owns its resolved values and renderer.</p>
 <h2 id="built-in-glass">Built-in Glass<a class="headerlink" href="#built-in-glass" title="Permanent link">¶</a></h2>
 <p><code>hazeGlass</code> takes a <code>GlassStyle</code>, resolved from defaults, <code>LocalGlassStyle</code>, and the explicit Style.
 Snapshot state read inside a Style block is observed: when it changes, Glass resolves the Style
