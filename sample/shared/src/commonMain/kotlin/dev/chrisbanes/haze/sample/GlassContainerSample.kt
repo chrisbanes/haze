@@ -268,7 +268,7 @@ public fun GlassContainerSampleContent(
           )
         }
         Text(
-          "Spacing: ${mergeDistance.value.toInt()} dp",
+          "Merge distance: ${mergeDistance.value.toInt()} dp",
           color = Color.White,
           style = MaterialTheme.typography.bodyMedium,
         )

@@ -46,7 +46,10 @@ internal fun ScreenshotUiTest.captureGlassContainer() {
   captureRoot("separated", unmatchedPixelThreshold)
 
   // The extra pill grows out of the base pill once the container has drawn its first frame.
+  // Robolectric draws only when capturing, so draw once to start the grow and let it finish.
   extraMemberVisible = true
+  waitForIdle()
+  captureRootPixels()
   waitForIdle()
   captureRoot("memberShown", unmatchedPixelThreshold)
 }
