@@ -60,7 +60,7 @@ _Avoid_: Child surface, container item
 
 **Glass cluster**:
 Glass members of one container that are close enough and share enough appearance to draw as one
-merged shape, joined by smooth bridges.
+surface. Their edges stretch towards each other and form smooth bridges as they approach.
 _Avoid_: Union, blob, merged group
 
 **Backdrop input**:

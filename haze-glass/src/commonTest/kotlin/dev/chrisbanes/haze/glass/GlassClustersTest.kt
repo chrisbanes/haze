@@ -29,13 +29,15 @@ class GlassClustersTest {
 
   @Test
   fun cluster_strictThresholdAndDiagonalGap() {
-    for ((gap, count) in listOf(19f to 1, 20f to 2, 21f to 2)) {
+    for ((gap, count) in listOf(19f to 1, 20f to 1, 21f to 1, 39f to 1, 40f to 2, 41f to 2)) {
       assertThat(clusterGlassMembers(listOf(member(0), member(1, 100f + gap)), 40f).surfaces.size)
         .isEqualTo(count)
     }
     assertThat(clusterGlassMembers(listOf(member(0), member(1, 112f, 52f)), 40f).surfaces.size)
       .isEqualTo(1)
-    assertThat(clusterGlassMembers(listOf(member(0), member(1, 115f, 55f)), 40f).surfaces.size)
+    assertThat(clusterGlassMembers(listOf(member(0), member(1, 128f, 68f)), 40f).surfaces.size)
+      .isEqualTo(1)
+    assertThat(clusterGlassMembers(listOf(member(0), member(1, 129f, 69f)), 40f).surfaces.size)
       .isEqualTo(2)
     assertThat(clusterGlassMembers(listOf(member(0), member(1, 30f)), 40f).surfaces.size).isEqualTo(1)
     assertThat(clusterGlassMembers(listOf(member(0), member(1, 30f)), 0f).surfaces.size).isEqualTo(2)
@@ -72,7 +74,7 @@ class GlassClustersTest {
     assertThat(clusterGlassMembers(listOf(first, differentKey), 40f).surfaces.map { it.members.size })
       .containsExactly(1, 1)
 
-    // 10 px apart, within spacing / 2: proximity alone does not override a different key.
+    // 10 px apart, within spacing: proximity alone does not override a different key.
     val near = member(2, 110f).copy(key = key.copy(alpha = 0.4f))
     assertThat(clusterGlassMembers(listOf(first, near), 40f).surfaces.map { it.members.size })
       .containsExactly(1, 1)

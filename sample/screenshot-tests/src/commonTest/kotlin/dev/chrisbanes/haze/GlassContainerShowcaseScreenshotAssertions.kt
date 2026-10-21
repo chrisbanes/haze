@@ -34,17 +34,15 @@ internal fun ScreenshotUiTest.captureGlassContainerShowcase(
   waitForIdle()
   captureRoot("rest", unmatchedPixelThreshold)
 
-  // Search is held away from the tabs, beyond the spacing, so it draws separately.
-  state.seek(0.27f)
+  state.seek(4f / 14)
+  waitForIdle()
+  captureRoot("expanded", unmatchedPixelThreshold)
+
+  state.seek(0.5f)
   waitForIdle()
   captureRoot("split", unmatchedPixelThreshold)
 
-  // Selection mode, after Search retracts and the actions grow out of the pill.
-  state.seek(0.6f)
-  waitForIdle()
-  captureRoot("selecting", unmatchedPixelThreshold)
-
-  // The demo controls, which must not cover the bar.
+  // The demo controls must stay clear of the palette.
   state.updateRecordingMode(false)
   waitForIdle()
   captureRoot("controls", unmatchedPixelThreshold)

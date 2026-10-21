@@ -147,6 +147,7 @@ internal fun DemoChrome(
   modifier: Modifier = Modifier,
   isPlaying: Boolean? = null,
   onPlayPause: (() -> Unit)? = null,
+  playbackControls: (@Composable () -> Unit)? = null,
 ) {
   val navigationEnabled = LocalSampleNavigationEnabled.current
   val shape = RoundedCornerShape(24.dp)
@@ -192,6 +193,7 @@ internal fun DemoChrome(
           )
         }
       }
+      playbackControls?.invoke()
       IconButton(onClick = onReset) {
         Icon(ReplayIcon, contentDescription = "Reset demo")
       }

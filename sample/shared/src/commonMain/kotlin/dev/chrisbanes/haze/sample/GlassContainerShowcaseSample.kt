@@ -6,66 +6,49 @@
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateTo
+import androidx.compose.animation.core.copy
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -79,153 +62,134 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.toSize
 import androidx.navigation.NavHostController
-import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.glass.hazeGlassContainer
-import dev.chrisbanes.haze.glass.material3.material3
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private const val PHOTO_COUNT = 48
-
-// Photos selected by the scripted loop. They sit in the upper rows of a landscape window.
-private val ScriptedSelection = setOf(8, 9, 16)
-
-private val BarHeight = 64.dp
-private val CompactBarHeight = 56.dp
-private val BarGap = 6.dp
-private val TabsPillWidth = 360.dp
-private val SelectionPillWidth = 208.dp
-private val SearchTravel = 120.dp
-
-// Search must move more than half the container spacing to split away from the tabs.
-private val MinSearchTravel = 24.dp
-private val GridDriftDistance = 160.dp
+private val InkColors = listOf(Color(0xFF587BDB), Color(0xFFE0806D), Color(0xFF5B9B8C), Color(0xFF383E4B))
+private val InkNames = listOf("Blue", "Coral", "Sage", "Graphite")
 
 @Stable
 public class GlassContainerShowcaseState {
   private var currentProgress by mutableFloatStateOf(0f)
-
+  public var expanded: Boolean by mutableStateOf(false)
+    private set
+  public var colorOffset: Float by mutableFloatStateOf(0f)
+    private set
+  public var colorIndex: Int by mutableIntStateOf(0)
+    private set
+  public var strokeIndex: Int by mutableIntStateOf(1)
+    private set
   public var isPlaying: Boolean by mutableStateOf(true)
+    private set
+  public var isSlowMotion: Boolean by mutableStateOf(false)
     private set
   public var recordingMode: Boolean by mutableStateOf(false)
     private set
-  public var selecting: Boolean by mutableStateOf(false)
-    private set
-  public var selectedPhotos: Set<Int> by mutableStateOf(emptySet())
-    private set
-  public var selectedTab: Int by mutableIntStateOf(0)
-    private set
-
-  /**
-   * Search's distance from the tabs, as a fraction of how far the script moves it. The script and
-   * dragging both move it, so Search can be dragged back after the script is interrupted.
-   */
-  public var searchOffset: Float by mutableFloatStateOf(0f)
-    private set
   internal var autoplayGeneration by mutableIntStateOf(0)
     private set
+  internal val animationDurationScale: Float get() = if (isSlowMotion) 2f else 1f
 
-  public fun progress(): Float = currentProgress
-
-  /** Moves the scripted loop to [progress], entering or leaving selection as the script does. */
   public fun seek(progress: Float) {
-    require(progress.isFinite() && progress in 0f..1f)
-    currentProgress = progress
     val frame = glassContainerShowcaseFrame(progress)
-    searchOffset = frame.searchDetachFraction
-    if (frame.selecting != selecting) applySelecting(frame.selecting, ScriptedSelection)
-  }
-
-  public fun togglePlayback() {
-    isPlaying = !isPlaying
+    currentProgress = progress
+    expanded = frame.expanded
+    colorOffset = frame.colorDetachFraction
   }
 
   public fun pause() {
     isPlaying = false
   }
+  public fun togglePlayback() {
+    isPlaying = !isPlaying
+  }
+  public fun toggleSlowMotion() {
+    isSlowMotion = !isSlowMotion
+  }
+  public fun updateRecordingMode(value: Boolean) {
+    recordingMode = value
+  }
 
-  /**
-   * Hands the scene to the user, so the script can't undo what they do. Every user action calls
-   * this, including keyboard and accessibility actions, which send no pointer press.
-   */
   public fun takeOver() {
     pause()
     recordingMode = false
   }
 
-  public fun updateRecordingMode(value: Boolean) {
-    recordingMode = value
-  }
-
-  public fun updateSelecting(value: Boolean, initialSelection: Set<Int> = emptySet()) {
+  public fun toggleExpanded() {
     takeOver()
-    applySelecting(value, initialSelection)
+    expanded = !expanded
+    colorOffset = 0f
   }
 
-  /** Entering selection replaces the selection. Leaving keeps it, so the count doesn't change while it fades. */
-  private fun applySelecting(value: Boolean, initialSelection: Set<Int>) {
-    if (value && !selecting) selectedPhotos = initialSelection
-    selecting = value
-  }
-
-  public fun togglePhoto(index: Int) {
+  public fun selectColor(index: Int) {
+    require(index in InkColors.indices)
     takeOver()
-    selectedPhotos = if (index in selectedPhotos) selectedPhotos - index else selectedPhotos + index
+    colorIndex = index
   }
 
-  public fun selectTab(index: Int) {
+  public fun cycleStroke() {
     takeOver()
-    selectedTab = index
+    strokeIndex = (strokeIndex + 1) % 3
   }
 
-  public fun dragSearchBy(delta: Float, maxOffset: Float) {
+  public fun dragColorBy(delta: Float) {
     takeOver()
-    searchOffset = (searchOffset + delta).coerceIn(0f, maxOffset)
+    colorOffset = (colorOffset + delta).coerceIn(0f, 1f)
   }
 
-  public suspend fun settleSearch() {
-    animate(
-      initialValue = searchOffset,
-      targetValue = 0f,
-      animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMediumLow),
-    ) { value, _ -> searchOffset = value }
+  public suspend fun settleColor() {
+    var animation = AnimationState(colorOffset)
+    var previousScale = animationDurationScale
+    do {
+      val durationScale = animationDurationScale
+      animation = animation.copy(velocity = animation.velocity * previousScale / durationScale)
+      previousScale = durationScale
+      animation.animateTo(
+        targetValue = 0f,
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium / (durationScale * durationScale)),
+        sequentialAnimation = true,
+      ) {
+        colorOffset = value
+        if (durationScale != animationDurationScale) cancelAnimation()
+      }
+    } while (previousScale != animationDurationScale)
   }
 
   internal suspend fun runAutoplayLoop() {
     while (isPlaying) {
       animate(
-        initialValue = currentProgress,
-        targetValue = 1f,
+        currentProgress,
+        1f,
         animationSpec = tween(
-          durationMillis = (SHOWCASE_LOOP_DURATION_MILLIS * (1f - currentProgress)).roundToInt(),
+          durationMillis = (SHOWCASE_LOOP_DURATION_MILLIS * animationDurationScale * (1f - currentProgress)).roundToInt(),
           easing = LinearEasing,
         ),
       ) { value, _ -> seek(value) }
@@ -234,19 +198,18 @@ public class GlassContainerShowcaseState {
   }
 
   public fun reset() {
-    currentProgress = 0f
-    selecting = false
-    selectedPhotos = emptySet()
-    selectedTab = 0
-    searchOffset = 0f
+    seek(0f)
+    colorIndex = 0
+    strokeIndex = 1
     recordingMode = false
     isPlaying = true
+    isSlowMotion = false
     autoplayGeneration++
   }
 
   internal fun disableAutoplay() {
-    currentProgress = 0f
-    searchOffset = 0f
+    seek(0f)
+    expanded = true
     isPlaying = false
   }
 }
@@ -254,19 +217,15 @@ public class GlassContainerShowcaseState {
 @Composable
 public fun GlassContainerShowcaseSample(navController: NavHostController) {
   val state = remember { GlassContainerShowcaseState() }
-
   SampleChromeVisibilityEffect(visible = !state.recordingMode)
-
-  LaunchedEffect(state.isPlaying, state.autoplayGeneration) {
-    val animationsEnabled = (coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f) > 0f
-    if (!animationsEnabled) {
+  LaunchedEffect(state.isPlaying, state.autoplayGeneration, state.isSlowMotion) {
+    if (state.isPlaying && (coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f) <= 0f) {
       state.disableAutoplay()
     } else if (state.isPlaying) {
       state.runAutoplayLoop()
     }
   }
-
-  GlassContainerShowcaseSampleContent(state = state, onBack = navController::navigateUp)
+  GlassContainerShowcaseSampleContent(state, onBack = navController::navigateUp)
 }
 
 @Composable
@@ -276,483 +235,207 @@ public fun GlassContainerShowcaseSampleContent(
   modifier: Modifier = Modifier,
 ) {
   val hazeState = rememberHazeState()
-  // The title block's size, which grows with the user's font size.
-  var titleSize by remember { mutableStateOf(DpSize.Zero) }
-  var selectWidth by remember { mutableStateOf(0.dp) }
-  val density = LocalDensity.current
-
-  BoxWithConstraints(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-    // Select sits beside the title when both fit, and below it otherwise, such as with large text
-    // on a phone. The end padding keeps it clear of the sample browser's settings button.
-    val selectBelowTitle = titleSize.width + selectWidth + 72.dp > maxWidth
-
-    // Any press in the scene hands control to the user. The demo controls sit outside this box,
-    // so pressing them doesn't pause the loop.
+  Box(modifier.fillMaxSize().background(Color(0xFFF4F1E9))) {
     Box(
-      Modifier
-        .fillMaxSize()
-        .pointerInput(state) {
-          awaitPointerEventScope {
-            while (true) {
-              val event = awaitPointerEvent(PointerEventPass.Initial)
-              if (event.type == PointerEventType.Press) {
-                state.takeOver()
-              }
-            }
+      Modifier.fillMaxSize().pointerInput(state) {
+        awaitPointerEventScope {
+          while (true) {
+            if (awaitPointerEvent(PointerEventPass.Initial).type == PointerEventType.Press) state.takeOver()
           }
-        },
+        }
+      },
     ) {
-      PhotoLibrary(
-        hazeState = hazeState,
-        state = state,
-        onTitleSizeChange = { titleSize = it },
-        modifier = Modifier.fillMaxSize(),
-      )
-
-      SelectButton(
-        hazeState = hazeState,
-        selecting = state.selecting,
-        onClick = { state.updateSelecting(!state.selecting) },
-        modifier = Modifier
-          .align(Alignment.TopEnd)
-          .then(
-            if (selectBelowTitle) {
-              Modifier
-                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
-                .padding(top = titleSize.height + 12.dp, end = 24.dp)
-            } else {
-              Modifier
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(top = 32.dp, end = 72.dp)
-            },
+      Canvas(Modifier.fillMaxSize().hazeSource(hazeState)) {
+        drawRect(Color(0xFFF4F1E9))
+        val secondStroke = Path().apply {
+          moveTo(size.width * 0.10f, size.height * 0.24f)
+          cubicTo(
+            size.width * 0.34f,
+            size.height * 0.92f,
+            size.width * 0.66f,
+            size.height * 0.10f,
+            size.width * 0.90f,
+            size.height * 0.72f,
           )
-          .onSizeChanged { selectWidth = with(density) { it.width.toDp() } },
-      )
-
-      LibraryBar(
-        hazeState = hazeState,
-        state = state,
-        modifier = Modifier
-          .align(Alignment.BottomCenter)
-          .windowInsetsPadding(WindowInsets.safeDrawing)
-          .padding(bottom = 28.dp),
-      )
+        }
+        drawPath(secondStroke, Color(0xFFE2AB83), style = Stroke((24 + state.strokeIndex * 12).dp.toPx(), cap = StrokeCap.Round))
+        val stroke = Path().apply {
+          moveTo(size.width * 0.08f, size.height * 0.76f)
+          cubicTo(
+            size.width * 0.32f,
+            size.height * 0.08f,
+            size.width * 0.61f,
+            size.height * 0.91f,
+            size.width * 0.92f,
+            size.height * 0.26f,
+          )
+        }
+        drawPath(stroke, InkColors[state.colorIndex], style = Stroke((48 + state.strokeIndex * 24).dp.toPx(), cap = StrokeCap.Round))
+      }
+      DrawingPalette(state, hazeState, Modifier.align(Alignment.Center).safeDrawingPadding().padding(24.dp))
     }
-
-    // On narrow windows, such as phones, the bar spans the bottom, so the controls go below the
-    // title instead.
-    val controlsBesideBar = maxWidth >= 900.dp
     AnimatedVisibility(
       visible = !state.recordingMode,
-      modifier = if (controlsBesideBar) {
-        Modifier
-          .align(Alignment.BottomStart)
-          .windowInsetsPadding(WindowInsets.safeDrawing)
-          .padding(24.dp)
-      } else {
-        Modifier
-          .align(Alignment.TopStart)
-          .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
-          .padding(start = 24.dp, top = titleSize.height + 12.dp + if (selectBelowTitle) 44.dp + 12.dp else 0.dp)
-      },
+      modifier = Modifier.align(Alignment.BottomStart).safeDrawingPadding().padding(24.dp),
     ) {
       DemoChrome(
         hazeState = hazeState,
         onBack = onBack,
         onEnterRecordingMode = { state.updateRecordingMode(true) },
+        onReset = state::reset,
         isPlaying = state.isPlaying,
         onPlayPause = state::togglePlayback,
-        onReset = state::reset,
+        playbackControls = {
+          IconToggleButton(
+            checked = state.isSlowMotion,
+            onCheckedChange = { state.toggleSlowMotion() },
+            modifier = Modifier.width(64.dp).semantics {
+              contentDescription = "Slow motion"
+              stateDescription = if (state.isSlowMotion) "Half speed" else "Normal speed"
+            },
+          ) {
+            Text(if (state.isSlowMotion) "0.5×" else "1×", maxLines = 1)
+          }
+        },
       )
     }
   }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun PhotoLibrary(
-  hazeState: HazeState,
-  state: GlassContainerShowcaseState,
-  onTitleSizeChange: (DpSize) -> Unit,
-  modifier: Modifier = Modifier,
-) {
-  val density = LocalDensity.current
-  Box(modifier.hazeSource(hazeState)) {
-    LazyVerticalGrid(
-      columns = GridCells.Adaptive(minSize = 176.dp),
-      contentPadding = PaddingValues(bottom = BarHeight + 56.dp),
-      horizontalArrangement = Arrangement.spacedBy(3.dp),
-      verticalArrangement = Arrangement.spacedBy(3.dp),
-      modifier = Modifier
-        .testTag("glass_container_showcase_grid")
-        .layout { measurable, constraints ->
-          // Lay the grid out taller than the window and drift it, so photos keep moving under
-          // the glass without leaving a gap at the bottom.
-          val overscan = GridDriftDistance.roundToPx()
-          val placeable = measurable.measure(
-            constraints.copy(
-              minHeight = constraints.maxHeight + overscan,
-              maxHeight = constraints.maxHeight + overscan,
-            ),
-          )
-          layout(constraints.maxWidth, constraints.maxHeight) {
-            placeable.placeWithLayer(0, 0) {
-              translationY = -overscan * glassContainerShowcaseFrame(state.progress()).gridDrift
-            }
-          }
-        },
-    ) {
-      items((0 until PHOTO_COUNT).toList(), key = { it }) { index ->
-        val selected = state.selecting && index in state.selectedPhotos
-        Box(
-          Modifier
-            .aspectRatio(1f)
-            .combinedClickable(
-              onClick = { if (state.selecting) state.togglePhoto(index) },
-              onLongClick = { state.updateSelecting(true, setOf(index)) },
-            ),
-        ) {
-          AsyncImage(
-            model = randomSampleImageUrl(seed = 2026 + index, width = 480),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-          )
-          val dim by animateFloatAsState(if (selected) 0.3f else 0f)
-          Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = dim)))
-          AnimatedVisibility(
-            visible = selected,
-            enter = fadeIn() + scaleIn(initialScale = 0.6f),
-            exit = fadeOut() + scaleOut(targetScale = 0.6f),
-            modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp),
-          ) {
-            Icon(
-              Icons.Filled.CheckCircle,
-              contentDescription = "Selected",
-              tint = Color(0xFF0A84FF),
-              modifier = Modifier
-                .size(28.dp)
-                .background(Color.White, CircleShape),
-            )
-          }
-        }
-      }
-    }
-
-    // A scrim keeps the title readable over any photo, in both themes.
-    Box(
-      Modifier
-        .fillMaxWidth()
-        .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent)))
-        .padding(bottom = 48.dp),
-    ) {
-      Column(
-        Modifier
-          // Measured before the insets and padding, so the size reaches the title's bottom and end.
-          .onSizeChanged { onTitleSizeChange(with(density) { it.toSize().toDpSize() }) }
-          .windowInsetsPadding(WindowInsets.safeDrawing)
-          .padding(start = 32.dp, top = 24.dp, end = 32.dp),
-      ) {
-        Text(
-          "Library",
-          color = Color.White,
-          style = MaterialTheme.typography.displaySmall,
-          fontWeight = FontWeight.Bold,
-        )
-        Text(
-          "$PHOTO_COUNT photos",
-          color = Color.White.copy(alpha = 0.8f),
-          style = MaterialTheme.typography.titleMedium,
-        )
-      }
-    }
-  }
-}
-
-@Composable
-private fun SelectButton(
-  hazeState: HazeState,
-  selecting: Boolean,
-  onClick: () -> Unit,
-  modifier: Modifier = Modifier,
-) {
-  val style = GlassStyle.regular.material3()
-  val shapedStyle = remember(style) { style.then { shape(CircleShape) } }
-  Box(
-    modifier = modifier
-      .height(44.dp)
-      .hazeGlass(input = HazeInput.Sources(hazeState), style = shapedStyle)
-      .clip(CircleShape)
-      .clickable(onClick = onClick)
-      .padding(horizontal = 20.dp),
-    contentAlignment = Alignment.Center,
-  ) {
-    Text(
-      if (selecting) "Cancel" else "Select",
-      color = MaterialTheme.colorScheme.onSurface,
-      style = MaterialTheme.typography.labelLarge,
-    )
-  }
-}
-
-@Composable
-private fun LibraryBar(
-  hazeState: HazeState,
-  state: GlassContainerShowcaseState,
-  modifier: Modifier = Modifier,
-) = BoxWithConstraints(modifier) {
-  // Narrow windows, such as phones, shrink the pills so that the bar and Search's split fit.
-  val available = maxWidth - 32.dp
-  val memberSize = if (available >= TabsPillWidth + BarGap + BarHeight + SearchTravel * 2) BarHeight else CompactBarHeight
-  val tabsPillWidth = minOf(TabsPillWidth, available - BarGap - memberSize - MinSearchTravel * 2).coerceAtLeast(160.dp)
-  val selectionPillWidth = minOf(SelectionPillWidth, available - (BarGap + memberSize) * 3).coerceAtLeast(120.dp)
-  val restWidth = tabsPillWidth + BarGap + memberSize
-  // The bar is centred on its wider row, the tabs with Search or the selection with its actions.
-  val barWidth = maxOf(restWidth, selectionPillWidth + (BarGap + memberSize) * 3)
-  val maxSearchTravel = ((available - barWidth) / 2 + barWidth - restWidth).coerceAtLeast(MinSearchTravel)
-  val searchTravel = minOf(SearchTravel, maxSearchTravel)
-
-  val selecting = state.selecting
-
-  // Members join and leave one at a time. The bar has at most four members in a cluster, so
-  // Search finishes retracting before the actions grow, and the actions leave before Search returns.
-  var compactPill by remember { mutableStateOf(selecting) }
-  var searchVisible by remember { mutableStateOf(!selecting) }
-  var visibleActions by remember { mutableIntStateOf(if (selecting) 3 else 0) }
-  // A new drag, resuming playback or a reset takes Search over from its return spring, so the
-  // two don't both move it.
+private fun DrawingPalette(state: GlassContainerShowcaseState, hazeState: HazeState, modifier: Modifier) {
+  val style = remember { GlassStyle.regular.then { shape(CircleShape) } }
+  val foreground = Color(0xFF252B3A)
   val scope = rememberCoroutineScope()
   var settleJob by remember { mutableStateOf<Job?>(null) }
-  LaunchedEffect(state.isPlaying, state.autoplayGeneration) {
-    if (state.isPlaying) settleJob?.cancel()
+  LaunchedEffect(state.isPlaying, state.autoplayGeneration, state.expanded) { settleJob?.cancel() }
+  val durationScale = state.animationDurationScale
+  val fadeSpec = remember(durationScale) { spring<Float>(stiffness = Spring.StiffnessMediumLow / (durationScale * durationScale)) }
+  val sizeSpec = remember(durationScale) {
+    spring<IntSize>(stiffness = Spring.StiffnessMediumLow / (durationScale * durationScale), visibilityThreshold = IntSize.VisibilityThreshold)
   }
+  val memberSpec = remember(durationScale) { spring<Float>(stiffness = Spring.StiffnessMedium / (durationScale * durationScale)) }
 
-  LaunchedEffect(selecting) {
-    if (selecting) {
-      // Search may have been dragged or split away. Send it home as it leaves, so it returns
-      // next to the tabs when selection ends.
-      settleJob?.cancel()
-      settleJob = scope.launch { state.settleSearch() }
-      searchVisible = false
-      compactPill = true
-      delay(550)
-      repeat(3) {
-        visibleActions = it + 1
-        delay(180)
-      }
-    } else {
-      while (visibleActions > 0) {
-        visibleActions--
-        delay(140)
-      }
-      delay(150)
-      compactPill = false
-      delay(350)
-      searchVisible = true
-    }
-  }
+  BoxWithConstraints(modifier) {
+    val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
+    val regularPlaybackSpace = if (state.recordingMode) 0.dp else 96.dp
+    val verticalHeight = (maxHeight - 64.dp - regularPlaybackSpace - 24.dp) / 3
+    // Both Brush labels need two text lines; use the available width before clipping them.
+    val minimumHeight = 48.dp * fontScale + 8.dp
+    val vertical = maxWidth < 900.dp && (maxWidth < 600.dp || verticalHeight >= minimumHeight)
+    val compactHorizontal = !vertical && maxWidth < 900.dp
+    val compactVertical = vertical && verticalHeight < minimumHeight
+    val playbackSpace = if (state.recordingMode) 0.dp else if (compactVertical) 64.dp else 96.dp
+    val travel = if (compactVertical) 32.dp else if (vertical) 64.dp else if (compactHorizontal) 56.dp else 88.dp
+    val bottomSpace = travel + playbackSpace
+    val preferredHeight = (if (vertical || compactHorizontal) 88.dp else 104.dp) * fontScale
+    // Keep room for all three controls, both gaps, detachment travel and the playback controls.
+    val availableHeight = (maxHeight - bottomSpace - 24.dp) / 3
+    val height = if (vertical) minOf(preferredHeight, availableHeight.coerceAtLeast(24.dp * fontScale + 16.dp)) else preferredHeight
+    val compactWidth = maxWidth - travel - 24.dp
+    val penWidth = if (vertical) minOf(248.dp, maxWidth) else if (compactHorizontal) compactWidth * 0.36f else 280.dp
+    val strokeWidth = if (vertical) minOf(248.dp, maxWidth) else if (compactHorizontal) compactWidth * 0.32f else 232.dp
+    val colorWidth = if (vertical) minOf(248.dp, maxWidth) else if (compactHorizontal) compactWidth * 0.32f else 256.dp
+    val travelPx = with(LocalDensity.current) { travel.toPx() }
+    val containerModifier = Modifier.hazeGlassContainer(spacing = 40.dp, transitionSpec = memberSpec)
 
-  val pillWidth by animateDpAsState(
-    targetValue = if (compactPill) selectionPillWidth else tabsPillWidth,
-    animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
-  )
-
-  // Styles compare by identity, so remember each one. Every member shares one material, so they
-  // can merge; only the shape and press response differ.
-  val baseStyle = GlassStyle.regular.material3()
-  val pillStyle = remember(baseStyle) { baseStyle.then { shape(CircleShape) } }
-  val buttonStyle = remember(baseStyle) {
-    baseStyle.then {
-      shape(CircleShape)
-      pressed {
-        lightingIntensity(1f)
-        scale(0.94f)
-      }
-    }
-  }
-
-  val searchTravelPx = with(LocalDensity.current) { searchTravel.toPx() }
-  CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-    // Anchor the bar's start, so members joining or leaving at the end don't shift the tabs.
-    Box(Modifier.width(barWidth), contentAlignment = Alignment.CenterStart) {
+    @Composable
+    fun Members() {
       Row(
-        modifier = Modifier.hazeGlassContainer(
-          spacing = 32.dp,
-          transitionSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow),
-        ),
-        horizontalArrangement = Arrangement.spacedBy(BarGap),
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        Box(
-          Modifier
-            .testTag("glass_container_showcase_pill")
-            .size(width = pillWidth, height = memberSize)
-            .hazeGlass(input = HazeInput.Sources(hazeState), style = pillStyle)
-            // This clip is inside the effect node, so it only constrains the pill's content.
-            .clip(CircleShape),
-          contentAlignment = Alignment.CenterStart,
-        ) {
-          Crossfade(targetState = selecting) { showSelection ->
-            if (showSelection) {
-              SelectionSummary(
-                width = selectionPillWidth,
-                count = state.selectedPhotos.size,
-                onClose = { state.updateSelecting(false) },
-              )
-            } else {
-              LibraryTabs(
-                tabWidth = (tabsPillWidth - 12.dp) / LibraryTabLabels.size,
-                tabHeight = memberSize - 12.dp,
-                selectedTab = state.selectedTab,
-                onTabSelected = state::selectTab,
-              )
-            }
-          }
-        }
-
-        AnimatedVisibility(
-          visible = searchVisible,
-          enter = fadeIn(tween(200)),
-          exit = fadeOut(tween(120)),
-        ) {
-          val interactionSource = remember { MutableInteractionSource() }
-          Box(
-            Modifier
-              .testTag("glass_container_showcase_search")
-              // Offset comes before hazeGlass, so the glass moves with the button.
-              .offset { IntOffset((state.searchOffset * searchTravelPx).roundToInt(), 0) }
-              .draggable(
-                state = rememberDraggableState {
-                  state.dragSearchBy(it / searchTravelPx, maxOffset = maxSearchTravel / searchTravel)
-                },
-                orientation = Orientation.Horizontal,
-                interactionSource = interactionSource,
-                onDragStarted = { settleJob?.cancel() },
-                onDragStopped = { settleJob = scope.launch { state.settleSearch() } },
-              )
-              .size(memberSize)
-              .hazeGlass(
-                input = HazeInput.Sources(hazeState),
-                style = buttonStyle,
-                interactionSource = interactionSource,
-              )
-              .clickable(interactionSource = interactionSource, indication = null) {},
-            contentAlignment = Alignment.Center,
-          ) {
-            Icon(Icons.Filled.Search, contentDescription = "Search")
-          }
-        }
-
-        SelectionActions.forEachIndexed { index, action ->
-          AnimatedVisibility(
-            visible = visibleActions > index,
-            enter = fadeIn(tween(200)),
-            exit = fadeOut(tween(120)),
-          ) {
-            val interactionSource = remember { MutableInteractionSource() }
-            Box(
-              Modifier
-                .size(memberSize)
-                .hazeGlass(
-                  input = HazeInput.Sources(hazeState),
-                  style = buttonStyle,
-                  interactionSource = interactionSource,
-                )
-                .clickable(interactionSource = interactionSource, indication = null) {
-                  state.updateSelecting(false)
-                },
-              contentAlignment = Alignment.Center,
-            ) {
-              Icon(
-                action.icon,
-                contentDescription = action.label,
-                tint = action.tint ?: LocalContentColor.current,
-              )
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-@Poko
-private class SelectionAction(val label: String, val icon: ImageVector, val tint: Color? = null)
-
-private val SelectionActions = listOf(
-  SelectionAction("Share", Icons.Filled.Share),
-  SelectionAction("Favorite", Icons.Filled.Favorite),
-  SelectionAction("Delete", Icons.Filled.Delete, tint = Color(0xFFFF453A)),
-)
-
-private val LibraryTabLabels = listOf("Library", "Albums", "For You")
-
-@Composable
-private fun LibraryTabs(
-  tabWidth: Dp,
-  tabHeight: Dp,
-  selectedTab: Int,
-  onTabSelected: (Int) -> Unit,
-) {
-  Row(
-    // The pill narrows while this fades out, so keep the tabs at full width and let the pill clip them.
-    modifier = Modifier.wrapContentWidth(Alignment.Start, unbounded = true).padding(6.dp),
-  ) {
-    LibraryTabLabels.forEachIndexed { index, label ->
-      val selected = index == selectedTab
-      Box(
-        Modifier
-          .size(width = tabWidth, height = tabHeight)
+        Modifier.width(penWidth).height(height)
+          .hazeGlass(input = HazeInput.Sources(hazeState), style = style)
           .clip(CircleShape)
-          .background(if (selected) LocalContentColor.current.copy(alpha = 0.12f) else Color.Transparent)
-          .clickable { onTabSelected(index) },
-        contentAlignment = Alignment.Center,
+          .clickable(role = Role.Button, onClickLabel = if (state.expanded) "Close tools" else "Open tools") { state.toggleExpanded() }
+          .padding(horizontal = if (compactHorizontal) 16.dp else 24.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(if (compactHorizontal) 8.dp else 16.dp),
       ) {
-        // Large font scales would overflow the tab, so the label shrinks to fit, but never grows
-        // past the user's chosen size.
-        val style = MaterialTheme.typography.labelLarge
-        BasicText(
-          label,
-          maxLines = 1,
-          softWrap = false,
-          style = style.copy(
-            color = LocalContentColor.current,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-          ),
-          autoSize = TextAutoSize.StepBased(minFontSize = 6.sp, maxFontSize = style.fontSize),
-          modifier = Modifier.padding(horizontal = 6.dp),
-        )
+        if (!vertical && !compactHorizontal) {
+          Icon(Icons.Default.Edit, contentDescription = null, tint = foreground, modifier = Modifier.size(32.dp))
+        }
+        Column(Modifier.weight(1f)) {
+          if (!compactHorizontal && !compactVertical) Text("INK", color = foreground.copy(alpha = 0.65f), fontSize = 11.sp, letterSpacing = 2.sp)
+          Text("Brush", color = foreground, fontSize = if (vertical || compactHorizontal) 22.sp else 26.sp, fontWeight = FontWeight.Medium)
+        }
+        if (!compactHorizontal) {
+          Icon(if (state.expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = null, tint = foreground)
+        }
+      }
+      AnimatedVisibility(
+        state.expanded,
+        enter = fadeIn(fadeSpec) + if (vertical) expandVertically(sizeSpec, clip = false) else expandHorizontally(sizeSpec, clip = false),
+        exit = fadeOut(fadeSpec) + if (vertical) shrinkVertically(sizeSpec, clip = false) else shrinkHorizontally(sizeSpec, clip = false),
+      ) {
+        Column(
+          Modifier.padding(start = if (vertical) 0.dp else 12.dp, top = if (vertical) 12.dp else 0.dp)
+            .width(strokeWidth).height(height)
+            .hazeGlass(input = HazeInput.Sources(hazeState), style = style)
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClickLabel = "Change stroke width") { state.cycleStroke() }
+            .padding(horizontal = 28.dp),
+          verticalArrangement = Arrangement.Center,
+        ) {
+          Text("Stroke", color = foreground, fontSize = 16.sp)
+          if (!compactVertical) {
+            Canvas(Modifier.width(strokeWidth - 56.dp).height(24.dp)) {
+              drawLine(foreground, Offset(0f, size.height / 2), Offset(size.width, size.height / 2), (3 + state.strokeIndex * 3).dp.toPx(), StrokeCap.Round)
+            }
+          }
+        }
+      }
+      AnimatedVisibility(
+        state.expanded,
+        enter = fadeIn(fadeSpec) + if (vertical) expandVertically(sizeSpec, clip = false) else expandHorizontally(sizeSpec, clip = false),
+        exit = fadeOut(fadeSpec) + if (vertical) shrinkVertically(sizeSpec, clip = false) else shrinkHorizontally(sizeSpec, clip = false),
+      ) {
+        Row(
+          Modifier.padding(start = if (vertical) 0.dp else 12.dp, top = if (vertical) 12.dp else 0.dp).offset {
+            val offset = (state.colorOffset * travelPx).roundToInt()
+            if (vertical) IntOffset(0, offset) else IntOffset(offset, 0)
+          }
+            .width(colorWidth).height(height)
+            .draggable(
+              state = rememberDraggableState { state.dragColorBy(it / travelPx) },
+              orientation = if (vertical) Orientation.Vertical else Orientation.Horizontal,
+              onDragStarted = { settleJob?.cancel() },
+              onDragStopped = { settleJob = scope.launch { state.settleColor() } },
+            )
+            .hazeGlass(input = HazeInput.Sources(hazeState), style = style)
+            .semantics {
+              contentDescription = "Ink colors"
+              customActions = listOf(
+                CustomAccessibilityAction(if (state.colorOffset > 0f) "Rejoin palette" else "Detach palette") {
+                  settleJob?.cancel()
+                  state.dragColorBy(if (state.colorOffset > 0f) -1f else 1f)
+                  true
+                },
+              )
+            }
+            .padding(horizontal = 16.dp),
+          horizontalArrangement = Arrangement.SpaceEvenly,
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          InkColors.forEachIndexed { index, color ->
+            Canvas(
+              Modifier.size(minOf(44.dp, (colorWidth - 32.dp) / 4)).clip(CircleShape).selectable(selected = state.colorIndex == index, role = Role.RadioButton, onClick = { state.selectColor(index) })
+                .semantics { contentDescription = "${InkNames[index]} ink" },
+            ) {
+              val scale = size.minDimension / 44.dp.toPx()
+              drawCircle(color, radius = 14.dp.toPx() * scale)
+              if (state.colorIndex == index) drawCircle(foreground, radius = 19.dp.toPx() * scale, style = Stroke(1.5.dp.toPx() * scale))
+            }
+          }
+        }
       }
     }
-  }
-}
 
-@Composable
-private fun SelectionSummary(
-  width: Dp,
-  count: Int,
-  onClose: () -> Unit,
-) {
-  Row(
-    // Laid out at the pill's final width, so the count fits once the pill finishes narrowing.
-    modifier = Modifier
-      .wrapContentWidth(Alignment.Start, unbounded = true)
-      .width(width)
-      .padding(start = 8.dp, end = 20.dp),
-    verticalAlignment = Alignment.CenterVertically,
-  ) {
-    IconButton(onClick = onClose) {
-      Icon(Icons.Filled.Close, contentDescription = "End selection")
+    if (vertical) {
+      Column(containerModifier.padding(bottom = bottomSpace), horizontalAlignment = Alignment.CenterHorizontally) { Members() }
+    } else {
+      Row(
+        containerModifier.padding(end = travel, bottom = if (compactHorizontal) playbackSpace else 0.dp),
+        verticalAlignment = Alignment.CenterVertically,
+      ) { Members() }
     }
-    // Large font scales would overflow the pill, so the count shrinks to fit, but never grows past
-    // the user's chosen size.
-    val style = MaterialTheme.typography.titleSmall
-    BasicText(
-      "$count Selected",
-      maxLines = 1,
-      softWrap = false,
-      style = style.copy(color = LocalContentColor.current),
-      autoSize = TextAutoSize.StepBased(minFontSize = 6.sp, maxFontSize = style.fontSize),
-    )
   }
 }

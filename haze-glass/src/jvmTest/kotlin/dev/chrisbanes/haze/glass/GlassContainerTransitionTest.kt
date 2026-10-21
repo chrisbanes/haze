@@ -162,14 +162,14 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
-  fun matchedGeometry_attachBeyondHalfSpacing_staysLinkedUntilEnd() = runComposeUiTest {
+  fun matchedGeometry_attachBeyondBridgeThreshold_keepsDeformingAfterLinkEnds() = runComposeUiTest {
     val fixture = fixture(gap = 30, present = false)
     fixture.toggle()
     fixture.advance(250)
     assertThat(fixture.owner().model.surfaces.single().members).hasSize(2)
     fixture.settle()
-    assertThat(fixture.owner().renderer.surfaceCount).isEqualTo(2)
-    assertThat(fixture.owner().renderer.runtimeSurfaces).isEmpty()
+    assertThat(fixture.owner().renderer.surfaceCount).isEqualTo(1)
+    assertThat(fixture.owner().renderer.runtimeSurfaces.single().mergedField?.members).isNotNull()
   }
 
   @Test

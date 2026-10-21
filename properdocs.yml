@@ -114,6 +114,7 @@ extra:
 
 extra_javascript:
   - javascripts/snapshot-version.js
+  - javascripts/sample-tabs.js
 
 validation:
   unrecognized_links: warn

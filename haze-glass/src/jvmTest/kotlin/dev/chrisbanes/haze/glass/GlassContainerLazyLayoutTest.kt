@@ -69,6 +69,7 @@ private const val TRANSITION_MILLIS = 150
  *
  * The existing tests use 6px per frame because that rate keeps item 5's grow running for its whole
  * duration. The 8px regression test reaches the spacing transiently during partial placement.
+ * Material changes every three items keep the morph fixtures below the four-member cluster cap.
  * These tests characterise the first item only: later items depend on whether their neighbour is
  * still animating. The `withScrollState` tests scroll inside `LazyListState.scroll`, as drags and
  * flings do, because `dispatchRawDelta` does not report a scroll in progress.
@@ -83,6 +84,21 @@ private const val TRANSITION_MILLIS = 150
  * registration path, not the foundation scheduler's timing on a device.
  */
 class GlassContainerLazyLayoutTest : ContextTest() {
+  @Test
+  fun lazyItem_matchedGeometry_atClusterCapacity_materializes() = runComposeUiTest {
+    val fixture = lazyFixture(GlassMemberTransition.MatchedGeometry, splitClusters = false)
+
+    fixture.scroll(frames = 6)
+
+    val entering = checkNotNull(fixture.member(5))
+    assertThat(entering.link).isNull()
+    assertThat(entering.fading).isTrue()
+    assertThat(entering.material.alpha).isLessThan(1f)
+    assertThat(entering.rect).isEqualTo(fixture.contentBounds(5))
+    fixture.settle()
+    fixture.assertAppearedWithoutAnimating(5)
+  }
+
   @Test
   fun lazyItem_matchedGeometry_growsOutOfNeighbourWhileVisible() = runComposeUiTest {
     val fixture = lazyFixture(GlassMemberTransition.MatchedGeometry)
@@ -282,7 +298,7 @@ class GlassContainerLazyLayoutTest : ContextTest() {
         Modifier.size(80.dp).hazeGlass(
           HazeEffectFactory { effect },
           HazeInput.Sources(hazeState),
-          containerTestStyle(Color.Red),
+          lazyItemStyle(index),
           HazePerformanceMode.Quality,
           true,
           null,
@@ -444,7 +460,7 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     }
   }
 
-  private fun ComposeUiTest.lazyFixture(transition: GlassMemberTransition, withScrollState: Boolean = false): LazyFixture {
+  private fun ComposeUiTest.lazyFixture(transition: GlassMemberTransition, withScrollState: Boolean = false, splitClusters: Boolean = true): LazyFixture {
     val effects = mutableMapOf<Int, GlassRuntimeEffect>()
     val hazeState = HazeState()
     val state = LazyListState(firstVisibleItemScrollOffset = 70)
@@ -475,7 +491,7 @@ class GlassContainerLazyLayoutTest : ContextTest() {
               Modifier.size(80.dp).hazeGlass(
                 HazeEffectFactory { effect },
                 HazeInput.Sources(hazeState),
-                containerTestStyle(Color.Red),
+                if (splitClusters) lazyItemStyle(index) else containerTestStyle(Color.Red),
                 HazePerformanceMode.Quality,
                 true,
                 null,
@@ -489,5 +505,9 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     waitForIdle()
     mainClock.autoAdvance = false
     return LazyFixture(this, state, effects, keys, scope)
+  }
+
+  private fun lazyItemStyle(index: Int): GlassStyle = containerTestStyle(Color.Red).then {
+    specularIntensity(if (index / 3 % 2 == 0) 0f else 0.1f)
   }
 }

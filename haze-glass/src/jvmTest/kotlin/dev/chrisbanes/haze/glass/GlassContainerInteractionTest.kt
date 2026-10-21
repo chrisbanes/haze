@@ -81,7 +81,7 @@ class GlassContainerInteractionTest : ContextTest() {
   @Test
   fun opticalWhitePointDelta_survivesSeparateMergedAndSplitLayouts() = runComposeUiTest {
     val fixture = cluster(
-      gap = 25,
+      gap = 45,
       adjustableGap = true,
       checkerboard = true,
       optical = true,
@@ -116,13 +116,13 @@ class GlassContainerInteractionTest : ContextTest() {
     val mergedReleased = fixture.capture()
     assertThat(regionDifference(mergedReleased, idleMerged, 40, 60, 140, 140)).isLessThan(1f / 255f)
 
-    fixture.setGap(25)
+    fixture.setGap(45)
     assertThat(fixture.owner().model.surfaces).hasSize(2)
     val idleSplit = fixture.capture()
     fixture.setGap(10)
     assertThat(fixture.owner().model.surfaces).hasSize(1)
     val splitPress = fixture.press(fixture.firstSource)
-    fixture.setGap(25)
+    fixture.setGap(45)
     assertThat(fixture.owner().model.surfaces).hasSize(2)
     val activeSplit = fixture.capture()
     assertThat(fixture.first.memberBindingForTest?.node).isSameInstanceAs(firstNode)
@@ -138,7 +138,7 @@ class GlassContainerInteractionTest : ContextTest() {
   @Test
   fun opticalRefractionMultiplier_survivesSeparateMergedAndSplitLayouts() = runComposeUiTest {
     val fixture = cluster(
-      gap = 25,
+      gap = 45,
       adjustableGap = true,
       checkerboard = true,
       optical = true,
@@ -164,13 +164,13 @@ class GlassContainerInteractionTest : ContextTest() {
     fixture.release(fixture.firstSource, mergedPress)
     val mergedReleased = fixture.capture()
     assertThat(regionDifference(mergedReleased, idleMerged, 40, 60, 140, 140)).isLessThan(1f / 255f)
-    fixture.setGap(25)
+    fixture.setGap(45)
     assertThat(fixture.owner().model.surfaces).hasSize(2)
     val splitIdle = fixture.capture()
     fixture.setGap(10)
     assertThat(fixture.owner().model.surfaces).hasSize(1)
     val splitPress = fixture.press(fixture.firstSource)
-    fixture.setGap(25)
+    fixture.setGap(45)
     assertThat(fixture.owner().model.surfaces).hasSize(2)
     val activeSplit = fixture.capture()
     assertThat(regionDifference(activeSplit, splitIdle, 40, 60, 140, 140)).isGreaterThan(0.005f)
@@ -209,9 +209,9 @@ class GlassContainerInteractionTest : ContextTest() {
 
   @Test
   fun pressThatOpensGap_splitsAndReleaseRemerges() = runComposeUiTest {
-    val fixture = cluster(gap = 15, pressed = GlassStyle { pressed { scale(0.8f) } })
+    val fixture = cluster(gap = 35, pressed = GlassStyle { pressed { scale(0.8f) } })
     assertThat(fixture.owner().model.surfaces).hasSize(1)
-    // The 15px gap grows by 10px to 25px, at least half the 40px spacing.
+    // The 35px gap grows by 10px to 45px, beyond the 40px spacing.
     val press = fixture.press(fixture.firstSource)
     assertThat(fixture.owner().model.surfaces).hasSize(2)
     fixture.release(fixture.firstSource, press)

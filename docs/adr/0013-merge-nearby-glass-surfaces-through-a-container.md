@@ -23,9 +23,11 @@ its own children. A member's own style still sets its shape, input and appearanc
 
 ## Merging
 
-- Members whose gap is less than half the spacing join into a **Glass cluster**. The container draws
-  each cluster as one surface, shaped by a polynomial smooth minimum with `k = spacing`. Members
-  outside every cluster draw as separate surfaces.
+- Members whose gap is less than the spacing join into a **Glass cluster**. The container draws
+  each cluster as one surface, shaped by a polynomial smooth minimum with `k = spacing`. Facing
+  edges stretch gradually, and a bridge forms below half the spacing. Waiting until that bridge
+  threshold to cluster would skip the initial deformation and make the surfaces snap together.
+  Members outside every cluster draw as separate surfaces.
 - A cluster merges at most four members, because shapes reach the shader as fixed-size uniform
   arrays. Beyond four, the extra members draw on their own without a bridge, in a deterministic
   order. Where an extra member overlaps the cluster, blur and tint apply twice in the overlap,
