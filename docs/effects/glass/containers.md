@@ -101,6 +101,11 @@ Interaction responses work as described in [Glass interaction](index.md#interact
 the member's own part of the merged shape: pressing a member scales and lights only that part. A
 uniform pressed `scale` does not split the cluster.
 
+With `HazeInput.Sources`, a scaled member can still change its sampled backdrop when it joins or
+leaves a cluster. Standalone Glass scales the completed backdrop image, while a merged surface
+keeps backdrop sampling anchored and scales the member's shape. The optical-profile blend does
+not remove this existing sampling difference.
+
 ## Transitions
 
 A member that attaches or detaches after the container's first draw animates its glass. Choose
