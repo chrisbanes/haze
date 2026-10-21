@@ -195,8 +195,8 @@ class FallbackGlassInputGeometryAndroidHostTest : ScreenshotTest() {
             Box(Modifier.offset { IntOffset(if (index == 0) 300 else 510, 250) + scene.shift.value }.pxSize(200, 160).background(Color.White))
           }
           if (scene.merged) {
-            val spacing = with(LocalDensity.current) { 40.toDp() }
-            Box(Modifier.pxSize(900, 600).hazeGlassContainer(spacing)) {
+            val mergeDistance = with(LocalDensity.current) { 40.toDp() }
+            Box(Modifier.pxSize(900, 600).hazeGlassContainer(mergeDistance)) {
               Member(scene, 0, 300)
               Member(scene, 1, 510)
             }

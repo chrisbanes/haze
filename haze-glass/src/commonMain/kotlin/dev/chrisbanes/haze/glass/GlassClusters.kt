@@ -109,10 +109,10 @@ internal fun glassMemberGap(a: Rect, b: Rect): Float = hypot(
 /** [opticalSize] defaults to every member's layout rect; a container passes its live members' only. */
 internal fun clusterGlassMembers(
   members: List<GlassMemberSnapshot>,
-  spacingPx: Float,
+  mergeDistancePx: Float,
   opticalSize: Size? = glassOpticalSize(members.filter { it.rect.isValidGlassMember() }.map { it.layoutRect.size }),
 ): GlassClusterModel {
-  require(spacingPx.isFinite() && spacingPx >= 0f)
+  requireFiniteNonNegative("mergeDistancePx", mergeDistancePx)
   val valid = members.filter { it.rect.isValidGlassMember() }
   val remaining = valid.indices.toMutableList()
   val surfaces = mutableListOf<GlassCluster>()
@@ -131,7 +131,7 @@ internal fun clusterGlassMembers(
           member.translationOnly && candidate.translationOnly && !member.fading && !candidate.fading &&
           (
             // Start the field before its bridge closes, so facing edges stretch continuously.
-            glassMemberGap(member.rect, candidate.rect) < spacingPx ||
+            glassMemberGap(member.rect, candidate.rect) < mergeDistancePx ||
               member.link === candidate.identity || candidate.link === member.identity
             ) &&
           member.key == candidate.key

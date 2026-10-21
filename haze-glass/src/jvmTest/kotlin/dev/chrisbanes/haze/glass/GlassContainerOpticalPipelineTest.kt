@@ -62,7 +62,7 @@ class GlassContainerOpticalPipelineTest {
           mergedMember(Rect(0f, 0f, 120f, 40f), layoutSize),
           mergedMember(Rect(120f + gap, 0f, 240f + gap, 40f), layoutSize),
         ),
-        spacingPx = 40f,
+        mergeDistancePx = 40f,
         opticalSize = sharedOpticalSize,
       )
     } else {

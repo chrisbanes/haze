@@ -45,7 +45,7 @@ internal enum class GlassProfilingScenario(
   val usesBackdrop: Boolean = false,
   val resizesLayoutBounds: Boolean = false,
   val memberGap: Dp = 0.dp,
-  val containerSpacing: Dp? = null,
+  val containerMergeDistance: Dp? = null,
   val scrollsSource: Boolean = false,
   val scrollsLazyContainer: Boolean = false,
 ) {
@@ -256,7 +256,7 @@ internal enum class GlassProfilingScenario(
   SourceUpdateNoGlass("source_update_no_glass", glassEnabled = false),
 
   // The container pair shares its geometry: the 12 dp gap is less than half of the 32 dp
-  // spacing, so the container scenario draws one two-member Glass cluster.
+  // merge distance, so the container scenario draws one two-member Glass cluster.
   SourceUpdateIndependent2(
     id = "source_update_independent_2",
     effectCount = 2,
@@ -266,7 +266,7 @@ internal enum class GlassProfilingScenario(
     id = "source_update_container_2",
     effectCount = 2,
     memberGap = 12.dp,
-    containerSpacing = 32.dp,
+    containerMergeDistance = 32.dp,
   ),
   ResizeQuality(
     id = "resize_quality",
@@ -306,14 +306,14 @@ internal enum class GlassProfilingScenario(
     scrollsSource = true,
   ),
 
-  // The 12 dp gap is at least half of the 16 dp spacing, so every member is its own cluster. That
-  // keeps the GPU work per member constant and isolates the CPU cost of reclustering while the
+  // The 12 dp gap is at least half of the 16 dp merge distance, so every member is its own cluster.
+  // That keeps the GPU work per member constant and isolates the CPU cost of reclustering while the
   // grid scrolls.
   LazyContainerScroll(
     id = "lazy_container_scroll",
     performanceMode = HazePerformanceMode.Balanced,
     memberGap = 12.dp,
-    containerSpacing = 16.dp,
+    containerMergeDistance = 16.dp,
     scrollsLazyContainer = true,
   ),
 }

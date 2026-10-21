@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/** Light-calibrated default values used by `hazeGlass` and [GlassStyle] resolution. */
+/** Light-calibrated default values used by `hazeGlass`, `hazeGlassContainer` and [GlassStyle] resolution. */
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 public object GlassDefaults {
   /** Default interaction light radius as a fraction of the material's shortest side. */
@@ -54,6 +54,9 @@ public object GlassDefaults {
 
   /** Default quality mode used to render chromatic aberration. */
   public val chromaticAberrationMode: ChromaticAberrationMode = ChromaticAberrationMode.Simple
+
+  /** Default gap below which `hazeGlassContainer` members start to merge. */
+  public val mergeDistance: Dp = 16.dp
 
   /** Default overall opacity, in the range `0f..1f`. */
   public const val alpha: Float = 1f

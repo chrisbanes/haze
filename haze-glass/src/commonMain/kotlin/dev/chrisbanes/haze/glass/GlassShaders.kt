@@ -1224,9 +1224,10 @@ internal object GlassShaders {
     """
 
   /**
-   * Up to four rounded members joined by a polynomial smooth minimum (ADR-0013). The midpoint
-   * field of two members is `gap / 2 - k / 4`, so `k = spacing` bridges while the gap is under half
-   * the spacing. `memberSmoothing[i]` already fades to zero as member i overlaps an earlier member.
+   * Up to four rounded members joined by a polynomial smooth minimum (ADR-0013). The midpoint field
+   * of two members is `gap / 2 - k / 4`, so `k = mergeDistancePx` bridges while the gap is under
+   * half the merge distance. `memberSmoothing[i]` already fades to zero as member i overlaps an
+   * earlier member.
    */
   private const val MERGED_FIELD_HELPERS = """
     uniform float4 memberRects[4];

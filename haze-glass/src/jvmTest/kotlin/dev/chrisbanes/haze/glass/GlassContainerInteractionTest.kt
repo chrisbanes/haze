@@ -190,7 +190,7 @@ class GlassContainerInteractionTest : ContextTest() {
   @Test
   fun pressedMember_rectTransformedWithinField() = runComposeUiTest {
     val fixture = cluster()
-    // Field origin is the members' layout union inflated by the 40px spacing: owner (0, 20).
+    // Field origin is the members' layout union inflated by the 40px merge distance: owner (0, 20).
     val firstLayout = Rect(40f, 40f, 140f, 120f)
     val secondLayout = Rect(150f, 40f, 250f, 120f)
     val press = fixture.press(fixture.firstSource)
@@ -211,7 +211,7 @@ class GlassContainerInteractionTest : ContextTest() {
   fun pressThatOpensGap_splitsAndReleaseRemerges() = runComposeUiTest {
     val fixture = cluster(gap = 35, pressed = GlassStyle { pressed { scale(0.8f) } })
     assertThat(fixture.owner().model.surfaces).hasSize(1)
-    // The 35px gap grows by 10px to 45px, beyond the 40px spacing.
+    // The 35px gap grows by 10px to 45px, beyond the 40px merge distance.
     val press = fixture.press(fixture.firstSource)
     assertThat(fixture.owner().model.surfaces).hasSize(2)
     fixture.release(fixture.firstSource, press)
@@ -282,10 +282,11 @@ class GlassContainerInteractionTest : ContextTest() {
 
   @Test
   fun releaseOvershoot_staysInsideClusterSurface() = runComposeUiTest {
-    // Abutting members with a 2px spacing: a 4% overshoot pushes A's outer edge past the spacing.
-    // The press snaps so only the bouncy release is animated, keeping the wall-clock time short.
+    // Abutting members with a 2px merge distance: a 4% overshoot pushes A's outer edge past the
+    // merge distance. The press snaps so only the bouncy release is animated, keeping the
+    // wall-clock time short.
     val bouncy = GlassStyle { pressed { animate(snap(), spring(dampingRatio = 0.5f, stiffness = 400f)) { scale(0.5f) } } }
-    val fixture = cluster(gap = 0, spacing = 2, pressed = bouncy)
+    val fixture = cluster(gap = 0, mergeDistance = 2, pressed = bouncy)
     val press = fixture.press(fixture.firstSource)
     mainClock.autoAdvance = false
     runBlocking { fixture.firstSource.emit(PressInteraction.Release(press)) }
@@ -486,7 +487,7 @@ class GlassContainerInteractionTest : ContextTest() {
 
   private fun ComposeUiTest.cluster(
     gap: Int = 10,
-    spacing: Int = 40,
+    mergeDistance: Int = 40,
     pressed: GlassStyle = GlassStyle { pressed { scale(0.9f) } },
     policy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.Full,
     pivot: GlassTransformPivot = GlassTransformPivot.Center,
@@ -519,7 +520,7 @@ class GlassContainerInteractionTest : ContextTest() {
             }
           }
         }
-        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(spacing.dp)) {
+        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(mergeDistance.dp)) {
           Box(
             Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).then(firstModifier).hazeGlass(
               HazeEffectFactory { first }, HazeInput.Sources(state),

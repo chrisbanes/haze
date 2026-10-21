@@ -49,8 +49,15 @@ import kotlinx.coroutines.launch
  * Groups nearby, compatible Glass members belonging to this nearest container.
  *
  * All Glass output draws behind every container child. Backdrop input samples only drawing before
- * the container. [spacing] is finite and non-negative; zero disables bridges. Members use the
- * largest member's shortest side for optics, retaining their own styles and shape/colour values.
+ * the container. Members use the largest member's shortest side for optics, retaining their own
+ * styles and shape/colour values.
+ *
+ * [mergeDistance] controls how close members must be to merge. It does not position or space the
+ * container's children. Compatible members whose edge-to-edge gap is less than [mergeDistance] join
+ * one Glass cluster. As the gap closes from [mergeDistance] to half of it, facing edges stretch
+ * towards each other and each member's optics blend into the cluster's; below half, a bridge joins
+ * them. [mergeDistance] must be finite and non-negative, and zero disables merging by proximity.
+ * Defaults to [GlassDefaults.mergeDistance].
  *
  * Without RuntimeShader support, or when a cluster exceeds the render budget, each cluster draws
  * as one surface clipped to the hard union of its members, with no bridge. Members keep their own
@@ -68,13 +75,13 @@ import kotlinx.coroutines.launch
  * that is rotated or scaled, or that uses [HazeInput.Content], whose content leaves with it.
  *
  * A running transition ends without animating when the member it grows from, retracts into or is
- * drawn through leaves, or when its member is no longer within [spacing] of that member. A member
- * whose nearest container changes while it stays in the layout, for example when a nested
- * container is added or removed around it, appears in the new container immediately. Moving a member
- * with `movableContentOf` detaches and reattaches it, so it detaches from the old container and
- * attaches to the new one, each with the transition described above. [transitionSpec] and
- * [reducedMotionPolicy] changes apply from the next transition. Leaving members never count
- * towards the shared optical size. Haze animates only the glass, so callers animate member content
+ * drawn through leaves, or when its member is no longer within [mergeDistance] of that member. A
+ * member whose nearest container changes while it stays in the layout, for example when a nested
+ * container is added or removed around it, appears in the new container immediately. Moving a
+ * member with `movableContentOf` detaches and reattaches it, so it detaches from the old container
+ * and attaches to the new one, each with the transition described above. [transitionSpec] and
+ * [reducedMotionPolicy] changes apply from the next transition. Leaving members never count towards
+ * the shared optical size. Haze animates only the glass, so callers animate member content
  * themselves, for example with `AnimatedVisibility`. Cap diagnostics follow [HazeLogger.enabled].
  *
  * For the items of a scrollable layout, such as a `LazyRow` or `LazyColumn`, pass its
@@ -89,27 +96,27 @@ import kotlinx.coroutines.launch
  */
 @Stable
 public fun Modifier.hazeGlassContainer(
-  spacing: Dp,
+  mergeDistance: Dp = GlassDefaults.mergeDistance,
   scrollState: ScrollableState? = null,
   transitionSpec: FiniteAnimationSpec<Float> = spring(),
   reducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
 ): Modifier {
-  require(spacing.value.isFinite() && spacing.value >= 0f) { "spacing must be finite and non-negative" }
-  return then(GlassContainerElement(spacing, scrollState, transitionSpec, reducedMotionPolicy))
+  requireSpecifiedFiniteNonNegative("mergeDistance", mergeDistance)
+  return then(GlassContainerElement(mergeDistance, scrollState, transitionSpec, reducedMotionPolicy))
 }
 
 internal object GlassContainerTraversalKey
 
 @Poko
 internal class GlassContainerElement(
-  val spacing: Dp,
+  val mergeDistance: Dp,
   val scrollState: ScrollableState?,
   val transitionSpec: FiniteAnimationSpec<Float>,
   val reducedMotionPolicy: GlassReducedMotionPolicy,
 ) : ModifierNodeElement<GlassContainerNode>() {
-  override fun create() = GlassContainerNode(spacing, scrollState, transitionSpec, reducedMotionPolicy)
+  override fun create() = GlassContainerNode(mergeDistance, scrollState, transitionSpec, reducedMotionPolicy)
   override fun update(node: GlassContainerNode) {
-    node.spacing = spacing
+    node.mergeDistance = mergeDistance
     node.scrollState = scrollState
     node.transitionSpec = transitionSpec
     node.reducedMotionPolicy = reducedMotionPolicy
@@ -117,7 +124,7 @@ internal class GlassContainerElement(
   }
   override fun InspectorInfo.inspectableProperties() {
     name = "hazeGlassContainer"
-    properties["spacing"] = spacing
+    properties["mergeDistance"] = mergeDistance
     properties["scrollState"] = scrollState
     properties["transitionSpec"] = transitionSpec
     properties["reducedMotionPolicy"] = reducedMotionPolicy
@@ -125,7 +132,7 @@ internal class GlassContainerElement(
 }
 
 internal class GlassContainerNode(
-  var spacing: Dp,
+  var mergeDistance: Dp,
   var scrollState: ScrollableState?,
   var transitionSpec: FiniteAnimationSpec<Float>,
   var reducedMotionPolicy: GlassReducedMotionPolicy,
@@ -172,7 +179,7 @@ internal class GlassContainerNode(
   private var children: GraphicsLayer? = null
   private var membersClaimed = false
   private var refreshing = false
-  private var spacingCheckPending = false
+  private var mergeDistanceCheckPending = false
 
   /** Set by [memberChanged]; the next draw (or a leaving member's ghost) reclusters once for all of them. */
   private var reclusterPending = false
@@ -182,7 +189,7 @@ internal class GlassContainerNode(
     private set
   private var overflow = emptyList<GlassClusterOverflow>()
   internal val renderer = GlassContainerRenderer(this)
-  internal val spacingPx: Float get() = with(requireDensity()) { spacing.toPx() }
+  internal val mergeDistancePx: Float get() = with(requireDensity()) { mergeDistance.toPx() }
   internal var model = GlassClusterModel(emptyList(), null, emptyList())
     private set
 
@@ -270,7 +277,7 @@ internal class GlassContainerNode(
     val ordered = registrations.mapNotNull { if (it === member) last else latest[it] }
       .filter { it.identity === member || it.identity !is GlassMemberNode || it.identity in live }
     // A ghost draws through its anchor's input, so the anchor must resolve the same sources.
-    val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(last, ordered, spacingPx) else null
+    val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(last, ordered, mergeDistancePx) else null
     // A detached member has released its own renderer, so a live member with the same input draws it.
     val anchor = neighbour ?: resolveGlassBorrowedAnchor(last, ordered.filter { it.drawsSourcesOf(last) }) ?: return null
     val ghost = GlassMemberGhost(last, neighbour?.identity as GlassMemberNode?, anchor.identity as GlassMemberNode)
@@ -309,7 +316,7 @@ internal class GlassContainerNode(
     if (!isAttached || refreshing || surfaceCoordinates == null) return
     reclusterPending = false
     reclusterPasses++
-    if (layoutComplete) spacingCheckPending = false
+    if (layoutComplete) mergeDistanceCheckPending = false
     refreshing = true
     try {
       // Reached from a draw or a member's removal: the animated interaction and transition reads
@@ -333,31 +340,34 @@ internal class GlassContainerNode(
         registered.forEach { member ->
           if (member !in live && member.binding.surface?.let { it.boundsInOwner() == null } == true) latest.remove(member)
         }
-        // Liveness and compatibility hold on every pass; spacing is checked once layout is complete.
+        // Liveness and compatibility hold on every pass; merge distance is checked once layout is
+        // complete.
         val broken = attaching.filter { (member, attach) ->
           val neighbour = attach.neighbour ?: return@filter false
           val snapshot = live[member] ?: return@filter false
           val neighbourSnapshot = live[neighbour] ?: return@filter true
           if (!snapshot.canTransitionWith(neighbourSnapshot)) return@filter true
-          // Placement moves members one at a time, so spacing can be transiently wrong mid-layout.
-          if (snapshot.isWithinSpacingOf(neighbour, live)) return@filter false
+          // Placement moves members one at a time, so merge distance can be transiently wrong
+          // mid-layout.
+          if (snapshot.isWithinMergeDistanceOf(neighbour, live)) return@filter false
           if (!layoutComplete) {
-            spacingCheckPending = true
+            mergeDistanceCheckPending = true
             return@filter false
           }
           true
         }
         // A converted member's material changed, so its snapshot is retaken.
         if (broken.keys.map { endGrow(it) }.any { it }) live = liveSnapshots()
-        // A ghost draws through its anchor's surface, so it ends once that anchor cannot draw it: the
-        // anchor collapsed, left the layout, or changed input or resolved sources. A valid anchor
-        // also keeps the model's optical size non-null while ghosts remain. A retracting ghost also
-        // needs a neighbour it could still have chosen: compatible and within the current spacing.
+        // A ghost draws through its anchor's surface, so it ends once that anchor cannot draw it:
+        // the anchor collapsed, left the layout, or changed input or resolved sources. A valid
+        // anchor also keeps the model's optical size non-null while ghosts remain. A retracting
+        // ghost also needs a neighbour it could still have chosen: compatible and within the
+        // current merge distance.
         endGhosts { ghost ->
           val anchor = live[ghost.anchor]
           anchor == null || !anchor.layoutRect.isValidGlassMember() || !anchor.drawsSourcesOf(ghost.last) ||
             anchor.key.input != ghost.last.key.input || anchor.key.expandLayerBounds != ghost.last.key.expandLayerBounds ||
-            (ghost.neighbour != null && (!ghost.last.canTransitionWith(anchor) || !ghost.last.isWithinSpacingOf(ghost.anchor, live)))
+            (ghost.neighbour != null && (!ghost.last.canTransitionWith(anchor) || !ghost.last.isWithinMergeDistanceOf(ghost.anchor, live)))
         }
         // A transition's link only draws when it shares its neighbour's cluster, which can stop
         // holding when registrations between them change (for example a fading ghost splits a run).
@@ -382,7 +392,7 @@ internal class GlassContainerNode(
           }
           snapshots.forEach { latest[it.identity] = it }
           // Optical size changes immediately and counts live layout rects only, never ghosts.
-          model = clusterGlassMembers(snapshots, spacingPx, glassOpticalSize(live.keys.mapNotNull { it.localSize() }))
+          model = clusterGlassMembers(snapshots, mergeDistancePx, glassOpticalSize(live.keys.mapNotNull { it.localSize() }))
           val split = model.surfaces.flatMap { cluster ->
             cluster.members.filter { member -> member.link != null && cluster.members.none { it.identity === member.link } }
           }.map { it.identity }
@@ -454,10 +464,10 @@ internal class GlassContainerNode(
     return GlassMemberSnapshot(this, rect, key, material, uniformScale && hasTranslationOnlyTransform(owner), layoutRect, link)
   }
 
-  private fun GlassMemberSnapshot.isWithinSpacingOf(neighbour: GlassMemberNode, live: Map<GlassMemberNode, GlassMemberSnapshot>): Boolean {
+  private fun GlassMemberSnapshot.isWithinMergeDistanceOf(neighbour: GlassMemberNode, live: Map<GlassMemberNode, GlassMemberSnapshot>): Boolean {
     val drawn = drawnSnapshot(neighbour, live) ?: return false
     // A growing neighbour can overshoot away from its own layout rect, which stays as near as it was.
-    return minOf(glassMemberGap(layoutRect, drawn.layoutRect), glassMemberGap(layoutRect, live.getValue(neighbour).layoutRect)) < spacingPx
+    return minOf(glassMemberGap(layoutRect, drawn.layoutRect), glassMemberGap(layoutRect, live.getValue(neighbour).layoutRect)) < mergeDistancePx
   }
 
   /** What [member] draws now: a member growing out of its neighbour is at its last morphed shape. */
@@ -472,7 +482,7 @@ internal class GlassContainerNode(
       val snapshot = live[member] ?: continue
       pending -= member
       if (suppressTransitions || transitionsOff || member.transition == GlassMemberTransition.None) continue
-      val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(snapshot, ordered, spacingPx, excluded = appearing) else null
+      val neighbour = if (member.transition == GlassMemberTransition.MatchedGeometry) resolveGlassNeighbour(snapshot, ordered, mergeDistancePx, excluded = appearing) else null
       val attach = GlassMemberAttach(neighbour?.identity as GlassMemberNode?)
       attaching[member] = attach
       attach.job = animate(attach.progress, 1f) { attaching.remove(member) }
@@ -484,7 +494,7 @@ internal class GlassContainerNode(
   override fun canComposeNativeSurfaces(bounds: Rect): Boolean = renderer.canComposeNativeSurfaces(bounds)
 
   override fun ContentDrawScope.draw() {
-    if (reclusterPending || spacingCheckPending) recluster(layoutComplete = true)
+    if (reclusterPending || mergeDistanceCheckPending) recluster(layoutComplete = true)
     // A detached node (deactivated reusable content) can still be drawn once more.
     val layer = children ?: return
     drawHazeEffectSurfaces(

@@ -68,11 +68,11 @@ private const val TRANSITION_MILLIS = 150
  * `dispatchRawDelta` scrolls towards later items.
  *
  * The existing tests use 6px per frame because that rate keeps item 5's grow running for its whole
- * duration. The 8px regression test reaches the spacing transiently during partial placement.
- * Material changes every three items keep the morph fixtures below the four-member cluster cap.
- * These tests characterise the first item only: later items depend on whether their neighbour is
- * still animating. The `withScrollState` tests scroll inside `LazyListState.scroll`, as drags and
- * flings do, because `dispatchRawDelta` does not report a scroll in progress.
+ * duration. The 8px regression test reaches the merge distance transiently during partial
+ * placement. Material changes every three items keep the morph fixtures below the four-member
+ * cluster cap. These tests characterise the first item only: later items depend on whether their
+ * neighbour is still animating. The `withScrollState` tests scroll inside `LazyListState.scroll`,
+ * as drags and flings do, because `dispatchRawDelta` does not report a scroll in progress.
  *
  * The container animates over [TRANSITION_MILLIS] milliseconds, about 10 frames. Each frame
  * draws the glass on the CPU, which takes a few hundred milliseconds in the desktop tests.
@@ -129,13 +129,13 @@ class GlassContainerLazyLayoutTest : ContextTest() {
   }
 
   @Test
-  fun lazyItem_matchedGeometry_keepsGrowingWhenScrollAndGapReachSpacing() = runComposeUiTest {
+  fun lazyItem_matchedGeometry_keepsGrowingWhenScrollAndGapReachMergeDistance() = runComposeUiTest {
     val fixture = lazyFixture(GlassMemberTransition.MatchedGeometry)
 
     fixture.frames(2, scrollPerFrame = 8f)
     assertThat(checkNotNull(fixture.member(5)).link).isNotNull()
 
-    // The 8px scroll and 8px item gap reach 16dp spacing during partial placement only.
+    // The 8px scroll and 8px item gap reach 16dp merge distance during partial placement only.
     fixture.frames(5, scrollPerFrame = 8f)
     val growing = checkNotNull(fixture.member(5))
     assertThat(growing.link).isNotNull()

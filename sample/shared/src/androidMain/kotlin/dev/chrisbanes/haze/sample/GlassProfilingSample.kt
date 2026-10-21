@@ -285,7 +285,7 @@ private fun GlassProfilingScene(
         performanceMode = scenario.performanceMode,
         interactionSource = interactionSource,
         memberGap = scenario.memberGap,
-        containerSpacing = checkNotNull(scenario.containerSpacing),
+        containerMergeDistance = checkNotNull(scenario.containerMergeDistance),
         modifier = Modifier
           .align(Alignment.Center)
           .size(ProfilingLazyContainerSize)
@@ -299,7 +299,7 @@ private fun GlassProfilingScene(
         performanceMode = scenario.performanceMode,
         interactionSource = interactionSource,
         memberGap = scenario.memberGap,
-        containerSpacing = scenario.containerSpacing,
+        containerMergeDistance = scenario.containerMergeDistance,
         drawProgress = if (scenario.steadyDraw) {
           { state.progress }
         } else {
@@ -310,7 +310,7 @@ private fun GlassProfilingScene(
           .size(surfaceSize)
           // A node keeps one test tag, so the container scenario tags the grid as its container.
           .testTag(
-            if (scenario.containerSpacing != null) "glass_profiling_container" else "glass_profiling_surface",
+            if (scenario.containerMergeDistance != null) "glass_profiling_container" else "glass_profiling_surface",
           ),
       )
     }
@@ -373,7 +373,7 @@ private fun GlassProfilingLazyContainer(
   performanceMode: HazePerformanceMode,
   interactionSource: MutableInteractionSource,
   memberGap: Dp,
-  containerSpacing: Dp,
+  containerMergeDistance: Dp,
   modifier: Modifier = Modifier,
 ) {
   LazyVerticalGrid(
@@ -381,7 +381,7 @@ private fun GlassProfilingLazyContainer(
     state = gridState,
     horizontalArrangement = Arrangement.spacedBy(memberGap),
     verticalArrangement = Arrangement.spacedBy(memberGap),
-    modifier = modifier.hazeGlassContainer(containerSpacing, scrollState = gridState),
+    modifier = modifier.hazeGlassContainer(containerMergeDistance, scrollState = gridState),
   ) {
     items(PROFILING_LAZY_ITEM_COUNT) { index ->
       Box(
@@ -409,14 +409,14 @@ private fun GlassProfilingEffectGrid(
   performanceMode: HazePerformanceMode,
   interactionSource: MutableInteractionSource,
   memberGap: Dp,
-  containerSpacing: Dp?,
+  containerMergeDistance: Dp?,
   drawProgress: (() -> Float)?,
   modifier: Modifier = Modifier,
 ) {
   val rowCount = if (styles.size <= 3) 1 else 3
   val columnCount = styles.size / rowCount
   Column(
-    if (containerSpacing != null) modifier.hazeGlassContainer(containerSpacing) else modifier,
+    if (containerMergeDistance != null) modifier.hazeGlassContainer(containerMergeDistance) else modifier,
   ) {
     repeat(rowCount) { rowIndex ->
       Row(

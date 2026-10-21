@@ -128,7 +128,7 @@ class FallbackMergedColoursInstrumentationTest {
 
   private fun field(vararg members: GlassMergedMember) = GlassMergedField(
     members = members.toList(),
-    spacingPx = 40f,
+    mergeDistancePx = 40f,
     opticalSize = Size(80f, 80f),
   )
 

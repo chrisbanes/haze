@@ -29,7 +29,7 @@ This page assumes you are familiar with [Glass](index.md) styles, inputs and int
 val style = remember { GlassStyle.regular.then { shape(CircleShape) } }
 
 Row(
-  modifier = Modifier.hazeGlassContainer(spacing = 16.dp),
+  modifier = Modifier.hazeGlassContainer(mergeDistance = 16.dp),
   horizontalArrangement = Arrangement.spacedBy(4.dp),
 ) {
   repeat(3) {
@@ -42,9 +42,10 @@ Row(
 }
 ```
 
-`spacing` is required, finite and not negative. A spacing of zero disables bridges. Optionally
-pass `transitionSpec` and `reducedMotionPolicy`, which are described under
-[Transitions](#transitions).
+`mergeDistance` sets how close members must be to merge; it does not lay out or space the
+container's children. It defaults to `GlassDefaults.mergeDistance` (16 dp), and must be finite and
+not negative. A merge distance of zero disables merging by proximity. Optionally pass
+`transitionSpec` and `reducedMotionPolicy`, which are described under [Transitions](#transitions).
 
 Every `hazeGlass` modifier below the container becomes a member of its nearest container. A member
 keeps its own style, shape, colors and interaction response. A `hazeGlass` modifier outside a
@@ -52,12 +53,12 @@ container is unchanged.
 
 ## Merge rule
 
-Members join a cluster when the gap between them is less than the spacing. The container draws
-each cluster as one surface: facing edges gradually stretch towards each other, and a bridge forms
-when the gap drops below half the spacing. A member that joins no cluster draws as a separate
-surface. Between full and half spacing, each member's refraction and lighting smoothly change
-from its standalone profile to the merged profile, so elongated surfaces keep a continuous response
-as they join or separate.
+Members join a cluster when the gap between them is less than the merge distance. The container
+draws each cluster as one surface: facing edges gradually stretch towards each other, and a bridge
+forms when the gap drops below half the merge distance. A member that joins no cluster draws as a
+separate surface. Between the full and half merge distance, each member's refraction and lighting
+smoothly change from its standalone profile to the merged profile, so elongated surfaces keep a
+continuous response as they join or separate.
 
 Members merge only when all of these hold:
 
@@ -112,8 +113,8 @@ A member that attaches or detaches after the container's first draw animates its
 the transition with `hazeGlass(memberTransition = ...)`:
 
 - `GlassMemberTransition.MatchedGeometry` is the default. A member that attaches within the
-  spacing of another member grows out of it, and a member that detaches retracts into it. Beyond
-  the spacing, it falls back to `Materialize`.
+  merge distance of another member grows out of it, and a member that detaches retracts into it.
+  Beyond the merge distance, it falls back to `Materialize`.
 - `GlassMemberTransition.Materialize` fades the glass in or out where it is. A fading member draws
   on its own until it is fully opaque.
 - `GlassMemberTransition.None` applies no transition.
@@ -147,7 +148,7 @@ container is added or removed around it, appears in the new container immediatel
 a member with `movableContentOf` detaches and reattaches it, so it detaches from the old container
 and attaches to the new one, each with the transition described above. A running transition ends
 without animating when the member it grows from or retracts into leaves, or moves beyond the
-spacing.
+merge distance.
 
 ## Lazy layouts
 
@@ -164,7 +165,7 @@ val listState = rememberLazyListState()
 
 LazyRow(
   state = listState,
-  modifier = Modifier.hazeGlassContainer(spacing = 16.dp, scrollState = listState),
+  modifier = Modifier.hazeGlassContainer(mergeDistance = 16.dp, scrollState = listState),
   horizontalArrangement = Arrangement.spacedBy(8.dp),
 ) {
   items(chips, key = { it.id }) { chip ->
@@ -203,9 +204,9 @@ fallback rendering omits.
 
 ## Samples
 
-The `Glass — Container` sample shows a merging toolbar, two draggable members with a spacing
-control, a member added and removed with `AnimatedVisibility`, and a cluster of members with
-different tints. Its source is in
+The `Glass — Container` sample shows a merging toolbar, two draggable members with a merge
+distance control, a member added and removed with `AnimatedVisibility`, and a cluster of members
+with different tints. Its source is in
 [`GlassContainerSample.kt`](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerSample.kt).
 
 The `Glass — Container Showcase` sample places a drawing palette over two brushstrokes. Open

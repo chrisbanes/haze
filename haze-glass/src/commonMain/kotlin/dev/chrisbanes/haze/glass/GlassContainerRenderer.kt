@@ -36,7 +36,7 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
 
   fun reconcile(): List<HazeEffectSurface> {
     val model = owner.model
-    val spacing = owner.spacingPx
+    val mergeDistance = owner.mergeDistancePx
     val validKeys = model.surfaces.filterNot { it.drawsOwnSurface() }.map { it.slotKey() }.toSet()
     slots.keys.filter { it !in validKeys }.forEach { slots.remove(it)?.handle?.dispose() }
     val output = mutableListOf<HazeEffectSurface>()
@@ -55,11 +55,11 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
       // overshoot past scale 1 briefly grows the bounds instead of clipping the member.
       val bounds = members.flatMap { listOf(it.layoutRect, it.rect) }.reduce { a, b ->
         Rect(minOf(a.left, b.left), minOf(a.top, b.top), maxOf(a.right, b.right), maxOf(a.bottom, b.bottom))
-      }.inflate(spacing)
+      }.inflate(mergeDistance)
       val opticalSize = checkNotNull(model.opticalSize)
       val field = GlassMergedField(
         members.map { it.toMergedMember(bounds.topLeft) },
-        spacing,
+        mergeDistance,
         opticalSize,
       )
       val maxRefractionMultiplier = maxOf(

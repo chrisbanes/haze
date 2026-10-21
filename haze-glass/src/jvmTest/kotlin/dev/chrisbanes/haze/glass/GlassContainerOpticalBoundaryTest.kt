@@ -58,11 +58,11 @@ class GlassContainerOpticalBoundaryTest {
   }
 
   @Test
-  fun halfSpacingBoundary_isContinuous() {
+  fun halfMergeDistanceBoundary_isContinuous() {
     for (lighting in listOf(false, true)) {
       val before = probe(gap = 19.9f, lighting = lighting)
       val after = probe(gap = 20.1f, lighting = lighting)
-      assertThat((after - before).getDistance(), "Half-spacing boundary, lighting=$lighting")
+      assertThat((after - before).getDistance(), "Half-mergeDistance boundary, lighting=$lighting")
         .isLessThan(if (lighting) 0.03f else 0.6f)
     }
   }
@@ -145,7 +145,7 @@ class GlassContainerOpticalBoundaryTest {
           layoutSize = layoutSizes[index],
         )
       },
-      spacingPx = 40f,
+      mergeDistancePx = 40f,
       opticalSize = opticalSize,
     ).scaled(scenario.inputScale)
 
@@ -226,7 +226,7 @@ class GlassContainerOpticalBoundaryTest {
           layoutSize = Size(10f, 10f),
         )
       },
-      spacingPx = 100f,
+      mergeDistancePx = 100f,
       opticalSize = Size(10f, 10f),
     )
     val effect = GlassRuntimeEffect().apply {

@@ -21,10 +21,10 @@ internal fun ScreenshotUiTest.captureGlassContainer() {
     SamplesTheme(useDarkColors = true) {
       ScreenshotTheme {
         GlassContainerSampleContent(
-          spacing = 24.dp,
+          mergeDistance = 24.dp,
           dragOffsets = dragOffsets,
           extraMemberVisible = extraMemberVisible,
-          onSpacingChange = {},
+          onMergeDistanceChange = {},
           onDrag = { _, _ -> },
           onResetDrag = {},
           onExtraMemberVisibleChange = {},
@@ -39,7 +39,8 @@ internal fun ScreenshotUiTest.captureGlassContainer() {
   waitForIdle()
   captureRoot("merged", unmatchedPixelThreshold)
 
-  // Move the second circle far outside the spacing, so the circles draw as separate surfaces.
+  // Move the second circle far outside the merge distance, so the circles draw as separate
+  // surfaces.
   dragOffsets = listOf(Offset.Zero, Offset(400f, 0f))
   waitForIdle()
   captureRoot("separated", unmatchedPixelThreshold)

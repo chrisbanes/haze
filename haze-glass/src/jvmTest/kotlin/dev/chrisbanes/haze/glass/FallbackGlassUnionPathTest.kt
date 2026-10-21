@@ -86,7 +86,7 @@ class FallbackGlassUnionPathTest {
 
   @Test
   fun fallbackMergedPaths_twoSeparateMembers_unionHasNoBridge() {
-    // The gap of 10 is under half the spacing, so the shader field would bridge it.
+    // The gap of 10 is under half the merge distance, so the shader field would bridge it.
     val path = FallbackMergedPaths(
       field(member(Rect(20f, 20f, 100f, 100f)), member(Rect(110f, 20f, 190f, 100f))),
     ).union
@@ -257,7 +257,7 @@ class FallbackGlassUnionPathTest {
 
   private fun field(vararg members: GlassMergedMember) = GlassMergedField(
     members = members.toList(),
-    spacingPx = 40f,
+    mergeDistancePx = 40f,
     opticalSize = Size(80f, 80f),
   )
 

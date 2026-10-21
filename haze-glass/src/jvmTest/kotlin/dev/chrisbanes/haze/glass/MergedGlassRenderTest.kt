@@ -29,7 +29,7 @@ import kotlin.test.Test
 /** Renders a merged field through the production Skiko stage effects and uniform setters. */
 class MergedGlassRenderTest {
   @Test
-  fun bridge_coversMidpointOnlyBelowHalfSpacing() {
+  fun bridge_coversMidpointOnlyBelowHalfMergeDistance() {
     assertThat(render(gap = 10f).alphaAt(bridgeMidpoint(10f)), "bridged midpoint").isGreaterThan(0.99f)
     assertThat(render(gap = 20f).alphaAt(bridgeMidpoint(20f)), "separate midpoint").isLessThan(0.01f)
     assertThat(render(gap = 30f).alphaAt(bridgeMidpoint(30f)), "separate midpoint").isLessThan(0.01f)
@@ -57,7 +57,7 @@ class MergedGlassRenderTest {
     val field = mergedField(
       mergedMember(20f, 20f, 100f, 40f, backgroundColor = Color.Red),
       mergedMember(131f, 20f, 100f, 40f, backgroundColor = Color.Blue),
-      spacingPx = SPACING,
+      mergeDistancePx = MERGE_DISTANCE,
     )
     val shader = checkNotNull(createGlassMergedBackgroundShaderProvider()).invoke(Offset.Zero, field)
     val image = ImageBitmap(SAMPLE_SIZE.width.toInt(), SAMPLE_SIZE.height.toInt())
@@ -80,7 +80,7 @@ class MergedGlassRenderTest {
       mergedField = mergedField(
         mergedMember(20f, 20f, 100f, 40f, radius = 20f, tint = Color.Red),
         mergedMember(120f + gap, 20f, 100f, 40f, radius = 20f, tint = Color.Blue),
-        spacingPx = SPACING,
+        mergeDistancePx = MERGE_DISTANCE,
         opticalSize = Size(100f, 40f),
       )
     }
@@ -121,7 +121,7 @@ class MergedGlassRenderTest {
   }
 
   private companion object {
-    const val SPACING = 40f
+    const val MERGE_DISTANCE = 40f
     val SAMPLE_SIZE = Size(280f, 80f)
 
     fun bridgeMidpoint(gap: Float) = Offset(120f + gap / 2f, 40f)
