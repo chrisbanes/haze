@@ -55,7 +55,9 @@ container is unchanged.
 Members join a cluster when the gap between them is less than the spacing. The container draws
 each cluster as one surface: facing edges gradually stretch towards each other, and a bridge forms
 when the gap drops below half the spacing. A member that joins no cluster draws as a separate
-surface.
+surface. Between full and half spacing, each member's refraction and lighting smoothly change
+from its standalone profile to the merged profile, so elongated surfaces keep a continuous response
+as they join or separate.
 
 Members merge only when all of these hold:
 

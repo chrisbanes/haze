@@ -347,7 +347,7 @@ class GlassShadersTest {
         "if (refractionFoldStrength <= 0.0) return heightNorm;",
       )
       assertThat(shader).contains(
-        "edgeRefractionWidth >= 0.0 ? edgeRefractionWidth : refractionHeight, sampleStep",
+        "edgeRefractionWidth >= 0.0 ? edgeRefractionWidth : height, sampleStep",
       )
       assertThat(shader).contains("float foldT = clamp(opticalDistance / foldWidth, 0.0, 1.0);")
       assertThat(shader).contains(
@@ -393,8 +393,8 @@ class GlassShadersTest {
       assertThat(shader).contains(
         "vec2 gradSdRectangle(vec2 localCoord, vec2 size, float blendWidth)",
       )
-      assertThat(shader).contains("float normalBlendWidth = max(refractionHeight, 1.0);")
-      assertThat(shader).contains("vec2 boundaryGradient = gradSdRoundedRect(")
+      assertThat(shader).contains("vec2 boundary = gradSdRoundedRect(p, size, radii, max(height, 1.0));")
+      assertThat(shader).contains("vec2 boundary = gradSdRoundedRect(")
       assertThat(shader).contains("vec2 gradSdRoundedRect(")
       assertThat(shader).contains(
         "vec2 rectangleGradient = gradSdRectangle(localCoord, size, blendWidth);",
@@ -423,20 +423,14 @@ class GlassShadersTest {
       GlassShaders.buildOptical(),
       GlassShaders.buildRefractionDetail(),
     ).forEach { shader ->
-      assertThat(shader).contains("float elongationWeight()")
+      assertThat(shader).contains("float opticalFieldWeight(vec2 size, float height)")
       assertThat(shader).contains("float opticalFieldWeight()")
-      assertThat(shader).contains("refractionHeight / inradius - 0.75")
-      assertThat(shader).contains("float domeRadius(vec2 normalizedCoord)")
-      assertThat(shader).contains(
-        "squaredCoord.x + squaredCoord.y - squaredCoord.x * squaredCoord.y",
-      )
-      assertThat(shader).contains(
-        "return mix(distToEdge, distanceFromDome, fieldWeight);",
-      )
-      assertThat(shader).contains("if (fieldWeight <= 0.0) return distToEdge;")
-      assertThat(shader).contains("if (fieldWeight >= 1.0) return distanceFromDome;")
-      assertThat(shader).contains("vec2 opticalSurfaceGradient(vec2 localCoord, float fieldWeight)")
-      assertThat(shader).contains("if (fieldWeight <= 0.0) return boundaryGradient;")
+      assertThat(shader).contains("height / (shortestSide * 0.5) - 0.75")
+      assertThat(shader).contains("squared.x + squared.y - squared.x * squared.y")
+      assertThat(shader).contains("return mix(edge, domeDistance(p, size, height), weight);")
+      assertThat(shader).contains("if (weight <= 0.0) return edge;")
+      assertThat(shader).contains("vec2 rectOpticalGradient(")
+      assertThat(shader).contains("if (weight >= 1.0) return dome;")
       assertThat(shader).contains("if (fieldWeight < 1.0) {")
       assertThat(shader).contains(
         "displacementGradient = mix(normalizedGradient, opticalGradient, fieldWeight);",
@@ -467,7 +461,7 @@ class GlassShadersTest {
 
     listOf(fused, optical).forEach { shader ->
       assertThat(shader)
-        .contains("vec2 surfaceLightingGradient(vec2 localCoord, float sd, float fieldWeight)")
+        .contains("vec2 surfaceLightingGradient(vec2 p, float sd, float weight)")
       assertThat(shader).contains("float lightingSlope = 2.0 * (1.0 - smootherstep(t));")
       assertThat(shader).contains("return surfaceGradient(localCoord, fieldWeight);")
     }
@@ -712,24 +706,12 @@ class GlassShadersTest {
       GlassShaders.buildRefractionDetail(),
       GlassShaders.buildRefractionDetail(interactive = true),
     ).forEach { shader ->
-      val surfaceHeightAt = shader.substringAfter("float surfaceHeightAt(")
+      val rectHeight = shader.substringAfter("float rectSurfaceHeight(")
         .substringBefore("float surfaceHeight(")
-      assertThat(shader).contains(
-        "float surfaceHeightAt(vec2 localCoord, vec4 customRadii, float fieldWeight)",
-      )
-      assertThat(shader).contains(
-        "return surfaceHeightFromOpticalDistance(domeDistance(localCoord));",
-      )
-      assertThat(surfaceHeightAt.indexOf("if (fieldWeight >= 1.0) {"))
-        .isLessThan(
-          surfaceHeightAt.indexOf(
-            "float sd = sdRoundedRect(localCoord, materialSize, customRadii);",
-          ),
-        )
-      assertThat(shader).contains(
-        "float sd = sdRoundedRect(localCoord, materialSize, customRadii);",
-      )
-      assertThat(shader).contains("vec2 boundaryGradient = gradSdRoundedRect(")
+      assertThat(rectHeight.indexOf("if (weight >= 1.0) return"))
+        .isLessThan(rectHeight.indexOf("float sd = sdRoundedRect(p, size, radii);"))
+      assertThat(shader).contains("float sd = sdRoundedRect(p, size, radii);")
+      assertThat(shader).contains("vec2 boundary = gradSdRoundedRect(")
       assertThat(shader).contains("vec2 gradSdRoundedRect(")
       assertThat(shader).doesNotContain("min(smoothRadius, min(halfSize.x, halfSize.y))")
     }
@@ -753,7 +735,7 @@ class GlassShadersTest {
   }
 
   @Test
-  fun mergedSources_declareMemberArraysAndDisableTheDome() {
+  fun mergedSources_declareMemberArraysAndUseSdfForMergedResponse() {
     listOf(
       GlassShaders.buildFused(merged = true),
       GlassShaders.buildFused(sharpDetail = false, merged = true),
