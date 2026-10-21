@@ -126,9 +126,14 @@ motion scale (animations off), member transitions snap instead
   surfaces. A smooth per-member blend reaches the existing merged SDF response at half spacing,
   where bridging begins. Only members drawn in the same capped field affect this blend; adding a
   distant member does not restart an already joined pair's optical transition. Original layout
-  dimensions preserve the optical profile of pressed members. This does not align their sampled
-  backdrop: on the Sources path, standalone output scales the completed image, while a merged
-  surface scales the member geometry and keeps backdrop sampling anchored.
+  dimensions preserve the optical profile of pressed members.
+- **A pressed member samples the same content alone or in a cluster.** Standalone drawing is the
+  reference: it scales its completed output, sampled content included. In a cluster, each pressed
+  member maps a field point back through its own press transform to its unpressed layout point and
+  samples there with its unpressed refraction and chromatic aberration. The correction is weighted
+  by smooth member ownership only, not by the standalone-to-merged optical blend, so it stays on
+  after members bridge and applies whether or not advanced optics are active. Coverage of the
+  refracted shape and interaction lighting stay in pressed field space.
 - **The fallback renderer draws no bridge.** It renders each cluster as one surface clipped to the
   hard union of the member shapes, so overlapping members of a cluster never double their blur or
   tint. Members beyond the cap still draw separately.

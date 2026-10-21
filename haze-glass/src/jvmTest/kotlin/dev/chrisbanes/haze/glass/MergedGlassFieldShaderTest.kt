@@ -195,6 +195,19 @@ class MergedGlassFieldShaderTest {
     ).forEach { RuntimeEffect.makeForShader(it).close() }
   }
 
+  // Checkerboard output tests can't resolve chroma offsets, so pin that chroma follows the
+  // unpressed sample displacement rather than the pressed coverage displacement.
+  @Test
+  fun mergedChromaticAberration_usesSampleDisplacement() {
+    listOf(
+      GlassShaders.buildFused(merged = true),
+      GlassShaders.buildOptical(merged = true),
+    ).forEach { source ->
+      val chroma = Regex("vec2 chromaOffset =\\s*(\\w+) \\*").find(source)?.groupValues?.get(1)
+      assertThat(chroma).isEqualTo("sampleDisplacement")
+    }
+  }
+
   private fun fieldAt(field: GlassMergedField, point: Offset, count: Int? = null): Float =
     probe(field, point, "shapeSd(probe)", scale = 256f, count = count)
 
@@ -287,7 +300,8 @@ class MergedGlassFieldShaderTest {
           float sd = shapeSd(p);
           float distance = opticalDistanceFromSignedDistance(p, sd, 0.0);
           float height = surfaceHeightNormFromOpticalDistance(distance);
-          return refractionDisplacement(p, height, max(-sd, 0.0), 1.0, 0.0);
+          vec2 sampleDisplacement;
+          return refractionDisplacement(p, height, max(-sd, 0.0), 1.0, 0.0, sampleDisplacement);
         }
 
         vec4 main(vec2 coord) {

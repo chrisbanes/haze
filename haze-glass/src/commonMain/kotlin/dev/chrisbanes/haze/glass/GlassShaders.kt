@@ -114,18 +114,18 @@ internal object GlassShaders {
       float opticalDistance =
         opticalDistanceFromSignedDistance(localCoord, outputSd, fieldWeight);
       float heightNorm = surfaceHeightNormFromOpticalDistance(opticalDistance);
-      vec2 displacement = refractionDisplacement(
+      ${mergedSampleDeclarations(merged)}vec2 displacement = refractionDisplacement(
         localCoord,
         heightNorm,
         edgeRefractionWidth >= 0.0 ? outputDistToEdge : opticalDistance,
         ${if (interactionOptics || merged) "localizedRefractionMultiplier" else "1.0"},
-        fieldWeight
+        fieldWeight${sampleDisplacementArgument(merged)}
       );
-      vec2 refractCoord = clampSample(coord + displacement);
+      vec2 refractCoord = clampSample(${refractedSample(merged)});
 
       float cornerWeight = ${cornerWeight(merged)};
       vec2 chromaOffset =
-        displacement * chromaticAberrationStrength * 0.5 * cornerWeight;
+        ${sampledDisplacement(merged)} * chromaticAberrationStrength * 0.5 * cornerWeight;
       vec4 refractedCenter = sampleDepth(refractCoord);
       vec3 refractedStraightColor =
         sampleChroma(refractCoord, chromaOffset, refractedCenter);
@@ -159,7 +159,7 @@ internal object GlassShaders {
       ${tintedColor(merged)}
       vec4 opticalColor = premultiply(applyAmbient(tintedColor, ambient), refractedCenter.a);
       if (shapeMask < 1.0) {
-        opticalColor = mix(sampleDepth(coord), opticalColor, shapeMask);
+        opticalColor = mix(sampleDepth(${unrefractedSample(merged)}), opticalColor, shapeMask);
       }
 
       ${if (sharpDetail) {
@@ -340,17 +340,17 @@ internal object GlassShaders {
       float opticalDistance =
         opticalDistanceFromSignedDistance(localCoord, sd, fieldWeight);
       float heightNorm = surfaceHeightNormFromOpticalDistance(opticalDistance);
-      vec2 displacement = refractionDisplacement(
+      ${mergedSampleDeclarations(merged)}vec2 displacement = refractionDisplacement(
         localCoord,
         heightNorm,
         edgeRefractionWidth >= 0.0 ? distToEdge : opticalDistance,
         ${if (interactive || merged) "localizedRefractionMultiplier" else "1.0"},
-        fieldWeight
+        fieldWeight${sampleDisplacementArgument(merged)}
       );
-      vec2 refractCoord = clampSample(coord + displacement);
+      vec2 refractCoord = clampSample(${refractedSample(merged)});
 
       float cornerWeight = ${cornerWeight(merged)};
-      vec2 chromaOffset = displacement * chromaticAberrationStrength * 0.5 * cornerWeight;
+      vec2 chromaOffset = ${sampledDisplacement(merged)} * chromaticAberrationStrength * 0.5 * cornerWeight;
       vec4 refractedCenterSample = sampleDepth(refractCoord);
       vec3 refractedStraightColor =
         sampleChroma(refractCoord, chromaOffset, refractedCenterSample);
@@ -387,7 +387,7 @@ internal object GlassShaders {
       if (shapeMask >= 1.0) {
         return processedColor.a > 0.0 ? processedColor * coverage : vec4(0.0);
       }
-      vec4 baseSample = content.eval(clampSample(coord));
+      vec4 baseSample = content.eval(clampSample(${unrefractedSample(merged)}));
       vec4 composedColor = mix(baseSample, processedColor, shapeMask);
       return composedColor.a > 0.0 ? composedColor * coverage : vec4(0.0);
     }
@@ -466,14 +466,14 @@ internal object GlassShaders {
       float opticalDistance =
         opticalDistanceFromSignedDistance(localCoord, outputSd, fieldWeight);
       float heightNorm = surfaceHeightNormFromOpticalDistance(opticalDistance);
-      vec2 displacement = refractionDisplacement(
+      ${mergedSampleDeclarations(merged, sampling = !coverageOnly)}vec2 displacement = refractionDisplacement(
         localCoord,
         heightNorm,
         edgeRefractionWidth >= 0.0 ? outputDistToEdge : opticalDistance,
         ${if (interactive || merged) "localizedRefractionMultiplier" else "1.0"},
-        fieldWeight
+        fieldWeight${sampleDisplacementArgument(merged)}
       );
-      ${if (coverageOnly) "" else "vec2 refractCoord = clampSample(coord + displacement);"}
+      ${if (coverageOnly) "" else "vec2 refractCoord = clampSample(${refractedSample(merged)});"}
       vec2 refractedLocalCoord = localCoord + displacement;
       float refractedSd = ${shapeSd(merged, "refractedLocalCoord")};
       float sourceDistToEdge = max(-refractedSd, 0.0);
@@ -942,12 +942,13 @@ internal object GlassShaders {
       }
       return -displacementGradient * displacementMagnitude;
     }
-    vec2 refractionDisplacement(vec2 p, float heightNorm, float distance, float multiplier, float weight) {
+    vec2 refractionDisplacement(vec2 p, float heightNorm, float distance, float multiplier, float weight${sampleDisplacementArgument(merged, declaration = true)}) {
       vec2 mergedResult = evaluateRefraction(
         p, heightNorm, distance, multiplier, weight, materialSize, cornerRadii, refractionHeight, $merged
       );
       ${if (merged) {
     """
+      sampleDisplacement = mergedResult;
       if (dot(memberStandaloneWeights, vec4(1.0)) <= 0.0) return mergedResult;
       vec4 shares = memberWeights(p) * memberStandaloneWeights;
       vec2 result = mergedResult;
@@ -955,7 +956,7 @@ internal object GlassShaders {
         if (float(i) >= memberCount) break;
         if (shares[i] <= 0.0) continue;
         vec4 rect = memberRects[i];
-        vec2 size = memberLayoutSizes[i];
+        vec2 size = memberLayoutRects[i].zw;
         vec2 scale = rect.zw / size;
         // Continue each standalone profile from its boundary into the emerging bridge.
         vec2 local = clamp((p - rect.xy) / scale, vec2(0.0), size);
@@ -967,8 +968,11 @@ internal object GlassShaders {
         vec2 standalone = evaluateRefraction(
           local, height, edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : optical,
           multiplier, field, size, radii, refractionHeight, false
-        ) * scale;
-        result += shares[i] * (standalone - mergedResult);
+        );
+        // Sampling reads through the press transform, so it keeps the unpressed displacement.
+        sampleDisplacement += shares[i] * (standalone - mergedResult);
+        // Coverage tests the pressed shape, where the press maps q + d(q) to p + scale * d(q).
+        result += shares[i] * (standalone * scale - mergedResult);
       }
       return result;
       """
@@ -1021,7 +1025,7 @@ internal object GlassShaders {
         if (float(i) >= memberCount) break;
         if (shares[i] <= 0.0) continue;
         vec4 rect = memberRects[i];
-        vec2 size = memberLayoutSizes[i];
+        vec2 size = memberLayoutRects[i].zw;
         vec2 scale = rect.zw / size;
         vec2 local = clamp((p - rect.xy) / scale, vec2(0.0), size);
         vec4 radii = memberRadii[i] / min(scale.x, scale.y);
@@ -1168,6 +1172,27 @@ internal object GlassShaders {
     }
   """
 
+  // A merged field samples through each pressed member's press transform (mergedSampleOffset), with
+  // the unpressed refraction displacement; coverage keeps the pressed-space displacement.
+  private fun mergedSampleDeclarations(merged: Boolean, sampling: Boolean = true): String = when {
+    !merged -> ""
+    sampling -> "vec2 sampleOffset = mergedSampleOffset(localCoord);\n      vec2 sampleDisplacement;\n      "
+    else -> "vec2 sampleDisplacement;\n      "
+  }
+
+  private fun sampleDisplacementArgument(merged: Boolean, declaration: Boolean = false): String = when {
+    !merged -> ""
+    declaration -> ", out vec2 sampleDisplacement"
+    else -> ", sampleDisplacement"
+  }
+
+  private fun sampledDisplacement(merged: Boolean): String = if (merged) "sampleDisplacement" else "displacement"
+
+  private fun refractedSample(merged: Boolean): String =
+    if (merged) "coord + sampleOffset + sampleDisplacement" else "coord + displacement"
+
+  private fun unrefractedSample(merged: Boolean): String = if (merged) "coord + sampleOffset" else "coord"
+
   private fun shapeSd(merged: Boolean, coord: String): String =
     if (merged) "shapeSd($coord)" else "sdRoundedRect($coord, materialSize, cornerRadii)"
 
@@ -1230,6 +1255,7 @@ internal object GlassShaders {
    */
   private const val MERGED_FIELD_HELPERS = """
     uniform float4 memberRects[4];
+    uniform float4 memberLayoutRects[4];
     uniform float4 memberRadii[4];
     uniform float memberSmoothing[4];
     // Declared as float because AGSL does not support int uniforms.
@@ -1328,7 +1354,6 @@ internal object GlassShaders {
     uniform float memberRefractionMultipliers[4];
     uniform float memberWhitePointDeltas[4];
 
-    uniform float2 memberLayoutSizes[4];
     uniform float4 memberStandaloneWeights;
 
     vec2 mergedOpticalValues(vec2 localCoord) {
@@ -1363,6 +1388,22 @@ internal object GlassShaders {
       return shapeGradientOver(localCoord, sampleStep);
     }
 
+    // Maps a field point back through each pressed member's press transform to its unpressed
+    // layout point, weighted by member ownership, so a pressed member samples the content it would
+    // sample drawn alone. An unpressed member maps every point to itself.
+    vec2 mergedSampleOffset(vec2 localCoord) {
+      vec4 w = memberWeights(localCoord);
+      vec2 offset = vec2(0.0);
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        vec4 rect = memberRects[i];
+        vec4 layoutRect = memberLayoutRects[i];
+        offset += w[i] * (layoutRect.xy + (localCoord - rect.xy) * (layoutRect.zw / rect.zw) - localCoord);
+      }
+      return offset;
+    }
+
+    // Normalized by the member's half size, so the press transform leaves it unchanged.
     float memberCornerWeight(vec2 localCoord) {
       float4 member = nearestMemberRect(localCoord);
       vec2 memberHalfSize = member.zw * 0.5;

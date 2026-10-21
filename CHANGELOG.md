@@ -102,6 +102,9 @@ performance guidance.
 
 ### Fixed
 
+- A pressed Glass container member now samples the same content as it would drawn alone, so its
+  content no longer shifts when it joins or leaves a cluster
+  ([#1607](https://github.com/chrisbanes/haze/pull/1607)).
 - Fallback Glass surfaces with a `backgroundColor` no longer draw their backdrop offset by the
   layer padding ([#1526](https://github.com/chrisbanes/haze/pull/1526)).
 - Glass containers now keep members across reactivated reusable content

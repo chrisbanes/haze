@@ -149,7 +149,7 @@ private fun GlassMemberSnapshot.toMergedMember(origin: Offset): GlassMergedMembe
   val hasOpticalResponse = refractionMultiplier != 1f || whitePointDelta != 0f
   return GlassMergedMember(
     rect = fieldRect,
-    layoutSize = layoutRect.size,
+    layoutRect = layoutRect.translate(-origin),
     cornerRadii = material.cornerRadii * minOf(scaleX, scaleY),
     tint = material.tint,
     backgroundColor = material.backgroundColor,
