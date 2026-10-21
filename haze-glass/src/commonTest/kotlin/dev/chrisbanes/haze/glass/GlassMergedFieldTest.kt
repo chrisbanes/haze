@@ -42,6 +42,7 @@ internal fun mergedMember(
   opticalRadius: Float = 0f,
   refractionMultiplier: Float = 1f,
   whitePointDelta: Float = 0f,
+  layoutSize: Size? = null,
 ) = GlassMergedMember(
   rect = Rect(left, top, left + width, top + height),
   cornerRadii = CornerRadii(radius, radius, radius, radius),
@@ -54,6 +55,7 @@ internal fun mergedMember(
   opticalRadius = opticalRadius,
   refractionMultiplier = refractionMultiplier,
   whitePointDelta = whitePointDelta,
+  layoutSize = layoutSize ?: Size(width, height),
 )
 
 internal fun mergedField(
@@ -102,6 +104,10 @@ class GlassMergedFieldTest {
       .isInstanceOf<IllegalArgumentException>()
     assertFailure { mergedMember(Float.NaN, 0f, 10f, 10f) }.isInstanceOf<IllegalArgumentException>()
     assertFailure { mergedMember(0f, 0f, 10f, 10f, radius = Float.POSITIVE_INFINITY) }
+      .isInstanceOf<IllegalArgumentException>()
+    assertFailure { mergedMember(0f, 0f, 10f, 10f, layoutSize = Size(Float.NaN, 10f)) }
+      .isInstanceOf<IllegalArgumentException>()
+    assertFailure { mergedMember(0f, 0f, 10f, 10f, layoutSize = Size(0f, 10f)) }
       .isInstanceOf<IllegalArgumentException>()
     assertFailure { mergedMember(0f, 0f, 10f, 10f, opticalPosition = Offset(Float.NaN, 0f)) }
       .isInstanceOf<IllegalArgumentException>()
@@ -159,6 +165,56 @@ class GlassMergedFieldTest {
   }
 
   @Test
+  fun memberStandaloneWeights_smoothsFromHalfSpacingToFullSpacing() {
+    val belowHalf = mergedField(
+      mergedMember(0f, 0f, 10f, 10f),
+      mergedMember(29f, 0f, 10f, 10f),
+    ).memberStandaloneWeights()
+    val atHalf = mergedField(
+      mergedMember(0f, 0f, 10f, 10f),
+      mergedMember(30f, 0f, 10f, 10f),
+    ).memberStandaloneWeights()
+    val halfway = mergedField(
+      mergedMember(0f, 0f, 10f, 10f),
+      mergedMember(40f, 0f, 10f, 10f),
+    ).memberStandaloneWeights()
+    val atFull = mergedField(
+      mergedMember(0f, 0f, 10f, 10f),
+      mergedMember(50f, 0f, 10f, 10f),
+    ).memberStandaloneWeights()
+
+    assertThat(belowHalf.toList()).containsExactly(0f, 0f)
+    assertThat(atHalf.toList()).containsExactly(0f, 0f)
+    assertThat(halfway.toList()).containsExactly(0.5f, 0.5f)
+    assertThat(atFull.toList()).containsExactly(1f, 1f)
+    assertThat(mergedField(mergedMember(0f, 0f, 10f, 10f)).memberStandaloneWeights().toList())
+      .containsExactly(1f)
+    assertThat(
+      mergedField(
+        mergedMember(0f, 0f, 10f, 10f),
+        mergedMember(20f, 0f, 10f, 10f),
+        spacingPx = 0f,
+      ).memberStandaloneWeights().toList(),
+    ).containsExactly(0f, 0f)
+  }
+
+  @Test
+  fun memberStandaloneWeights_usesNearestGapWithoutClusterGlobalInfluence() {
+    val pair = mergedField(
+      mergedMember(0f, 0f, 10f, 10f),
+      mergedMember(30f, 0f, 10f, 10f),
+    ).memberStandaloneWeights()
+    val withDistantThird = mergedField(
+      mergedMember(0f, 0f, 10f, 10f),
+      mergedMember(30f, 0f, 10f, 10f),
+      mergedMember(1000f, 1000f, 10f, 10f),
+    ).memberStandaloneWeights()
+    assertThat(pair.toList()).containsExactly(0f, 0f)
+    assertThat(withDistantThird.take(2).toList()).containsExactly(0f, 0f)
+    assertThat(withDistantThird.last()).isEqualTo(1f)
+  }
+
+  @Test
   fun scaled_halvesGeometry() {
     val field = mergedField(
       mergedMember(10f, 20f, 100f, 40f, radius = 8f, tint = Color.Red),
@@ -172,6 +228,14 @@ class GlassMergedFieldTest {
         opticalSize = Size(50f, 20f),
       ),
     )
+  }
+
+  @Test
+  fun scaled_scalesPreInteractionLayoutSize() {
+    val member = mergedField(
+      mergedMember(10f, 20f, 50f, 20f, layoutSize = Size(100f, 40f)),
+    ).scaled(0.5f).members.single()
+    assertThat(member.layoutSize).isEqualTo(Size(50f, 20f))
   }
 
   @Test
@@ -229,6 +293,7 @@ class GlassMergedFieldTest {
           opticalRadius = 5f,
           refractionMultiplier = 1.8f,
           whitePointDelta = 0.3f,
+          layoutSize = Size(20f, 30f),
         ),
       ),
       includeOptics = true,
@@ -237,6 +302,8 @@ class GlassMergedFieldTest {
     assertThat(recorded.getValue("memberOpticalRadii")).isEqualTo(listOf(5f, 0f, 0f, 0f))
     assertThat(recorded.getValue("memberRefractionMultipliers")).isEqualTo(listOf(1.8f, 1f, 1f, 1f))
     assertThat(recorded.getValue("memberWhitePointDeltas")).isEqualTo(listOf(0.3f, 0f, 0f, 0f))
+    assertThat(recorded.getValue("memberLayoutSizes")).isEqualTo(listOf(20f, 30f) + List(6) { 0f })
+    assertThat(recorded.getValue("memberStandaloneWeights")).isEqualTo(listOf(1f, 0f, 0f, 0f))
   }
 
   @Test
@@ -299,6 +366,41 @@ class GlassMergedFieldTest {
     assertThat(projected).isNotEqualTo(field)
     assertThat(projected.members.single().opticalPosition).isEqualTo(Offset.Zero)
     assertThat(projected.members.single().opticalRadius).isEqualTo(0f)
+  }
+
+  @Test
+  fun opticalProjectionsKeepOrDropLayoutSizeWithTheirChannel() {
+    val materialSize = Size(100f, 40f)
+    val field = mergedField(
+      mergedMember(
+        0f,
+        0f,
+        50f,
+        20f,
+        layoutSize = materialSize,
+        opticalPosition = Offset(20f, 10f),
+        opticalRadius = 12f,
+      ),
+    )
+    assertThat(field.withoutLights.members.single().layoutSize).isEqualTo(materialSize)
+    assertThat(field.withoutFallbackBase.members.single().layoutSize).isEqualTo(materialSize)
+    assertThat(field.withoutOptics.members.single().layoutSize).isEqualTo(Size(50f, 20f))
+    assertThat(field.withoutInteractions.members.single().layoutSize).isEqualTo(Size(50f, 20f))
+
+    val layoutOnlyField = mergedField(
+      mergedMember(0f, 0f, 50f, 20f, layoutSize = materialSize),
+    )
+    val sameOpticsProjection = mergedField(mergedMember(0f, 0f, 50f, 20f))
+    assertThat(layoutOnlyField.withoutOptics).isEqualTo(sameOpticsProjection)
+    assertThat(layoutOnlyField.withoutInteractions).isEqualTo(sameOpticsProjection)
+
+    val size = Size(100f, 40f)
+    val style = resolveGlassStyle(GlassRuntimeEffect(), size, Density(1f), LayoutDirection.Ltr)
+    val coordinates = GlassCoordinates(size, Offset.Zero, size, 1f)
+    val baseParams = buildGlassRenderParams(style.copy(mergedField = sameOpticsProjection), coordinates)
+    val layoutParams = buildGlassRenderParams(style.copy(mergedField = layoutOnlyField), coordinates)
+    assertThat(layoutParams.opticalEffectKey()).isNotEqualTo(baseParams.opticalEffectKey())
+    assertThat(layoutParams.rimEffectKey()).isEqualTo(baseParams.rimEffectKey())
   }
 
   @Test

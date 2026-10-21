@@ -33,6 +33,7 @@ internal class GlassMergedMember(
   val refractionMultiplier: Float = 1f,
   val whitePointDelta: Float = 0f,
   val fallbackBaseColor: Color? = null,
+  val layoutSize: Size = rect.size,
 ) {
   init {
     require(
@@ -40,6 +41,10 @@ internal class GlassMergedMember(
         rect.width.isFinite() && rect.height.isFinite() &&
         rect.width > 0f && rect.height > 0f,
     ) { "rect must be finite with a positive size: $rect" }
+    require(
+      layoutSize.width.isFinite() && layoutSize.height.isFinite() &&
+        layoutSize.width > 0f && layoutSize.height > 0f,
+    ) { "layoutSize must be finite with a positive size: $layoutSize" }
     require(cornerRadii.isFiniteAndNonNegative()) { "cornerRadii must be finite and non-negative" }
     require(lightPosition.x.isFinite() && lightPosition.y.isFinite()) { "lightPosition must be finite" }
     require(lightRadius.isFinite() && lightRadius >= 0f) { "lightRadius must be finite and non-negative" }
@@ -103,6 +108,7 @@ internal class GlassMergedField(
             opticalRadius = it.opticalRadius,
             refractionMultiplier = it.refractionMultiplier,
             whitePointDelta = it.whitePointDelta,
+            layoutSize = it.layoutSize,
           )
         },
         spacingPx,
@@ -114,7 +120,7 @@ internal class GlassMergedField(
   /** Lighting-only stages keep each member's light and geometry while ignoring optical state. */
   val withoutOptics: GlassMergedField by lazy(LazyThreadSafetyMode.NONE) {
     if (members.all {
-        it.opticalPosition == Offset.Zero && it.opticalRadius == 0f &&
+        it.layoutSize == it.rect.size && it.opticalPosition == Offset.Zero && it.opticalRadius == 0f &&
           it.refractionMultiplier == 1f && it.whitePointDelta == 0f
       }
     ) {
@@ -131,6 +137,7 @@ internal class GlassMergedField(
             lightPosition = it.lightPosition,
             lightRadius = it.lightRadius,
             lightIntensity = it.lightIntensity,
+            layoutSize = it.rect.size,
           )
         },
         spacingPx,
@@ -143,13 +150,26 @@ internal class GlassMergedField(
   val withoutInteractions: GlassMergedField by lazy(LazyThreadSafetyMode.NONE) {
     if (members.all {
         it.lightPosition == Offset.Zero && it.lightRadius == 0f && it.lightIntensity == 0f &&
-          it.opticalPosition == Offset.Zero && it.opticalRadius == 0f &&
+          it.layoutSize == it.rect.size && it.opticalPosition == Offset.Zero && it.opticalRadius == 0f &&
           it.refractionMultiplier == 1f && it.whitePointDelta == 0f
       }
     ) {
       this
     } else {
-      GlassMergedField(members.map { GlassMergedMember(it.rect, it.cornerRadii, it.tint, it.backgroundColor, fallbackBaseColor = it.fallbackBaseColor) }, spacingPx, opticalSize)
+      GlassMergedField(
+        members.map {
+          GlassMergedMember(
+            it.rect,
+            it.cornerRadii,
+            it.tint,
+            it.backgroundColor,
+            fallbackBaseColor = it.fallbackBaseColor,
+            layoutSize = it.rect.size,
+          )
+        },
+        spacingPx,
+        opticalSize,
+      )
     }
   }
 
@@ -164,6 +184,7 @@ internal class GlassMergedField(
             it.rect, it.cornerRadii, it.tint, it.backgroundColor,
             it.lightPosition, it.lightRadius, it.lightIntensity,
             it.opticalPosition, it.opticalRadius, it.refractionMultiplier, it.whitePointDelta,
+            layoutSize = it.layoutSize,
           )
         },
         spacingPx,
@@ -199,6 +220,25 @@ internal class GlassMergedField(
     spacingPx * (1f - overlap * overlap * (3f - 2f * overlap))
   }
 
+  /** Optical blend weight for each member, based only on its nearest other member in this field. */
+  fun memberStandaloneWeights(): FloatArray = FloatArray(members.size) { index ->
+    if (members.size == 1) {
+      1f
+    } else if (spacingPx == 0f) {
+      0f
+    } else {
+      val rect = members[index].rect
+      var nearestGap = Float.POSITIVE_INFINITY
+      for (otherIndex in members.indices) {
+        if (otherIndex != index) {
+          nearestGap = minOf(nearestGap, glassMemberGap(rect, members[otherIndex].rect))
+        }
+      }
+      val t = ((nearestGap - spacingPx / 2f) / (spacingPx / 2f)).coerceIn(0f, 1f)
+      t * t * t * (t * (t * 6f - 15f) + 10f)
+    }
+  }
+
   fun scaled(scaleFactor: Float): GlassMergedField = GlassMergedField(
     members = members.map { member ->
       GlassMergedMember(
@@ -216,6 +256,7 @@ internal class GlassMergedField(
         opticalRadius = member.opticalRadius * scaleFactor,
         refractionMultiplier = member.refractionMultiplier,
         whitePointDelta = member.whitePointDelta,
+        layoutSize = member.layoutSize * scaleFactor,
       )
     },
     spacingPx = spacingPx * scaleFactor,
@@ -263,17 +304,22 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
     setFloatUniform("memberLightIntensities", intensities)
   }
   if (includeOptics) {
+    val layoutSizes = FloatArray(MAX_GLASS_MERGED_MEMBERS * 2)
     val positions = FloatArray(MAX_GLASS_MERGED_MEMBERS * 2)
     val opticalRadii = FloatArray(MAX_GLASS_MERGED_MEMBERS)
     val multipliers = FloatArray(MAX_GLASS_MERGED_MEMBERS) { 1f }
     val whitePointDeltas = FloatArray(MAX_GLASS_MERGED_MEMBERS)
     field.members.forEachIndexed { index, member ->
+      layoutSizes[index * 2] = member.layoutSize.width
+      layoutSizes[index * 2 + 1] = member.layoutSize.height
       positions[index * 2] = member.opticalPosition.x
       positions[index * 2 + 1] = member.opticalPosition.y
       opticalRadii[index] = member.opticalRadius
       multipliers[index] = member.refractionMultiplier
       whitePointDeltas[index] = member.whitePointDelta
     }
+    setFloatUniform("memberLayoutSizes", layoutSizes)
+    setFloatUniform("memberStandaloneWeights", field.memberStandaloneWeights().copyOf(MAX_GLASS_MERGED_MEMBERS))
     setFloatUniform("memberOpticalPositions", positions)
     setFloatUniform("memberOpticalRadii", opticalRadii)
     setFloatUniform("memberRefractionMultipliers", multipliers)

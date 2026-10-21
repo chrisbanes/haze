@@ -121,7 +121,14 @@ motion scale (animations off), member transitions snap instead
   and render at the reduced input scale. Full-resolution silhouettes are
   [out of scope](https://github.com/chrisbanes/haze/blob/main/.out-of-scope/full-resolution-glass-silhouettes-in-reduced-modes.md)
   ([#1339](https://github.com/chrisbanes/haze/issues/1339)).
-- **The dome term is disabled for clusters.** It is defined only for a single rounded rectangle.
+- **Standalone optics fade into the merged field before bridging.** At full spacing, each member
+  retains its own rounded-rectangle refraction and lighting, including the dome term for elongated
+  surfaces. A smooth per-member blend reaches the existing merged SDF response at half spacing,
+  where bridging begins. Only members drawn in the same capped field affect this blend; adding a
+  distant member does not restart an already joined pair's optical transition. Original layout
+  dimensions preserve the optical profile of pressed members. This does not align their sampled
+  backdrop: on the Sources path, standalone output scales the completed image, while a merged
+  surface scales the member geometry and keeps backdrop sampling anchored.
 - **The fallback renderer draws no bridge.** It renders each cluster as one surface clipped to the
   hard union of the member shapes, so overlapping members of a cluster never double their blur or
   tint. Members beyond the cap still draw separately.

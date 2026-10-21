@@ -55,7 +55,9 @@ container is unchanged.
 Members join a cluster when the gap between them is less than the spacing. The container draws
 each cluster as one surface: facing edges gradually stretch towards each other, and a bridge forms
 when the gap drops below half the spacing. A member that joins no cluster draws as a separate
-surface.
+surface. Between full and half spacing, each member's refraction and lighting smoothly change
+from its standalone profile to the merged profile, so elongated surfaces keep a continuous response
+as they join or separate.
 
 Members merge only when all of these hold:
 
@@ -98,6 +100,11 @@ never changes a member's z-order.
 Interaction responses work as described in [Glass interaction](index.md#interaction), applied to
 the member's own part of the merged shape: pressing a member scales and lights only that part. A
 uniform pressed `scale` does not split the cluster.
+
+With `HazeInput.Sources`, a scaled member can still change its sampled backdrop when it joins or
+leaves a cluster. Standalone Glass scales the completed backdrop image, while a merged surface
+keeps backdrop sampling anchored and scales the member's shape. The optical-profile blend does
+not remove this existing sampling difference; it is tracked in [#1605](https://github.com/chrisbanes/haze/issues/1605).
 
 ## Transitions
 
