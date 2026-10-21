@@ -925,6 +925,27 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun detachFromPressedMember_ghostSamplesThroughItsPressTransform() {
+    for (transition in listOf(GlassMemberTransition.MatchedGeometry, GlassMemberTransition.Materialize)) {
+      runComposeUiTest {
+        val fixture = fixture(gap = 100, transition = transition, bPivot = GlassTransformPivot.Pointer)
+        fixture.pressB(Offset(20f, 15f))
+        val pressed = fixture.b()
+        assertThat(pressed.rect, "$transition").isNotEqualTo(pressed.layoutRect)
+        fixture.removeB()
+        assertThat(fixture.b().identity, "$transition").isInstanceOf<GlassMemberGhost>()
+        assertThat(fixture.b().sampleLayoutRect, "$transition").isCloseTo(pressed.layoutRect, 0.1f)
+        fixture.capture()
+        // Only the ghost samples off its drawn rect; the field origin cancels out of its press mapping.
+        val member = checkNotNull(fixture.owner().renderer.runtimeSurfaces.single().mergedField).members.single { it.layoutRect != it.rect }
+        assertThat(member.layoutRect.translate(-member.rect.topLeft), "$transition")
+          .isCloseTo(pressed.layoutRect.translate(-pressed.rect.topLeft), 0.1f)
+        fixture.settle()
+      }
+    }
+  }
+
+  @Test
   fun materialize_detachFromCollapsedDrawnRect_skipsInvalidGhost() = runComposeUiTest {
     val fixture = fixture(transition = GlassMemberTransition.Materialize, bPivot = GlassTransformPivot.Center)
     val bNode = fixture.b().identity

@@ -53,7 +53,7 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
       }
       // Pressed members shrink within their layout rects, keeping the surface stable; a spring
       // overshoot past scale 1 briefly grows the bounds instead of clipping the member.
-      val bounds = members.flatMap { listOf(it.layoutRect, it.rect) }.reduce { a, b ->
+      val bounds = members.flatMap { listOf(it.sampleLayoutRect, it.rect) }.reduce { a, b ->
         Rect(minOf(a.left, b.left), minOf(a.top, b.top), maxOf(a.right, b.right), maxOf(a.bottom, b.bottom))
       }.inflate(spacing)
       val opticalSize = checkNotNull(model.opticalSize)
@@ -149,7 +149,7 @@ private fun GlassMemberSnapshot.toMergedMember(origin: Offset): GlassMergedMembe
   val hasOpticalResponse = refractionMultiplier != 1f || whitePointDelta != 0f
   return GlassMergedMember(
     rect = fieldRect,
-    layoutRect = layoutRect.translate(-origin),
+    layoutRect = sampleLayoutRect.translate(-origin),
     cornerRadii = material.cornerRadii * minOf(scaleX, scaleY),
     tint = material.tint,
     backgroundColor = material.backgroundColor,
