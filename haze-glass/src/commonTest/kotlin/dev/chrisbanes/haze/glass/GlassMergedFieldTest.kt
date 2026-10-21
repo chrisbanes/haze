@@ -42,7 +42,7 @@ internal fun mergedMember(
   opticalRadius: Float = 0f,
   refractionMultiplier: Float = 1f,
   whitePointDelta: Float = 0f,
-  layoutSize: Size? = null,
+  layoutRect: Rect? = null,
 ) = GlassMergedMember(
   rect = Rect(left, top, left + width, top + height),
   cornerRadii = CornerRadii(radius, radius, radius, radius),
@@ -55,7 +55,7 @@ internal fun mergedMember(
   opticalRadius = opticalRadius,
   refractionMultiplier = refractionMultiplier,
   whitePointDelta = whitePointDelta,
-  layoutSize = layoutSize ?: Size(width, height),
+  layoutRect = layoutRect ?: Rect(left, top, left + width, top + height),
 )
 
 internal fun mergedField(
@@ -105,9 +105,9 @@ class GlassMergedFieldTest {
     assertFailure { mergedMember(Float.NaN, 0f, 10f, 10f) }.isInstanceOf<IllegalArgumentException>()
     assertFailure { mergedMember(0f, 0f, 10f, 10f, radius = Float.POSITIVE_INFINITY) }
       .isInstanceOf<IllegalArgumentException>()
-    assertFailure { mergedMember(0f, 0f, 10f, 10f, layoutSize = Size(Float.NaN, 10f)) }
+    assertFailure { mergedMember(0f, 0f, 10f, 10f, layoutRect = Rect(0f, 0f, Float.NaN, 10f)) }
       .isInstanceOf<IllegalArgumentException>()
-    assertFailure { mergedMember(0f, 0f, 10f, 10f, layoutSize = Size(0f, 10f)) }
+    assertFailure { mergedMember(0f, 0f, 10f, 10f, layoutRect = Rect(0f, 0f, 0f, 10f)) }
       .isInstanceOf<IllegalArgumentException>()
     assertFailure { mergedMember(0f, 0f, 10f, 10f, opticalPosition = Offset(Float.NaN, 0f)) }
       .isInstanceOf<IllegalArgumentException>()
@@ -231,11 +231,11 @@ class GlassMergedFieldTest {
   }
 
   @Test
-  fun scaled_scalesPreInteractionLayoutSize() {
+  fun scaled_scalesPreInteractionLayoutRect() {
     val member = mergedField(
-      mergedMember(10f, 20f, 50f, 20f, layoutSize = Size(100f, 40f)),
+      mergedMember(10f, 20f, 50f, 20f, layoutRect = Rect(-10f, 4f, 90f, 44f)),
     ).scaled(0.5f).members.single()
-    assertThat(member.layoutSize).isEqualTo(Size(50f, 20f))
+    assertThat(member.layoutRect).isEqualTo(Rect(-5f, 2f, 45f, 22f))
   }
 
   @Test
@@ -293,7 +293,6 @@ class GlassMergedFieldTest {
           opticalRadius = 5f,
           refractionMultiplier = 1.8f,
           whitePointDelta = 0.3f,
-          layoutSize = Size(20f, 30f),
         ),
       ),
       includeOptics = true,
@@ -302,7 +301,6 @@ class GlassMergedFieldTest {
     assertThat(recorded.getValue("memberOpticalRadii")).isEqualTo(listOf(5f, 0f, 0f, 0f))
     assertThat(recorded.getValue("memberRefractionMultipliers")).isEqualTo(listOf(1.8f, 1f, 1f, 1f))
     assertThat(recorded.getValue("memberWhitePointDeltas")).isEqualTo(listOf(0.3f, 0f, 0f, 0f))
-    assertThat(recorded.getValue("memberLayoutSizes")).isEqualTo(listOf(20f, 30f) + List(6) { 0f })
     assertThat(recorded.getValue("memberStandaloneWeights")).isEqualTo(listOf(1f, 0f, 0f, 0f))
   }
 
@@ -369,38 +367,49 @@ class GlassMergedFieldTest {
   }
 
   @Test
-  fun opticalProjectionsKeepOrDropLayoutSizeWithTheirChannel() {
-    val materialSize = Size(100f, 40f)
+  fun projections_keepUnpressedLayoutRect() {
+    val layoutRect = Rect(-25f, -10f, 75f, 30f)
     val field = mergedField(
       mergedMember(
         0f,
         0f,
         50f,
         20f,
-        layoutSize = materialSize,
+        layoutRect = layoutRect,
+        lightPosition = Offset(4f, 5f),
+        lightRadius = 6f,
+        lightIntensity = 0.7f,
         opticalPosition = Offset(20f, 10f),
         opticalRadius = 12f,
       ),
     )
-    assertThat(field.withoutLights.members.single().layoutSize).isEqualTo(materialSize)
-    assertThat(field.withoutFallbackBase.members.single().layoutSize).isEqualTo(materialSize)
-    assertThat(field.withoutOptics.members.single().layoutSize).isEqualTo(Size(50f, 20f))
-    assertThat(field.withoutInteractions.members.single().layoutSize).isEqualTo(Size(50f, 20f))
-
-    val layoutOnlyField = mergedField(
-      mergedMember(0f, 0f, 50f, 20f, layoutSize = materialSize),
-    )
-    val sameOpticsProjection = mergedField(mergedMember(0f, 0f, 50f, 20f))
-    assertThat(layoutOnlyField.withoutOptics).isEqualTo(sameOpticsProjection)
-    assertThat(layoutOnlyField.withoutInteractions).isEqualTo(sameOpticsProjection)
+    assertThat(field.withoutLights.members.single().layoutRect).isEqualTo(layoutRect)
+    assertThat(field.withoutFallbackBase.members.single().layoutRect).isEqualTo(layoutRect)
+    assertThat(field.withoutOptics.members.single().layoutRect).isEqualTo(layoutRect)
+    assertThat(field.withoutInteractions.members.single().layoutRect).isEqualTo(layoutRect)
 
     val size = Size(100f, 40f)
     val style = resolveGlassStyle(GlassRuntimeEffect(), size, Density(1f), LayoutDirection.Ltr)
     val coordinates = GlassCoordinates(size, Offset.Zero, size, 1f)
-    val baseParams = buildGlassRenderParams(style.copy(mergedField = sameOpticsProjection), coordinates)
-    val layoutParams = buildGlassRenderParams(style.copy(mergedField = layoutOnlyField), coordinates)
-    assertThat(layoutParams.opticalEffectKey()).isNotEqualTo(baseParams.opticalEffectKey())
-    assertThat(layoutParams.rimEffectKey()).isEqualTo(baseParams.rimEffectKey())
+    val unpressed = mergedField(mergedMember(0f, 0f, 50f, 20f))
+    val pressed = mergedField(mergedMember(0f, 0f, 50f, 20f, layoutRect = layoutRect))
+    val baseParams = buildGlassRenderParams(style.copy(mergedField = unpressed), coordinates)
+    val pressedParams = buildGlassRenderParams(style.copy(mergedField = pressed), coordinates)
+    assertThat(pressedParams.opticalEffectKey()).isNotEqualTo(baseParams.opticalEffectKey())
+  }
+
+  @Test
+  fun setMergedFieldUniforms_uploadsLayoutRectsWithAndWithoutOptics() {
+    val field = mergedField(mergedMember(10f, 20f, 40f, 16f, layoutRect = Rect(5f, 18f, 55f, 38f)))
+    for (includeOptics in listOf(false, true)) {
+      val recorded = mutableMapOf<String, List<Float>>()
+      recordingUniforms(recorded).setMergedFieldUniforms(field, includeOptics = includeOptics)
+      assertThat(recorded.getValue("memberLayoutRects"), "includeOptics=$includeOptics")
+        .isEqualTo(listOf(5f, 18f, 50f, 20f) + List(12) { 0f })
+    }
+    val recorded = mutableMapOf<String, List<Float>>()
+    recordingUniforms(recorded).setMergedFieldUniforms(field.scaled(0.5f))
+    assertThat(recorded.getValue("memberLayoutRects")).isEqualTo(listOf(2.5f, 9f, 25f, 10f) + List(12) { 0f })
   }
 
   @Test

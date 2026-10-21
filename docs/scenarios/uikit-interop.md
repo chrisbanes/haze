@@ -26,4 +26,6 @@ affect capture either.
 | Other `UIKitView` or `UIKitViewController` content | No | Render the content in Compose instead. |
 
 To apply Blur or Glass over this content, use a rendering path that draws into Compose and mark
-it with `hazeSource`.
+it with [`hazeSource`][hazeSource].
+
+[hazeSource]: ../api/haze/dev.chrisbanes.haze/haze-source.html

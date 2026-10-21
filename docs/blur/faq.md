@@ -1,6 +1,6 @@
 ## What's the difference between this and Modifier.blur?
 
-[Modifier.blur](https://developer.android.com/reference/kotlin/androidx/compose/ui/Modifier#(androidx.compose.ui.Modifier).blur(androidx.compose.ui.unit.Dp,androidx.compose.ui.unit.Dp,androidx.compose.ui.draw.BlurredEdgeTreatment)) blurs a composable's own content. Haze's main use is blurring the content _behind_ a surface, which is what glass-like effects need. Haze can also blur a composable's own content with `HazeInput.Content`.
+[Modifier.blur](https://developer.android.com/reference/kotlin/androidx/compose/ui/Modifier#(androidx.compose.ui.Modifier).blur(androidx.compose.ui.unit.Dp,androidx.compose.ui.unit.Dp,androidx.compose.ui.draw.BlurredEdgeTreatment)) blurs a composable's own content. Haze's main use is blurring the content _behind_ a surface, which is what glass-like effects need. Haze can also blur a composable's own content with [`HazeInput.Content`][HazeInput.Content].
 
 Haze also adds tints, noise, progressive Blur, masks, and more. See the [Usage](usage.md) page.
 
@@ -54,3 +54,5 @@ unavailable. See [Blur usage](usage.md) for details, including the experimental 
 backdrop.
 
  [layer-outsets]: https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/LayerOutsets
+
+[HazeInput.Content]: ../api/haze/dev.chrisbanes.haze/-haze-input/-content/index.html

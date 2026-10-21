@@ -142,7 +142,7 @@ class GlassContainerOpticalBoundaryTest {
           cornerRadii = CornerRadii(radius, radius, radius, radius),
           tint = Color.Transparent,
           backgroundColor = Color.Transparent,
-          layoutSize = layoutSizes[index],
+          layoutRect = Rect(rect.topLeft, layoutSizes[index]),
         )
       },
       mergeDistancePx = 40f,
@@ -203,8 +203,11 @@ class GlassContainerOpticalBoundaryTest {
     }
     val color = image.toPixelMap()[0, 0]
     val encodingScale = if (lighting) 4f else 128f
-    val scale = encodingScale * if (!merged && !lighting) scenario.interactionScale else 1f
-    return Offset((color.red - 0.5f) * scale, (color.green - 0.5f) * scale)
+    val response = Offset((color.red - 0.5f) * encodingScale, (color.green - 0.5f) * encodingScale)
+    if (lighting) return response
+    // Compare where each samples, relative to the probe's unpressed layout point.
+    val layoutPoint = (if (merged) targetRect.topLeft + standaloneProbe else standaloneProbe) * scenario.inputScale
+    return probePoint + response - layoutPoint
   }
 
   private fun probeThreeMemberBridge(probeX: Float, lighting: Boolean): SeamProbeResult {
@@ -223,7 +226,6 @@ class GlassContainerOpticalBoundaryTest {
           cornerRadii = CornerRadii.zero,
           tint = Color.Transparent,
           backgroundColor = Color.Transparent,
-          layoutSize = Size(10f, 10f),
         )
       },
       mergeDistancePx = 100f,
@@ -280,7 +282,8 @@ class GlassContainerOpticalBoundaryTest {
             height,
             edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : distance,
             1.0,
-            fieldWeight
+            fieldWeight,
+            sampleDisplacement
           )
         """.trimIndent()
       }
@@ -288,6 +291,7 @@ class GlassContainerOpticalBoundaryTest {
       source.substringBefore("vec4 main(vec2 coord)") + """
         uniform float2 probe;
         vec4 main(vec2 coord) {
+          vec2 sampleDisplacement;
           float sd = shapeSd(probe);
           float fieldWeight = $fieldWeight;
           float distance = opticalDistanceFromSignedDistance(probe, sd, fieldWeight);
@@ -383,19 +387,23 @@ class GlassContainerOpticalBoundaryTest {
                 height,
                 edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : distance,
                 1.0,
-                fieldWeight
+                fieldWeight${if (merged) ", sampleDisplacement" else ""}
               )
             """.trimIndent()
           }
+          // A merged probe reports where it samples relative to the probe point.
+          val sampleOffset = if (merged && !lighting) "result = mergedSampleOffset(probe) + sampleDisplacement;" else ""
           val encodingScale = if (lighting) 4f else 128f
           source.substringBefore("vec4 main(vec2 coord)") + """
           uniform float2 probe;
           vec4 main(vec2 coord) {
+            vec2 sampleDisplacement;
             float sd = $sd;
             float fieldWeight = $fieldWeight;
             float distance = opticalDistanceFromSignedDistance(probe, sd, fieldWeight);
             float height = surfaceHeightNormFromOpticalDistance(distance);
             vec2 result = $output;
+            $sampleOffset
             return vec4(vec2(0.5) + result / $encodingScale, 0.0, 1.0);
           }
           """.trimIndent()

@@ -64,6 +64,8 @@ internal fun glassMergeKey(
  * A member with a [link] is transitioning with that member and stays connected to it at any gap.
  * A [fading] member's alpha differs from any field it could join, so it never merges.
  * [sourceSelection] is the source areas the member's input resolved to.
+ * [sampleLayoutRect] is the unpressed rect content samples through; a ghost keeps its live
+ * member's, as its [layoutRect] is its drawn rect.
  */
 internal data class GlassMemberSnapshot(
   val identity: Any,
@@ -75,6 +77,7 @@ internal data class GlassMemberSnapshot(
   val link: Any? = null,
   val fading: Boolean = false,
   val sourceSelection: Set<Any> = emptySet(),
+  val sampleLayoutRect: Rect = layoutRect,
 )
 
 @Poko

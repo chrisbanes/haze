@@ -6,9 +6,9 @@ looks right and feels smooth.
 
 ## Start with the defaults
 
-Use `HazePerformanceMode.Default` for built-in Blur and Glass, and start Glass with
-`GlassStyle.regular`. `Default` selects the fixed `Balanced` profile. Custom effects use
-`HazeSampling.Default`.
+Use [`HazePerformanceMode.Default`][HazePerformanceMode.Default] for built-in Blur and Glass, and start Glass with
+[`GlassStyle.regular`][GlassStyle.regular]. `Default` selects the fixed `Balanced` profile. Custom effects use
+[`HazeSampling.Default`][HazeSampling.Default].
 
 Build the complete screen before choosing overrides. The area covered by effects, their number,
 and the content moving behind them all affect the cost.
@@ -46,8 +46,8 @@ Try these changes in order, measuring after each:
 4. **Simplify the styling.** Try uniform blur in place of progressive blur, or reduce Glass
    features such as Full chromatic aberration. Keep the simpler style if the visual difference
    does not justify the cost.
-5. **Keep unrelated animation out of captured sources.** With `HazeInput.Sources`, move animation
-   outside the `hazeSource` subtree when the effect does not need to include it.
+5. **Keep unrelated animation out of captured sources.** With [`HazeInput.Sources`][HazeInput.Sources], move animation
+   outside the [`hazeSource`][hazeSource] subtree when the effect does not need to include it.
 
 <a id="stable-and-changing-sources"></a>
 
@@ -61,7 +61,7 @@ fresh input, so always test those interactions as well as stationary content.
 
 ## Choose a performance mode
 
-`HazePerformanceMode` controls the quality and rendering cost of built-in Blur and Glass. Choose
+[`HazePerformanceMode`][HazePerformanceMode] controls the quality and rendering cost of built-in Blur and Glass. Choose
 based on the problem you can see:
 
 | What you need | What to try |
@@ -81,8 +81,8 @@ Modifier.hazeBlur(
 )
 ```
 
-The same `performanceMode` parameter is available on `hazeGlass`. To set a mode for a whole
-subtree, provide `LocalHazePerformanceMode`; an explicit `performanceMode` argument overrides it.
+The same `performanceMode` parameter is available on [`hazeGlass`][hazeGlass]. To set a mode for a whole
+subtree, provide [`LocalHazePerformanceMode`][LocalHazePerformanceMode]; an explicit `performanceMode` argument overrides it.
 
 `Performance`, `Balanced`, and `Quality` correspond to `Fixed(0f)`, `Fixed(0.5f)`, and
 `Fixed(1f)`. The fraction describes quality, not a percentage reduction in rendering time.
@@ -141,11 +141,11 @@ For styling examples, see the [Glass overview](effects/glass/index.md).
 
 ## Backdrop versus Sources
 
-`HazeInput.Backdrop` lets built-in Blur and Glass use pixels already drawn behind them in the
+[`HazeInput.Backdrop`][HazeInput.Backdrop] lets built-in Blur and Glass use pixels already drawn behind them in the
 current window. On supported Android devices it can filter those pixels directly, without marking
 the background with `hazeSource`.
 
-Pass a `HazeState` or `HazeInput.Sources` to `Backdrop` and keep the `hazeSource` setup if the
+Pass a [`HazeState`][HazeState] or `HazeInput.Sources` to `Backdrop` and keep the `hazeSource` setup if the
 effect must work when native rendering is unavailable, including on other platforms or after a
 native failure. Without captured sources, the fallback has no background content to process.
 
@@ -177,3 +177,14 @@ when the effect draws.
 
 The [benchmark results](benchmark-results.md) contain the complete tables and test conditions.
 Use them as reference points when measuring your own screen.
+
+[GlassStyle.regular]: api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/-companion/regular.html
+[hazeGlass]: api/haze-glass/dev.chrisbanes.haze.glass/haze-glass.html
+[HazeInput.Backdrop]: api/haze/dev.chrisbanes.haze/-haze-input/-backdrop/index.html
+[HazeInput.Sources]: api/haze/dev.chrisbanes.haze/-haze-input/-sources/index.html
+[HazePerformanceMode]: api/haze/dev.chrisbanes.haze/-haze-performance-mode/index.html
+[HazePerformanceMode.Default]: api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-default.html
+[HazeSampling.Default]: api/haze/dev.chrisbanes.haze/-haze-sampling/-companion/-default.html
+[hazeSource]: api/haze/dev.chrisbanes.haze/haze-source.html
+[HazeState]: api/haze/dev.chrisbanes.haze/-haze-state/index.html
+[LocalHazePerformanceMode]: api/haze/dev.chrisbanes.haze/-local-haze-performance-mode.html

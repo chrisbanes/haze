@@ -45,9 +45,9 @@ Modifier.hazeEffect(
   drawn earlier in the current window, and its `fallback` configures the source capture used
   when the native backdrop isn't available. It can't select individual sources, include later
   drawing, or cross a window boundary.
-- `HazeInput.Sources` consumes content captured by `hazeSource`, with explicit selection and
+- [`HazeInput.Sources`][HazeInput.Sources] consumes content captured by [`hazeSource`][hazeSource], with explicit selection and
   retention.
-- `HazeInput.Content` consumes the modifier's own content.
+- [`HazeInput.Content`][HazeInput.Content] consumes the modifier's own content.
 
 See [Core concepts](core-concepts.md#explicit-inputs) for how to choose.
 
@@ -70,14 +70,14 @@ selection, ordering, and cross-window alignment for you.
 
 ## Built-in Blur
 
-`hazeBlur` takes a `HazeBlurStyle`, resolved from `HazeBlurDefaults.style`, `LocalHazeBlurStyle`, and
+[`hazeBlur`][hazeBlur] takes a [`HazeBlurStyle`][HazeBlurStyle], resolved from [`HazeBlurDefaults.style`][HazeBlurDefaults.style], [`LocalHazeBlurStyle`][LocalHazeBlurStyle], and
 the explicit Style, in that order. Snapshot state read inside a Style block is observed: when it
 changes, Blur resolves the Style again and redraws without recomposition. Styles and the Blur
 factory can be shared; each modifier owns its resolved values and renderer.
 
 ## Built-in Glass
 
-`hazeGlass` takes a `GlassStyle`, resolved from defaults, `LocalGlassStyle`, and the explicit Style.
+[`hazeGlass`][hazeGlass] takes a [`GlassStyle`][GlassStyle], resolved from defaults, [`LocalGlassStyle`][LocalGlassStyle], and the explicit Style.
 Snapshot state read inside a Style block is observed: when it changes, Glass resolves the Style
 again and redraws without recomposition. Glass renderers are never shared between modifiers.
 
@@ -85,7 +85,7 @@ again and redraws without recomposition. Glass renderers are never shared betwee
 
 - **haze**: core state, source capture, and the custom-effect API
 - **haze-blur**: Blur effect
-- **haze-blur-materials**: ready-made Blur Styles, such as `HazeMaterials.thin()`
+- **haze-blur-materials**: ready-made Blur Styles, such as [`HazeMaterials.thin()`][HazeMaterials.thin]
 - **haze-blur-material3**: optional Compose Material 3 Blur Style factory
 - **haze-glass**: Glass effect
 - **haze-glass-material3**: optional Compose Material 3 Glass Style factory
@@ -93,7 +93,7 @@ again and redraws without recomposition. Glass renderers are never shared betwee
 
 ## Extension points
 
-Use `hazeBlur` for Blur, `hazeGlass` for Glass, and `HazeEffectFactory` with `hazeEffect` for
+Use `hazeBlur` for Blur, `hazeGlass` for Glass, and [`HazeEffectFactory`][HazeEffectFactory] with [`hazeEffect`][hazeEffect] for
 custom effects. The older lambda-based effect API, `VisualEffect`, and the `glassEffect` DSL have
 been removed. See [Custom effects](custom-effects.md).
 
@@ -101,3 +101,17 @@ been removed. See [Custom effects](custom-effects.md).
 
 The reasoning behind Haze's larger design choices is recorded in its
 [architecture decision records](https://github.com/chrisbanes/haze/tree/main/docs/adr).
+
+[GlassStyle]: api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/index.html
+[hazeBlur]: api/haze-blur/dev.chrisbanes.haze.blur/haze-blur.html
+[HazeBlurDefaults.style]: api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-defaults/style.html
+[HazeBlurStyle]: api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/index.html
+[hazeEffect]: api/haze/dev.chrisbanes.haze/haze-effect.html
+[HazeEffectFactory]: api/haze/dev.chrisbanes.haze/-haze-effect-factory/index.html
+[hazeGlass]: api/haze-glass/dev.chrisbanes.haze.glass/haze-glass.html
+[HazeInput.Content]: api/haze/dev.chrisbanes.haze/-haze-input/-content/index.html
+[HazeInput.Sources]: api/haze/dev.chrisbanes.haze/-haze-input/-sources/index.html
+[HazeMaterials.thin]: api/haze-materials/dev.chrisbanes.haze.blur.materials/-haze-materials/thin.html
+[hazeSource]: api/haze/dev.chrisbanes.haze/haze-source.html
+[LocalGlassStyle]: api/haze-glass/dev.chrisbanes.haze.glass/-local-glass-style.html
+[LocalHazeBlurStyle]: api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html

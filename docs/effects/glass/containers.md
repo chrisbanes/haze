@@ -47,7 +47,7 @@ container's children. It defaults to `GlassDefaults.mergeDistance` (16 dp), and 
 not negative. A merge distance of zero disables merging by proximity. Optionally pass
 `transitionSpec` and `reducedMotionPolicy`, which are described under [Transitions](#transitions).
 
-Every `hazeGlass` modifier below the container becomes a member of its nearest container. A member
+Every [`hazeGlass`][hazeGlass] modifier below the container becomes a member of its nearest container. A member
 keeps its own style, shape, colors and interaction response. A `hazeGlass` modifier outside a
 container is unchanged.
 
@@ -62,7 +62,7 @@ continuous response as they join or separate.
 
 Members merge only when all of these hold:
 
-- **Same input and rendering options.** Equal `input` (for `HazeInput.Sources`, the same
+- **Same input and rendering options.** Equal `input` (for [`HazeInput.Sources`][HazeInput.Sources], the same
   `hazeState`, `selection` and `retention`), performance mode and `expandLayerBounds`.
 - **Same material.** Equal optics, surface profile, specular and edge settings, chromatic
   aberration, tone, light position and `alpha`. Regular and Clear surfaces therefore never merge.
@@ -92,7 +92,7 @@ Members that are animating out, or whose bounds have collapsed to zero area, don
 ## Where Glass samples from
 
 A container draws all of its members' Glass behind all of its children. With
-`HazeInput.Backdrop`, the glass samples only content drawn before the container. With
+[`HazeInput.Backdrop`][HazeInput.Backdrop], the glass samples only content drawn before the container. With
 `HazeInput.Sources`, the glass samples the captured sources as usual. Joining or leaving a cluster
 never changes a member's z-order.
 
@@ -102,34 +102,29 @@ Interaction responses work as described in [Glass interaction](index.md#interact
 the member's own part of the merged shape: pressing a member scales and lights only that part. A
 uniform pressed `scale` does not split the cluster.
 
-With `HazeInput.Sources`, a scaled member can still change its sampled backdrop when it joins or
-leaves a cluster. Standalone Glass scales the completed backdrop image, while a merged surface
-keeps backdrop sampling anchored and scales the member's shape. The optical-profile blend does
-not remove this existing sampling difference; it is tracked in [#1605](https://github.com/chrisbanes/haze/issues/1605).
-
 ## Transitions
 
 A member that attaches or detaches after the container's first draw animates its glass. Choose
 the transition with `hazeGlass(memberTransition = ...)`:
 
-- `GlassMemberTransition.MatchedGeometry` is the default. A member that attaches within the
+- [`GlassMemberTransition.MatchedGeometry`][GlassMemberTransition.MatchedGeometry] is the default. A member that attaches within the
   merge distance of another member grows out of it, and a member that detaches retracts into it.
   Beyond the merge distance, it falls back to `Materialize`.
-- `GlassMemberTransition.Materialize` fades the glass in or out where it is. A fading member draws
+- [`GlassMemberTransition.Materialize`][GlassMemberTransition.Materialize] fades the glass in or out where it is. A fading member draws
   on its own until it is fully opaque.
-- `GlassMemberTransition.None` applies no transition.
+- [`GlassMemberTransition.None`][GlassMemberTransition.None] applies no transition.
 
 `transitionSpec` times the animation and defaults to `spring()`. Members with
 `GlassMemberTransition.None` do not animate. `reducedMotionPolicy` decides how the transition
 responds to the platform motion-duration scale:
 
-- `GlassReducedMotionPolicy.System`, the default, follows the scale. Above zero, transitions run
+- [`GlassReducedMotionPolicy.System`][GlassReducedMotionPolicy.System], the default, follows the scale. Above zero, transitions run
   under that scale. At zero, because animations are off, members snap: they appear and disappear
   with no transition, as with `GlassMemberTransition.None`.
-- `GlassReducedMotionPolicy.Reduced` keeps the morph but uses a critically damped spring, so it
+- [`GlassReducedMotionPolicy.Reduced`][GlassReducedMotionPolicy.Reduced] keeps the morph but uses a critically damped spring, so it
   does not overshoot, at full duration whatever the scale is. The spring keeps `transitionSpec`'s
   stiffness when it is a spring and otherwise uses medium stiffness.
-- `GlassReducedMotionPolicy.Full` uses `transitionSpec` as written, whatever the scale is.
+- [`GlassReducedMotionPolicy.Full`][GlassReducedMotionPolicy.Full] uses `transitionSpec` as written, whatever the scale is.
 
 Changes to `transitionSpec` and `reducedMotionPolicy` apply from the next transition.
 
@@ -139,7 +134,7 @@ merging and loses its matched-geometry transition.
 
 The glass disappears immediately, without a transition, when:
 
-- the member uses `HazeInput.Content`;
+- the member uses [`HazeInput.Content`][HazeInput.Content];
 - the member is rotated or scaled;
 - no remaining member uses the same input and sources, including when the last member leaves.
 
@@ -152,7 +147,7 @@ merge distance.
 
 ## Lazy layouts
 
-Pass the lazy layout's state to `hazeGlassContainer` as `scrollState`. While that state is
+Pass the lazy layout's state to [`hazeGlassContainer`][hazeGlassContainer] as `scrollState`. While that state is
 scrolling, including the frame in which it stops, members appear and disappear without a
 transition, whatever their `memberTransition`. Items inserted or removed while the layout is idle
 still animate, but a scroll that starts while an item's glass is still animating out ends that
@@ -193,7 +188,7 @@ container's first draw never animate.
 Without `RuntimeShader` support, or when a cluster is too large to render in full, each cluster
 draws as one surface clipped to the hard union of the member shapes, with no bridge. Members keep
 their own tint and background color; where members overlap, the earlier member's colors apply.
-Each member resolves `GlassAccessibilitySettings` and appearance in its own context. With
+Each member resolves [`GlassAccessibilitySettings`][GlassAccessibilitySettings] and appearance in its own context. With
 `reduceTransparency`, it draws an opaque white/light or black/dark base (or its opaque
 `reducedTransparencyFallbackColor` override), then its authored background colour and tint. Earlier
 members still own overlapping regions, and overall alpha still fades the material. Disabling the
@@ -214,3 +209,16 @@ Brush to reveal stroke-width and colour controls, then drag the colour control a
 from the palette. Releasing it rejoins the controls, and closing Brush retracts them. The sample
 plays these transitions as a loop until you interact with it. Its source is in
 [`GlassContainerShowcaseSample.kt`](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerShowcaseSample.kt).
+
+[GlassAccessibilitySettings]: ../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-accessibility-settings/index.html
+[GlassMemberTransition.MatchedGeometry]: ../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-member-transition/-matched-geometry/index.html
+[GlassMemberTransition.Materialize]: ../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-member-transition/-materialize/index.html
+[GlassMemberTransition.None]: ../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-member-transition/-none/index.html
+[GlassReducedMotionPolicy.Full]: ../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-reduced-motion-policy/-full/index.html
+[GlassReducedMotionPolicy.Reduced]: ../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-reduced-motion-policy/-reduced/index.html
+[GlassReducedMotionPolicy.System]: ../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-reduced-motion-policy/-system/index.html
+[hazeGlass]: ../../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass.html
+[hazeGlassContainer]: ../../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass-container.html
+[HazeInput.Backdrop]: ../../api/haze/dev.chrisbanes.haze/-haze-input/-backdrop/index.html
+[HazeInput.Content]: ../../api/haze/dev.chrisbanes.haze/-haze-input/-content/index.html
+[HazeInput.Sources]: ../../api/haze/dev.chrisbanes.haze/-haze-input/-sources/index.html

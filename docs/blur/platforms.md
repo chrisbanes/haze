@@ -22,15 +22,15 @@ Blur is enabled by default, with these differences:
 
 #### HazeProgressive
 
-With a full-resolution performance mode, such as [HazePerformanceMode.Quality](../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-quality.html), linear [HazeProgressive](../api/haze/dev.chrisbanes.haze/-haze-progressive/index.html) effects are drawn several times. This costs more, so measure it for your workload.
+With a full-resolution performance mode, such as [`HazePerformanceMode.Quality`][HazePerformanceMode.Quality], linear [`HazeProgressive`][HazeProgressive] effects are drawn several times. This costs more, so measure it for your workload.
 
-Lower-resolution modes, such as [HazePerformanceMode.Balanced](../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-balanced.html), and all non-linear progressive types use a gradient mask instead. This blends between blurred and unblurred content rather than varying the blur strength.
+Lower-resolution modes, such as [`HazePerformanceMode.Balanced`][HazePerformanceMode.Balanced], and all non-linear progressive types use a gradient mask instead. This blends between blurred and unblurred content rather than varying the blur strength.
 
 #### Extra redraws
 
 On Android 12 (API 31) and below, Haze redraws Blur more often than strictly necessary so that it stays in sync with the content behind it.
 
-On API 31 only, Blur that reads `HazeInput.Sources`, including a `HazeInput.Backdrop` using its source fallback, also recaptures its input after any snapshot state change in the app, whichever window holds the source. With a hardware-accelerated canvas, Blur also rebuilds all of its effects, including every progressive band. With a software canvas, it blurs again with RenderScript instead. A running animation therefore does this once per frame, even if the animation is unrelated to the content behind the Blur. Blur that uses `HazeInput.Content` is not affected. This cost has not been measured. If you target API 31, profile your screens and [disable Blur](usage.md#enabling-blur) where it is too slow.
+On API 31 only, Blur that reads [`HazeInput.Sources`][HazeInput.Sources], including a [`HazeInput.Backdrop`][HazeInput.Backdrop] using its source fallback, also recaptures its input after any snapshot state change in the app, whichever window holds the source. With a hardware-accelerated canvas, Blur also rebuilds all of its effects, including every progressive band. With a software canvas, it blurs again with RenderScript instead. A running animation therefore does this once per frame, even if the animation is unrelated to the content behind the Blur. Blur that uses [`HazeInput.Content`][HazeInput.Content] is not affected. This cost has not been measured. If you target API 31, profile your screens and [disable Blur](usage.md#enabling-blur) where it is too slow.
 
 Sources in another window also recapture their input on every snapshot change on other API levels, and on platforms where Haze detects separate windows. See [Dialogs](../core-concepts.md#dialogs).
 
@@ -91,3 +91,10 @@ Haze is built, tested, and released against the latest stable version of Compose
 We occasionally verify against pre-release versions of Compose Multiplatform, but don't guarantee compatibility. Test thoroughly if you use one.
 
  [skiko]: https://github.com/JetBrains/skiko
+
+[HazeInput.Backdrop]: ../api/haze/dev.chrisbanes.haze/-haze-input/-backdrop/index.html
+[HazeInput.Content]: ../api/haze/dev.chrisbanes.haze/-haze-input/-content/index.html
+[HazeInput.Sources]: ../api/haze/dev.chrisbanes.haze/-haze-input/-sources/index.html
+[HazePerformanceMode.Balanced]: ../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-balanced.html
+[HazePerformanceMode.Quality]: ../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-quality.html
+[HazeProgressive]: ../api/haze/dev.chrisbanes.haze/-haze-progressive/index.html
