@@ -1,15 +1,15 @@
 # Blur usage
 
-`Modifier.hazeBlur` takes an input, which decides what gets blurred, and a Style, which decides how
+[`Modifier.hazeBlur`][hazeBlur] takes an input, which decides what gets blurred, and a Style, which decides how
 it looks.
 
 ## Choosing the input
 
 | Requirement | Input | What it blurs |
 | --- | --- | --- |
-| Blur whatever is behind a surface | `HazeInput.Backdrop(hazeState)` | Content drawn earlier in the same window, using your `hazeSource` content where native backdrop rendering isn't used. |
+| Blur whatever is behind a surface | `HazeInput.Backdrop(hazeState)` | Content drawn earlier in the same window, using your [`hazeSource`][hazeSource] content where native backdrop rendering isn't used. |
 | Control exactly which sources are blurred | `HazeInput.Sources(hazeState)` | Content marked with selected `hazeSource` modifiers. |
-| Blur the modifier's own content | `HazeInput.Content` | The composable's own content. |
+| Blur the modifier's own content | [`HazeInput.Content`][HazeInput.Content] | The composable's own content. |
 
 Use `Backdrop` for most cases.
 
@@ -37,7 +37,7 @@ Box {
 }
 ```
 
-`HazeInput.Sources` also controls which sources are used and what is shown while they are
+[`HazeInput.Sources`][HazeInput.Sources] also controls which sources are used and what is shown while they are
 unavailable. The default, `KeepLastFrame`, avoids an empty flash during source transitions, but the
 retained output is not guaranteed to be an exact copy of the last frame (see
 [Core concepts](../core-concepts.md)). Use `ClearWhenUnavailable` for privacy-sensitive content:
@@ -66,7 +66,7 @@ Image(
 
 ## Android window-backdrop Blur
 
-On Android 37.2 or later, `HazeInput.Backdrop` can blur the window backdrop natively. This is
+On Android 37.2 or later, [`HazeInput.Backdrop`][HazeInput.Backdrop] can blur the window backdrop natively. This is
 experimental and off by default. Enable it before the Blur modifiers you want to affect are
 attached:
 
@@ -85,7 +85,7 @@ content instead; switching can take one frame. Changing the flag only affects mo
 afterwards.
 
 Native rendering blurs content drawn earlier in the same window. It can't see content drawn later,
-or content in another dialog, popup, or window, and `HazePerformanceMode` doesn't reduce its
+or content in another dialog, popup, or window, and [`HazePerformanceMode`][HazePerformanceMode] doesn't reduce its
 resolution. Use `HazeInput.Sources` when you need exact source selection, content from another
 window, or a retention policy.
 
@@ -112,7 +112,7 @@ When Blur is disabled, Haze draws `fallbackColorEffect` instead.
 
 ## Replayable Styles
 
-A `HazeBlurStyle` is a list of property writes:
+A [`HazeBlurStyle`][HazeBlurStyle] is a list of property writes:
 
 ```kotlin
 val style = HazeBlurStyle {
@@ -135,8 +135,8 @@ val style = HazeBlurStyle {
 
 Haze applies Styles in this order:
 
-1. `HazeBlurDefaults.style`
-2. `LocalHazeBlurStyle`
+1. [`HazeBlurDefaults.style`][HazeBlurDefaults.style]
+2. [`LocalHazeBlurStyle`][LocalHazeBlurStyle]
 3. The explicit `hazeBlur` Style
 
 The last write to a property wins, both across tiers and within a Style chain:
@@ -232,3 +232,13 @@ Modifier.hazeBlur(
 See the [performance guide](../performance.md#performance-mode) for choosing a mode, and
 [Blur guidance](../performance.md#blur) for when to change `expandLayerBounds`. Measured results
 are in the [benchmark results](../benchmark-results.md#performance-mode-calibration).
+
+[hazeBlur]: ../api/haze-blur/dev.chrisbanes.haze.blur/haze-blur.html
+[HazeBlurDefaults.style]: ../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-defaults/style.html
+[HazeBlurStyle]: ../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/index.html
+[HazeInput.Backdrop]: ../api/haze/dev.chrisbanes.haze/-haze-input/-backdrop/index.html
+[HazeInput.Content]: ../api/haze/dev.chrisbanes.haze/-haze-input/-content/index.html
+[HazeInput.Sources]: ../api/haze/dev.chrisbanes.haze/-haze-input/-sources/index.html
+[HazePerformanceMode]: ../api/haze/dev.chrisbanes.haze/-haze-performance-mode/index.html
+[hazeSource]: ../api/haze/dev.chrisbanes.haze/haze-source.html
+[LocalHazeBlurStyle]: ../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html

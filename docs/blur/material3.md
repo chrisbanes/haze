@@ -22,10 +22,12 @@ Modifier.hazeBlur(
 )
 ```
 
-To apply it to every Blur in a subtree, provide it through `LocalHazeBlurStyle`:
+To apply it to every Blur in a subtree, provide it through [`LocalHazeBlurStyle`][LocalHazeBlurStyle]:
 
 ```kotlin
 CompositionLocalProvider(LocalHazeBlurStyle provides HazeBlurStyle.Material3()) {
   // Blur modifiers in this subtree inherit the Material 3 surface background.
 }
 ```
+
+[LocalHazeBlurStyle]: ../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html

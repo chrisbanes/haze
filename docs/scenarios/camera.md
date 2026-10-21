@@ -1,10 +1,10 @@
 # Camera
 
 Haze can apply Blur and Glass to a live camera preview when the preview draws into Compose, so
-`hazeSource` can capture it.
+[`hazeSource`][hazeSource] can capture it.
 
-This example uses `HazeInput.Sources`, which captures exactly the content marked with
-`hazeSource`. `HazeInput.Backdrop` reads only pixels drawn earlier in the same window, so it cannot
+This example uses [`HazeInput.Sources`][HazeInput.Sources], which captures exactly the content marked with
+`hazeSource`. [`HazeInput.Backdrop`][HazeInput.Backdrop] reads only pixels drawn earlier in the same window, so it cannot
 include a preview on a separate surface or window.
 
 ```kotlin
@@ -136,3 +136,7 @@ The same constraint applies to video players and other platform views. Choose a 
 draws into Compose, such as ExoPlayer's `TextureView` mode, before marking it with `hazeSource`.
 
 For iOS, see [UIKit interop on iOS](uikit-interop.md).
+
+[HazeInput.Backdrop]: ../api/haze/dev.chrisbanes.haze/-haze-input/-backdrop/index.html
+[HazeInput.Sources]: ../api/haze/dev.chrisbanes.haze/-haze-input/-sources/index.html
+[hazeSource]: ../api/haze/dev.chrisbanes.haze/haze-source.html

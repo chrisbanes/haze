@@ -39,7 +39,7 @@ See [Platforms](platforms.md) for details.
 
 ## Basic Usage
 
-Mark the content to blur with `hazeSource`, then apply `Modifier.hazeBlur` to the surface drawn
+Mark the content to blur with [`hazeSource`][hazeSource], then apply [`Modifier.hazeBlur`][hazeBlur] to the surface drawn
 over it:
 
 ```kotlin
@@ -68,7 +68,7 @@ See the [Blur usage](usage.md) guide for more.
 
 ## Styling
 
-[HazeBlurStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/index.html) controls
+[`HazeBlurStyle`][HazeBlurStyle] controls
 how Blur looks:
 
 - **Blur radius**: the strength of the blur.
@@ -88,3 +88,7 @@ Blur can be expensive. See [Performance](../performance.md) for how to measure a
 - [Material presets](materials.md): ready-made Blur Styles
 - [Material 3 integration](material3.md): a Blur Style from your Material 3 theme
 - [Performance](../performance.md): measuring and tuning
+
+[hazeBlur]: ../api/haze-blur/dev.chrisbanes.haze.blur/haze-blur.html
+[HazeBlurStyle]: ../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/index.html
+[hazeSource]: ../api/haze/dev.chrisbanes.haze/haze-source.html

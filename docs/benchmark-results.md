@@ -102,7 +102,7 @@ across workloads.
 ## Backdrop versus Sources
 
 Native Android Backdrop reads pixels behind the effect from the window, instead of using
-captured `hazeSource` content. See [Backdrop guidance](performance.md#backdrop-input) for
+captured [`hazeSource`][hazeSource] content. See [Backdrop guidance](performance.md#backdrop-input) for
 its practical benefits, fallback requirements, and experimental feature flag.
 
 This comparison used `Quality` on a Pixel 8a running Android 17 (full SDK 37.2) at 60 Hz,
@@ -163,7 +163,7 @@ ranking reversed between passes, so its average does not establish a consistent 
 ## Glass fixed quality
 
 This comparison isolates six `qualityFraction` settings for one 280 dp × 180 dp Regular
-Glass surface using `HazeInput.Sources`. It used a Pixel 6 running Android 17 (full SDK 37.1)
+Glass surface using [`HazeInput.Sources`][HazeInput.Sources]. It used a Pixel 6 running Android 17 (full SDK 37.1)
 at 60 Hz, with fixed-performance mode enabled.
 
 !!! warning "Controlled CPU placement"
@@ -217,7 +217,7 @@ appearance and frame timing on the actual screen under normal scheduling.
 This comparison draws two Regular Glass surfaces, each about 134 × 180 dp and 12 dp apart, over a
 continuously changing source. The independent row draws them separately. The container row wraps
 the same surfaces in `hazeGlassContainer(spacing = 32.dp)`, so they merge into one cluster. Both
-rows use `HazePerformanceMode.Default` and `HazeInput.Sources`. It used a Pixel 8a running
+rows use [`HazePerformanceMode.Default`][HazePerformanceMode.Default] and `HazeInput.Sources`. It used a Pixel 8a running
 Android 17 (full SDK 37.2) at 60 Hz, with fixed-performance mode enabled and normal CPU scheduling.
 
 Each per-pass value pools the frames of that pass's eight iterations; the table shows the
@@ -584,3 +584,7 @@ For the historical scrolling and dragging comparison between Haze 1 and Haze 2, 
 [blur-adr]: adr/0004-use-quality-gated-adaptive-input-scaling-for-blur.md
 [glass-adr]: adr/0005-use-cadence-weighted-adaptive-input-scaling-for-glass.md
 [performance-mode-adr]: adr/0006-reconcile-built-in-performance-mode-terminology.md
+
+[HazeInput.Sources]: api/haze/dev.chrisbanes.haze/-haze-input/-sources/index.html
+[HazePerformanceMode.Default]: api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-default.html
+[hazeSource]: api/haze/dev.chrisbanes.haze/haze-source.html

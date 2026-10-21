@@ -5,7 +5,7 @@ structural policies such as performance mode and layer expansion.
 
 ## Sources
 
-`HazeState` connects one or more `hazeSource` modifiers to source-backed effects:
+[`HazeState`][HazeState] connects one or more [`hazeSource`][hazeSource] modifiers to source-backed effects:
 
 ```kotlin
 val hazeState = rememberHazeState()
@@ -17,9 +17,9 @@ LazyColumn(
 }
 ```
 
-Sources can have a `zIndex` and metadata `key`. `HazeSourceSelection.Behind` is the default. With
+Sources can have a `zIndex` and metadata `key`. [`HazeSourceSelection.Behind`][HazeSourceSelection.Behind] is the default. With
 a nearest ancestor `hazeSource` using the same state, it selects lower-z sources; without one, it
-selects every source. `HazeSourceSelection.All` bypasses the ancestor relationship.
+selects every source. [`HazeSourceSelection.All`][HazeSourceSelection.All] bypasses the ancestor relationship.
 
 Refine either selection with `where`. The predicate receives each source's `key` and `zIndex`.
 Repeated refinements combine with logical AND:
@@ -38,7 +38,7 @@ Typed effects always declare what they consume:
 | --- | --- | --- |
 | Whatever is already behind a built-in effect | `HazeInput.Backdrop(hazeState)` | Pixels drawn earlier in the current window, with source capture as the portable fallback. |
 | Specific captured Haze sources | `HazeInput.Sources(hazeState)` | Explicit source selection and retention. |
-| The modifier's own content | `HazeInput.Content` | Foreground or own-content effects. |
+| The modifier's own content | [`HazeInput.Content`][HazeInput.Content] | Foreground or own-content effects. |
 
 Use `HazeInput.Backdrop(hazeState)` for ordinary built-in Blur and Glass surfaces. Its `fallback`
 configures only the source fallback; it doesn't select or filter native window pixels:
@@ -54,7 +54,7 @@ Modifier.hazeGlass(
 )
 ```
 
-`HazeInput.Sources` also takes a `retention` policy:
+[`HazeInput.Sources`][HazeInput.Sources] also takes a `retention` policy:
 
 - `KeepLastFrame` (the default) keeps drawing the last output through temporary source gaps. It
   isn't a frozen copy: on Android, retained Glass output can redraw from live or changed source
@@ -64,7 +64,7 @@ Modifier.hazeGlass(
 
 ### Android window backdrops
 
-`HazeInput.Backdrop` works on every platform. On Android it can also use a native window
+[`HazeInput.Backdrop`][HazeInput.Backdrop] works on every platform. On Android it can also use a native window
 backdrop, which is eligible only when the experimental flag is enabled, the built-in effect
 supports it, and the modifier is attached to a hardware-accelerated window on Android 37.2 or
 later. The native path filters the combined pixels already drawn earlier in the same window. It
@@ -111,9 +111,9 @@ Modifier.hazeBlur(
 ```
 
 Use `HazeInput.Content` for own-content Blur. Input, performance mode, and layer expansion are
-modifier arguments, not part of `HazeBlurStyle`.
+modifier arguments, not part of [`HazeBlurStyle`][HazeBlurStyle].
 
-A `HazeBlurStyle` is a block of settings, and `then` appends more:
+A `HazeBlurStyle` is a block of settings, and [`then`][HazeBlurStyle.then] appends more:
 
 ```kotlin
 val style = HazeBlurStyle {
@@ -126,7 +126,7 @@ val style = HazeBlurStyle {
 }
 ```
 
-Haze applies `HazeBlurDefaults.style`, then `LocalHazeBlurStyle`, then the explicit Style, and the
+Haze applies [`HazeBlurDefaults.style`][HazeBlurDefaults.style], then [`LocalHazeBlurStyle`][LocalHazeBlurStyle], then the explicit Style, and the
 last write wins. Styles hold no rendering state, so you can share them between modifiers. Two
 Styles with the same writes in the same order are equal, so recreating an identical Style during
 recomposition doesn't update the effect; pass a new Style when a value changes.
@@ -157,7 +157,7 @@ calls `dispose` once. See [Custom effects](custom-effects.md) for the full API.
 
 ## Built-in performance mode
 
-`HazePerformanceMode` lets you choose the quality and performance trade-off for built-in Blur and
+[`HazePerformanceMode`][HazePerformanceMode] lets you choose the quality and performance trade-off for built-in Blur and
 Glass:
 
 - `Default` selects the fixed `Balanced` profile. `Adaptive` is deprecated and behaves the same as `Default`.
@@ -166,7 +166,7 @@ Glass:
 - `Fixed(qualityFraction)` lets you choose a level from `0f` (lowest supported quality) to `1f`
   (highest supported quality).
 
-Pass `performanceMode` to one effect, or provide `LocalHazePerformanceMode` to set it for a
+Pass `performanceMode` to one effect, or provide [`LocalHazePerformanceMode`][LocalHazePerformanceMode] to set it for a
 subtree; an explicit argument wins.
 
 Start with the default. If the effect looks too pixelated, try a higher fixed quality level and
@@ -176,7 +176,7 @@ for replacing older sampling settings.
 
 ## Generic sampling
 
-Custom effects use `HazeSampling` instead of `HazePerformanceMode`. Its `Default` (currently
+Custom effects use [`HazeSampling`][HazeSampling] instead of `HazePerformanceMode`. Its `Default` (currently
 `Adaptive`), `Adaptive`, `FullResolution`, and `Fixed(pixelFraction)` policies control the
 fraction of full-resolution input pixels the effect receives.
 
@@ -322,3 +322,18 @@ class MyScreenshotTest {
 ```
 
 This only affects Robolectric, not real devices.
+
+[HazeBlurDefaults.style]: api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-defaults/style.html
+[HazeBlurStyle]: api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/index.html
+[HazeInput.Backdrop]: api/haze/dev.chrisbanes.haze/-haze-input/-backdrop/index.html
+[HazeInput.Content]: api/haze/dev.chrisbanes.haze/-haze-input/-content/index.html
+[HazeInput.Sources]: api/haze/dev.chrisbanes.haze/-haze-input/-sources/index.html
+[HazePerformanceMode]: api/haze/dev.chrisbanes.haze/-haze-performance-mode/index.html
+[HazeSampling]: api/haze/dev.chrisbanes.haze/-haze-sampling/index.html
+[hazeSource]: api/haze/dev.chrisbanes.haze/haze-source.html
+[HazeSourceSelection.All]: api/haze/dev.chrisbanes.haze/-haze-source-selection/-all/index.html
+[HazeSourceSelection.Behind]: api/haze/dev.chrisbanes.haze/-haze-source-selection/-behind/index.html
+[HazeState]: api/haze/dev.chrisbanes.haze/-haze-state/index.html
+[LocalHazeBlurStyle]: api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html
+[LocalHazePerformanceMode]: api/haze/dev.chrisbanes.haze/-local-haze-performance-mode.html
+[HazeBlurStyle.then]: api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/then.html
