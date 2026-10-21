@@ -33,7 +33,8 @@ internal class GlassMergedMember(
   val refractionMultiplier: Float = 1f,
   val whitePointDelta: Float = 0f,
   val fallbackBaseColor: Color? = null,
-  val layoutSize: Size = rect.size,
+  /** The unpressed layout rect, in [rect]'s frame, that the member's press transform maps to [rect]. */
+  val layoutRect: Rect = rect,
 ) {
   init {
     require(
@@ -42,9 +43,10 @@ internal class GlassMergedMember(
         rect.width > 0f && rect.height > 0f,
     ) { "rect must be finite with a positive size: $rect" }
     require(
-      layoutSize.width.isFinite() && layoutSize.height.isFinite() &&
-        layoutSize.width > 0f && layoutSize.height > 0f,
-    ) { "layoutSize must be finite with a positive size: $layoutSize" }
+      layoutRect.left.isFinite() && layoutRect.top.isFinite() &&
+        layoutRect.width.isFinite() && layoutRect.height.isFinite() &&
+        layoutRect.width > 0f && layoutRect.height > 0f,
+    ) { "layoutRect must be finite with a positive size: $layoutRect" }
     require(cornerRadii.isFiniteAndNonNegative()) { "cornerRadii must be finite and non-negative" }
     require(lightPosition.x.isFinite() && lightPosition.y.isFinite()) { "lightPosition must be finite" }
     require(lightRadius.isFinite() && lightRadius >= 0f) { "lightRadius must be finite and non-negative" }
@@ -108,7 +110,7 @@ internal class GlassMergedField(
             opticalRadius = it.opticalRadius,
             refractionMultiplier = it.refractionMultiplier,
             whitePointDelta = it.whitePointDelta,
-            layoutSize = it.layoutSize,
+            layoutRect = it.layoutRect,
           )
         },
         spacingPx,
@@ -120,7 +122,7 @@ internal class GlassMergedField(
   /** Lighting-only stages keep each member's light and geometry while ignoring optical state. */
   val withoutOptics: GlassMergedField by lazy(LazyThreadSafetyMode.NONE) {
     if (members.all {
-        it.layoutSize == it.rect.size && it.opticalPosition == Offset.Zero && it.opticalRadius == 0f &&
+        it.opticalPosition == Offset.Zero && it.opticalRadius == 0f &&
           it.refractionMultiplier == 1f && it.whitePointDelta == 0f
       }
     ) {
@@ -137,7 +139,7 @@ internal class GlassMergedField(
             lightPosition = it.lightPosition,
             lightRadius = it.lightRadius,
             lightIntensity = it.lightIntensity,
-            layoutSize = it.rect.size,
+            layoutRect = it.layoutRect,
           )
         },
         spacingPx,
@@ -150,7 +152,7 @@ internal class GlassMergedField(
   val withoutInteractions: GlassMergedField by lazy(LazyThreadSafetyMode.NONE) {
     if (members.all {
         it.lightPosition == Offset.Zero && it.lightRadius == 0f && it.lightIntensity == 0f &&
-          it.layoutSize == it.rect.size && it.opticalPosition == Offset.Zero && it.opticalRadius == 0f &&
+          it.opticalPosition == Offset.Zero && it.opticalRadius == 0f &&
           it.refractionMultiplier == 1f && it.whitePointDelta == 0f
       }
     ) {
@@ -164,7 +166,7 @@ internal class GlassMergedField(
             it.tint,
             it.backgroundColor,
             fallbackBaseColor = it.fallbackBaseColor,
-            layoutSize = it.rect.size,
+            layoutRect = it.layoutRect,
           )
         },
         spacingPx,
@@ -184,7 +186,7 @@ internal class GlassMergedField(
             it.rect, it.cornerRadii, it.tint, it.backgroundColor,
             it.lightPosition, it.lightRadius, it.lightIntensity,
             it.opticalPosition, it.opticalRadius, it.refractionMultiplier, it.whitePointDelta,
-            layoutSize = it.layoutSize,
+            layoutRect = it.layoutRect,
           )
         },
         spacingPx,
@@ -256,7 +258,9 @@ internal class GlassMergedField(
         opticalRadius = member.opticalRadius * scaleFactor,
         refractionMultiplier = member.refractionMultiplier,
         whitePointDelta = member.whitePointDelta,
-        layoutSize = member.layoutSize * scaleFactor,
+        layoutRect = member.layoutRect.let {
+          Rect(it.left * scaleFactor, it.top * scaleFactor, it.right * scaleFactor, it.bottom * scaleFactor)
+        },
       )
     },
     spacingPx = spacingPx * scaleFactor,
@@ -273,6 +277,7 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
   includeOptics: Boolean = false,
 ) {
   val rects = FloatArray(MAX_GLASS_MERGED_MEMBERS * 4)
+  val layoutRects = FloatArray(MAX_GLASS_MERGED_MEMBERS * 4)
   val radii = FloatArray(MAX_GLASS_MERGED_MEMBERS * 4)
   field.members.forEachIndexed { index, member ->
     val offset = index * 4
@@ -280,12 +285,17 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
     rects[offset + 1] = member.rect.top
     rects[offset + 2] = member.rect.width
     rects[offset + 3] = member.rect.height
+    layoutRects[offset] = member.layoutRect.left
+    layoutRects[offset + 1] = member.layoutRect.top
+    layoutRects[offset + 2] = member.layoutRect.width
+    layoutRects[offset + 3] = member.layoutRect.height
     radii[offset] = member.cornerRadii.topLeft
     radii[offset + 1] = member.cornerRadii.topRight
     radii[offset + 2] = member.cornerRadii.bottomRight
     radii[offset + 3] = member.cornerRadii.bottomLeft
   }
   setFloatUniform("memberRects", rects)
+  setFloatUniform("memberLayoutRects", layoutRects)
   setFloatUniform("memberRadii", radii)
   setFloatUniform("memberSmoothing", field.memberSmoothingPx().copyOf(MAX_GLASS_MERGED_MEMBERS))
   setFloatUniform("memberCount", field.members.size.toFloat())
@@ -304,21 +314,17 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
     setFloatUniform("memberLightIntensities", intensities)
   }
   if (includeOptics) {
-    val layoutSizes = FloatArray(MAX_GLASS_MERGED_MEMBERS * 2)
     val positions = FloatArray(MAX_GLASS_MERGED_MEMBERS * 2)
     val opticalRadii = FloatArray(MAX_GLASS_MERGED_MEMBERS)
     val multipliers = FloatArray(MAX_GLASS_MERGED_MEMBERS) { 1f }
     val whitePointDeltas = FloatArray(MAX_GLASS_MERGED_MEMBERS)
     field.members.forEachIndexed { index, member ->
-      layoutSizes[index * 2] = member.layoutSize.width
-      layoutSizes[index * 2 + 1] = member.layoutSize.height
       positions[index * 2] = member.opticalPosition.x
       positions[index * 2 + 1] = member.opticalPosition.y
       opticalRadii[index] = member.opticalRadius
       multipliers[index] = member.refractionMultiplier
       whitePointDeltas[index] = member.whitePointDelta
     }
-    setFloatUniform("memberLayoutSizes", layoutSizes)
     setFloatUniform("memberStandaloneWeights", field.memberStandaloneWeights().copyOf(MAX_GLASS_MERGED_MEMBERS))
     setFloatUniform("memberOpticalPositions", positions)
     setFloatUniform("memberOpticalRadii", opticalRadii)

@@ -28,6 +28,16 @@ The sampling response that determines how captured content bends through a Glass
 follow the surface profile or use an edge response authored independently of lighting.
 _Avoid_: Blur profile, lighting profile
 
+**Sampled content**:
+The captured pixels a Glass surface reads through its refraction profile. A pressed Glass surface
+samples the same content whether it draws alone or as part of a Glass cluster.
+_Avoid_: Sampled backdrop
+
+**Press transform**:
+The scale and pivot a pressed Glass surface applies to itself. It scales the surface together with
+its sampled content, as if the whole surface were drawn smaller or larger.
+_Avoid_: Press scale, interaction transform
+
 **Regular Glass style**:
 The default built-in Glass style whose blur and depth adapt to the surface's shortest side while its
 refraction response uses authored constants.

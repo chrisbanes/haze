@@ -287,7 +287,8 @@ class MergedGlassFieldShaderTest {
           float sd = shapeSd(p);
           float distance = opticalDistanceFromSignedDistance(p, sd, 0.0);
           float height = surfaceHeightNormFromOpticalDistance(distance);
-          return refractionDisplacement(p, height, max(-sd, 0.0), 1.0, 0.0);
+          vec2 sampleDisplacement;
+          return refractionDisplacement(p, height, max(-sd, 0.0), 1.0, 0.0, sampleDisplacement);
         }
 
         vec4 main(vec2 coord) {
