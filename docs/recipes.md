@@ -2,7 +2,7 @@
 
 ## Scaffold chrome
 
-Place `hazeSource` on the scrolling content and pass the same state to each bar's effect:
+Place [`hazeSource`][hazeSource] on the scrolling content and pass the same state to each bar's effect:
 
 ```kotlin
 val hazeState = rememberHazeState()
@@ -156,3 +156,5 @@ BottomAppBar(
 ```
 
 Styles are immutable, so one Style can be shared by several modifiers.
+
+[hazeSource]: api/haze/dev.chrisbanes.haze/haze-source.html

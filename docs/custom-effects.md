@@ -1,7 +1,7 @@
 # Custom effects
 
 A custom effect is a shareable `HazeEffectFactory<Style>` that creates one renderer for each
-`hazeEffect` modifier.
+[`hazeEffect`][hazeEffect] modifier.
 
 ## Define a complete Style
 
@@ -55,8 +55,8 @@ or the modifier is removed.
 
 ## Draw source-backed input
 
-Use `HazeInput.Sources` when the effect consumes content captured by `hazeSource`. Custom effects
-don't get the native Android window backdrop, so `HazeInput.Backdrop` would only ever draw its
+Use [`HazeInput.Sources`][HazeInput.Sources] when the effect consumes content captured by [`hazeSource`][hazeSource]. Custom effects
+don't get the native Android window backdrop, so [`HazeInput.Backdrop`][HazeInput.Backdrop] would only ever draw its
 source fallback; `Sources` makes that explicit:
 
 ```kotlin
@@ -96,7 +96,7 @@ input = HazeInput.Sources(
 
 ## Draw the modifier's own content
 
-Use `HazeInput.Content` when the effect consumes the composable carrying the modifier:
+Use [`HazeInput.Content`][HazeInput.Content] when the effect consumes the composable carrying the modifier:
 
 ```kotlin
 Box(
@@ -114,14 +114,14 @@ The renderer uses the same `drawInput()` operation for both input modes.
 
 ## Renderer scopes
 
-`HazeEffectDrawScope` is a `DrawScope` with:
+[`HazeEffectDrawScope`][HazeEffectDrawScope] is a `DrawScope` with:
 
 - `modifierBounds`, expressed in the current effect layer
-- `sampling`, the `HazeSampling` policy passed to the modifier
+- `sampling`, the [`HazeSampling`][HazeSampling] policy passed to the modifier
 - `drawInput()` for the selected input
 - `currentValueOf` for composition locals
 
-`HazeEffectLayoutScope` is a `Density` with `modifierBounds` and `currentValueOf`. Return the
+[`HazeEffectLayoutScope`][HazeEffectLayoutScope] is a `Density` with `modifierBounds` and `currentValueOf`. Return the
 bounds the effect needs in the same coordinate space. Setting `expandLayerBounds = false` on the
 modifier ignores any expansion the renderer requests.
 
@@ -141,7 +141,7 @@ while calculating bounds recalculate the bounds, then redraw.
 
 - On Android and iOS, Haze forwards the platform's memory-pressure notifications. Android 14 and
   later only send `TRIM_MEMORY_UI_HIDDEN` and `TRIM_MEMORY_BACKGROUND`, so Haze reports
-  `TRIM_MEMORY_BACKGROUND` as `TrimMemoryLevel.MODERATE` there.
+  `TRIM_MEMORY_BACKGROUND` as [`TrimMemoryLevel.MODERATE`][TrimMemoryLevel.MODERATE] there.
 - On Desktop, macOS, and Web, an effect receives `TrimMemoryLevel.MODERATE` when its lifecycle reaches
   `ON_STOP`.
 
@@ -152,3 +152,13 @@ Discard only resources you can rebuild; the next draw that needs them must recre
 See
 [`CustomVisualEffectSample.kt`](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/CustomVisualEffectSample.kt)
 for a complete typed example.
+
+[hazeEffect]: api/haze/dev.chrisbanes.haze/haze-effect.html
+[HazeEffectDrawScope]: api/haze/dev.chrisbanes.haze/-haze-effect-draw-scope/index.html
+[HazeEffectLayoutScope]: api/haze/dev.chrisbanes.haze/-haze-effect-layout-scope/index.html
+[HazeInput.Backdrop]: api/haze/dev.chrisbanes.haze/-haze-input/-backdrop/index.html
+[HazeInput.Content]: api/haze/dev.chrisbanes.haze/-haze-input/-content/index.html
+[HazeInput.Sources]: api/haze/dev.chrisbanes.haze/-haze-input/-sources/index.html
+[HazeSampling]: api/haze/dev.chrisbanes.haze/-haze-sampling/index.html
+[hazeSource]: api/haze/dev.chrisbanes.haze/haze-source.html
+[TrimMemoryLevel.MODERATE]: api/haze/dev.chrisbanes.haze/-trim-memory-level/-m-o-d-e-r-a-t-e/index.html
