@@ -1361,6 +1361,22 @@
 <p>A Glass container draws its Glass members' surfaces together, so that nearby members merge into
 one shape. Use it for controls that should read as one object, such as a toolbar or a segmented
 control, and for surfaces that appear next to an existing one and should grow out of it.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked id="__tabbed_1_1" name="__tabbed_1" type="radio"><input id="__tabbed_1_2" name="__tabbed_1" type="radio"><div class="tabbed-labels"><label for="__tabbed_1_1">Video</label><label for="__tabbed_1_2">Interactive demo</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p><div class="video-container"><video style="width:100%;height:auto" loop muted autoplay alt="type:video" aria-label="Glass drawing palette expanding, separating and merging" playsinline="playsinline"><source src="../../../media/glass-container.mp4" type="video/mp4"></source></video></div></p>
+</div>
+<div class="tabbed-block">
+<p><iframe data-haze-sample-src="../../../sample/wasm/index.html?embed=true&amp;sample=glass-container-showcase&amp;effect=glass&amp;theme=light" title="Interactive Glass drawing palette" style="width:100%;height:560px;border:0"></iframe></p>
+<p>Open Brush to reveal the controls, then drag the colour control away and release it to rejoin.
+Use the speed button to switch between normal and half speed.
+Switching back to Video resets the demo.
+<a href="../../../sample/wasm/?embed=true&amp;sample=glass-container-showcase&amp;effect=glass&amp;theme=light">Open the sample on its own</a>.</p>
+</div>
+</div>
+</div>
+<p>The brush palette expands into connected stroke and colour controls. The colour control separates
+and rejoins before the palette collapses.</p>
 <p>This page assumes you are familiar with <a href="../">Glass</a> styles, inputs and interaction.</p>
 <h2 id="container-and-members">Container and members<a class="headerlink" href="#container-and-members" title="Permanent link">¶</a></h2>
 <div class="highlight"><pre><span></span><code><span class="c1">// Styles compare by identity, so remember the style.</span>
@@ -1386,9 +1402,10 @@ pass <code>transitionSpec</code> and <code>reducedMotionPolicy</code>, which are
 keeps its own style, shape, colors and interaction response. A <code>hazeGlass</code> modifier outside a
 container is unchanged.</p>
 <h2 id="merge-rule">Merge rule<a class="headerlink" href="#merge-rule" title="Permanent link">¶</a></h2>
-<p>Members join a cluster when the gap between them is less than half of the spacing. The container
-draws each cluster as one surface, with smooth bridges between the members. A member that joins no
-cluster draws as a separate surface.</p>
+<p>Members join a cluster when the gap between them is less than the spacing. The container draws
+each cluster as one surface: facing edges gradually stretch towards each other, and a bridge forms
+when the gap drops below half the spacing. A member that joins no cluster draws as a separate
+surface.</p>
 <p>Members merge only when all of these hold:</p>
 <ul>
 <li><strong>Same input and rendering options.</strong> Equal <code>input</code> (for <code>HazeInput.Sources</code>, the same
@@ -1510,10 +1527,10 @@ fallback rendering omits.</p>
 control, a member added and removed with <code>AnimatedVisibility</code>, and a cluster of members with
 different tints. Its source is in
 <a href="https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerSample.kt"><code>GlassContainerSample.kt</code></a>.</p>
-<p>The <code>Glass — Container Showcase</code> sample puts a container in a photo library. Its floating bar
-merges a tab pill with a Search button, which you can drag away until it separates. In selection
-mode, Search retracts into the pill and the Share, Favorite and Delete actions grow out of it. The
-sample plays this as a loop until you interact with it. Its source is in
+<p>The <code>Glass — Container Showcase</code> sample places a drawing palette over two brushstrokes. Open
+Brush to reveal stroke-width and colour controls, then drag the colour control away to separate it
+from the palette. Releasing it rejoins the controls, and closing Brush retracts them. The sample
+plays these transitions as a loop until you interact with it. Its source is in
 <a href="https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerShowcaseSample.kt"><code>GlassContainerShowcaseSample.kt</code></a>.</p></div>
 
 
@@ -1572,6 +1589,8 @@ sample plays this as a loop until you interact with it. Its source is in
       <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../../javascripts/snapshot-version.js"></script>
+      
+        <script src="../../../javascripts/sample-tabs.js"></script>
       
     
   </body>
