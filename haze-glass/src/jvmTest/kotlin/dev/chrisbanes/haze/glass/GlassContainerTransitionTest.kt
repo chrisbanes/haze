@@ -925,6 +925,35 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun detachFromPressedMember_ghostSamplesThroughItsPressTransform() {
+    for (transition in listOf(GlassMemberTransition.MatchedGeometry, GlassMemberTransition.Materialize)) {
+      runComposeUiTest {
+        // MatchedGeometry needs a neighbour within the spacing to retract; Materialize fades in place.
+        val retracts = transition == GlassMemberTransition.MatchedGeometry
+        val fixture = fixture(gap = if (retracts) 10 else 100, transition = transition, bPivot = GlassTransformPivot.Pointer)
+        fixture.pressB(Offset(20f, 15f))
+        val pressed = fixture.b()
+        assertThat(pressed.rect, "$transition").isNotEqualTo(pressed.layoutRect)
+        fixture.removeB()
+        val ghost = fixture.b().identity as GlassMemberGhost
+        assertThat(ghost.neighbour != null, "$transition").isEqualTo(retracts)
+        assertThat(fixture.b().sampleLayoutRect, "$transition").isCloseTo(pressed.layoutRect, 0.1f)
+        fixture.capture()
+        // Only the ghost samples off its drawn rect; the field origin cancels out of its press mapping.
+        val member = checkNotNull(fixture.owner().renderer.runtimeSurfaces.single().mergedField).members.single { it.layoutRect != it.rect }
+        assertThat(member.layoutRect.translate(-member.rect.topLeft), "$transition")
+          .isCloseTo(pressed.layoutRect.translate(-pressed.rect.topLeft), 0.1f)
+        fixture.advance(80)
+        // Retracting blends towards the neighbour's mapping; fading keeps its own.
+        val expected = if (retracts) lerp(fixture.a().sampleLayoutRect, pressed.layoutRect, ghost.progress.value) else pressed.layoutRect
+        assertThat(fixture.b().sampleLayoutRect, "$transition").isCloseTo(expected, 0.1f)
+        if (retracts) assertThat(ghost.progress.value, "$transition").isLessThan(1f)
+        fixture.settle()
+      }
+    }
+  }
+
+  @Test
   fun materialize_detachFromCollapsedDrawnRect_skipsInvalidGhost() = runComposeUiTest {
     val fixture = fixture(transition = GlassMemberTransition.Materialize, bPivot = GlassTransformPivot.Center)
     val bNode = fixture.b().identity
