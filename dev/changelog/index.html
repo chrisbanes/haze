@@ -7670,6 +7670,9 @@ performance guidance.</p>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
+<li>A pressed Glass container member now samples the same content as it would drawn alone, so its
+  content no longer shifts when it joins or leaves a cluster
+  (<a href="https://github.com/chrisbanes/haze/pull/1607">#1607</a>).</li>
 <li>Fallback Glass surfaces with a <code>backgroundColor</code> no longer draw their backdrop offset by the
   layer padding (<a href="https://github.com/chrisbanes/haze/pull/1526">#1526</a>).</li>
 <li>Glass containers now keep members across reactivated reusable content

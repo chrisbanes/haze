@@ -1442,10 +1442,6 @@ never changes a member's z-order.</p>
 <p>Interaction responses work as described in <a href="../#interaction">Glass interaction</a>, applied to
 the member's own part of the merged shape: pressing a member scales and lights only that part. A
 uniform pressed <code>scale</code> does not split the cluster.</p>
-<p>With <code>HazeInput.Sources</code>, a scaled member can still change its sampled backdrop when it joins or
-leaves a cluster. Standalone Glass scales the completed backdrop image, while a merged surface
-keeps backdrop sampling anchored and scales the member's shape. The optical-profile blend does
-not remove this existing sampling difference; it is tracked in <a href="https://github.com/chrisbanes/haze/issues/1605">#1605</a>.</p>
 <h2 id="transitions">Transitions<a class="headerlink" href="#transitions" title="Permanent link">¶</a></h2>
 <p>A member that attaches or detaches after the container's first draw animates its glass. Choose
 the transition with <code>hazeGlass(memberTransition = ...)</code>:</p>
