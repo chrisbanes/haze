@@ -1371,9 +1371,9 @@ factory, or removing the modifier, disposes it.</p>
   drawn earlier in the current window, and its <code>fallback</code> configures the source capture used
   when the native backdrop isn't available. It can't select individual sources, include later
   drawing, or cross a window boundary.</li>
-<li><code>HazeInput.Sources</code> consumes content captured by <code>hazeSource</code>, with explicit selection and
+<li><a href="../api/haze/dev.chrisbanes.haze/-haze-input/-sources/"><code>HazeInput.Sources</code></a> consumes content captured by <a href="../api/haze/dev.chrisbanes.haze/haze-source.html"><code>hazeSource</code></a>, with explicit selection and
   retention.</li>
-<li><code>HazeInput.Content</code> consumes the modifier's own content.</li>
+<li><a href="../api/haze/dev.chrisbanes.haze/-haze-input/-content/"><code>HazeInput.Content</code></a> consumes the modifier's own content.</li>
 </ul>
 <p>See <a href="../core-concepts/#explicit-inputs">Core concepts</a> for how to choose.</p>
 <h2 id="renderer-scopes">Renderer scopes<a class="headerlink" href="#renderer-scopes" title="Permanent link">¶</a></h2>
@@ -1390,26 +1390,26 @@ request larger layer bounds.</p>
 <p>Source geometry, windows, and captured layers aren't exposed to renderers; Haze handles source
 selection, ordering, and cross-window alignment for you.</p>
 <h2 id="built-in-blur">Built-in Blur<a class="headerlink" href="#built-in-blur" title="Permanent link">¶</a></h2>
-<p><code>hazeBlur</code> takes a <code>HazeBlurStyle</code>, resolved from <code>HazeBlurDefaults.style</code>, <code>LocalHazeBlurStyle</code>, and
+<p><a href="../api/haze-blur/dev.chrisbanes.haze.blur/haze-blur.html"><code>hazeBlur</code></a> takes a <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/"><code>HazeBlurStyle</code></a>, resolved from <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-defaults/style.html"><code>HazeBlurDefaults.style</code></a>, <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html"><code>LocalHazeBlurStyle</code></a>, and
 the explicit Style, in that order. Snapshot state read inside a Style block is observed: when it
 changes, Blur resolves the Style again and redraws without recomposition. Styles and the Blur
 factory can be shared; each modifier owns its resolved values and renderer.</p>
 <h2 id="built-in-glass">Built-in Glass<a class="headerlink" href="#built-in-glass" title="Permanent link">¶</a></h2>
-<p><code>hazeGlass</code> takes a <code>GlassStyle</code>, resolved from defaults, <code>LocalGlassStyle</code>, and the explicit Style.
+<p><a href="../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass.html"><code>hazeGlass</code></a> takes a <a href="../api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/"><code>GlassStyle</code></a>, resolved from defaults, <a href="../api/haze-glass/dev.chrisbanes.haze.glass/-local-glass-style.html"><code>LocalGlassStyle</code></a>, and the explicit Style.
 Snapshot state read inside a Style block is observed: when it changes, Glass resolves the Style
 again and redraws without recomposition. Glass renderers are never shared between modifiers.</p>
 <h2 id="modules">Modules<a class="headerlink" href="#modules" title="Permanent link">¶</a></h2>
 <ul>
 <li><strong>haze</strong>: core state, source capture, and the custom-effect API</li>
 <li><strong>haze-blur</strong>: Blur effect</li>
-<li><strong>haze-blur-materials</strong>: ready-made Blur Styles, such as <code>HazeMaterials.thin()</code></li>
+<li><strong>haze-blur-materials</strong>: ready-made Blur Styles, such as <a href="../api/haze-materials/dev.chrisbanes.haze.blur.materials/-haze-materials/thin.html"><code>HazeMaterials.thin()</code></a></li>
 <li><strong>haze-blur-material3</strong>: optional Compose Material 3 Blur Style factory</li>
 <li><strong>haze-glass</strong>: Glass effect</li>
 <li><strong>haze-glass-material3</strong>: optional Compose Material 3 Glass Style factory</li>
 <li><strong>haze-utils</strong>: shared internal utilities, included transitively; you don't add it yourself</li>
 </ul>
 <h2 id="extension-points">Extension points<a class="headerlink" href="#extension-points" title="Permanent link">¶</a></h2>
-<p>Use <code>hazeBlur</code> for Blur, <code>hazeGlass</code> for Glass, and <code>HazeEffectFactory</code> with <code>hazeEffect</code> for
+<p>Use <code>hazeBlur</code> for Blur, <code>hazeGlass</code> for Glass, and <a href="../api/haze/dev.chrisbanes.haze/-haze-effect-factory/"><code>HazeEffectFactory</code></a> with <a href="../api/haze/dev.chrisbanes.haze/haze-effect.html"><code>hazeEffect</code></a> for
 custom effects. The older lambda-based effect API, <code>VisualEffect</code>, and the <code>glassEffect</code> DSL have
 been removed. See <a href="../custom-effects/">Custom effects</a>.</p>
 <h2 id="design-decisions">Design decisions<a class="headerlink" href="#design-decisions" title="Permanent link">¶</a></h2>

@@ -1459,7 +1459,7 @@
 <p>Every Haze effect declares what it consumes (its input), how it looks (its Style), and a few
 structural policies such as performance mode and layer expansion.</p>
 <h2 id="sources">Sources<a class="headerlink" href="#sources" title="Permanent link">¶</a></h2>
-<p><code>HazeState</code> connects one or more <code>hazeSource</code> modifiers to source-backed effects:</p>
+<p><a href="../api/haze/dev.chrisbanes.haze/-haze-state/"><code>HazeState</code></a> connects one or more <a href="../api/haze/dev.chrisbanes.haze/haze-source.html"><code>hazeSource</code></a> modifiers to source-backed effects:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 
 <span class="n">LazyColumn</span><span class="p">(</span>
@@ -1468,9 +1468,9 @@ structural policies such as performance mode and layer expansion.</p>
 <span class="w">  </span><span class="c1">// Content</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Sources can have a <code>zIndex</code> and metadata <code>key</code>. <code>HazeSourceSelection.Behind</code> is the default. With
+<p>Sources can have a <code>zIndex</code> and metadata <code>key</code>. <a href="../api/haze/dev.chrisbanes.haze/-haze-source-selection/-behind/"><code>HazeSourceSelection.Behind</code></a> is the default. With
 a nearest ancestor <code>hazeSource</code> using the same state, it selects lower-z sources; without one, it
-selects every source. <code>HazeSourceSelection.All</code> bypasses the ancestor relationship.</p>
+selects every source. <a href="../api/haze/dev.chrisbanes.haze/-haze-source-selection/-all/"><code>HazeSourceSelection.All</code></a> bypasses the ancestor relationship.</p>
 <p>Refine either selection with <code>where</code>. The predicate receives each source's <code>key</code> and <code>zIndex</code>.
 Repeated refinements combine with logical AND:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">selection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceSelection</span><span class="p">.</span><span class="na">Behind</span>
@@ -1500,7 +1500,7 @@ Repeated refinements combine with logical AND:</p>
 </tr>
 <tr>
 <td>The modifier's own content</td>
-<td><code>HazeInput.Content</code></td>
+<td><a href="../api/haze/dev.chrisbanes.haze/-haze-input/-content/"><code>HazeInput.Content</code></a></td>
 <td>Foreground or own-content effects.</td>
 </tr>
 </tbody>
@@ -1516,7 +1516,7 @@ configures only the source fallback; it doesn't select or filter native window p
 <span class="w">  </span><span class="p">),</span>
 <span class="p">)</span>
 </code></pre></div>
-<p><code>HazeInput.Sources</code> also takes a <code>retention</code> policy:</p>
+<p><a href="../api/haze/dev.chrisbanes.haze/-haze-input/-sources/"><code>HazeInput.Sources</code></a> also takes a <code>retention</code> policy:</p>
 <ul>
 <li><code>KeepLastFrame</code> (the default) keeps drawing the last output through temporary source gaps. It
   isn't a frozen copy: on Android, retained Glass output can redraw from live or changed source
@@ -1525,7 +1525,7 @@ configures only the source fallback; it doesn't select or filter native window p
   stale or deselected content must not stay visible.</li>
 </ul>
 <h3 id="android-window-backdrops">Android window backdrops<a class="headerlink" href="#android-window-backdrops" title="Permanent link">¶</a></h3>
-<p><code>HazeInput.Backdrop</code> works on every platform. On Android it can also use a native window
+<p><a href="../api/haze/dev.chrisbanes.haze/-haze-input/-backdrop/"><code>HazeInput.Backdrop</code></a> works on every platform. On Android it can also use a native window
 backdrop, which is eligible only when the experimental flag is enabled, the built-in effect
 supports it, and the modifier is attached to a hardware-accelerated window on Android 37.2 or
 later. The native path filters the combined pixels already drawn earlier in the same window. It
@@ -1564,8 +1564,8 @@ a retention policy that applies to the actual input rather than only the fallbac
 <span class="p">)</span>
 </code></pre></div>
 <p>Use <code>HazeInput.Content</code> for own-content Blur. Input, performance mode, and layer expansion are
-modifier arguments, not part of <code>HazeBlurStyle</code>.</p>
-<p>A <code>HazeBlurStyle</code> is a block of settings, and <code>then</code> appends more:</p>
+modifier arguments, not part of <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/"><code>HazeBlurStyle</code></a>.</p>
+<p>A <code>HazeBlurStyle</code> is a block of settings, and <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/then.html"><code>then</code></a> appends more:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">blurRadius</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">)</span>
 <span class="w">  </span><span class="n">colorEffects</span><span class="p">(</span>
@@ -1575,7 +1575,7 @@ modifier arguments, not part of <code>HazeBlurStyle</code>.</p>
 <span class="w">  </span><span class="n">noiseFactor</span><span class="p">(</span><span class="m">0f</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Haze applies <code>HazeBlurDefaults.style</code>, then <code>LocalHazeBlurStyle</code>, then the explicit Style, and the
+<p>Haze applies <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-defaults/style.html"><code>HazeBlurDefaults.style</code></a>, then <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html"><code>LocalHazeBlurStyle</code></a>, then the explicit Style, and the
 last write wins. Styles hold no rendering state, so you can share them between modifiers. Two
 Styles with the same writes in the same order are equal, so recreating an identical Style during
 recomposition doesn't update the effect; pass a new Style when a value changes.</p>
@@ -1599,7 +1599,7 @@ recomposition doesn't update the effect; pass a new Style when a value changes.<
 <p>A new Style updates the existing renderer. Replacing the factory, or removing the modifier,
 calls <code>dispose</code> once. See <a href="../custom-effects/">Custom effects</a> for the full API.</p>
 <h2 id="built-in-performance-mode">Built-in performance mode<a class="headerlink" href="#built-in-performance-mode" title="Permanent link">¶</a></h2>
-<p><code>HazePerformanceMode</code> lets you choose the quality and performance trade-off for built-in Blur and
+<p><a href="../api/haze/dev.chrisbanes.haze/-haze-performance-mode/"><code>HazePerformanceMode</code></a> lets you choose the quality and performance trade-off for built-in Blur and
 Glass:</p>
 <ul>
 <li><code>Default</code> selects the fixed <code>Balanced</code> profile. <code>Adaptive</code> is deprecated and behaves the same as <code>Default</code>.</li>
@@ -1608,14 +1608,14 @@ Glass:</p>
 <li><code>Fixed(qualityFraction)</code> lets you choose a level from <code>0f</code> (lowest supported quality) to <code>1f</code>
   (highest supported quality).</li>
 </ul>
-<p>Pass <code>performanceMode</code> to one effect, or provide <code>LocalHazePerformanceMode</code> to set it for a
+<p>Pass <code>performanceMode</code> to one effect, or provide <a href="../api/haze/dev.chrisbanes.haze/-local-haze-performance-mode.html"><code>LocalHazePerformanceMode</code></a> to set it for a
 subtree; an explicit argument wins.</p>
 <p>Start with the default. If the effect looks too pixelated, try a higher fixed quality level and
 check that scrolling and animations remain smooth on the devices you support. See the
 <a href="../performance/">performance guide</a> for more guidance and the <a href="../migrating-2.0/">migration guide</a>
 for replacing older sampling settings.</p>
 <h2 id="generic-sampling">Generic sampling<a class="headerlink" href="#generic-sampling" title="Permanent link">¶</a></h2>
-<p>Custom effects use <code>HazeSampling</code> instead of <code>HazePerformanceMode</code>. Its <code>Default</code> (currently
+<p>Custom effects use <a href="../api/haze/dev.chrisbanes.haze/-haze-sampling/"><code>HazeSampling</code></a> instead of <code>HazePerformanceMode</code>. Its <code>Default</code> (currently
 <code>Adaptive</code>), <code>Adaptive</code>, <code>FullResolution</code>, and <code>Fixed(pixelFraction)</code> policies control the
 fraction of full-resolution input pixels the effect receives.</p>
 <h2 id="layer-bounds">Layer bounds<a class="headerlink" href="#layer-bounds" title="Permanent link">¶</a></h2>

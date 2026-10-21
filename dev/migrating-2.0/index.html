@@ -1536,7 +1536,7 @@
 <div><h1 id="migrating-to-haze-20">Migrating to Haze 2.0<a class="headerlink" href="#migrating-to-haze-20" title="Permanent link">¶</a></h1>
 <p>Haze 2.0 separates what an effect reads (its input), how it looks (an immutable, shareable Style),
 and per-modifier settings such as performance mode. The preferred Blur API is now the typed
-<code>Modifier.hazeBlur</code>.</p>
+<a href="../api/haze-blur/dev.chrisbanes.haze.blur/haze-blur.html"><code>Modifier.hazeBlur</code></a>.</p>
 <h2 id="dependencies-and-imports">Dependencies and imports<a class="headerlink" href="#dependencies-and-imports" title="Permanent link">¶</a></h2>
 <p>Blur lives in <code>haze-blur</code>, with optional presets in <code>haze-blur-materials</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
@@ -1551,7 +1551,7 @@ and per-modifier settings such as performance mode. The preferred Blur API is no
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeColorEffect</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.hazeBlur</span>
 </code></pre></div>
-<p><code>HazeProgressive</code> remains in the core <code>dev.chrisbanes.haze</code> package.</p>
+<p><a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/"><code>HazeProgressive</code></a> remains in the core <code>dev.chrisbanes.haze</code> package.</p>
 <h2 id="migrate-source-backed-blur">Migrate source-backed Blur<a class="headerlink" href="#migrate-source-backed-blur" title="Permanent link">¶</a></h2>
 <p>Before:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -1572,9 +1572,9 @@ and per-modifier settings such as performance mode. The preferred Blur API is no
 <span class="w">  </span><span class="p">},</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>Use <code>HazeInput.Content</code> for foreground or own-content Blur.</p>
+<p>Use <a href="../api/haze/dev.chrisbanes.haze/-haze-input/-content/"><code>HazeInput.Content</code></a> for foreground or own-content Blur.</p>
 <h2 id="migrate-styles">Migrate Styles<a class="headerlink" href="#migrate-styles" title="Permanent link">¶</a></h2>
-<p><code>HazeBlurStyle</code> is no longer a readable value patch with <code>copy</code>. It is a block of Blur-specific writes:</p>
+<p><a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/"><code>HazeBlurStyle</code></a> is no longer a readable value patch with <code>copy</code>. It is a block of Blur-specific writes:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">base</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">blurRadius</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">)</span>
 <span class="w">  </span><span class="n">noiseFactor</span><span class="p">(</span><span class="m">0.15f</span><span class="p">)</span>
@@ -1584,12 +1584,12 @@ and per-modifier settings such as performance mode. The preferred Blur API is no
 <span class="w">  </span><span class="n">blurRadius</span><span class="p">(</span><span class="m">12.</span><span class="n">dp</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Resolution is defaults, then <code>LocalHazeBlurStyle</code>, then the explicit modifier Style. The last write
+<p>Resolution is defaults, then <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html"><code>LocalHazeBlurStyle</code></a>, then the explicit modifier Style. The last write
 wins. Replacing <code>compact</code> with <code>base</code> removes the 12 dp write immediately; no previous resolved
 value is retained.</p>
 <p>The block runs each time a node resolves its style, and it may read snapshot state, such as an
 animated value. Each node observes those reads and applies a change on the next frame without
-recomposing the <code>hazeBlur</code> call site. Styles you build compare by identity (the built-in presets
+recomposing the <a href="../api/haze-blur/dev.chrisbanes.haze.blur/haze-blur.html"><code>hazeBlur</code></a> call site. Styles you build compare by identity (the built-in presets
 compare by value), so <code>remember</code> or hoist a Style: constructing a new Style in each composition
 replaces it on every node.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">radius</span><span class="w"> </span><span class="k">by</span><span class="w"> </span><span class="n">animateDpAsState</span><span class="p">(</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">expanded</span><span class="p">)</span><span class="w"> </span><span class="m">24.</span><span class="n">dp</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="m">0.</span><span class="n">dp</span><span class="p">)</span>
@@ -1608,7 +1608,7 @@ former <code>HazeTint</code> constructors and <code>HazeTint.Unspecified</code> 
 <code>Color.Unspecified</code>. Write <code>fallbackColorEffect(null)</code> to clear an inherited fallback effect.</p>
 <p><code>HazeDefaults.tintAlpha</code> and <code>HazeDefaults.tint(...)</code> are removed; write the tint you want into the
 Style. To check whether Blur is enabled by default on the current platform, call
-<code>HazeBlurDefaults.isBlurEnabledByDefault()</code>.</p>
+<a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-defaults/is-blur-enabled-by-default.html"><code>HazeBlurDefaults.isBlurEnabledByDefault()</code></a>.</p>
 <h2 id="migrate-material-presets">Migrate material presets<a class="headerlink" href="#migrate-material-presets" title="Permanent link">¶</a></h2>
 <p>Before:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -1623,10 +1623,10 @@ Style. To check whether Blur is enabled by default on the current platform, call
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">(),</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>Customize a preset with <code>then</code>, not <code>copy</code>.</p>
+<p>Customize a preset with <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/then.html"><code>then</code></a>, not <code>copy</code>.</p>
 <h2 id="migrate-input-and-rendering-policy">Migrate input and rendering policy<a class="headerlink" href="#migrate-input-and-rendering-policy" title="Permanent link">¶</a></h2>
 <p>For ordinary built-in Blur and Glass, use the current-window Backdrop input. Keep
-<code>HazeInput.Sources</code> when the effect needs exact source selection, cross-window alignment, or a
+<a href="../api/haze/dev.chrisbanes.haze/-haze-input/-sources/"><code>HazeInput.Sources</code></a> when the effect needs exact source selection, cross-window alignment, or a
 specific retained-output policy that governs the actual input:</p>
 <table>
 <thead>
@@ -1646,7 +1646,7 @@ specific retained-output policy that governs the actual input:</p>
 </tr>
 <tr>
 <td>Modifier's own content</td>
-<td><code>HazeInput.Content</code></td>
+<td><a href="../api/haze/dev.chrisbanes.haze/-haze-input/-content/"><code>HazeInput.Content</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -1679,31 +1679,31 @@ composed afterwards. Unsupported platforms and effects, software rendering, and 
 use the source fallback for as long as the effect stays composed. Set <code>HazeLogger.enabled = true</code>
 to log which path was chosen. Native Backdrop has not shown a CPU benefit for Glass in Haze's
 benchmarks; see the <a href="../performance/#backdrop-input">performance guide</a> before enabling it.</p>
-<p><code>HazePerformanceMode.Default</code> selects the fixed <code>Balanced</code> profile for built-in Blur and Glass.
+<p><a href="../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-default.html"><code>HazePerformanceMode.Default</code></a> selects the fixed <code>Balanced</code> profile for built-in Blur and Glass.
 <code>Adaptive</code> remains deprecated for binary compatibility and behaves the same as <code>Default</code>; replace
 it with <code>Default</code>. Use <code>Quality</code> or <code>Performance</code> for their named profiles, or
 <code>Fixed(qualityFraction)</code> for an explicit quality level from <code>0f</code> (lowest) to <code>1f</code> (highest).
 <code>Quality</code> replaces the previous built-in full-resolution choice. Previous fixed input-pixel
 fractions are not equivalent to the same <code>qualityFraction</code> value; compare appearance and
 performance before choosing a replacement.
-<code>HazeSampling</code> remains the generic policy used by custom effects.</p>
+<a href="../api/haze/dev.chrisbanes.haze/-haze-sampling/"><code>HazeSampling</code></a> remains the generic policy used by custom effects.</p>
 <h2 id="lifecycle-and-sharing">Lifecycle and sharing<a class="headerlink" href="#lifecycle-and-sharing" title="Permanent link">¶</a></h2>
 <p>Styles are safe to share across nodes; each node observes the snapshot state the Style block reads
 and updates itself. Change appearance by writing that state (no recomposition is needed), or supply
 a replacement Style through recomposition. A plain captured value or a mutated list does not
 schedule an update, so give a remembered Style keys or use <code>rememberUpdatedState</code> for non-state
-inputs that change. The built-in presets such as <code>HazeMaterials.regular()</code> compare by value: the same
+inputs that change. The built-in presets such as <a href="../api/haze-materials/dev.chrisbanes.haze.blur.materials/-haze-materials/regular.html"><code>HazeMaterials.regular()</code></a> compare by value: the same
 inputs yield an equal Style.</p>
 <h2 id="other-haze-2-migrations">Other Haze 2 migrations<a class="headerlink" href="#other-haze-2-migrations" title="Permanent link">¶</a></h2>
 <p>The typed Blur API does not change the other Haze 2 migrations.</p>
 <h3 id="glass-migration">Glass migration<a class="headerlink" href="#glass-migration" title="Permanent link">¶</a></h3>
-<p>Glass also has a typed modifier and an immutable <code>GlassStyle</code>. Replace the Style through
+<p>Glass also has a typed modifier and an immutable <a href="../api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/"><code>GlassStyle</code></a>. Replace the Style through
 recomposition instead of mutating an effect or using sentinel patches, <code>copy</code>, or <code>clear*</code> calls.
-Use <code>then</code> to build variations from a shared base Style.</p>
+Use <a href="../api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/then.html"><code>then</code></a> to build variations from a shared base Style.</p>
 <p>Keep one final <code>GlassStyle</code> for all platforms. Remove renderer-capability checks, platform-specific
 Style variants, and secondary fallback Styles. Haze selects the available implementation and
 gracefully simplifies unsupported optics.</p>
-<p>Invalid Glass values now fail instead of being corrected later: a <code>GlassOptics</code> value when it is
+<p>Invalid Glass values now fail instead of being corrected later: a <a href="../api/haze-glass/dev.chrisbanes.haze.glass/-glass-optics/"><code>GlassOptics</code></a> value when it is
 created, and a <code>GlassStyle</code> write when the Style is applied to an effect. Only animatable
 overshoot is coerced: alpha and tint alpha are clamped into <code>0f..1f</code>, and negative corner radii are
 treated as zero. Validate or clamp other external values before writing them in the Style. See the
@@ -1722,7 +1722,7 @@ generated API reference for property-specific ranges.</p>
 </tr>
 <tr>
 <td><code>GlassVisualEffect</code></td>
-<td><code>GlassStyle</code> plus <code>Modifier.hazeGlass</code></td>
+<td><code>GlassStyle</code> plus <a href="../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass.html"><code>Modifier.hazeGlass</code></a></td>
 </tr>
 <tr>
 <td><code>GlassLighting</code>, <code>GlassColor</code>, <code>GlassRendering</code></td>
@@ -1738,7 +1738,7 @@ generated API reference for property-specific ranges.</p>
 </tr>
 <tr>
 <td>sentinel patches and <code>copy</code></td>
-<td><code>GlassStyle { … }</code>, <code>then</code>, and <code>LocalGlassStyle</code></td>
+<td><code>GlassStyle { … }</code>, <code>then</code>, and <a href="../api/haze-glass/dev.chrisbanes.haze.glass/-local-glass-style.html"><code>LocalGlassStyle</code></a></td>
 </tr>
 <tr>
 <td>interaction mutation and <code>clear*</code></td>
@@ -1757,7 +1757,7 @@ generated API reference for property-specific ranges.</p>
 <td>explicit <code>animate(toSpec, fromSpec) { … }</code> declarations</td>
 </tr>
 <tr>
-<td>consumer implementation of <code>GlassInteractionScope</code></td>
+<td>consumer implementation of <a href="../api/haze-glass/dev.chrisbanes.haze.glass/-glass-interaction-scope/"><code>GlassInteractionScope</code></a></td>
 <td>removed; it is now a sealed declaration DSL implemented by Haze</td>
 </tr>
 <tr>
@@ -1774,15 +1774,15 @@ generated API reference for property-specific ranges.</p>
 </tr>
 <tr>
 <td>implicit source/content</td>
-<td>explicit <code>HazeInput.Backdrop</code>, <code>HazeInput.Sources</code>, or <code>HazeInput.Content</code></td>
+<td>explicit <a href="../api/haze/dev.chrisbanes.haze/-haze-input/-backdrop/"><code>HazeInput.Backdrop</code></a>, <a href="../api/haze/dev.chrisbanes.haze/-haze-input/-sources/"><code>HazeInput.Sources</code></a>, or <a href="../api/haze/dev.chrisbanes.haze/-haze-input/-content/"><code>HazeInput.Content</code></a></td>
 </tr>
 <tr>
 <td><code>GlassOptics.Absolute</code> and <code>GlassOptics.Fixed</code></td>
-<td><code>GlassOptics</code> with fixed <code>OpticalSizeValue</code> values; this is an intentional source break with no alias or compatibility bridge</td>
+<td><code>GlassOptics</code> with fixed <a href="../api/haze-glass/dev.chrisbanes.haze.glass/-optical-size-value/"><code>OpticalSizeValue</code></a> values; this is an intentional source break with no alias or compatibility bridge</td>
 </tr>
 <tr>
 <td><code>GlassOptics.Adaptive</code> used as a complete Style</td>
-<td><code>GlassStyle.regular</code></td>
+<td><a href="../api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/-companion/regular.html"><code>GlassStyle.regular</code></a></td>
 </tr>
 <tr>
 <td><code>GlassOptics.Adaptive</code> supplied through <code>optics(...)</code></td>
@@ -1797,10 +1797,10 @@ generated API reference for property-specific ranges.</p>
 <p>Pass a <code>GlassOptics</code> to <code>optics(value)</code>. To change part of the built-in model, use
 <code>optics(GlassOptics.regular.copy(...))</code>, or <code>optics { copy(...) }</code> to adjust the optics accumulated
 so far. Keep a <code>GlassOptics</code> value when
-the configuration needs to be reused or selected programmatically. Use <code>OpticalSizeValue.Responsive</code> for
+the configuration needs to be reused or selected programmatically. Use <a href="../api/haze-glass/dev.chrisbanes.haze.glass/-optical-size-value/-responsive/"><code>OpticalSizeValue.Responsive</code></a> for
 shortest-dimension-dependent blur or depth.</p>
 <p><code>GlassOptics()</code> creates fixed optics and is not a replacement for <code>GlassOptics.Adaptive</code>. Use
-<code>GlassStyle.regular</code> when selecting the complete built-in Style, or <code>GlassOptics.regular</code> when only
+<code>GlassStyle.regular</code> when selecting the complete built-in Style, or <a href="../api/haze-glass/dev.chrisbanes.haze.glass/-glass-optics/-companion/regular.html"><code>GlassOptics.regular</code></a> when only
 the optics value needs to be supplied or copied.</p>
 <p>Glass light position is now an intentional source break from pixel <code>Offset</code> to semantic
 <code>Alignment</code>, with no compatibility overload. Use <code>Alignment.Center</code> (or omit the write) for the
@@ -1838,15 +1838,15 @@ former <code>Offset.Unspecified</code> behavior, logical start/end alignments fo
 interaction source and behavior options to the modifier.</p>
 <h3 id="position-and-geometry">Position and geometry<a class="headerlink" href="#position-and-geometry" title="Permanent link">¶</a></h3>
 <p>Position handling is now automatic. Source-selection predicates receive library-owned
-<code>HazeSourceMetadata</code> with only immutable <code>key</code> and <code>zIndex</code> values. Refine a selection with its
+<a href="../api/haze/dev.chrisbanes.haze/-haze-source-metadata/"><code>HazeSourceMetadata</code></a> with only immutable <code>key</code> and <code>zIndex</code> values. Refine a selection with its
 member <code>HazeSourceSelection.where { ... }</code>; metadata construction, source geometry, and captured
 content remain library-owned. Custom renderers work with modifier-relative bounds and draw the
 selected input with <code>drawInput()</code>.</p>
 <h2 id="removed-compatibility-apis">Removed compatibility APIs<a class="headerlink" href="#removed-compatibility-apis" title="Permanent link">¶</a></h2>
 <p><code>VisualEffect</code>, <code>VisualEffectContext</code>, <code>HazeEffectScope</code>, <code>BlurVisualEffect</code>,
-<code>HazeEffectScope.blurEffect</code>, and the lambda-based <code>hazeEffect</code> overloads are removed. Readable
-<code>HazeBlurStyle</code> properties, <code>copy</code>, destructuring, and mutable runtime interfaces are not
-available; use Style blocks and <code>then</code>.</p>
+<code>HazeEffectScope.blurEffect</code>, and the lambda-based <a href="../api/haze/dev.chrisbanes.haze/haze-effect.html"><code>hazeEffect</code></a> overloads are removed. Readable
+<a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/"><code>HazeBlurStyle</code></a> properties, <code>copy</code>, destructuring, and mutable runtime interfaces are not
+available; use Style blocks and <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/then.html"><code>then</code></a>.</p>
 <h2 id="complete-api-mapping">Complete API mapping<a class="headerlink" href="#complete-api-mapping" title="Permanent link">¶</a></h2>
 <table>
 <thead>
@@ -1865,7 +1865,7 @@ available; use Style blocks and <code>then</code>.</p>
 <tr>
 <td><code>Modifier.hazeChild(...)</code></td>
 <td><code>Modifier.hazeBlur(input = HazeInput.Sources(state), ...)</code></td>
-<td>Use <code>HazeInput.Content</code> for own-content Blur.</td>
+<td>Use <a href="../api/haze/dev.chrisbanes.haze/-haze-input/-content/"><code>HazeInput.Content</code></a> for own-content Blur.</td>
 </tr>
 <tr>
 <td><code>Modifier.hazeEffect(state, style = style)</code></td>
@@ -1880,7 +1880,7 @@ available; use Style blocks and <code>then</code>.</p>
 <tr>
 <td><code>HazeEffectScope.tints</code></td>
 <td><code>HazeBlurStyle { colorEffects(...) }</code></td>
-<td><code>HazeTint</code> is renamed to <code>HazeColorEffect</code>.</td>
+<td><code>HazeTint</code> is renamed to <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-color-effect/"><code>HazeColorEffect</code></a>.</td>
 </tr>
 <tr>
 <td><code>HazeEffectScope.noiseFactor</code></td>
@@ -1890,7 +1890,7 @@ available; use Style blocks and <code>then</code>.</p>
 <tr>
 <td><code>HazeEffectScope.progressive</code></td>
 <td><code>HazeBlurStyle { progressive(...) }</code></td>
-<td><code>HazeProgressive</code> remains in the core package.</td>
+<td><a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/"><code>HazeProgressive</code></a> remains in the core package.</td>
 </tr>
 <tr>
 <td><code>HazeEffectScope.mask</code></td>
@@ -1930,7 +1930,7 @@ available; use Style blocks and <code>then</code>.</p>
 <tr>
 <td><code>HazeEffectScope.drawContentBehind</code></td>
 <td>Removed</td>
-<td>Custom renderers control their own draw order inside <code>HazeEffectRenderer.draw</code>.</td>
+<td>Custom renderers control their own draw order inside <a href="../api/haze/dev.chrisbanes.haze/-haze-effect-renderer/draw.html"><code>HazeEffectRenderer.draw</code></a>.</td>
 </tr>
 <tr>
 <td><code>HazeEffectScope.clipToAreasBounds</code></td>
@@ -1950,16 +1950,16 @@ available; use Style blocks and <code>then</code>.</p>
 <tr>
 <td><code>HazeEffectScope.canDrawArea</code></td>
 <td><code>HazeSourceSelection.where { ... }</code></td>
-<td><code>where</code> is a selection member; its library-owned <code>HazeSourceMetadata</code> exposes immutable <code>key</code> and <code>zIndex</code>.</td>
+<td><code>where</code> is a selection member; its library-owned <a href="../api/haze/dev.chrisbanes.haze/-haze-source-metadata/"><code>HazeSourceMetadata</code></a> exposes immutable <code>key</code> and <code>zIndex</code>.</td>
 </tr>
 <tr>
 <td><code>HazeEffectScope.retainOutputWhenSourceUnavailable</code></td>
-<td><code>HazeSourceRetention</code></td>
+<td><a href="../api/haze/dev.chrisbanes.haze/-haze-source-retention/"><code>HazeSourceRetention</code></a></td>
 <td>Choose <code>KeepLastFrame</code> or <code>ClearWhenUnavailable</code>.</td>
 </tr>
 <tr>
 <td><code>rememberHazeState(blurEnabled)</code></td>
-<td><code>rememberHazeState()</code></td>
+<td><a href="../api/haze/dev.chrisbanes.haze/remember-haze-state.html"><code>rememberHazeState()</code></a></td>
 <td>Put <code>blurEnabled(...)</code> in the Style.</td>
 </tr>
 <tr>
@@ -1980,7 +1980,7 @@ available; use Style blocks and <code>then</code>.</p>
 <tr>
 <td><code>HazeEffectFactoryVisualEffect</code>, <code>HazeEffectVisualEffectFactory</code></td>
 <td>Removed</td>
-<td>There is no public replacement. Use <code>HazeEffectFactory</code> for custom effects.</td>
+<td>There is no public replacement. Use <a href="../api/haze/dev.chrisbanes.haze/-haze-effect-factory/"><code>HazeEffectFactory</code></a> for custom effects.</td>
 </tr>
 <tr>
 <td><code>HazeArea</code>, <code>HazeCoordinates</code>, <code>HazeSourceNode</code>, <code>HazeEffectNode</code></td>
@@ -1989,7 +1989,7 @@ available; use Style blocks and <code>then</code>.</p>
 </tr>
 <tr>
 <td><code>VisualEffectContext.positionOnScreen</code></td>
-<td><code>HazeEffectDrawScope.modifierBounds</code></td>
+<td><a href="../api/haze/dev.chrisbanes.haze/-haze-effect-draw-scope/modifier-bounds.html"><code>HazeEffectDrawScope.modifierBounds</code></a></td>
 <td>Custom renderers receive only modifier-relative semantic bounds.</td>
 </tr>
 <tr>
@@ -2004,7 +2004,7 @@ available; use Style blocks and <code>then</code>.</p>
 </tr>
 <tr>
 <td><code>VisualEffect.calculateInputScaleFactor()</code></td>
-<td><code>HazePerformanceMode</code> for built-in Blur and Glass, <code>HazeSampling</code> for custom effects</td>
+<td><a href="../api/haze/dev.chrisbanes.haze/-haze-performance-mode/"><code>HazePerformanceMode</code></a> for built-in Blur and Glass, <a href="../api/haze/dev.chrisbanes.haze/-haze-sampling/"><code>HazeSampling</code></a> for custom effects</td>
 <td>Built-in effects choose default, named, or fixed performance profiles; generic effects retain sampling.</td>
 </tr>
 <tr>
@@ -2014,7 +2014,7 @@ available; use Style blocks and <code>then</code>.</p>
 </tr>
 <tr>
 <td><code>VisualEffect</code>, <code>VisualEffectContext</code>, <code>InteractiveVisualEffect</code>, <code>RetainedOutputVisualEffect</code>, <code>VisualEffectRendererFactory</code>, <code>VisualEffectTransform</code></td>
-<td><code>HazeEffectFactory</code> and <code>HazeEffectRenderer</code></td>
+<td><code>HazeEffectFactory</code> and <a href="../api/haze/dev.chrisbanes.haze/-haze-effect-renderer/"><code>HazeEffectRenderer</code></a></td>
 <td>Haze manages the renderer lifecycle and input.</td>
 </tr>
 <tr>
@@ -2024,7 +2024,7 @@ available; use Style blocks and <code>then</code>.</p>
 </tr>
 <tr>
 <td><code>HazeDefaults</code> Blur values</td>
-<td><code>HazeBlurDefaults</code></td>
+<td><a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-defaults/"><code>HazeBlurDefaults</code></a></td>
 <td>Blur defaults moved to <code>haze-blur</code>.</td>
 </tr>
 <tr>
@@ -2034,7 +2034,7 @@ available; use Style blocks and <code>then</code>.</p>
 </tr>
 <tr>
 <td><code>HazeStyle</code></td>
-<td><code>HazeBlurStyle</code></td>
+<td><a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/"><code>HazeBlurStyle</code></a></td>
 <td>Renamed, moved, and changed to a replayable Style.</td>
 </tr>
 <tr>
@@ -2059,7 +2059,7 @@ available; use Style blocks and <code>then</code>.</p>
 </tr>
 <tr>
 <td><code>HazeDefaults.blurEnabled()</code></td>
-<td><code>HazeBlurDefaults.isBlurEnabledByDefault()</code></td>
+<td><a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-defaults/is-blur-enabled-by-default.html"><code>HazeBlurDefaults.isBlurEnabledByDefault()</code></a></td>
 <td>The platform-aware default-enable query.</td>
 </tr>
 <tr>
@@ -2070,11 +2070,11 @@ available; use Style blocks and <code>then</code>.</p>
 <tr>
 <td><code>HazeLogger.d(...)</code></td>
 <td>Removed</td>
-<td><code>HazeLogger.enabled</code> remains the supported logging control.</td>
+<td><a href="../api/haze/dev.chrisbanes.haze/-haze-logger/enabled.html"><code>HazeLogger.enabled</code></a> remains the supported logging control.</td>
 </tr>
 <tr>
 <td><code>LocalHazeStyle</code></td>
-<td><code>LocalHazeBlurStyle</code></td>
+<td><a href="../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html"><code>LocalHazeBlurStyle</code></a></td>
 <td>The local contains replayable Style writes.</td>
 </tr>
 <tr>
@@ -2090,7 +2090,7 @@ available; use Style blocks and <code>then</code>.</p>
 <tr>
 <td><code>HazeDialog</code></td>
 <td>Regular Compose dialogs</td>
-<td>Share one <code>HazeState</code> between the source and dialog effect.</td>
+<td>Share one <a href="../api/haze/dev.chrisbanes.haze/-haze-state/"><code>HazeState</code></a> between the source and dialog effect.</td>
 </tr>
 </tbody>
 </table>
@@ -2098,22 +2098,22 @@ available; use Style blocks and <code>then</code>.</p>
 <ol>
 <li>Add <code>haze-blur</code>, and replace <code>haze-materials</code> with <code>haze-blur-materials</code> if presets are used.</li>
 <li>Update imports from <code>HazeStyle</code>, <code>HazeTint</code>, <code>LocalHazeStyle</code>, and the old materials package to
-   <code>HazeBlurStyle</code>, <code>HazeColorEffect</code>, <code>LocalHazeBlurStyle</code>, and
+   <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/"><code>HazeBlurStyle</code></a>, <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-color-effect/"><code>HazeColorEffect</code></a>, <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html"><code>LocalHazeBlurStyle</code></a>, and
    <code>dev.chrisbanes.haze.blur.materials</code>.</li>
 <li>Replace <code>Modifier.haze(...)</code> with <code>Modifier.hazeSource(...)</code>.</li>
-<li>Replace Blur-configuring <code>hazeEffect</code> blocks with <code>hazeBlur</code>, choosing
+<li>Replace Blur-configuring <a href="../api/haze/dev.chrisbanes.haze/haze-effect.html"><code>hazeEffect</code></a> blocks with <a href="../api/haze-blur/dev.chrisbanes.haze.blur/haze-blur.html"><code>hazeBlur</code></a>, choosing
    <code>HazeInput.Backdrop(state)</code> for ordinary built-in surfaces, <code>HazeInput.Sources(state)</code> for
-   exact captured-source semantics, or <code>HazeInput.Content</code> for own-content Blur.</li>
+   exact captured-source semantics, or <a href="../api/haze/dev.chrisbanes.haze/-haze-input/-content/"><code>HazeInput.Content</code></a> for own-content Blur.</li>
 <li>Move Blur properties into <code>HazeBlurStyle { ... }</code>, changing property assignments into Style
-   functions. Use <code>then</code> instead of <code>copy</code> when customizing a preset.</li>
-<li>Move built-in Blur input-scale choices to <code>HazePerformanceMode</code>: map the previous default and
+   functions. Use <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/then.html"><code>then</code></a> instead of <code>copy</code> when customizing a preset.</li>
+<li>Move built-in Blur input-scale choices to <a href="../api/haze/dev.chrisbanes.haze/-haze-performance-mode/"><code>HazePerformanceMode</code></a>: map the previous default and
    automatic selection to <code>Default</code>, and full resolution to <code>Quality</code>. Remeasure old
    fixed input-pixel fractions before choosing <code>Fixed(qualityFraction)</code>. Move retention, source
-   selection, and layer expansion to <code>HazeSourceRetention</code>, <code>HazeSourceSelection</code>, and
+   selection, and layer expansion to <a href="../api/haze/dev.chrisbanes.haze/-haze-source-retention/"><code>HazeSourceRetention</code></a>, <a href="../api/haze/dev.chrisbanes.haze/-haze-source-selection/"><code>HazeSourceSelection</code></a>, and
    <code>expandLayerBounds</code>.</li>
-<li>Remove <code>blurEnabled</code> from <code>rememberHazeState</code>; write it in the Style for each effect instead.</li>
-<li>Replace custom <code>VisualEffect</code> implementations with a stateless <code>HazeEffectFactory</code> that
-   creates one <code>HazeEffectRenderer</code> per modifier.</li>
+<li>Remove <code>blurEnabled</code> from <a href="../api/haze/dev.chrisbanes.haze/remember-haze-state.html"><code>rememberHazeState</code></a>; write it in the Style for each effect instead.</li>
+<li>Replace custom <code>VisualEffect</code> implementations with a stateless <a href="../api/haze/dev.chrisbanes.haze/-haze-effect-factory/"><code>HazeEffectFactory</code></a> that
+   creates one <a href="../api/haze/dev.chrisbanes.haze/-haze-effect-renderer/"><code>HazeEffectRenderer</code></a> per modifier.</li>
 </ol>
 <p>For example:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">().</span><span class="na">then</span><span class="w"> </span><span class="p">{</span>
@@ -2135,7 +2135,7 @@ available; use Style blocks and <code>then</code>.</p>
 <h2 id="custom-effects-and-architecture">Custom effects and architecture<a class="headerlink" href="#custom-effects-and-architecture" title="Permanent link">¶</a></h2>
 <p>Custom effects now pair a shareable <code>HazeEffectFactory&lt;Style&gt;</code> with a renderer created for each
 modifier. Keep configuration in the Style and mutable resources in the renderer.</p>
-<p>Custom typed effects use the generic modifier rather than <code>hazeBlur</code>:</p>
+<p>Custom typed effects use the generic modifier rather than <a href="../api/haze-blur/dev.chrisbanes.haze.blur/haze-blur.html"><code>hazeBlur</code></a>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span>
 <span class="w">  </span><span class="n">factory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">myFactory</span><span class="p">,</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Content</span><span class="p">,</span>

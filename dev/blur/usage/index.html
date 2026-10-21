@@ -1336,7 +1336,7 @@
 
 
 <div><h1 id="blur-usage">Blur usage<a class="headerlink" href="#blur-usage" title="Permanent link">¶</a></h1>
-<p><code>Modifier.hazeBlur</code> takes an input, which decides what gets blurred, and a Style, which decides how
+<p><a href="../../api/haze-blur/dev.chrisbanes.haze.blur/haze-blur.html"><code>Modifier.hazeBlur</code></a> takes an input, which decides what gets blurred, and a Style, which decides how
 it looks.</p>
 <h2 id="choosing-the-input">Choosing the input<a class="headerlink" href="#choosing-the-input" title="Permanent link">¶</a></h2>
 <table>
@@ -1351,7 +1351,7 @@ it looks.</p>
 <tr>
 <td>Blur whatever is behind a surface</td>
 <td><code>HazeInput.Backdrop(hazeState)</code></td>
-<td>Content drawn earlier in the same window, using your <code>hazeSource</code> content where native backdrop rendering isn't used.</td>
+<td>Content drawn earlier in the same window, using your <a href="../../api/haze/dev.chrisbanes.haze/haze-source.html"><code>hazeSource</code></a> content where native backdrop rendering isn't used.</td>
 </tr>
 <tr>
 <td>Control exactly which sources are blurred</td>
@@ -1360,7 +1360,7 @@ it looks.</p>
 </tr>
 <tr>
 <td>Blur the modifier's own content</td>
-<td><code>HazeInput.Content</code></td>
+<td><a href="../../api/haze/dev.chrisbanes.haze/-haze-input/-content/"><code>HazeInput.Content</code></a></td>
 <td>The composable's own content.</td>
 </tr>
 </tbody>
@@ -1387,7 +1387,7 @@ it looks.</p>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p><code>HazeInput.Sources</code> also controls which sources are used and what is shown while they are
+<p><a href="../../api/haze/dev.chrisbanes.haze/-haze-input/-sources/"><code>HazeInput.Sources</code></a> also controls which sources are used and what is shown while they are
 unavailable. The default, <code>KeepLastFrame</code>, avoids an empty flash during source transitions, but the
 retained output is not guaranteed to be an exact copy of the last frame (see
 <a href="../../core-concepts/">Core concepts</a>). Use <code>ClearWhenUnavailable</code> for privacy-sensitive content:</p>
@@ -1408,7 +1408,7 @@ retained output is not guaranteed to be an exact copy of the last frame (see
 <span class="p">)</span>
 </code></pre></div>
 <h2 id="android-window-backdrop-blur">Android window-backdrop Blur<a class="headerlink" href="#android-window-backdrop-blur" title="Permanent link">¶</a></h2>
-<p>On Android 37.2 or later, <code>HazeInput.Backdrop</code> can blur the window backdrop natively. This is
+<p>On Android 37.2 or later, <a href="../../api/haze/dev.chrisbanes.haze/-haze-input/-backdrop/"><code>HazeInput.Backdrop</code></a> can blur the window backdrop natively. This is
 experimental and off by default. Enable it before the Blur modifiers you want to affect are
 attached:</p>
 <div class="highlight"><pre><span></span><code><span class="n">HazeFeatureFlags</span><span class="p">.</span><span class="na">isPlatformBackdropEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
@@ -1423,7 +1423,7 @@ Android releases, a software canvas, or if native rendering fails, Haze uses you
 content instead; switching can take one frame. Changing the flag only affects modifiers attached
 afterwards.</p>
 <p>Native rendering blurs content drawn earlier in the same window. It can't see content drawn later,
-or content in another dialog, popup, or window, and <code>HazePerformanceMode</code> doesn't reduce its
+or content in another dialog, popup, or window, and <a href="../../api/haze/dev.chrisbanes.haze/-haze-performance-mode/"><code>HazePerformanceMode</code></a> doesn't reduce its
 resolution. Use <code>HazeInput.Sources</code> when you need exact source selection, content from another
 window, or a retention policy.</p>
 <p>Set <code>HazeLogger.enabled = true</code> to log which path is chosen. A later release may enable native
@@ -1442,7 +1442,7 @@ Style:</p>
 </code></pre></div>
 <p>When Blur is disabled, Haze draws <code>fallbackColorEffect</code> instead.</p>
 <h2 id="replayable-styles">Replayable Styles<a class="headerlink" href="#replayable-styles" title="Permanent link">¶</a></h2>
-<p>A <code>HazeBlurStyle</code> is a list of property writes:</p>
+<p>A <a href="../../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/"><code>HazeBlurStyle</code></a> is a list of property writes:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">blurEnabled</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span>
 <span class="w">  </span><span class="n">blurRadius</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">)</span>
@@ -1462,8 +1462,8 @@ Style:</p>
 </code></pre></div>
 <p>Haze applies Styles in this order:</p>
 <ol>
-<li><code>HazeBlurDefaults.style</code></li>
-<li><code>LocalHazeBlurStyle</code></li>
+<li><a href="../../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-defaults/style.html"><code>HazeBlurDefaults.style</code></a></li>
+<li><a href="../../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html"><code>LocalHazeBlurStyle</code></a></li>
 <li>The explicit <code>hazeBlur</code> Style</li>
 </ol>
 <p>The last write to a property wins, both across tiers and within a Style chain:</p>

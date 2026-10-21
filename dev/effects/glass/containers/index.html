@@ -1398,7 +1398,7 @@ and rejoins before the palette collapses.</p>
 <p><code>spacing</code> is required, finite and not negative. A spacing of zero disables bridges. Optionally
 pass <code>transitionSpec</code> and <code>reducedMotionPolicy</code>, which are described under
 <a href="#transitions">Transitions</a>.</p>
-<p>Every <code>hazeGlass</code> modifier below the container becomes a member of its nearest container. A member
+<p>Every <a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass.html"><code>hazeGlass</code></a> modifier below the container becomes a member of its nearest container. A member
 keeps its own style, shape, colors and interaction response. A <code>hazeGlass</code> modifier outside a
 container is unchanged.</p>
 <h2 id="merge-rule">Merge rule<a class="headerlink" href="#merge-rule" title="Permanent link">¶</a></h2>
@@ -1410,7 +1410,7 @@ from its standalone profile to the merged profile, so elongated surfaces keep a 
 as they join or separate.</p>
 <p>Members merge only when all of these hold:</p>
 <ul>
-<li><strong>Same input and rendering options.</strong> Equal <code>input</code> (for <code>HazeInput.Sources</code>, the same
+<li><strong>Same input and rendering options.</strong> Equal <code>input</code> (for <a href="../../../api/haze/dev.chrisbanes.haze/-haze-input/-sources/"><code>HazeInput.Sources</code></a>, the same
   <code>hazeState</code>, <code>selection</code> and <code>retention</code>), performance mode and <code>expandLayerBounds</code>.</li>
 <li><strong>Same material.</strong> Equal optics, surface profile, specular and edge settings, chromatic
   aberration, tone, light position and <code>alpha</code>. Regular and Clear surfaces therefore never merge.
@@ -1435,7 +1435,7 @@ takes on the large member's diffusion, even when the two don't merge.</p>
 Members that are animating out, or whose bounds have collapsed to zero area, don't count.</p>
 <h2 id="where-glass-samples-from">Where Glass samples from<a class="headerlink" href="#where-glass-samples-from" title="Permanent link">¶</a></h2>
 <p>A container draws all of its members' Glass behind all of its children. With
-<code>HazeInput.Backdrop</code>, the glass samples only content drawn before the container. With
+<a href="../../../api/haze/dev.chrisbanes.haze/-haze-input/-backdrop/"><code>HazeInput.Backdrop</code></a>, the glass samples only content drawn before the container. With
 <code>HazeInput.Sources</code>, the glass samples the captured sources as usual. Joining or leaving a cluster
 never changes a member's z-order.</p>
 <h2 id="interaction">Interaction<a class="headerlink" href="#interaction" title="Permanent link">¶</a></h2>
@@ -1446,24 +1446,24 @@ uniform pressed <code>scale</code> does not split the cluster.</p>
 <p>A member that attaches or detaches after the container's first draw animates its glass. Choose
 the transition with <code>hazeGlass(memberTransition = ...)</code>:</p>
 <ul>
-<li><code>GlassMemberTransition.MatchedGeometry</code> is the default. A member that attaches within the
+<li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-member-transition/-matched-geometry/"><code>GlassMemberTransition.MatchedGeometry</code></a> is the default. A member that attaches within the
   spacing of another member grows out of it, and a member that detaches retracts into it. Beyond
   the spacing, it falls back to <code>Materialize</code>.</li>
-<li><code>GlassMemberTransition.Materialize</code> fades the glass in or out where it is. A fading member draws
+<li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-member-transition/-materialize/"><code>GlassMemberTransition.Materialize</code></a> fades the glass in or out where it is. A fading member draws
   on its own until it is fully opaque.</li>
-<li><code>GlassMemberTransition.None</code> applies no transition.</li>
+<li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-member-transition/-none/"><code>GlassMemberTransition.None</code></a> applies no transition.</li>
 </ul>
 <p><code>transitionSpec</code> times the animation and defaults to <code>spring()</code>. Members with
 <code>GlassMemberTransition.None</code> do not animate. <code>reducedMotionPolicy</code> decides how the transition
 responds to the platform motion-duration scale:</p>
 <ul>
-<li><code>GlassReducedMotionPolicy.System</code>, the default, follows the scale. Above zero, transitions run
+<li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-reduced-motion-policy/-system/"><code>GlassReducedMotionPolicy.System</code></a>, the default, follows the scale. Above zero, transitions run
   under that scale. At zero, because animations are off, members snap: they appear and disappear
   with no transition, as with <code>GlassMemberTransition.None</code>.</li>
-<li><code>GlassReducedMotionPolicy.Reduced</code> keeps the morph but uses a critically damped spring, so it
+<li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-reduced-motion-policy/-reduced/"><code>GlassReducedMotionPolicy.Reduced</code></a> keeps the morph but uses a critically damped spring, so it
   does not overshoot, at full duration whatever the scale is. The spring keeps <code>transitionSpec</code>'s
   stiffness when it is a spring and otherwise uses medium stiffness.</li>
-<li><code>GlassReducedMotionPolicy.Full</code> uses <code>transitionSpec</code> as written, whatever the scale is.</li>
+<li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-reduced-motion-policy/-full/"><code>GlassReducedMotionPolicy.Full</code></a> uses <code>transitionSpec</code> as written, whatever the scale is.</li>
 </ul>
 <p>Changes to <code>transitionSpec</code> and <code>reducedMotionPolicy</code> apply from the next transition.</p>
 <p>Haze animates only the glass. Animate member content yourself, for example with
@@ -1471,7 +1471,7 @@ responds to the platform motion-duration scale:</p>
 merging and loses its matched-geometry transition.</p>
 <p>The glass disappears immediately, without a transition, when:</p>
 <ul>
-<li>the member uses <code>HazeInput.Content</code>;</li>
+<li>the member uses <a href="../../../api/haze/dev.chrisbanes.haze/-haze-input/-content/"><code>HazeInput.Content</code></a>;</li>
 <li>the member is rotated or scaled;</li>
 <li>no remaining member uses the same input and sources, including when the last member leaves.</li>
 </ul>
@@ -1482,7 +1482,7 @@ and attaches to the new one, each with the transition described above. A running
 without animating when the member it grows from or retracts into leaves, or moves beyond the
 spacing.</p>
 <h2 id="lazy-layouts">Lazy layouts<a class="headerlink" href="#lazy-layouts" title="Permanent link">¶</a></h2>
-<p>Pass the lazy layout's state to <code>hazeGlassContainer</code> as <code>scrollState</code>. While that state is
+<p>Pass the lazy layout's state to <a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass-container.html"><code>hazeGlassContainer</code></a> as <code>scrollState</code>. While that state is
 scrolling, including the frame in which it stops, members appear and disappear without a
 transition, whatever their <code>memberTransition</code>. Items inserted or removed while the layout is idle
 still animate, but a scroll that starts while an item's glass is still animating out ends that
@@ -1517,7 +1517,7 @@ container's first draw never animate.</p>
 <p>Without <code>RuntimeShader</code> support, or when a cluster is too large to render in full, each cluster
 draws as one surface clipped to the hard union of the member shapes, with no bridge. Members keep
 their own tint and background color; where members overlap, the earlier member's colors apply.
-Each member resolves <code>GlassAccessibilitySettings</code> and appearance in its own context. With
+Each member resolves <a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-accessibility-settings/"><code>GlassAccessibilitySettings</code></a> and appearance in its own context. With
 <code>reduceTransparency</code>, it draws an opaque white/light or black/dark base (or its opaque
 <code>reducedTransparencyFallbackColor</code> override), then its authored background colour and tint. Earlier
 members still own overlapping regions, and overall alpha still fades the material. Disabling the

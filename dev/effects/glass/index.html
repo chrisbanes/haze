@@ -1623,7 +1623,7 @@ color:</p>
 <span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-glass-material3:&lt;version&gt;"</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p><code>material3()</code> uses <code>MaterialTheme.colorScheme.surface</code> as its background color. Pass
+<p><a href="../../api/haze-glass-material3/dev.chrisbanes.haze.glass.material3/material3.html"><code>material3()</code></a> uses <code>MaterialTheme.colorScheme.surface</code> as its background color. Pass
 <code>containerColor</code> to use a different color. It leaves the tint unset unless you pass one. It is
 composable, so the Style follows theme changes when the call site recomposes.</p>
 <p>Material 3 supplies only colors. Regular and Clear still pick their light or dark response from the
@@ -1641,16 +1641,16 @@ written first, so the receiver Style can override either:</p>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">custom</span><span class="p">.</span><span class="na">material3</span><span class="p">(</span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">)),</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>Call it on <code>GlassStyle</code> for the Material 3 colors alone, for example as a subtree default:</p>
+<p>Call it on <a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/"><code>GlassStyle</code></a> for the Material 3 colors alone, for example as a subtree default:</p>
 <div class="highlight"><pre><span></span><code><span class="n">CompositionLocalProvider</span><span class="p">(</span><span class="n">LocalGlassStyle</span><span class="w"> </span><span class="n">provides</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">material3</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="c1">// Glass modifiers in this subtree inherit the Material 3 surface background.</span>
 <span class="p">}</span>
 </code></pre></div>
 <h3 id="built-in-styles">Built-in styles<a class="headerlink" href="#built-in-styles" title="Permanent link">¶</a></h3>
-<p><code>GlassStyle.regular</code> is the default style. Its blur and depth grow with the surface's shortest
+<p><a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/-companion/regular.html"><code>GlassStyle.regular</code></a> is the default style. Its blur and depth grow with the surface's shortest
 side: compact controls keep some refracted detail and a curved edge, while larger surfaces fully
 diffuse the backdrop. In dark appearance it uses a darker tone, edge, and lighting response.</p>
-<p><code>GlassStyle.clear</code> keeps more of the background visible. It uses the same shallow blur at every
+<p><a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/-companion/clear.html"><code>GlassStyle.clear</code></a> keeps more of the background visible. It uses the same shallow blur at every
 size, with refraction concentrated in a band along the edge that forms loops around the corners.
 Fallback renderers keep Clear's background color, tint, and edges, but drop the refraction, blur,
 and tone adjustments that give it its look.</p>
@@ -1677,7 +1677,7 @@ slider or adapt to the content beneath them, so check foreground contrast with y
 <li><strong>tint</strong>: Glass tint (defaults to transparent).</li>
 <li><strong>optics</strong>: Optical configuration. See <a href="#choosing-optics">Choosing optics</a>.</li>
 <li><strong>refractionDetailIntensity</strong>: Secondary edge-refraction detail strength <code>0..1</code>. <code>0</code> disables it.
-  <code>GlassOptics</code> defaults to <code>0.76</code>; Regular uses <code>0</code>, and Clear uses <code>0.76</code>. Non-zero values add
+  <a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-optics/"><code>GlassOptics</code></a> defaults to <code>0.76</code>; Regular uses <code>0</code>, and Clear uses <code>0.76</code>. Non-zero values add
   rendering work on full renderers.</li>
 <li><strong>specularIntensity</strong>: Highlight strength <code>0..1</code> (default 0.48).</li>
 <li><strong>edgeShadow</strong>: Shape-following dark rim beneath the specular highlight (defaults to black at 14%
@@ -1686,7 +1686,7 @@ slider or adapt to the content beneath them, so check foreground contrast with y
 <li><strong>edgeSoftness</strong>: Soft fade at the edges (default 1.dp). Set to 0.dp for hard edges.</li>
 <li><strong>shape</strong> (<code>RoundedCornerShape</code>): Boundary for refraction and masking (default 16.dp corners).
   Add an outer <code>Modifier.clip()</code> with the same shape only when child content also needs clipping.</li>
-<li><strong>surfaceProfile</strong>: Cross-section for lighting and, with <code>RefractionProfile.Surface</code>, refraction. Options: <code>Circle</code> (default), <code>Squircle</code>, <code>Lip</code>, <code>Concave</code>.</li>
+<li><strong>surfaceProfile</strong>: Cross-section for lighting and, with <a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-refraction-profile/-surface/"><code>RefractionProfile.Surface</code></a>, refraction. Options: <code>Circle</code> (default), <code>Squircle</code>, <code>Lip</code>, <code>Concave</code>.</li>
 <li><strong>lightPosition</strong>: <code>Alignment</code> of the light within the surface (default <code>Alignment.Center</code>).
   Start and end follow layout direction.</li>
 <li><strong>chromaticAberrationStrength</strong>: Dispersion strength <code>0..1</code> (default 0). Higher values produce prismatic color splitting at edges.</li>
@@ -1698,7 +1698,7 @@ slider or adapt to the content beneath them, so check foreground contrast with y
 the sRGB gamut; out-of-gamut source colors are left unchanged. <code>tint</code> and <code>edgeShadow</code> keep their
 Compose <code>ColorSpace</code>.</p>
 <h2 id="glassstyle">GlassStyle<a class="headerlink" href="#glassstyle" title="Permanent link">¶</a></h2>
-<p><code>GlassStyle</code> is safe to share. Build a base Style and use <code>then</code> for variations:</p>
+<p><code>GlassStyle</code> is safe to share. Build a base Style and use <a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/then.html"><code>then</code></a> for variations:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">baseStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">backgroundColor</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">)</span>
 <span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span>
@@ -1713,7 +1713,7 @@ Compose <code>ColorSpace</code>.</p>
 </code></pre></div>
 <p>A Style's block runs whenever a Glass surface resolves its style, not when the Style is built. The
 block may read snapshot state, such as an animated value; changes apply on the next frame without
-recomposing the <code>hazeGlass</code> call site. Keep the block free of side effects. Styles compare by
+recomposing the <a href="../../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass.html"><code>hazeGlass</code></a> call site. Keep the block free of side effects. Styles compare by
 identity, so <code>remember</code> or hoist a Style: a new Style in each composition replaces it on every
 surface.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">radius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">animateDpAsState</span><span class="p">(</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">expanded</span><span class="p">)</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="m">28.</span><span class="n">dp</span><span class="p">)</span>
@@ -1726,10 +1726,10 @@ is built; a <code>GlassOptics</code> value is validated when it is created. Valu
 are coerced instead: <code>alpha</code> and tint alpha are clamped into <code>0f..1f</code>, and negative corner radii are
 treated as zero. Validate or clamp other values from user input and remote data. Percent corner
 sizes, such as <code>CircleShape</code>, follow size changes without any state in the Style.</p>
-<p>Each surface applies <code>LocalGlassStyle</code> and then its explicit Style. Values that neither sets come
-from Regular and <code>GlassDefaults</code>.</p>
+<p>Each surface applies <a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-local-glass-style.html"><code>LocalGlassStyle</code></a> and then its explicit Style. Values that neither sets come
+from Regular and <a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-defaults/"><code>GlassDefaults</code></a>.</p>
 <h3 id="accessibility-preferences">Accessibility preferences<a class="headerlink" href="#accessibility-preferences" title="Permanent link">¶</a></h3>
-<p>Haze does not read platform accessibility settings. Map them to <code>GlassAccessibilitySettings</code> and
+<p>Haze does not read platform accessibility settings. Map them to <a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-accessibility-settings/"><code>GlassAccessibilitySettings</code></a> and
 provide it where Glass is used:</p>
 <div class="highlight"><pre><span></span><code><span class="n">CompositionLocalProvider</span><span class="p">(</span>
 <span class="w">  </span><span class="n">LocalGlassAccessibilitySettings</span><span class="w"> </span><span class="n">provides</span><span class="w"> </span><span class="n">GlassAccessibilitySettings</span><span class="p">(</span>
@@ -1805,12 +1805,12 @@ change part of the built-in material, start from <code>GlassOptics.regular.copy(
 <span class="w">  </span><span class="n">optics</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">copy</span><span class="p">(</span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="m">4.</span><span class="n">dp</span><span class="p">))</span><span class="w"> </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>The receiver starts from <code>GlassOptics.regular</code> and then includes optics from <code>LocalGlassStyle</code> and
+<p>The receiver starts from <a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-optics/-companion/regular.html"><code>GlassOptics.regular</code></a> and then includes optics from <code>LocalGlassStyle</code> and
 earlier writes in the Style, including built-in Styles it extends.
 The block runs on every style evaluation and can read snapshot state without recomposing the call
 site. Keep it free of side effects. Later <code>optics(value)</code> writes or built-in styles replace its result.</p>
 <p>For a configuration you want to store or choose outside a style, copy <code>GlassOptics.regular</code> or
-<code>GlassOptics.clear</code>:</p>
+<a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-optics/-companion/clear.html"><code>GlassOptics.clear</code></a>:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">softerClearOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">clear</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="m">4.</span><span class="n">dp</span><span class="p">))</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">softerClear</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">clear</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">optics</span><span class="p">(</span><span class="n">softerClearOptics</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
@@ -1858,11 +1858,11 @@ responsive value needs at least two points with positive, finite, strictly incre
 <code>0.15</code>. Clear uses <code>Edge(28.dp)</code>, strength <code>0.85</code>, displacement <code>56.dp</code>, and lighting height
 fraction <code>0.35</code>.</p>
 <p><code>refractionFoldStrength</code> (<code>0f..1f</code>, default <code>0f</code>) folds refraction back on itself near the edge. It
-works with every <code>SurfaceProfile</code> and stays within <code>refractionDisplacement</code>.</p>
-<p><code>GlassOptics</code> controls appearance; <code>HazePerformanceMode</code> controls the quality and cost trade-off.</p>
+works with every <a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-surface-profile/"><code>SurfaceProfile</code></a> and stays within <code>refractionDisplacement</code>.</p>
+<p><code>GlassOptics</code> controls appearance; <a href="../../api/haze/dev.chrisbanes.haze/-haze-performance-mode/"><code>HazePerformanceMode</code></a> controls the quality and cost trade-off.</p>
 <h3 id="retained-output">Retained output<a class="headerlink" href="#retained-output" title="Permanent link">¶</a></h3>
 <p>When all of its sources disappear, Glass keeps drawing its last output by default
-(<code>HazeSourceRetention.KeepLastFrame</code>). This keeps source transitions smooth, but can briefly show
+(<a href="../../api/haze/dev.chrisbanes.haze/-haze-source-retention/-keep-last-frame/"><code>HazeSourceRetention.KeepLastFrame</code></a>). This keeps source transitions smooth, but can briefly show
 pixels from removed content.</p>
 <p>This is not a frozen copy of the last frame. On Android, retained Glass can redraw from a source's
 current pixels when it becomes visible again, and content changed inside a source after capture can
@@ -1875,7 +1875,7 @@ appear. For privacy-sensitive content, use <code>ClearWhenUnavailable</code>:</p
 <span class="p">)</span>
 </code></pre></div>
 <h3 id="android-window-backdrop-glass">Android window-backdrop Glass<a class="headerlink" href="#android-window-backdrop-glass" title="Permanent link">¶</a></h3>
-<p><code>HazeInput.Backdrop</code> samples the pixels already drawn earlier in the current window. On Android its
+<p><a href="../../api/haze/dev.chrisbanes.haze/-haze-input/-backdrop/"><code>HazeInput.Backdrop</code></a> samples the pixels already drawn earlier in the current window. On Android its
 native path is experimental; enable it before the Glass surface attaches:</p>
 <div class="highlight"><pre><span></span><code><span class="n">HazeFeatureFlags</span><span class="p">.</span><span class="na">isPlatformBackdropEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 
@@ -1894,7 +1894,7 @@ handle after it has started also draws content without Glass for that frame. Cha
 affects later attachments only. See
 <a href="../../core-concepts/#android-window-backdrops">Android window backdrops</a> for eligibility,
 fallback, and diagnostics.</p>
-<p>Use <code>HazeInput.Sources</code> directly when exact source selection, cross-window alignment, or retained
+<p>Use <a href="../../api/haze/dev.chrisbanes.haze/-haze-input/-sources/"><code>HazeInput.Sources</code></a> directly when exact source selection, cross-window alignment, or retained
 output must govern the actual input rather than only the fallback.</p>
 <h2 id="fallbacks">Fallbacks<a class="headerlink" href="#fallbacks" title="Permanent link">¶</a></h2>
 <p>Use one <code>GlassStyle</code> on every platform. Haze chooses the available renderer automatically, so you
@@ -1954,7 +1954,7 @@ don't need capability checks or a second Style.</p>
 <p>Don't make essential meaning depend on refraction or chromatic aberration alone, because fallback
 rendering omits them.</p>
 <h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">¶</a></h2>
-<p>Start with <code>HazePerformanceMode.Default</code> (the fixed <code>Balanced</code> profile) and tune only after
+<p>Start with <a href="../../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-default.html"><code>HazePerformanceMode.Default</code></a> (the fixed <code>Balanced</code> profile) and tune only after
 measuring a representative screen. The <a href="../../performance/#glass">performance guide</a> explains
 which Glass-specific workloads and interactions to test.</p>
 <h2 id="interaction">Interaction<a class="headerlink" href="#interaction" title="Permanent link">¶</a></h2>
@@ -2032,7 +2032,7 @@ animates the light towards focus and other <code>InteractionSource</code>-derive
 </ul>
 <p>Omit a state block from a replacement Style to remove that response.</p>
 <h2 id="containers">Containers<a class="headerlink" href="#containers" title="Permanent link">¶</a></h2>
-<p>Wrap nearby Glass surfaces in <code>Modifier.hazeGlassContainer</code> to merge them into one
+<p>Wrap nearby Glass surfaces in <a href="../../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass-container.html"><code>Modifier.hazeGlassContainer</code></a> to merge them into one
 shape, for controls that should read as one object, such as a toolbar or a segmented control. See
 <a href="containers/">Glass containers</a> for the merge rule, transitions, lazy layouts and fallbacks.</p>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">¶</a></h2>
@@ -2064,7 +2064,7 @@ shape, for controls that should read as one object, such as a toolbar or a segme
 <ul>
 <li>Keep <code>chromaticAberrationStrength</code> modest; start at 0.1-0.25 to avoid rainbow artifacts.</li>
 <li>Combine <code>edgeSoftness</code> with rounded shapes for smooth clipping; set <code>edgeSoftness = 0.dp</code> to rely purely on the shape.</li>
-<li>Use <code>SurfaceProfile.Concave</code> for an inward-curving bezel or <code>SurfaceProfile.Lip</code> for a raised rim effect.</li>
+<li>Use <a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-surface-profile/-concave/"><code>SurfaceProfile.Concave</code></a> for an inward-curving bezel or <a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-surface-profile/-lip/"><code>SurfaceProfile.Lip</code></a> for a raised rim effect.</li>
 </ul></div>
 
 

@@ -1550,7 +1550,7 @@ experiment and excluded attempts.</p>
 <p><a id="native-android-backdrop"></a></p>
 <h2 id="backdrop-versus-sources">Backdrop versus Sources<a class="headerlink" href="#backdrop-versus-sources" title="Permanent link">¶</a></h2>
 <p>Native Android Backdrop reads pixels behind the effect from the window, instead of using
-captured <code>hazeSource</code> content. See <a href="../performance/#backdrop-input">Backdrop guidance</a> for
+captured <a href="../api/haze/dev.chrisbanes.haze/haze-source.html"><code>hazeSource</code></a> content. See <a href="../performance/#backdrop-input">Backdrop guidance</a> for
 its practical benefits, fallback requirements, and experimental feature flag.</p>
 <p>This comparison used <code>Quality</code> on a Pixel 8a running Android 17 (full SDK 37.2) at 60 Hz,
 with fixed-performance mode enabled and normal CPU scheduling. Each method ran eight
@@ -1647,7 +1647,7 @@ Backdrop was not a CPU performance win for this Glass scene on this device.</p>
 <p><a id="glass-fixed-quality"></a></p>
 <h2 id="glass-fixed-quality">Glass fixed quality<a class="headerlink" href="#glass-fixed-quality" title="Permanent link">¶</a></h2>
 <p>This comparison isolates six <code>qualityFraction</code> settings for one 280 dp × 180 dp Regular
-Glass surface using <code>HazeInput.Sources</code>. It used a Pixel 6 running Android 17 (full SDK 37.1)
+Glass surface using <a href="../api/haze/dev.chrisbanes.haze/-haze-input/-sources/"><code>HazeInput.Sources</code></a>. It used a Pixel 6 running Android 17 (full SDK 37.1)
 at 60 Hz, with fixed-performance mode enabled.</p>
 <div class="admonition warning">
 <p class="admonition-title">Controlled CPU placement</p>
@@ -1725,7 +1725,7 @@ between the experiments cannot be attributed to CPU affinity alone.</p>
 <p>This comparison draws two Regular Glass surfaces, each about 134 × 180 dp and 12 dp apart, over a
 continuously changing source. The independent row draws them separately. The container row wraps
 the same surfaces in <code>hazeGlassContainer(spacing = 32.dp)</code>, so they merge into one cluster. Both
-rows use <code>HazePerformanceMode.Default</code> and <code>HazeInput.Sources</code>. It used a Pixel 8a running
+rows use <a href="../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-default.html"><code>HazePerformanceMode.Default</code></a> and <code>HazeInput.Sources</code>. It used a Pixel 8a running
 Android 17 (full SDK 37.2) at 60 Hz, with fixed-performance mode enabled and normal CPU scheduling.</p>
 <p>Each per-pass value pools the frames of that pass's eight iterations; the table shows the
 <strong>arithmetic mean of the two per-pass values</strong>. Peak GPU memory uses each pass's median

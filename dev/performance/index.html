@@ -1318,9 +1318,9 @@
 scrolling, transitions, and visual quality together: a setting is useful only if the screen still
 looks right and feels smooth.</p>
 <h2 id="start-with-the-defaults">Start with the defaults<a class="headerlink" href="#start-with-the-defaults" title="Permanent link">¶</a></h2>
-<p>Use <code>HazePerformanceMode.Default</code> for built-in Blur and Glass, and start Glass with
-<code>GlassStyle.regular</code>. <code>Default</code> selects the fixed <code>Balanced</code> profile. Custom effects use
-<code>HazeSampling.Default</code>.</p>
+<p>Use <a href="../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-default.html"><code>HazePerformanceMode.Default</code></a> for built-in Blur and Glass, and start Glass with
+<a href="../api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/-companion/regular.html"><code>GlassStyle.regular</code></a>. <code>Default</code> selects the fixed <code>Balanced</code> profile. Custom effects use
+<a href="../api/haze/dev.chrisbanes.haze/-haze-sampling/-companion/-default.html"><code>HazeSampling.Default</code></a>.</p>
 <p>Build the complete screen before choosing overrides. The area covered by effects, their number,
 and the content moving behind them all affect the cost.</p>
 <p><a id="measure-on-target-devices"></a></p>
@@ -1349,8 +1349,8 @@ deciding that a change helped.</p>
 <li><strong>Simplify the styling.</strong> Try uniform blur in place of progressive blur, or reduce Glass
    features such as Full chromatic aberration. Keep the simpler style if the visual difference
    does not justify the cost.</li>
-<li><strong>Keep unrelated animation out of captured sources.</strong> With <code>HazeInput.Sources</code>, move animation
-   outside the <code>hazeSource</code> subtree when the effect does not need to include it.</li>
+<li><strong>Keep unrelated animation out of captured sources.</strong> With <a href="../api/haze/dev.chrisbanes.haze/-haze-input/-sources/"><code>HazeInput.Sources</code></a>, move animation
+   outside the <a href="../api/haze/dev.chrisbanes.haze/haze-source.html"><code>hazeSource</code></a> subtree when the effect does not need to include it.</li>
 </ol>
 <p><a id="stable-and-changing-sources"></a></p>
 <p>A stable source can reuse captured and processed output. Scrolling or animated backgrounds need
@@ -1360,7 +1360,7 @@ fresh input, so always test those interactions as well as stationary content.</p
 <a id="performance-modes"></a>
 <a id="choosing-a-fixed-quality-level"></a></p>
 <h2 id="choose-a-performance-mode">Choose a performance mode<a class="headerlink" href="#choose-a-performance-mode" title="Permanent link">¶</a></h2>
-<p><code>HazePerformanceMode</code> controls the quality and rendering cost of built-in Blur and Glass. Choose
+<p><a href="../api/haze/dev.chrisbanes.haze/-haze-performance-mode/"><code>HazePerformanceMode</code></a> controls the quality and rendering cost of built-in Blur and Glass. Choose
 based on the problem you can see:</p>
 <table>
 <thead>
@@ -1398,8 +1398,8 @@ based on the problem you can see:</p>
 <span class="w">  </span><span class="n">performanceMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePerformanceMode</span><span class="p">.</span><span class="na">Performance</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>The same <code>performanceMode</code> parameter is available on <code>hazeGlass</code>. To set a mode for a whole
-subtree, provide <code>LocalHazePerformanceMode</code>; an explicit <code>performanceMode</code> argument overrides it.</p>
+<p>The same <code>performanceMode</code> parameter is available on <a href="../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass.html"><code>hazeGlass</code></a>. To set a mode for a whole
+subtree, provide <a href="../api/haze/dev.chrisbanes.haze/-local-haze-performance-mode.html"><code>LocalHazePerformanceMode</code></a>; an explicit <code>performanceMode</code> argument overrides it.</p>
 <p><code>Performance</code>, <code>Balanced</code>, and <code>Quality</code> correspond to <code>Fixed(0f)</code>, <code>Fixed(0.5f)</code>, and
 <code>Fixed(1f)</code>. The fraction describes quality, not a percentage reduction in rendering time.</p>
 <div class="admonition note">
@@ -1443,10 +1443,10 @@ even though its CPU frame duration P90 was 0.35 ms lower
 <p>For styling examples, see the <a href="../effects/glass/">Glass overview</a>.</p>
 <p><a id="backdrop-input"></a></p>
 <h2 id="backdrop-versus-sources">Backdrop versus Sources<a class="headerlink" href="#backdrop-versus-sources" title="Permanent link">¶</a></h2>
-<p><code>HazeInput.Backdrop</code> lets built-in Blur and Glass use pixels already drawn behind them in the
+<p><a href="../api/haze/dev.chrisbanes.haze/-haze-input/-backdrop/"><code>HazeInput.Backdrop</code></a> lets built-in Blur and Glass use pixels already drawn behind them in the
 current window. On supported Android devices it can filter those pixels directly, without marking
 the background with <code>hazeSource</code>.</p>
-<p>Pass a <code>HazeState</code> or <code>HazeInput.Sources</code> to <code>Backdrop</code> and keep the <code>hazeSource</code> setup if the
+<p>Pass a <a href="../api/haze/dev.chrisbanes.haze/-haze-state/"><code>HazeState</code></a> or <code>HazeInput.Sources</code> to <code>Backdrop</code> and keep the <code>hazeSource</code> setup if the
 effect must work when native rendering is unavailable, including on other platforms or after a
 native failure. Without captured sources, the fallback has no background content to process.</p>
 <p>Use explicit <code>HazeInput.Sources</code> when you need to select particular captured content. Native

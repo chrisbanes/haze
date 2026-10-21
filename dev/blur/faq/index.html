@@ -1266,7 +1266,7 @@
   <h1>FAQs</h1>
 
 <div><h2 id="whats-the-difference-between-this-and-modifierblur">What's the difference between this and Modifier.blur?<a class="headerlink" href="#whats-the-difference-between-this-and-modifierblur" title="Permanent link">¶</a></h2>
-<p><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/Modifier#(androidx.compose.ui.Modifier).blur(androidx.compose.ui.unit.Dp,androidx.compose.ui.unit.Dp,androidx.compose.ui.draw.BlurredEdgeTreatment)">Modifier.blur</a> blurs a composable's own content. Haze's main use is blurring the content <em>behind</em> a surface, which is what glass-like effects need. Haze can also blur a composable's own content with <code>HazeInput.Content</code>.</p>
+<p><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/Modifier#(androidx.compose.ui.Modifier).blur(androidx.compose.ui.unit.Dp,androidx.compose.ui.unit.Dp,androidx.compose.ui.draw.BlurredEdgeTreatment)">Modifier.blur</a> blurs a composable's own content. Haze's main use is blurring the content <em>behind</em> a surface, which is what glass-like effects need. Haze can also blur a composable's own content with <a href="../../api/haze/dev.chrisbanes.haze/-haze-input/-content/"><code>HazeInput.Content</code></a>.</p>
 <p>Haze also adds tints, noise, progressive Blur, masks, and more. See the <a href="../usage/">Usage</a> page.</p>
 <h2 id="why-does-my-blur-get-clipped-inside-a-graphics-layer">Why does my Blur get clipped inside a graphics layer?<a class="headerlink" href="#why-does-my-blur-get-clipped-inside-a-graphics-layer" title="Permanent link">¶</a></h2>
 <p>An enclosing <code>graphicsLayer</code> that uses <code>alpha</code> below one, an offscreen compositing strategy, a
