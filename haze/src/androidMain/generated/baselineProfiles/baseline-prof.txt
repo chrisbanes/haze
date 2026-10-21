@@ -1443,14 +1443,14 @@ HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->drawnSnapshot(Ldev/chrisbanes
 HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->endGhosts(Lkotlin/jvm/functions/Function1;)V
 HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->getMembers()Ljava/util/List;
 HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->getModel$haze_root_haze_glass()Ldev/chrisbanes/haze/glass/GlassClusterModel;
-HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->getSpacingPx$haze_root_haze_glass()F
+HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->getMergeDistancePx$haze_root_haze_glass()F
 HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->getSurfaceCoordinates()Landroidx/compose/ui/layout/LayoutCoordinates;
 HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->getTransitionSpec()Landroidx/compose/animation/core/FiniteAnimationSpec;
 HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->getTransitionsOff()Z
 HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->getTraverseKey()Ljava/lang/Object;
 HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->ghostOf$lambda$4(Ldev/chrisbanes/haze/glass/GlassContainerNode;Ldev/chrisbanes/haze/glass/GlassMemberGhost;)Lkotlin/Unit;
 HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->ghostOf(Ldev/chrisbanes/haze/glass/GlassMemberNode;Ldev/chrisbanes/haze/glass/GlassMemberSnapshot;)Ldev/chrisbanes/haze/glass/GlassMemberGhost;
-HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->isWithinSpacingOf(Ldev/chrisbanes/haze/glass/GlassMemberSnapshot;Ldev/chrisbanes/haze/glass/GlassMemberNode;Ljava/util/Map;)Z
+HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->isWithinMergeDistanceOf(Ldev/chrisbanes/haze/glass/GlassMemberSnapshot;Ldev/chrisbanes/haze/glass/GlassMemberNode;Ljava/util/Map;)Z
 HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->liveSnapshots()Ljava/util/Map;
 HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->localSize-hgXytuQ(Ldev/chrisbanes/haze/glass/GlassMemberNode;)Landroidx/compose/ui/geometry/Size;
 HSPLdev/chrisbanes/haze/glass/GlassContainerNode;->memberChanged()V
