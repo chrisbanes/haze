@@ -50,7 +50,7 @@ _Avoid_: Size response, blur profile, adaptive optics
 
 **Glass container**:
 An ancestor that draws its Glass members' surfaces together, so that nearby members can merge into
-one shape and share one optical size. Its spacing sets how close members must be before they merge.
+one shape and share one optical size. Its merge distance sets how close members must be before they merge.
 _Avoid_: Glass group, effect container
 
 **Glass member**:

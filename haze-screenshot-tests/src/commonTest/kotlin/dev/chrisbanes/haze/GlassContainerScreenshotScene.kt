@@ -75,7 +75,7 @@ internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerSce
       if (fallback) {
         assertThat(pixels[149, 110]).isEqualTo(sceneBackground(149, 110))
       } else {
-        // At half spacing the stretched edges touch with antialiasing, but no filled bridge.
+        // At half the merge distance, the stretched edges touch with antialiasing, but no filled bridge.
         assertThat(pixels[149, 110].green).isGreaterThan(0.8f)
         assertThat(pixels[149, 60]).isEqualTo(sceneBackground(149, 60))
       }

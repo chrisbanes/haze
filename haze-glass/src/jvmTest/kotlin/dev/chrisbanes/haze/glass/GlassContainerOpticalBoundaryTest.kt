@@ -62,7 +62,7 @@ class GlassContainerOpticalBoundaryTest {
     for (lighting in listOf(false, true)) {
       val before = probe(gap = 19.9f, lighting = lighting)
       val after = probe(gap = 20.1f, lighting = lighting)
-      assertThat((after - before).getDistance(), "Half-mergeDistance boundary, lighting=$lighting")
+      assertThat((after - before).getDistance(), "Half merge distance boundary, lighting=$lighting")
         .isLessThan(if (lighting) 0.03f else 0.6f)
     }
   }

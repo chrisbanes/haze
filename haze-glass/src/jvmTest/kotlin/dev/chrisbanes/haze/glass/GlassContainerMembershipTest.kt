@@ -78,6 +78,13 @@ class GlassContainerMembershipTest : ContextTest() {
   }
 
   @Test
+  fun mergeDistance_defaultsToGlassDefaults() {
+    val element = Modifier.hazeGlassContainer()
+      .foldIn<GlassContainerElement?>(null) { _, item -> item as? GlassContainerElement }
+    assertThat(checkNotNull(element).mergeDistance).isEqualTo(GlassDefaults.mergeDistance)
+  }
+
+  @Test
   fun membership_nearestNestedAndSiblingContainersStaySeparate() = runComposeUiTest {
     val outer = GlassRuntimeEffect()
     val inner = GlassRuntimeEffect()
