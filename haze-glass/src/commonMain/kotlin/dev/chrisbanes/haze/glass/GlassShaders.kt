@@ -949,21 +949,28 @@ internal object GlassShaders {
       ${if (merged) {
     """
       if (dot(memberStandaloneWeights, vec4(1.0)) <= 0.0) return mergedResult;
-      MemberOptics member = nearestMemberOptics(p);
-      if (member.blend <= 0.0) return mergedResult;
-      vec2 scale = member.rect.zw / member.size;
-      vec2 local = (p - member.rect.xy) / scale;
-      vec4 radii = member.radii / min(scale.x, scale.y);
-      float height = refractionHeight;
-      float field = opticalFieldWeight(member.size, height);
-      float sd = sdRoundedRect(local, member.size, radii);
-      float optical = opticalDistance(local, sd, field, member.size, height);
-      float normalizedHeight = clamp(surfaceHeightFromDistance(optical, height) / max(height, 0.0001), -1.0, 1.0);
-      vec2 standalone = evaluateRefraction(
-        local, normalizedHeight, edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : optical,
-        multiplier, field, member.size, radii, height, false
-      ) * scale;
-      return mix(mergedResult, standalone, member.blend);
+      vec4 shares = memberWeights(p) * memberStandaloneWeights;
+      vec2 result = mergedResult;
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        if (shares[i] <= 0.0) continue;
+        vec4 rect = memberRects[i];
+        vec2 size = memberLayoutSizes[i];
+        vec2 scale = rect.zw / size;
+        // Continue each standalone profile from its boundary into the emerging bridge.
+        vec2 local = clamp((p - rect.xy) / scale, vec2(0.0), size);
+        vec4 radii = memberRadii[i] / min(scale.x, scale.y);
+        float field = opticalFieldWeight(size, refractionHeight);
+        float sd = sdRoundedRect(local, size, radii);
+        float optical = opticalDistance(local, sd, field, size, refractionHeight);
+        float height = surfaceHeightNormFromOpticalDistance(optical);
+        vec2 standalone = evaluateRefraction(
+          local, height, edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : optical,
+          multiplier, field, size, radii, refractionHeight, false
+        ) * scale;
+        result += shares[i] * (standalone - mergedResult);
+      }
+      return result;
       """
   } else {
     "return mergedResult;"
@@ -1008,30 +1015,37 @@ internal object GlassShaders {
       ${if (merged) {
     """
       if (dot(memberStandaloneWeights, vec4(1.0)) <= 0.0) return result;
-      MemberOptics member = nearestMemberOptics(p);
-      if (member.blend <= 0.0) return result;
-      vec2 scale = member.rect.zw / member.size;
-      vec2 local = (p - member.rect.xy) / scale;
-      vec4 radii = member.radii / min(scale.x, scale.y);
-      float height = refractionHeight;
-      float field = opticalFieldWeight(member.size, height);
-      vec2 standalone;
-      if (surfaceProfile == 1) {
-        float memberSd = sdRoundedRect(local, member.size, radii);
-        float distance = opticalDistance(local, memberSd, field, member.size, height);
-        float slope = 2.0 * (1.0 - smootherstep(clamp(distance / max(height, 0.0001), 0.0, 1.0)));
-        standalone = rectOpticalGradient(local, member.size, radii, height, field) * slope;
-      } else {
-        vec2 dx = vec2(sampleStep, 0.0);
-        vec2 dy = vec2(0.0, sampleStep);
-        standalone = vec2(
-          rectSurfaceHeight(clamp(local + dx, vec2(0.0), member.size), member.size, radii, height, field) -
-            rectSurfaceHeight(clamp(local - dx, vec2(0.0), member.size), member.size, radii, height, field),
-          rectSurfaceHeight(clamp(local + dy, vec2(0.0), member.size), member.size, radii, height, field) -
-            rectSurfaceHeight(clamp(local - dy, vec2(0.0), member.size), member.size, radii, height, field)
-        ) * (0.5 / max(sampleStep, 0.0001));
+      vec4 shares = memberWeights(p) * memberStandaloneWeights;
+      vec2 blended = result;
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        if (shares[i] <= 0.0) continue;
+        vec4 rect = memberRects[i];
+        vec2 size = memberLayoutSizes[i];
+        vec2 scale = rect.zw / size;
+        vec2 local = clamp((p - rect.xy) / scale, vec2(0.0), size);
+        vec4 radii = memberRadii[i] / min(scale.x, scale.y);
+        float height = refractionHeight;
+        float field = opticalFieldWeight(size, height);
+        vec2 standalone;
+        if (surfaceProfile == 1) {
+          float sd = sdRoundedRect(local, size, radii);
+          float distance = opticalDistance(local, sd, field, size, height);
+          float slope = 2.0 * (1.0 - smootherstep(clamp(distance / max(height, 0.0001), 0.0, 1.0)));
+          standalone = rectOpticalGradient(local, size, radii, height, field) * slope;
+        } else {
+          vec2 dx = vec2(sampleStep, 0.0);
+          vec2 dy = vec2(0.0, sampleStep);
+          standalone = vec2(
+            rectSurfaceHeight(clamp(local + dx, vec2(0.0), size), size, radii, height, field) -
+              rectSurfaceHeight(clamp(local - dx, vec2(0.0), size), size, radii, height, field),
+            rectSurfaceHeight(clamp(local + dy, vec2(0.0), size), size, radii, height, field) -
+              rectSurfaceHeight(clamp(local - dy, vec2(0.0), size), size, radii, height, field)
+          ) * (0.5 / max(sampleStep, 0.0001));
+        }
+        blended += shares[i] * (standalone - result);
       }
-      return mix(result, standalone, member.blend);
+      return blended;
       """
   } else {
     "return result;"
@@ -1316,29 +1330,6 @@ internal object GlassShaders {
 
     uniform float2 memberLayoutSizes[4];
     uniform float4 memberStandaloneWeights;
-
-    struct MemberOptics {
-      vec4 rect;
-      vec4 radii;
-      vec2 size;
-      float blend;
-    };
-
-    MemberOptics nearestMemberOptics(vec2 p) {
-      MemberOptics member = MemberOptics(memberRects[0], memberRadii[0], memberLayoutSizes[0],
-        memberStandaloneWeights[0]);
-      float nearest = memberSd(p, member.rect, member.radii);
-      for (int i = 1; i < 4; i++) {
-        if (float(i) >= memberCount) break;
-        float d = memberSd(p, memberRects[i], memberRadii[i]);
-        if (d < nearest) {
-          nearest = d;
-          member = MemberOptics(memberRects[i], memberRadii[i], memberLayoutSizes[i],
-            memberStandaloneWeights[i]);
-        }
-      }
-      return member;
-    }
 
     vec2 mergedOpticalValues(vec2 localCoord) {
       vec4 w = memberWeights(localCoord);

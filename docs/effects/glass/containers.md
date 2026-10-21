@@ -104,7 +104,7 @@ uniform pressed `scale` does not split the cluster.
 With `HazeInput.Sources`, a scaled member can still change its sampled backdrop when it joins or
 leaves a cluster. Standalone Glass scales the completed backdrop image, while a merged surface
 keeps backdrop sampling anchored and scales the member's shape. The optical-profile blend does
-not remove this existing sampling difference.
+not remove this existing sampling difference; it is tracked in [#1605](https://github.com/chrisbanes/haze/issues/1605).
 
 ## Transitions
 

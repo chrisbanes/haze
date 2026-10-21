@@ -72,12 +72,30 @@ class GlassContainerOpticalBoundaryTest {
     for (lighting in listOf(false, true)) {
       val pair = probe(gap = 16f, lighting = lighting)
       val withDistantThird = probe(gap = 16f, lighting = lighting, thirdGapAfterSecond = 300f)
-      val withApproachingThird = probe(gap = 16f, lighting = lighting, thirdGapAfterSecond = 20f)
       val tolerance = if (lighting) 0.03f else 0.6f
       assertThat((withDistantThird - pair).getDistance(), "Adding a distant third member")
         .isLessThan(tolerance)
-      assertThat((withApproachingThird - pair).getDistance(), "Third member approaching the close pair")
-        .isLessThan(tolerance)
+      for (thirdGap in listOf(30f, 20f)) {
+        val withThird = probe(gap = 16f, lighting = lighting, thirdGapAfterSecond = thirdGap)
+        assertThat((withThird - pair).getDistance(), "Third member approaching at gap=$thirdGap")
+          .isLessThan(tolerance)
+      }
+    }
+  }
+
+  @Test
+  fun threeMemberBridge_nearestOpticalProfileSwitchIsContinuous() {
+    for (lighting in listOf(false, true)) {
+      val before = probeThreeMemberBridge(49.99f, lighting)
+      val after = probeThreeMemberBridge(50.01f, lighting)
+      assertThat(before.signedDistance, "Three-member bridge remains inside the production shape")
+        .isLessThan(-0.5f)
+      assertThat(before.response.getDistance(), "Bridge response is non-zero, lighting=$lighting")
+        .isGreaterThan(if (lighting) 0.01f else 0.25f)
+      assertThat(
+        (after.response - before.response).getDistance(),
+        "Nearest-member optical switch through the three-member bridge, lighting=$lighting",
+      ).isLessThan(if (lighting) 0.03f else 0.6f)
     }
   }
 
@@ -189,6 +207,98 @@ class GlassContainerOpticalBoundaryTest {
     return Offset((color.red - 0.5f) * scale, (color.green - 0.5f) * scale)
   }
 
+  private fun probeThreeMemberBridge(probeX: Float, lighting: Boolean): SeamProbeResult {
+    val materialCenter = Offset(50f, 50f)
+    val memberCenters = listOf(Offset(0f, -44f), Offset(38f, 22f), Offset(-38f, 22f))
+    val field = GlassMergedField(
+      members = memberCenters.map { center ->
+        val translatedCenter = center + materialCenter
+        GlassMergedMember(
+          rect = Rect(
+            translatedCenter.x - 5f,
+            translatedCenter.y - 5f,
+            translatedCenter.x + 5f,
+            translatedCenter.y + 5f,
+          ),
+          cornerRadii = CornerRadii.zero,
+          tint = Color.Transparent,
+          backgroundColor = Color.Transparent,
+          layoutSize = Size(10f, 10f),
+        )
+      },
+      spacingPx = 100f,
+      opticalSize = Size(10f, 10f),
+    )
+    val effect = GlassRuntimeEffect().apply {
+      opticalSizeOverride = field.opticalSize
+      style = GlassStyle {
+        optics(
+          GlassOptics(
+            refractionStrength = 0.7f,
+            refractionDisplacement = 48.dp,
+            refractionHeightFraction = 0.25f,
+          ),
+        )
+        surfaceProfile(SurfaceProfile.Circle)
+      }
+    }
+    val materialSize = Size(100f, 100f)
+    val params = buildGlassRenderParams(
+      resolveGlassStyle(effect, materialSize, Density(1f), LayoutDirection.Ltr),
+      GlassCoordinates(materialSize, Offset.Zero, materialSize, 1f),
+    )
+    val shader = createThreeMemberBridgeProbeShader(lighting)
+    val filter = createRuntimeShaderRenderEffect(shader, arrayOf("content"), arrayOf(null)) {
+      setOpticalUniforms(params.opticalEffectKey())
+      setMergedFieldUniforms(field, includeTint = true, includeOptics = true)
+      setFloatUniform("probe", probeX, materialCenter.y)
+    }
+    val image = ImageBitmap(1, 1)
+    with(Canvas(image)) {
+      val pixelBounds = Rect(0f, 0f, 1f, 1f)
+      saveLayer(pixelBounds, Paint().apply { skiaPaint.imageFilter = filter })
+      drawRect(pixelBounds, Paint().apply { color = Color.Black })
+      restore()
+    }
+    val color = image.toPixelMap()[0, 0]
+    val encodingScale = if (lighting) 4f else 128f
+    return SeamProbeResult(
+      response = Offset((color.red - 0.5f) * encodingScale, (color.green - 0.5f) * encodingScale),
+      signedDistance = (color.blue - 0.5f) * 128f,
+    )
+  }
+
+  private fun createThreeMemberBridgeProbeShader(lighting: Boolean) = createRuntimeEffect(
+    GlassShaders.buildOptical(merged = true).let { source ->
+      val fieldWeight = Regex("float fieldWeight = ([^;]+);").find(source)!!.groupValues[1]
+      val output = if (lighting) {
+        "surfaceLightingGradient(probe, sd, fieldWeight)"
+      } else {
+        """
+          refractionDisplacement(
+            probe,
+            height,
+            edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : distance,
+            1.0,
+            fieldWeight
+          )
+        """.trimIndent()
+      }
+      val encodingScale = if (lighting) 4f else 128f
+      source.substringBefore("vec4 main(vec2 coord)") + """
+        uniform float2 probe;
+        vec4 main(vec2 coord) {
+          float sd = shapeSd(probe);
+          float fieldWeight = $fieldWeight;
+          float distance = opticalDistanceFromSignedDistance(probe, sd, fieldWeight);
+          float height = surfaceHeightNormFromOpticalDistance(distance);
+          vec2 result = $output;
+          return vec4(vec2(0.5) + result / $encodingScale, 0.5 + sd / 128.0, 1.0);
+        }
+      """.trimIndent()
+    },
+  )
+
   private fun probeShader(merged: Boolean, lighting: Boolean) = when {
     merged && lighting -> mergedLightingProbeShader
     merged -> mergedRefractionProbeShader
@@ -207,6 +317,11 @@ class GlassContainerOpticalBoundaryTest {
     val interactionScale: Float = 1f,
     val inputScale: Float = 1f,
     val probeRoundedCorner: Boolean = false,
+  )
+
+  private data class SeamProbeResult(
+    val response: Offset,
+    val signedDistance: Float,
   )
 
   private companion object {
@@ -262,7 +377,15 @@ class GlassContainerOpticalBoundaryTest {
           val output = if (lighting) {
             "surfaceLightingGradient(probe, sd, fieldWeight)"
           } else {
-            "refractionDisplacement(probe, height, edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : distance, 1.0, fieldWeight)"
+            """
+              refractionDisplacement(
+                probe,
+                height,
+                edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : distance,
+                1.0,
+                fieldWeight
+              )
+            """.trimIndent()
           }
           val encodingScale = if (lighting) 4f else 128f
           source.substringBefore("vec4 main(vec2 coord)") + """
