@@ -17,9 +17,10 @@ smooth minimum of member shapes. It needed three fixes:
 - stop sizing optics from the inflated layer.
 
 Haze will add `Modifier.hazeGlassContainer(spacing, transitionSpec, reducedMotionPolicy)`.
-`spacing` is required and has no default. Ordinary `hazeGlass` modifiers below it become
-**Glass members** of their nearest container, and the container draws every member's glass behind
-its own children. A member's own style still sets its shape, input and appearance.
+`spacing` is required and has no default (since renamed to `mergeDistance` with a default; see the
+[amendment](#amendment-rename-spacing-to-mergedistance-2026-10-21)). Ordinary `hazeGlass` modifiers
+below it become **Glass members** of their nearest container, and the container draws every
+member's glass behind its own children. A member's own style still sets its shape, input and appearance.
 
 ## Merging
 
@@ -152,3 +153,10 @@ motion scale (animations off), member transitions snap instead
   Inferring scrolls from member positions was measured and rejected: a uniform state-driven shift
   looks like a scroll, and a scroll past the viewport leaves no evidence
   ([#1524](https://github.com/chrisbanes/haze/issues/1524)).
+
+## Amendment: rename `spacing` to `mergeDistance` (2026-10-21)
+
+The container parameter is now `mergeDistance` and defaults to `GlassDefaults.mergeDistance`
+(16 dp). In Compose, `spacing` reads as layout spacing between children, which this parameter
+never controls. Its behaviour is unchanged: every mention of the spacing above refers to the
+merge distance.

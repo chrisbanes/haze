@@ -593,7 +593,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     val field = mergedField(
       mergedMember(4f, 4f, 40f, 40f, radius = 8f, tint = Color.Red, backgroundColor = Color.Blue),
       mergedMember(50f, 4f, 40f, 40f, radius = 8f, tint = Color.Blue, backgroundColor = Color.Blue),
-      spacingPx = 16f,
+      mergeDistancePx = 16f,
     )
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }
     waitForIdle()

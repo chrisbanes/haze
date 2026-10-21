@@ -60,9 +60,9 @@ internal fun mergedMember(
 
 internal fun mergedField(
   vararg members: GlassMergedMember,
-  spacingPx: Float = 40f,
+  mergeDistancePx: Float = 40f,
   opticalSize: Size = members.first().rect.size,
-) = GlassMergedField(members.toList(), spacingPx, opticalSize)
+) = GlassMergedField(members.toList(), mergeDistancePx, opticalSize)
 
 class GlassMergedFieldTest {
   @Test
@@ -98,8 +98,8 @@ class GlassMergedFieldTest {
   @Test
   fun init_rejectsNonFiniteValues() {
     val member = mergedMember(0f, 0f, 10f, 10f)
-    assertFailure { mergedField(member, spacingPx = Float.NaN) }.isInstanceOf<IllegalArgumentException>()
-    assertFailure { mergedField(member, spacingPx = -1f) }.isInstanceOf<IllegalArgumentException>()
+    assertFailure { mergedField(member, mergeDistancePx = Float.NaN) }.isInstanceOf<IllegalArgumentException>()
+    assertFailure { mergedField(member, mergeDistancePx = -1f) }.isInstanceOf<IllegalArgumentException>()
     assertFailure { mergedField(member, opticalSize = Size(Float.POSITIVE_INFINITY, 1f)) }
       .isInstanceOf<IllegalArgumentException>()
     assertFailure { mergedMember(Float.NaN, 0f, 10f, 10f) }.isInstanceOf<IllegalArgumentException>()
@@ -126,7 +126,7 @@ class GlassMergedFieldTest {
   }
 
   @Test
-  fun memberSmoothingPx_disjointMembersUseSpacing() {
+  fun memberSmoothingPx_disjointMembersUseMergeDistance() {
     val field = mergedField(
       mergedMember(0f, 0f, 100f, 40f),
       mergedMember(110f, 0f, 100f, 40f),
@@ -165,7 +165,7 @@ class GlassMergedFieldTest {
   }
 
   @Test
-  fun memberStandaloneWeights_smoothsFromHalfSpacingToFullSpacing() {
+  fun memberStandaloneWeights_smoothsFromHalfMergeDistanceToFullMergeDistance() {
     val belowHalf = mergedField(
       mergedMember(0f, 0f, 10f, 10f),
       mergedMember(29f, 0f, 10f, 10f),
@@ -193,7 +193,7 @@ class GlassMergedFieldTest {
       mergedField(
         mergedMember(0f, 0f, 10f, 10f),
         mergedMember(20f, 0f, 10f, 10f),
-        spacingPx = 0f,
+        mergeDistancePx = 0f,
       ).memberStandaloneWeights().toList(),
     ).containsExactly(0f, 0f)
   }
@@ -218,13 +218,13 @@ class GlassMergedFieldTest {
   fun scaled_halvesGeometry() {
     val field = mergedField(
       mergedMember(10f, 20f, 100f, 40f, radius = 8f, tint = Color.Red),
-      spacingPx = 40f,
+      mergeDistancePx = 40f,
       opticalSize = Size(100f, 40f),
     ).scaled(0.5f)
     assertThat(field).isEqualTo(
       mergedField(
         mergedMember(5f, 10f, 50f, 20f, radius = 4f, tint = Color.Red),
-        spacingPx = 20f,
+        mergeDistancePx = 20f,
         opticalSize = Size(50f, 20f),
       ),
     )

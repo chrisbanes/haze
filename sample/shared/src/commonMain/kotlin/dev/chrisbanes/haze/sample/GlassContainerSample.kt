@@ -65,15 +65,15 @@ import dev.chrisbanes.haze.rememberHazeState
 
 @Composable
 public fun GlassContainerSample(navController: NavHostController) {
-  var spacing by remember { mutableStateOf(24.dp) }
+  var mergeDistance by remember { mutableStateOf(24.dp) }
   var dragOffsets by remember { mutableStateOf(listOf(Offset.Zero, Offset.Zero)) }
   var extraMemberVisible by remember { mutableStateOf(false) }
 
   GlassContainerSampleContent(
-    spacing = spacing,
+    mergeDistance = mergeDistance,
     dragOffsets = dragOffsets,
     extraMemberVisible = extraMemberVisible,
-    onSpacingChange = { spacing = it },
+    onMergeDistanceChange = { mergeDistance = it },
     onDrag = { index, delta ->
       dragOffsets = dragOffsets.mapIndexed { i, offset -> if (i == index) offset + delta else offset }
     },
@@ -85,10 +85,10 @@ public fun GlassContainerSample(navController: NavHostController) {
 
 @Composable
 public fun GlassContainerSampleContent(
-  spacing: Dp,
+  mergeDistance: Dp,
   dragOffsets: List<Offset>,
   extraMemberVisible: Boolean,
-  onSpacingChange: (Dp) -> Unit,
+  onMergeDistanceChange: (Dp) -> Unit,
   onDrag: (index: Int, delta: Offset) -> Unit,
   onResetDrag: () -> Unit,
   onExtraMemberVisibleChange: (Boolean) -> Unit,
@@ -183,12 +183,12 @@ public fun GlassContainerSampleContent(
         .padding(start = 24.dp, top = 56.dp, end = 24.dp, bottom = 16.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-      // 1. Toolbar. Members start stretching within the spacing and bridge below half of it:
+      // 1. Toolbar. Members start stretching within the merge distance and bridge below half of it:
       // the 4 dp gaps here are well inside the 8 dp bridge threshold.
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Toolbar", color = Color.White, style = MaterialTheme.typography.titleMedium)
         Row(
-          modifier = Modifier.hazeGlassContainer(spacing = 16.dp),
+          modifier = Modifier.hazeGlassContainer(mergeDistance = 16.dp),
           horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
           val toolbarIcons = listOf(
@@ -218,9 +218,9 @@ public fun GlassContainerSampleContent(
         }
       }
 
-      // 2. Draggable members. Drag one circle towards the other, or change the spacing. The
-      // circles merge while their gap is less than half of the spacing. A spacing of zero
-      // disables merging.
+      // 2. Draggable members. Drag one circle towards the other, or change the merge distance. The
+      // circles merge while their gap is less than half of the merge distance. A merge distance of
+      // zero disables merging.
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
           Text(
@@ -236,7 +236,7 @@ public fun GlassContainerSampleContent(
           Modifier
             .fillMaxWidth()
             .height(112.dp)
-            .hazeGlassContainer(spacing = spacing),
+            .hazeGlassContainer(mergeDistance = mergeDistance),
         ) {
           // Offset comes before hazeGlass, so the glass moves with the circle.
           Box(
@@ -268,13 +268,13 @@ public fun GlassContainerSampleContent(
           )
         }
         Text(
-          "Spacing: ${spacing.value.toInt()} dp",
+          "Merge distance: ${mergeDistance.value.toInt()} dp",
           color = Color.White,
           style = MaterialTheme.typography.bodyMedium,
         )
         Slider(
-          value = spacing.value,
-          onValueChange = { onSpacingChange(it.dp) },
+          value = mergeDistance.value,
+          onValueChange = { onMergeDistanceChange(it.dp) },
           valueRange = 0f..64f,
         )
       }
@@ -285,7 +285,7 @@ public fun GlassContainerSampleContent(
       // matched-geometry transitions.
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Add and remove", color = Color.White, style = MaterialTheme.typography.titleMedium)
-        Row(Modifier.hazeGlassContainer(spacing = 24.dp)) {
+        Row(Modifier.hazeGlassContainer(mergeDistance = 24.dp)) {
           Box(
             Modifier
               .height(48.dp)
@@ -326,7 +326,7 @@ public fun GlassContainerSampleContent(
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Mixed tint", color = Color.White, style = MaterialTheme.typography.titleMedium)
         Row(
-          modifier = Modifier.hazeGlassContainer(spacing = 24.dp),
+          modifier = Modifier.hazeGlassContainer(mergeDistance = 24.dp),
           horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
           Box(

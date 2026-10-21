@@ -48,11 +48,11 @@ import org.robolectric.annotation.GraphicsMode
 class MergedGlassFusedAndroidHostTest : ContextTest() {
   @Test
   @Config(sdk = [35])
-  fun sdk35_bridgeCoversMidpointOnlyBelowHalfSpacing() = assertBridgeCoverage()
+  fun sdk35_bridgeCoversMidpointOnlyBelowHalfMergeDistance() = assertBridgeCoverage()
 
   @Test
   @Config(sdk = [37])
-  fun sdk37_bridgeCoversMidpointOnlyBelowHalfSpacing() = assertBridgeCoverage()
+  fun sdk37_bridgeCoversMidpointOnlyBelowHalfMergeDistance() = assertBridgeCoverage()
 
   @Test
   @Config(sdk = [37])
@@ -97,7 +97,8 @@ class MergedGlassFusedAndroidHostTest : ContextTest() {
         }
       }
       val density = runOnIdle { checkNotNull(activity).resources.displayMetrics.density }
-      // Two 50x20 dp capsules 10 dp from the top, with 16 dp spacing: they bridge below 8 dp.
+      // Two 50x20 dp capsules 10 dp from the top, with 16 dp merge distance: they bridge below 8
+      // dp.
       val gap = gapDp * density
       val width = 50f * density
       val height = 20f * density
@@ -107,7 +108,7 @@ class MergedGlassFusedAndroidHostTest : ContextTest() {
         effect.mergedField = mergedField(
           mergedMember(left, top, width, height, radius = height / 2f, tint = Color.Green),
           mergedMember(left + width + gap, top, width, height, radius = height / 2f, tint = Color.Green),
-          spacingPx = 16f * density,
+          mergeDistancePx = 16f * density,
           opticalSize = Size(width, height),
         )
       }

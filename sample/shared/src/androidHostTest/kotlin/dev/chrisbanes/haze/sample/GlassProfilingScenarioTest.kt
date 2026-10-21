@@ -387,10 +387,10 @@ class GlassProfilingScenarioTest {
       assertThat(scenario.usesBackdrop, name = scenario.id).isFalse()
       assertThat(scenario.steadyDraw, name = scenario.id).isFalse()
     }
-    assertThat(independent.containerSpacing).isNull()
-    assertThat(container.containerSpacing).isEqualTo(32.dp)
-    // The members merge only when their gap is less than half of the spacing.
-    assertThat(container.memberGap).isLessThan(checkNotNull(container.containerSpacing) / 2)
+    assertThat(independent.containerMergeDistance).isNull()
+    assertThat(container.containerMergeDistance).isEqualTo(32.dp)
+    // The members merge only when their gap is less than half of the merge distance.
+    assertThat(container.memberGap).isLessThan(checkNotNull(container.containerMergeDistance) / 2)
 
     val independentOffset = glassProfilingFrame(independent, 0.75f).sourceOffset
     assertThat(glassProfilingFrame(container, 0.75f).sourceOffset).isEqualTo(independentOffset)
@@ -406,7 +406,7 @@ class GlassProfilingScenarioTest {
     )
     (GlassProfilingScenario.entries - containerPair).forEach { scenario ->
       assertThat(scenario.memberGap, name = scenario.id).isEqualTo(0.dp)
-      assertThat(scenario.containerSpacing, name = scenario.id).isNull()
+      assertThat(scenario.containerMergeDistance, name = scenario.id).isNull()
     }
   }
 

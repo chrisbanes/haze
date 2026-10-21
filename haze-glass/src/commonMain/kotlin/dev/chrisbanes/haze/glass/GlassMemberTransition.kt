@@ -20,7 +20,7 @@ package dev.chrisbanes.haze.glass
  *
  * ```
  * val listState = rememberLazyListState()
- * LazyRow(state = listState, modifier = Modifier.hazeGlassContainer(spacing = 16.dp, scrollState = listState)) {
+ * LazyRow(state = listState, modifier = Modifier.hazeGlassContainer(mergeDistance = 16.dp, scrollState = listState)) {
  *   items(chips, key = { it.id }) { chip ->
  *     Chip(Modifier.hazeGlass(input = input, style = style))
  *   }
@@ -29,8 +29,8 @@ package dev.chrisbanes.haze.glass
  */
 public enum class GlassMemberTransition {
   /**
-   * A member that attaches within the container's spacing of a compatible member grows out of it,
-   * and retracts into it when it detaches. Without such a neighbour, this falls back to
+   * A member that attaches within the container's merge distance of a compatible member grows out
+   * of it, and retracts into it when it detaches. Without such a neighbour, this falls back to
    * [Materialize].
    */
   MatchedGeometry,

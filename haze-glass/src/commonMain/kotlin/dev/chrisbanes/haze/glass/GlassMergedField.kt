@@ -63,21 +63,21 @@ internal class GlassMergedMember(
 /**
  * Up to [MAX_GLASS_MERGED_MEMBERS] members drawn as one Glass surface (ADR-0013).
  *
- * The shaders join members with a polynomial smooth minimum whose radius is [spacingPx], so
- * members bridge while their gap is under half the spacing. Optics are resolved for
+ * The shaders join members with a polynomial smooth minimum whose radius is [mergeDistancePx], so
+ * members bridge while their gap is under half the merge distance. Optics are resolved for
  * [opticalSize] rather than the layer size.
  */
 @Poko
 internal class GlassMergedField(
   val members: List<GlassMergedMember>,
-  val spacingPx: Float,
+  val mergeDistancePx: Float,
   val opticalSize: Size,
 ) {
   init {
     require(members.size in 1..MAX_GLASS_MERGED_MEMBERS) {
       "A merged field needs 1 to $MAX_GLASS_MERGED_MEMBERS members, was ${members.size}"
     }
-    require(spacingPx.isFinite() && spacingPx >= 0f) { "spacingPx must be finite and non-negative" }
+    requireFiniteNonNegative("mergeDistancePx", mergeDistancePx)
     require(
       opticalSize.width.isFinite() && opticalSize.height.isFinite() &&
         opticalSize.width >= 0f && opticalSize.height >= 0f,
@@ -113,7 +113,7 @@ internal class GlassMergedField(
             layoutRect = it.layoutRect,
           )
         },
-        spacingPx,
+        mergeDistancePx,
         opticalSize,
       )
     }
@@ -142,7 +142,7 @@ internal class GlassMergedField(
             layoutRect = it.layoutRect,
           )
         },
-        spacingPx,
+        mergeDistancePx,
         opticalSize,
       )
     }
@@ -169,7 +169,7 @@ internal class GlassMergedField(
             layoutRect = it.layoutRect,
           )
         },
-        spacingPx,
+        mergeDistancePx,
         opticalSize,
       )
     }
@@ -189,7 +189,7 @@ internal class GlassMergedField(
             layoutRect = it.layoutRect,
           )
         },
-        spacingPx,
+        mergeDistancePx,
         opticalSize,
       )
     }
@@ -200,10 +200,10 @@ internal class GlassMergedField(
    * `d = smin(d, d_i, k_i)` in index order. Member 0 starts the field, so its value is unused.
    *
    * The smooth minimum lowers the field by up to `k / 4` where members are equally near, so
-   * overlapping members would grow past their union. Each member keeps the full spacing while it
-   * is apart from every earlier member, and fades to zero as its deepest overlap with one of them
-   * reaches that pair's smaller shortest side. Fading per member keeps one overlapping pair from
-   * removing an unrelated member's bridge.
+   * overlapping members would grow past their union. Each member keeps the full merge distance
+   * while it is apart from every earlier member, and fades to zero as its deepest overlap with one
+   * of them reaches that pair's smaller shortest side. Fading per member keeps one overlapping pair
+   * from removing an unrelated member's bridge.
    */
   fun memberSmoothingPx(): FloatArray = FloatArray(members.size) { index ->
     val rect = members[index].rect
@@ -219,14 +219,14 @@ internal class GlassMergedField(
         overlap = maxOf(overlap, (-separation / fullOverlap).coerceIn(0f, 1f))
       }
     }
-    spacingPx * (1f - overlap * overlap * (3f - 2f * overlap))
+    mergeDistancePx * (1f - overlap * overlap * (3f - 2f * overlap))
   }
 
   /** Optical blend weight for each member, based only on its nearest other member in this field. */
   fun memberStandaloneWeights(): FloatArray = FloatArray(members.size) { index ->
     if (members.size == 1) {
       1f
-    } else if (spacingPx == 0f) {
+    } else if (mergeDistancePx == 0f) {
       0f
     } else {
       val rect = members[index].rect
@@ -236,7 +236,7 @@ internal class GlassMergedField(
           nearestGap = minOf(nearestGap, glassMemberGap(rect, members[otherIndex].rect))
         }
       }
-      val t = ((nearestGap - spacingPx / 2f) / (spacingPx / 2f)).coerceIn(0f, 1f)
+      val t = ((nearestGap - mergeDistancePx / 2f) / (mergeDistancePx / 2f)).coerceIn(0f, 1f)
       t * t * t * (t * (t * 6f - 15f) + 10f)
     }
   }
@@ -263,7 +263,7 @@ internal class GlassMergedField(
         },
       )
     },
-    spacingPx = spacingPx * scaleFactor,
+    mergeDistancePx = mergeDistancePx * scaleFactor,
     opticalSize = opticalSize * scaleFactor,
   )
 }

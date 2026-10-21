@@ -150,8 +150,8 @@ parameter except the container:
 - `HazePerformanceMode.Default` (`Balanced`), `HazeInput.Sources`, and the Regular style;
 - the continuously changing source workload used by `source_update_balanced`.
 
-`source_update_container_2` wraps the grid in `hazeGlassContainer(spacing = 32.dp)`. The 12 dp gap
-is less than half of the spacing, so the two surfaces form one two-member cluster.
+`source_update_container_2` wraps the grid in `hazeGlassContainer(mergeDistance = 32.dp)`. The 12 dp
+gap is less than half of the merge distance, so the two surfaces form one two-member cluster.
 
 Both use the changing-source workload, not the steady one. `HazeSource.record` re-records the same
 source layer every frame, but that does not re-enter the Glass draw: the Glass layers were recorded
@@ -187,11 +187,12 @@ system GPU data alongside CPU frame duration.
 
 - a fixed 360×560 dp `LazyVerticalGrid` of five columns, with 56 dp tall members 12 dp apart, shows
   about nine rows, so 40-45 members are visible;
-- the grid is `hazeGlassContainer(spacing = 16.dp, scrollState = gridState)`. The 12 dp gap is at
-  least half of the spacing, so every member is its own cluster. The GPU cost per member stays
-  constant, and the workload isolates the reclustering cost. Before #1567, every member notification
-  reclustered all members. Each pass checked on the order of the member count squared in pairs, so
-  the one notification per member in a frame cost on the order of the member count cubed;
+- the grid is `hazeGlassContainer(mergeDistance = 16.dp, scrollState = gridState)`. The 12 dp gap
+  is at least half of the merge distance, so every member is its own cluster. The GPU cost per
+  member stays constant, and the workload isolates the reclustering cost. Before #1567, every member
+  notification reclustered all members. Each pass checked on the order of the member count squared
+  in pairs, so the one notification per member in a frame cost on the order of the member count
+  cubed;
 - there are 1,000 items, scrolled linearly by 1,200 dp over the three-second window inside
   `gridState.scroll { }`, so `isScrollInProgress` is true, as it is for a real drag;
 - `HazeInput.Sources` over the scene's stationary source, the Regular style and `Balanced`.

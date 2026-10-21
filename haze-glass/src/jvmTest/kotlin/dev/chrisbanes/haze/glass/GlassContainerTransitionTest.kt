@@ -451,7 +451,7 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
-  fun matchedGeometry_beyondSpacing_fallsBackToMaterialize() = runComposeUiTest {
+  fun matchedGeometry_beyondMergeDistance_fallsBackToMaterialize() = runComposeUiTest {
     val fixture = fixture(gap = 50, present = false)
     fixture.toggle()
     fixture.advance(150)
@@ -483,7 +483,7 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
-  fun materialize_withinHalfSpacing_joinsClusterWhenOpaque() = runComposeUiTest {
+  fun materialize_withinHalfMergeDistance_joinsClusterWhenOpaque() = runComposeUiTest {
     val fixture = fixture(present = false, transition = GlassMemberTransition.Materialize)
     fixture.toggle()
     fixture.advance(150)
@@ -638,7 +638,8 @@ class GlassContainerTransitionTest : ContextTest() {
 
   @Test
   fun neighbourStillGrowing_isChosenAtItsCurrentShape() = runComposeUiTest {
-    // C sits 10px right of B's final rect but beyond the spacing of B's current, growing shape.
+    // C sits 10px right of B's final rect but beyond the merge distance of B's current, growing
+    // shape.
     val fixture = fixture(present = false, cOffset = 260 to 60)
     fixture.toggle()
     fixture.advance(96)
@@ -652,7 +653,7 @@ class GlassContainerTransitionTest : ContextTest() {
 
   @Test
   fun neighbourStillGrowing_morphStartsFromItsCurrentShape() = runComposeUiTest {
-    // C sits below both B's current and final rects, and beyond the spacing of A.
+    // C sits below both B's current and final rects, and beyond the merge distance of A.
     val fixture = fixture(present = false, cOffset = 200 to 150)
     fixture.toggle()
     fixture.advance(240)
@@ -668,8 +669,8 @@ class GlassContainerTransitionTest : ContextTest() {
 
   @Test
   fun ghostRetractingIntoGrowingNeighbour_followsItsDrawnShape() = runComposeUiTest {
-    // B grows up out of C, whose final rect is beyond A's spacing; A then leaves while B's drawn
-    // shape still overlaps it, so A retracts into B rather than into C.
+    // B grows up out of C, whose final rect is beyond A's merge distance; A then leaves while B's
+    // drawn shape still overlaps it, so A retracts into B rather than into C.
     val fixture = fixture(gap = 50, present = false, cOffset = 90 to 150, cInitially = true)
     fixture.toggle()
     fixture.advance(96)
@@ -719,17 +720,17 @@ class GlassContainerTransitionTest : ContextTest() {
   fun growingMember_endsWhenNoLongerTranslationOnly() = assertGrowEnds { bRotation.value = 10f }
 
   @Test
-  fun growingMember_endsWhenSpacingNoLongerReachesNeighbour() = assertGrowEnds { spacing.value = 0 }
+  fun growingMember_endsWhenMergeDistanceNoLongerReachesNeighbour() = assertGrowEnds { mergeDistance.value = 0 }
 
   @Test
-  fun growingMember_endsWhenNeighbourLayoutMovesBeyondSpacing() = assertGrowEnds { aWidth.value = 40 }
+  fun growingMember_endsWhenNeighbourLayoutMovesBeyondMergeDistance() = assertGrowEnds { aWidth.value = 40 }
 
   @Test
-  fun retractingGhost_endsWhenSpacingNoLongerReachesNeighbour() = runComposeUiTest {
+  fun retractingGhost_endsWhenMergeDistanceNoLongerReachesNeighbour() = runComposeUiTest {
     val fixture = fixture()
     fixture.toggle()
     assertThat(fixture.b().identity).isInstanceOf<GlassMemberGhost>()
-    runOnIdle { fixture.spacing.value = 0 }
+    runOnIdle { fixture.mergeDistance.value = 0 }
     fixture.advance(16)
     assertThat(fixture.owner().model.surfaces.flatMap { it.members }.map { it.identity }).containsExactly(fixture.aNode)
     fixture.settle()
@@ -928,7 +929,7 @@ class GlassContainerTransitionTest : ContextTest() {
   fun detachFromPressedMember_ghostSamplesThroughItsPressTransform() {
     for (transition in listOf(GlassMemberTransition.MatchedGeometry, GlassMemberTransition.Materialize)) {
       runComposeUiTest {
-        // MatchedGeometry needs a neighbour within the spacing to retract; Materialize fades in place.
+        // MatchedGeometry needs a neighbour within the merge distance to retract; Materialize fades in place.
         val retracts = transition == GlassMemberTransition.MatchedGeometry
         val fixture = fixture(gap = if (retracts) 10 else 100, transition = transition, bPivot = GlassTransformPivot.Pointer)
         fixture.pressB(Offset(20f, 15f))
@@ -1032,7 +1033,7 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
-  fun growOutOfOvershootingNeighbour_doesNotEndWhileLayoutStaysWithinSpacing() = runComposeUiTest {
+  fun growOutOfOvershootingNeighbour_doesNotEndWhileLayoutStaysWithinMergeDistance() = runComposeUiTest {
     // C's layout is 35px from B's, but B overshoots its layout while it grows out of A.
     val fixture = fixture(present = false, spec = spring(dampingRatio = 0.2f, stiffness = 200f), cOffset = 285 to 60, width = 400)
     val c = { fixture.owner().model.surfaces.flatMap { it.members }.single { it.identity === fixture.c.memberBindingForTest?.node } }
@@ -1044,7 +1045,7 @@ class GlassContainerTransitionTest : ContextTest() {
     fixture.advance(16)
     val bNode = fixture.b.memberBindingForTest?.node
     assertThat(c().link).isEqualTo(bNode)
-    // B then swings back, away from C, while its layout stays within the spacing.
+    // B then swings back, away from C, while its layout stays within the merge distance.
     repeat(20) {
       fixture.advance(16)
       assertThat(c().link).isEqualTo(bNode)
@@ -1145,7 +1146,7 @@ class GlassContainerTransitionTest : ContextTest() {
     val aExtra = mutableStateOf(GlassStyle { })
     val bSourced = mutableStateOf(false)
     val bCollapsed = mutableStateOf(false)
-    val spacing = mutableStateOf(40)
+    val mergeDistance = mutableStateOf(40)
 
     val aSource = MutableInteractionSource()
     val bSource = MutableInteractionSource()
@@ -1256,7 +1257,7 @@ class GlassContainerTransitionTest : ContextTest() {
     setContent {
       Box(Modifier.size(width.dp, 240.dp).testTag("root").background(Color.White)) {
         Box(Modifier.size(width.dp, 240.dp).hazeSource(state).background(Color.White))
-        Box(Modifier.size(width.dp, 240.dp).then(if (enabled.value) Modifier.hazeGlassContainer(fixture.spacing.value.dp, transitionSpec = spec, reducedMotionPolicy = policy) else Modifier)) {
+        Box(Modifier.size(width.dp, 240.dp).then(if (enabled.value) Modifier.hazeGlassContainer(fixture.mergeDistance.value.dp, transitionSpec = spec, reducedMotionPolicy = policy) else Modifier)) {
           if (aPresent.value) {
             Box(
               Modifier.offset(40.dp, 60.dp).size(aWidth.value.dp, 80.dp).graphicsLayer {

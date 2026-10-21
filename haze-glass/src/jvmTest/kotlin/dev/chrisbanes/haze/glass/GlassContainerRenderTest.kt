@@ -149,7 +149,7 @@ class GlassContainerRenderTest : ContextTest() {
     val coordinates = checkNotNull(runtime.preparedRender).params.coordinates
     val source = checkNotNull((runtime.delegate as RuntimeShaderGlassDelegate).layers.source)
     val pixels = runBlocking { source.toImageBitmap().toPixelMap() }
-    // Material starts at owner(0,20): full spacing padding precedes both member captures.
+    // Material starts at owner(0,20): full merge distance padding precedes both member captures.
     val firstX = (80f * coordinates.scaleFactor + coordinates.materialOrigin.x).toInt()
     val secondX = (200f * coordinates.scaleFactor + coordinates.materialOrigin.x).toInt()
     val y = (80f * coordinates.scaleFactor + coordinates.materialOrigin.y).toInt()

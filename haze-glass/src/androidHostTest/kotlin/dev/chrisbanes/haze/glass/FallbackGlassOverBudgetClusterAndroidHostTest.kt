@@ -94,8 +94,8 @@ class FallbackGlassOverBudgetClusterAndroidHostTest : ScreenshotTest() {
     glassLayerBoundsForTest = null
     scene.assertOneFallbackSurface()
 
-    // The cluster origin sits a spacing above and left of its members, so the union starts at
-    // (40, 40) dp and ends 160 dp down in surface space; the window cuts it at the root width.
+    // The cluster origin sits a merge distance above and left of its members, so the union starts
+    // at (40, 40) dp and ends 160 dp down in surface space; the window cuts it at the root width.
     val d = scene.density
     val expected = Rect(floor(40 * d), floor(40 * d), rootWidth.toFloat(), ceil(160 * d))
     // Background colour, input and tint, at least once each.

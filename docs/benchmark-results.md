@@ -216,7 +216,7 @@ appearance and frame timing on the actual screen under normal scheduling.
 
 This comparison draws two Regular Glass surfaces, each about 134 × 180 dp and 12 dp apart, over a
 continuously changing source. The independent row draws them separately. The container row wraps
-the same surfaces in `hazeGlassContainer(spacing = 32.dp)`, so they merge into one cluster. Both
+the same surfaces in `hazeGlassContainer(mergeDistance = 32.dp)`, so they merge into one cluster. Both
 rows use [`HazePerformanceMode.Default`][HazePerformanceMode.Default] and `HazeInput.Sources`. It used a Pixel 8a running
 Android 17 (full SDK 37.2) at 60 Hz, with fixed-performance mode enabled and normal CPU scheduling.
 
@@ -245,9 +245,9 @@ The container row had 0.35 ms lower CPU P90, but about 4.5 ms less deadline marg
 These runs did not measure GPU timings, so they do not show why the container finished closer to
 its deadline despite its lower CPU frame duration. Neither row missed its deadline at P90.
 
-These results describe two surfaces at one spacing on one device. They do not establish the cost
-of larger clusters, more members, other styles, or higher refresh rates. Measure clustered screens
-against independent surfaces before adopting a container.
+These results describe two surfaces at one merge distance on one device. They do not establish the
+cost of larger clusters, more members, other styles, or higher refresh rates. Measure clustered
+screens against independent surfaces before adopting a container.
 
 ??? info "Measurement details"
 
@@ -287,10 +287,10 @@ against independent surfaces before adopting a container.
 ### Lazy container scroll
 
 This comparison scrolls a five-column `LazyVerticalGrid` with 40–45 visible members inside
-`hazeGlassContainer(spacing = 16.dp)`. Every member is its own cluster, so the workload isolates
-reclustering. Build A reclusters on every member notification. Build B coalesces them into one
-pass per frame ([#1567](https://github.com/chrisbanes/haze/issues/1567)). It used a Pixel 8a running
-Android 17 at 60 Hz, with fixed-performance mode enabled and normal CPU scheduling.
+`hazeGlassContainer(mergeDistance = 16.dp)`. Every member is its own cluster, so the workload
+isolates reclustering. Build A reclusters on every member notification. Build B coalesces them into
+one pass per frame ([#1567](https://github.com/chrisbanes/haze/issues/1567)). It used a Pixel 8a
+running Android 17 at 60 Hz, with fixed-performance mode enabled and normal CPU scheduling.
 
 Each per-pass value pools the frames of that pass's eight iterations; the table shows the
 **arithmetic mean of the two per-pass values** for each build.

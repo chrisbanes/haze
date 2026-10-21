@@ -100,7 +100,7 @@ class GlassContainerOpticalPipelineTest {
         ),
         mergedMember(second),
       ),
-      spacingPx = 40f,
+      mergeDistancePx = 40f,
       opticalSize = sharedOpticalSize,
     )
     val params = pressedParams(scenario, field, materialSize = Size(second.right, pressedLayout.height))
@@ -192,7 +192,7 @@ class GlassContainerOpticalPipelineTest {
           mergedMember(Rect(0f, 0f, 120f, 40f)),
           mergedMember(Rect(120f + gap, 0f, 240f + gap, 40f)),
         ),
-        spacingPx = 40f,
+        mergeDistancePx = 40f,
         opticalSize = sharedOpticalSize,
       )
     } else {

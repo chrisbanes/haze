@@ -40,7 +40,7 @@ class MergedGlassFieldShaderTest {
         GlassMemberSnapshot(index, member.rect, key, material, translationOnly = true, layoutRect = member.rect)
       }
       val cluster = clusterGlassMembers(snapshots, 40f).surfaces.first()
-      val field = mergedField(*cluster.members.map { members[it.identity as Int] }.toTypedArray(), spacingPx = 40f)
+      val field = mergedField(*cluster.members.map { members[it.identity as Int] }.toTypedArray(), mergeDistancePx = 40f)
       return probe(field, Offset(100f, 20f), "shapeSd(probe)", scale = 16f)
     }
     for (threshold in listOf(40f, 20f)) {
@@ -52,12 +52,12 @@ class MergedGlassFieldShaderTest {
   }
 
   @Test
-  fun bridge_formsBelowHalfSpacingOnly() {
+  fun bridge_formsBelowHalfMergeDistanceOnly() {
     for ((gap, bridged) in listOf(19f to true, 20f to false, 21f to false)) {
       val field = mergedField(
         mergedMember(0f, 0f, 100f, 40f),
         mergedMember(100f + gap, 0f, 100f, 40f),
-        spacingPx = 40f,
+        mergeDistancePx = 40f,
       )
       val inside = probeColor(
         field,
@@ -71,7 +71,7 @@ class MergedGlassFieldShaderTest {
   @Test
   fun fullOverlap_endsAtUnion() {
     val member = mergedMember(20f, 10f, 100f, 40f, radius = 12f)
-    val field = mergedField(member, member, spacingPx = 40f)
+    val field = mergedField(member, member, mergeDistancePx = 40f)
     for (point in listOf(Offset(20f, 30f), Offset(70f, 10f), Offset(70f, 30f), Offset(130f, 60f), Offset(0f, 0f))) {
       val difference = probe(field, point, "shapeSd(probe) - memberSd(probe, memberRects[0], memberRadii[0])")
       assertThat(abs(difference), "difference from the single member at $point").isLessThan(1e-3f)
@@ -100,13 +100,13 @@ class MergedGlassFieldShaderTest {
    */
   private fun capsulesWithNeck(thickness: Float): Pair<GlassMergedField, Float> {
     val radius = 20f
-    val spacing = 40f
+    val mergeDistance = 40f
     val half = thickness / 2f
-    val gap = 2f * (sqrt((radius + spacing / 4f) * (radius + spacing / 4f) - half * half) - radius)
+    val gap = 2f * (sqrt((radius + mergeDistance / 4f) * (radius + mergeDistance / 4f) - half * half) - radius)
     val field = mergedField(
       mergedMember(0f, 0f, 100f, 40f, radius = radius),
       mergedMember(100f + gap, 0f, 100f, 40f, radius = radius),
-      spacingPx = spacing,
+      mergeDistancePx = mergeDistance,
     )
     return field to gap
   }
@@ -129,7 +129,7 @@ class MergedGlassFieldShaderTest {
     val field = mergedField(
       mergedMember(0f, 0f, 100f, 40f, tint = Color.Red),
       mergedMember(110f, 0f, 100f, 40f, tint = Color.Blue),
-      spacingPx = 40f,
+      mergeDistancePx = 40f,
     )
     val blend = "blendMemberColors(memberWeights(probe), memberTint0, memberTint1, memberTint2, memberTint3)"
     assertColor(probeColor(field, Offset(105f, 20f), blend), Color(0.5f, 0f, 0.5f))
@@ -145,7 +145,7 @@ class MergedGlassFieldShaderTest {
       mergedMember(200f, 0f, 100f, 40f),
       mergedMember(0f, 100f, 100f, 40f),
       mergedMember(200f, 100f, 100f, 40f),
-      spacingPx = 40f,
+      mergeDistancePx = 40f,
     )
     val centers = all.members.map { it.rect.center }
     for (count in 1..4) {
