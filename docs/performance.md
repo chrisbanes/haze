@@ -56,16 +56,21 @@ fresh input, so always test those interactions as well as stationary content.
 
 <a id="input-sharing"></a>
 
-Effects that sample the same [`hazeSource`][hazeSource] through
-[`HazeInput.Sources`][HazeInput.Sources] share one rendered copy of it on Android once two or more
-of them do. Without sharing, each effect replays the source's full content whenever it changes,
-so a busy source, such as a feed with playing video, costs more for every effect over it. Sharing
-renders it once and costs one texture the size of the source. Effects then no longer see anything
-the source draws outside its bounds; the source itself still draws normally.
+By default, each effect that samples a [`hazeSource`][hazeSource] through
+[`HazeInput.Sources`][HazeInput.Sources] replays the source's full content whenever it changes. A
+busy source, such as a feed with playing video, then costs more for every effect over it.
 
-Use the experimental `inputSharing` parameter to change this per source: `HazeInputSharing.Never`
-returns to one replay per effect, for example to keep memory down for a source that is cheap to
-draw, and `Always` shares even with a single effect, on every platform.
+The experimental `inputSharing` parameter lets effects share one rendered copy instead.
+`HazeInputSharing.Auto` shares on Android once two or more effects sample the source, and
+`Always` shares on every platform. Sharing costs one texture the size of the source, and the
+shared copy is re-rendered whenever the source changes, which adds GPU work while it scrolls.
+Effects also no longer see anything the source draws outside its bounds.
+
+Opt a source in when the RenderThread spends its time replaying it. An app with seven effects over
+a video feed, [reported in #1611](https://github.com/chrisbanes/haze/issues/1611), measured its
+effect layers falling from about 2.2 ms to 0.2 ms per frame with an equivalent offscreen copy. On a
+Pixel 8a with a lighter feed, it saved no CPU time and left 0.8–1.5 ms less frame margin at P90
+while scrolling ([conditions and limits](benchmark-results.md#input-sharing)).
 
 <a id="input-scale"></a>
 <a id="performance-mode"></a>

@@ -302,7 +302,7 @@ public fun Modifier.hazeSource(
 
 /**
  * Captures background content for [hazeEffect] child nodes, like the [hazeSource] overload without
- * [inputSharing].
+ * [inputSharing], which uses [HazeInputSharing.Never].
  *
  * @param inputSharing Whether effects sampling this source share one rendered copy of its content.
  * See [HazeInputSharing].
@@ -321,7 +321,7 @@ internal data class HazeSourceElement(
   val state: HazeState,
   val zIndex: Float = 0f,
   val key: Any? = null,
-  val inputSharing: HazeInputSharing = HazeInputSharing.Auto,
+  val inputSharing: HazeInputSharing = HazeInputSharing.Never,
 ) : ModifierNodeElement<HazeSourceNode>() {
 
   override fun create(): HazeSourceNode = HazeSourceNode(

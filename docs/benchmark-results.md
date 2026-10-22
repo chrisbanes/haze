@@ -408,6 +408,66 @@ workloads.
     Raw JSON, benchmark messages, traces, frozen APKs, and per-method device readbacks are
     retained locally under `internal/benchmark/build/benchmark-results/noise-tint.eO1A65/`.
 
+<a id="input-sharing"></a>
+
+## Input sharing
+
+This comparison draws four separate 40 dp controls in a header over one `hazeSource`: a
+`LazyColumn` of full-width cards with artwork, text and translucent chips, where every third card
+animates like a playing video and every fourth card is faded. The shared rows use
+`HazeInputSharing.Auto`, so the four effects sample one rendered copy of the feed; the unshared
+rows use `Never`, so each effect replays the feed. The plain rows draw the same controls as
+translucent fills without Haze. The video rows only animate the video cards; the scroll rows also
+scroll the feed at a fixed speed. It used a Pixel 8a running Android 17 at 60 Hz, with
+fixed-performance mode enabled and normal CPU scheduling.
+
+Each per-pass value pools the frames of that pass's eight iterations; the table shows the
+**arithmetic mean of the two per-pass values**. Peak GPU memory uses each pass's median
+`memoryGpuMaxKb`. Replays count HWUI `alpha caused saveLayer` slices per frame, which mark each
+time a faded card is drawn.
+
+| Workload | Controls | Input | saveLayer passes per frame | `DrawFrames` avg (ms) | CPU frame duration P90 (ms) | Frame overrun P90 (ms) | Peak GPU memory (KB) |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Video | Glass | Shared | 10.0 | 2.95 | 5.79 | -6.02 | 145,410 |
+| Video | Glass | Unshared | 25.0 | 2.90 | 5.83 | -6.69 | 111,764 |
+| Video | Blur | Shared | 10.0 | 2.75 | 5.74 | -6.14 | 145,189 |
+| Video | Blur | Unshared | 25.0 | 2.87 | 6.00 | -6.95 | 109,511 |
+| Video | Plain | — | 5.0 | 2.16 | 6.11 | -7.95 | 106,354 |
+| Scroll | Glass | Shared | 20.3 | 3.32 | 7.05 | -4.38 | 162,172 |
+| Scroll | Glass | Unshared | 49.7 | 3.35 | 7.15 | -5.17 | 128,716 |
+| Scroll | Blur | Shared | 20.4 | 3.27 | 7.34 | -4.82 | 160,093 |
+| Scroll | Blur | Unshared | 49.7 | 3.17 | 6.79 | -6.27 | 126,405 |
+| Scroll | Plain | — | 10.6 | 1.93 | 5.71 | -7.43 | 130,497 |
+
+Sharing cut the replays from five to two per frame (one on screen, one into the shared copy), but
+on this device and feed it did not reduce `DrawFrames` or CPU frame duration beyond the variation
+between passes. While scrolling, the shared rows left 0.8 ms (Glass) and 1.5 ms (Blur) less frame
+margin at P90 than the unshared rows, in both passes. Sharing added about 33 MB of peak GPU
+memory; HWUI's own caches grew by about 20 MB, roughly two full-screen surfaces, in a separate
+`dumpsys gfxinfo` check. CPU frame duration does not measure GPU cost, and these runs did not
+measure GPU timings, so they do not show where the lost margin went. No row missed its deadline
+at P90.
+
+These results describe one synthetic feed that is cheap to replay, on a device with spare
+RenderThread time. An app whose source is expensive to replay and whose RenderThread runs close
+to its budget can gain substantially instead, as reported in
+[#1611](https://github.com/chrisbanes/haze/issues/1611). Measure a source before opting it in.
+
+??? info "Measurement details"
+
+    The `benchmarkRelease` APKs were built from commit `26b30b79`; APK hashes were not recorded.
+    The Android build was `CP41.260831.016`. All 20 invocations started at thermal status 0.
+
+    Each method ran eight measured iterations per pass in its own Gradle invocation, using
+    `GlassFeedBenchmark`. For each workload, the first pass ran Glass shared, Glass unshared, Blur
+    shared, Blur unshared and plain, and the second pass reversed that order. This produced 160
+    iterations, 160 Perfetto traces, and 28,839 measured frames. No completed iteration was
+    discarded. The two passes of each row differed by at most 0.32 ms in CPU P90 and 0.53 ms in
+    frame overrun P90.
+
+    The saveLayer counts were stable across iterations, confirming that every row ran its intended
+    input path. CPU placement was not analysed.
+
 <a id="placement-update-deduplication"></a>
 
 ## Placement update deduplication

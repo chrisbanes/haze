@@ -12,6 +12,10 @@ package dev.chrisbanes.haze
  * the source also renders its content once into an offscreen layer, which every effect samples.
  * That costs one texture the size of the source, and effects no longer see anything the source
  * draws outside its layout bounds. The source itself still draws normally on screen.
+ *
+ * Sharing reduces the CPU cost of replaying an expensive source on a busy RenderThread, but the
+ * shared copy is re-rendered whenever the source changes, which adds GPU work while it scrolls.
+ * Sources default to [Never]; measure before opting a source in.
  */
 @ExperimentalHazeApi
 public enum class HazeInputSharing {
@@ -24,7 +28,7 @@ public enum class HazeInputSharing {
   /** Shares input whenever at least one effect samples the source, on every platform. */
   Always,
 
-  /** Never shares input. Each effect replays the source's content. */
+  /** Never shares input. Each effect replays the source's content. This is the default. */
   Never,
 }
 

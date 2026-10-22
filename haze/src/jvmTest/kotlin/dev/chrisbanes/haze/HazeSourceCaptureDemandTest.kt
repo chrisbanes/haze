@@ -168,6 +168,7 @@ class HazeSourceCaptureDemandTest {
     assertThat(state.areas.single().sharedInputLayer).isNull()
   }
 
+  @OptIn(ExperimentalHazeApi::class)
   @Test
   fun inputSharingAuto_doesNotShareOnSkia() = runComposeUiTest {
     val state = HazeState()
@@ -176,7 +177,7 @@ class HazeSourceCaptureDemandTest {
 
     setContent {
       Box(Modifier.size(100.dp)) {
-        Source(state)
+        Box(Modifier.fillMaxSize().hazeSource(state, inputSharing = HazeInputSharing.Auto))
         Effect(state, first)
         Effect(state, second)
       }
@@ -185,6 +186,13 @@ class HazeSourceCaptureDemandTest {
     val area = state.areas.single()
     assertThat(area.captureConsumerCount).isEqualTo(2)
     assertThat(area.sharedInputLayer).isNull()
+  }
+
+  @OptIn(ExperimentalHazeApi::class)
+  @Test
+  fun hazeSource_defaultsToNeverSharingInput() {
+    assertThat(HazeSourceElement(HazeState()).inputSharing).isEqualTo(HazeInputSharing.Never)
+    assertThat(HazeSourceNode(HazeState()).inputSharing).isEqualTo(HazeInputSharing.Never)
   }
 
   @OptIn(ExperimentalHazeApi::class)

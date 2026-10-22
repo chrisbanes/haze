@@ -18,12 +18,12 @@ performance guidance.
 
 ### Added
 
-- Effects that sample one `hazeSource` now share a single rendered copy of it on Android when two
-  or more of them do. Previously the renderer replayed the source's content once per effect every
-  time it changed, so the cost grew with how much the source drew. The shared copy uses one texture
-  the size of the source, and effects no longer see anything the source draws outside its bounds.
-  Use the new experimental `hazeSource(..., inputSharing = HazeInputSharing.Never)` overload to opt
-  a source out, or `Always` to share with a single effect
+- Added the experimental `HazeInputSharing` and a `hazeSource(..., inputSharing = ...)` overload.
+  Effects that sample one source normally replay its content once each whenever it changes. With
+  `Auto`, effects on Android share one rendered copy once two or more of them sample the source;
+  `Always` shares on every platform. This can reduce RenderThread time for an expensive source,
+  but it costs one texture the size of the source, adds GPU work while the source scrolls, and
+  hides content drawn outside the source's bounds from effects. The default is `Never`
   ([#1611](https://github.com/chrisbanes/haze/issues/1611)).
 
 - Added `GlassOptics.regular` and `GlassOptics.clear` as reusable optical configurations, and

@@ -53,7 +53,7 @@ internal class HazeSourceNode(
   state: HazeState,
   zIndex: Float = 0f,
   key: Any? = null,
-  inputSharing: HazeInputSharing = HazeInputSharing.Auto,
+  inputSharing: HazeInputSharing = HazeInputSharing.Never,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
   GlobalPositionAwareModifierNode,
