@@ -161,8 +161,10 @@ package dev.chrisbanes.haze {
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeFeatureFlags {
+    property public boolean isOffscreenSourceEnabled;
     property public boolean isPlatformBackdropEnabled;
     field public static final dev.chrisbanes.haze.HazeFeatureFlags INSTANCE;
+    field public static boolean isOffscreenSourceEnabled;
     field public static boolean isPlatformBackdropEnabled;
   }
 

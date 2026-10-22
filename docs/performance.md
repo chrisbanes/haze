@@ -135,6 +135,13 @@ deadline margin at P90 and used about 7% more peak GPU memory than drawing them 
 even though its CPU frame duration P90 was 0.35 ms lower
 ([conditions and limits](benchmark-results.md#glass-containers)).
 
+Several independent effects over one [`HazeInput.Sources`][HazeInput.Sources] input each replay
+the source's display list when it changes. `HazeFeatureFlags.isOffscreenSourceEnabled` renders the
+source once and lets every effect sample it instead. With four Glass controls over a busy feed on a
+Pixel 8a (120 Hz), it removed about 80% of the replayed passes, but frame time did not change by
+more than the variation between runs, and peak GPU memory rose by 18–36 MB. Enable it only if
+measurement on your screen shows a benefit.
+
 For styling examples, see the [Glass overview](effects/glass/index.md).
 
 <a id="backdrop-input"></a>

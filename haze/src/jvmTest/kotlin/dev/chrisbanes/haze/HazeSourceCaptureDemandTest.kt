@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -61,6 +62,36 @@ class HazeSourceCaptureDemandTest {
     assertThat(area.contentLayer).isNotNull()
     assertThat(requireNotNull(area.contentLayer).isReleased).isFalse()
     assertThat(factory.renderer.snapshots.last()).isNotNull()
+  }
+
+  @OptIn(ExperimentalHazeApi::class)
+  @Test
+  fun offscreenSourceFlag_switchesCompositingStrategyOnNextRecord() = runComposeUiTest {
+    val state = HazeState()
+    val factory = DemandRecordingFactory()
+    val sourceColor = mutableStateOf(Color.Red)
+
+    HazeFeatureFlags.isOffscreenSourceEnabled = true
+    try {
+      setContent {
+        Box(Modifier.size(100.dp).testTag("root")) {
+          Box(Modifier.fillMaxSize().hazeSource(state).drawBehind { drawRect(sourceColor.value) })
+          Effect(state, factory)
+        }
+      }
+      waitForIdle()
+      val layer = requireNotNull(state.areas.single().contentLayer)
+      assertThat(layer.compositingStrategy).isEqualTo(CompositingStrategy.Offscreen)
+      val pixels = onNodeWithTag("root").captureToImage().toPixelMap()
+      assertThat(pixels[pixels.width / 2, pixels.height / 2]).isEqualTo(Color.Red)
+
+      HazeFeatureFlags.isOffscreenSourceEnabled = false
+      sourceColor.value = Color.Blue
+      waitForIdle()
+      assertThat(layer.compositingStrategy).isEqualTo(CompositingStrategy.Auto)
+    } finally {
+      HazeFeatureFlags.isOffscreenSourceEnabled = false
+    }
   }
 
   @Test

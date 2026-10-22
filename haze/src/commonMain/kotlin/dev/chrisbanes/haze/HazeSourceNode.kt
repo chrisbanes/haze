@@ -11,6 +11,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.Measurable
@@ -314,6 +315,11 @@ internal class HazeSourceNode(
             HazeLogger.d(TAG) { "Updated contentLayer in HazeArea: $area" }
           }
 
+        contentLayer.compositingStrategy = if (HazeFeatureFlags.isOffscreenSourceEnabled) {
+          CompositingStrategy.Offscreen
+        } else {
+          CompositingStrategy.Auto
+        }
         // First we draw the composable content into a graphics layer
         trace("HazeSource.record") {
           contentLayer.record {
