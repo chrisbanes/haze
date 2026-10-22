@@ -34,3 +34,6 @@ private tailrec fun Context.findActivityOrNull(): ComponentActivity? = when (thi
   is ContextWrapper -> baseContext.findActivityOrNull()
   else -> null
 }
+
+// Only measured on Android. See HazeInputSharing.Auto.
+internal actual fun isAutoInputSharingSupported(): Boolean = true

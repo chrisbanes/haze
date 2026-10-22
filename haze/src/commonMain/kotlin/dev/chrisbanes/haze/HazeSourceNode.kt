@@ -5,12 +5,16 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.ObserverHandle
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.Measurable
@@ -49,6 +53,7 @@ internal class HazeSourceNode(
   state: HazeState,
   zIndex: Float = 0f,
   key: Any? = null,
+  inputSharing: HazeInputSharing = HazeInputSharing.Never,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
   GlobalPositionAwareModifierNode,
@@ -102,6 +107,9 @@ internal class HazeSourceNode(
   init {
     this.key = key
   }
+
+  // State, so draw observes it: invalidateDraw() alone does not re-run this node's draw.
+  internal var inputSharing: HazeInputSharing by mutableStateOf(inputSharing)
 
   private var lastCoordinates: LayoutCoordinates? = null
   private var hasCaptureDemand = false
@@ -320,6 +328,21 @@ internal class HazeSourceNode(
             this@draw.drawContentSafely()
             HazeLogger.d(TAG) { "Drawn content into layer: $contentLayer" }
           }
+        }
+
+        // Reads the consumer count, so crossing the sharing threshold redraws this source.
+        if (inputSharing.isActive(area.captureConsumerCount)) {
+          val sharedLayer = area.sharedInputLayer
+            ?.takeUnless { it.isReleased }
+            ?: graphicsContext.createGraphicsLayer().also {
+              // Offscreen, so the content renders once and every effect samples the result.
+              it.compositingStrategy = CompositingStrategy.Offscreen
+              area.sharedInputLayer = it
+              HazeLogger.d(TAG) { "Created shared input layer in HazeArea: $area" }
+            }
+          sharedLayer.record { drawLayer(contentLayer) }
+        } else if (area.sharedInputLayer != null) {
+          area.releaseSharedInputLayer(graphicsContext)
         }
         area.contentVersion++
 

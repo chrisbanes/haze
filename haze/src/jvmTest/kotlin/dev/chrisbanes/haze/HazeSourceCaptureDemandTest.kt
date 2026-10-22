@@ -15,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -61,6 +63,159 @@ class HazeSourceCaptureDemandTest {
     assertThat(area.contentLayer).isNotNull()
     assertThat(requireNotNull(area.contentLayer).isReleased).isFalse()
     assertThat(factory.renderer.snapshots.last()).isNotNull()
+  }
+
+  @OptIn(ExperimentalHazeApi::class)
+  @Test
+  fun inputSharingAlways_effectsSampleSharedLayer() = runComposeUiTest {
+    val state = HazeState()
+    val factory = DemandRecordingFactory()
+    val sourceColor = mutableStateOf(Color.Red)
+    val inputSharing = mutableStateOf(HazeInputSharing.Always)
+
+    setContent {
+      Box(Modifier.size(100.dp).testTag("root")) {
+        Box(
+          Modifier
+            .fillMaxSize()
+            .hazeSource(state, inputSharing = inputSharing.value)
+            .drawBehind { drawRect(sourceColor.value) },
+        )
+        // Hides the source, so only the effect's sampled input can show its color.
+        Box(Modifier.fillMaxSize().background(Color.Black))
+        Effect(state, factory)
+      }
+    }
+    waitForIdle()
+    val area = state.areas.single()
+    val sharedLayer = requireNotNull(area.sharedInputLayer)
+    assertThat(sharedLayer.compositingStrategy).isEqualTo(CompositingStrategy.Offscreen)
+    // The on-screen source stays as before: only the shared copy is offscreen.
+    assertThat(requireNotNull(area.contentLayer).compositingStrategy).isEqualTo(CompositingStrategy.Auto)
+    assertThat(area.drawableInputLayer).isSameInstanceAs(sharedLayer)
+    assertThat(onNodeWithTag("root").captureToImage().centerPixel()).isEqualTo(Color.Red)
+
+    // Never releases the shared layer, and effects fall back to the content layer.
+    inputSharing.value = HazeInputSharing.Never
+    sourceColor.value = Color.Blue
+    waitForIdle()
+    assertThat(sharedLayer.isReleased).isTrue()
+    assertThat(area.sharedInputLayer).isNull()
+    assertThat(area.drawableInputLayer).isSameInstanceAs(area.contentLayer)
+    assertThat(onNodeWithTag("root").captureToImage().centerPixel()).isEqualTo(Color.Blue)
+  }
+
+  @OptIn(ExperimentalHazeApi::class)
+  @Test
+  fun inputSharingChange_appliesWithoutContentChange() = runComposeUiTest {
+    val state = HazeState()
+    val factory = DemandRecordingFactory()
+    val inputSharing = mutableStateOf(HazeInputSharing.Always)
+
+    setContent {
+      Box(Modifier.size(100.dp).testTag("root")) {
+        Box(
+          Modifier
+            .fillMaxSize()
+            .hazeSource(state, inputSharing = inputSharing.value)
+            .background(Color.Red),
+        )
+        Box(Modifier.fillMaxSize().background(Color.Black))
+        Effect(state, factory)
+      }
+    }
+    waitForIdle()
+    val area = state.areas.single()
+    val firstShared = requireNotNull(area.sharedInputLayer)
+
+    inputSharing.value = HazeInputSharing.Never
+    waitForIdle()
+    assertThat(firstShared.isReleased).isTrue()
+    assertThat(area.sharedInputLayer).isNull()
+    assertThat(onNodeWithTag("root").captureToImage().centerPixel()).isEqualTo(Color.Red)
+
+    inputSharing.value = HazeInputSharing.Always
+    waitForIdle()
+    assertThat(area.sharedInputLayer).isNotNull()
+    assertThat(area.drawableInputLayer).isSameInstanceAs(area.sharedInputLayer)
+    assertThat(onNodeWithTag("root").captureToImage().centerPixel()).isEqualTo(Color.Red)
+  }
+
+  @OptIn(ExperimentalHazeApi::class)
+  @Test
+  fun inputSharingAlways_releasesSharedLayerWithLastConsumer() = runComposeUiTest {
+    val state = HazeState()
+    val factory = DemandRecordingFactory()
+    val showEffect = mutableStateOf(true)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Box(
+          Modifier
+            .fillMaxSize()
+            .hazeSource(state, inputSharing = HazeInputSharing.Always)
+            .background(Color.Red),
+        )
+        if (showEffect.value) Effect(state, factory)
+      }
+    }
+    waitForIdle()
+    val sharedLayer = requireNotNull(state.areas.single().sharedInputLayer)
+
+    showEffect.value = false
+    waitForIdle()
+    assertThat(sharedLayer.isReleased).isTrue()
+    assertThat(state.areas.single().sharedInputLayer).isNull()
+  }
+
+  @OptIn(ExperimentalHazeApi::class)
+  @Test
+  fun inputSharingAuto_doesNotShareOnSkia() = runComposeUiTest {
+    val state = HazeState()
+    val first = DemandRecordingFactory()
+    val second = DemandRecordingFactory()
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Box(Modifier.fillMaxSize().hazeSource(state, inputSharing = HazeInputSharing.Auto))
+        Effect(state, first)
+        Effect(state, second)
+      }
+    }
+    waitForIdle()
+    val area = state.areas.single()
+    assertThat(area.captureConsumerCount).isEqualTo(2)
+    assertThat(area.sharedInputLayer).isNull()
+  }
+
+  @OptIn(ExperimentalHazeApi::class)
+  @Test
+  fun hazeSource_defaultsToNeverSharingInput() {
+    assertThat(HazeSourceElement(HazeState()).inputSharing).isEqualTo(HazeInputSharing.Never)
+    assertThat(HazeSourceNode(HazeState()).inputSharing).isEqualTo(HazeInputSharing.Never)
+  }
+
+  @OptIn(ExperimentalHazeApi::class)
+  @Test
+  fun inputSharingAlways_preservesOnScreenDrawingOutsideLayoutBounds() = runComposeUiTest {
+    val state = HazeState()
+    val factory = DemandRecordingFactory()
+
+    setContent {
+      Box(Modifier.size(100.dp).background(Color.Black).testTag("root")) {
+        Box(
+          Modifier
+            .size(40.dp)
+            .hazeSource(state, inputSharing = HazeInputSharing.Always)
+            .drawBehind { drawRect(Color.Red, size = Size(size.width * 2f, size.height)) },
+        )
+        Box(Modifier.size(1.dp).hazeEffect(factory = factory, input = HazeInput.Sources(state), style = Unit))
+      }
+    }
+    waitForIdle()
+    assertThat(state.areas.single().sharedInputLayer).isNotNull()
+    val pixels = onNodeWithTag("root").captureToImage().toPixelMap()
+    assertThat(pixels[pixels.width * 3 / 5, pixels.height / 5]).isEqualTo(Color.Red)
   }
 
   @Test
@@ -310,3 +465,5 @@ private class DemandRecordingRenderer : HazeEffectRenderer<Unit> {
     drawInput()
   }
 }
+
+private fun ImageBitmap.centerPixel(): Color = toPixelMap().let { it[it.width / 2, it.height / 2] }

@@ -54,6 +54,24 @@ Try these changes in order, measuring after each:
 A stable source can reuse captured and processed output. Scrolling or animated backgrounds need
 fresh input, so always test those interactions as well as stationary content.
 
+<a id="input-sharing"></a>
+
+By default, each effect that samples a [`hazeSource`][hazeSource] through
+[`HazeInput.Sources`][HazeInput.Sources] replays the source's full content whenever it changes. A
+busy source, such as a feed with playing video, then costs more for every effect over it.
+
+The experimental `inputSharing` parameter lets effects share one rendered copy instead.
+`HazeInputSharing.Auto` shares on Android once two or more effects sample the source, and
+`Always` shares on every platform. Sharing costs one texture the size of the source, and the
+shared copy is re-rendered whenever the source changes, which adds GPU work while it scrolls.
+Effects also no longer see anything the source draws outside its bounds.
+
+Opt a source in when the RenderThread spends its time replaying it. An app with seven effects over
+a video feed, [reported in #1611](https://github.com/chrisbanes/haze/issues/1611), measured its
+effect layers falling from about 2.2 ms to 0.2 ms per frame with an equivalent offscreen copy. On a
+Pixel 8a with a lighter feed, it did not reduce CPU frame time and added about 33 MB of GPU memory
+([conditions and limits](benchmark-results.md#input-sharing)).
+
 <a id="input-scale"></a>
 <a id="performance-mode"></a>
 <a id="performance-modes"></a>

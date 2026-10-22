@@ -18,6 +18,14 @@ performance guidance.
 
 ### Added
 
+- Added the experimental `HazeInputSharing` and a `hazeSource(..., inputSharing = ...)` overload.
+  Effects that sample one source normally replay its content once each whenever it changes. With
+  `Auto`, effects on Android share one rendered copy once two or more of them sample the source;
+  `Always` shares on every platform. This can reduce RenderThread time for an expensive source,
+  but it costs one texture the size of the source, adds GPU work while the source scrolls, and
+  hides content drawn outside the source's bounds from effects. The default is `Never`
+  ([#1611](https://github.com/chrisbanes/haze/issues/1611)).
+
 - Added `GlassOptics.regular` and `GlassOptics.clear` as reusable optical configurations, and
   `optics { copy(...) }` to modify the optics established by earlier style writes.
 
