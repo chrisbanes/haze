@@ -34,6 +34,24 @@ internal val AndroidGlassProfiling = Sample(
   )
 }
 
+internal val AndroidGlassFeedProfiling = Sample(
+  route = "glass-feed-profiling",
+  title = "Glass — Feed Profiling",
+  effects = listOf(SampleEffect.Glass),
+) { navController, _ ->
+  val initialScenarioId = LocalInitialProfilingScenarioId.current
+  GlassFeedProfilingSampleContent(
+    state = remember(initialScenarioId) {
+      GlassFeedProfilingState().apply {
+        initialScenarioId?.let { id ->
+          select(checkNotNull(GlassFeedProfilingScenario.entries.singleOrNull { it.id == id }))
+        }
+      }
+    },
+    onBack = navController::navigateUp,
+  )
+}
+
 internal val AndroidGlassTilt = Sample(
   route = "glass-tilt",
   title = "Glass — Fixed / Tilt",
@@ -92,5 +110,6 @@ actual val Samples: List<Sample> = buildList {
   add(AndroidBlurProfiling)
   add(AndroidBlurStyleChurn)
   add(AndroidGlassProfiling)
+  add(AndroidGlassFeedProfiling)
   add(AndroidGlassTilt)
 }
