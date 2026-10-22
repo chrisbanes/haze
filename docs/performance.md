@@ -54,12 +54,18 @@ Try these changes in order, measuring after each:
 A stable source can reuse captured and processed output. Scrolling or animated backgrounds need
 fresh input, so always test those interactions as well as stationary content.
 
-Several independent effects over one [`HazeInput.Sources`][HazeInput.Sources] input each replay
-the source's display list when it changes. The experimental, off-by-default
-`HazeFeatureFlags.isOffscreenSourceEnabled` renders the source once and lets every effect sample
-it instead. It costs a source-sized texture, and it clips anything drawn outside the source's
-bounds. Fewer replays did not reduce frame time in our testing, so enable it only if measurement on
-your screen shows a benefit.
+<a id="input-sharing"></a>
+
+Effects that sample the same [`hazeSource`][hazeSource] through
+[`HazeInput.Sources`][HazeInput.Sources] share one rendered copy of it on Android once two or more
+of them do. Without sharing, each effect replays the source's full content whenever it changes,
+so a busy source, such as a feed with playing video, costs more for every effect over it. Sharing
+renders it once and costs one texture the size of the source. Effects then no longer see anything
+the source draws outside its bounds; the source itself still draws normally.
+
+Use the experimental `inputSharing` parameter to change this per source: `HazeInputSharing.Never`
+returns to one replay per effect, for example to keep memory down for a source that is cheap to
+draw, and `Always` shares even with a single effect, on every platform.
 
 <a id="input-scale"></a>
 <a id="performance-mode"></a>

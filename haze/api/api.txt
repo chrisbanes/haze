@@ -161,10 +161,8 @@ package dev.chrisbanes.haze {
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeFeatureFlags {
-    property public boolean isOffscreenSourceEnabled;
     property public boolean isPlatformBackdropEnabled;
     field public static final dev.chrisbanes.haze.HazeFeatureFlags INSTANCE;
-    field public static boolean isOffscreenSourceEnabled;
     field public static boolean isPlatformBackdropEnabled;
   }
 
@@ -198,8 +196,15 @@ package dev.chrisbanes.haze {
     property public dev.chrisbanes.haze.HazeState state;
   }
 
+  @dev.chrisbanes.haze.ExperimentalHazeApi public enum HazeInputSharing {
+    enum_constant public static final dev.chrisbanes.haze.HazeInputSharing Always;
+    enum_constant public static final dev.chrisbanes.haze.HazeInputSharing Auto;
+    enum_constant public static final dev.chrisbanes.haze.HazeInputSharing Never;
+  }
+
   public final class HazeKt {
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeSource(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
+    method @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.ui.Modifier hazeSource(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key, dev.chrisbanes.haze.HazeInputSharing inputSharing);
     method @KotlinOnly @androidx.compose.runtime.Composable public static dev.chrisbanes.haze.HazeState rememberHazeState();
   }
 

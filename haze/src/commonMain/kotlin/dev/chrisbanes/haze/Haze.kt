@@ -189,8 +189,19 @@ internal class HazeArea {
   internal var contentLayer: GraphicsLayer? by mutableStateOf(null)
     internal set
 
-  /** Releases [contentLayer] through [graphicsContext], if there is one, and clears it. */
+  /**
+   * Offscreen copy of [contentLayer] that effects sample while input sharing is active, so the
+   * content renders once instead of once per effect. See [HazeInputSharing].
+   */
+  internal var sharedInputLayer: GraphicsLayer? by mutableStateOf(null)
+    internal set
+
+  /**
+   * Releases [contentLayer] and [sharedInputLayer] through [graphicsContext], if there are any, and
+   * clears them.
+   */
   internal fun releaseContentLayer(graphicsContext: GraphicsContext) {
+    releaseSharedInputLayer(graphicsContext)
     contentLayer?.let { layer ->
       HazeLogger.d("HazeArea") { "Releasing content layer: $layer" }
       graphicsContext.releaseGraphicsLayer(layer)
@@ -198,11 +209,26 @@ internal class HazeArea {
     contentLayer = null
   }
 
+  /** Releases [sharedInputLayer] through [graphicsContext], if there is one, and clears it. */
+  internal fun releaseSharedInputLayer(graphicsContext: GraphicsContext) {
+    sharedInputLayer?.let { layer ->
+      HazeLogger.d("HazeArea") { "Releasing shared input layer: $layer" }
+      graphicsContext.releaseGraphicsLayer(layer)
+    }
+    sharedInputLayer = null
+  }
+
   /** [contentLayer] when it can be drawn: not released and with a non-empty size. */
   internal val drawableContentLayer: GraphicsLayer?
-    get() = contentLayer
-      ?.takeUnless { it.isReleased }
-      ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
+    get() = contentLayer.takeIfDrawable()
+
+  /** The layer effects draw as their input: [sharedInputLayer] when drawable, else [contentLayer]. */
+  internal val drawableInputLayer: GraphicsLayer?
+    get() = sharedInputLayer.takeIfDrawable() ?: drawableContentLayer
+
+  private fun GraphicsLayer?.takeIfDrawable(): GraphicsLayer? = this
+    ?.takeUnless { it.isReleased }
+    ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
 
   internal var contentDrawing: Boolean = false
 
@@ -274,23 +300,48 @@ public fun Modifier.hazeSource(
   key: Any? = null,
 ): Modifier = this then HazeSourceElement(state, zIndex, key)
 
+/**
+ * Captures background content for [hazeEffect] child nodes, like the [hazeSource] overload without
+ * [inputSharing].
+ *
+ * @param inputSharing Whether effects sampling this source share one rendered copy of its content.
+ * See [HazeInputSharing].
+ */
+@ExperimentalHazeApi
+@Stable
+public fun Modifier.hazeSource(
+  state: HazeState,
+  zIndex: Float = 0f,
+  key: Any? = null,
+  inputSharing: HazeInputSharing,
+): Modifier = this then HazeSourceElement(state, zIndex, key, inputSharing)
+
+@OptIn(ExperimentalHazeApi::class)
 internal data class HazeSourceElement(
   val state: HazeState,
   val zIndex: Float = 0f,
   val key: Any? = null,
+  val inputSharing: HazeInputSharing = HazeInputSharing.Auto,
 ) : ModifierNodeElement<HazeSourceNode>() {
 
-  override fun create(): HazeSourceNode = HazeSourceNode(state = state, zIndex = zIndex, key = key)
+  override fun create(): HazeSourceNode = HazeSourceNode(
+    state = state,
+    zIndex = zIndex,
+    key = key,
+    inputSharing = inputSharing,
+  )
 
   override fun update(node: HazeSourceNode) {
     node.state = state
     node.zIndex = zIndex
     node.key = key
+    node.inputSharing = inputSharing
   }
 
   override fun InspectorInfo.inspectableProperties() {
     name = "hazeSource"
     properties["zIndex"] = zIndex
     properties["key"] = key
+    properties["inputSharing"] = inputSharing
   }
 }

@@ -17,8 +17,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Four separate Glass controls over one busy feed source (issue #1611), with and without
- * `HazeFeatureFlags.isOffscreenSourceEnabled`, against the same controls drawn without Haze.
+ * Four separate Glass or Blur controls over one busy feed source (issue #1611), with shared input
+ * (`HazeInputSharing.Auto`) and without it (`Never`), against the same controls drawn without Haze.
  *
  * `sourceReplay` counts HWUI's `alpha caused saveLayer` slices: the feed fades every fourth card,
  * so each replay of a faded card on the RenderThread adds one. Divide by `frameCount`.
@@ -37,7 +37,13 @@ class GlassFeedBenchmark {
   fun feedVideoGlass() = measure("feed_video_glass")
 
   @Test
-  fun feedVideoGlassOffscreen() = measure("feed_video_glass_offscreen")
+  fun feedVideoGlassUnshared() = measure("feed_video_glass_unshared")
+
+  @Test
+  fun feedVideoBlur() = measure("feed_video_blur")
+
+  @Test
+  fun feedVideoBlurUnshared() = measure("feed_video_blur_unshared")
 
   @Test
   fun feedVideoPlain() = measure("feed_video_plain")
@@ -46,7 +52,13 @@ class GlassFeedBenchmark {
   fun feedScrollGlass() = measure("feed_scroll_glass")
 
   @Test
-  fun feedScrollGlassOffscreen() = measure("feed_scroll_glass_offscreen")
+  fun feedScrollGlassUnshared() = measure("feed_scroll_glass_unshared")
+
+  @Test
+  fun feedScrollBlur() = measure("feed_scroll_blur")
+
+  @Test
+  fun feedScrollBlurUnshared() = measure("feed_scroll_blur_unshared")
 
   @Test
   fun feedScrollPlain() = measure("feed_scroll_plain")

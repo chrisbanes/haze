@@ -30,7 +30,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -52,8 +51,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeFeatureFlags
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeInputSharing
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
@@ -63,21 +64,27 @@ import kotlin.math.sin
 /**
  * Four separate header controls over one busy feed source (issue #1611). Every row animates its
  * video cards for the whole measured window; scroll rows also scroll the feed at a fixed speed.
+ * Shared rows use the default [HazeInputSharing.Auto]; unshared rows use [HazeInputSharing.Never].
  */
 internal enum class GlassFeedProfilingScenario(
   val id: String,
   val controls: FeedControls,
+  val inputSharing: HazeInputSharing,
   val scrolls: Boolean,
 ) {
-  VideoGlass("feed_video_glass", FeedControls.Glass, scrolls = false),
-  VideoGlassOffscreen("feed_video_glass_offscreen", FeedControls.GlassOffscreenSource, scrolls = false),
-  VideoPlain("feed_video_plain", FeedControls.Plain, scrolls = false),
-  ScrollGlass("feed_scroll_glass", FeedControls.Glass, scrolls = true),
-  ScrollGlassOffscreen("feed_scroll_glass_offscreen", FeedControls.GlassOffscreenSource, scrolls = true),
-  ScrollPlain("feed_scroll_plain", FeedControls.Plain, scrolls = true),
+  VideoGlass("feed_video_glass", FeedControls.Glass, HazeInputSharing.Auto, scrolls = false),
+  VideoGlassUnshared("feed_video_glass_unshared", FeedControls.Glass, HazeInputSharing.Never, scrolls = false),
+  VideoBlur("feed_video_blur", FeedControls.Blur, HazeInputSharing.Auto, scrolls = false),
+  VideoBlurUnshared("feed_video_blur_unshared", FeedControls.Blur, HazeInputSharing.Never, scrolls = false),
+  VideoPlain("feed_video_plain", FeedControls.Plain, HazeInputSharing.Never, scrolls = false),
+  ScrollGlass("feed_scroll_glass", FeedControls.Glass, HazeInputSharing.Auto, scrolls = true),
+  ScrollGlassUnshared("feed_scroll_glass_unshared", FeedControls.Glass, HazeInputSharing.Never, scrolls = true),
+  ScrollBlur("feed_scroll_blur", FeedControls.Blur, HazeInputSharing.Auto, scrolls = true),
+  ScrollBlurUnshared("feed_scroll_blur_unshared", FeedControls.Blur, HazeInputSharing.Never, scrolls = true),
+  ScrollPlain("feed_scroll_plain", FeedControls.Plain, HazeInputSharing.Never, scrolls = true),
 }
 
-internal enum class FeedControls { Glass, GlassOffscreenSource, Plain }
+internal enum class FeedControls { Glass, Blur, Plain }
 
 internal class GlassFeedProfilingState {
   var scenario: GlassFeedProfilingScenario? by mutableStateOf(null)
@@ -134,16 +141,6 @@ private fun GlassFeedProfilingScene(
   scenario: GlassFeedProfilingScenario,
   modifier: Modifier = Modifier,
 ) {
-  // Applied before the source first draws, and restored when the scene leaves.
-  val previousOffscreenSourceEnabled = remember { HazeFeatureFlags.isOffscreenSourceEnabled }
-  remember(scenario) {
-    HazeFeatureFlags.isOffscreenSourceEnabled =
-      scenario.controls == FeedControls.GlassOffscreenSource
-  }
-  DisposableEffect(Unit) {
-    onDispose { HazeFeatureFlags.isOffscreenSourceEnabled = previousOffscreenSourceEnabled }
-  }
-
   val hazeState = rememberHazeState()
   val listState = rememberLazyListState()
   val density = LocalDensity.current
@@ -181,7 +178,10 @@ private fun GlassFeedProfilingScene(
       state = listState,
       contentPadding = PaddingValues(horizontal = 4.dp),
       verticalArrangement = Arrangement.spacedBy(8.dp),
-      modifier = Modifier.fillMaxSize().hazeSource(hazeState).testTag("glass_feed_source"),
+      modifier = Modifier
+        .fillMaxSize()
+        .hazeSource(hazeState, inputSharing = scenario.inputSharing)
+        .testTag("glass_feed_source"),
     ) {
       items(FEED_ITEM_COUNT) { index ->
         FeedCard(index = index, videoNanos = { videoNanos })
@@ -197,13 +197,16 @@ private fun GlassFeedProfilingScene(
           .size(width = if (index == 3) 44.dp else 40.dp, height = 40.dp)
           .testTag("glass_feed_control_$index")
         when (scenario.controls) {
-          FeedControls.Glass,
-          FeedControls.GlassOffscreenSource,
-          -> Box(
+          FeedControls.Glass -> Box(
             controlModifier.hazeGlass(
               input = HazeInput.Sources(hazeState),
               style = FeedControlStyle,
             ),
+          )
+          FeedControls.Blur -> Box(
+            controlModifier
+              .clip(FeedControlShape)
+              .hazeBlur(input = HazeInput.Sources(hazeState), style = FeedBlurStyle),
           )
           FeedControls.Plain -> Box(
             controlModifier.clip(FeedControlShape).background(Color.White.copy(alpha = 0.18f)),
@@ -316,6 +319,10 @@ private fun feedArtwork(): ImageBitmap {
 }
 
 private val FeedControlShape = RoundedCornerShape(20.dp)
+private val FeedBlurStyle = HazeBlurStyle {
+  blurRadius(20.dp)
+  backgroundColor(Color(0xFF0B0D12))
+}
 private val FeedControlStyle = GlassStyle.regular.then {
   shape(FeedControlShape)
   backgroundColor(Color(0xFF0B0D12))

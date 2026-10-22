@@ -1555,7 +1555,7 @@ internal class HazeEffectNode(
       ?.let { return it }
     val snapshots = ArrayList<HazeEffectInputSnapshotEntry>(areas.size)
     for (area in areas) {
-      val layer = area.drawableContentLayer ?: continue
+      val layer = area.drawableInputLayer ?: continue
       val sourceTransform = Snapshot.withoutReadObservation { sourceTransformInEffect(area) }
       snapshots += HazeEffectInputSnapshotEntry(
         areaIdentity = area,
@@ -1590,7 +1590,7 @@ internal class HazeEffectNode(
   internal fun surfaceInputEntries(owner: LayoutCoordinates?): List<HazeSurfaceInputEntry> {
     val transform = surfaceTransform(owner) ?: return emptyList()
     return areas.mapNotNull { area ->
-      val layer = area.drawableContentLayer ?: return@mapNotNull null
+      val layer = area.drawableInputLayer ?: return@mapNotNull null
       require(!area.isContentDrawing) { "A relocated effect cannot sample its drawing ancestor source" }
       val source = Snapshot.withoutReadObservation { sourceTransformInEffect(area) }
       // Apply source-to-member followed by member-to-owner, keeping both matrices unchanged.
@@ -1794,7 +1794,7 @@ private class HazeEffectInputSnapshotImpl(
 
     var drawableIndex = 0
     for (area in node.areas) {
-      val layer = area.drawableContentLayer ?: continue
+      val layer = area.drawableInputLayer ?: continue
       val sourceTransform = Snapshot.withoutReadObservation { node.sourceTransformInEffect(area) }
       val entry = entries.getOrNull(drawableIndex++) ?: return false
       if (

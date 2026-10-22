@@ -18,10 +18,13 @@ performance guidance.
 
 ### Added
 
-- Added the experimental `HazeFeatureFlags.isOffscreenSourceEnabled`. It renders each
-  `hazeSource` into an offscreen layer, so several effects sampling one source no longer replay its
-  display list once each. It is off by default: it uses a source-sized texture, clips content drawn
-  outside the source's bounds, and fewer replays did not reduce frame time in our Glass testing.
+- Effects that sample one `hazeSource` now share a single rendered copy of it on Android when two
+  or more of them do. Previously the renderer replayed the source's content once per effect every
+  time it changed, so the cost grew with how much the source drew. The shared copy uses one texture
+  the size of the source, and effects no longer see anything the source draws outside its bounds.
+  Use the new experimental `hazeSource(..., inputSharing = HazeInputSharing.Never)` overload to opt
+  a source out, or `Always` to share with a single effect
+  ([#1611](https://github.com/chrisbanes/haze/issues/1611)).
 
 - Added `GlassOptics.regular` and `GlassOptics.clear` as reusable optical configurations, and
   `optics { copy(...) }` to modify the optics established by earlier style writes.
