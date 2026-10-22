@@ -1130,6 +1130,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-rename-spacing-to-mergedistance-2026-10-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment: rename spacing to mergeDistance (2026-10-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1164,9 +1175,10 @@ smooth minimum of member shapes. It needed three fixes:</p>
 <li>stop sizing optics from the inflated layer.</li>
 </ul>
 <p>Haze will add <code>Modifier.hazeGlassContainer(spacing, transitionSpec, reducedMotionPolicy)</code>.
-<code>spacing</code> is required and has no default. Ordinary <code>hazeGlass</code> modifiers below it become
-<strong>Glass members</strong> of their nearest container, and the container draws every member's glass behind
-its own children. A member's own style still sets its shape, input and appearance.</p>
+<code>spacing</code> is required and has no default (since renamed to <code>mergeDistance</code> with a default; see the
+<a href="#amendment-rename-spacing-to-mergedistance-2026-10-21">amendment</a>). Ordinary <code>hazeGlass</code> modifiers
+below it become <strong>Glass members</strong> of their nearest container, and the container draws every
+member's glass behind its own children. A member's own style still sets its shape, input and appearance.</p>
 <h2 id="merging">Merging<a class="headerlink" href="#merging" title="Permanent link">¶</a></h2>
 <ul>
 <li>Members whose gap is less than the spacing join into a <strong>Glass cluster</strong>. The container draws
@@ -1293,7 +1305,12 @@ motion scale (animations off), member transitions snap instead
   Inferring scrolls from member positions was measured and rejected: a uniform state-driven shift
   looks like a scroll, and a scroll past the viewport leaves no evidence
   (<a href="https://github.com/chrisbanes/haze/issues/1524">#1524</a>).</li>
-</ul></div>
+</ul>
+<h2 id="amendment-rename-spacing-to-mergedistance-2026-10-21">Amendment: rename <code>spacing</code> to <code>mergeDistance</code> (2026-10-21)<a class="headerlink" href="#amendment-rename-spacing-to-mergedistance-2026-10-21" title="Permanent link">¶</a></h2>
+<p>The container parameter is now <code>mergeDistance</code> and defaults to <code>GlassDefaults.mergeDistance</code>
+(16 dp). In Compose, <code>spacing</code> reads as layout spacing between children, which this parameter
+never controls. Its behaviour is unchanged: every mention of the spacing above refers to the
+merge distance.</p></div>
 
 
 

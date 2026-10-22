@@ -7584,6 +7584,15 @@ performance guidance.</p>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">¶</a></h3>
 <ul>
 <li>
+<p>Added the experimental <code>HazeInputSharing</code> and a <code>hazeSource(..., inputSharing = ...)</code> overload.
+  Effects that sample one source normally replay its content once each whenever it changes. With
+  <code>Auto</code>, effects on Android share one rendered copy once two or more of them sample the source;
+  <code>Always</code> shares on every platform. This can reduce RenderThread time for an expensive source,
+  but it costs one texture the size of the source, adds GPU work while the source scrolls, and
+  hides content drawn outside the source's bounds from effects. The default is <code>Never</code>
+  (<a href="https://github.com/chrisbanes/haze/issues/1611">#1611</a>).</p>
+</li>
+<li>
 <p>Added <code>GlassOptics.regular</code> and <code>GlassOptics.clear</code> as reusable optical configurations, and
   <code>optics { copy(...) }</code> to modify the optics established by earlier style writes.</p>
 </li>

@@ -1383,7 +1383,7 @@ and rejoins before the palette collapses.</p>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">shape</span><span class="p">(</span><span class="n">CircleShape</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
 
 <span class="n">Row</span><span class="p">(</span>
-<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlassContainer</span><span class="p">(</span><span class="n">spacing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">16.</span><span class="n">dp</span><span class="p">),</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlassContainer</span><span class="p">(</span><span class="n">mergeDistance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">16.</span><span class="n">dp</span><span class="p">),</span>
 <span class="w">  </span><span class="n">horizontalArrangement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arrangement</span><span class="p">.</span><span class="na">spacedBy</span><span class="p">(</span><span class="m">4.</span><span class="n">dp</span><span class="p">),</span>
 <span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">repeat</span><span class="p">(</span><span class="m">3</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -1395,19 +1395,20 @@ and rejoins before the palette collapses.</p>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p><code>spacing</code> is required, finite and not negative. A spacing of zero disables bridges. Optionally
-pass <code>transitionSpec</code> and <code>reducedMotionPolicy</code>, which are described under
-<a href="#transitions">Transitions</a>.</p>
+<p><code>mergeDistance</code> sets how close members must be to merge; it does not lay out or space the
+container's children. It defaults to <code>GlassDefaults.mergeDistance</code> (16 dp), and must be finite and
+not negative. A merge distance of zero disables merging by proximity. Optionally pass
+<code>transitionSpec</code> and <code>reducedMotionPolicy</code>, which are described under <a href="#transitions">Transitions</a>.</p>
 <p>Every <a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass.html"><code>hazeGlass</code></a> modifier below the container becomes a member of its nearest container. A member
 keeps its own style, shape, colors and interaction response. A <code>hazeGlass</code> modifier outside a
 container is unchanged.</p>
 <h2 id="merge-rule">Merge rule<a class="headerlink" href="#merge-rule" title="Permanent link">¶</a></h2>
-<p>Members join a cluster when the gap between them is less than the spacing. The container draws
-each cluster as one surface: facing edges gradually stretch towards each other, and a bridge forms
-when the gap drops below half the spacing. A member that joins no cluster draws as a separate
-surface. Between full and half spacing, each member's refraction and lighting smoothly change
-from its standalone profile to the merged profile, so elongated surfaces keep a continuous response
-as they join or separate.</p>
+<p>Members join a cluster when the gap between them is less than the merge distance. The container
+draws each cluster as one surface: facing edges gradually stretch towards each other, and a bridge
+forms when the gap drops below half the merge distance. A member that joins no cluster draws as a
+separate surface. Between the full and half merge distance, each member's refraction and lighting
+smoothly change from its standalone profile to the merged profile, so elongated surfaces keep a
+continuous response as they join or separate.</p>
 <p>Members merge only when all of these hold:</p>
 <ul>
 <li><strong>Same input and rendering options.</strong> Equal <code>input</code> (for <a href="../../../api/haze/dev.chrisbanes.haze/-haze-input/-sources/"><code>HazeInput.Sources</code></a>, the same
@@ -1447,8 +1448,8 @@ uniform pressed <code>scale</code> does not split the cluster.</p>
 the transition with <code>hazeGlass(memberTransition = ...)</code>:</p>
 <ul>
 <li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-member-transition/-matched-geometry/"><code>GlassMemberTransition.MatchedGeometry</code></a> is the default. A member that attaches within the
-  spacing of another member grows out of it, and a member that detaches retracts into it. Beyond
-  the spacing, it falls back to <code>Materialize</code>.</li>
+  merge distance of another member grows out of it, and a member that detaches retracts into it.
+  Beyond the merge distance, it falls back to <code>Materialize</code>.</li>
 <li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-member-transition/-materialize/"><code>GlassMemberTransition.Materialize</code></a> fades the glass in or out where it is. A fading member draws
   on its own until it is fully opaque.</li>
 <li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-member-transition/-none/"><code>GlassMemberTransition.None</code></a> applies no transition.</li>
@@ -1480,7 +1481,7 @@ container is added or removed around it, appears in the new container immediatel
 a member with <code>movableContentOf</code> detaches and reattaches it, so it detaches from the old container
 and attaches to the new one, each with the transition described above. A running transition ends
 without animating when the member it grows from or retracts into leaves, or moves beyond the
-spacing.</p>
+merge distance.</p>
 <h2 id="lazy-layouts">Lazy layouts<a class="headerlink" href="#lazy-layouts" title="Permanent link">¶</a></h2>
 <p>Pass the lazy layout's state to <a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass-container.html"><code>hazeGlassContainer</code></a> as <code>scrollState</code>. While that state is
 scrolling, including the frame in which it stops, members appear and disappear without a
@@ -1493,7 +1494,7 @@ animation immediately.</p>
 
 <span class="n">LazyRow</span><span class="p">(</span>
 <span class="w">  </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listState</span><span class="p">,</span>
-<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlassContainer</span><span class="p">(</span><span class="n">spacing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">16.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="n">scrollState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listState</span><span class="p">),</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlassContainer</span><span class="p">(</span><span class="n">mergeDistance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">16.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="n">scrollState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">horizontalArrangement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arrangement</span><span class="p">.</span><span class="na">spacedBy</span><span class="p">(</span><span class="m">8.</span><span class="n">dp</span><span class="p">),</span>
 <span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">items</span><span class="p">(</span><span class="n">chips</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">it</span><span class="p">.</span><span class="na">id</span><span class="w"> </span><span class="p">})</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">chip</span><span class="w"> </span><span class="o">-&gt;</span>
@@ -1525,9 +1526,9 @@ preference restores that member's ordinary fallback appearance.</p>
 <p>Per-member press lighting is still drawn. See <a href="../#fallbacks">Fallbacks</a> for what else
 fallback rendering omits.</p>
 <h2 id="samples">Samples<a class="headerlink" href="#samples" title="Permanent link">¶</a></h2>
-<p>The <code>Glass — Container</code> sample shows a merging toolbar, two draggable members with a spacing
-control, a member added and removed with <code>AnimatedVisibility</code>, and a cluster of members with
-different tints. Its source is in
+<p>The <code>Glass — Container</code> sample shows a merging toolbar, two draggable members with a merge
+distance control, a member added and removed with <code>AnimatedVisibility</code>, and a cluster of members
+with different tints. Its source is in
 <a href="https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerSample.kt"><code>GlassContainerSample.kt</code></a>.</p>
 <p>The <code>Glass — Container Showcase</code> sample places a drawing palette over two brushstrokes. Open
 Brush to reveal stroke-width and colour controls, then drag the colour control away to separate it

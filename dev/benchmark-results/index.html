@@ -937,6 +937,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#input-sharing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input sharing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#placement-update-deduplication" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1384,6 +1395,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#input-sharing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input sharing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#placement-update-deduplication" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1724,7 +1746,7 @@ between the experiments cannot be attributed to CPU affinity alone.</p>
 <h2 id="glass-containers">Glass containers<a class="headerlink" href="#glass-containers" title="Permanent link">¶</a></h2>
 <p>This comparison draws two Regular Glass surfaces, each about 134 × 180 dp and 12 dp apart, over a
 continuously changing source. The independent row draws them separately. The container row wraps
-the same surfaces in <code>hazeGlassContainer(spacing = 32.dp)</code>, so they merge into one cluster. Both
+the same surfaces in <code>hazeGlassContainer(mergeDistance = 32.dp)</code>, so they merge into one cluster. Both
 rows use <a href="../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-default.html"><code>HazePerformanceMode.Default</code></a> and <code>HazeInput.Sources</code>. It used a Pixel 8a running
 Android 17 (full SDK 37.2) at 60 Hz, with fixed-performance mode enabled and normal CPU scheduling.</p>
 <p>Each per-pass value pools the frames of that pass's eight iterations; the table shows the
@@ -1786,9 +1808,9 @@ single layer is about 8% larger in area than the two independent layers combined
 7,174 KB (about 7%) more peak GPU memory. CPU frame duration does not measure GPU shader cost.
 These runs did not measure GPU timings, so they do not show why the container finished closer to
 its deadline despite its lower CPU frame duration. Neither row missed its deadline at P90.</p>
-<p>These results describe two surfaces at one spacing on one device. They do not establish the cost
-of larger clusters, more members, other styles, or higher refresh rates. Measure clustered screens
-against independent surfaces before adopting a container.</p>
+<p>These results describe two surfaces at one merge distance on one device. They do not establish the
+cost of larger clusters, more members, other styles, or higher refresh rates. Measure clustered
+screens against independent surfaces before adopting a container.</p>
 <details class="info">
 <summary>Measurement details</summary>
 <p>The <code>benchmarkRelease</code> APKs were built from commit <code>33e2371a</code>. The sample APK SHA-256 was
@@ -1821,10 +1843,10 @@ on-device sample check is recorded in the
 <p><a id="glass-container-lazy-scroll"></a></p>
 <h3 id="lazy-container-scroll">Lazy container scroll<a class="headerlink" href="#lazy-container-scroll" title="Permanent link">¶</a></h3>
 <p>This comparison scrolls a five-column <code>LazyVerticalGrid</code> with 40–45 visible members inside
-<code>hazeGlassContainer(spacing = 16.dp)</code>. Every member is its own cluster, so the workload isolates
-reclustering. Build A reclusters on every member notification. Build B coalesces them into one
-pass per frame (<a href="https://github.com/chrisbanes/haze/issues/1567">#1567</a>). It used a Pixel 8a running
-Android 17 at 60 Hz, with fixed-performance mode enabled and normal CPU scheduling.</p>
+<code>hazeGlassContainer(mergeDistance = 16.dp)</code>. Every member is its own cluster, so the workload
+isolates reclustering. Build A reclusters on every member notification. Build B coalesces them into
+one pass per frame (<a href="https://github.com/chrisbanes/haze/issues/1567">#1567</a>). It used a Pixel 8a
+running Android 17 at 60 Hz, with fixed-performance mode enabled and normal CPU scheduling.</p>
 <p>Each per-pass value pools the frames of that pass's eight iterations; the table shows the
 <strong>arithmetic mean of the two per-pass values</strong> for each build.</p>
 <table>
@@ -1995,6 +2017,168 @@ builds; their mean CPU P90 differed by less than 1 ms, passes differed by up to 
 and the ranking varied between passes.</p>
 <p>Raw JSON, benchmark messages, traces, frozen APKs, and per-method device readbacks are
 retained locally under <code>internal/benchmark/build/benchmark-results/noise-tint.eO1A65/</code>.</p>
+</details>
+<p><a id="input-sharing"></a></p>
+<h2 id="input-sharing">Input sharing<a class="headerlink" href="#input-sharing" title="Permanent link">¶</a></h2>
+<p>This comparison draws four separate 40 dp controls in a header over one <code>hazeSource</code>: a
+<code>LazyColumn</code> of full-width cards with artwork, text and translucent chips, where every third card
+animates like a playing video and every fourth card is faded. The shared rows use
+<code>HazeInputSharing.Auto</code>, so the four effects sample one rendered copy of the feed; the unshared
+rows use <code>Never</code>, so each effect replays the feed. The plain rows draw the same controls as
+translucent fills without Haze. The video rows only animate the video cards; the scroll rows also
+scroll the feed at a fixed speed. It used a Pixel 8a running Android 17 at 60 Hz, with
+fixed-performance mode enabled and normal CPU scheduling.</p>
+<p>Each per-pass value pools the frames of that pass's eight iterations; the table shows the
+<strong>arithmetic mean of the two per-pass values</strong>. Peak GPU memory uses each pass's median
+<code>memoryGpuMaxKb</code>. Replays count HWUI <code>alpha caused saveLayer</code> slices per frame, which mark each
+time a faded card is drawn.</p>
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th>Controls</th>
+<th>Input</th>
+<th style="text-align: right;">saveLayer passes per frame</th>
+<th style="text-align: right;"><code>DrawFrames</code> avg (ms)</th>
+<th style="text-align: right;">CPU frame duration P90 (ms)</th>
+<th style="text-align: right;">Frame overrun P90 (ms)</th>
+<th style="text-align: right;">Peak GPU memory (KB)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Video</td>
+<td>Glass</td>
+<td>Shared</td>
+<td style="text-align: right;">10.0</td>
+<td style="text-align: right;">2.95</td>
+<td style="text-align: right;">5.79</td>
+<td style="text-align: right;">-6.02</td>
+<td style="text-align: right;">145,410</td>
+</tr>
+<tr>
+<td>Video</td>
+<td>Glass</td>
+<td>Unshared</td>
+<td style="text-align: right;">25.0</td>
+<td style="text-align: right;">2.90</td>
+<td style="text-align: right;">5.83</td>
+<td style="text-align: right;">-6.69</td>
+<td style="text-align: right;">111,764</td>
+</tr>
+<tr>
+<td>Video</td>
+<td>Blur</td>
+<td>Shared</td>
+<td style="text-align: right;">10.0</td>
+<td style="text-align: right;">2.75</td>
+<td style="text-align: right;">5.74</td>
+<td style="text-align: right;">-6.14</td>
+<td style="text-align: right;">145,189</td>
+</tr>
+<tr>
+<td>Video</td>
+<td>Blur</td>
+<td>Unshared</td>
+<td style="text-align: right;">25.0</td>
+<td style="text-align: right;">2.87</td>
+<td style="text-align: right;">6.00</td>
+<td style="text-align: right;">-6.95</td>
+<td style="text-align: right;">109,511</td>
+</tr>
+<tr>
+<td>Video</td>
+<td>Plain</td>
+<td>—</td>
+<td style="text-align: right;">5.0</td>
+<td style="text-align: right;">2.16</td>
+<td style="text-align: right;">6.11</td>
+<td style="text-align: right;">-7.95</td>
+<td style="text-align: right;">106,354</td>
+</tr>
+<tr>
+<td>Scroll</td>
+<td>Glass</td>
+<td>Shared</td>
+<td style="text-align: right;">20.3</td>
+<td style="text-align: right;">3.32</td>
+<td style="text-align: right;">7.05</td>
+<td style="text-align: right;">-4.38</td>
+<td style="text-align: right;">162,172</td>
+</tr>
+<tr>
+<td>Scroll</td>
+<td>Glass</td>
+<td>Unshared</td>
+<td style="text-align: right;">49.7</td>
+<td style="text-align: right;">3.35</td>
+<td style="text-align: right;">7.15</td>
+<td style="text-align: right;">-5.17</td>
+<td style="text-align: right;">128,716</td>
+</tr>
+<tr>
+<td>Scroll</td>
+<td>Blur</td>
+<td>Shared</td>
+<td style="text-align: right;">20.4</td>
+<td style="text-align: right;">3.27</td>
+<td style="text-align: right;">7.34</td>
+<td style="text-align: right;">-4.82</td>
+<td style="text-align: right;">160,093</td>
+</tr>
+<tr>
+<td>Scroll</td>
+<td>Blur</td>
+<td>Unshared</td>
+<td style="text-align: right;">49.7</td>
+<td style="text-align: right;">3.17</td>
+<td style="text-align: right;">6.79</td>
+<td style="text-align: right;">-6.27</td>
+<td style="text-align: right;">126,405</td>
+</tr>
+<tr>
+<td>Scroll</td>
+<td>Plain</td>
+<td>—</td>
+<td style="text-align: right;">10.6</td>
+<td style="text-align: right;">1.93</td>
+<td style="text-align: right;">5.71</td>
+<td style="text-align: right;">-7.43</td>
+<td style="text-align: right;">130,497</td>
+</tr>
+</tbody>
+</table>
+<p>Sharing cut the replays from five to two per frame (one on screen, one into the shared copy), but
+on this device and feed it did not reduce <code>DrawFrames</code> or CPU frame duration beyond the variation
+between passes. While scrolling, the shared rows finished 0.8 ms (Glass) and 1.5 ms (Blur) closer
+to their deadline at P90 than the unshared rows, in both passes. CPU placement was not analysed,
+so this difference is not attributed to sharing. Sharing added about 33 MB of peak GPU
+memory; HWUI's own caches grew by about 20 MB, roughly two full-screen surfaces, in a separate
+<code>dumpsys gfxinfo</code> check. CPU frame duration does not measure GPU cost, and these runs did not
+measure GPU timings, so they do not show where the lost margin went. No row missed its deadline
+at P90.</p>
+<p>These results describe one synthetic feed that is cheap to replay, on a device with spare
+RenderThread time. An app whose source is expensive to replay and whose RenderThread runs close
+to its budget can gain substantially instead, as reported in
+<a href="https://github.com/chrisbanes/haze/issues/1611">#1611</a>. Measure a source before opting it in.</p>
+<details class="info">
+<summary>Measurement details</summary>
+<p>The <code>benchmarkRelease</code> APKs were built from commit <code>26b30b79</code> by the first invocation and
+reused unchanged by the others. The sample APK SHA-256 was
+<code>3e1fd07668ea6e3cb36ddaf590565de4aa143721c9a87bf73d5d47b752fc7690</code> and the benchmark APK
+SHA-256 was <code>dae79fa93dbaf1d55baed4185ea7668bab1baf18f1332f88c5c4ab14aae1155a</code>. The Android
+build was <code>CP41.260831.016</code>. All 20 invocations started at thermal status 0.</p>
+<p>Each method ran eight measured iterations per pass in its own Gradle invocation, using
+<code>GlassFeedBenchmark</code>. For each workload, the first pass ran Glass shared, Glass unshared, Blur
+shared, Blur unshared and plain, and the second pass reversed that order. This produced 160
+iterations, 160 Perfetto traces, and 28,839 measured frames. No completed iteration was
+discarded. The two passes of each row differed by at most 0.32 ms in CPU P90 and 0.53 ms in
+frame overrun P90.</p>
+<p>The saveLayer counts were stable across iterations, confirming that every row ran its intended
+input path. CPU placement was not analysed, so the frame-overrun differences are reported
+without attribution.</p>
+<p>Raw JSON, benchmark messages, traces, run logs, and both APKs are retained locally under
+<code>internal/benchmark/build/benchmark-results/input-sharing.26b30b79/</code>.</p>
 </details>
 <p><a id="placement-update-deduplication"></a></p>
 <h2 id="placement-update-deduplication">Placement update deduplication<a class="headerlink" href="#placement-update-deduplication" title="Permanent link">¶</a></h2>
