@@ -441,8 +441,9 @@ time a faded card is drawn.
 
 Sharing cut the replays from five to two per frame (one on screen, one into the shared copy), but
 on this device and feed it did not reduce `DrawFrames` or CPU frame duration beyond the variation
-between passes. While scrolling, the shared rows left 0.8 ms (Glass) and 1.5 ms (Blur) less frame
-margin at P90 than the unshared rows, in both passes. Sharing added about 33 MB of peak GPU
+between passes. While scrolling, the shared rows finished 0.8 ms (Glass) and 1.5 ms (Blur) closer
+to their deadline at P90 than the unshared rows, in both passes. CPU placement was not analysed,
+so this difference is not attributed to sharing. Sharing added about 33 MB of peak GPU
 memory; HWUI's own caches grew by about 20 MB, roughly two full-screen surfaces, in a separate
 `dumpsys gfxinfo` check. CPU frame duration does not measure GPU cost, and these runs did not
 measure GPU timings, so they do not show where the lost margin went. No row missed its deadline
@@ -455,8 +456,11 @@ to its budget can gain substantially instead, as reported in
 
 ??? info "Measurement details"
 
-    The `benchmarkRelease` APKs were built from commit `26b30b79`; APK hashes were not recorded.
-    The Android build was `CP41.260831.016`. All 20 invocations started at thermal status 0.
+    The `benchmarkRelease` APKs were built from commit `26b30b79` by the first invocation and
+    reused unchanged by the others. The sample APK SHA-256 was
+    `3e1fd07668ea6e3cb36ddaf590565de4aa143721c9a87bf73d5d47b752fc7690` and the benchmark APK
+    SHA-256 was `dae79fa93dbaf1d55baed4185ea7668bab1baf18f1332f88c5c4ab14aae1155a`. The Android
+    build was `CP41.260831.016`. All 20 invocations started at thermal status 0.
 
     Each method ran eight measured iterations per pass in its own Gradle invocation, using
     `GlassFeedBenchmark`. For each workload, the first pass ran Glass shared, Glass unshared, Blur
@@ -466,7 +470,11 @@ to its budget can gain substantially instead, as reported in
     frame overrun P90.
 
     The saveLayer counts were stable across iterations, confirming that every row ran its intended
-    input path. CPU placement was not analysed.
+    input path. CPU placement was not analysed, so the frame-overrun differences are reported
+    without attribution.
+
+    Raw JSON, benchmark messages, traces, run logs, and both APKs are retained locally under
+    `internal/benchmark/build/benchmark-results/input-sharing.26b30b79/`.
 
 <a id="placement-update-deduplication"></a>
 

@@ -69,8 +69,8 @@ Effects also no longer see anything the source draws outside its bounds.
 Opt a source in when the RenderThread spends its time replaying it. An app with seven effects over
 a video feed, [reported in #1611](https://github.com/chrisbanes/haze/issues/1611), measured its
 effect layers falling from about 2.2 ms to 0.2 ms per frame with an equivalent offscreen copy. On a
-Pixel 8a with a lighter feed, it saved no CPU time and left 0.8–1.5 ms less frame margin at P90
-while scrolling ([conditions and limits](benchmark-results.md#input-sharing)).
+Pixel 8a with a lighter feed, it did not reduce CPU frame time and added about 33 MB of GPU memory
+([conditions and limits](benchmark-results.md#input-sharing)).
 
 <a id="input-scale"></a>
 <a id="performance-mode"></a>
