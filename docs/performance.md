@@ -54,6 +54,13 @@ Try these changes in order, measuring after each:
 A stable source can reuse captured and processed output. Scrolling or animated backgrounds need
 fresh input, so always test those interactions as well as stationary content.
 
+Several independent effects over one [`HazeInput.Sources`][HazeInput.Sources] input each replay
+the source's display list when it changes. The experimental, off-by-default
+`HazeFeatureFlags.isOffscreenSourceEnabled` renders the source once and lets every effect sample
+it instead. It costs a source-sized texture, and it clips anything drawn outside the source's
+bounds. Fewer replays did not reduce frame time in our testing, so enable it only if measurement on
+your screen shows a benefit.
+
 <a id="input-scale"></a>
 <a id="performance-mode"></a>
 <a id="performance-modes"></a>
@@ -134,13 +141,6 @@ Regular Glass surfaces into one cluster over a changing source left about 4.5 ms
 deadline margin at P90 and used about 7% more peak GPU memory than drawing them independently,
 even though its CPU frame duration P90 was 0.35 ms lower
 ([conditions and limits](benchmark-results.md#glass-containers)).
-
-Several independent effects over one [`HazeInput.Sources`][HazeInput.Sources] input each replay
-the source's display list when it changes. `HazeFeatureFlags.isOffscreenSourceEnabled` renders the
-source once and lets every effect sample it instead. With four Glass controls over a busy feed on a
-Pixel 8a (120 Hz), it removed about 80% of the replayed passes, but frame time did not change by
-more than the variation between runs, and peak GPU memory rose by 18–36 MB. Enable it only if
-measurement on your screen shows a benefit.
 
 For styling examples, see the [Glass overview](effects/glass/index.md).
 

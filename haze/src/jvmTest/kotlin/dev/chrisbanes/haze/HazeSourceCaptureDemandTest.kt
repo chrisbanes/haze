@@ -76,6 +76,8 @@ class HazeSourceCaptureDemandTest {
       setContent {
         Box(Modifier.size(100.dp).testTag("root")) {
           Box(Modifier.fillMaxSize().hazeSource(state).drawBehind { drawRect(sourceColor.value) })
+          // Hides the source, so only the effect's sampled input can show its color.
+          Box(Modifier.fillMaxSize().background(Color.Black))
           Effect(state, factory)
         }
       }
@@ -89,6 +91,8 @@ class HazeSourceCaptureDemandTest {
       sourceColor.value = Color.Blue
       waitForIdle()
       assertThat(layer.compositingStrategy).isEqualTo(CompositingStrategy.Auto)
+      val updated = onNodeWithTag("root").captureToImage().toPixelMap()
+      assertThat(updated[updated.width / 2, updated.height / 2]).isEqualTo(Color.Blue)
     } finally {
       HazeFeatureFlags.isOffscreenSourceEnabled = false
     }

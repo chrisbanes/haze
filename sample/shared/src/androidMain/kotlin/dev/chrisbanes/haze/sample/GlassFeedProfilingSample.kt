@@ -135,12 +135,13 @@ private fun GlassFeedProfilingScene(
   modifier: Modifier = Modifier,
 ) {
   // Applied before the source first draws, and restored when the scene leaves.
+  val previousOffscreenSourceEnabled = remember { HazeFeatureFlags.isOffscreenSourceEnabled }
   remember(scenario) {
     HazeFeatureFlags.isOffscreenSourceEnabled =
       scenario.controls == FeedControls.GlassOffscreenSource
   }
   DisposableEffect(Unit) {
-    onDispose { HazeFeatureFlags.isOffscreenSourceEnabled = false }
+    onDispose { HazeFeatureFlags.isOffscreenSourceEnabled = previousOffscreenSourceEnabled }
   }
 
   val hazeState = rememberHazeState()

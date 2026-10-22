@@ -20,8 +20,8 @@ performance guidance.
 
 - Added the experimental `HazeFeatureFlags.isOffscreenSourceEnabled`. It renders each
   `hazeSource` into an offscreen layer, so several effects sampling one source no longer replay its
-  display list once each. It uses a source-sized texture and did not reduce frame time in our
-  Glass measurements, so it is off by default.
+  display list once each. It is off by default: it uses a source-sized texture, clips content drawn
+  outside the source's bounds, and fewer replays did not reduce frame time in our Glass testing.
 
 - Added `GlassOptics.regular` and `GlassOptics.clear` as reusable optical configurations, and
   `optics { copy(...) }` to modify the optics established by earlier style writes.

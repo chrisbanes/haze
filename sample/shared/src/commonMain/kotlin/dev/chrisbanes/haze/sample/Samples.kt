@@ -339,7 +339,8 @@ fun Samples(
   val currentDestination by navController.currentBackStackEntryAsState()
   val currentRoute = currentDestination?.destination?.route
   val profilingRoute = currentRoute?.startsWith("blur-profiling/") == true ||
-    currentRoute?.startsWith("glass-profiling/") == true
+    currentRoute?.startsWith("glass-profiling/") == true ||
+    currentRoute?.startsWith("glass-feed-profiling/") == true
   LaunchedEffect(settings.performanceMode, currentRoute) {
     metrics.clear()
   }

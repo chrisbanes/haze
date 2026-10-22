@@ -32,9 +32,10 @@ public object HazeFeatureFlags {
    * whenever the source changes. With one, the source renders once per frame and each effect
    * samples that result, at the cost of a source-sized texture.
    *
-   * Measure before enabling it: on a Pixel 8a with four Glass effects over one source, it removed
-   * most replays but did not reduce frame time, and used 18–36 MB more GPU memory. The value is
-   * read each time a source records its content. The default is `false`.
+   * Content drawn outside the source's layout bounds, such as shadows or overflowing children, is
+   * clipped while this is enabled, both on screen and in effects. Fewer replays do not necessarily
+   * mean less frame time, so measure before enabling it. The value is read each time a source
+   * records its content. The default is `false`.
    */
   @JvmField
   public var isOffscreenSourceEnabled: Boolean = false
