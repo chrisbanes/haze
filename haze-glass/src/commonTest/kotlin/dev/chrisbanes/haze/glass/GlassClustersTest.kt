@@ -169,4 +169,72 @@ class GlassClustersTest {
     assertThat(result.opticalSize).isNull()
     assertThat(clusterGlassMembers(emptyList(), 40f).opticalSize).isNull()
   }
+
+  private fun grouped(index: Int, left: Float, groupKey: Any? = "group") = member(index, left).copy(groupKey = groupKey)
+
+  private fun GlassClusterModel.units() = surfaces.map { surface -> surface.groups.map { unit -> unit.map { it.identity } } }
+
+  @Test
+  fun cluster_ungroupedMembersFormSingletonUnits() {
+    val result = clusterGlassMembers(List(3) { member(it) }, 40f)
+    assertThat(result.units()).containsExactly(listOf(listOf(0), listOf(1), listOf(2)))
+  }
+
+  @Test
+  fun cluster_groupedMembersBeyondMergeDistanceFormOneUnit() {
+    // 200 px apart, well beyond the 40 px merge distance: only the shared group key joins them.
+    val result = clusterGlassMembers(listOf(grouped(0, 0f), grouped(1, 300f)), 40f)
+    assertThat(result.units()).containsExactly(listOf(listOf(0, 1)))
+    assertThat(result.surfaces.single().members.map { it.identity }).containsExactly(0, 1)
+  }
+
+  @Test
+  fun cluster_groupMemberWithDifferentKeyIsLeftOut() {
+    val other = grouped(1, 110f).copy(key = key.copy(alpha = 0.4f))
+    val result = clusterGlassMembers(listOf(grouped(0, 0f), other, grouped(2, 220f)), 40f)
+    assertThat(result.units()).containsExactly(listOf(listOf(0)), listOf(listOf(1)), listOf(listOf(2)))
+  }
+
+  @Test
+  fun cluster_nonConsecutiveGroupMembersSplitIntoRuns() {
+    val far = member(1, 600f)
+    val result = clusterGlassMembers(listOf(grouped(0, 0f), far, grouped(2, 300f)), 40f)
+    assertThat(result.units()).containsExactly(listOf(listOf(0)), listOf(listOf(1)), listOf(listOf(2)))
+  }
+
+  @Test
+  fun cluster_groupBridgesWithNeighbourByUnitBounds() {
+    // The neighbour sits under the gap between the members: 20 px from the group's bounds, but
+    // about 54 px from either member alone.
+    val neighbour = member(2, 150f, 60f)
+    assertThat(clusterGlassMembers(listOf(member(0, 0f), member(1, 300f), neighbour), 40f).surfaces.size)
+      .isEqualTo(3)
+    assertThat(clusterGlassMembers(listOf(grouped(0, 0f), grouped(1, 300f), neighbour), 40f).units())
+      .containsExactly(listOf(listOf(0, 1), listOf(2)))
+  }
+
+  @Test
+  fun cluster_groupCountsAsOneTowardCap() {
+    // A 3-member group plus 3 near members is 4 units: one cluster, no overflow.
+    val group = List(3) { grouped(it, it * 110f) }
+    val near = List(3) { member(3 + it, 330f + it * 110f) }
+    val fits = clusterGlassMembers(group + near, 40f)
+    assertThat(fits.units()).containsExactly(listOf(listOf(0, 1, 2), listOf(3), listOf(4), listOf(5)))
+    assertThat(fits.overflow).isEmpty()
+
+    // A fifth unit overflows and stays a singleton cluster.
+    val overflowing = clusterGlassMembers(group + near + member(6, 660f), 40f)
+    assertThat(overflowing.units())
+      .containsExactly(listOf(listOf(0, 1, 2), listOf(3), listOf(4), listOf(5)), listOf(listOf(6)))
+    assertThat(overflowing.overflow.single().excessCount).isEqualTo(1)
+  }
+
+  @Test
+  fun cluster_fadingOrNonTranslationMemberLeavesGroup() {
+    for (excluded in listOf(grouped(1, 110f).copy(fading = true), grouped(1, 110f).copy(translationOnly = false))) {
+      val result = clusterGlassMembers(listOf(grouped(0, 0f), excluded, grouped(2, 220f)), 40f)
+      assertThat(result.surfaces.flatMap { it.groups }.map { unit -> unit.map { it.identity } })
+        .containsExactly(listOf(0), listOf(1), listOf(2))
+    }
+  }
 }
