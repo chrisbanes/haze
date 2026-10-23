@@ -62,7 +62,8 @@ import kotlinx.coroutines.launch
  *
  * Without RuntimeShader support, or when a cluster exceeds the render budget, each cluster draws
  * as one surface clipped to the hard union of its members, with no bridge. Members keep their own
- * tint and background; where members overlap, the earlier registered member's colours apply.
+ * tint and background, except that a group draws as its single shape with its first member's tint
+ * and background. Where members overlap, the earlier registered member's colours apply.
  *
  * Members that attach or detach after the container's first draw animate their glass as each
  * member's [GlassMemberTransition] declares, timed by [transitionSpec], which defaults to

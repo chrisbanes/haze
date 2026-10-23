@@ -245,7 +245,9 @@ container's first draw never animate.
 
 Without `RuntimeShader` support, or when a cluster is too large to render in full, each cluster
 draws as one surface clipped to the hard union of the member shapes, with no bridge. Members keep
-their own tint and background color; where members overlap, the earlier member's colors apply.
+their own tint and background color, except that a [group](#groups) draws as its single shape with
+its first member's tint and background color. Where members overlap, the earlier member's colors
+apply.
 Each member resolves [`GlassAccessibilitySettings`][GlassAccessibilitySettings] and appearance in its own context. With
 `reduceTransparency`, it draws an opaque white/light or black/dark base (or its opaque
 `reducedTransparencyFallbackColor` override), then its authored background colour and tint. Earlier
