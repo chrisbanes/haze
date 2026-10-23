@@ -69,6 +69,8 @@ internal fun glassMergeKey(
  * member's, as its [layoutRect] is its drawn rect.
  * [groupKey] is the member's declared Glass group, and [shape] its rounded-corner shape; a group
  * draws with its first member's.
+ * [transitionFraction] is how present a morphing member is, from 0 (gone) to 1; a group blends its
+ * corners from its first member's shape to the next member's while the first one is morphing.
  */
 internal data class GlassMemberSnapshot(
   val identity: Any,
@@ -83,6 +85,7 @@ internal data class GlassMemberSnapshot(
   val sampleLayoutRect: Rect = layoutRect,
   val groupKey: Any? = null,
   val shape: RoundedCornerShape? = null,
+  val transitionFraction: Float = 1f,
 )
 
 /** Whether two members declare the same Glass group. */

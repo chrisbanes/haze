@@ -236,6 +236,26 @@ private class GlassGroupDraw(private val unit: List<GlassMemberSnapshot>, privat
   // Without a transform every member draws at its layout rect, so the union of those is the group.
   override val rect = scaling?.transform?.let { layoutRect.transformedBy(it) } ?: layoutRect
 
+  /**
+   * The first member's shape at the group's size. While that member morphs in or out, the corners
+   * blend to the next member's, so the group's shape does not jump when the morph ends.
+   */
+  private fun cornerRadii(): CornerRadii {
+    fun GlassMemberSnapshot.radii() = shape.resolveCornerRadiiPx(this@GlassGroupDraw.layoutRect.size, density, key.layoutDirection)
+    val first = unit.first()
+    val firstRadii = first.radii()
+    if (first.transitionFraction >= 1f) return firstRadii
+    val next = unit[1].radii()
+    val fraction = first.transitionFraction
+    fun lerp(from: Float, to: Float) = from + (to - from) * fraction
+    return CornerRadii(
+      lerp(next.topLeft, firstRadii.topLeft),
+      lerp(next.topRight, firstRadii.topRight),
+      lerp(next.bottomRight, firstRadii.bottomRight),
+      lerp(next.bottomLeft, firstRadii.bottomLeft),
+    )
+  }
+
   override fun toMergedMember(origin: Offset): GlassMergedMember {
     val first = unit.first()
     val scaleX = rect.width / layoutRect.width
@@ -251,7 +271,7 @@ private class GlassGroupDraw(private val unit: List<GlassMemberSnapshot>, privat
       rect = rect,
       sampleLayoutRect = sampleLayoutRect,
       material = first.material,
-      cornerRadii = first.shape.resolveCornerRadiiPx(layoutRect.size, density, first.key.layoutDirection) * minOf(scaleX, scaleY),
+      cornerRadii = cornerRadii() * minOf(scaleX, scaleY),
       interaction = lighting?.interaction,
       lightPosition = position,
       lightSize = lighting?.member?.rect?.minDimension ?: 0f,

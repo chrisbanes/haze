@@ -386,7 +386,7 @@ internal class GlassContainerNode(
                 if (attach.neighbour == null) return@let snapshot.copy(fading = true)
                 val neighbour = drawn[attach.neighbour] ?: drawnSnapshot(attach.neighbour, live) ?: return@let snapshot
                 val (rect, material) = snapshot.morphedFrom(neighbour, attach.progress.value)
-                registration.snapshot(rect, snapshot.key, material, link = neighbour.identity).copy(sourceSelection = snapshot.sourceSelection)
+                registration.snapshot(rect, snapshot.key, material, link = neighbour.identity).copy(sourceSelection = snapshot.sourceSelection, transitionFraction = attach.progress.value.coerceIn(0f, 1f))
               }
               // A ghost's neighbour is its anchor, which is live after the pruning above.
               is GlassMemberGhost -> registration.snapshot(registration.neighbour?.let { drawn[it] ?: checkNotNull(drawnSnapshot(it, live)) })

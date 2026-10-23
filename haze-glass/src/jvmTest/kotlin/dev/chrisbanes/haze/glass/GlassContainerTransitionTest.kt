@@ -223,6 +223,33 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun groupedFirstMemberDetach_blendsGroupCornersTowardNextMembersShape() = runComposeUiTest {
+    // A is square and B a capsule. The group draws A's corners until A retracts into B, then B's.
+    val fixture = fixture(gap = 60, grouped = true, bStyle = GlassStyle { shape(RoundedCornerShape(percent = 50)) })
+    fixture.a()
+    fun groupRadius() = fixture.owner().renderer.runtimeSurfaces.single().mergedField!!.members.single().cornerRadii.topLeft
+    assertThat(groupRadius()).isEqualTo(0f)
+    runOnIdle { fixture.aPresent.value = false }
+    fixture.advance(16)
+    assertThat(fixture.owner().model.surfaces.single().members.first().identity).isInstanceOf<GlassMemberGhost>()
+    fixture.advance(34)
+    // B's capsule corners are 40px at the group's 80px height.
+    assertThat(groupRadius()).all {
+      isGreaterThan(0f)
+      isLessThan(10f)
+    }
+    fixture.advance(100)
+    assertThat(groupRadius()).all {
+      isGreaterThan(10f)
+      isLessThan(30f)
+    }
+    fixture.advance(130)
+    assertThat(groupRadius()).isGreaterThan(30f)
+    fixture.settle()
+    assertThat(fixture.b().material.cornerRadii).isEqualTo(CornerRadii(40f, 40f, 40f, 40f))
+  }
+
+  @Test
   fun ungroupedMember_detachBeyondMergeDistanceFadesInPlace() = runComposeUiTest {
     val fixture = fixture(gap = 60)
     fixture.toggle()

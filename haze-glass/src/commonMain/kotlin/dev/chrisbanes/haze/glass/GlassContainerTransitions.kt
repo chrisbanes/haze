@@ -155,7 +155,7 @@ internal class GlassMemberGhost(val last: GlassMemberSnapshot, val neighbour: Gl
       // The neighbour's live key and material keep the link as the optical size changes.
       val shape = lerpGlassMergedMember(neighbourSnapshot.drawnShape(), drawn, progress.value)
       val merged = neighbourSnapshot.material.copy(cornerRadii = shape.cornerRadii, tint = shape.tint, backgroundColor = shape.backgroundColor, fallbackBaseColor = shape.fallbackBaseColor)
-      return GlassMemberSnapshot(this, shape.rect, neighbourSnapshot.key, merged, true, shape.rect, link = neighbour, sampleLayoutRect = shape.layoutRect, groupKey = last.groupKey, shape = last.shape)
+      return GlassMemberSnapshot(this, shape.rect, neighbourSnapshot.key, merged, true, shape.rect, link = neighbour, sampleLayoutRect = shape.layoutRect, groupKey = last.groupKey, shape = last.shape, transitionFraction = progress.value.coerceIn(0f, 1f))
     }
     val alpha = last.material.alpha * progress.value.coerceIn(0f, 1f)
     return GlassMemberSnapshot(this, drawn.rect, last.key, last.material.copy(cornerRadii = drawn.cornerRadii, alpha = alpha), true, drawn.rect, fading = true, sampleLayoutRect = drawn.layoutRect, groupKey = last.groupKey, shape = last.shape)
