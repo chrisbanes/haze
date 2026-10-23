@@ -85,15 +85,18 @@ internal data class GlassMemberSnapshot(
   val shape: RoundedCornerShape? = null,
 )
 
+/** Whether two members declare the same Glass group. */
+internal fun GlassMemberSnapshot.isGroupedWith(other: GlassMemberSnapshot): Boolean =
+  groupKey != null && groupKey == other.groupKey
+
 /**
- * [members] is the flat, registration-ordered list. [groups] partitions it into drawn units: a Glass
- * group is one unit, every other member a singleton unit.
+ * [groups] partitions the cluster into drawn units: a Glass group is one unit, every other member
+ * a singleton unit. [members] is the flat, registration-ordered list of them.
  */
 @Poko
-internal class GlassCluster(
-  val members: List<GlassMemberSnapshot>,
-  val groups: List<List<GlassMemberSnapshot>> = members.map(::listOf),
-)
+internal class GlassCluster(val groups: List<List<GlassMemberSnapshot>>) {
+  val members: List<GlassMemberSnapshot> = groups.flatten()
+}
 
 @Poko
 internal class GlassClusterOverflow(val members: List<Any>, val excessCount: Int)
@@ -115,6 +118,11 @@ internal fun glassOpticalSize(sizes: List<Size>): Size? = sizes
   .maxOfOrNull { it.minDimension }
   ?.let { Size(it, it) }
 
+/** Bounding box of a non-empty collection of rects. */
+internal fun Iterable<Rect>.union(): Rect = reduce { a, b ->
+  Rect(minOf(a.left, b.left), minOf(a.top, b.top), maxOf(a.right, b.right), maxOf(a.bottom, b.bottom))
+}
+
 /** Euclidean distance between closest rectangle points, including diagonal gaps. */
 internal fun glassMemberGap(a: Rect, b: Rect): Float = hypot(
   maxOf(a.left - b.right, b.left - a.right, 0f),
@@ -132,8 +140,7 @@ internal fun formGlassGroupUnits(members: List<GlassMemberSnapshot>): List<List<
     val unit = units.lastOrNull()
     val first = unit?.first()
     if (
-      first != null && member.groupKey != null && member.groupKey == first.groupKey &&
-      first.canJoinGlassGroup() && member.canJoinGlassGroup() && member.key == first.key
+      first != null && member.isGroupedWith(first) && first.canCluster() && member.canCluster() && member.key == first.key
     ) {
       unit += member
     } else {
@@ -143,11 +150,7 @@ internal fun formGlassGroupUnits(members: List<GlassMemberSnapshot>): List<List<
   return units
 }
 
-private fun GlassMemberSnapshot.canJoinGlassGroup() = translationOnly && !fading
-
-private fun List<GlassMemberSnapshot>.unionRect(): Rect = singleOrNull()?.rect ?: Rect(
-  minOf { it.rect.left }, minOf { it.rect.top }, maxOf { it.rect.right }, maxOf { it.rect.bottom },
-)
+private fun GlassMemberSnapshot.canCluster() = translationOnly && !fading
 
 /** [opticalSize] defaults to every member's layout rect; a container passes its live members' only. */
 internal fun clusterGlassMembers(
@@ -160,7 +163,7 @@ internal fun clusterGlassMembers(
   // Clustering works on units: gaps use a unit's bounds, a member's link counts for its whole unit,
   // and the cap and the consecutive-run split count units.
   val units = formGlassGroupUnits(valid)
-  val unitRects = units.map { it.unionRect() }
+  val unitRects = units.map { unit -> unit.map { it.rect }.union() }
   val remaining = units.indices.toMutableList()
   val surfaces = mutableListOf<GlassCluster>()
   val overflow = mutableListOf<GlassClusterOverflow>()
@@ -178,7 +181,7 @@ internal fun clusterGlassMembers(
         val candidate = candidateUnit.first()
         // The gap or link test is cheap and rejects most pairs; the key comparison is a deep equals.
         if (
-          member.translationOnly && candidate.translationOnly && !member.fading && !candidate.fading &&
+          member.canCluster() && candidate.canCluster() &&
           (
             // Start the field before its bridge closes, so facing edges stretch continuously.
             glassMemberGap(unitRects[unitIndex], unitRects[index]) < mergeDistancePx ||
@@ -222,4 +225,4 @@ internal fun clusterGlassMembers(
 }
 
 private fun List<Int>.toCluster(units: List<List<GlassMemberSnapshot>>) =
-  GlassCluster(flatMap { units[it] }, map { units[it] })
+  GlassCluster(map { units[it] })
