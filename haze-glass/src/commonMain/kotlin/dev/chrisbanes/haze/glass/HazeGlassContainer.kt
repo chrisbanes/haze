@@ -50,7 +50,8 @@ import kotlinx.coroutines.launch
  *
  * All Glass output draws behind every container child. Backdrop input samples only drawing before
  * the container. Members use the largest member's shortest side for optics, retaining their own
- * styles and shape/colour values.
+ * styles and shape/colour values, except members of a group (see `hazeGlass`'s `groupKey`), which
+ * draw with the first member's shape and appearance and count as one member for optics.
  *
  * [mergeDistance] has two roles. It decides which compatible members merge: members whose
  * edge-to-edge gap is less than [mergeDistance] join one Glass cluster. It also shapes the merge.
@@ -75,7 +76,8 @@ import kotlinx.coroutines.launch
  * that is rotated or scaled, or that uses [HazeInput.Content], whose content leaves with it.
  *
  * A running transition ends without animating when the member it grows from, retracts into or is
- * drawn through leaves, or when its member is no longer within [mergeDistance] of that member. A
+ * drawn through leaves, or when its member is no longer within [mergeDistance] of that member,
+ * unless both are members of the same group, which stay neighbours at any distance. A
  * member whose nearest container changes while it stays in the layout, for example when a nested
  * container is added or removed around it, appears in the new container immediately. Moving a
  * member with `movableContentOf` detaches and reattaches it, so it detaches from the old container

@@ -128,16 +128,19 @@ two circles become one capsule that spans the row, although they are far apart. 
   [optical size](#optical-size).
 - **Transitions.** Members of the same group are neighbours at any distance. With the default
   `MatchedGeometry`, a member that attaches grows the group's bounds, and one that detaches shrinks
-  them, timed by `transitionSpec`. A fading member leaves the group while it fades.
+  them, timed by `transitionSpec`. A fading member leaves the group while it fades. With
+  `Materialize`, or any other fade, a fading member in the middle of a group therefore splits it
+  into separate shapes until the fade ends, and then they snap back into one shape.
 - **Interaction.** Pressing any member scales and lights the whole group. Each member's content
   still follows its own `interactionTransformTarget`.
 - **Fallback.** The [fallback](#fallback) draws the group as its single shape.
 
 ## Optical size
 
-A container uses one optical size: the largest shortest side among its members. Every member's
-optics use that size, whether or not it is in a cluster, so a small member next to a large one
-takes on the large member's diffusion, even when the two don't merge.
+A container uses one optical size: the largest shortest side among its members. A [group](#groups)
+counts as one member, using the size of its bounds. Every member's optics use that size, whether or
+not it is in a cluster, so a small member next to a large one takes on the large member's
+diffusion, even when the two don't merge.
 
 The size updates immediately, without animation, when a member is added, removed or resized.
 Members that are animating out, or whose bounds have collapsed to zero area, don't count.
@@ -152,8 +155,9 @@ never changes a member's z-order.
 ## Interaction
 
 Interaction responses work as described in [Glass interaction](index.md#interaction), applied to
-the member's own part of the merged shape: pressing a member scales and lights only that part. A
-uniform pressed `scale` does not split the cluster.
+the member's own part of the merged shape: pressing a member scales and lights only that part. In a
+[group](#groups), pressing any member scales and lights the whole group. A uniform pressed `scale`
+does not split the cluster.
 
 ## Transitions
 
@@ -162,7 +166,8 @@ the transition with `hazeGlass(memberTransition = ...)`:
 
 - [`GlassMemberTransition.MatchedGeometry`][GlassMemberTransition.MatchedGeometry] is the default. A member that attaches within the
   merge distance of another member grows out of it, and a member that detaches retracts into it.
-  Beyond the merge distance, it falls back to `Materialize`.
+  Beyond the merge distance, it falls back to `Materialize`, except between members of the same
+  [group](#groups), which are neighbours at any distance.
 - [`GlassMemberTransition.Materialize`][GlassMemberTransition.Materialize] fades the glass in or out where it is. A fading member draws
   on its own until it is fully opaque.
 - [`GlassMemberTransition.None`][GlassMemberTransition.None] applies no transition.
