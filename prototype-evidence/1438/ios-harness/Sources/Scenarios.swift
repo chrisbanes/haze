@@ -11,6 +11,12 @@
 //   nested:      pill B in its own GlassEffectContainer nested inside A's container
 //   siblings:    A and B in two sibling GlassEffectContainers
 //   far:         B is inserted and removed with glassEffectID while beyond the spacing
+//   union / unionControl: A and B with and without glassEffectUnion; unionSide offsets B diagonally
+//   unionShapes: a card unioned with a pill (`-swap YES` declares the pill first)
+//   unionTint:   tinted A unioned with plain B (`-swap YES` declares B first); unionClear: clear A with regular B
+//   unionNeighbour: unioned A and B, plus plain pill C 8 pt right of A
+//   unionToggle: Toggle inserts or removes unioned B; unionOptics: one capsule with the union's bounds
+//   unionInteractive: two unioned `.interactive()` pills; long-press A (PressTests.testPressUnion)
 //
 // `joined` puts the members 8 pt apart, well inside the 40 pt spacing (bridges below 20 pt).
 // Apart moves B 240 pt further down, well outside it. The Toggle button animates between them.
@@ -18,7 +24,8 @@
 import SwiftUI
 
 enum Scenario: String, CaseIterable {
-  case tint, variant, unequal, unequalSeparate, cardToggle, clearWithCard, clearAlone, clearCard, interactive, nested, siblings, far
+  case tint, variant, unequal, unequalSeparate, cardToggle, clearWithCard, clearAlone, clearCard, interactive, nested, siblings, far, union, unionControl, unionSide,
+    unionShapes, unionTint, unionClear, unionNeighbour, unionToggle, unionOptics, unionInteractive
 }
 
 private let spacing: CGFloat = 40
@@ -69,7 +76,7 @@ struct ScenarioView: View {
 
   private func toggle() {
     withAnimation(.spring) {
-      if scenario == .far || scenario == .cardToggle { present.toggle() } else { joined.toggle() }
+      if scenario == .far || scenario == .cardToggle || scenario == .unionToggle { present.toggle() } else { joined.toggle() }
     }
   }
 
@@ -191,6 +198,93 @@ struct ScenarioView: View {
           member("B", .regular).position(bCentre)
         }
       }
+    case .union, .unionControl:
+      // A and B share glassEffectUnion (or not, for the control); `-joined NO` puts them 240 pt beyond the spacing.
+      GlassEffectContainer(spacing: spacing) {
+        ZStack {
+          unioned(member("A", .regular)).position(aCentre)
+          unioned(member("B", .regular)).position(bCentre)
+        }
+      }
+    case .unionSide:
+      // Unioned pills offset diagonally and far apart, to see whether the union fills between them.
+      GlassEffectContainer(spacing: spacing) {
+        ZStack {
+          member("A", .regular).glassEffectUnion(id: "u", namespace: namespace).position(aCentre)
+          member("B", .regular).glassEffectUnion(id: "u", namespace: namespace)
+            .position(x: aCentre.x + 180, y: bCentre.y)
+        }
+      }
+    case .unionShapes:
+      // A 300×180 rounded-rect card unioned with a capsule pill; `-swap YES` declares the pill first.
+      GlassEffectContainer(spacing: spacing) {
+        let cardView = Text("A card").font(.headline).foregroundStyle(.white)
+          .frame(width: card.width, height: card.height)
+          .glassEffect(.regular, in: .rect(cornerRadius: 36))
+          .glassEffectUnion(id: "u", namespace: namespace)
+          .position(x: origin.x + card.width / 2, y: origin.y + card.height / 2)
+        let pillView = member("B pill", .regular).glassEffectUnion(id: "u", namespace: namespace)
+          .position(x: origin.x + pill.width / 2, y: bY(aHeight: card.height, bHeight: pill.height))
+        ZStack {
+          if UserDefaults.standard.bool(forKey: "swap") { pillView; cardView } else { cardView; pillView }
+        }
+      }
+    case .unionTint:
+      GlassEffectContainer(spacing: spacing) {
+        ZStack {
+          // `-swap YES` declares plain B before tinted A.
+          if UserDefaults.standard.bool(forKey: "swap") {
+            member("B", .regular).glassEffectUnion(id: "u", namespace: namespace).position(bCentre)
+            member("A blue", .regular.tint(.blue)).glassEffectUnion(id: "u", namespace: namespace).position(aCentre)
+          } else {
+            member("A blue", .regular.tint(.blue)).glassEffectUnion(id: "u", namespace: namespace).position(aCentre)
+            member("B", .regular).glassEffectUnion(id: "u", namespace: namespace).position(bCentre)
+          }
+        }
+      }
+    case .unionClear:
+      GlassEffectContainer(spacing: spacing) {
+        ZStack {
+          member("A clear", .clear).glassEffectUnion(id: "u", namespace: namespace).position(aCentre)
+          member("B regular", .regular).glassEffectUnion(id: "u", namespace: namespace).position(bCentre)
+        }
+      }
+    case .unionNeighbour:
+      // A and B are unioned; plain pill C sits 8 pt right of A, inside the spacing of the union's bounds.
+      GlassEffectContainer(spacing: spacing) {
+        ZStack {
+          member("A", .regular).glassEffectUnion(id: "u", namespace: namespace).position(aCentre)
+          member("B", .regular).glassEffectUnion(id: "u", namespace: namespace).position(bCentre)
+          member("C", .regular).position(x: aCentre.x + pill.width + joinedGap, y: aCentre.y)
+        }
+      }
+    case .unionToggle:
+      // Toggle inserts or removes unioned B, to see whether the union's bounds animate.
+      GlassEffectContainer(spacing: spacing) {
+        ZStack {
+          member("A", .regular).glassEffectUnion(id: "u", namespace: namespace).position(aCentre)
+          if present {
+            member("B", .regular).glassEffectUnion(id: "u", namespace: namespace).position(bCentre)
+          }
+        }
+      }
+    case .unionOptics:
+      // Control for `union -joined NO`: one plain capsule with the union's bounds.
+      GlassEffectContainer(spacing: spacing) {
+        let top = origin.y
+        let bottom = bCentre.y + pill.height / 2
+        Text("single").font(.headline).foregroundStyle(.white)
+          .frame(width: pill.width, height: bottom - top)
+          .glassEffect(.regular, in: .capsule)
+          .position(x: aCentre.x, y: (top + bottom) / 2)
+      }
+    case .unionInteractive:
+      GlassEffectContainer(spacing: spacing) {
+        ZStack {
+          member("A", .regular.interactive()).glassEffectUnion(id: "u", namespace: namespace).position(aCentre)
+          member("B", .regular.interactive()).glassEffectUnion(id: "u", namespace: namespace).position(bCentre)
+        }
+      }
     case .far:
       // B is apart (beyond the spacing) unless `-joined YES`; Toggle inserts or removes it with no explicit transition.
       GlassEffectContainer(spacing: spacing) {
@@ -209,6 +303,10 @@ struct ScenarioView: View {
         }
       }
     }
+  }
+
+  @ViewBuilder private func unioned(_ view: some View) -> some View {
+    if scenario == .union { view.glassEffectUnion(id: "u", namespace: namespace) } else { view }
   }
 
   private func member(_ label: String, _ glass: Glass) -> some View {

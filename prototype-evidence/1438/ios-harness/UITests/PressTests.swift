@@ -6,10 +6,11 @@ import XCTest
 final class PressTests: XCTestCase {
   func testPressJoined() { press(joined: "YES") }
   func testPressApart() { press(joined: "NO") }
+  func testPressUnion() { press(joined: "NO", scenario: "unionInteractive") }
 
-  private func press(joined: String) {
+  private func press(joined: String, scenario: String = "interactive") {
     let app = XCUIApplication()
-    app.launchArguments = ["-scenario", "interactive", "-joined", joined]
+    app.launchArguments = ["-scenario", scenario, "-joined", joined]
     app.launch()
     sleep(2)
     app.staticTexts["A"].press(forDuration: 3)
