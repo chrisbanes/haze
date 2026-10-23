@@ -2020,165 +2020,364 @@ retained locally under <code>internal/benchmark/build/benchmark-results/noise-ti
 </details>
 <p><a id="input-sharing"></a></p>
 <h2 id="input-sharing">Input sharing<a class="headerlink" href="#input-sharing" title="Permanent link">¶</a></h2>
-<p>This comparison draws four separate 40 dp controls in a header over one <code>hazeSource</code>: a
-<code>LazyColumn</code> of full-width cards with artwork, text and translucent chips, where every third card
-animates like a playing video and every fourth card is faded. The shared rows use
-<code>HazeInputSharing.Auto</code>, so the four effects sample one rendered copy of the feed; the unshared
-rows use <code>Never</code>, so each effect replays the feed. The plain rows draw the same controls as
-translucent fills without Haze. The video rows only animate the video cards; the scroll rows also
-scroll the feed at a fixed speed. It used a Pixel 8a running Android 17 at 60 Hz, with
+<p>This comparison measures <a href="../performance/#input-sharing"><code>HazeInputSharing</code></a> on two nested
+<code>hazeSource</code> modifiers. An outer host source fills the screen and contains an inner feed source:
+a <code>LazyColumn</code> of full-width cards with artwork, text and translucent chips, where every third
+card animates like a playing video and every fourth card is faded. Four 40–44 dp controls in a
+header sample the feed, and two 40 dp controls at the bottom sample the host. Every control sits
+outside both captured subtrees. The video rows animate the video cards; the scroll rows also
+scroll the feed at a fixed speed. Each row draws Glass or Blur controls.</p>
+<p>Within a row the content, geometry, animation, styles and duration are identical. Only the two
+sharing policies change: neither source shares (<code>Never</code>/<code>Never</code>), only the feed shares
+(<code>Auto</code>/<code>Never</code>), or both share (<code>Auto</code>/<code>Auto</code>). The Pixel 8a ran Android 17 at 60 Hz with
 fixed-performance mode enabled and normal CPU scheduling.</p>
-<p>Each per-pass value pools the frames of that pass's eight iterations; the table shows the
-<strong>arithmetic mean of the two per-pass values</strong>. Peak GPU memory uses each pass's median
-<code>memoryGpuMaxKb</code>. Replays count HWUI <code>alpha caused saveLayer</code> slices per frame, which mark each
-time a faded card is drawn.</p>
+<p>Each value is the <strong>arithmetic mean of a forward and a reverse pass</strong> of eight measured
+iterations per method. Within a pass, CPU P90 and frame overrun P90 come from the pooled frames of
+its eight iterations, so the means are not percentiles of all frames. Peak GPU memory is the median
+of the per-iteration <code>memoryGpuMaxKb</code>, in MiB. Replays per frame, feed then host, come from the replay oracle in the measurement
+details.</p>
 <table>
 <thead>
 <tr>
 <th>Workload</th>
 <th>Controls</th>
-<th>Input</th>
-<th style="text-align: right;">saveLayer passes per frame</th>
+<th>Sharing</th>
+<th style="text-align: right;">Replays per frame</th>
+<th style="text-align: right;">CPU P90 (ms)</th>
+<th style="text-align: right;">Overrun P90 (ms)</th>
 <th style="text-align: right;"><code>DrawFrames</code> avg (ms)</th>
-<th style="text-align: right;">CPU frame duration P90 (ms)</th>
-<th style="text-align: right;">Frame overrun P90 (ms)</th>
-<th style="text-align: right;">Peak GPU memory (KB)</th>
+<th style="text-align: right;">Peak GPU (MiB)</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Video</td>
 <td>Glass</td>
-<td>Shared</td>
-<td style="text-align: right;">10.0</td>
-<td style="text-align: right;">2.95</td>
-<td style="text-align: right;">5.79</td>
-<td style="text-align: right;">-6.02</td>
-<td style="text-align: right;">145,410</td>
-</tr>
-<tr>
-<td>Video</td>
-<td>Glass</td>
-<td>Unshared</td>
-<td style="text-align: right;">25.0</td>
-<td style="text-align: right;">2.90</td>
-<td style="text-align: right;">5.83</td>
-<td style="text-align: right;">-6.69</td>
-<td style="text-align: right;">111,764</td>
-</tr>
-<tr>
-<td>Video</td>
-<td>Blur</td>
-<td>Shared</td>
-<td style="text-align: right;">10.0</td>
-<td style="text-align: right;">2.75</td>
-<td style="text-align: right;">5.74</td>
-<td style="text-align: right;">-6.14</td>
-<td style="text-align: right;">145,189</td>
-</tr>
-<tr>
-<td>Video</td>
-<td>Blur</td>
-<td>Unshared</td>
-<td style="text-align: right;">25.0</td>
-<td style="text-align: right;">2.87</td>
-<td style="text-align: right;">6.00</td>
-<td style="text-align: right;">-6.95</td>
-<td style="text-align: right;">109,511</td>
-</tr>
-<tr>
-<td>Video</td>
-<td>Plain</td>
-<td>—</td>
-<td style="text-align: right;">5.0</td>
-<td style="text-align: right;">2.16</td>
-<td style="text-align: right;">6.11</td>
-<td style="text-align: right;">-7.95</td>
-<td style="text-align: right;">106,354</td>
-</tr>
-<tr>
-<td>Scroll</td>
-<td>Glass</td>
-<td>Shared</td>
-<td style="text-align: right;">20.3</td>
-<td style="text-align: right;">3.32</td>
+<td>Neither</td>
+<td style="text-align: right;">7, 3</td>
 <td style="text-align: right;">7.05</td>
-<td style="text-align: right;">-4.38</td>
-<td style="text-align: right;">162,172</td>
+<td style="text-align: right;">-4.77</td>
+<td style="text-align: right;">3.56</td>
+<td style="text-align: right;">115.6</td>
+</tr>
+<tr>
+<td>Video</td>
+<td>Glass</td>
+<td>Feed only</td>
+<td style="text-align: right;">1, 3</td>
+<td style="text-align: right;">6.62</td>
+<td style="text-align: right;">-5.61</td>
+<td style="text-align: right;">3.29</td>
+<td style="text-align: right;">148.7</td>
+</tr>
+<tr>
+<td>Video</td>
+<td>Glass</td>
+<td>Both</td>
+<td style="text-align: right;">1, 1</td>
+<td style="text-align: right;">6.73</td>
+<td style="text-align: right;">-5.15</td>
+<td style="text-align: right;">3.37</td>
+<td style="text-align: right;">181.5</td>
+</tr>
+<tr>
+<td>Video</td>
+<td>Blur</td>
+<td>Neither</td>
+<td style="text-align: right;">7, 3</td>
+<td style="text-align: right;">6.84</td>
+<td style="text-align: right;">-5.63</td>
+<td style="text-align: right;">3.40</td>
+<td style="text-align: right;">113.1</td>
+</tr>
+<tr>
+<td>Video</td>
+<td>Blur</td>
+<td>Feed only</td>
+<td style="text-align: right;">1, 3</td>
+<td style="text-align: right;">6.69</td>
+<td style="text-align: right;">-6.33</td>
+<td style="text-align: right;">3.17</td>
+<td style="text-align: right;">146.0</td>
+</tr>
+<tr>
+<td>Video</td>
+<td>Blur</td>
+<td>Both</td>
+<td style="text-align: right;">1, 1</td>
+<td style="text-align: right;">6.61</td>
+<td style="text-align: right;">-5.87</td>
+<td style="text-align: right;">3.30</td>
+<td style="text-align: right;">177.9</td>
 </tr>
 <tr>
 <td>Scroll</td>
 <td>Glass</td>
-<td>Unshared</td>
-<td style="text-align: right;">49.7</td>
-<td style="text-align: right;">3.35</td>
-<td style="text-align: right;">7.15</td>
-<td style="text-align: right;">-5.17</td>
-<td style="text-align: right;">128,716</td>
+<td>Neither</td>
+<td style="text-align: right;">7, 3</td>
+<td style="text-align: right;">8.18</td>
+<td style="text-align: right;">-3.55</td>
+<td style="text-align: right;">3.99</td>
+<td style="text-align: right;">142.2</td>
+</tr>
+<tr>
+<td>Scroll</td>
+<td>Glass</td>
+<td>Feed only</td>
+<td style="text-align: right;">1, 3</td>
+<td style="text-align: right;">7.68</td>
+<td style="text-align: right;">-4.53</td>
+<td style="text-align: right;">3.73</td>
+<td style="text-align: right;">173.1</td>
+</tr>
+<tr>
+<td>Scroll</td>
+<td>Glass</td>
+<td>Both</td>
+<td style="text-align: right;">1, 1</td>
+<td style="text-align: right;">7.99</td>
+<td style="text-align: right;">-4.04</td>
+<td style="text-align: right;">3.87</td>
+<td style="text-align: right;">198.0</td>
 </tr>
 <tr>
 <td>Scroll</td>
 <td>Blur</td>
-<td>Shared</td>
-<td style="text-align: right;">20.4</td>
-<td style="text-align: right;">3.27</td>
-<td style="text-align: right;">7.34</td>
-<td style="text-align: right;">-4.82</td>
-<td style="text-align: right;">160,093</td>
+<td>Neither</td>
+<td style="text-align: right;">7, 3</td>
+<td style="text-align: right;">7.80</td>
+<td style="text-align: right;">-4.72</td>
+<td style="text-align: right;">3.83</td>
+<td style="text-align: right;">141.8</td>
 </tr>
 <tr>
 <td>Scroll</td>
 <td>Blur</td>
-<td>Unshared</td>
-<td style="text-align: right;">49.7</td>
-<td style="text-align: right;">3.17</td>
-<td style="text-align: right;">6.79</td>
-<td style="text-align: right;">-6.27</td>
-<td style="text-align: right;">126,405</td>
+<td>Feed only</td>
+<td style="text-align: right;">1, 3</td>
+<td style="text-align: right;">7.41</td>
+<td style="text-align: right;">-5.52</td>
+<td style="text-align: right;">3.60</td>
+<td style="text-align: right;">174.7</td>
 </tr>
 <tr>
 <td>Scroll</td>
-<td>Plain</td>
-<td>—</td>
-<td style="text-align: right;">10.6</td>
-<td style="text-align: right;">1.93</td>
-<td style="text-align: right;">5.71</td>
-<td style="text-align: right;">-7.43</td>
-<td style="text-align: right;">130,497</td>
+<td>Blur</td>
+<td>Both</td>
+<td style="text-align: right;">1, 1</td>
+<td style="text-align: right;">7.67</td>
+<td style="text-align: right;">-4.78</td>
+<td style="text-align: right;">3.75</td>
+<td style="text-align: right;">199.5</td>
 </tr>
 </tbody>
 </table>
-<p>Sharing cut the replays from five to two per frame (one on screen, one into the shared copy), but
-on this device and feed it did not reduce <code>DrawFrames</code> or CPU frame duration beyond the variation
-between passes. While scrolling, the shared rows finished 0.8 ms (Glass) and 1.5 ms (Blur) closer
-to their deadline at P90 than the unshared rows, in both passes. CPU placement was not analysed,
-so this difference is not attributed to sharing. Sharing added about 33 MB of peak GPU
-memory; HWUI's own caches grew by about 20 MB, roughly two full-screen surfaces, in a separate
-<code>dumpsys gfxinfo</code> check. CPU frame duration does not measure GPU cost, and these runs did not
-measure GPU timings, so they do not show where the lost margin went. No row missed its deadline
-at P90.</p>
-<p>These results describe one synthetic feed that is cheap to replay, on a device with spare
-RenderThread time. An app whose source is expensive to replay and whose RenderThread runs close
-to its budget can gain substantially instead, as reported in
-<a href="https://github.com/chrisbanes/haze/issues/1611">#1611</a>. Measure a source before opting it in.</p>
+<p>The replay counts matched the intended topology in every one of the 192 measured iterations.
+With only the feed sharing, the feed's display list was replayed once per frame instead of seven
+times. With both sharing, the host's replay drew the feed's texture, so the feed was still replayed
+once and the host once.</p>
+<p>Feed-only sharing had the lowest <code>DrawFrames</code> average and frame overrun in all four rows, and the
+lowest CPU P90 in three. Against <code>Neither</code>, it lowered CPU P90 by 0.15–0.50 ms (2–6%) and the
+<code>DrawFrames</code> average by 0.23–0.27 ms (6–8%). Sharing both sources also beat <code>Neither</code> in every
+row, but by less than feed-only sharing, except for CPU P90 in the Blur video row, where it was
+0.08 ms lower than feed-only, inside the pass-to-pass variation. In the scroll rows, <code>Both</code> was
+only 0.13–0.19 ms below <code>Neither</code> on CPU P90. This comparison does not show why sharing the host
+as well gained less.</p>
+<p>Each active full-screen source added memory: the feed raised peak GPU memory by 31–33 MiB, and the
+host a further 25–33 MiB.</p>
+<p>These are small differences on one device and one synthetic feed. The CPU P90 gains are similar in
+size to the pass-to-pass variation (up to 0.42 ms), so a repeat could change the ranking of close
+rows. CPU frame duration measures UI-thread and RenderThread cost, not GPU shader time, and no GPU
+timing was recorded, so these results do not show how much GPU work sharing adds or saves. They
+also say nothing about sources that are more expensive to replay than this feed, or about a screen
+whose RenderThread is already close to its budget. Measure a source before opting it in.</p>
 <details class="info">
 <summary>Measurement details</summary>
-<p>The <code>benchmarkRelease</code> APKs were built from commit <code>26b30b79</code> by the first invocation and
-reused unchanged by the others. The sample APK SHA-256 was
-<code>3e1fd07668ea6e3cb36ddaf590565de4aa143721c9a87bf73d5d47b752fc7690</code> and the benchmark APK
-SHA-256 was <code>dae79fa93dbaf1d55baed4185ea7668bab1baf18f1332f88c5c4ab14aae1155a</code>. The Android
-build was <code>CP41.260831.016</code>. All 20 invocations started at thermal status 0.</p>
-<p>Each method ran eight measured iterations per pass in its own Gradle invocation, using
-<code>GlassFeedBenchmark</code>. For each workload, the first pass ran Glass shared, Glass unshared, Blur
-shared, Blur unshared and plain, and the second pass reversed that order. This produced 160
-iterations, 160 Perfetto traces, and 28,839 measured frames. No completed iteration was
-discarded. The two passes of each row differed by at most 0.32 ms in CPU P90 and 0.53 ms in
-frame overrun P90.</p>
-<p>The saveLayer counts were stable across iterations, confirming that every row ran its intended
-input path. CPU placement was not analysed, so the frame-overrun differences are reported
-without attribution.</p>
-<p>Raw JSON, benchmark messages, traces, run logs, and both APKs are retained locally under
-<code>internal/benchmark/build/benchmark-results/input-sharing.26b30b79/</code>.</p>
+<p><strong>Builds.</strong> The same two <code>benchmarkRelease</code> APKs ran every invocation. They were built from code at
+commit <code>cb12b9e35</code>, with the runbook at commit <code>0d3c1eb0a</code>. The sample APK
+SHA-256 was <code>c2ee22c206113120eccb5ff3de3ce2cbb194c5e8092dfc368614fc4d50321349</code> and the
+benchmark APK SHA-256 was
+<code>04c07f07c1840afb96a0e71bb151938cf683a582eaa17537c134b36e9865d2a2</code>. The device was a Pixel 8a
+running <code>google/akita_beta/akita:17/CP41.260831.016/16521119</code> (API 37).</p>
+<p><strong>Run order.</strong> Each method ran eight measured iterations in its own Gradle invocation, using
+<code>GlassFeedBenchmark</code>. The forward pass ran the twelve methods in the order Glass video, Glass
+scroll, Blur video, Blur scroll, each as <code>Neither</code>, <code>Feed only</code>, <code>Both</code>. The reverse pass ran
+them in exactly the opposite order. That is 24 invocations, 192 iterations, 192 Perfetto
+traces and 34,558 measured frames (180 per iteration, except four iterations that
+differed by one frame). No completed iteration was discarded. One invocation, forward
+<code>feedVideoGlassNestedUnshared</code>, was set aside and rerun after the Google app's trace producer
+timed out (see conditions); the original is kept separately.</p>
+<p><strong>Aggregation.</strong> The table averages the two per-pass values; a mean of per-pass P90s is not a
+pooled percentile. The per-pass values (forward / reverse) were:</p>
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th>Controls</th>
+<th>Sharing</th>
+<th style="text-align: right;">CPU P90 (ms)</th>
+<th style="text-align: right;">Overrun P90 (ms)</th>
+<th style="text-align: right;"><code>DrawFrames</code> avg (ms)</th>
+<th style="text-align: right;">Peak GPU (MiB)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Video</td>
+<td>Glass</td>
+<td>Neither</td>
+<td style="text-align: right;">7.12 / 6.97</td>
+<td style="text-align: right;">-4.62 / -4.92</td>
+<td style="text-align: right;">3.59 / 3.52</td>
+<td style="text-align: right;">115.7 / 115.6</td>
+</tr>
+<tr>
+<td>Video</td>
+<td>Glass</td>
+<td>Feed only</td>
+<td style="text-align: right;">6.68 / 6.56</td>
+<td style="text-align: right;">-5.58 / -5.64</td>
+<td style="text-align: right;">3.36 / 3.22</td>
+<td style="text-align: right;">148.5 / 148.8</td>
+</tr>
+<tr>
+<td>Video</td>
+<td>Glass</td>
+<td>Both</td>
+<td style="text-align: right;">6.57 / 6.89</td>
+<td style="text-align: right;">-5.23 / -5.07</td>
+<td style="text-align: right;">3.34 / 3.41</td>
+<td style="text-align: right;">181.4 / 181.5</td>
+</tr>
+<tr>
+<td>Video</td>
+<td>Blur</td>
+<td>Neither</td>
+<td style="text-align: right;">6.81 / 6.87</td>
+<td style="text-align: right;">-5.59 / -5.67</td>
+<td style="text-align: right;">3.34 / 3.47</td>
+<td style="text-align: right;">113.1 / 113.1</td>
+</tr>
+<tr>
+<td>Video</td>
+<td>Blur</td>
+<td>Feed only</td>
+<td style="text-align: right;">6.48 / 6.90</td>
+<td style="text-align: right;">-6.53 / -6.13</td>
+<td style="text-align: right;">3.18 / 3.16</td>
+<td style="text-align: right;">146.0 / 146.0</td>
+</tr>
+<tr>
+<td>Video</td>
+<td>Blur</td>
+<td>Both</td>
+<td style="text-align: right;">6.50 / 6.72</td>
+<td style="text-align: right;">-5.88 / -5.85</td>
+<td style="text-align: right;">3.29 / 3.30</td>
+<td style="text-align: right;">178.9 / 176.9</td>
+</tr>
+<tr>
+<td>Scroll</td>
+<td>Glass</td>
+<td>Neither</td>
+<td style="text-align: right;">8.18 / 8.19</td>
+<td style="text-align: right;">-3.61 / -3.50</td>
+<td style="text-align: right;">3.96 / 4.02</td>
+<td style="text-align: right;">142.2 / 142.3</td>
+</tr>
+<tr>
+<td>Scroll</td>
+<td>Glass</td>
+<td>Feed only</td>
+<td style="text-align: right;">7.63 / 7.74</td>
+<td style="text-align: right;">-4.46 / -4.59</td>
+<td style="text-align: right;">3.70 / 3.75</td>
+<td style="text-align: right;">173.1 / 173.1</td>
+</tr>
+<tr>
+<td>Scroll</td>
+<td>Glass</td>
+<td>Both</td>
+<td style="text-align: right;">8.01 / 7.97</td>
+<td style="text-align: right;">-3.98 / -4.10</td>
+<td style="text-align: right;">3.86 / 3.88</td>
+<td style="text-align: right;">198.1 / 198.0</td>
+</tr>
+<tr>
+<td>Scroll</td>
+<td>Blur</td>
+<td>Neither</td>
+<td style="text-align: right;">7.75 / 7.85</td>
+<td style="text-align: right;">-4.83 / -4.61</td>
+<td style="text-align: right;">3.78 / 3.89</td>
+<td style="text-align: right;">141.7 / 141.9</td>
+</tr>
+<tr>
+<td>Scroll</td>
+<td>Blur</td>
+<td>Feed only</td>
+<td style="text-align: right;">7.42 / 7.40</td>
+<td style="text-align: right;">-5.43 / -5.61</td>
+<td style="text-align: right;">3.57 / 3.63</td>
+<td style="text-align: right;">174.8 / 174.7</td>
+</tr>
+<tr>
+<td>Scroll</td>
+<td>Blur</td>
+<td>Both</td>
+<td style="text-align: right;">7.67 / 7.68</td>
+<td style="text-align: right;">-4.73 / -4.83</td>
+<td style="text-align: right;">3.77 / 3.72</td>
+<td style="text-align: right;">199.5 / 199.5</td>
+</tr>
+</tbody>
+</table>
+<p>Between the two passes, the largest differences were 0.42 ms in CPU P90, 0.40 ms in frame
+overrun P90, 0.14 ms in the <code>DrawFrames</code> average and 2.0 MiB in peak GPU memory. Feed-only
+sharing had lower CPU P90 than <code>Neither</code> in seven of the eight pass-level comparisons (Blur
+video in the reverse pass was 0.03 ms higher), and lower <code>DrawFrames</code> average and frame overrun
+in all eight.</p>
+<p><strong>Device conditions.</strong> The device was on AC power at 80% charge, with a fixed 60 Hz display
+(<code>peak_refresh_rate</code> and <code>min_refresh_rate</code> both 60) and fixed-performance mode enabled. Thermal status was 0 at the
+start of each pass and after the session; the battery temperature rose from 28.0 to 33.7 °C
+over the session. The first invocation hit a Perfetto <code>track_event</code> producer timeout caused by
+the Google app, so the Google app was disabled with <code>pm disable-user</code> for the rest of the
+session, following the runbook's Android 17 fallback. Afterwards, fixed-performance mode and
+the refresh-rate settings were reset and the Google app re-enabled. A readback confirmed the refresh-rate settings and the
+Google app; fixed-performance mode has no getter.</p>
+<p><strong>Replay oracle.</strong> Source replays are counted in the Perfetto traces, not from application
+recording. Each source holds a fixed alpha marker that is replayed with the source. A replay of
+the feed's display list emits one RenderThread slice named <code>alpha caused saveLayer 494x105</code>,
+and a replay of the host's emits <code>alpha caused saveLayer 231x105</code>. The <code>oracle.sql</code> query
+counted both inside each <code>DrawFrames</code> slice in the measured window, over 34,849 frames. In
+every iteration the most common frame was 7 feed and 3 host replays for <code>Neither</code>, 1 and 3 for
+<code>Feed only</code>, and 1 and 1 for <code>Both</code>, and 180 frames matched it. The other 289 frames in total,
+one to three per trace, replayed fewer markers. The <a href="https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md#nested-input-sharing-comparison">runbook</a>
+has the query and its calibration.</p>
+<p><strong>CPU placement.</strong> <code>placement.sql</code> summed the running time of the main thread and RenderThread
+on each CPU during the measured window. Fixed-performance mode does not pin threads to cores.
+The RenderThread spent 49–97% of its running time on its most-used cluster, 51–62% in most
+iterations. That was the middle cluster (CPUs 4–7) in 159 of 192 iterations and the big core
+(CPU 8) in the other 33: 15 of 64 <code>Neither</code> iterations, 5 of 64 <code>Feed only</code> and 13 of 64
+<code>Both</code>. The main thread's most-used cluster was the middle cluster in 184 iterations, taking
+89% of its running time on average, and the little cluster (CPUs 0–3) in the other 8. Placement was not
+controlled and differed between configurations, so it may have contributed to the differences
+in the table; the iterations were not split by placement.</p>
+<p><strong>Artifacts.</strong> Raw benchmark JSON and messages, XML, Perfetto traces, per-method device
+readbacks and oracle and placement outputs are retained locally, not published, under
+<code>internal/benchmark/build/benchmark-results/input-sharing-1615.cb12b9e35/</code>, with the two
+APKs, <code>conditions.txt</code>, <code>run-order.txt</code> and <code>summary.md</code>, which records 192 traces
+verified.</p>
+<p><strong>Reporter's real-app retest.</strong> The report in
+<a href="https://github.com/chrisbanes/haze/issues/1615">#1615</a> came from a different app and device.
+A retest on that app is pending and has not been run, so these results neither confirm nor
+contradict its findings.</p>
+<p><strong>Earlier results.</strong> Input-sharing results measured before <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/1615" title="GitHub Issue chrisbanes/haze #1615">#1615</a> described a separate
+rendered copy of the source, which retained a second replay of it, and are no longer
+published. The earlier global offscreen flag from
+<a href="https://github.com/chrisbanes/haze/issues/1611">#1611</a> was not equivalent to that copy, and
+neither is evidence for the current implementation. The flat, single-source feed scenarios
+have not been re-measured on it. The superseded tables remain in git history.</p>
 </details>
 <p><a id="placement-update-deduplication"></a></p>
 <h2 id="placement-update-deduplication">Placement update deduplication<a class="headerlink" href="#placement-update-deduplication" title="Permanent link">¶</a></h2>

@@ -831,6 +831,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#share-one-source-render-between-effects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Share one source render between effects
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#choose-a-performance-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1250,6 +1261,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#share-one-source-render-between-effects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Share one source render between effects
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#choose-a-performance-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1356,19 +1378,46 @@ deciding that a change helped.</p>
 <p>A stable source can reuse captured and processed output. Scrolling or animated backgrounds need
 fresh input, so always test those interactions as well as stationary content.</p>
 <p><a id="input-sharing"></a></p>
+<h2 id="share-one-source-render-between-effects">Share one source render between effects<a class="headerlink" href="#share-one-source-render-between-effects" title="Permanent link">¶</a></h2>
 <p>By default, each effect that samples a <a href="../api/haze/dev.chrisbanes.haze/haze-source.html"><code>hazeSource</code></a> through
-<a href="../api/haze/dev.chrisbanes.haze/-haze-input/-sources/"><code>HazeInput.Sources</code></a> replays the source's full content whenever it changes. A
+<a href="../api/haze/dev.chrisbanes.haze/-haze-input/-sources/"><code>HazeInput.Sources</code></a> replays the source's content whenever it changes. A
 busy source, such as a feed with playing video, then costs more for every effect over it.</p>
-<p>The experimental <code>inputSharing</code> parameter lets effects share one rendered copy instead.
-<code>HazeInputSharing.Auto</code> shares on Android once two or more effects sample the source, and
-<code>Always</code> shares on every platform. Sharing costs one texture the size of the source, and the
-shared copy is re-rendered whenever the source changes, which adds GPU work while it scrolls.
-Effects also no longer see anything the source draws outside its bounds.</p>
-<p>Opt a source in when the RenderThread spends its time replaying it. An app with seven effects over
-a video feed, <a href="https://github.com/chrisbanes/haze/issues/1611">reported in #1611</a>, measured its
-effect layers falling from about 2.2 ms to 0.2 ms per frame with an equivalent offscreen copy. On a
-Pixel 8a with a lighter feed, it did not reduce CPU frame time and added about 33 MB of GPU memory
-(<a href="../benchmark-results/#input-sharing">conditions and limits</a>).</p>
+<p>The experimental <code>inputSharing</code> parameter changes that. While sharing is active, the source
+renders once into an offscreen layer, and the window and every effect draw from that layer
+instead of replaying the source. The activation rules are
+<a href="../api/haze/dev.chrisbanes.haze/-haze-input-sharing/"><code>HazeInputSharing</code></a>'s: <code>Never</code> is the default, <code>Auto</code> shares on Android once
+two or more effects sample the source, and <code>Always</code> shares on every platform once one does.</p>
+<p>Sharing has two costs:</p>
+<ul>
+<li><strong>Clipping.</strong> While sharing is active, the source's drawing is clipped to its layout bounds,
+  expanded by <code>inputSharingOutsets</code>, both on screen and in effects. Anything drawn beyond that is
+  not shown. Outsets don't change the source's layout size or position, and they have no effect
+  while sharing is inactive, when the source draws normally again, overflow included.</li>
+<li><strong>Memory.</strong> Each active source holds one texture, the size of the source plus its outsets.</li>
+</ul>
+<p>For a source that stays inside its bounds, the default zero outsets are enough:</p>
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">state</span><span class="p">,</span><span class="w"> </span><span class="n">inputSharing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInputSharing</span><span class="p">.</span><span class="na">Auto</span><span class="p">)</span>
+</code></pre></div>
+<p>If the source draws outside its bounds, for example a card with a shadow that reaches 4 dp to each
+side and 16 dp below it, declare that on each edge:</p>
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span>
+<span class="w">  </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">state</span><span class="p">,</span>
+<span class="w">  </span><span class="n">inputSharing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInputSharing</span><span class="p">.</span><span class="na">Auto</span><span class="p">,</span>
+<span class="w">  </span><span class="n">inputSharingOutsets</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LayerOutsets</span><span class="p">(</span><span class="n">left</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">4.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="n">top</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="n">right</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">4.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="n">bottom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">16.</span><span class="n">dp</span><span class="p">),</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>Start with <code>Never</code>, and try sharing when the RenderThread spends its time replaying a source that
+several effects sample. Compare both settings with the same interaction on your target devices:
+look at CPU frame duration and frame overrun, at peak GPU memory, and at whether the clipped
+edges still look right. CPU frame duration does not measure GPU work, and the offscreen layer is
+re-rendered whenever the source changes, which adds GPU work while a source scrolls or animates.</p>
+<p>In Haze's nested-source benchmark, sharing the inner feed source cut its replays from seven per
+frame to one. On a Pixel 8a, that lowered P90 CPU frame duration by 2–6% and mean <code>DrawFrames</code>
+time by 6–8%. Each active source added about 25–33 MiB of peak GPU memory. The P90 gains
+were 0.15–0.50 ms, comparable to the variation between passes of up to 0.42 ms, and sharing the
+outer source as well usually gave a smaller gain. This is one device and one synthetic feed, and
+the benchmark measured no GPU time, so it does not predict your screen. See
+<a href="../benchmark-results/#input-sharing">the measurements and their limits</a>.</p>
 <p><a id="input-scale"></a>
 <a id="performance-mode"></a>
 <a id="performance-modes"></a>
