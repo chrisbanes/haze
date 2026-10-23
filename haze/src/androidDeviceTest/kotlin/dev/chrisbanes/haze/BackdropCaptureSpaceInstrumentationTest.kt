@@ -38,12 +38,15 @@ import org.junit.After
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
 
 /**
  * Pins the coordinate space in which HWUI runs a backdrop RuntimeShader on a RenderNode drawn under
  * a canvas scale, as Haze does for a pressed standalone Glass surface on native Backdrop.
  */
-class BackdropCaptureSpaceInstrumentationTest {
+@RunWith(Parameterized::class)
+class BackdropCaptureSpaceInstrumentationTest(private val scale: Float) {
 
   private lateinit var activityScenario: ActivityScenario<ComponentActivity>
   private lateinit var activity: ComponentActivity
@@ -67,23 +70,21 @@ class BackdropCaptureSpaceInstrumentationTest {
     )
     // Output point p maps to local q = pivot + (p - pivot) / s. Local space samples local q + d,
     // which shows the source pixel at p + s * d. Device space would show p + d instead.
-    for (scale in listOf(1f, 0.5f)) {
-      val origin = renderScene(scale)
-      val bitmap = activity.copyWindow()
-      val y = (origin.y + NODE_TOP + NODE_SIZE / 2).roundToInt()
-      // Probe inside the scaled node, either side of the pivot.
-      for (offset in listOf(-20f, 20f)) {
-        val p = NODE_LEFT + NODE_SIZE / 2 + offset
-        val x = (origin.x + p).roundToInt()
-        val sampled = bitmap.pixel(x, y).red * GRADIENT_WIDTH
-        assertThat(sampled, "scale=$scale sample at p=$p")
-          .isBetween(p + scale * DX - TOLERANCE, p + scale * DX + TOLERANCE)
-      }
-      bitmap.recycle()
+    val origin = renderScene()
+    val bitmap = activity.copyWindow()
+    val y = (origin.y + NODE_TOP + NODE_SIZE / 2).roundToInt()
+    // Probe inside the scaled node, either side of the pivot.
+    for (offset in listOf(-PROBE_OFFSET, PROBE_OFFSET)) {
+      val p = NODE_LEFT + NODE_SIZE / 2 + offset
+      val x = (origin.x + p).roundToInt()
+      val sampled = bitmap.pixel(x, y).red * GRADIENT_WIDTH
+      assertThat(sampled, "scale=$scale sample at p=$p")
+        .isBetween(p + scale * DX - TOLERANCE, p + scale * DX + TOLERANCE)
     }
+    bitmap.recycle()
   }
 
-  private fun renderScene(scale: Float): Offset {
+  private fun renderScene(): Offset {
     var origin = Offset.Zero
     val drawReady = CountDownLatch(1)
     activityScenario.onActivity { activity ->
@@ -100,8 +101,13 @@ class BackdropCaptureSpaceInstrumentationTest {
     return origin
   }
 
-  private companion object {
-    fun fullSdkInt(): Int {
+  companion object {
+    // 1x is the control, where local and device space agree.
+    @JvmStatic
+    @Parameterized.Parameters(name = "scale={0}")
+    fun scales(): List<Float> = listOf(1f, 0.5f)
+
+    private fun fullSdkInt(): Int {
       if (Build.VERSION.SDK_INT < 36) return Build.VERSION.SDK_INT * 100_000
       return Build.VERSION.SDK_INT_FULL
     }
@@ -113,6 +119,9 @@ private const val NODE_LEFT = 40f
 private const val NODE_TOP = 100f
 private const val NODE_SIZE = 200f
 private const val DX = 40f
+
+// Distance either side of the pivot to probe; at 0.5x the node spans pivot +/- NODE_SIZE / 4.
+private const val PROBE_OFFSET = 20f
 private const val TOLERANCE = 3f
 
 private val DISPLACE_SKSL = """
