@@ -49,8 +49,8 @@ disables merging by proximity. Optionally pass `transitionSpec` and `reducedMoti
 described under [Transitions](#transitions).
 
 Every [`hazeGlass`][hazeGlass] modifier below the container becomes a member of its nearest container. A member
-keeps its own style, shape, colors and interaction response. A `hazeGlass` modifier outside a
-container is unchanged.
+keeps its own style, shape, colors and interaction response, unless it is in a [group](#groups),
+which draws as one shape. A `hazeGlass` modifier outside a container is unchanged.
 
 ## Merge rule
 
@@ -83,6 +83,55 @@ Members merge only when all of these hold:
   member overlaps the cluster, blur and tint apply twice in the overlap.
 
 Lower-quality performance modes also render the merged shape at lower resolution.
+
+## Groups
+
+The merge distance joins members that are close together. To join members at any distance, give
+them the same `groupKey`. A group is the counterpart of SwiftUI's `glassEffectUnion`.
+
+```kotlin
+// Styles compare by identity, so remember the style.
+val style = remember { GlassStyle.regular.then { shape(CircleShape) } }
+
+Row(
+  modifier = Modifier.fillMaxWidth().hazeGlassContainer(mergeDistance = 16.dp),
+  horizontalArrangement = Arrangement.SpaceBetween,
+) {
+  repeat(2) {
+    Box(
+      Modifier
+        .size(48.dp)
+        .hazeGlass(input = HazeInput.Sources(hazeState), style = style, groupKey = "pair"),
+    )
+  }
+}
+```
+
+Members of one container with an equal, non-null `groupKey` that are next to each other in
+registration order draw as one Glass shape over the bounding box of their rects. In the example, the
+two circles become one capsule that spans the row, although they are far apart. Keys compare with
+`==`. A `null` key leaves the member ungrouped, and Haze ignores `groupKey` outside a container.
+
+- **Shape.** The group uses the first member's `RoundedCornerShape`, resolved at the group's size, so
+  a capsule stays a capsule.
+- **Appearance.** The group uses the first member's tint, background color and light. The other
+  members' values are not drawn.
+- **Members left out.** A member that couldn't merge with the first member, because its input or
+  material differs, draws on its own. So does a member that is rotated, scaled or fading, under
+  the usual [merge rule](#merge-rule).
+- **Order.** A member that isn't in the group, between two members that are, splits the group into
+  separate groups, because merging never changes drawing order.
+- **Neighbours.** A group counts as one member when the merge distance is measured, using its
+  bounds, so it can bridge with a neighbouring member. It also counts as one member towards the
+  four-member limit.
+- **Optical size.** The group's bounds count once toward the container's
+  [optical size](#optical-size).
+- **Transitions.** Members of the same group are neighbours at any distance. With the default
+  `MatchedGeometry`, a member that attaches grows the group's bounds, and one that detaches shrinks
+  them, timed by `transitionSpec`. A fading member leaves the group while it fades.
+- **Interaction.** Pressing any member scales and lights the whole group. Each member's content
+  still follows its own `interactionTransformTarget`.
+- **Fallback.** The [fallback](#fallback) draws the group as its single shape.
 
 ## Optical size
 
@@ -204,8 +253,8 @@ fallback rendering omits.
 ## Samples
 
 The `Glass — Container` sample shows a merging toolbar, two draggable members with a merge
-distance control, a member added and removed with `AnimatedVisibility`, and a cluster of members
-with different tints. Its source is in
+distance control, a member added and removed with `AnimatedVisibility`, a cluster of members
+with different tints, and two distant pills that a `Group` switch joins into one shape. Its source is in
 [`GlassContainerSample.kt`](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerSample.kt).
 
 The `Glass — Container Showcase` sample places a drawing palette over two brushstrokes. Open

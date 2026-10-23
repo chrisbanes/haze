@@ -99,9 +99,11 @@ motion scale (animations off), member transitions snap instead
   iOS keeps the morph and removes its elasticity. Turning animations off is different:
   `GlassReducedMotionPolicy.System` snaps at a zero platform motion scale
   ([#1560](https://github.com/chrisbanes/haze/issues/1560)).
-- **`glassEffectID`-style identifiers and `glassEffectUnion`-style forced unions.** Deferred.
-  Identifiers add nothing over node identity for neighbour morphs. A forced union needs grouping
-  rules that the first version doesn't need.
+- **`glassEffectID`-style identifiers.** Deferred. They add nothing over node identity for
+  neighbour morphs.
+- **`glassEffectUnion`-style forced unions.** Initially deferred, because a union needs grouping
+  rules that the first version didn't need. Decided later; see the
+  [groups amendment](#amendment-glass-groups-through-groupkey-2026-10-23).
 
 ## Consequences
 
@@ -160,3 +162,38 @@ The container parameter is now `mergeDistance` and defaults to `GlassDefaults.me
 (16 dp). In Compose, `spacing` reads as layout spacing between children, which this parameter
 never controls. Its behaviour is unchanged: every mention of the spacing above refers to the
 merge distance.
+
+## Amendment: Glass groups through `groupKey` (2026-10-23)
+
+`Modifier.hazeGlass` gains `groupKey: Any? = null`, the `glassEffectUnion`-style forced union that
+this ADR first deferred. In a simulator capture of iOS 27, `glassEffectUnion` replaces its members
+with one Glass shape over their combined bounding box, whatever the distance, while `spacing`
+blends members by proximity. The captures are in the
+[design comment on #1409](https://github.com/chrisbanes/haze/issues/1409#issuecomment-6362868783) and the
+[v4 notes](https://github.com/chrisbanes/haze/blob/fce3bf446175686281a6500c8c856cb9702fac5a/prototype-evidence/1438/v4/NOTES.md).
+Both call the parameter `unionKey`; it ships as `groupKey`, and the entity is a **Glass group**.
+`mergeDistance` keeps both of its roles, because it also sets the width of the bridge.
+
+Members of one container with an equal, non-null `groupKey` that are consecutive in registration
+order draw as one Glass shape over the bounding box of their rects:
+
+- **Shape and appearance.** The first member supplies the `RoundedCornerShape`, resolved at the
+  group's size, and the tint, background color and light. This narrows the rule above, that each
+  member keeps its own shape and colours, to members outside a group.
+- **Members left out.** A member whose merge key differs from the first member's, or that is
+  rotated, scaled or fading, draws on its own under the existing rules.
+- **Order.** A member between two group members that isn't in the group splits them into separate
+  groups. This keeps the rule that merging never reorders members.
+- **Proximity.** A group counts as one member for `mergeDistance` clustering, measured from its
+  bounds, and for the four-member cap.
+- **Optical size.** The group's bounds count as one member in the container-wide optical size.
+- **Transitions.** Members of the same group are transition neighbours at any distance, so a
+  `MatchedGeometry` member that attaches or detaches animates the group's bounds through
+  `transitionSpec`. A fading member leaves the group while it fades.
+- **Interaction.** A press on any member drives the whole group's scale and light. Each member's
+  content still follows its own transform target.
+- **Fallback and containers.** The fallback renderer draws a group as its single shape, and
+  `groupKey` is ignored outside a container.
+
+A group becomes one member of the merged field, so the shaders and the field's members limit are
+unchanged. Not checked: iOS 26 or an on-device build.

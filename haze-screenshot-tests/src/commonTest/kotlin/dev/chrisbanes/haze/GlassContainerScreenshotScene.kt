@@ -45,7 +45,7 @@ import dev.chrisbanes.haze.glass.hazeGlassContainer
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import kotlin.math.abs
 
-internal enum class GlassContainerScene { Merged, Separate, MixedColours, MixedKeys, Overflow, Nested, InteractiveRest, InteractivePressed, Overlap }
+internal enum class GlassContainerScene { Merged, Separate, MixedColours, MixedKeys, Overflow, Nested, InteractiveRest, InteractivePressed, Overlap, Grouped }
 
 /** [fallback] asserts the fallback renderer's hard union, which draws no bridge. */
 internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerScene, fallback: Boolean = false) {
@@ -81,6 +81,15 @@ internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerSce
       }
     }
     GlassContainerScene.MixedKeys -> assertThat(pixels[149, 110]).isEqualTo(sceneBackground(149, 110))
+    GlassContainerScene.Grouped -> {
+      // The members are 120px apart, far beyond the merge distance, so only the group fills the gap.
+      // The first member's red tint covers the whole group, including the second member's bounds.
+      val between = pixels[180, 90]
+      assertThat(between).isNotEqualTo(sceneBackground(180, 90))
+      assertThat(between.red).isGreaterThan(between.blue)
+      assertThat(pixels[280, 90].red).isGreaterThan(pixels[280, 90].blue)
+      for ((x, y) in listOf(180 to 40, 180 to 140)) assertThat(pixels[x, y], "outside group at ($x, $y)").isEqualTo(sceneBackground(x, y))
+    }
     GlassContainerScene.Overflow -> {
       assertThat(pixels[52, 110].green).isLessThan(0.5f)
       assertThat(pixels[154, 110]).isEqualTo(sceneBackground(154, 110))
@@ -191,12 +200,17 @@ private fun PixelMap.colours(): List<Color> = List(width * height) { this[it % w
 private fun sceneBackground(x: Int, y: Int): Color =
   if ((x / 12 + y / 12) % 2 == 0) Color.White else Color(0xFFDDDDDD)
 
-private fun sceneStyle(tint: Color, background: Color = Color.Transparent, clear: Boolean = false): GlassStyle =
+private fun sceneStyle(
+  tint: Color,
+  background: Color = Color.Transparent,
+  clear: Boolean = false,
+  shape: RoundedCornerShape = RoundedCornerShape(12.dp),
+): GlassStyle =
   (if (clear) GlassStyle.clear else GlassStyle.regular).then {
     optics(GlassOptics(refractionStrength = 0f, refractionDisplacement = 0.dp, refractionDetailIntensity = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp)))
     tint(tint)
     backgroundColor(background)
-    shape(RoundedCornerShape(12.dp))
+    shape(shape)
     edgeSoftness(0.dp)
     edgeShadow(Color.Transparent)
     specularIntensity(0f)
@@ -248,6 +262,12 @@ private fun GlassContainerScreenshotScene(
             GlassContainerSceneMember(state, 40, 60, 100, 80, sceneStyle(Color.Red).then(pressed), interactionSource)
             GlassContainerSceneMember(state, 150, 60, 100, 80, sceneStyle(Color.Blue).then(pressed))
           }
+          GlassContainerScene.Grouped -> {
+            // Two capsules 120px apart share a group key, so they draw as one capsule over both rects.
+            val capsule = RoundedCornerShape(percent = 50)
+            GlassContainerSceneMember(state, 40, 60, 80, 60, sceneStyle(Color.Red, shape = capsule), groupKey = "pair")
+            GlassContainerSceneMember(state, 240, 60, 80, 60, sceneStyle(Color.Blue, shape = capsule), groupKey = "pair")
+          }
           GlassContainerScene.Overlap -> {
             GlassContainerSceneMember(state, 40, 60, 100, 80, sceneStyle(Color.Red.copy(alpha = 0.5f)))
             GlassContainerSceneMember(state, 110, 80, 100, 80, sceneStyle(Color.Blue.copy(alpha = 0.5f)))
@@ -272,6 +292,7 @@ private fun GlassContainerSceneMember(
   height: Int,
   style: GlassStyle,
   interactionSource: MutableInteractionSource? = null,
+  groupKey: Any? = null,
 ) {
   Box(
     Modifier.offset(x.dp, y.dp).size(width.dp, height.dp).hazeGlass(
@@ -281,6 +302,7 @@ private fun GlassContainerSceneMember(
       interactionSource = interactionSource,
       interactionTransformPivot = GlassTransformPivot.Center,
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+      groupKey = groupKey,
     ),
   ) {
     // Small opaque label marks leave the interior and inter-member bridge observable.

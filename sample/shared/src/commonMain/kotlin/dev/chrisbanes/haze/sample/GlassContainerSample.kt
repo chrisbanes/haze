@@ -37,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -68,6 +69,7 @@ public fun GlassContainerSample(navController: NavHostController) {
   var mergeDistance by remember { mutableStateOf(24.dp) }
   var dragOffsets by remember { mutableStateOf(listOf(Offset.Zero, Offset.Zero)) }
   var extraMemberVisible by remember { mutableStateOf(false) }
+  var grouped by remember { mutableStateOf(false) }
 
   GlassContainerSampleContent(
     mergeDistance = mergeDistance,
@@ -80,6 +82,8 @@ public fun GlassContainerSample(navController: NavHostController) {
     onResetDrag = { dragOffsets = listOf(Offset.Zero, Offset.Zero) },
     onExtraMemberVisibleChange = { extraMemberVisible = it },
     onBack = navController::navigateUp,
+    grouped = grouped,
+    onGroupedChange = { grouped = it },
   )
 }
 
@@ -94,6 +98,8 @@ public fun GlassContainerSampleContent(
   onExtraMemberVisibleChange: (Boolean) -> Unit,
   onBack: () -> Unit,
   modifier: Modifier = Modifier,
+  grouped: Boolean = false,
+  onGroupedChange: (Boolean) -> Unit = {},
 ) {
   // Every member samples the same source, so every member can merge with its neighbours.
   val hazeState = rememberHazeState()
@@ -343,6 +349,49 @@ public fun GlassContainerSampleContent(
             Modifier
               .size(width = 96.dp, height = 48.dp)
               .hazeGlass(input = HazeInput.Sources(hazeState), style = blueStyle),
+          )
+        }
+      }
+
+      // 5. Group. Members with an equal, non-null groupKey that are next to each other in the
+      // container draw as one shape over their combined bounds, however far apart they are. The
+      // group uses the first member's tint, so the red pill's tint covers both. The pills are 64 dp
+      // apart, well outside the 16 dp merge distance, so only the group joins them.
+      Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          Text(
+            "Group",
+            modifier = Modifier.weight(1f),
+            color = Color.White,
+            style = MaterialTheme.typography.titleMedium,
+          )
+          Switch(
+            checked = grouped,
+            onCheckedChange = onGroupedChange,
+            modifier = Modifier.testTag("glass_container_group_switch"),
+          )
+        }
+        Row(
+          modifier = Modifier.hazeGlassContainer(mergeDistance = 16.dp),
+          horizontalArrangement = Arrangement.spacedBy(64.dp),
+        ) {
+          Box(
+            Modifier
+              .size(width = 96.dp, height = 48.dp)
+              .hazeGlass(
+                input = HazeInput.Sources(hazeState),
+                style = redStyle,
+                groupKey = if (grouped) "pair" else null,
+              ),
+          )
+          Box(
+            Modifier
+              .size(width = 96.dp, height = 48.dp)
+              .hazeGlass(
+                input = HazeInput.Sources(hazeState),
+                style = blueStyle,
+                groupKey = if (grouped) "pair" else null,
+              ),
           )
         }
       }
