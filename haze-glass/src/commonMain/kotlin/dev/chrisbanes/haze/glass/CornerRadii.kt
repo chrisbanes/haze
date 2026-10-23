@@ -80,6 +80,17 @@ internal fun RoundedCornerShape.toValidCornerRadiiPxOrNull(
   )
 }
 
+/** Falls back from an invalid or missing shape to [GlassDefaults.shape], then to square corners. */
+internal fun RoundedCornerShape?.resolveCornerRadiiPx(
+  layerSize: Size,
+  density: Density,
+  layoutDirection: LayoutDirection,
+): CornerRadii = this?.toValidCornerRadiiPxOrNull(layerSize, density, layoutDirection)
+  ?.takeIf { it.isFiniteAndNonNegative() }
+  ?: GlassDefaults.shape.toCornerRadiiPx(layerSize, density, layoutDirection)
+    .takeIf { it.isFiniteAndNonNegative() }
+  ?: CornerRadii.zero
+
 private fun toPhysicalCornerRadiiPx(
   initialTopStartPx: Float,
   initialTopEndPx: Float,

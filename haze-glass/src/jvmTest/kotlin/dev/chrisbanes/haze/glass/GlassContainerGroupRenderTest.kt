@@ -6,6 +6,7 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.HoverInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
@@ -85,6 +86,28 @@ class GlassContainerGroupRenderTest : ContextTest() {
   }
 
   @Test
+  fun pressingSecondGroupMemberWhileFirstIsHovered_scalesGroupFromPressedMember() = runComposeUiTest {
+    val fixture = group(pivot = GlassTransformPivot.Center)
+    runBlocking { fixture.firstSource.emit(HoverInteraction.Enter()) }
+    waitForIdle()
+    // The first member's hover light is residual state: it neither transforms nor owns the press.
+    assertThat(fixture.field().members.single().rect).isCloseTo(Rect(40f, 40f, 440f, 80f))
+    fixture.press(fixture.secondSource)
+    val member = fixture.field().members.single()
+    assertThat(member.rect).isCloseTo(Rect(60f, 42f, 420f, 78f))
+    assertThat(member.lightIntensity).isEqualTo(1f)
+  }
+
+  @Test
+  fun stackedCapsuleGroup_resolvesCornerRadiiAtGroupSize() = runComposeUiTest {
+    val fixture = group(stacked = true)
+    // Two 100x40 capsules stack into a 100x140 group: a capsule there has 50px radii, not 20px.
+    val member = fixture.field().members.single()
+    assertThat(member.rect).isCloseTo(Rect(40f, 40f, 140f, 180f))
+    assertThat(member.cornerRadii).isEqualTo(CornerRadii(50f, 50f, 50f, 50f))
+  }
+
+  @Test
   fun groupBoundsSetContainerOpticalSize() = runComposeUiTest {
     val small = opticalGroup(grouped = true)
     // Two 100x40 members 60px apart stack into a 100x140 group, so its bounds set the optical size.
@@ -100,6 +123,7 @@ class GlassContainerGroupRenderTest : ContextTest() {
   private class GroupFixture(
     val test: ComposeUiTest,
     val first: GlassRuntimeEffect,
+    val firstSource: MutableInteractionSource,
     val secondSource: MutableInteractionSource,
   ) {
     fun owner() = checkNotNull(first.memberBindingForTest?.node?.container)
@@ -147,12 +171,13 @@ class GlassContainerGroupRenderTest : ContextTest() {
     return effects[2]
   }
 
-  /** Two 100x40 members 200px apart, far beyond the 40px merge distance, sharing a group key. */
+  /** Two 100x40 members, 200px apart or (stacked) 60px apart vertically, sharing a group key. */
   private fun ComposeUiTest.group(
     firstShape: RoundedCornerShape = RoundedCornerShape(percent = 50),
     firstTint: Color = Color.Red,
     secondTint: Color = Color.Blue,
     pivot: GlassTransformPivot = GlassTransformPivot.Center,
+    stacked: Boolean = false,
   ): GroupFixture {
     val first = GlassRuntimeEffect()
     val second = GlassRuntimeEffect()
@@ -160,15 +185,16 @@ class GlassContainerGroupRenderTest : ContextTest() {
     val secondSource = MutableInteractionSource()
     val state = HazeState()
     val pressed = GlassStyle {
+      hovered { lightingIntensity(0.5f) }
       pressed {
         scale(0.9f)
         lightingIntensity(1f)
       }
     }
     setContent {
-      Box(Modifier.size(520.dp, 200.dp).background(Color.White)) {
-        Box(Modifier.size(520.dp, 200.dp).hazeSource(state).background(Color.White))
-        Box(Modifier.size(520.dp, 200.dp).hazeGlassContainer(40.dp)) {
+      Box(Modifier.size(520.dp, 300.dp).background(Color.White)) {
+        Box(Modifier.size(520.dp, 300.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(520.dp, 300.dp).hazeGlassContainer(40.dp)) {
           Box(
             Modifier.offset(40.dp, 60.dp).size(100.dp, 40.dp).hazeGlass(
               HazeEffectFactory { first }, HazeInput.Sources(state),
@@ -178,7 +204,7 @@ class GlassContainerGroupRenderTest : ContextTest() {
             ),
           )
           Box(
-            Modifier.offset(340.dp, 60.dp).size(100.dp, 40.dp).hazeGlass(
+            Modifier.offset(if (stacked) 40.dp else 340.dp, if (stacked) 160.dp else 60.dp).size(100.dp, 40.dp).hazeGlass(
               HazeEffectFactory { second }, HazeInput.Sources(state),
               containerTestStyle(secondTint).then(GlassStyle { shape(RoundedCornerShape(percent = 50)) }).then(pressed),
               HazePerformanceMode.Quality, true, secondSource, GlassTransformTarget.MaterialOnly, pivot,
@@ -189,7 +215,7 @@ class GlassContainerGroupRenderTest : ContextTest() {
       }
     }
     waitForIdle()
-    return GroupFixture(this, first, secondSource)
+    return GroupFixture(this, first, firstSource, secondSource)
   }
 }
 
