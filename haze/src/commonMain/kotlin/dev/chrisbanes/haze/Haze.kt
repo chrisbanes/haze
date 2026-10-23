@@ -290,8 +290,8 @@ public fun Modifier.hazeSource(
  * clipped to its layout bounds. Use the overload with `inputSharingOutsets` to keep drawing beyond
  * those bounds.
  *
- * @param inputSharing Whether effects sampling this source share one rendered copy of its content.
- * See [HazeInputSharing].
+ * @param inputSharing Whether this source renders once into an offscreen layer that it draws on
+ * screen and that effects sampling it share. See [HazeInputSharing].
  */
 @ExperimentalHazeApi
 @Stable
@@ -304,15 +304,15 @@ public fun Modifier.hazeSource(
 
 /**
  * Captures background content for [hazeEffect] child nodes, like the [hazeSource] overload without
- * [inputSharing], which uses [HazeInputSharing.Never].
+ * [inputSharing], but with configurable [inputSharing] and [inputSharingOutsets].
  *
  * While sharing is active, this source draws its content, both on screen and as effect input,
  * clipped to its layout bounds expanded by [inputSharingOutsets]. Anything drawn beyond that is not
  * shown. The outsets do not change this source's layout size or position, and they have no effect
  * while sharing is inactive, when the source draws as it would without sharing.
  *
- * @param inputSharing Whether effects sampling this source share one rendered copy of its content.
- * See [HazeInputSharing].
+ * @param inputSharing Whether this source renders once into an offscreen layer that it draws on
+ * screen and that effects sampling it share. See [HazeInputSharing].
  * @param inputSharingOutsets How far beyond each edge of its layout bounds this source keeps drawing
  * while sharing is active. Each edge must be finite and non-negative.
  */

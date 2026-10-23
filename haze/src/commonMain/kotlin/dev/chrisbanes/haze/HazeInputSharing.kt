@@ -4,8 +4,8 @@
 package dev.chrisbanes.haze
 
 /**
- * Controls whether effects that sample a [hazeSource] through [HazeInput.Sources] share one
- * rendered copy of its content.
+ * Controls whether a [hazeSource] renders once into an offscreen layer that it draws on screen
+ * and that every effect sampling it through [HazeInput.Sources] shares.
  *
  * Without sharing, each effect draws the captured content into its own layers, so the renderer
  * replays the source's display list once per effect whenever the source changes. With sharing,
