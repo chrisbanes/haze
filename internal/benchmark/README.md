@@ -14,6 +14,7 @@ see the [performance guide](../../docs/performance.md); published historical mea
 | Compare a merged Glass cluster with independent surfaces | [Glass container comparison](#glass-container-comparison) |
 | Compare container reclustering cost while a lazy grid scrolls | [Lazy container scroll workload](#lazy-container-scroll-workload) |
 | Compare source and native backdrop paths | [Android 37.2 comparisons](#android-372-sourcebackdrop-comparisons) |
+| Compare unshared, feed-only and nested input sharing | [Nested input-sharing comparison](#nested-input-sharing-comparison) |
 | Find artifacts and interpret metrics or traces | [Results](#results) |
 | Generate and verify library baseline profiles | [Baseline-profile maintenance](BASELINE_PROFILES.md) |
 
@@ -604,6 +605,85 @@ find "$results_dir/one" "$results_dir/two" -name '*.perfetto-trace' | sort | whi
   trace_processor_shell -q placement.sql "$trace"
 done
 ```
+
+## Nested input-sharing comparison
+
+`GlassFeedBenchmark`'s `Nested` methods (#1615) measure `HazeInputSharing` with two nested
+sources. An outer host source contains the whole feed source. The four existing header controls
+sample the feed, and two fixed 40 dp bottom controls sample the host. Every control sits outside
+both captured subtrees. Within each row the content, geometry, animation, styles, duration and
+effects are identical; only the two sharing policies differ:
+
+| Workload/effect | Neither shares (`Never`/`Never`) | Only the feed shares (`Auto`/`Never`) | Both share (`Auto`/`Auto`) |
+| --- | --- | --- | --- |
+| Video Glass | `feedVideoGlassNestedUnshared` | `feedVideoGlassNestedFeedOnly` | `feedVideoGlassNestedBoth` |
+| Scroll Glass | `feedScrollGlassNestedUnshared` | `feedScrollGlassNestedFeedOnly` | `feedScrollGlassNestedBoth` |
+| Video Blur | `feedVideoBlurNestedUnshared` | `feedVideoBlurNestedFeedOnly` | `feedVideoBlurNestedBoth` |
+| Scroll Blur | `feedScrollBlurNestedUnshared` | `feedScrollBlurNestedFeedOnly` | `feedScrollBlurNestedBoth` |
+
+Each method launches the scenario ID in snake case, such as `feed_video_glass_nested_feed_only`.
+Do not average these rows with the flat `feedVideoGlass` family: they answer a different
+comparison.
+
+### Replay oracle
+
+`HazeSource.record`, Kotlin draw counts and `sourceReplay` do not count source replays: the
+`sourceReplay` metric counts every faded card and chip, and HWUI renders a shared source's layer
+under a `drawLayer [graphicsLayer] 1080.0 x 2400.0` slice whose size is the same for the feed and
+the host. Each nested scene instead draws two fixed replay markers, a `graphicsLayer` with alpha and
+overlapping draws, identical in all nested variants. The 188×40 dp feed marker lies under the header
+controls inside the feed source, and the 88×40 dp host marker lies under the bottom controls inside
+the host source. Each replay of a source's display list emits one RenderThread slice named
+`alpha caused saveLayer <width>x<height>`, in pixels. On the Pixel 8a (2.625 density) the feed
+marker is `alpha caused saveLayer 494x105` and the host marker is `alpha caused saveLayer 231x105`;
+convert the sizes for another density.
+
+Save this query as `oracle.sql`. It counts both markers inside every RenderThread `DrawFrames`
+slice in `measureBlock`, then groups frames by those counts:
+
+```sql
+with w as (select ts, ts + dur as te from slice where name = 'measureBlock' limit 1),
+frames as (
+  select s.id from slice s join thread_track tt on s.track_id = tt.id join thread using(utid)
+  join process using(upid), w
+  where thread.name = 'RenderThread' and process.name = 'dev.chrisbanes.haze.sample.android'
+    and s.name like 'DrawFrames%' and s.ts >= w.ts and s.ts < w.te
+),
+per_frame as (
+  select
+    (select count(*) from descendant_slice(f.id) d where d.name = 'alpha caused saveLayer 494x105') as feed,
+    (select count(*) from descendant_slice(f.id) d where d.name = 'alpha caused saveLayer 231x105') as host
+  from frames f
+)
+select feed, host, count(*) as frames from per_frame group by feed, host order by frames desc;
+```
+
+Calibration on the Pixel 8a, one dry-run trace per method at build `cb12b9e35`, gave 180 frames in
+every method at these counts. The remaining one to three frames per trace replayed fewer markers,
+or none, when the content had not changed:
+
+| Policies | Feed replays per frame | Host replays per frame |
+| --- | --- | --- |
+| Neither shares | 7: window, four header effects, two bottom effects | 3: window, two bottom effects |
+| Only the feed shares | 1, into the feed's layer | 3 |
+| Both share | 1, into the feed's layer | 1, into the host's layer |
+
+All four workload/effect rows gave the same counts. With both sharing, the host's replay draws the
+feed's texture, so the feed's display list is still replayed once per changing frame. A shared row
+with more than one feed replay per changing frame is a sharing failure, not a timing result. Run the
+query over every measured trace and retain its output with the archive.
+
+### Run the nested comparison
+
+Dry-run each of the twelve methods separately first, as described in
+[Validate automation](#validate-automation). Then measure every method once in forward order, each
+row Unshared, FeedOnly, Both, then again in exact reverse order, with the same APKs. Archive and
+verify each method with `archive_result.py --iterations 8` before starting the next, into
+`<pass>/<method>` under one results directory. Record the conditions listed in
+[Run the measured passes](#run-the-measured-passes) before each pass and after the session, and run
+`placement.sql` and `oracle.sql` over every archived trace. Report the mean of the two per-pass
+summaries together with each pass's spread; a mean of per-pass P90 values is not a pooled
+percentile.
 
 ## Run a profile
 
