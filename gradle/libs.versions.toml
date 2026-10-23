@@ -23,7 +23,7 @@ kamera = "1.2"
 metalava = "0.5.1"
 navigation-compose = "2.10.0"
 robolectric = "4.17"
-roborazzi = "1.76.0"
+roborazzi = "1.77.0"
 spotless = "8.10.4"
 leakcanary = "2.14"
 
