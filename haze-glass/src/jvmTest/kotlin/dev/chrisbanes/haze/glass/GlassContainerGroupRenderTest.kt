@@ -15,9 +15,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import assertk.Assert
 import assertk.all
@@ -81,6 +84,19 @@ class GlassContainerGroupRenderTest : ContextTest() {
     assertThat(member.lightPosition.y).isCloseTo(60f, 0.01f)
   }
 
+  @Test
+  fun groupBoundsSetContainerOpticalSize() = runComposeUiTest {
+    val small = opticalGroup(grouped = true)
+    // Two 100x40 members 60px apart stack into a 100x140 group, so its bounds set the optical size.
+    assertThat(small.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+  }
+
+  @Test
+  fun ungroupedMembers_setContainerOpticalSizeFromEachMember() = runComposeUiTest {
+    val small = opticalGroup(grouped = false)
+    assertThat(small.opticalSizeOverride).isEqualTo(Size(40f, 40f))
+  }
+
   private class GroupFixture(
     val test: ComposeUiTest,
     val first: GlassRuntimeEffect,
@@ -100,6 +116,35 @@ class GlassContainerGroupRenderTest : ContextTest() {
       runBlocking { source.emit(PressInteraction.Release(press)) }
       test.waitForIdle()
     }
+  }
+
+  /** Two stacked 100x40 members and a separate 30x30 member; returns the small member's runtime. */
+  private fun ComposeUiTest.opticalGroup(grouped: Boolean): GlassRuntimeEffect {
+    val effects = List(3) { GlassRuntimeEffect() }
+    val state = HazeState()
+    setContent {
+      Box(Modifier.size(520.dp, 300.dp).background(Color.White)) {
+        Box(Modifier.size(520.dp, 300.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(520.dp, 300.dp).hazeGlassContainer(10.dp)) {
+          listOf(DpOffset(40.dp, 20.dp) to DpSize(100.dp, 40.dp), DpOffset(40.dp, 120.dp) to DpSize(100.dp, 40.dp), DpOffset(300.dp, 20.dp) to DpSize(30.dp, 30.dp))
+            .forEachIndexed { index, (offset, size) ->
+              Box(
+                Modifier.offset(offset.x, offset.y).size(size).hazeGlass(
+                  HazeEffectFactory { effects[index] },
+                  HazeInput.Sources(state),
+                  containerTestStyle(Color.Red),
+                  HazePerformanceMode.Quality,
+                  true,
+                  null,
+                  groupKey = "group".takeIf { grouped && index < 2 },
+                ),
+              )
+            }
+        }
+      }
+    }
+    waitForIdle()
+    return effects[2]
   }
 
   /** Two 100x40 members 200px apart, far beyond the 40px merge distance, sharing a group key. */

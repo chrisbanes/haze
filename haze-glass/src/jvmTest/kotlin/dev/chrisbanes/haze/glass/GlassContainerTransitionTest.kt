@@ -191,6 +191,59 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun groupedMember_detachRetractsIntoGroupBeyondMergeDistance() = runComposeUiTest {
+    // B sits 60px from A, beyond the 40px merge distance.
+    val fixture = fixture(gap = 60, grouped = true)
+    fixture.toggle()
+    assertThat(fixture.b()).all {
+      prop(GlassMemberSnapshot::identity).isInstanceOf<GlassMemberGhost>()
+      prop(GlassMemberSnapshot::rect).isCloseTo(Rect(200f, 60f, 300f, 140f))
+    }
+    fixture.advance(150)
+    assertThat(fixture.b().rect.left).isCloseTo(200f - 160f * 144f / 300f, 1f)
+    assertThat(fixture.owner().renderer.runtimeSurfaces.single().mergedField?.members).isNotNull().hasSize(1)
+    fixture.settle()
+    assertThat(fixture.owner().renderer.runtimeSurfaces).isEmpty()
+    assertThat(fixture.owner().model.surfaces.single().members.single()).all {
+      prop(GlassMemberSnapshot::identity).isEqualTo(fixture.aNode)
+      prop(GlassMemberSnapshot::rect).isCloseTo(Rect(40f, 60f, 140f, 140f))
+    }
+  }
+
+  @Test
+  fun groupedMember_attachGrowsGroup() = runComposeUiTest {
+    val fixture = fixture(gap = 60, present = false, grouped = true)
+    fixture.toggle()
+    assertThat(fixture.b()).prop(GlassMemberSnapshot::rect).isCloseTo(Rect(40f, 60f, 140f, 140f), tolerance = 1f)
+    fixture.advance(150)
+    assertThat(fixture.b().rect.left).isCloseTo(40f + 160f * 144f / 300f, 1f)
+    assertThat(fixture.owner().renderer.runtimeSurfaces.single().mergedField?.members).isNotNull().hasSize(1)
+    fixture.settle()
+    assertThat(fixture.b()).prop(GlassMemberSnapshot::rect).isCloseTo(Rect(200f, 60f, 300f, 140f))
+  }
+
+  @Test
+  fun ungroupedMember_detachBeyondMergeDistanceFadesInPlace() = runComposeUiTest {
+    val fixture = fixture(gap = 60)
+    fixture.toggle()
+    fixture.advance(150)
+    assertThat(fixture.b()).all {
+      prop(GlassMemberSnapshot::rect).isCloseTo(Rect(200f, 60f, 300f, 140f))
+      prop(GlassMemberSnapshot::material).prop(ResolvedGlassStyle::alpha).isCloseTo(0.5f, 0.05f)
+    }
+    fixture.settle()
+  }
+
+  @Test
+  fun ungroupedMember_attachBeyondMergeDistanceFadesInPlace() = runComposeUiTest {
+    val fixture = fixture(gap = 60, present = false)
+    fixture.toggle()
+    fixture.advance(150)
+    assertThat(fixture.b()).prop(GlassMemberSnapshot::rect).isCloseTo(Rect(200f, 60f, 300f, 140f))
+    fixture.settle()
+  }
+
+  @Test
   fun ghost_doesNotCountTowardsOpticalSize() = runComposeUiTest {
     val fixture = fixture(bSize = Size(200f, 160f))
     fixture.toggle()
@@ -1236,6 +1289,7 @@ class GlassContainerTransitionTest : ContextTest() {
     cTransition: GlassMemberTransition = GlassMemberTransition.MatchedGeometry,
     cInitially: Boolean = false,
     width: Int = 360,
+    grouped: Boolean = false,
   ): Fixture {
     val c = GlassRuntimeEffect()
     val cPresent = mutableStateOf(cInitially)
@@ -1263,7 +1317,7 @@ class GlassContainerTransitionTest : ContextTest() {
               Modifier.offset(40.dp, 60.dp).size(aWidth.value.dp, 80.dp).graphicsLayer {
                 rotationZ = fixture.aRotation.value
                 scaleY = fixture.aScaleY.value
-              }.hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(aState.value), containerTestStyle(Color.Red).then(fixture.aExtra.value), HazePerformanceMode.Quality, true, fixture.aSource),
+              }.hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(aState.value), containerTestStyle(Color.Red).then(fixture.aExtra.value), HazePerformanceMode.Quality, true, fixture.aSource, groupKey = "group".takeIf { grouped }),
             )
           }
           Box(
@@ -1283,6 +1337,7 @@ class GlassContainerTransitionTest : ContextTest() {
                     fixture.bSource,
                     interactionTransformPivot = bPivot,
                     memberTransition = transition,
+                    groupKey = "group".takeIf { grouped },
                   ),
                 ) {
                   Box(Modifier.size(10.dp).background(Color.Green))

@@ -324,7 +324,7 @@ internal class GlassContainerNode(
       Snapshot.withoutReadObservation {
         if (pending.isNotEmpty()) startTransitions(liveSnapshots())
         val registered = members
-        val opticalSize = glassOpticalSize(registered.mapNotNull { it.localSize() })
+        val opticalSize = glassOpticalSize(opticalSizes(registered))
         registered.forEach { member ->
           val runtime = member.binding.runtime ?: return@forEach
           val alpha = attaching[member]?.takeIf { it.neighbour == null }?.progress?.value?.coerceIn(0f, 1f) ?: 1f
@@ -392,7 +392,7 @@ internal class GlassContainerNode(
           }
           snapshots.forEach { latest[it.identity] = it }
           // Optical size changes immediately and counts live layout rects only, never ghosts.
-          model = clusterGlassMembers(snapshots, mergeDistancePx, glassOpticalSize(live.keys.mapNotNull { it.localSize() }))
+          model = clusterGlassMembers(snapshots, mergeDistancePx, glassOpticalSize(opticalSizes(live.keys)))
           val split = model.surfaces.flatMap { cluster ->
             cluster.members.filter { member -> member.link != null && cluster.members.none { it.identity === member.link } }
           }.map { it.identity }
@@ -445,6 +445,36 @@ internal class GlassContainerNode(
     return requireLayoutCoordinates().size.toSize()
   }
 
+  /**
+   * Each member's [localSize], except that a run of consecutive members sharing a non-null group
+   * key counts once, at the size of the union of their layout rects.
+   */
+  private fun opticalSizes(nodes: Collection<GlassMemberNode>): List<Size> {
+    val sizes = mutableListOf<Size>()
+    var runKey: Any? = null
+    var runBounds: Rect? = null
+    for (node in nodes) {
+      val size = node.localSize() ?: continue
+      val key = node.groupKey
+      val bounds = node.binding.surface?.boundsInOwner()
+      val current = runBounds
+      if (key == null || bounds == null) {
+        runKey = null
+        runBounds = null
+        sizes += size
+      } else if (current != null && key == runKey) {
+        val union = Rect(minOf(current.left, bounds.left), minOf(current.top, bounds.top), maxOf(current.right, bounds.right), maxOf(current.bottom, bounds.bottom))
+        runBounds = union
+        sizes[sizes.lastIndex] = union.size
+      } else {
+        runKey = key
+        runBounds = bounds
+        sizes += size
+      }
+    }
+    return sizes
+  }
+
   private fun liveSnapshots(): Map<GlassMemberNode, GlassMemberSnapshot> = members.mapNotNull { member ->
     val binding = member.binding
     val layoutRect = binding.surface?.boundsInOwner() ?: return@mapNotNull null
@@ -469,6 +499,7 @@ internal class GlassContainerNode(
 
   private fun GlassMemberSnapshot.isWithinMergeDistanceOf(neighbour: GlassMemberNode, live: Map<GlassMemberNode, GlassMemberSnapshot>): Boolean {
     val drawn = drawnSnapshot(neighbour, live) ?: return false
+    if (groupKey != null && groupKey == drawn.groupKey) return true
     // A growing neighbour can overshoot away from its own layout rect, which stays as near as it was.
     return minOf(glassMemberGap(layoutRect, drawn.layoutRect), glassMemberGap(layoutRect, live.getValue(neighbour).layoutRect)) < mergeDistancePx
   }

@@ -73,8 +73,9 @@ internal fun GlassMemberSnapshot.morphedFrom(from: GlassMemberSnapshot, fraction
  *
  * [ordered] is every registration's snapshot, with [member] at its registration position;
  * [excluded] members are not visible yet. A neighbour must satisfy [canTransitionWith], be within
- * the full merge distance, and share a cluster with [member] placed on it, so the consecutive-run
- * and cap rules still hold. Every live member of that cluster must also resolve [member]'s sources.
+ * the full merge distance (unless it shares [member]'s non-null group key, which prefers it at any
+ * distance), and share a cluster with [member] placed on it, so the consecutive-run and cap rules
+ * still hold. Every live member of that cluster must also resolve [member]'s sources.
  */
 internal fun resolveGlassNeighbour(
   member: GlassMemberSnapshot,
@@ -82,10 +83,13 @@ internal fun resolveGlassNeighbour(
   mergeDistancePx: Float,
   excluded: Set<Any> = emptySet(),
 ): GlassMemberSnapshot? {
-  return ordered
+  fun GlassMemberSnapshot.inGroupOf(other: GlassMemberSnapshot) = groupKey != null && groupKey == other.groupKey
+  val neighbours = ordered
     .filter { candidate ->
       candidate.identity is GlassMemberNode && candidate.identity !== member.identity && candidate.identity !in excluded &&
-        member.canTransitionWith(candidate) && glassMemberGap(member.layoutRect, candidate.layoutRect) < mergeDistancePx
+        member.canTransitionWith(candidate) &&
+        // Members of one group draw as one shape at any distance.
+        (candidate.inGroupOf(member) || glassMemberGap(member.layoutRect, candidate.layoutRect) < mergeDistancePx)
     }
     .filter { candidate ->
       val probe = ordered.map {
@@ -98,6 +102,7 @@ internal fun resolveGlassNeighbour(
           cluster.members.filter { it.identity is GlassMemberNode }.all { it.drawsSourcesOf(member) }
       }
     }
+  return (neighbours.filter { it.inGroupOf(member) }.ifEmpty { neighbours })
     .minByOrNull { glassMemberGap(member.layoutRect, it.layoutRect) }
 }
 

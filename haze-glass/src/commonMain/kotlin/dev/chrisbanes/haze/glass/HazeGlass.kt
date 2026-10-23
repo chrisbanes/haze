@@ -51,6 +51,10 @@ import dev.chrisbanes.haze.hazeEffect
  * @param memberTransition How this member's glass enters and leaves its [hazeGlassContainer]. It
  * is ignored outside a container. Haze animates only the glass, so animate member content
  * yourself, for example with `AnimatedVisibility`.
+ * @param groupKey Groups this member with others in the same [hazeGlassContainer]. Members with an
+ * equal (`==`), non-null key that are consecutive in registration order draw as one Glass shape over
+ * the bounding box of their rects, at any distance, and attach to or detach from each other at any
+ * distance. `null` leaves the member ungrouped. It is ignored outside a container.
  */
 @Stable
 public fun Modifier.hazeGlass(
@@ -63,6 +67,7 @@ public fun Modifier.hazeGlass(
   interactionTransformPivot: GlassTransformPivot = GlassTransformPivot.Pointer,
   interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
   memberTransition: GlassMemberTransition = GlassMemberTransition.MatchedGeometry,
+  groupKey: Any? = null,
 ): Modifier = hazeGlass(
   factory = GlassHazeEffectFactory,
   input = input,
@@ -74,6 +79,7 @@ public fun Modifier.hazeGlass(
   interactionTransformPivot = interactionTransformPivot,
   interactionReducedMotionPolicy = interactionReducedMotionPolicy,
   memberTransition = memberTransition,
+  groupKey = groupKey,
 )
 
 internal fun Modifier.hazeGlass(
