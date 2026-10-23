@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.LayerOutsets
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -498,6 +499,29 @@ class HazeEffectInputTest {
     waitForIdle()
 
     assertThat(renderer.snapshots.last()).isNotEqualTo(initial)
+  }
+
+  @Test
+  fun sourceSnapshot_isStableForUnchangedSharedInput() = runComposeUiTest {
+    val state = HazeState()
+    val factory = RecordingRendererFactory(::SnapshotRenderer)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Box(
+          Modifier
+            .fillMaxSize()
+            .hazeSource(state, inputSharing = HazeInputSharing.Always, inputSharingOutsets = LayerOutsets(4.dp))
+            .background(Color.Red),
+        )
+        Box(Modifier.fillMaxSize().hazeEffect(factory = factory, input = HazeInput.Sources(state), style = Unit))
+      }
+    }
+    waitForIdle()
+
+    val renderer = factory.renderers.single()
+    assertThat(renderer.snapshots.last()).isNotNull()
+    assertThat(renderer.reusesUnchangedSnapshot).isTrue()
   }
 
   @Test

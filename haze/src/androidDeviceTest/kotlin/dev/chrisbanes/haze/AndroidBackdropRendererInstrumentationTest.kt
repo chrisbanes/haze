@@ -13,10 +13,7 @@ import android.graphics.Paint
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.view.Gravity
-import android.view.PixelCopy
 import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
@@ -417,24 +414,6 @@ class AndroidBackdropRendererInstrumentationTest {
     }
   }
 
-  private fun ComponentActivity.copyWindow(): Bitmap {
-    val targetWindow = this.window
-    val bitmap = Bitmap.createBitmap(
-      targetWindow.decorView.width,
-      targetWindow.decorView.height,
-      Bitmap.Config.ARGB_8888,
-    )
-    val latch = CountDownLatch(1)
-    var result = PixelCopy.ERROR_UNKNOWN
-    PixelCopy.request(targetWindow, bitmap, { copyResult ->
-      result = copyResult
-      latch.countDown()
-    }, Handler(Looper.getMainLooper()))
-    assertThat(latch.await(5, TimeUnit.SECONDS), "Window PixelCopy completed").isTrue()
-    assertThat(result, "Window PixelCopy result").isEqualTo(PixelCopy.SUCCESS)
-    return bitmap
-  }
-
   private companion object {
     const val PROTOTYPE_NODE_COUNT = 4
 
@@ -525,16 +504,6 @@ private class PrototypeBackdropNode(
 
 private fun androidx.compose.ui.unit.Dp.roundToPx(density: Density): Int =
   kotlin.math.round(value * density.density).toInt()
-
-private fun Bitmap.pixel(x: Int, y: Int): Color {
-  val pixel = getPixel(x.coerceIn(0, width - 1), y.coerceIn(0, height - 1))
-  return Color(
-    red = AndroidColor.red(pixel) / 255f,
-    green = AndroidColor.green(pixel) / 255f,
-    blue = AndroidColor.blue(pixel) / 255f,
-    alpha = AndroidColor.alpha(pixel) / 255f,
-  )
-}
 
 private fun Bitmap.assertVerticalEdgeSoftened(
   centerX: Int,

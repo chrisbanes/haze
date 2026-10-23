@@ -12,8 +12,11 @@ import androidx.compose.runtime.snapshots.ObserverHandle
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.isUnspecified
+import androidx.compose.ui.graphics.LayerOutsets
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -36,6 +39,7 @@ import androidx.compose.ui.node.updateLayerBlock
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.toSize
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -54,6 +58,7 @@ internal class HazeSourceNode(
   zIndex: Float = 0f,
   key: Any? = null,
   inputSharing: HazeInputSharing = HazeInputSharing.Never,
+  inputSharingOutsets: LayerOutsets = LayerOutsets.Zero,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
   GlobalPositionAwareModifierNode,
@@ -110,6 +115,7 @@ internal class HazeSourceNode(
 
   // State, so draw observes it: invalidateDraw() alone does not re-run this node's draw.
   internal var inputSharing: HazeInputSharing by mutableStateOf(inputSharing)
+  internal var inputSharingOutsets: LayerOutsets by mutableStateOf(inputSharingOutsets)
 
   private var lastCoordinates: LayoutCoordinates? = null
   private var hasCaptureDemand = false
@@ -322,28 +328,41 @@ internal class HazeSourceNode(
             HazeLogger.d(TAG) { "Updated contentLayer in HazeArea: $area" }
           }
 
+        // Reads the consumer count, so crossing the sharing threshold redraws this source. Every
+        // draw sets the strategy and outsets, so deactivating restores normal compositing.
+        val sharing = inputSharing.isActive(area.captureConsumerCount)
+        // Offscreen, so the content renders once for the window and every effect.
+        contentLayer.compositingStrategy = if (sharing) CompositingStrategy.Offscreen else CompositingStrategy.Auto
+        val outsets = if (sharing) inputSharingOutsets else LayerOutsets.Zero
+        // Rounded outward, so the declared outsets are never cut short.
+        val left = ceil(outsets.left.toPx()).toInt()
+        val top = ceil(outsets.top.toPx()).toInt()
+        val right = ceil(outsets.right.toPx()).toInt()
+        val bottom = ceil(outsets.bottom.toPx()).toInt()
+        contentLayer.setOutsets(left, top, right, bottom)
+        val outsetBounds = if (left == 0 && top == 0 && right == 0 && bottom == 0) {
+          null
+        } else {
+          Rect(-left.toFloat(), -top.toFloat(), size.width + right, size.height + bottom)
+        }
+        area.inputBounds = outsetBounds
+
         // First we draw the composable content into a graphics layer
         trace("HazeSource.record") {
           contentLayer.record {
-            this@draw.drawContentSafely()
+            if (outsetBounds != null) {
+              // Offscreen clips to the layer bounds, but Skia doesn't clip to its outsets. Clip
+              // explicitly, so every platform agrees.
+              clipRect(outsetBounds.left, outsetBounds.top, outsetBounds.right, outsetBounds.bottom) {
+                this@draw.drawContentSafely()
+              }
+            } else {
+              this@draw.drawContentSafely()
+            }
             HazeLogger.d(TAG) { "Drawn content into layer: $contentLayer" }
           }
         }
 
-        // Reads the consumer count, so crossing the sharing threshold redraws this source.
-        if (inputSharing.isActive(area.captureConsumerCount)) {
-          val sharedLayer = area.sharedInputLayer
-            ?.takeUnless { it.isReleased }
-            ?: graphicsContext.createGraphicsLayer().also {
-              // Offscreen, so the content renders once and every effect samples the result.
-              it.compositingStrategy = CompositingStrategy.Offscreen
-              area.sharedInputLayer = it
-              HazeLogger.d(TAG) { "Created shared input layer in HazeArea: $area" }
-            }
-          sharedLayer.record { drawLayer(contentLayer) }
-        } else if (area.sharedInputLayer != null) {
-          area.releaseSharedInputLayer(graphicsContext)
-        }
         area.contentVersion++
 
         // Now we draw `content` into the window canvas

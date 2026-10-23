@@ -25,6 +25,9 @@ in `sample/`; library screenshots in `haze-screenshot-tests`, sample screenshots
   internal or private types, use `data class` when `copy` or destructuring is intentional. Public
   value types use `@Poko` with an explicit `copy`, because adding a property to a public
   `data class` breaks binary compatibility.
+- Binary compatibility binds only released signatures: those in the module's latest
+  `api/<version>.txt`. Evolve an unreleased declaration in place, such as adding a parameter with
+  a default, and add forwarding overloads only to keep a released signature working.
 - Use AssertK for value, type, collection, boolean, and exception assertions, including custom
   assertion helpers. Do not use assertions from `kotlin.test`, JUnit, or Truth. Prefer semantic
   assertions (`isNull`, `contains`, `isInstanceOf`); use `isTrue`/`isFalse` only for boolean results.

@@ -22,12 +22,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.GraphicsContext
+import androidx.compose.ui.graphics.LayerOutsets
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.unit.Dp
 
 /** Creates and remembers a [HazeState] for coordinating Haze sources and effects. */
 @Composable
@@ -190,45 +192,33 @@ internal class HazeArea {
     internal set
 
   /**
-   * Offscreen copy of [contentLayer] that effects sample while input sharing is active, so the
-   * content renders once instead of once per effect. See [HazeInputSharing].
+   * The bounds of [contentLayer] that effects sample, in this area's local pixels, while input
+   * sharing expands them with outsets. Null means the layout bounds, `(0, 0)` to [size].
    */
-  internal var sharedInputLayer: GraphicsLayer? by mutableStateOf(null)
+  internal var inputBounds: Rect? by mutableStateOf(null)
     internal set
 
-  /**
-   * Releases [contentLayer] and [sharedInputLayer] through [graphicsContext], if there are any, and
-   * clears them.
-   */
+  /** Releases [contentLayer] through [graphicsContext], if there is one, and clears it. */
   internal fun releaseContentLayer(graphicsContext: GraphicsContext) {
-    releaseSharedInputLayer(graphicsContext)
     contentLayer?.let { layer ->
       HazeLogger.d("HazeArea") { "Releasing content layer: $layer" }
       graphicsContext.releaseGraphicsLayer(layer)
     }
     contentLayer = null
+    inputBounds = null
   }
 
-  /** Releases [sharedInputLayer] through [graphicsContext], if there is one, and clears it. */
-  internal fun releaseSharedInputLayer(graphicsContext: GraphicsContext) {
-    sharedInputLayer?.let { layer ->
-      HazeLogger.d("HazeArea") { "Releasing shared input layer: $layer" }
-      graphicsContext.releaseGraphicsLayer(layer)
-    }
-    sharedInputLayer = null
-  }
-
-  /** [contentLayer] when it can be drawn: not released and with a non-empty size. */
+  /**
+   * [contentLayer] when it can be drawn: not released and with a non-empty size.
+   *
+   * Also reads [inputBounds]: Skia applies a layer's outsets when a consumer records it, so every
+   * consumer that reads the layer must redraw when they change.
+   */
   internal val drawableContentLayer: GraphicsLayer?
-    get() = contentLayer.takeIfDrawable()
-
-  /** The layer effects draw as their input: [sharedInputLayer] when drawable, else [contentLayer]. */
-  internal val drawableInputLayer: GraphicsLayer?
-    get() = sharedInputLayer.takeIfDrawable() ?: drawableContentLayer
-
-  private fun GraphicsLayer?.takeIfDrawable(): GraphicsLayer? = this
-    ?.takeUnless { it.isReleased }
-    ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
+    get() {
+      inputBounds
+      return contentLayer?.takeUnless { it.isReleased || it.size.width <= 0 || it.size.height <= 0 }
+    }
 
   internal var contentDrawing: Boolean = false
 
@@ -258,6 +248,7 @@ internal fun HazeArea.reset() {
   coordinates.localPosition = Offset.Unspecified
   coordinates.screenPosition = Offset.Unspecified
   size = Size.Unspecified
+  inputBounds = null
   windowId = null
   contentDrawing = false
 }
@@ -304,8 +295,15 @@ public fun Modifier.hazeSource(
  * Captures background content for [hazeEffect] child nodes, like the [hazeSource] overload without
  * [inputSharing], which uses [HazeInputSharing.Never].
  *
- * @param inputSharing Whether effects sampling this source share one rendered copy of its content.
- * See [HazeInputSharing].
+ * While sharing is active, this source draws its content, both on screen and as effect input,
+ * clipped to its layout bounds expanded by [inputSharingOutsets]. Anything drawn beyond that is not
+ * shown. The outsets do not change this source's layout size or position, and they have no effect
+ * while sharing is inactive, when the source draws as it would without sharing.
+ *
+ * @param inputSharing Whether this source renders once into an offscreen layer that it draws on
+ * screen and that effects sampling it share. See [HazeInputSharing].
+ * @param inputSharingOutsets How far beyond each edge of its layout bounds this source keeps drawing
+ * while sharing is active. Each edge must be finite and non-negative.
  */
 @ExperimentalHazeApi
 @Stable
@@ -314,7 +312,17 @@ public fun Modifier.hazeSource(
   zIndex: Float = 0f,
   key: Any? = null,
   inputSharing: HazeInputSharing,
-): Modifier = this then HazeSourceElement(state, zIndex, key, inputSharing)
+  inputSharingOutsets: LayerOutsets = LayerOutsets.Zero,
+): Modifier {
+  with(inputSharingOutsets) {
+    require(left.isValidOutset() && top.isValidOutset() && right.isValidOutset() && bottom.isValidOutset()) {
+      "inputSharingOutsets edges must be finite and non-negative: $inputSharingOutsets"
+    }
+  }
+  return this then HazeSourceElement(state, zIndex, key, inputSharing, inputSharingOutsets)
+}
+
+private fun Dp.isValidOutset(): Boolean = value.isFinite() && value >= 0f
 
 @OptIn(ExperimentalHazeApi::class)
 internal data class HazeSourceElement(
@@ -322,6 +330,7 @@ internal data class HazeSourceElement(
   val zIndex: Float = 0f,
   val key: Any? = null,
   val inputSharing: HazeInputSharing = HazeInputSharing.Never,
+  val inputSharingOutsets: LayerOutsets = LayerOutsets.Zero,
 ) : ModifierNodeElement<HazeSourceNode>() {
 
   override fun create(): HazeSourceNode = HazeSourceNode(
@@ -329,6 +338,7 @@ internal data class HazeSourceElement(
     zIndex = zIndex,
     key = key,
     inputSharing = inputSharing,
+    inputSharingOutsets = inputSharingOutsets,
   )
 
   override fun update(node: HazeSourceNode) {
@@ -336,6 +346,7 @@ internal data class HazeSourceElement(
     node.zIndex = zIndex
     node.key = key
     node.inputSharing = inputSharing
+    node.inputSharingOutsets = inputSharingOutsets
   }
 
   override fun InspectorInfo.inspectableProperties() {
@@ -343,5 +354,6 @@ internal data class HazeSourceElement(
     properties["zIndex"] = zIndex
     properties["key"] = key
     properties["inputSharing"] = inputSharing
+    properties["inputSharingOutsets"] = inputSharingOutsets
   }
 }

@@ -4,17 +4,22 @@
 package dev.chrisbanes.haze
 
 /**
- * Controls whether effects that sample a [hazeSource] through [HazeInput.Sources] share one
- * rendered copy of its content.
+ * Controls whether a [hazeSource] renders once into an offscreen layer that it draws on screen
+ * and that every effect sampling it through [HazeInput.Sources] shares.
  *
  * Without sharing, each effect draws the captured content into its own layers, so the renderer
  * replays the source's display list once per effect whenever the source changes. With sharing,
- * the source also renders its content once into an offscreen layer, which every effect samples.
- * That costs one texture the size of the source, and effects no longer see anything the source
- * draws outside its layout bounds. The source itself still draws normally on screen.
+ * the source renders its content once into an offscreen layer, which it draws on screen and every
+ * effect samples. That costs one texture the size of the source and its outsets.
+ *
+ * While sharing is active, the source's drawing is clipped to its layout bounds, expanded by the
+ * `inputSharingOutsets` passed to [hazeSource]: anything drawn beyond them is no longer shown on
+ * screen or in effects. Outsets do not preserve arbitrary overflow, so declare enough for what the
+ * source draws outside its bounds, such as shadows. When sharing becomes inactive, the source draws
+ * normally again, including any overflow.
  *
  * Sharing reduces the CPU cost of replaying an expensive source on a busy RenderThread, but the
- * shared copy is re-rendered whenever the source changes, which adds GPU work while it scrolls.
+ * offscreen layer is re-rendered whenever the source changes, which adds GPU work while it scrolls.
  * Sources default to [Never]; measure before opting a source in.
  */
 @ExperimentalHazeApi

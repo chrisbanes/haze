@@ -56,21 +56,56 @@ fresh input, so always test those interactions as well as stationary content.
 
 <a id="input-sharing"></a>
 
+## Share one source render between effects
+
 By default, each effect that samples a [`hazeSource`][hazeSource] through
-[`HazeInput.Sources`][HazeInput.Sources] replays the source's full content whenever it changes. A
+[`HazeInput.Sources`][HazeInput.Sources] replays the source's content whenever it changes. A
 busy source, such as a feed with playing video, then costs more for every effect over it.
 
-The experimental `inputSharing` parameter lets effects share one rendered copy instead.
-`HazeInputSharing.Auto` shares on Android once two or more effects sample the source, and
-`Always` shares on every platform. Sharing costs one texture the size of the source, and the
-shared copy is re-rendered whenever the source changes, which adds GPU work while it scrolls.
-Effects also no longer see anything the source draws outside its bounds.
+The experimental `inputSharing` parameter changes that. While sharing is active, the source
+renders once into an offscreen layer, and the window and every effect draw from that layer
+instead of replaying the source. The activation rules are
+[`HazeInputSharing`][HazeInputSharing]'s: `Never` is the default, `Auto` shares on Android once
+two or more effects sample the source, and `Always` shares on every platform once one does.
 
-Opt a source in when the RenderThread spends its time replaying it. An app with seven effects over
-a video feed, [reported in #1611](https://github.com/chrisbanes/haze/issues/1611), measured its
-effect layers falling from about 2.2 ms to 0.2 ms per frame with an equivalent offscreen copy. On a
-Pixel 8a with a lighter feed, it did not reduce CPU frame time and added about 33 MB of GPU memory
-([conditions and limits](benchmark-results.md#input-sharing)).
+Sharing has two costs:
+
+- **Clipping.** While sharing is active, the source's drawing is clipped to its layout bounds,
+  expanded by `inputSharingOutsets`, both on screen and in effects. Anything drawn beyond that is
+  not shown. Outsets don't change the source's layout size or position, and they have no effect
+  while sharing is inactive, when the source draws normally again, overflow included.
+- **Memory.** Each active source holds one texture, the size of the source plus its outsets.
+
+For a source that stays inside its bounds, the default zero outsets are enough:
+
+```kotlin
+Modifier.hazeSource(state, inputSharing = HazeInputSharing.Auto)
+```
+
+If the source draws outside its bounds, for example a card with a shadow that reaches 4 dp to each
+side and 16 dp below it, declare that on each edge:
+
+```kotlin
+Modifier.hazeSource(
+  state = state,
+  inputSharing = HazeInputSharing.Auto,
+  inputSharingOutsets = LayerOutsets(left = 4.dp, top = 0.dp, right = 4.dp, bottom = 16.dp),
+)
+```
+
+Start with `Never`, and try sharing when the RenderThread spends its time replaying a source that
+several effects sample. Compare both settings with the same interaction on your target devices:
+look at CPU frame duration and frame overrun, at peak GPU memory, and at whether the clipped
+edges still look right. CPU frame duration does not measure GPU work, and the offscreen layer is
+re-rendered whenever the source changes, which adds GPU work while a source scrolls or animates.
+
+In Haze's nested-source benchmark, sharing the inner feed source cut its replays from seven per
+frame to one. On a Pixel 8a, that lowered P90 CPU frame duration by 2–6% and mean `DrawFrames`
+time by 6–8%. Each active source added about 25–33 MiB of peak GPU memory. The P90 gains
+were 0.15–0.50 ms, comparable to the variation between passes of up to 0.42 ms, and sharing the
+outer source as well usually gave a smaller gain. This is one device and one synthetic feed, and
+the benchmark measured no GPU time, so it does not predict your screen. See
+[the measurements and their limits](benchmark-results.md#input-sharing).
 
 <a id="input-scale"></a>
 <a id="performance-mode"></a>
@@ -204,5 +239,6 @@ Use them as reference points when measuring your own screen.
 [HazePerformanceMode.Default]: api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-default.html
 [HazeSampling.Default]: api/haze/dev.chrisbanes.haze/-haze-sampling/-companion/-default.html
 [hazeSource]: api/haze/dev.chrisbanes.haze/haze-source.html
+[HazeInputSharing]: api/haze/dev.chrisbanes.haze/-haze-input-sharing/index.html
 [HazeState]: api/haze/dev.chrisbanes.haze/-haze-state/index.html
 [LocalHazePerformanceMode]: api/haze/dev.chrisbanes.haze/-local-haze-performance-mode.html
