@@ -711,6 +711,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Groups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#optical-size" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1261,6 +1272,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Groups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#optical-size" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1395,20 +1417,23 @@ and rejoins before the palette collapses.</p>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p><code>mergeDistance</code> sets how close members must be to merge; it does not lay out or space the
-container's children. It defaults to <code>GlassDefaults.mergeDistance</code> (16 dp), and must be finite and
-not negative. A merge distance of zero disables merging by proximity. Optionally pass
-<code>transitionSpec</code> and <code>reducedMotionPolicy</code>, which are described under <a href="#transitions">Transitions</a>.</p>
+<p><code>mergeDistance</code> has two roles. It decides which members merge, and it shapes the merge; see the
+<a href="#merge-rule">merge rule</a>. It does not lay out or space the container's children. It defaults to
+<code>GlassDefaults.mergeDistance</code> (16 dp), and must be finite and not negative. A merge distance of zero
+disables merging by proximity. Optionally pass <code>transitionSpec</code> and <code>reducedMotionPolicy</code>, which are
+described under <a href="#transitions">Transitions</a>.</p>
 <p>Every <a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass.html"><code>hazeGlass</code></a> modifier below the container becomes a member of its nearest container. A member
-keeps its own style, shape, colors and interaction response. A <code>hazeGlass</code> modifier outside a
-container is unchanged.</p>
+keeps its own style, shape, colors and interaction response, unless it is in a <a href="#groups">group</a>,
+which draws as one shape. A <code>hazeGlass</code> modifier outside a container is unchanged.</p>
 <h2 id="merge-rule">Merge rule<a class="headerlink" href="#merge-rule" title="Permanent link">¶</a></h2>
-<p>Members join a cluster when the gap between them is less than the merge distance. The container
-draws each cluster as one surface: facing edges gradually stretch towards each other, and a bridge
-forms when the gap drops below half the merge distance. A member that joins no cluster draws as a
-separate surface. Between the full and half merge distance, each member's refraction and lighting
-smoothly change from its standalone profile to the merged profile, so elongated surfaces keep a
-continuous response as they join or separate.</p>
+<p>The merge distance decides which members merge. Compatible members join a cluster when the gap
+between them is less than the merge distance. A member that joins no cluster draws as a separate
+surface.</p>
+<p>It also shapes the merge. The container draws each cluster as one surface. As the gap closes from the
+full merge distance to half of it, facing edges gradually stretch towards each other, and each
+member's refraction and lighting smoothly change from its standalone profile to the merged profile,
+so elongated surfaces keep a continuous response as they join or separate. Below half the merge
+distance, a bridge forms.</p>
 <p>Members merge only when all of these hold:</p>
 <ul>
 <li><strong>Same input and rendering options.</strong> Equal <code>input</code> (for <a href="../../../api/haze/dev.chrisbanes.haze/-haze-input/-sources/"><code>HazeInput.Sources</code></a>, the same
@@ -1428,10 +1453,59 @@ continuous response as they join or separate.</p>
   member overlaps the cluster, blur and tint apply twice in the overlap.</li>
 </ul>
 <p>Lower-quality performance modes also render the merged shape at lower resolution.</p>
+<h2 id="groups">Groups<a class="headerlink" href="#groups" title="Permanent link">¶</a></h2>
+<p>The merge distance joins members that are close together. To join members at any distance, give
+them the same <code>groupKey</code>. A group is the counterpart of SwiftUI's <code>glassEffectUnion</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Styles compare by identity, so remember the style.</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">shape</span><span class="p">(</span><span class="n">CircleShape</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+
+<span class="n">Row</span><span class="p">(</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">fillMaxWidth</span><span class="p">().</span><span class="na">hazeGlassContainer</span><span class="p">(</span><span class="n">mergeDistance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">16.</span><span class="n">dp</span><span class="p">),</span>
+<span class="w">  </span><span class="n">horizontalArrangement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arrangement</span><span class="p">.</span><span class="na">SpaceBetween</span><span class="p">,</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">repeat</span><span class="p">(</span><span class="m">2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Box</span><span class="p">(</span>
+<span class="w">      </span><span class="n">Modifier</span>
+<span class="w">        </span><span class="p">.</span><span class="na">size</span><span class="p">(</span><span class="m">48.</span><span class="n">dp</span><span class="p">)</span>
+<span class="w">        </span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span><span class="w"> </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">,</span><span class="w"> </span><span class="n">groupKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"pair"</span><span class="p">),</span>
+<span class="w">    </span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Members of one container with an equal, non-null <code>groupKey</code> that are next to each other in
+registration order draw as one Glass shape over the bounding box of their rects. In the example, the
+two circles become one capsule that spans the row, although they are far apart. Keys compare with
+<code>==</code>. A <code>null</code> key leaves the member ungrouped, and Haze ignores <code>groupKey</code> outside a container.</p>
+<ul>
+<li><strong>Shape.</strong> The group uses the first member's <code>RoundedCornerShape</code>, resolved at the group's size, so
+  a capsule stays a capsule.</li>
+<li><strong>Appearance.</strong> The group uses the first member's tint, background color and light. The other
+  members' values are not drawn. If the first member starts to fade out, the group takes the next
+  member's shape and appearance at once.</li>
+<li><strong>Members left out.</strong> A member that couldn't merge with the first member, because its input or
+  material differs, draws on its own. So does a member that is rotated, scaled or fading, under
+  the usual <a href="#merge-rule">merge rule</a>.</li>
+<li><strong>Order.</strong> A member that isn't in the group, between two members that are, splits the group into
+  separate groups, because merging never changes drawing order.</li>
+<li><strong>Neighbours.</strong> A group counts as one member when the merge distance is measured, using its
+  bounds, so it can bridge with a neighbouring member. It also counts as one member towards the
+  four-member limit.</li>
+<li><strong>Optical size.</strong> The group's bounds count once toward the container's
+  <a href="#optical-size">optical size</a>.</li>
+<li><strong>Transitions.</strong> Members of the same group are neighbours at any distance. With the default
+  <code>MatchedGeometry</code>, a member that attaches grows the group's bounds, and one that detaches shrinks
+  them, timed by <code>transitionSpec</code>. A fading member leaves the group while it fades. With
+  <code>Materialize</code>, or any other fade, a fading member in the middle of a group therefore splits it
+  into separate shapes until the fade ends, and then they snap back into one shape.</li>
+<li><strong>Interaction.</strong> Pressing any member scales and lights the whole group. Each member's content
+  still follows its own <code>interactionTransformTarget</code>.</li>
+<li><strong>Fallback.</strong> The <a href="#fallback">fallback</a> draws the group as its single shape.</li>
+</ul>
 <h2 id="optical-size">Optical size<a class="headerlink" href="#optical-size" title="Permanent link">¶</a></h2>
-<p>A container uses one optical size: the largest shortest side among its members. Every member's
-optics use that size, whether or not it is in a cluster, so a small member next to a large one
-takes on the large member's diffusion, even when the two don't merge.</p>
+<p>A container uses one optical size: the largest shortest side among its members. A <a href="#groups">group</a>
+counts as one member, using the size of its bounds. Every member's optics use that size, whether or
+not it is in a cluster, so a small member next to a large one takes on the large member's
+diffusion, even when the two don't merge.</p>
 <p>The size updates immediately, without animation, when a member is added, removed or resized.
 Members that are animating out, or whose bounds have collapsed to zero area, don't count.</p>
 <h2 id="where-glass-samples-from">Where Glass samples from<a class="headerlink" href="#where-glass-samples-from" title="Permanent link">¶</a></h2>
@@ -1441,15 +1515,17 @@ Members that are animating out, or whose bounds have collapsed to zero area, don
 never changes a member's z-order.</p>
 <h2 id="interaction">Interaction<a class="headerlink" href="#interaction" title="Permanent link">¶</a></h2>
 <p>Interaction responses work as described in <a href="../#interaction">Glass interaction</a>, applied to
-the member's own part of the merged shape: pressing a member scales and lights only that part. A
-uniform pressed <code>scale</code> does not split the cluster.</p>
+the member's own part of the merged shape: pressing a member scales and lights only that part. In a
+<a href="#groups">group</a>, pressing any member scales and lights the whole group. A uniform pressed <code>scale</code>
+does not split the cluster.</p>
 <h2 id="transitions">Transitions<a class="headerlink" href="#transitions" title="Permanent link">¶</a></h2>
 <p>A member that attaches or detaches after the container's first draw animates its glass. Choose
 the transition with <code>hazeGlass(memberTransition = ...)</code>:</p>
 <ul>
 <li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-member-transition/-matched-geometry/"><code>GlassMemberTransition.MatchedGeometry</code></a> is the default. A member that attaches within the
   merge distance of another member grows out of it, and a member that detaches retracts into it.
-  Beyond the merge distance, it falls back to <code>Materialize</code>.</li>
+  Beyond the merge distance, it falls back to <code>Materialize</code>, except between members of the same
+  <a href="#groups">group</a>, which are neighbours at any distance.</li>
 <li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-member-transition/-materialize/"><code>GlassMemberTransition.Materialize</code></a> fades the glass in or out where it is. A fading member draws
   on its own until it is fully opaque.</li>
 <li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-member-transition/-none/"><code>GlassMemberTransition.None</code></a> applies no transition.</li>
@@ -1517,18 +1593,23 @@ container's first draw never animate.</p>
 <h2 id="fallback">Fallback<a class="headerlink" href="#fallback" title="Permanent link">¶</a></h2>
 <p>Without <code>RuntimeShader</code> support, or when a cluster is too large to render in full, each cluster
 draws as one surface clipped to the hard union of the member shapes, with no bridge. Members keep
-their own tint and background color; where members overlap, the earlier member's colors apply.
+their own tint and background color, except that a <a href="#groups">group</a> draws as its single shape with
+its first member's tint and background color. Where members overlap, the earlier member's colors
+apply.
 Each member resolves <a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-accessibility-settings/"><code>GlassAccessibilitySettings</code></a> and appearance in its own context. With
 <code>reduceTransparency</code>, it draws an opaque white/light or black/dark base (or its opaque
 <code>reducedTransparencyFallbackColor</code> override), then its authored background colour and tint. Earlier
 members still own overlapping regions, and overall alpha still fades the material. Disabling the
-preference restores that member's ordinary fallback appearance.</p>
-<p>Per-member press lighting is still drawn. See <a href="../#fallbacks">Fallbacks</a> for what else
+preference restores that member's ordinary fallback appearance. A <a href="#groups">group</a> draws once, so it
+uses its first member's accessibility settings and fallback base color along with that member's
+background color and tint. A later member's own <code>reduceTransparency</code> override doesn't give the group
+an opaque base.</p>
+<p>Per-member press lighting is still drawn. A group draws one light, from the pressed member. See <a href="../#fallbacks">Fallbacks</a> for what else
 fallback rendering omits.</p>
 <h2 id="samples">Samples<a class="headerlink" href="#samples" title="Permanent link">¶</a></h2>
 <p>The <code>Glass — Container</code> sample shows a merging toolbar, two draggable members with a merge
-distance control, a member added and removed with <code>AnimatedVisibility</code>, and a cluster of members
-with different tints. Its source is in
+distance control, a member added and removed with <code>AnimatedVisibility</code>, a cluster of members
+with different tints, and two distant pills that a <code>Group</code> switch joins into one shape. Its source is in
 <a href="https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerSample.kt"><code>GlassContainerSample.kt</code></a>.</p>
 <p>The <code>Glass — Container Showcase</code> sample places a drawing palette over two brushstrokes. Open
 Brush to reveal stroke-width and colour controls, then drag the colour control away to separate it
