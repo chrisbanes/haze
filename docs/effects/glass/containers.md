@@ -42,10 +42,11 @@ Row(
 }
 ```
 
-`mergeDistance` sets how close members must be to merge; it does not lay out or space the
-container's children. It defaults to `GlassDefaults.mergeDistance` (16 dp), and must be finite and
-not negative. A merge distance of zero disables merging by proximity. Optionally pass
-`transitionSpec` and `reducedMotionPolicy`, which are described under [Transitions](#transitions).
+`mergeDistance` has two roles. It decides which members merge, and it shapes the merge; see the
+[merge rule](#merge-rule). It does not lay out or space the container's children. It defaults to
+`GlassDefaults.mergeDistance` (16 dp), and must be finite and not negative. A merge distance of zero
+disables merging by proximity. Optionally pass `transitionSpec` and `reducedMotionPolicy`, which are
+described under [Transitions](#transitions).
 
 Every [`hazeGlass`][hazeGlass] modifier below the container becomes a member of its nearest container. A member
 keeps its own style, shape, colors and interaction response. A `hazeGlass` modifier outside a
@@ -53,12 +54,15 @@ container is unchanged.
 
 ## Merge rule
 
-Members join a cluster when the gap between them is less than the merge distance. The container
-draws each cluster as one surface: facing edges gradually stretch towards each other, and a bridge
-forms when the gap drops below half the merge distance. A member that joins no cluster draws as a
-separate surface. Between the full and half merge distance, each member's refraction and lighting
-smoothly change from its standalone profile to the merged profile, so elongated surfaces keep a
-continuous response as they join or separate.
+The merge distance decides which members merge. Compatible members join a cluster when the gap
+between them is less than the merge distance. A member that joins no cluster draws as a separate
+surface.
+
+It also shapes the merge. The container draws each cluster as one surface. As the gap closes from the
+full merge distance to half of it, facing edges gradually stretch towards each other, and each
+member's refraction and lighting smoothly change from its standalone profile to the merged profile,
+so elongated surfaces keep a continuous response as they join or separate. Below half the merge
+distance, a bridge forms.
 
 Members merge only when all of these hold:
 

@@ -52,12 +52,12 @@ import kotlinx.coroutines.launch
  * the container. Members use the largest member's shortest side for optics, retaining their own
  * styles and shape/colour values.
  *
- * [mergeDistance] controls how close members must be to merge. It does not position or space the
- * container's children. Compatible members whose edge-to-edge gap is less than [mergeDistance] join
- * one Glass cluster. As the gap closes from [mergeDistance] to half of it, facing edges stretch
- * towards each other and each member's optics blend into the cluster's; below half, a bridge joins
- * them. [mergeDistance] must be finite and non-negative, and zero disables merging by proximity.
- * Defaults to [GlassDefaults.mergeDistance].
+ * [mergeDistance] has two roles. It decides which compatible members merge: members whose
+ * edge-to-edge gap is less than [mergeDistance] join one Glass cluster. It also shapes the merge.
+ * As the gap closes from [mergeDistance] to half of it, facing edges stretch towards each other and
+ * each member's optics blend into the cluster's; below half, a bridge joins them. It does not
+ * position or space the container's children. [mergeDistance] must be finite and non-negative, and
+ * zero disables merging by proximity. Defaults to [GlassDefaults.mergeDistance].
  *
  * Without RuntimeShader support, or when a cluster exceeds the render budget, each cluster draws
  * as one surface clipped to the hard union of its members, with no bridge. Members keep their own
