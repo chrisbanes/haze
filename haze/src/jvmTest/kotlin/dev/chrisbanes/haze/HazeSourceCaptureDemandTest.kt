@@ -254,6 +254,36 @@ class HazeSourceCaptureDemandTest {
 
   @OptIn(ExperimentalHazeApi::class)
   @Test
+  fun inputSharingOutsetChange_redrawsEffectsWithAFreshSnapshot() = runComposeUiTest {
+    val state = HazeState()
+    val factory = DemandRecordingFactory()
+    val inputSharing = mutableStateOf(HazeInputSharing.Always)
+    val outsets = mutableStateOf(LayerOutsets(left = 10.dp, top = 0.dp, right = 20.dp, bottom = 0.dp))
+
+    setContent { OutsetFixture(state, inputSharing.value, outsets.value, factory) }
+    waitForIdle()
+    val renderer = factory.renderer
+
+    // Skia applies a layer's outsets when a consumer records it, so retained effect output must
+    // be redrawn, with a fresh snapshot, even when the effect's own bounds are unchanged.
+    var drawn = renderer.snapshots.last()
+    outsets.value = LayerOutsets(left = 20.dp, top = 0.dp, right = 10.dp, bottom = 0.dp)
+    waitForIdle()
+    assertThat(renderer.snapshots.last()).isNotEqualTo(drawn)
+
+    drawn = renderer.snapshots.last()
+    inputSharing.value = HazeInputSharing.Never
+    waitForIdle()
+    assertThat(renderer.snapshots.last()).isNotEqualTo(drawn)
+
+    drawn = renderer.snapshots.last()
+    inputSharing.value = HazeInputSharing.Always
+    waitForIdle()
+    assertThat(renderer.snapshots.last()).isNotEqualTo(drawn)
+  }
+
+  @OptIn(ExperimentalHazeApi::class)
+  @Test
   fun inputSharingOutsets_keepEachDeclaredEdgeInPlace() = runComposeUiTest {
     val state = HazeState()
     val sampledOnly = mutableStateOf(false)
