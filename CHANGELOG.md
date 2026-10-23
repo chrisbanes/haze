@@ -44,6 +44,11 @@ performance guidance.
   ([#1487](https://github.com/chrisbanes/haze/pull/1487)). `GlassMemberTransition` and
   `hazeGlass(memberTransition = ...)` animate members as they join or leave a container
   ([#1482](https://github.com/chrisbanes/haze/pull/1482)).
+- Added `hazeGlass(groupKey = ...)`. Members of one container with an equal, non-null group key
+  that are consecutive in registration order draw as one Glass shape over their combined bounds, at
+  any distance, using the first member's shape and appearance. A group counts as one member for
+  merging, the cluster cap and the container's optical size, and its members grow out of and
+  retract into each other at any distance ([#1619](https://github.com/chrisbanes/haze/pull/1619)).
 - Added the `Glass — Container` sample and Glass container documentation and performance guidance
   ([#1491](https://github.com/chrisbanes/haze/pull/1491)).
 - Added the `Glass — Container Showcase` sample, a photo library whose Glass bar merges, splits

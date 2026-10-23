@@ -42,23 +42,27 @@ Row(
 }
 ```
 
-`mergeDistance` sets how close members must be to merge; it does not lay out or space the
-container's children. It defaults to `GlassDefaults.mergeDistance` (16 dp), and must be finite and
-not negative. A merge distance of zero disables merging by proximity. Optionally pass
-`transitionSpec` and `reducedMotionPolicy`, which are described under [Transitions](#transitions).
+`mergeDistance` has two roles. It decides which members merge, and it shapes the merge; see the
+[merge rule](#merge-rule). It does not lay out or space the container's children. It defaults to
+`GlassDefaults.mergeDistance` (16 dp), and must be finite and not negative. A merge distance of zero
+disables merging by proximity. Optionally pass `transitionSpec` and `reducedMotionPolicy`, which are
+described under [Transitions](#transitions).
 
 Every [`hazeGlass`][hazeGlass] modifier below the container becomes a member of its nearest container. A member
-keeps its own style, shape, colors and interaction response. A `hazeGlass` modifier outside a
-container is unchanged.
+keeps its own style, shape, colors and interaction response, unless it is in a [group](#groups),
+which draws as one shape. A `hazeGlass` modifier outside a container is unchanged.
 
 ## Merge rule
 
-Members join a cluster when the gap between them is less than the merge distance. The container
-draws each cluster as one surface: facing edges gradually stretch towards each other, and a bridge
-forms when the gap drops below half the merge distance. A member that joins no cluster draws as a
-separate surface. Between the full and half merge distance, each member's refraction and lighting
-smoothly change from its standalone profile to the merged profile, so elongated surfaces keep a
-continuous response as they join or separate.
+The merge distance decides which members merge. Compatible members join a cluster when the gap
+between them is less than the merge distance. A member that joins no cluster draws as a separate
+surface.
+
+It also shapes the merge. The container draws each cluster as one surface. As the gap closes from the
+full merge distance to half of it, facing edges gradually stretch towards each other, and each
+member's refraction and lighting smoothly change from its standalone profile to the merged profile,
+so elongated surfaces keep a continuous response as they join or separate. Below half the merge
+distance, a bridge forms.
 
 Members merge only when all of these hold:
 
@@ -80,11 +84,64 @@ Members merge only when all of these hold:
 
 Lower-quality performance modes also render the merged shape at lower resolution.
 
+## Groups
+
+The merge distance joins members that are close together. To join members at any distance, give
+them the same `groupKey`. A group is the counterpart of SwiftUI's `glassEffectUnion`.
+
+```kotlin
+// Styles compare by identity, so remember the style.
+val style = remember { GlassStyle.regular.then { shape(CircleShape) } }
+
+Row(
+  modifier = Modifier.fillMaxWidth().hazeGlassContainer(mergeDistance = 16.dp),
+  horizontalArrangement = Arrangement.SpaceBetween,
+) {
+  repeat(2) {
+    Box(
+      Modifier
+        .size(48.dp)
+        .hazeGlass(input = HazeInput.Sources(hazeState), style = style, groupKey = "pair"),
+    )
+  }
+}
+```
+
+Members of one container with an equal, non-null `groupKey` that are next to each other in
+registration order draw as one Glass shape over the bounding box of their rects. In the example, the
+two circles become one capsule that spans the row, although they are far apart. Keys compare with
+`==`. A `null` key leaves the member ungrouped, and Haze ignores `groupKey` outside a container.
+
+- **Shape.** The group uses the first member's `RoundedCornerShape`, resolved at the group's size, so
+  a capsule stays a capsule.
+- **Appearance.** The group uses the first member's tint, background color and light. The other
+  members' values are not drawn. If the first member starts to fade out, the group takes the next
+  member's shape and appearance at once.
+- **Members left out.** A member that couldn't merge with the first member, because its input or
+  material differs, draws on its own. So does a member that is rotated, scaled or fading, under
+  the usual [merge rule](#merge-rule).
+- **Order.** A member that isn't in the group, between two members that are, splits the group into
+  separate groups, because merging never changes drawing order.
+- **Neighbours.** A group counts as one member when the merge distance is measured, using its
+  bounds, so it can bridge with a neighbouring member. It also counts as one member towards the
+  four-member limit.
+- **Optical size.** The group's bounds count once toward the container's
+  [optical size](#optical-size).
+- **Transitions.** Members of the same group are neighbours at any distance. With the default
+  `MatchedGeometry`, a member that attaches grows the group's bounds, and one that detaches shrinks
+  them, timed by `transitionSpec`. A fading member leaves the group while it fades. With
+  `Materialize`, or any other fade, a fading member in the middle of a group therefore splits it
+  into separate shapes until the fade ends, and then they snap back into one shape.
+- **Interaction.** Pressing any member scales and lights the whole group. Each member's content
+  still follows its own `interactionTransformTarget`.
+- **Fallback.** The [fallback](#fallback) draws the group as its single shape.
+
 ## Optical size
 
-A container uses one optical size: the largest shortest side among its members. Every member's
-optics use that size, whether or not it is in a cluster, so a small member next to a large one
-takes on the large member's diffusion, even when the two don't merge.
+A container uses one optical size: the largest shortest side among its members. A [group](#groups)
+counts as one member, using the size of its bounds. Every member's optics use that size, whether or
+not it is in a cluster, so a small member next to a large one takes on the large member's
+diffusion, even when the two don't merge.
 
 The size updates immediately, without animation, when a member is added, removed or resized.
 Members that are animating out, or whose bounds have collapsed to zero area, don't count.
@@ -99,8 +156,9 @@ never changes a member's z-order.
 ## Interaction
 
 Interaction responses work as described in [Glass interaction](index.md#interaction), applied to
-the member's own part of the merged shape: pressing a member scales and lights only that part. A
-uniform pressed `scale` does not split the cluster.
+the member's own part of the merged shape: pressing a member scales and lights only that part. In a
+[group](#groups), pressing any member scales and lights the whole group. A uniform pressed `scale`
+does not split the cluster.
 
 ## Transitions
 
@@ -109,7 +167,8 @@ the transition with `hazeGlass(memberTransition = ...)`:
 
 - [`GlassMemberTransition.MatchedGeometry`][GlassMemberTransition.MatchedGeometry] is the default. A member that attaches within the
   merge distance of another member grows out of it, and a member that detaches retracts into it.
-  Beyond the merge distance, it falls back to `Materialize`.
+  Beyond the merge distance, it falls back to `Materialize`, except between members of the same
+  [group](#groups), which are neighbours at any distance.
 - [`GlassMemberTransition.Materialize`][GlassMemberTransition.Materialize] fades the glass in or out where it is. A fading member draws
   on its own until it is fully opaque.
 - [`GlassMemberTransition.None`][GlassMemberTransition.None] applies no transition.
@@ -187,21 +246,26 @@ container's first draw never animate.
 
 Without `RuntimeShader` support, or when a cluster is too large to render in full, each cluster
 draws as one surface clipped to the hard union of the member shapes, with no bridge. Members keep
-their own tint and background color; where members overlap, the earlier member's colors apply.
+their own tint and background color, except that a [group](#groups) draws as its single shape with
+its first member's tint and background color. Where members overlap, the earlier member's colors
+apply.
 Each member resolves [`GlassAccessibilitySettings`][GlassAccessibilitySettings] and appearance in its own context. With
 `reduceTransparency`, it draws an opaque white/light or black/dark base (or its opaque
 `reducedTransparencyFallbackColor` override), then its authored background colour and tint. Earlier
 members still own overlapping regions, and overall alpha still fades the material. Disabling the
-preference restores that member's ordinary fallback appearance.
+preference restores that member's ordinary fallback appearance. A [group](#groups) draws once, so it
+uses its first member's accessibility settings and fallback base color along with that member's
+background color and tint. A later member's own `reduceTransparency` override doesn't give the group
+an opaque base.
 
-Per-member press lighting is still drawn. See [Fallbacks](index.md#fallbacks) for what else
+Per-member press lighting is still drawn. A group draws one light, from the pressed member. See [Fallbacks](index.md#fallbacks) for what else
 fallback rendering omits.
 
 ## Samples
 
 The `Glass — Container` sample shows a merging toolbar, two draggable members with a merge
-distance control, a member added and removed with `AnimatedVisibility`, and a cluster of members
-with different tints. Its source is in
+distance control, a member added and removed with `AnimatedVisibility`, a cluster of members
+with different tints, and two distant pills that a `Group` switch joins into one shape. Its source is in
 [`GlassContainerSample.kt`](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerSample.kt).
 
 The `Glass — Container Showcase` sample places a drawing palette over two brushstrokes. Open

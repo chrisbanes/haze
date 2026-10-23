@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -66,6 +67,8 @@ internal fun glassMergeKey(
  * [sourceSelection] is the source areas the member's input resolved to.
  * [sampleLayoutRect] is the unpressed rect content samples through; a ghost keeps its live
  * member's, as its [layoutRect] is its drawn rect.
+ * [groupKey] is the member's declared Glass group, and [shape] its rounded-corner shape; a group
+ * draws with its first member's.
  */
 internal data class GlassMemberSnapshot(
   val identity: Any,
@@ -78,10 +81,22 @@ internal data class GlassMemberSnapshot(
   val fading: Boolean = false,
   val sourceSelection: Set<Any> = emptySet(),
   val sampleLayoutRect: Rect = layoutRect,
+  val groupKey: Any? = null,
+  val shape: RoundedCornerShape? = null,
 )
 
+/** Whether two members declare the same Glass group. */
+internal fun GlassMemberSnapshot.isGroupedWith(other: GlassMemberSnapshot): Boolean =
+  groupKey != null && groupKey == other.groupKey
+
+/**
+ * [groups] partitions the cluster into drawn units: a Glass group is one unit, every other member
+ * a singleton unit. [members] is the flat, registration-ordered list of them.
+ */
 @Poko
-internal class GlassCluster(val members: List<GlassMemberSnapshot>)
+internal class GlassCluster(val groups: List<List<GlassMemberSnapshot>>) {
+  val members: List<GlassMemberSnapshot> = groups.flatten()
+}
 
 @Poko
 internal class GlassClusterOverflow(val members: List<Any>, val excessCount: Int)
@@ -103,11 +118,39 @@ internal fun glassOpticalSize(sizes: List<Size>): Size? = sizes
   .maxOfOrNull { it.minDimension }
   ?.let { Size(it, it) }
 
+/** Bounding box of a non-empty collection of rects. */
+internal fun Iterable<Rect>.union(): Rect = reduce { a, b ->
+  Rect(minOf(a.left, b.left), minOf(a.top, b.top), maxOf(a.right, b.right), maxOf(a.bottom, b.bottom))
+}
+
 /** Euclidean distance between closest rectangle points, including diagonal gaps. */
 internal fun glassMemberGap(a: Rect, b: Rect): Float = hypot(
   maxOf(a.left - b.right, b.left - a.right, 0f),
   maxOf(a.top - b.bottom, b.top - a.bottom, 0f),
 )
+
+/**
+ * Partitions [members], in order, into units. A unit grows while the next member has the unit's
+ * non-null group key and merge key and is neither fading nor rotated or scaled; any other member
+ * ends the unit, so a non-consecutive group splits into runs (ADR-0013: merging never reorders).
+ */
+internal fun formGlassGroupUnits(members: List<GlassMemberSnapshot>): List<List<GlassMemberSnapshot>> {
+  val units = mutableListOf<MutableList<GlassMemberSnapshot>>()
+  for (member in members) {
+    val unit = units.lastOrNull()
+    val first = unit?.first()
+    if (
+      first != null && member.isGroupedWith(first) && first.canCluster() && member.canCluster() && member.key == first.key
+    ) {
+      unit += member
+    } else {
+      units += mutableListOf(member)
+    }
+  }
+  return units
+}
+
+private fun GlassMemberSnapshot.canCluster() = translationOnly && !fading
 
 /** [opticalSize] defaults to every member's layout rect; a container passes its live members' only. */
 internal fun clusterGlassMembers(
@@ -117,25 +160,32 @@ internal fun clusterGlassMembers(
 ): GlassClusterModel {
   requireFiniteNonNegative("mergeDistancePx", mergeDistancePx)
   val valid = members.filter { it.rect.isValidGlassMember() }
-  val remaining = valid.indices.toMutableList()
+  // Clustering works on units: gaps use a unit's bounds, a member's link counts for its whole unit,
+  // and the cap and the consecutive-run split count units.
+  val units = formGlassGroupUnits(valid)
+  val unitRects = units.map { unit -> unit.map { it.rect }.union() }
+  val remaining = units.indices.toMutableList()
   val surfaces = mutableListOf<GlassCluster>()
   val overflow = mutableListOf<GlassClusterOverflow>()
   while (remaining.isNotEmpty()) {
     val component = mutableListOf(remaining.removeAt(0))
     var cursor = 0
     while (cursor < component.size) {
-      val member = valid[component[cursor++]]
+      val unitIndex = component[cursor++]
+      val unit = units[unitIndex]
+      val member = unit.first()
       val iterator = remaining.iterator()
       while (iterator.hasNext()) {
         val index = iterator.next()
-        val candidate = valid[index]
+        val candidateUnit = units[index]
+        val candidate = candidateUnit.first()
         // The gap or link test is cheap and rejects most pairs; the key comparison is a deep equals.
         if (
-          member.translationOnly && candidate.translationOnly && !member.fading && !candidate.fading &&
+          member.canCluster() && candidate.canCluster() &&
           (
             // Start the field before its bridge closes, so facing edges stretch continuously.
-            glassMemberGap(member.rect, candidate.rect) < mergeDistancePx ||
-              member.link === candidate.identity || candidate.link === member.identity
+            glassMemberGap(unitRects[unitIndex], unitRects[index]) < mergeDistancePx ||
+              unit.any { a -> candidateUnit.any { b -> a.link === b.identity || b.link === a.identity } }
             ) &&
           member.key == candidate.key
         ) {
@@ -145,23 +195,25 @@ internal fun clusterGlassMembers(
       }
     }
     val sorted = component.sorted()
-    val ordered = sorted.map(valid::get)
     // A merged surface draws at one z-position, so only consecutive registrations may share one;
-    // an intervening surface splits the capped members (ADR-0013: merging never reorders members).
-    // ponytail: a run linked only through members outside it still shares one field (no false bridge,
+    // an intervening surface splits the capped units (ADR-0013: merging never reorders members).
+    // ponytail: a run linked only through units outside it still shares one field (no false bridge,
     // but no dome); split runs by direct edges if that ever shows.
     var run = mutableListOf<Int>()
     for (index in sorted.take(MAX_GLASS_MERGED_MEMBERS)) {
       if (run.isNotEmpty() && run.last() != index - 1) {
-        surfaces += GlassCluster(run.map(valid::get))
+        surfaces += run.toCluster(units)
         run = mutableListOf()
       }
       run += index
     }
-    surfaces += GlassCluster(run.map(valid::get))
-    ordered.drop(MAX_GLASS_MERGED_MEMBERS).forEach { surfaces += GlassCluster(listOf(it)) }
-    if (ordered.size > MAX_GLASS_MERGED_MEMBERS) {
-      overflow += GlassClusterOverflow(ordered.map { it.identity }, ordered.size - MAX_GLASS_MERGED_MEMBERS)
+    surfaces += run.toCluster(units)
+    sorted.drop(MAX_GLASS_MERGED_MEMBERS).forEach { surfaces += listOf(it).toCluster(units) }
+    if (sorted.size > MAX_GLASS_MERGED_MEMBERS) {
+      overflow += GlassClusterOverflow(
+        sorted.flatMap { units[it] }.map { it.identity },
+        sorted.size - MAX_GLASS_MERGED_MEMBERS,
+      )
     }
   }
   // An intervening singleton must retain registration order relative to disjoint components.
@@ -171,3 +223,6 @@ internal fun clusterGlassMembers(
     overflow,
   )
 }
+
+private fun List<Int>.toCluster(units: List<List<GlassMemberSnapshot>>) =
+  GlassCluster(map { units[it] })

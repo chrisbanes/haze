@@ -73,8 +73,9 @@ internal fun GlassMemberSnapshot.morphedFrom(from: GlassMemberSnapshot, fraction
  *
  * [ordered] is every registration's snapshot, with [member] at its registration position;
  * [excluded] members are not visible yet. A neighbour must satisfy [canTransitionWith], be within
- * the full merge distance, and share a cluster with [member] placed on it, so the consecutive-run
- * and cap rules still hold. Every live member of that cluster must also resolve [member]'s sources.
+ * the full merge distance (unless it shares [member]'s non-null group key, which prefers it at any
+ * distance), and share a cluster with [member] placed on it, so the consecutive-run and cap rules
+ * still hold. Every live member of that cluster must also resolve [member]'s sources.
  */
 internal fun resolveGlassNeighbour(
   member: GlassMemberSnapshot,
@@ -85,9 +86,13 @@ internal fun resolveGlassNeighbour(
   return ordered
     .filter { candidate ->
       candidate.identity is GlassMemberNode && candidate.identity !== member.identity && candidate.identity !in excluded &&
-        member.canTransitionWith(candidate) && glassMemberGap(member.layoutRect, candidate.layoutRect) < mergeDistancePx
+        member.canTransitionWith(candidate) &&
+        // Members of one group draw as one shape at any distance.
+        (candidate.isGroupedWith(member) || glassMemberGap(member.layoutRect, candidate.layoutRect) < mergeDistancePx)
     }
-    .filter { candidate ->
+    // Same group first, then nearest; the first candidate that can cluster with the member wins.
+    .sortedWith(compareBy({ !it.isGroupedWith(member) }, { glassMemberGap(member.layoutRect, it.layoutRect) }))
+    .firstOrNull { candidate ->
       val probe = ordered.map {
         if (it.identity === member.identity) it.copy(rect = candidate.rect, layoutRect = candidate.layoutRect, key = candidate.key, link = candidate.identity) else it
       }
@@ -98,7 +103,6 @@ internal fun resolveGlassNeighbour(
           cluster.members.filter { it.identity is GlassMemberNode }.all { it.drawsSourcesOf(member) }
       }
     }
-    .minByOrNull { glassMemberGap(member.layoutRect, it.layoutRect) }
 }
 
 /** The nearest live member whose input can draw a [Materialize][GlassMemberTransition.Materialize] ghost. */
@@ -151,9 +155,9 @@ internal class GlassMemberGhost(val last: GlassMemberSnapshot, val neighbour: Gl
       // The neighbour's live key and material keep the link as the optical size changes.
       val shape = lerpGlassMergedMember(neighbourSnapshot.drawnShape(), drawn, progress.value)
       val merged = neighbourSnapshot.material.copy(cornerRadii = shape.cornerRadii, tint = shape.tint, backgroundColor = shape.backgroundColor, fallbackBaseColor = shape.fallbackBaseColor)
-      return GlassMemberSnapshot(this, shape.rect, neighbourSnapshot.key, merged, true, shape.rect, link = neighbour, sampleLayoutRect = shape.layoutRect)
+      return GlassMemberSnapshot(this, shape.rect, neighbourSnapshot.key, merged, true, shape.rect, link = neighbour, sampleLayoutRect = shape.layoutRect, groupKey = last.groupKey, shape = last.shape)
     }
     val alpha = last.material.alpha * progress.value.coerceIn(0f, 1f)
-    return GlassMemberSnapshot(this, drawn.rect, last.key, last.material.copy(cornerRadii = drawn.cornerRadii, alpha = alpha), true, drawn.rect, fading = true, sampleLayoutRect = drawn.layoutRect)
+    return GlassMemberSnapshot(this, drawn.rect, last.key, last.material.copy(cornerRadii = drawn.cornerRadii, alpha = alpha), true, drawn.rect, fading = true, sampleLayoutRect = drawn.layoutRect, groupKey = last.groupKey, shape = last.shape)
   }
 }

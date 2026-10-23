@@ -50,18 +50,20 @@ import kotlinx.coroutines.launch
  *
  * All Glass output draws behind every container child. Backdrop input samples only drawing before
  * the container. Members use the largest member's shortest side for optics, retaining their own
- * styles and shape/colour values.
+ * styles and shape/colour values, except members of a group (see `hazeGlass`'s `groupKey`), which
+ * draw with the first member's shape and appearance and count as one member for optics.
  *
- * [mergeDistance] controls how close members must be to merge. It does not position or space the
- * container's children. Compatible members whose edge-to-edge gap is less than [mergeDistance] join
- * one Glass cluster. As the gap closes from [mergeDistance] to half of it, facing edges stretch
- * towards each other and each member's optics blend into the cluster's; below half, a bridge joins
- * them. [mergeDistance] must be finite and non-negative, and zero disables merging by proximity.
- * Defaults to [GlassDefaults.mergeDistance].
+ * [mergeDistance] has two roles. It decides which compatible members merge: members whose
+ * edge-to-edge gap is less than [mergeDistance] join one Glass cluster. It also shapes the merge.
+ * As the gap closes from [mergeDistance] to half of it, facing edges stretch towards each other and
+ * each member's optics blend into the cluster's; below half, a bridge joins them. It does not
+ * position or space the container's children. [mergeDistance] must be finite and non-negative, and
+ * zero disables merging by proximity. Defaults to [GlassDefaults.mergeDistance].
  *
  * Without RuntimeShader support, or when a cluster exceeds the render budget, each cluster draws
  * as one surface clipped to the hard union of its members, with no bridge. Members keep their own
- * tint and background; where members overlap, the earlier registered member's colours apply.
+ * tint and background, except that a group draws as its single shape with its first member's tint
+ * and background. Where members overlap, the earlier registered member's colours apply.
  *
  * Members that attach or detach after the container's first draw animate their glass as each
  * member's [GlassMemberTransition] declares, timed by [transitionSpec], which defaults to
@@ -75,7 +77,8 @@ import kotlinx.coroutines.launch
  * that is rotated or scaled, or that uses [HazeInput.Content], whose content leaves with it.
  *
  * A running transition ends without animating when the member it grows from, retracts into or is
- * drawn through leaves, or when its member is no longer within [mergeDistance] of that member. A
+ * drawn through leaves, or when its member is no longer within [mergeDistance] of that member,
+ * unless both are members of the same group, which stay neighbours at any distance. A
  * member whose nearest container changes while it stays in the layout, for example when a nested
  * container is added or removed around it, appears in the new container immediately. Moving a
  * member with `movableContentOf` detaches and reattaches it, so it detaches from the old container
@@ -324,7 +327,7 @@ internal class GlassContainerNode(
       Snapshot.withoutReadObservation {
         if (pending.isNotEmpty()) startTransitions(liveSnapshots())
         val registered = members
-        val opticalSize = glassOpticalSize(registered.mapNotNull { it.localSize() })
+        val opticalSize = glassOpticalSize(opticalSizes(registered))
         registered.forEach { member ->
           val runtime = member.binding.runtime ?: return@forEach
           val alpha = attaching[member]?.takeIf { it.neighbour == null }?.progress?.value?.coerceIn(0f, 1f) ?: 1f
@@ -392,7 +395,7 @@ internal class GlassContainerNode(
           }
           snapshots.forEach { latest[it.identity] = it }
           // Optical size changes immediately and counts live layout rects only, never ghosts.
-          model = clusterGlassMembers(snapshots, mergeDistancePx, glassOpticalSize(live.keys.mapNotNull { it.localSize() }))
+          model = clusterGlassMembers(snapshots, mergeDistancePx, glassOpticalSize(opticalSizes(live.keys)))
           val split = model.surfaces.flatMap { cluster ->
             cluster.members.filter { member -> member.link != null && cluster.members.none { it.identity === member.link } }
           }.map { it.identity }
@@ -445,6 +448,38 @@ internal class GlassContainerNode(
     return requireLayoutCoordinates().size.toSize()
   }
 
+  /**
+   * Each member's [localSize], except that a run of consecutive members sharing a non-null group
+   * key counts once, at the size of the union of their layout rects.
+   */
+  private fun opticalSizes(nodes: Collection<GlassMemberNode>): List<Size> {
+    val owner = surfaceCoordinates
+    val sizes = mutableListOf<Size>()
+    var runKey: Any? = null
+    var runBounds: Rect? = null
+    for (node in nodes) {
+      val size = node.localSize() ?: continue
+      val key = node.groupKey
+      // A rotated or scaled member leaves the drawn group, so it counts alone like an ungrouped one.
+      val bounds = if (key != null && owner != null && node.hasTranslationOnlyTransform(owner)) node.binding.surface?.boundsInOwner() else null
+      val current = runBounds
+      if (bounds == null) {
+        runKey = null
+        runBounds = null
+        sizes += size
+      } else if (current != null && key == runKey) {
+        val union = listOf(current, bounds).union()
+        runBounds = union
+        sizes[sizes.lastIndex] = union.size
+      } else {
+        runKey = key
+        runBounds = bounds
+        sizes += size
+      }
+    }
+    return sizes
+  }
+
   private fun liveSnapshots(): Map<GlassMemberNode, GlassMemberSnapshot> = members.mapNotNull { member ->
     val binding = member.binding
     val layoutRect = binding.surface?.boundsInOwner() ?: return@mapNotNull null
@@ -461,11 +496,15 @@ internal class GlassContainerNode(
     val rect = transform?.let { layoutRect.transformedBy(it) } ?: layoutRect
     // A merged member is one rounded rect with one circular light, so unequal axes draw standalone.
     val uniformScale = transform == null || abs(transform.scaleX - transform.scaleY) < 1e-4f
-    return GlassMemberSnapshot(this, rect, key, material, uniformScale && hasTranslationOnlyTransform(owner), layoutRect, link)
+    return GlassMemberSnapshot(
+      this, rect, key, material, uniformScale && hasTranslationOnlyTransform(owner), layoutRect, link,
+      groupKey = groupKey, shape = binding.runtime?.shape,
+    )
   }
 
   private fun GlassMemberSnapshot.isWithinMergeDistanceOf(neighbour: GlassMemberNode, live: Map<GlassMemberNode, GlassMemberSnapshot>): Boolean {
     val drawn = drawnSnapshot(neighbour, live) ?: return false
+    if (isGroupedWith(drawn)) return true
     // A growing neighbour can overshoot away from its own layout rect, which stays as near as it was.
     return minOf(glassMemberGap(layoutRect, drawn.layoutRect), glassMemberGap(layoutRect, live.getValue(neighbour).layoutRect)) < mergeDistancePx
   }
@@ -535,7 +574,7 @@ internal class GlassContainerNode(
 }
 
 /** Scales this rect about the transform's pivot, which is relative to the rect's top-left. */
-private fun Rect.transformedBy(transform: HazeEffectContentTransform): Rect {
+internal fun Rect.transformedBy(transform: HazeEffectContentTransform): Rect {
   val pivot = topLeft + transform.pivot
   return Rect(
     left = pivot.x + (left - pivot.x) * transform.scaleX,

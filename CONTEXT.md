@@ -61,17 +61,24 @@ _Avoid_: Size response, blur profile, adaptive optics
 **Glass container**:
 An ancestor that draws its Glass members' surfaces together, so that nearby members can merge into
 one shape and share one optical size. Its merge distance sets how close members must be before they merge.
-_Avoid_: Glass group, effect container
+_Avoid_: Effect container
 
 **Glass member**:
 A Glass surface that belongs to its nearest Glass container. It keeps its own shape, colours and
-interaction response.
+interaction response, unless it is part of a Glass group, which draws with its first member's shape
+and appearance.
 _Avoid_: Child surface, container item
 
 **Glass cluster**:
 Glass members of one container that are close enough and share enough appearance to draw as one
 surface. Their edges stretch towards each other and form smooth bridges as they approach.
 _Avoid_: Union, blob, merged group
+
+**Glass group**:
+Glass members of one container that share a group key and are consecutive in registration order.
+They draw as one Glass shape over their combined bounds, whatever the distance between them. A
+group takes part in a Glass cluster as one member.
+_Avoid_: Glass container, union
 
 **Backdrop input**:
 The `HazeInput.Backdrop` intent to consume all pixels drawn earlier in the same window. A native

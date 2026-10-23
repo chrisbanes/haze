@@ -16,4 +16,6 @@ class GlassContainerFallbackAndroidScreenshotTest : ScreenshotTest() {
   @Test fun separateGap20() = runScreenshotTest { assertGlassContainerScene(GlassContainerScene.Separate, fallback = true) }
 
   @Test fun mixedTintAndBackground() = runScreenshotTest { assertGlassContainerScene(GlassContainerScene.MixedColours, fallback = true) }
+
+  @Test fun groupedMembersDrawOneShape() = runScreenshotTest { assertGlassContainerScene(GlassContainerScene.Grouped, fallback = true) }
 }
