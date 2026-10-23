@@ -115,7 +115,8 @@ two circles become one capsule that spans the row, although they are far apart. 
 - **Shape.** The group uses the first member's `RoundedCornerShape`, resolved at the group's size, so
   a capsule stays a capsule.
 - **Appearance.** The group uses the first member's tint, background color and light. The other
-  members' values are not drawn.
+  members' values are not drawn. If the first member starts to fade out, the group takes the next
+  member's shape and appearance at once.
 - **Members left out.** A member that couldn't merge with the first member, because its input or
   material differs, draws on its own. So does a member that is rotated, scaled or fading, under
   the usual [merge rule](#merge-rule).
@@ -252,9 +253,12 @@ Each member resolves [`GlassAccessibilitySettings`][GlassAccessibilitySettings] 
 `reduceTransparency`, it draws an opaque white/light or black/dark base (or its opaque
 `reducedTransparencyFallbackColor` override), then its authored background colour and tint. Earlier
 members still own overlapping regions, and overall alpha still fades the material. Disabling the
-preference restores that member's ordinary fallback appearance.
+preference restores that member's ordinary fallback appearance. A [group](#groups) draws once, so it
+uses its first member's accessibility settings and fallback base color along with that member's
+background color and tint. A later member's own `reduceTransparency` override doesn't give the group
+an opaque base.
 
-Per-member press lighting is still drawn. See [Fallbacks](index.md#fallbacks) for what else
+Per-member press lighting is still drawn. A group draws one light, from the pressed member. See [Fallbacks](index.md#fallbacks) for what else
 fallback rendering omits.
 
 ## Samples
