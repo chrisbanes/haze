@@ -22,6 +22,11 @@ import org.junit.runner.RunWith
  *
  * `sourceReplay` counts HWUI's `alpha caused saveLayer` slices: the feed fades every fourth card,
  * so each replay of a faded card on the RenderThread adds one. Divide by `frameCount`.
+ *
+ * The `Nested` methods (issue #1615) wrap the feed in an outer host source sampled by two more
+ * controls. Each workload and effect compares neither source sharing, only the feed sharing, and
+ * both sharing, over identical content. The internal/benchmark README describes their replay
+ * oracle, which needs the traces rather than `sourceReplay`.
  */
 @RunWith(AndroidJUnit4::class)
 class GlassFeedBenchmark {
@@ -62,6 +67,42 @@ class GlassFeedBenchmark {
 
   @Test
   fun feedScrollPlain() = measure("feed_scroll_plain")
+
+  @Test
+  fun feedVideoGlassNestedUnshared() = measure("feed_video_glass_nested_unshared")
+
+  @Test
+  fun feedVideoGlassNestedFeedOnly() = measure("feed_video_glass_nested_feed_only")
+
+  @Test
+  fun feedVideoGlassNestedBoth() = measure("feed_video_glass_nested_both")
+
+  @Test
+  fun feedScrollGlassNestedUnshared() = measure("feed_scroll_glass_nested_unshared")
+
+  @Test
+  fun feedScrollGlassNestedFeedOnly() = measure("feed_scroll_glass_nested_feed_only")
+
+  @Test
+  fun feedScrollGlassNestedBoth() = measure("feed_scroll_glass_nested_both")
+
+  @Test
+  fun feedVideoBlurNestedUnshared() = measure("feed_video_blur_nested_unshared")
+
+  @Test
+  fun feedVideoBlurNestedFeedOnly() = measure("feed_video_blur_nested_feed_only")
+
+  @Test
+  fun feedVideoBlurNestedBoth() = measure("feed_video_blur_nested_both")
+
+  @Test
+  fun feedScrollBlurNestedUnshared() = measure("feed_scroll_blur_nested_unshared")
+
+  @Test
+  fun feedScrollBlurNestedFeedOnly() = measure("feed_scroll_blur_nested_feed_only")
+
+  @Test
+  fun feedScrollBlurNestedBoth() = measure("feed_scroll_blur_nested_both")
 
   @OptIn(ExperimentalMetricApi::class)
   private fun measure(scenarioId: String) {

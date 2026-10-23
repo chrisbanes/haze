@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -65,12 +66,17 @@ import kotlin.math.sin
  * Four separate header controls over one busy feed source (issue #1611). Every row animates its
  * video cards for the whole measured window; scroll rows also scroll the feed at a fixed speed.
  * Shared rows use the default [HazeInputSharing.Auto]; unshared rows use [HazeInputSharing.Never].
+ *
+ * Nested rows (issue #1615) wrap the same feed source in an outer host source with [hostSharing].
+ * The four header controls sample the feed and two bottom controls sample the host. Each workload
+ * and effect has three nested rows, which differ only in the two sharing policies.
  */
 internal enum class GlassFeedProfilingScenario(
   val id: String,
   val controls: FeedControls,
   val inputSharing: HazeInputSharing,
   val scrolls: Boolean,
+  val hostSharing: HazeInputSharing? = null,
 ) {
   VideoGlass("feed_video_glass", FeedControls.Glass, HazeInputSharing.Auto, scrolls = false),
   VideoGlassUnshared("feed_video_glass_unshared", FeedControls.Glass, HazeInputSharing.Never, scrolls = false),
@@ -82,6 +88,90 @@ internal enum class GlassFeedProfilingScenario(
   ScrollBlur("feed_scroll_blur", FeedControls.Blur, HazeInputSharing.Auto, scrolls = true),
   ScrollBlurUnshared("feed_scroll_blur_unshared", FeedControls.Blur, HazeInputSharing.Never, scrolls = true),
   ScrollPlain("feed_scroll_plain", FeedControls.Plain, HazeInputSharing.Never, scrolls = true),
+  VideoGlassNestedUnshared(
+    "feed_video_glass_nested_unshared",
+    FeedControls.Glass,
+    HazeInputSharing.Never,
+    scrolls = false,
+    hostSharing = HazeInputSharing.Never,
+  ),
+  VideoGlassNestedFeedOnly(
+    "feed_video_glass_nested_feed_only",
+    FeedControls.Glass,
+    HazeInputSharing.Auto,
+    scrolls = false,
+    hostSharing = HazeInputSharing.Never,
+  ),
+  VideoGlassNestedBoth(
+    "feed_video_glass_nested_both",
+    FeedControls.Glass,
+    HazeInputSharing.Auto,
+    scrolls = false,
+    hostSharing = HazeInputSharing.Auto,
+  ),
+  ScrollGlassNestedUnshared(
+    "feed_scroll_glass_nested_unshared",
+    FeedControls.Glass,
+    HazeInputSharing.Never,
+    scrolls = true,
+    hostSharing = HazeInputSharing.Never,
+  ),
+  ScrollGlassNestedFeedOnly(
+    "feed_scroll_glass_nested_feed_only",
+    FeedControls.Glass,
+    HazeInputSharing.Auto,
+    scrolls = true,
+    hostSharing = HazeInputSharing.Never,
+  ),
+  ScrollGlassNestedBoth(
+    "feed_scroll_glass_nested_both",
+    FeedControls.Glass,
+    HazeInputSharing.Auto,
+    scrolls = true,
+    hostSharing = HazeInputSharing.Auto,
+  ),
+  VideoBlurNestedUnshared(
+    "feed_video_blur_nested_unshared",
+    FeedControls.Blur,
+    HazeInputSharing.Never,
+    scrolls = false,
+    hostSharing = HazeInputSharing.Never,
+  ),
+  VideoBlurNestedFeedOnly(
+    "feed_video_blur_nested_feed_only",
+    FeedControls.Blur,
+    HazeInputSharing.Auto,
+    scrolls = false,
+    hostSharing = HazeInputSharing.Never,
+  ),
+  VideoBlurNestedBoth(
+    "feed_video_blur_nested_both",
+    FeedControls.Blur,
+    HazeInputSharing.Auto,
+    scrolls = false,
+    hostSharing = HazeInputSharing.Auto,
+  ),
+  ScrollBlurNestedUnshared(
+    "feed_scroll_blur_nested_unshared",
+    FeedControls.Blur,
+    HazeInputSharing.Never,
+    scrolls = true,
+    hostSharing = HazeInputSharing.Never,
+  ),
+  ScrollBlurNestedFeedOnly(
+    "feed_scroll_blur_nested_feed_only",
+    FeedControls.Blur,
+    HazeInputSharing.Auto,
+    scrolls = true,
+    hostSharing = HazeInputSharing.Never,
+  ),
+  ScrollBlurNestedBoth(
+    "feed_scroll_blur_nested_both",
+    FeedControls.Blur,
+    HazeInputSharing.Auto,
+    scrolls = true,
+    hostSharing = HazeInputSharing.Auto,
+  ),
 }
 
 internal enum class FeedControls { Glass, Blur, Plain }
@@ -142,6 +232,7 @@ private fun GlassFeedProfilingScene(
   modifier: Modifier = Modifier,
 ) {
   val hazeState = rememberHazeState()
+  val hostState = rememberHazeState()
   val listState = rememberLazyListState()
   val density = LocalDensity.current
   var videoNanos by remember { mutableLongStateOf(0L) }
@@ -173,18 +264,60 @@ private fun GlassFeedProfilingScene(
     }
   }
 
+  val hostSharing = scenario.hostSharing
   Box(modifier.fillMaxSize().background(Color(0xFF0B0D12))) {
-    LazyColumn(
-      state = listState,
-      contentPadding = PaddingValues(horizontal = 4.dp),
-      verticalArrangement = Arrangement.spacedBy(8.dp),
-      modifier = Modifier
-        .fillMaxSize()
-        .hazeSource(hazeState, inputSharing = scenario.inputSharing)
-        .testTag("glass_feed_source"),
-    ) {
-      items(FEED_ITEM_COUNT) { index ->
-        FeedCard(index = index, videoNanos = { videoNanos })
+    if (hostSharing == null) {
+      LazyColumn(
+        state = listState,
+        contentPadding = PaddingValues(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+          .fillMaxSize()
+          .hazeSource(hazeState, inputSharing = scenario.inputSharing)
+          .testTag("glass_feed_source"),
+      ) {
+        items(FEED_ITEM_COUNT) { index ->
+          FeedCard(index = index, videoNanos = { videoNanos })
+        }
+      }
+    } else {
+      // The outer host source contains the whole feed source. When both share, the host's replay
+      // draws the feed's texture instead of replaying the feed's display list.
+      Box(
+        Modifier
+          .fillMaxSize()
+          .hazeSource(hostState, inputSharing = hostSharing)
+          .testTag("glass_feed_host_source"),
+      ) {
+        Box(
+          Modifier
+            .fillMaxSize()
+            .hazeSource(hazeState, inputSharing = scenario.inputSharing)
+            .testTag("glass_feed_source"),
+        ) {
+          LazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(horizontal = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxSize(),
+          ) {
+            items(FEED_ITEM_COUNT) { index ->
+              FeedCard(index = index, videoNanos = { videoNanos })
+            }
+          }
+          // Replay markers: each replay of a source draws its marker once, under the controls
+          // that sample it. Their distinct sizes identify the source in RenderThread traces.
+          ReplayMarker(
+            Modifier.statusBarsPadding().padding(16.dp).size(FeedReplayMarkerSize).testTag("glass_feed_replay_marker"),
+          )
+        }
+        ReplayMarker(
+          Modifier
+            .align(Alignment.BottomEnd)
+            .padding(16.dp)
+            .size(HostReplayMarkerSize)
+            .testTag("glass_feed_host_replay_marker"),
+        )
       }
     }
 
@@ -211,6 +344,33 @@ private fun GlassFeedProfilingScene(
           FeedControls.Plain -> Box(
             controlModifier.clip(FeedControlShape).background(Color.White.copy(alpha = 0.18f)),
           )
+        }
+      }
+    }
+
+    if (hostSharing != null) {
+      Row(
+        modifier = Modifier.padding(16.dp).align(Alignment.BottomEnd),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+      ) {
+        repeat(2) { index ->
+          val controlModifier = Modifier.size(40.dp).testTag("glass_feed_host_control_$index")
+          when (scenario.controls) {
+            FeedControls.Glass -> Box(
+              controlModifier.hazeGlass(
+                input = HazeInput.Sources(hostState),
+                style = FeedControlStyle,
+              ),
+            )
+            FeedControls.Blur -> Box(
+              controlModifier
+                .clip(FeedControlShape)
+                .hazeBlur(input = HazeInput.Sources(hostState), style = FeedBlurStyle),
+            )
+            FeedControls.Plain -> Box(
+              controlModifier.clip(FeedControlShape).background(Color.White.copy(alpha = 0.18f)),
+            )
+          }
         }
       }
     }
@@ -304,6 +464,15 @@ private fun FeedCard(index: Int, videoNanos: () -> Long) {
   }
 }
 
+@Composable
+private fun ReplayMarker(modifier: Modifier) {
+  // Two overlapping draws under group alpha: HWUI emits one `alpha caused saveLayer` per replay.
+  Canvas(modifier.graphicsLayer { alpha = 0.5f }) {
+    drawRect(Color.White.copy(alpha = 0.04f))
+    drawRect(Color.White.copy(alpha = 0.04f), size = size / 2f)
+  }
+}
+
 private fun feedArtwork(): ImageBitmap {
   val bitmap = ImageBitmap(FEED_ARTWORK_SIZE, FEED_ARTWORK_SIZE)
   val canvas = androidx.compose.ui.graphics.Canvas(bitmap)
@@ -329,6 +498,10 @@ private val FeedControlStyle = GlassStyle.regular.then {
   tint(Color.White.copy(alpha = 0.08f))
   edgeShadow(Color.Transparent)
 }
+
+// Each marker exactly covers its row of controls (4 × 40 dp + 4 dp + 3 × 8 dp, and 2 × 40 dp + 8 dp).
+private val FeedReplayMarkerSize = DpSize(188.dp, 40.dp)
+private val HostReplayMarkerSize = DpSize(88.dp, 40.dp)
 private val FeedScrollDistance = 6_000.dp
 private const val FEED_ITEM_COUNT = 60
 private const val FEED_CARD_OPS = 24
