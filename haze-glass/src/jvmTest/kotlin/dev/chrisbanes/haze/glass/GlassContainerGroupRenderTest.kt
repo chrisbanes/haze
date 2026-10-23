@@ -129,6 +129,13 @@ class GlassContainerGroupRenderTest : ContextTest() {
   }
 
   @Test
+  fun groupMembersWithDifferentMergeKeys_doNotEnlargeContainerOpticalSize() = runComposeUiTest {
+    // The second member cannot draw in the first's group, so the union must not size optics.
+    val small = opticalGroup(grouped = true, secondExpandLayerBounds = false)
+    assertThat(small.opticalSizeOverride).isEqualTo(Size(40f, 40f))
+  }
+
+  @Test
   fun ungroupedMembers_setContainerOpticalSizeFromEachMember() = runComposeUiTest {
     val small = opticalGroup(grouped = false)
     assertThat(small.opticalSizeOverride).isEqualTo(Size(40f, 40f))
@@ -157,7 +164,7 @@ class GlassContainerGroupRenderTest : ContextTest() {
   }
 
   /** Two stacked 100x40 members and a separate 30x30 member; returns the small member's runtime. */
-  private fun ComposeUiTest.opticalGroup(grouped: Boolean, rotateSecond: Float = 0f, scaleSecond: Float = 1f): GlassRuntimeEffect {
+  private fun ComposeUiTest.opticalGroup(grouped: Boolean, rotateSecond: Float = 0f, scaleSecond: Float = 1f, secondExpandLayerBounds: Boolean = true): GlassRuntimeEffect {
     val effects = List(3) { GlassRuntimeEffect() }
     val state = HazeState()
     setContent {
@@ -178,7 +185,7 @@ class GlassContainerGroupRenderTest : ContextTest() {
                   HazeInput.Sources(state),
                   containerTestStyle(Color.Red),
                   HazePerformanceMode.Quality,
-                  true,
+                  index != 1 || secondExpandLayerBounds,
                   null,
                   groupKey = "group".takeIf { grouped && index < 2 },
                 ),

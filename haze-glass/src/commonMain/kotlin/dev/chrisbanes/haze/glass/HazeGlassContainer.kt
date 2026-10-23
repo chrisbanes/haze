@@ -449,30 +449,41 @@ internal class GlassContainerNode(
   }
 
   /**
-   * Each member's [localSize], except that a run of consecutive members sharing a non-null group
-   * key counts once, at the size of the union of their layout rects.
+   * Each member's [localSize], except that a run of consecutive members that draw as one group
+   * counts once, at the size of the union of their layout rects. As in [formGlassGroupUnits], they
+   * share a non-null group key and a merge key, and none is fading in or rotated or scaled. Merge
+   * keys are compared without [GlassMergeKey.resolvedOptics], which depends on the size computed here.
    */
   private fun opticalSizes(nodes: Collection<GlassMemberNode>): List<Size> {
     val owner = surfaceCoordinates
     val sizes = mutableListOf<Size>()
     var runKey: Any? = null
+    var runMergeKey: GlassMergeKey? = null
     var runBounds: Rect? = null
     for (node in nodes) {
       val size = node.localSize() ?: continue
       val key = node.groupKey
-      // A rotated or scaled member leaves the drawn group, so it counts alone like an ungrouped one.
-      val bounds = if (key != null && owner != null && node.hasTranslationOnlyTransform(owner)) node.binding.surface?.boundsInOwner() else null
+      val mergeKey = node.binding.key
+      val fadingIn = attaching[node]?.let { it.neighbour == null } == true
+      // A member that cannot draw in a group counts alone, like an ungrouped one.
+      val bounds = if (key != null && mergeKey != null && !fadingIn && owner != null && node.hasTranslationOnlyTransform(owner)) {
+        node.binding.surface?.boundsInOwner()
+      } else {
+        null
+      }
       val current = runBounds
       if (bounds == null) {
         runKey = null
+        runMergeKey = null
         runBounds = null
         sizes += size
-      } else if (current != null && key == runKey) {
+      } else if (current != null && key == runKey && mergeKey != null && runMergeKey != null && mergeKey == runMergeKey.copy(resolvedOptics = mergeKey.resolvedOptics)) {
         val union = listOf(current, bounds).union()
         runBounds = union
         sizes[sizes.lastIndex] = union.size
       } else {
         runKey = key
+        runMergeKey = mergeKey
         runBounds = bounds
         sizes += size
       }
