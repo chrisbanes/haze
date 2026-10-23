@@ -351,7 +351,8 @@ internal class HazeSourceNode(
         trace("HazeSource.record") {
           contentLayer.record {
             if (outsetBounds != null) {
-              // Offscreen clips to the layer bounds, but Skia does not clip to the outset bounds.
+              // Offscreen clips to the layer bounds, but Skia doesn't clip to its outsets. Clip
+              // explicitly, so every platform agrees.
               clipRect(outsetBounds.left, outsetBounds.top, outsetBounds.right, outsetBounds.bottom) {
                 this@draw.drawContentSafely()
               }

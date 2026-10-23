@@ -67,10 +67,10 @@ class InputSharingEffectRegressionTest : ScreenshotTest() {
   fun glass_sharingToggledOffAndOn_refreshesToFreshState() = verifySharingToggle(SharingEffect.Glass)
 
   @Test
-  fun blur_sharingToggledWithZeroOutsets_refreshesToFreshState() = verifyZeroOutsetToggle(SharingEffect.Blur)
+  fun blur_sharingToggledWithZeroOutsets_refreshesToFreshState() = verifySharingToggle(SharingEffect.Blur, NoEdges)
 
   @Test
-  fun glass_sharingToggledWithZeroOutsets_refreshesToFreshState() = verifyZeroOutsetToggle(SharingEffect.Glass)
+  fun glass_sharingToggledWithZeroOutsets_refreshesToFreshState() = verifySharingToggle(SharingEffect.Glass, NoEdges)
 
   @Test
   fun blur_outsetsChanged_refreshToFreshState() = verifyOutsetChanges(SharingEffect.Blur)
@@ -128,7 +128,7 @@ class InputSharingEffectRegressionTest : ScreenshotTest() {
     fixture.sharing = HazeInputSharing.Always
     assertContainer(fixture, samples).assertSameCell(initial, SHARED_CELL)
 
-    fixture.edges = Edges(0, 0, 0, 0)
+    fixture.edges = NoEdges
     assertContainer(fixture, samples)
 
     // Non-zero to non-zero, without passing through zero, so the new outsets must reach the container.
@@ -154,8 +154,9 @@ class InputSharingEffectRegressionTest : ScreenshotTest() {
     pixels.assertProbes(CONTROL_CELL, fixture.edges, samples = false)
   }
 
-  private fun verifySharingToggle(effect: SharingEffect) = runScreenshotTest(size = SceneSize) {
-    val fixture = SharingFixture()
+  /** Only the sharing mode changes. With [NoEdges], the input bounds never move either. */
+  private fun verifySharingToggle(effect: SharingEffect, edges: Edges = DeclaredEdges) = runScreenshotTest(size = SceneSize) {
+    val fixture = SharingFixture().apply { this.edges = edges }
     setContent { SharingScene(effect, fixture) }
     val initial = assertShared(effect, fixture)
 
@@ -164,23 +165,6 @@ class InputSharingEffectRegressionTest : ScreenshotTest() {
     waitForIdle()
     val unshared = captureRootPixels()
     val samples = effect.samplesSource(this)
-    unshared.assertMatchesReference(fixture.widthPx, samples)
-    unshared.assertProbes(SHARED_CELL, UnsharedEdges, samples)
-
-    fixture.sharing = HazeInputSharing.Always
-    assertShared(effect, fixture).assertSameCell(initial, SHARED_CELL)
-  }
-
-  /** The sharing mode alone changes: no outsets, so the input bounds never move. */
-  private fun verifyZeroOutsetToggle(effect: SharingEffect) = runScreenshotTest(size = SceneSize) {
-    val fixture = SharingFixture().apply { edges = Edges(0, 0, 0, 0) }
-    setContent { SharingScene(effect, fixture) }
-    val initial = assertShared(effect, fixture)
-
-    fixture.sharing = HazeInputSharing.Never
-    waitForIdle()
-    val samples = effect.samplesSource(this)
-    val unshared = captureRootPixels()
     unshared.assertMatchesReference(fixture.widthPx, samples)
     // Clipped while shared, the overflow must reappear once the source stops sharing.
     unshared.assertProbes(SHARED_CELL, UnsharedEdges, samples)
@@ -194,7 +178,7 @@ class InputSharingEffectRegressionTest : ScreenshotTest() {
     setContent { SharingScene(effect, fixture) }
     val initial = assertShared(effect, fixture)
 
-    fixture.edges = Edges(0, 0, 0, 0)
+    fixture.edges = NoEdges
     assertShared(effect, fixture)
 
     fixture.edges = Edges(left = 40, top = 8, right = 12, bottom = 24)
@@ -232,7 +216,7 @@ class InputSharingEffectRegressionTest : ScreenshotTest() {
     captureRootPixels().assertSameCell(initial, SHARED_CELL)
 
     // A source returning with different outsets must replace the retained output.
-    fixture.edges = Edges(0, 0, 0, 0)
+    fixture.edges = NoEdges
     fixture.sourcePresent = true
     // The Android host draws only for a capture: draw once for the new source, then for the effect.
     waitForIdle()
@@ -381,6 +365,8 @@ private val UnsharedEdges = Edges(56, 56, 56, 56)
 
 // Asymmetric, so a swapped or shifted edge cannot pass.
 private val DeclaredEdges = Edges(left = 16, top = 24, right = 32, bottom = 40)
+
+private val NoEdges = Edges(0, 0, 0, 0)
 
 private class SharingFixture {
   var sharing by mutableStateOf(HazeInputSharing.Always)
@@ -667,19 +653,17 @@ private fun PixelMap.assertPixel(cellX: Int, x: Int, y: Int, expected: Color, sa
 }
 
 /** Every pixel of the cell at [cellX] equals the same pixel of the cell at [otherCellX]. */
-private fun PixelMap.assertCellsMatch(cellX: Int, otherCellX: Int) {
-  for (y in 0 until CELL_HEIGHT) {
-    for (x in 0 until CELL_WIDTH) {
-      assertColor(this[cellX + x, y], this[otherCellX + x, y], "($x, $y) of cell $cellX against $otherCellX", REFERENCE_TOLERANCE)
-    }
-  }
-}
+private fun PixelMap.assertCellsMatch(cellX: Int, otherCellX: Int) =
+  assertCellEquals(cellX, this, otherCellX, "cell $otherCellX")
 
 /** Every pixel of the cell at [cellX] equals that cell in the [fresh] capture. */
-private fun PixelMap.assertSameCell(fresh: PixelMap, cellX: Int) {
+private fun PixelMap.assertSameCell(fresh: PixelMap, cellX: Int) =
+  assertCellEquals(cellX, fresh, cellX, "the fresh state")
+
+private fun PixelMap.assertCellEquals(cellX: Int, other: PixelMap, otherCellX: Int, against: String) {
   for (y in 0 until CELL_HEIGHT) {
     for (x in 0 until CELL_WIDTH) {
-      assertColor(this[cellX + x, y], fresh[cellX + x, y], "($x, $y) against the fresh state", REFERENCE_TOLERANCE)
+      assertColor(this[cellX + x, y], other[otherCellX + x, y], "($x, $y) of cell $cellX against $against", REFERENCE_TOLERANCE)
     }
   }
 }

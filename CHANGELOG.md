@@ -18,7 +18,7 @@ performance guidance.
 
 ### Added
 
-- Added the experimental `HazeInputSharing` and `hazeSource(..., inputSharing = ...)` overloads.
+- Added the experimental `HazeInputSharing` and a `hazeSource(..., inputSharing = ...)` overload.
   Effects that sample one source normally replay its content once each whenever it changes. With
   sharing, the source renders once into an offscreen layer that it draws on screen and every
   effect samples. With `Auto`, sources on Android share once two or more effects sample them;

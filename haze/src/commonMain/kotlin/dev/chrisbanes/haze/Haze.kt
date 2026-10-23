@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.unit.Dp
 
 /** Creates and remembers a [HazeState] for coordinating Haze sources and effects. */
 @Composable
@@ -207,9 +208,17 @@ internal class HazeArea {
     inputBounds = null
   }
 
-  /** [contentLayer] when it can be drawn: not released and with a non-empty size. */
+  /**
+   * [contentLayer] when it can be drawn: not released and with a non-empty size.
+   *
+   * Also reads [inputBounds]: Skia applies a layer's outsets when a consumer records it, so every
+   * consumer that reads the layer must redraw when they change.
+   */
   internal val drawableContentLayer: GraphicsLayer?
-    get() = contentLayer?.takeUnless { it.isReleased || it.size.width <= 0 || it.size.height <= 0 }
+    get() {
+      inputBounds
+      return contentLayer?.takeUnless { it.isReleased || it.size.width <= 0 || it.size.height <= 0 }
+    }
 
   internal var contentDrawing: Boolean = false
 
@@ -287,26 +296,6 @@ public fun Modifier.hazeSource(
  * [inputSharing], which uses [HazeInputSharing.Never].
  *
  * While sharing is active, this source draws its content, both on screen and as effect input,
- * clipped to its layout bounds. Use the overload with `inputSharingOutsets` to keep drawing beyond
- * those bounds.
- *
- * @param inputSharing Whether this source renders once into an offscreen layer that it draws on
- * screen and that effects sampling it share. See [HazeInputSharing].
- */
-@ExperimentalHazeApi
-@Stable
-public fun Modifier.hazeSource(
-  state: HazeState,
-  zIndex: Float = 0f,
-  key: Any? = null,
-  inputSharing: HazeInputSharing,
-): Modifier = hazeSource(state, zIndex, key, inputSharing, LayerOutsets.Zero)
-
-/**
- * Captures background content for [hazeEffect] child nodes, like the [hazeSource] overload without
- * [inputSharing], but with configurable [inputSharing] and [inputSharingOutsets].
- *
- * While sharing is active, this source draws its content, both on screen and as effect input,
  * clipped to its layout bounds expanded by [inputSharingOutsets]. Anything drawn beyond that is not
  * shown. The outsets do not change this source's layout size or position, and they have no effect
  * while sharing is inactive, when the source draws as it would without sharing.
@@ -323,17 +312,17 @@ public fun Modifier.hazeSource(
   zIndex: Float = 0f,
   key: Any? = null,
   inputSharing: HazeInputSharing,
-  inputSharingOutsets: LayerOutsets,
+  inputSharingOutsets: LayerOutsets = LayerOutsets.Zero,
 ): Modifier {
   with(inputSharingOutsets) {
-    for (edge in arrayOf(left, top, right, bottom)) {
-      require(edge.value.isFinite() && edge.value >= 0f) {
-        "inputSharingOutsets edges must be finite and non-negative: $inputSharingOutsets"
-      }
+    require(left.isValidOutset() && top.isValidOutset() && right.isValidOutset() && bottom.isValidOutset()) {
+      "inputSharingOutsets edges must be finite and non-negative: $inputSharingOutsets"
     }
   }
   return this then HazeSourceElement(state, zIndex, key, inputSharing, inputSharingOutsets)
 }
+
+private fun Dp.isValidOutset(): Boolean = value.isFinite() && value >= 0f
 
 @OptIn(ExperimentalHazeApi::class)
 internal data class HazeSourceElement(

@@ -741,9 +741,6 @@ internal class HazeEffectNode(
   }
 
   private fun ContentDrawScope.drawSourceBackedEffect(shouldPrepareDraw: Boolean) {
-    // Skia applies a source layer's outsets when a consumer records it, so retained output must
-    // redraw when they change. Reading them here observes them on every draw.
-    for (area in areas) area.inputBounds
     val hasDrawableSourceLayers = hasDrawableSourceLayers()
     if (!retainOutputWhenSourceUnavailable && !hasDrawableSourceLayers) {
       clearRetainedOutput()
