@@ -12,6 +12,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -87,41 +88,10 @@ class BackdropCaptureSpaceInstrumentationTest {
     val drawReady = CountDownLatch(1)
     activityScenario.onActivity { activity ->
       activity.setContent {
-        val renderer = remember(scale) { checkNotNull(createHazeBackdropRenderer()) }
-        DisposableEffect(renderer) { onDispose { renderer.release() } }
-        val effect = remember {
-          val shader = RuntimeShader(DISPLACE_SKSL).apply { setFloatUniform("d", DX, 0f) }
-          RenderEffect.createRuntimeShaderEffect(shader, "content")
-        }
-        Box(
-          Modifier
-            .fillMaxSize()
-            .onGloballyPositioned { origin = it.positionInWindow() }
-            .drawWithContent {
-              // One red level per pixel across the gradient, so red encodes the source x.
-              drawRect(
-                brush = Brush.horizontalGradient(
-                  colors = listOf(Color.Black, Color.Red),
-                  startX = 0f,
-                  endX = GRADIENT_WIDTH,
-                ),
-                size = Size(GRADIENT_WIDTH, size.height),
-              )
-              translate(NODE_LEFT, NODE_TOP) {
-                scale(scale, pivot = Offset(NODE_SIZE / 2, NODE_SIZE / 2)) {
-                  check(renderer.isSupported(drawContext.canvas))
-                  check(
-                    renderer.configure(
-                      bounds = Rect(0f, 0f, NODE_SIZE, NODE_SIZE),
-                      clip = null,
-                      effect = effect,
-                    ),
-                  )
-                  check(renderer.draw(drawContext.canvas))
-                }
-              }
-              drawReady.countDown()
-            },
+        BackdropCaptureScene(
+          scale = scale,
+          onPositioned = { origin = it },
+          drawReady = drawReady,
         )
       }
     }
@@ -131,22 +101,68 @@ class BackdropCaptureSpaceInstrumentationTest {
   }
 
   private companion object {
-    const val GRADIENT_WIDTH = 255f
-    const val NODE_LEFT = 40f
-    const val NODE_TOP = 100f
-    const val NODE_SIZE = 200f
-    const val DX = 40f
-    const val TOLERANCE = 3f
-
-    val DISPLACE_SKSL = """
-      uniform shader content;
-      uniform float2 d;
-      half4 main(float2 coord) { return content.eval(coord + d); }
-    """.trimIndent()
-
     fun fullSdkInt(): Int {
       if (Build.VERSION.SDK_INT < 36) return Build.VERSION.SDK_INT * 100_000
       return Build.VERSION.SDK_INT_FULL
     }
   }
+}
+
+private const val GRADIENT_WIDTH = 255f
+private const val NODE_LEFT = 40f
+private const val NODE_TOP = 100f
+private const val NODE_SIZE = 200f
+private const val DX = 40f
+private const val TOLERANCE = 3f
+
+private val DISPLACE_SKSL = """
+  uniform shader content;
+  uniform float2 d;
+  half4 main(float2 coord) { return content.eval(coord + d); }
+""".trimIndent()
+
+// Top-level so that the test class's method signatures never reference RenderEffect, which JUnit
+// fails to resolve on API 30 before assumeTrue can skip the test.
+@Composable
+private fun BackdropCaptureScene(
+  scale: Float,
+  onPositioned: (Offset) -> Unit,
+  drawReady: CountDownLatch,
+) {
+  val renderer = remember(scale) { checkNotNull(createHazeBackdropRenderer()) }
+  DisposableEffect(renderer) { onDispose { renderer.release() } }
+  val effect = remember {
+    val shader = RuntimeShader(DISPLACE_SKSL).apply { setFloatUniform("d", DX, 0f) }
+    RenderEffect.createRuntimeShaderEffect(shader, "content")
+  }
+  Box(
+    Modifier
+      .fillMaxSize()
+      .onGloballyPositioned { onPositioned(it.positionInWindow()) }
+      .drawWithContent {
+        // One red level per pixel across the gradient, so red encodes the source x.
+        drawRect(
+          brush = Brush.horizontalGradient(
+            colors = listOf(Color.Black, Color.Red),
+            startX = 0f,
+            endX = GRADIENT_WIDTH,
+          ),
+          size = Size(GRADIENT_WIDTH, size.height),
+        )
+        translate(NODE_LEFT, NODE_TOP) {
+          scale(scale, pivot = Offset(NODE_SIZE / 2, NODE_SIZE / 2)) {
+            check(renderer.isSupported(drawContext.canvas))
+            check(
+              renderer.configure(
+                bounds = Rect(0f, 0f, NODE_SIZE, NODE_SIZE),
+                clip = null,
+                effect = effect,
+              ),
+            )
+            check(renderer.draw(drawContext.canvas))
+          }
+        }
+        drawReady.countDown()
+      },
+  )
 }
