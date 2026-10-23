@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -20,12 +21,25 @@ class HazeAreaReleaseContentLayerTest {
   fun releaseContentLayer_releasesAndClearsTheLayer() {
     val graphicsContext = SkiaGraphicsContext()
     val layer = graphicsContext.createGraphicsLayer()
-    val area = HazeArea().apply { contentLayer = layer }
+    val area = HazeArea().apply {
+      contentLayer = layer
+      inputBounds = Rect(-4f, -4f, 44f, 44f)
+    }
 
     area.releaseContentLayer(graphicsContext)
 
     assertThat(layer.isReleased).isTrue()
     assertThat(area.contentLayer).isNull()
+    assertThat(area.inputBounds).isNull()
+  }
+
+  @Test
+  fun reset_clearsInputBounds() {
+    val area = HazeArea().apply { inputBounds = Rect(-4f, -4f, 44f, 44f) }
+
+    area.reset()
+
+    assertThat(area.inputBounds).isNull()
   }
 
   @Test
