@@ -5,14 +5,9 @@
 
 package dev.chrisbanes.haze
 
-import android.graphics.Bitmap
-import android.graphics.Color as AndroidColor
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.Choreographer
-import android.view.PixelCopy
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -192,7 +187,7 @@ class HazeInputSharingInstrumentationTest {
 
   private fun assertProbes(phase: String, expected: Map<Probe, Color>) {
     val density = activity.resources.displayMetrics.density
-    val bitmap = copyWindow()
+    val bitmap = activity.copyWindow()
     val actual = expected.keys.associateWith { probe ->
       bitmap.pixel(
         (rootInWindow.x + probe.x * density).roundToInt(),
@@ -207,20 +202,6 @@ class HazeInputSharingInstrumentationTest {
       .filter { (probe, color) -> !actual.getValue(probe).matches(color) }
       .map { (probe, color) -> "${probe.name}: expected ${color.hex()}, was ${actual.getValue(probe).hex()}" }
     assertThat(mismatches, "$phase mismatched probes").isEmpty()
-  }
-
-  private fun copyWindow(): Bitmap {
-    val window = activity.window
-    val bitmap = Bitmap.createBitmap(window.decorView.width, window.decorView.height, Bitmap.Config.ARGB_8888)
-    val latch = CountDownLatch(1)
-    var result = PixelCopy.ERROR_UNKNOWN
-    PixelCopy.request(window, bitmap, { copyResult ->
-      result = copyResult
-      latch.countDown()
-    }, Handler(Looper.getMainLooper()))
-    assertThat(latch.await(5, TimeUnit.SECONDS), "Window PixelCopy completed").isTrue()
-    assertThat(result, "Window PixelCopy result").isEqualTo(PixelCopy.SUCCESS)
-    return bitmap
   }
 
   private data class Probe(val name: String, val x: Int, val y: Int)
@@ -280,15 +261,6 @@ private object PassthroughFactory : HazeEffectFactory<Unit> {
   override fun createRenderer(): HazeEffectRenderer<Unit> = object : HazeEffectRenderer<Unit> {
     override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
   }
-}
-
-private fun Bitmap.pixel(x: Int, y: Int): Color {
-  val pixel = getPixel(x.coerceIn(0, width - 1), y.coerceIn(0, height - 1))
-  return Color(
-    red = AndroidColor.red(pixel) / 255f,
-    green = AndroidColor.green(pixel) / 255f,
-    blue = AndroidColor.blue(pixel) / 255f,
-  )
 }
 
 private fun Color.matches(other: Color): Boolean =
