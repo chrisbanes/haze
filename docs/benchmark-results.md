@@ -412,69 +412,151 @@ workloads.
 
 ## Input sharing
 
-This comparison draws four separate 40 dp controls in a header over one `hazeSource`: a
-`LazyColumn` of full-width cards with artwork, text and translucent chips, where every third card
-animates like a playing video and every fourth card is faded. The shared rows use
-`HazeInputSharing.Auto`, so the four effects sample one rendered copy of the feed; the unshared
-rows use `Never`, so each effect replays the feed. The plain rows draw the same controls as
-translucent fills without Haze. The video rows only animate the video cards; the scroll rows also
-scroll the feed at a fixed speed. It used a Pixel 8a running Android 17 at 60 Hz, with
+This comparison measures [`HazeInputSharing`](performance.md#input-sharing) on two nested
+`hazeSource` modifiers. An outer host source fills the screen and contains an inner feed source:
+a `LazyColumn` of full-width cards with artwork, text and translucent chips, where every third
+card animates like a playing video and every fourth card is faded. Four 40–44 dp controls in a
+header sample the feed, and two 40 dp controls at the bottom sample the host. Every control sits
+outside both captured subtrees. The video rows animate the video cards; the scroll rows also
+scroll the feed at a fixed speed. Each row draws Glass or Blur controls.
+
+Within a row the content, geometry, animation, styles and duration are identical. Only the two
+sharing policies change: neither source shares (`Never`/`Never`), only the feed shares
+(`Auto`/`Never`), or both share (`Auto`/`Auto`). The Pixel 8a ran Android 17 at 60 Hz with
 fixed-performance mode enabled and normal CPU scheduling.
 
-Each per-pass value pools the frames of that pass's eight iterations; the table shows the
-**arithmetic mean of the two per-pass values**. Peak GPU memory uses each pass's median
-`memoryGpuMaxKb`. Replays count HWUI `alpha caused saveLayer` slices per frame, which mark each
-time a faded card is drawn.
+Each value is the **arithmetic mean of a forward and a reverse pass** of eight measured
+iterations per method. Within a pass, CPU P90 and frame overrun P90 come from the pooled frames of
+its eight iterations, so the means are not percentiles of all frames. Peak GPU memory is the median
+of the per-iteration `memoryGpuMaxKb`, in MiB. Replays per frame, feed then host, come from the replay oracle in the measurement
+details.
 
-| Workload | Controls | Input | saveLayer passes per frame | `DrawFrames` avg (ms) | CPU frame duration P90 (ms) | Frame overrun P90 (ms) | Peak GPU memory (KB) |
+| Workload | Controls | Sharing | Replays per frame | CPU P90 (ms) | Overrun P90 (ms) | `DrawFrames` avg (ms) | Peak GPU (MiB) |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| Video | Glass | Shared | 10.0 | 2.95 | 5.79 | -6.02 | 145,410 |
-| Video | Glass | Unshared | 25.0 | 2.90 | 5.83 | -6.69 | 111,764 |
-| Video | Blur | Shared | 10.0 | 2.75 | 5.74 | -6.14 | 145,189 |
-| Video | Blur | Unshared | 25.0 | 2.87 | 6.00 | -6.95 | 109,511 |
-| Video | Plain | — | 5.0 | 2.16 | 6.11 | -7.95 | 106,354 |
-| Scroll | Glass | Shared | 20.3 | 3.32 | 7.05 | -4.38 | 162,172 |
-| Scroll | Glass | Unshared | 49.7 | 3.35 | 7.15 | -5.17 | 128,716 |
-| Scroll | Blur | Shared | 20.4 | 3.27 | 7.34 | -4.82 | 160,093 |
-| Scroll | Blur | Unshared | 49.7 | 3.17 | 6.79 | -6.27 | 126,405 |
-| Scroll | Plain | — | 10.6 | 1.93 | 5.71 | -7.43 | 130,497 |
+| Video | Glass | Neither | 7, 3 | 7.05 | -4.77 | 3.56 | 115.6 |
+| Video | Glass | Feed only | 1, 3 | 6.62 | -5.61 | 3.29 | 148.7 |
+| Video | Glass | Both | 1, 1 | 6.73 | -5.15 | 3.37 | 181.5 |
+| Video | Blur | Neither | 7, 3 | 6.84 | -5.63 | 3.40 | 113.1 |
+| Video | Blur | Feed only | 1, 3 | 6.69 | -6.33 | 3.17 | 146.0 |
+| Video | Blur | Both | 1, 1 | 6.61 | -5.87 | 3.30 | 177.9 |
+| Scroll | Glass | Neither | 7, 3 | 8.18 | -3.55 | 3.99 | 142.2 |
+| Scroll | Glass | Feed only | 1, 3 | 7.68 | -4.53 | 3.73 | 173.1 |
+| Scroll | Glass | Both | 1, 1 | 7.99 | -4.04 | 3.87 | 198.0 |
+| Scroll | Blur | Neither | 7, 3 | 7.80 | -4.72 | 3.83 | 141.8 |
+| Scroll | Blur | Feed only | 1, 3 | 7.41 | -5.52 | 3.60 | 174.7 |
+| Scroll | Blur | Both | 1, 1 | 7.67 | -4.78 | 3.75 | 199.5 |
 
-Sharing cut the replays from five to two per frame (one on screen, one into the shared copy), but
-on this device and feed it did not reduce `DrawFrames` or CPU frame duration beyond the variation
-between passes. While scrolling, the shared rows finished 0.8 ms (Glass) and 1.5 ms (Blur) closer
-to their deadline at P90 than the unshared rows, in both passes. CPU placement was not analysed,
-so this difference is not attributed to sharing. Sharing added about 33 MB of peak GPU
-memory; HWUI's own caches grew by about 20 MB, roughly two full-screen surfaces, in a separate
-`dumpsys gfxinfo` check. CPU frame duration does not measure GPU cost, and these runs did not
-measure GPU timings, so they do not show where the lost margin went. No row missed its deadline
-at P90.
+The replay counts matched the intended topology in every one of the 192 measured iterations.
+With only the feed sharing, the feed's display list was replayed once per frame instead of seven
+times. With both sharing, the host's replay drew the feed's texture, so the feed was still replayed
+once and the host once.
 
-These results describe one synthetic feed that is cheap to replay, on a device with spare
-RenderThread time. An app whose source is expensive to replay and whose RenderThread runs close
-to its budget can gain substantially instead, as reported in
-[#1611](https://github.com/chrisbanes/haze/issues/1611). Measure a source before opting it in.
+Feed-only sharing had the lowest `DrawFrames` average and frame overrun in all four rows, and the
+lowest CPU P90 in three. Against `Neither`, it lowered CPU P90 by 0.15–0.50 ms (2–6%) and the
+`DrawFrames` average by 0.23–0.27 ms (6–8%). Sharing both sources also beat `Neither` in every
+row, but by less than feed-only sharing, except for CPU P90 in the Blur video row, where it was
+0.08 ms lower than feed-only, inside the pass-to-pass variation. In the scroll rows, `Both` was
+only 0.13–0.19 ms below `Neither` on CPU P90. This comparison does not show why sharing the host
+as well gained less.
+
+Each active full-screen source added memory: the feed raised peak GPU memory by 31–33 MiB, and the
+host a further 25–33 MiB.
+
+These are small differences on one device and one synthetic feed. The CPU P90 gains are similar in
+size to the pass-to-pass variation (up to 0.42 ms), so a repeat could change the ranking of close
+rows. CPU frame duration measures UI-thread and RenderThread cost, not GPU shader time, and no GPU
+timing was recorded, so these results do not show how much GPU work sharing adds or saves. They
+also say nothing about sources that are more expensive to replay than this feed, or about a screen
+whose RenderThread is already close to its budget. Measure a source before opting it in.
 
 ??? info "Measurement details"
 
-    The `benchmarkRelease` APKs were built from commit `26b30b79` by the first invocation and
-    reused unchanged by the others. The sample APK SHA-256 was
-    `3e1fd07668ea6e3cb36ddaf590565de4aa143721c9a87bf73d5d47b752fc7690` and the benchmark APK
-    SHA-256 was `dae79fa93dbaf1d55baed4185ea7668bab1baf18f1332f88c5c4ab14aae1155a`. The Android
-    build was `CP41.260831.016`. All 20 invocations started at thermal status 0.
+    **Builds.** The same two `benchmarkRelease` APKs ran every invocation. They were built from code at
+    commit `cb12b9e35`, with the runbook at commit `0d3c1eb0a`. The sample APK
+    SHA-256 was `c2ee22c206113120eccb5ff3de3ce2cbb194c5e8092dfc368614fc4d50321349` and the
+    benchmark APK SHA-256 was
+    `04c07f07c1840afb96a0e71bb151938cf683a582eaa17537c134b36e9865d2a2`. The device was a Pixel 8a
+    running `google/akita_beta/akita:17/CP41.260831.016/16521119` (API 37).
 
-    Each method ran eight measured iterations per pass in its own Gradle invocation, using
-    `GlassFeedBenchmark`. For each workload, the first pass ran Glass shared, Glass unshared, Blur
-    shared, Blur unshared and plain, and the second pass reversed that order. This produced 160
-    iterations, 160 Perfetto traces, and 28,839 measured frames. No completed iteration was
-    discarded. The two passes of each row differed by at most 0.32 ms in CPU P90 and 0.53 ms in
-    frame overrun P90.
+    **Run order.** Each method ran eight measured iterations in its own Gradle invocation, using
+    `GlassFeedBenchmark`. The forward pass ran the twelve methods in the order Glass video, Glass
+    scroll, Blur video, Blur scroll, each as `Neither`, `Feed only`, `Both`. The reverse pass ran
+    them in exactly the opposite order. That is 24 invocations, 192 iterations, 192 Perfetto
+    traces and 34,558 measured frames (180 per iteration, except four iterations that
+    differed by one frame). No completed iteration was discarded. One invocation, forward
+    `feedVideoGlassNestedUnshared`, was set aside and rerun after the Google app's trace producer
+    timed out (see conditions); the original is kept separately.
 
-    The saveLayer counts were stable across iterations, confirming that every row ran its intended
-    input path. CPU placement was not analysed, so the frame-overrun differences are reported
-    without attribution.
+    **Aggregation.** The table averages the two per-pass values; a mean of per-pass P90s is not a
+    pooled percentile. The per-pass values (forward / reverse) were:
 
-    Raw JSON, benchmark messages, traces, run logs, and both APKs are retained locally under
-    `internal/benchmark/build/benchmark-results/input-sharing.26b30b79/`.
+    | Workload | Controls | Sharing | CPU P90 (ms) | Overrun P90 (ms) | `DrawFrames` avg (ms) | Peak GPU (MiB) |
+    | --- | --- | --- | ---: | ---: | ---: | ---: |
+    | Video | Glass | Neither | 7.12 / 6.97 | -4.62 / -4.92 | 3.59 / 3.52 | 115.7 / 115.6 |
+    | Video | Glass | Feed only | 6.68 / 6.56 | -5.58 / -5.64 | 3.36 / 3.22 | 148.5 / 148.8 |
+    | Video | Glass | Both | 6.57 / 6.89 | -5.23 / -5.07 | 3.34 / 3.41 | 181.4 / 181.5 |
+    | Video | Blur | Neither | 6.81 / 6.87 | -5.59 / -5.67 | 3.34 / 3.47 | 113.1 / 113.1 |
+    | Video | Blur | Feed only | 6.48 / 6.90 | -6.53 / -6.13 | 3.18 / 3.16 | 146.0 / 146.0 |
+    | Video | Blur | Both | 6.50 / 6.72 | -5.88 / -5.85 | 3.29 / 3.30 | 178.9 / 176.9 |
+    | Scroll | Glass | Neither | 8.18 / 8.19 | -3.61 / -3.50 | 3.96 / 4.02 | 142.2 / 142.3 |
+    | Scroll | Glass | Feed only | 7.63 / 7.74 | -4.46 / -4.59 | 3.70 / 3.75 | 173.1 / 173.1 |
+    | Scroll | Glass | Both | 8.01 / 7.97 | -3.98 / -4.10 | 3.86 / 3.88 | 198.1 / 198.0 |
+    | Scroll | Blur | Neither | 7.75 / 7.85 | -4.83 / -4.61 | 3.78 / 3.89 | 141.7 / 141.9 |
+    | Scroll | Blur | Feed only | 7.42 / 7.40 | -5.43 / -5.61 | 3.57 / 3.63 | 174.8 / 174.7 |
+    | Scroll | Blur | Both | 7.67 / 7.68 | -4.73 / -4.83 | 3.77 / 3.72 | 199.5 / 199.5 |
+
+    Between the two passes, the largest differences were 0.42 ms in CPU P90, 0.40 ms in frame
+    overrun P90, 0.14 ms in the `DrawFrames` average and 2.0 MiB in peak GPU memory. Feed-only
+    sharing had lower CPU P90 than `Neither` in seven of the eight pass-level comparisons (Blur
+    video in the reverse pass was 0.03 ms higher), and lower `DrawFrames` average and frame overrun
+    in all eight.
+
+    **Device conditions.** The device was on AC power at 80% charge, with a fixed 60 Hz display
+    (`peak_refresh_rate` and `min_refresh_rate` both 60) and fixed-performance mode enabled. Thermal status was 0 at the
+    start of each pass and after the session; the battery temperature rose from 28.0 to 33.7 °C
+    over the session. The first invocation hit a Perfetto `track_event` producer timeout caused by
+    the Google app, so the Google app was disabled with `pm disable-user` for the rest of the
+    session, following the runbook's Android 17 fallback. Afterwards, fixed-performance mode and
+    the refresh-rate settings were reset and the Google app re-enabled. A readback confirmed the refresh-rate settings and the
+    Google app; fixed-performance mode has no getter.
+
+    **Replay oracle.** Source replays are counted in the Perfetto traces, not from application
+    recording. Each source holds a fixed alpha marker that is replayed with the source. A replay of
+    the feed's display list emits one RenderThread slice named `alpha caused saveLayer 494x105`,
+    and a replay of the host's emits `alpha caused saveLayer 231x105`. The `oracle.sql` query
+    counted both inside each `DrawFrames` slice in the measured window, over 34,849 frames. In
+    every iteration the most common frame was 7 feed and 3 host replays for `Neither`, 1 and 3 for
+    `Feed only`, and 1 and 1 for `Both`, and 180 frames matched it. The other 289 frames in total,
+    one to three per trace, replayed fewer markers. The [runbook](https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md#nested-input-sharing-comparison)
+    has the query and its calibration.
+
+    **CPU placement.** `placement.sql` summed the running time of the main thread and RenderThread
+    on each CPU during the measured window. Fixed-performance mode does not pin threads to cores.
+    The RenderThread spent 49–97% of its running time on its most-used cluster, 51–62% in most
+    iterations. That was the middle cluster (CPUs 4–7) in 159 of 192 iterations and the big core
+    (CPU 8) in the other 33: 15 of 64 `Neither` iterations, 5 of 64 `Feed only` and 13 of 64
+    `Both`. The main thread's most-used cluster was the middle cluster in 184 iterations, taking
+    89% of its running time on average, and the little cluster (CPUs 0–3) in the other 8. Placement was not
+    controlled and differed between configurations, so it may have contributed to the differences
+    in the table; the iterations were not split by placement.
+
+    **Artifacts.** Raw benchmark JSON and messages, XML, Perfetto traces, per-method device
+    readbacks and oracle and placement outputs are retained locally, not published, under
+    `internal/benchmark/build/benchmark-results/input-sharing-1615.cb12b9e35/`, with the two
+    APKs, `conditions.txt`, `run-order.txt` and `summary.md`, which records 192 traces
+    verified.
+
+    **Reporter's real-app retest.** The report in
+    [#1615](https://github.com/chrisbanes/haze/issues/1615) came from a different app and device.
+    A retest on that app is pending and has not been run, so these results neither confirm nor
+    contradict its findings.
+
+    **Earlier results.** Input-sharing results measured before #1615 described a separate
+    rendered copy of the source, which retained a second replay of it, and are no longer
+    published. The earlier global offscreen flag from
+    [#1611](https://github.com/chrisbanes/haze/issues/1611) was not equivalent to that copy, and
+    neither is evidence for the current implementation. The flat, single-source feed scenarios
+    have not been re-measured on it. The superseded tables remain in git history.
 
 <a id="placement-update-deduplication"></a>
 
