@@ -131,6 +131,12 @@ class InputSharingEffectRegressionTest : ScreenshotTest() {
     fixture.edges = Edges(0, 0, 0, 0)
     assertContainer(fixture, samples)
 
+    // Non-zero to non-zero, without passing through zero, so the new outsets must reach the container.
+    fixture.edges = DeclaredEdges
+    assertContainer(fixture, samples).assertSameCell(initial, SHARED_CELL)
+    fixture.edges = Edges(left = 40, top = 8, right = 12, bottom = 24)
+    assertContainer(fixture, samples)
+
     fixture.edges = DeclaredEdges
     assertContainer(fixture, samples).assertSameCell(initial, SHARED_CELL)
   }
