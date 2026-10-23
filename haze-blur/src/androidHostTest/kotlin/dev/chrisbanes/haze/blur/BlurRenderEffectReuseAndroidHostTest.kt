@@ -67,6 +67,9 @@ import org.robolectric.annotation.Config
  * Android branch, while a changed input, a cache clear or (on API 31) a re-captured input still
  * gives a fresh effect.
  */
+// Robolectric rasterizes the API 33+ progressive blur shader on the CPU, so every capture's cost
+// scales with the window area. A small window keeps every branch and band count above two.
+@Config(qualifiers = "+w160dp-h320dp")
 class BlurRenderEffectReuseAndroidHostTest : ScreenshotTest() {
 
   @Test

@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -38,8 +39,9 @@ class GlassContainerSampleTest : ContextTest() {
     onAllNodesWithContentDescription("Back").assertCountEquals(1)
   }
 
+  // Each animation frame renders the whole sample. This test checks state only, so snap transitions.
   @Test
-  fun extraMemberToggle_addsAndRemovesMember() = runComposeUiTest {
+  fun extraMemberToggle_addsAndRemovesMember() = runComposeUiTest(effectContext = NoMotion) {
     setContent {
       GlassContainerSample(navController = rememberNavController())
     }
@@ -53,5 +55,9 @@ class GlassContainerSampleTest : ContextTest() {
     onNodeWithTag("glass_container_toggle").performScrollTo().performClick()
     waitForIdle()
     onAllNodesWithTag("glass_container_extra_member").assertCountEquals(0)
+  }
+
+  private object NoMotion : MotionDurationScale {
+    override val scaleFactor: Float = 0f
   }
 }
