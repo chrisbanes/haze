@@ -88,9 +88,13 @@ internal class GlassMemberElement(
   val configuration: GlassNodeConfiguration,
   val factory: HazeEffectFactory<GlassNodeConfiguration>,
 ) : ModifierNodeElement<GlassMemberNode>() {
-  override fun create() = GlassMemberNode(binding, configuration.memberTransition)
+  override fun create() = GlassMemberNode(binding, configuration.memberTransition, configuration.groupKey)
   override fun update(node: GlassMemberNode) {
     node.transition = configuration.memberTransition
+    if (node.groupKey != configuration.groupKey) {
+      node.groupKey = configuration.groupKey
+      node.changed()
+    }
     node.update(binding)
   }
   override fun InspectorInfo.inspectableProperties() {
@@ -100,10 +104,14 @@ internal class GlassMemberElement(
 
 internal object GlassMemberTraversalKey
 
-/** [transition] is read by the container when this member's glass appears and when it leaves. */
+/**
+ * [transition] is read by the container when this member's glass appears and when it leaves;
+ * [groupKey] when it clusters.
+ */
 internal class GlassMemberNode(
   var binding: GlassMemberBinding,
   var transition: GlassMemberTransition,
+  var groupKey: Any? = null,
 ) : Modifier.Node(), LayoutAwareModifierNode, TraversableNode {
   override val traverseKey: Any get() = GlassMemberTraversalKey
 

@@ -87,6 +87,7 @@ internal fun Modifier.hazeGlass(
   interactionTransformPivot: GlassTransformPivot = GlassTransformPivot.Pointer,
   interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
   memberTransition: GlassMemberTransition = GlassMemberTransition.MatchedGeometry,
+  groupKey: Any? = null,
 ): Modifier {
   val member = GlassMemberBinding(input, expandLayerBounds)
   val configuration = GlassNodeConfiguration(
@@ -98,6 +99,7 @@ internal fun Modifier.hazeGlass(
     interactionReducedMotionPolicy = interactionReducedMotionPolicy,
     member = member,
     memberTransition = memberTransition,
+    groupKey = groupKey,
   )
   return then(GlassMemberElement(member, configuration, factory)).hazeEffect(
     factory = factory,
@@ -119,6 +121,7 @@ internal class GlassNodeConfiguration(
   val surfaceSnapshot: GlassSurfaceSnapshot? = null,
   // Read by the member node; here so both nodes always update together with one binding.
   val memberTransition: GlassMemberTransition = GlassMemberTransition.MatchedGeometry,
+  val groupKey: Any? = null,
 )
 
 internal object GlassHazeEffectFactory : HazeEffectFactory<GlassNodeConfiguration> {

@@ -461,7 +461,10 @@ internal class GlassContainerNode(
     val rect = transform?.let { layoutRect.transformedBy(it) } ?: layoutRect
     // A merged member is one rounded rect with one circular light, so unequal axes draw standalone.
     val uniformScale = transform == null || abs(transform.scaleX - transform.scaleY) < 1e-4f
-    return GlassMemberSnapshot(this, rect, key, material, uniformScale && hasTranslationOnlyTransform(owner), layoutRect, link)
+    return GlassMemberSnapshot(
+      this, rect, key, material, uniformScale && hasTranslationOnlyTransform(owner), layoutRect, link,
+      groupKey = groupKey, shape = binding.runtime?.shape,
+    )
   }
 
   private fun GlassMemberSnapshot.isWithinMergeDistanceOf(neighbour: GlassMemberNode, live: Map<GlassMemberNode, GlassMemberSnapshot>): Boolean {
@@ -535,7 +538,7 @@ internal class GlassContainerNode(
 }
 
 /** Scales this rect about the transform's pivot, which is relative to the rect's top-left. */
-private fun Rect.transformedBy(transform: HazeEffectContentTransform): Rect {
+internal fun Rect.transformedBy(transform: HazeEffectContentTransform): Rect {
   val pivot = topLeft + transform.pivot
   return Rect(
     left = pivot.x + (left - pivot.x) * transform.scaleX,

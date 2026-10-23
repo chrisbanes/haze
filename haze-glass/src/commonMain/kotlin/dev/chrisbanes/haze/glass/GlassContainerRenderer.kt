@@ -8,8 +8,11 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.node.requireDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import dev.chrisbanes.haze.HazeConfiguredEffectSurface
+import dev.chrisbanes.haze.HazeEffectContentTransform
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectSurface
 import dev.chrisbanes.haze.HazePerformanceMode
@@ -53,12 +56,17 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
       }
       // Pressed members shrink within their layout rects, keeping the surface stable; a spring
       // overshoot past scale 1 briefly grows the bounds instead of clipping the member.
-      val bounds = members.flatMap { listOf(it.sampleLayoutRect, it.rect) }.reduce { a, b ->
+      // A Glass group draws as one member over its own bounds, which a press can grow past its members'.
+      val groups = cluster.groups.map { unit -> unit.takeIf { it.size > 1 }?.let { GlassGroupDraw(it) } }
+      val bounds = (members.flatMap { listOf(it.sampleLayoutRect, it.rect) } + groups.mapNotNull { it?.rect }).reduce { a, b ->
         Rect(minOf(a.left, b.left), minOf(a.top, b.top), maxOf(a.right, b.right), maxOf(a.bottom, b.bottom))
       }.inflate(mergeDistance)
       val opticalSize = checkNotNull(model.opticalSize)
+      val density = owner.requireDensity()
       val field = GlassMergedField(
-        members.map { it.toMergedMember(bounds.topLeft) },
+        cluster.groups.mapIndexed { index, unit ->
+          groups[index]?.toMergedMember(bounds.topLeft, density) ?: unit.single().toMergedMember(bounds.topLeft)
+        },
         mergeDistance,
         opticalSize,
       )
@@ -172,3 +180,83 @@ private fun GlassMemberSnapshot.toMergedMember(origin: Offset): GlassMergedMembe
     whitePointDelta = whitePointDelta,
   )
 }
+
+/**
+ * A Glass group drawn as one member. It takes the first member's shape and appearance, and a press
+ * on its first interacting member scales the whole group, about the member's pivot mapped into the
+ * group's frame.
+ */
+private class GlassGroupDraw(val unit: List<GlassMemberSnapshot>) {
+  val layoutRect = unit.map { it.layoutRect }.union()
+  val sampleLayoutRect = unit.map { it.sampleLayoutRect }.union()
+  private val interacting = unit.firstNotNullOfOrNull { member ->
+    val runtime = (member.identity as? GlassMemberNode)?.binding?.runtime ?: return@firstNotNullOfOrNull null
+    val transform = runtime.currentInteractionTransform(member.layoutRect.size)
+    val interaction = resolveGlassInteraction(runtime.currentInteractionState, runtime.interactionLightRadiusFraction)
+    if (
+      transform != HazeEffectContentTransform.Identity || interaction.lightingIntensity != 0f ||
+      interaction.refractionMultiplier != 1f || interaction.whitePointDelta != 0f
+    ) {
+      Triple(
+        member,
+        interaction,
+        transform.takeUnless { it == HazeEffectContentTransform.Identity }?.let {
+          // Member-local pivots map into the group frame; a centre pivot is the group's centre.
+          val pivot = if (runtime.interactionTransformPivot == GlassTransformPivot.Center) {
+            Offset(layoutRect.width / 2f, layoutRect.height / 2f)
+          } else {
+            member.layoutRect.topLeft - layoutRect.topLeft + it.pivot
+          }
+          HazeEffectContentTransform(it.scaleX, it.scaleY, pivot)
+        },
+      )
+    } else {
+      null
+    }
+  }
+  val rect = interacting?.third?.let { layoutRect.transformedBy(it) } ?: unit.map { it.rect }.union()
+
+  fun toMergedMember(origin: Offset, density: Density): GlassMergedMember {
+    val first = unit.first()
+    val material = first.material
+    val scaleX = rect.width / layoutRect.width
+    val scaleY = rect.height / layoutRect.height
+    val interaction = interacting?.second
+    val topLeft = rect.topLeft - origin
+    val fieldRect = Rect(topLeft, rect.size)
+    val refractionMultiplier = interaction?.refractionMultiplier ?: 1f
+    val whitePointDelta = interaction?.whitePointDelta ?: 0f
+    val hasOpticalResponse = refractionMultiplier != 1f || whitePointDelta != 0f
+    // The pressed member's position maps into the group frame, then through the group's scale.
+    val position = interaction?.position?.takeIf { it.x.isFinite() && it.y.isFinite() }?.let {
+      val offset = checkNotNull(interacting).first.layoutRect.topLeft - layoutRect.topLeft
+      topLeft + Offset((offset.x + it.x) * scaleX, (offset.y + it.y) * scaleY)
+    }
+    val radius = (interacting?.first?.rect?.minDimension ?: 0f) * (interaction?.radiusFraction ?: 0f)
+    return GlassMergedMember(
+      rect = fieldRect,
+      layoutRect = sampleLayoutRect.translate(-origin),
+      cornerRadii = first.groupCornerRadii(layoutRect.size, density) * minOf(scaleX, scaleY),
+      tint = material.tint,
+      backgroundColor = material.backgroundColor,
+      fallbackBaseColor = material.fallbackBaseColor,
+      lightPosition = position ?: fieldRect.center,
+      lightRadius = radius.takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f,
+      lightIntensity = interaction?.lightingIntensity ?: 0f,
+      opticalPosition = if (hasOpticalResponse) position ?: fieldRect.center else Offset.Zero,
+      opticalRadius = if (hasOpticalResponse) radius.takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f else 0f,
+      refractionMultiplier = refractionMultiplier,
+      whitePointDelta = whitePointDelta,
+    )
+  }
+}
+
+private fun List<Rect>.union() = reduce { a, b ->
+  Rect(minOf(a.left, b.left), minOf(a.top, b.top), maxOf(a.right, b.right), maxOf(a.bottom, b.bottom))
+}
+
+/** The first member's shape at the group's size, falling back as [resolveGlassStyle] does. */
+private fun GlassMemberSnapshot.groupCornerRadii(size: Size, density: Density): CornerRadii =
+  shape?.toValidCornerRadiiPxOrNull(size, density, key.layoutDirection)?.takeIf { it.isFiniteAndNonNegative() }
+    ?: GlassDefaults.shape.toCornerRadiiPx(size, density, key.layoutDirection).takeIf { it.isFiniteAndNonNegative() }
+    ?: CornerRadii.zero
