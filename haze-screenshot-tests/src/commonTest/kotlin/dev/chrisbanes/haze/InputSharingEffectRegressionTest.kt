@@ -67,6 +67,12 @@ class InputSharingEffectRegressionTest : ScreenshotTest() {
   fun glass_sharingToggledOffAndOn_refreshesToFreshState() = verifySharingToggle(SharingEffect.Glass)
 
   @Test
+  fun blur_sharingToggledWithZeroOutsets_refreshesToFreshState() = verifyZeroOutsetToggle(SharingEffect.Blur)
+
+  @Test
+  fun glass_sharingToggledWithZeroOutsets_refreshesToFreshState() = verifyZeroOutsetToggle(SharingEffect.Glass)
+
+  @Test
   fun blur_outsetsChanged_refreshToFreshState() = verifyOutsetChanges(SharingEffect.Blur)
 
   @Test
@@ -153,6 +159,24 @@ class InputSharingEffectRegressionTest : ScreenshotTest() {
     val unshared = captureRootPixels()
     val samples = effect.samplesSource(this)
     unshared.assertMatchesReference(fixture.widthPx, samples)
+    unshared.assertProbes(SHARED_CELL, UnsharedEdges, samples)
+
+    fixture.sharing = HazeInputSharing.Always
+    assertShared(effect, fixture).assertSameCell(initial, SHARED_CELL)
+  }
+
+  /** The sharing mode alone changes: no outsets, so the input bounds never move. */
+  private fun verifyZeroOutsetToggle(effect: SharingEffect) = runScreenshotTest(size = SceneSize) {
+    val fixture = SharingFixture().apply { edges = Edges(0, 0, 0, 0) }
+    setContent { SharingScene(effect, fixture) }
+    val initial = assertShared(effect, fixture)
+
+    fixture.sharing = HazeInputSharing.Never
+    waitForIdle()
+    val samples = effect.samplesSource(this)
+    val unshared = captureRootPixels()
+    unshared.assertMatchesReference(fixture.widthPx, samples)
+    // Clipped while shared, the overflow must reappear once the source stops sharing.
     unshared.assertProbes(SHARED_CELL, UnsharedEdges, samples)
 
     fixture.sharing = HazeInputSharing.Always
