@@ -83,15 +83,16 @@ internal fun resolveGlassNeighbour(
   mergeDistancePx: Float,
   excluded: Set<Any> = emptySet(),
 ): GlassMemberSnapshot? {
-  fun GlassMemberSnapshot.inGroupOf(other: GlassMemberSnapshot) = groupKey != null && groupKey == other.groupKey
-  val neighbours = ordered
+  return ordered
     .filter { candidate ->
       candidate.identity is GlassMemberNode && candidate.identity !== member.identity && candidate.identity !in excluded &&
         member.canTransitionWith(candidate) &&
         // Members of one group draw as one shape at any distance.
-        (candidate.inGroupOf(member) || glassMemberGap(member.layoutRect, candidate.layoutRect) < mergeDistancePx)
+        (candidate.isGroupedWith(member) || glassMemberGap(member.layoutRect, candidate.layoutRect) < mergeDistancePx)
     }
-    .filter { candidate ->
+    // Same group first, then nearest; the first candidate that can cluster with the member wins.
+    .sortedWith(compareBy({ !it.isGroupedWith(member) }, { glassMemberGap(member.layoutRect, it.layoutRect) }))
+    .firstOrNull { candidate ->
       val probe = ordered.map {
         if (it.identity === member.identity) it.copy(rect = candidate.rect, layoutRect = candidate.layoutRect, key = candidate.key, link = candidate.identity) else it
       }
@@ -102,8 +103,6 @@ internal fun resolveGlassNeighbour(
           cluster.members.filter { it.identity is GlassMemberNode }.all { it.drawsSourcesOf(member) }
       }
     }
-  return (neighbours.filter { it.inGroupOf(member) }.ifEmpty { neighbours })
-    .minByOrNull { glassMemberGap(member.layoutRect, it.layoutRect) }
 }
 
 /** The nearest live member whose input can draw a [Materialize][GlassMemberTransition.Materialize] ghost. */

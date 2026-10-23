@@ -18,6 +18,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.DpOffset
@@ -115,6 +116,19 @@ class GlassContainerGroupRenderTest : ContextTest() {
   }
 
   @Test
+  fun rotatedGroupMember_doesNotEnlargeContainerOpticalSize() = runComposeUiTest {
+    // A rotated member leaves the drawn group, so its transformed bounds must not size optics.
+    val small = opticalGroup(grouped = true, rotateSecond = 30f)
+    assertThat(small.opticalSizeOverride).isEqualTo(Size(40f, 40f))
+  }
+
+  @Test
+  fun scaledGroupMember_doesNotEnlargeContainerOpticalSize() = runComposeUiTest {
+    val small = opticalGroup(grouped = true, scaleSecond = 2f)
+    assertThat(small.opticalSizeOverride).isEqualTo(Size(40f, 40f))
+  }
+
+  @Test
   fun ungroupedMembers_setContainerOpticalSizeFromEachMember() = runComposeUiTest {
     val small = opticalGroup(grouped = false)
     assertThat(small.opticalSizeOverride).isEqualTo(Size(40f, 40f))
@@ -143,7 +157,7 @@ class GlassContainerGroupRenderTest : ContextTest() {
   }
 
   /** Two stacked 100x40 members and a separate 30x30 member; returns the small member's runtime. */
-  private fun ComposeUiTest.opticalGroup(grouped: Boolean): GlassRuntimeEffect {
+  private fun ComposeUiTest.opticalGroup(grouped: Boolean, rotateSecond: Float = 0f, scaleSecond: Float = 1f): GlassRuntimeEffect {
     val effects = List(3) { GlassRuntimeEffect() }
     val state = HazeState()
     setContent {
@@ -153,7 +167,13 @@ class GlassContainerGroupRenderTest : ContextTest() {
           listOf(DpOffset(40.dp, 20.dp) to DpSize(100.dp, 40.dp), DpOffset(40.dp, 120.dp) to DpSize(100.dp, 40.dp), DpOffset(300.dp, 20.dp) to DpSize(30.dp, 30.dp))
             .forEachIndexed { index, (offset, size) ->
               Box(
-                Modifier.offset(offset.x, offset.y).size(size).hazeGlass(
+                Modifier.offset(offset.x, offset.y).size(size).graphicsLayer {
+                  if (index == 1) {
+                    rotationZ = rotateSecond
+                    scaleX = scaleSecond
+                    scaleY = scaleSecond
+                  }
+                }.hazeGlass(
                   HazeEffectFactory { effects[index] },
                   HazeInput.Sources(state),
                   containerTestStyle(Color.Red),
