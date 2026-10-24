@@ -51,8 +51,10 @@ performance guidance.
   retract into each other at any distance ([#1619](https://github.com/chrisbanes/haze/pull/1619)).
 - Added the `Glass — Container` sample and Glass container documentation and performance guidance
   ([#1491](https://github.com/chrisbanes/haze/pull/1491)).
-- Added the `Glass — Container Showcase` sample, a photo library whose Glass bar merges, splits
-  and grows actions in a scripted loop ([#1552](https://github.com/chrisbanes/haze/pull/1552)).
+- Added the `Glass — Container Showcase` sample, a drawing palette whose Glass bar merges, splits
+  and grows a brush, a stroke width and draggable colours in a scripted loop, with a half-speed
+  control ([#1552](https://github.com/chrisbanes/haze/pull/1552),
+  [#1603](https://github.com/chrisbanes/haze/pull/1603)).
 - Added an optional `scrollState` to `hazeGlassContainer`. Members of a lazy layout appear and
   disappear without a transition while it scrolls
   ([#1544](https://github.com/chrisbanes/haze/pull/1544),
@@ -65,12 +67,15 @@ performance guidance.
 - Glass is not binary-compatible with the experimental 2.0.x API. Recompile code that uses Glass
   against this release ([#1571](https://github.com/chrisbanes/haze/pull/1571)).
 - `GlassOptics` and `GlassAccessibilitySettings` are no longer data classes, so they no longer
-  support destructuring. Named-argument construction and `copy` are unchanged, and future
-  properties can be added without breaking binaries
-  ([#1571](https://github.com/chrisbanes/haze/pull/1571)).
+  support destructuring. Named-argument construction and `copy` are unchanged. They are `@Poko`
+  classes with an explicit `copy`, so compatible additions need a forwarding constructor and `copy`
+  overload ([#1571](https://github.com/chrisbanes/haze/pull/1571)).
 - `GlassAccessibilitySettings.reduceTransparency` now makes Glass more opaque, with a stronger,
   fully diffused blur. Previously it reduced blur, which made content behind Glass more visible
-  ([#1547](https://github.com/chrisbanes/haze/pull/1547)).
+  ([#1547](https://github.com/chrisbanes/haze/pull/1547)). Without `RuntimeShader` support, it
+  draws an opaque white (light) or black (dark) base under the background and tint instead of
+  showing source detail, and the new nullable `GlassAccessibilitySettings.reducedTransparencyFallbackColor`
+  overrides that base with an opaque colour ([#1555](https://github.com/chrisbanes/haze/pull/1555)).
 - Renamed `GlassDefaults.positionAnimationSpec` to `GlassDefaults.interactionPositionAnimationSpec`,
   matching `GlassStyleScope.interactionPositionAnimationSpec` ([#1547](https://github.com/chrisbanes/haze/pull/1547)).
 - `GlassReducedMotionPolicy` also controls Glass container member transitions. Under `System`, with
@@ -84,6 +89,14 @@ performance guidance.
 - `GlassStyle` blocks are now evaluated by each node under snapshot observation, so a remembered
   style that reads animated state (for example, a shape radius or alpha) updates without recomposing
   the `hazeGlass` call site ([#1427](https://github.com/chrisbanes/haze/pull/1427)).
+- `HazeBlurStyle` blocks now run under snapshot observation each time a node resolves its Style, so
+  a remembered Style that reads animated state updates without recomposing the `hazeBlur` call
+  site. Styles you build with `HazeBlurStyle { }` now compare by identity rather than by value as in
+  2.0.x, so `remember` or hoist them; constructing one in each composition makes the effect treat
+  it as changed. The built-in presets, including `HazeBlurStyle.Material3`, compare by value.
+  Invalid values throw when the block runs, and a negative `blurRadius` is clamped to zero instead
+  of throwing ([#1602](https://github.com/chrisbanes/haze/pull/1602), by
+  [Mohammad Jaber](https://github.com/moyaver)).
 - On Android 14+, a background trim-memory callback now releases retained Blur and Glass layers
   ([#1401](https://github.com/chrisbanes/haze/pull/1401)).
 - Reduced per-frame work in Blur and Glass: unchanged Blur draws reuse their `RenderEffect`,
@@ -102,10 +115,12 @@ performance guidance.
   [#1515](https://github.com/chrisbanes/haze/pull/1515)).
 - Published Glass container benchmark results
   ([#1511](https://github.com/chrisbanes/haze/pull/1511)).
-- Updated Kotlin to 2.4.21, AndroidX Collection to 1.7.0, and AndroidX Tracing to 2.0.4
-  ([#1396](https://github.com/chrisbanes/haze/pull/1396),
+- Updated Kotlin to 2.4.21, Compose Multiplatform to 1.12.2, AndroidX Collection to 1.7.0, and
+  AndroidX Tracing to 2.0.5 ([#1396](https://github.com/chrisbanes/haze/pull/1396),
   [#1397](https://github.com/chrisbanes/haze/pull/1397),
-  [#1532](https://github.com/chrisbanes/haze/pull/1532)).
+  [#1532](https://github.com/chrisbanes/haze/pull/1532),
+  [#1546](https://github.com/chrisbanes/haze/pull/1546),
+  [#1610](https://github.com/chrisbanes/haze/pull/1610)).
 
 ### Removed
 
@@ -121,8 +136,10 @@ performance guidance.
 ### Fixed
 
 - A pressed Glass container member now samples the same content as it would drawn alone, so its
-  content no longer shifts when it joins or leaves a cluster
-  ([#1607](https://github.com/chrisbanes/haze/pull/1607)).
+  content no longer shifts when it joins or leaves a cluster, and a pressed ghost of a detached
+  member keeps sampling through its press transform
+  ([#1607](https://github.com/chrisbanes/haze/pull/1607),
+  [#1608](https://github.com/chrisbanes/haze/pull/1608)).
 - Fallback Glass surfaces with a `backgroundColor` no longer draw their backdrop offset by the
   layer padding ([#1526](https://github.com/chrisbanes/haze/pull/1526)).
 - Glass containers now keep members across reactivated reusable content
@@ -134,6 +151,8 @@ performance guidance.
   clears neighbouring members on API 23–27 ([#1517](https://github.com/chrisbanes/haze/pull/1517)).
 - Effects now redraw when an ancestor layer-only move changes their visible part
   ([#1543](https://github.com/chrisbanes/haze/pull/1543)).
+- Effects that switch from `HazeInput.Content` to another input now release their content layer
+  ([#1580](https://github.com/chrisbanes/haze/pull/1580)).
 - Fixed source placement when member or owner transforms include scale or rotation
   ([#1542](https://github.com/chrisbanes/haze/pull/1542)).
 - Fixed effects not tracking sources newly selected by a `HazeSourceSelection.where` predicate
