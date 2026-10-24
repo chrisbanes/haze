@@ -602,6 +602,41 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun ghostAnchor_pressCollapsed_endsMatchedGeometryGhostWithoutCrashing() = runComposeUiTest {
+    assertPressCollapsedAnchorEndsGhost(fixture(transition = GlassMemberTransition.MatchedGeometry), pressFirst = true)
+  }
+
+  @Test
+  fun ghostAnchor_pressCollapsed_endsMaterializeGhostWithoutCrashing() = runComposeUiTest {
+    assertPressCollapsedAnchorEndsGhost(fixture(gap = 100, transition = GlassMemberTransition.Materialize), pressFirst = true)
+  }
+
+  @Test
+  fun ghostAnchor_collapsesUnderPressWhileGhostFades_endsGhostWithoutCrashing() = runComposeUiTest {
+    assertPressCollapsedAnchorEndsGhost(fixture(), pressFirst = false)
+  }
+
+  /** With [pressFirst], A collapses before B leaves, so no ghost starts; otherwise A collapses under a fading ghost. */
+  private fun ComposeUiTest.assertPressCollapsedAnchorEndsGhost(fixture: Fixture, pressFirst: Boolean) {
+    fixture.advance(16)
+    if (pressFirst) {
+      fixture.pressA(scale = Float.MIN_VALUE)
+      runOnIdle { fixture.present.value = false }
+      fixture.advance(16)
+    } else {
+      runOnIdle { fixture.present.value = false }
+      fixture.advance(16)
+      assertThat(fixture.owner().model.surfaces.flatMap { it.members }.filter { it.identity is GlassMemberGhost }).hasSize(1)
+      fixture.pressA(scale = Float.MIN_VALUE)
+    }
+    fixture.advance(96)
+    val model = fixture.owner().model
+    assertThat(model.surfaces.flatMap { it.members }.filter { it.identity is GlassMemberGhost }).isEmpty()
+    assertThat(model.opticalSize).isNull()
+    fixture.settle()
+  }
+
+  @Test
   fun collapsedMember_removal_createsNoGhost() = runComposeUiTest {
     val fixture = fixture()
     // A frame must draw first, or the container still suppresses transitions.
@@ -1213,12 +1248,12 @@ class GlassContainerTransitionTest : ContextTest() {
 
     fun a(): GlassMemberSnapshot = owner().model.surfaces.flatMap { it.members }.single { it.identity === aNode }
 
-    /** Gives A a 20dp shape that snaps to 0.94 when pressed, then presses it. */
-    fun pressA() {
+    /** Gives A a 20dp shape that snaps to [scale] when pressed, then presses it. */
+    fun pressA(scale: Float = 0.94f) {
       test.runOnIdle {
         aExtra.value = GlassStyle {
           shape(RoundedCornerShape(20.dp))
-          pressed { animate(snap(), snap()) { scale(0.94f) } }
+          pressed { animate(snap(), snap()) { scale(scale) } }
         }
       }
       advance(16)

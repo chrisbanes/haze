@@ -62,7 +62,7 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
         if (unit.size > 1) GlassGroupDraw(unit, owner.requireDensity()) else GlassMemberDraw(unit.single())
       }
       val bounds = (members.flatMap { listOf(it.sampleLayoutRect, it.rect) } + draws.map { it.rect }).union().inflate(mergeDistance)
-      val opticalSize = checkNotNull(model.opticalSize)
+      val opticalSize = model.opticalSize ?: continue
       val field = GlassMergedField(draws.map { it.toMergedMember(bounds.topLeft) }, mergeDistance, opticalSize)
       val maxRefractionMultiplier = maxOf(
         members.maxOfOrNull { member ->
