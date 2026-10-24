@@ -37,9 +37,9 @@ public fun HazeBlurStyle.Companion.Material3(
  *
  * The returned Style compares by value: two Styles are equal when they have the same
  * [containerColor] and the same [block] instance. It is therefore equal across recompositions only
- * while the caller's [block] is the same instance, which strong skipping provides for a lambda that
- * captures stable values. A lambda that captures unstable values, or is recreated on every
- * composition, yields an unequal Style; `remember` the Style or hoist the lambda in that case.
+ * while the caller's [block] is the same instance. Strong skipping memoizes a lambda created in a
+ * composable, so the Style stays equal unless a captured value changes. A lambda recreated on every
+ * composition yields an unequal Style; `remember` the Style or hoist the lambda in that case.
  */
 @Composable
 @ReadOnlyComposable

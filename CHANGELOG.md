@@ -93,9 +93,9 @@ performance guidance.
   a remembered Style that reads animated state updates without recomposing the `hazeBlur` call
   site. Styles you build with `HazeBlurStyle { }` now compare by identity rather than by value as in
   2.0.x, so `remember` or hoist them; constructing one in each composition makes the effect treat
-  it as changed. The built-in presets, including `HazeBlurStyle.Material3`, compare by value.
-  Invalid values throw when the block runs, and a negative `blurRadius` is clamped to zero instead
-  of throwing ([#1602](https://github.com/chrisbanes/haze/pull/1602), by
+  it as changed. The `HazeMaterials` presets, and `HazeBlurStyle.Material3` when given a block,
+  compare by value. Invalid values throw when the block runs, and a negative `blurRadius` is
+  clamped to zero instead of throwing ([#1602](https://github.com/chrisbanes/haze/pull/1602), by
   [Mohammad Jaber](https://github.com/moyaver)).
 - On Android 14+, a background trim-memory callback now releases retained Blur and Glass layers
   ([#1401](https://github.com/chrisbanes/haze/pull/1401)).
