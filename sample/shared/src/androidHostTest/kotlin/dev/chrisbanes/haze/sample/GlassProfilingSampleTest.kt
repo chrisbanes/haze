@@ -239,6 +239,7 @@ class GlassProfilingSampleTest : ContextTest() {
       .performScrollTo()
       .performClick()
     onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_lazy_member_0").assertExists()
     onAllNodesWithTag("glass_profiling_container").assertCountEquals(0)
     onNodeWithTag("glass_profiling_lazy_grid").assertExists()
     val memberCount = onAllNodes(
@@ -251,6 +252,8 @@ class GlassProfilingSampleTest : ContextTest() {
 
     onNodeWithTag("glass_profiling_start").performClick()
     onNodeWithTag("glass_profiling_phase_complete").assertIsDisplayed()
+    // The grid scrolled, so the first member left the lazy composition.
+    onNodeWithTag("glass_profiling_lazy_member_0").assertDoesNotExist()
   }
 
   @Test

@@ -210,7 +210,9 @@ private fun GlassProfilingScene(
         interactionSource.emit(PressInteraction.Release(press))
         delay(GLASS_PROFILING_DURATION_MILLIS.toLong() / 2)
       }
-      GlassProfilingScenario.LazyContainerScroll -> {
+      GlassProfilingScenario.LazyContainerScroll,
+      GlassProfilingScenario.LazyIndependentScroll,
+      -> {
         // Scroll inside scroll {} so isScrollInProgress is true, as it is for a real drag.
         val distancePx = with(density) { ProfilingLazyScrollDistance.toPx() }
         var scrolledPx = 0f
