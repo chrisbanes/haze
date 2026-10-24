@@ -40,3 +40,12 @@ class ScreenshotMatrixReportTest(unittest.TestCase):
 
         self.assertEqual(expected_cases("android-native"), expected_native)
         self.assertEqual(expected_cases("native-backdrop-proof"), NATIVE_BACKDROP_PROOF)
+
+    def test_declares_scrim_fallback_on_host_profiles_only(self):
+        selector = "cupertino-scrim-fallback-sources-balanced"
+
+        self.assertIn(f"capture[{selector}][jvm]", expected_cases("desktop"))
+        android = expected_cases("android")
+        for sdk in ["[28]", "[32]", ""]:
+            self.assertIn(f"capture{sdk}[{selector}]", android)
+        self.assertFalse(any("cupertino" in case for case in expected_cases("android-native")))

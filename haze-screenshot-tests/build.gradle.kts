@@ -40,6 +40,7 @@ kotlin {
       dependencies {
         api(projects.hazeBlur)
         api(projects.hazeGlass)
+        implementation(projects.hazeMaterials)
         implementation(projects.hazeUtils)
         api(libs.compose.foundation)
         api(libs.compose.material3)

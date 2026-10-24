@@ -6,6 +6,7 @@ package dev.chrisbanes.haze
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.doesNotContain
 import assertk.assertions.each
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -20,13 +21,32 @@ import kotlin.test.Test
 class ScreenshotMatrixConfigurationTest {
 
   @Test
-  fun enrolledCases_coverTwoScenesTwoHostInputsAndAllNamedModes() {
+  fun enrolledCases_coverThreeScenesTwoHostInputsAndAllNamedModes() {
     assertThat(ScreenshotMatrix.scenes.map { it.id })
-      .containsExactly("blur-credit-card", "glass-credit-card")
+      .containsExactly("blur-credit-card", "glass-credit-card", "cupertino-scrim-fallback")
     assertThat(ScreenshotMatrix.hostInputs.map { it.id })
       .containsExactly("sources", "backdrop-fallback")
     assertThat(ScreenshotMatrix.modes.map { it.id })
       .containsExactly("quality", "balanced", "performance")
+  }
+
+  @Test
+  fun cupertinoScrimFallback_isEnrolledOnceForSourcesBalancedOnly() {
+    val scrimCases = ScreenshotMatrix.hostCases(ScreenshotMatrixProfile.Desktop)
+      .filter { it.scene == ScreenshotMatrixScene.CupertinoScrimFallback }
+
+    assertThat(scrimCases.map { it.selectorId })
+      .containsExactly("cupertino-scrim-fallback-sources-balanced")
+    assertThat(scrimCases.map { it.artifactPath }).containsExactly(
+      "screenshots/matrix/desktop/cupertino-scrim-fallback/sources/balanced.webp",
+    )
+    assertThat(ScreenshotMatrix.hostCases(ScreenshotMatrixProfile.Desktop).size).isEqualTo(13)
+
+    val native = ScreenshotMatrix.nativeHostCases(
+      ScreenshotMatrixProfile.AndroidHost(SCREENSHOT_MATRIX_ANDROID_SDK_37),
+    )
+    assertThat(native.size).isEqualTo(6)
+    assertThat(native.map { it.scene }).doesNotContain(ScreenshotMatrixScene.CupertinoScrimFallback)
   }
 
   @Test

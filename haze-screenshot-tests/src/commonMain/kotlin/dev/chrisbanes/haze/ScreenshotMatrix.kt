@@ -18,6 +18,7 @@ internal object ScreenshotMatrix {
   val scenes = listOf(
     ScreenshotMatrixScene.BlurCreditCard,
     ScreenshotMatrixScene.GlassCreditCard,
+    ScreenshotMatrixScene.CupertinoScrimFallback,
   )
 
   val hostInputs = listOf(
@@ -84,7 +85,7 @@ internal object ScreenshotMatrix {
     scenes.forEach { scene ->
       inputs.forEach { input ->
         modes.forEach { mode ->
-          add(ScreenshotMatrixCase(scene, input, mode, profile))
+          if (scene.supports(input, mode)) add(ScreenshotMatrixCase(scene, input, mode, profile))
         }
       }
     }
@@ -100,6 +101,19 @@ internal const val SCREENSHOT_MATRIX_ANDROID_SDK_37 = 37
 internal enum class ScreenshotMatrixScene(val id: String) {
   BlurCreditCard("blur-credit-card"),
   GlassCreditCard("glass-credit-card"),
+
+  /**
+   * The Scrim fallback ignores both the input and the performance mode, so this scene is enrolled
+   * for one input and one mode only. A single image holds every Cupertino preset in both themes.
+   */
+  CupertinoScrimFallback("cupertino-scrim-fallback"),
+  ;
+
+  fun supports(input: ScreenshotMatrixInput, mode: ScreenshotMatrixMode): Boolean = when (this) {
+    BlurCreditCard, GlassCreditCard -> true
+    CupertinoScrimFallback ->
+      input == ScreenshotMatrixInput.Sources && mode == ScreenshotMatrixMode.Balanced
+  }
 }
 
 internal enum class ScreenshotMatrixInput(val id: String) {
@@ -159,6 +173,10 @@ internal fun ScreenshotMatrixCase.Render() {
     )
     ScreenshotMatrixScene.GlassCreditCard -> CreditCardGlassSample(
       style = GlassStyle { tint(MatrixTintColor) },
+      performanceMode = mode.performanceMode,
+      input = { sourceState -> input.createInput(sourceState, nativeFallbackState) },
+    )
+    ScreenshotMatrixScene.CupertinoScrimFallback -> CupertinoScrimFallbackSample(
       performanceMode = mode.performanceMode,
       input = { sourceState -> input.createInput(sourceState, nativeFallbackState) },
     )

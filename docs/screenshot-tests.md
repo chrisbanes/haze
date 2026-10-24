@@ -2,10 +2,12 @@
 
 The host matrix replaces the Blur and Glass `creditCard` tests with independent configurations.
 Other library regression and sample presentation suites remain in place. Current coverage is
-12 Desktop cases, 36 Sources/forced-fallback Android host cases, and 6 SDK 37 native-Backdrop
+13 Desktop cases, 39 Sources/forced-fallback Android host cases, and 6 SDK 37 native-Backdrop
 Robolectric cases: two scenes × Sources/forced Backdrop fallback × Quality/Balanced/Performance
 on Desktop and Android SDKs 28, 32, and 35, plus two scenes × native Backdrop × those three
-modes on SDK 37.
+modes on SDK 37. The Cupertino scrim-fallback scene adds one Sources/Balanced case per Desktop and
+Android host SDK (it renders every Cupertino preset with Blur off; the Scrim ignores input and
+performance mode); it has no native-Backdrop case.
 
 Baselines live at `screenshots/matrix/<profile>/<scene>/<input>/<mode>.webp`. Each configuration
 has an independent golden. Forced-fallback cases also compare live pixels against a fresh Sources

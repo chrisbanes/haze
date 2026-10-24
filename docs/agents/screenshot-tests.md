@@ -1,7 +1,8 @@
 # Screenshot-test guidance
 
 Read [the canonical screenshot-test commands and profiles](../screenshot-tests.md) before changing
-library screenshots. The matrix currently covers only the Blur and Glass credit-card scenes. The
+library screenshots. The matrix currently covers the Blur and Glass credit-card scenes and the
+Cupertino scrim-fallback scene (Sources and Balanced only). The
 remaining library regression tests and sample presentation screenshots are still separate suites.
 
 Reuse one of those shared scenes and add applicable catalog cases. Do not copy a test class or put

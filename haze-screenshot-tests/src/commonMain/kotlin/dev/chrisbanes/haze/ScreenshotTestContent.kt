@@ -6,6 +6,7 @@ package dev.chrisbanes.haze
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
+import dev.chrisbanes.haze.blur.materials.CupertinoMaterials
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 import haze_root.haze_screenshot_tests.generated.resources.Res
@@ -90,6 +92,72 @@ internal fun CreditCardSample(
         modifier = Modifier
           .align(Alignment.Center),
       )
+    }
+  }
+}
+
+/**
+ * Every Cupertino preset in light (left) and dark (right) with Blur disabled, so each bar is drawn
+ * by the Scrim fallback.
+ */
+@Composable
+internal fun CupertinoScrimFallbackSample(
+  performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
+  input: (HazeState) -> HazeInput = { HazeInput.Sources(it) },
+) {
+  val hazeState = remember { HazeState() }
+
+  Box {
+    CreditCardBackground(
+      backgroundColors = listOf(Color.Blue, Color.Cyan),
+      modifier = Modifier
+        .fillMaxSize()
+        .hazeSource(state = hazeState, zIndex = 0f),
+    )
+
+    Row(
+      horizontalArrangement = Arrangement.spacedBy(24.dp),
+      modifier = Modifier
+        .fillMaxSize()
+        .padding(24.dp),
+    ) {
+      listOf(false, true).forEach { isDark ->
+        val containerColor = if (isDark) Color.Black else Color.White
+        val styles = listOf(
+          "ultraThin" to CupertinoMaterials.ultraThin(containerColor),
+          "thin" to CupertinoMaterials.thin(containerColor),
+          "regular" to CupertinoMaterials.regular(containerColor),
+          "thick" to CupertinoMaterials.thick(containerColor),
+        )
+
+        Column(
+          verticalArrangement = Arrangement.spacedBy(24.dp),
+          modifier = Modifier
+            .weight(1f)
+            .fillMaxHeight(),
+        ) {
+          styles.forEach { (name, style) ->
+            Box(
+              contentAlignment = Alignment.Center,
+              modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .clip(RoundedCornerShape(16.dp))
+                .hazeBlur(
+                  input = input(hazeState),
+                  style = style.then { blurEnabled(false) },
+                  performanceMode = performanceMode,
+                ),
+            ) {
+              Text(
+                text = name,
+                color = if (isDark) Color.White else Color.Black,
+                style = MaterialTheme.typography.headlineSmall,
+              )
+            }
+          }
+        }
+      }
     }
   }
 }
