@@ -109,11 +109,13 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
   val noiseFactor = blurVisualEffect.noiseFactor
   val blurRadius = blurVisualEffect.blurRadius.takeOrElse { 0.dp }
 
-  // Bands overlap, so fade their composite once: masking each band would not be equivalent.
+  // Bands overlap, so fade their composite once: masking or fading each band would not be equivalent.
   val userMask = blurVisualEffect.mask
+  val alpha = blurVisualEffect.alpha
   val layerSize = contentLayer.size.toSize()
-  if (userMask != null) {
-    drawContext.canvas.saveLayer(Rect(Offset.Zero, layerSize), Paint())
+  val compositeLayer = userMask != null || alpha < 1f
+  if (compositeLayer) {
+    drawContext.canvas.saveLayer(Rect(Offset.Zero, layerSize), Paint().apply { this.alpha = alpha })
   }
 
   var band = 0
@@ -142,7 +144,7 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
         slot = slot,
       ),
     )
-    layer.alpha = blurVisualEffect.alpha
+    layer.alpha = 1f
 
     // Since we included a border around the content, we need to translate so that
     // we don't see it (but it still affects the RenderEffect)
@@ -161,6 +163,8 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
         blendMode = BlendMode.DstIn,
       )
     }
+  }
+  if (compositeLayer) {
     drawContext.canvas.restore()
   }
 }
