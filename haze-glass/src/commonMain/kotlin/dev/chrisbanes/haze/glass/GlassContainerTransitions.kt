@@ -73,8 +73,8 @@ internal fun GlassMemberSnapshot.morphedFrom(from: GlassMemberSnapshot, fraction
  *
  * [ordered] is every registration's snapshot, with [member] at its registration position;
  * [excluded] members are not visible yet. A neighbour must satisfy [canTransitionWith], be within
- * the full merge distance (unless it shares [member]'s non-null group key, which prefers it at any
- * distance), and share a cluster with [member] placed on it, so the consecutive-run and cap rules
+ * the full merge distance of its group's bounds (unless it shares [member]'s non-null group key,
+ * which prefers it at any distance), and share a cluster with [member] placed on it, so the consecutive-run and cap rules
  * still hold. Every live member of that cluster must also resolve [member]'s sources.
  */
 internal fun resolveGlassNeighbour(
@@ -83,15 +83,18 @@ internal fun resolveGlassNeighbour(
   mergeDistancePx: Float,
   excluded: Set<Any> = emptySet(),
 ): GlassMemberSnapshot? {
+  // A group counts as one member, so a candidate is as near as its unit's bounds.
+  val unitBounds = glassUnitLayoutBounds(ordered)
+  fun GlassMemberSnapshot.gap() = glassMemberGap(member.layoutRect, unitBounds[identity] ?: layoutRect)
   return ordered
     .filter { candidate ->
       candidate.identity is GlassMemberNode && candidate.identity !== member.identity && candidate.identity !in excluded &&
         member.canTransitionWith(candidate) &&
         // Members of one group draw as one shape at any distance.
-        (candidate.isGroupedWith(member) || glassMemberGap(member.layoutRect, candidate.layoutRect) < mergeDistancePx)
+        (candidate.isGroupedWith(member) || candidate.gap() < mergeDistancePx)
     }
     // Same group first, then nearest; the first candidate that can cluster with the member wins.
-    .sortedWith(compareBy({ !it.isGroupedWith(member) }, { glassMemberGap(member.layoutRect, it.layoutRect) }))
+    .sortedWith(compareBy({ !it.isGroupedWith(member) }, { it.gap() }))
     .firstOrNull { candidate ->
       val probe = ordered.map {
         if (it.identity === member.identity) it.copy(rect = candidate.rect, layoutRect = candidate.layoutRect, key = candidate.key, link = candidate.identity) else it

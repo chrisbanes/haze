@@ -159,6 +159,9 @@ internal abstract class GlassRuntimeState {
   internal val chromaticAberrationMode: ChromaticAberrationMode get() = inheritedStyleValues.chromaticAberrationMode
   internal val shape: RoundedCornerShape get() = inheritedStyleValues.shape
   internal open val alpha: Float get() = inheritedStyleValues.alpha * transitionAlpha
+
+  /** The authored alpha, without [transitionAlpha]. */
+  internal val styleAlpha: Float get() = inheritedStyleValues.alpha
   internal val contrast: Float get() = inheritedStyleValues.contrast
   internal val whitePoint: Float get() = inheritedStyleValues.whitePoint
   internal val chromaMultiplier: Float get() = inheritedStyleValues.chromaMultiplier

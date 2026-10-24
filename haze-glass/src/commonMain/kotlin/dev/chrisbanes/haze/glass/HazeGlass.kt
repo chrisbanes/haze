@@ -52,9 +52,11 @@ import dev.chrisbanes.haze.hazeEffect
  * is ignored outside a container. Haze animates only the glass, so animate member content
  * yourself, for example with `AnimatedVisibility`.
  * @param groupKey Groups this member with others in the same [hazeGlassContainer]. Members with an
- * equal (`==`), non-null key that are consecutive in registration order draw as one Glass shape over
+ * equal (`==`), non-null key that are consecutive in layout order draw as one Glass shape over
  * the bounding box of their rects, at any distance, and attach to or detach from each other at any
- * distance. `null` leaves the member ungrouped. It is ignored outside a container.
+ * distance. Layout order is the members' position in the layout tree, which is composition order in
+ * a `Row` or `Column`; a member that hides and shows again, or a lazy item that scrolls back in,
+ * keeps its place. `null` leaves the member ungrouped. It is ignored outside a container.
  */
 @Stable
 public fun Modifier.hazeGlass(

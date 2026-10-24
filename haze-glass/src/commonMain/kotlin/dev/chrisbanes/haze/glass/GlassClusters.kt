@@ -150,6 +150,16 @@ internal fun formGlassGroupUnits(members: List<GlassMemberSnapshot>): List<List<
   return units
 }
 
+/**
+ * The union of the layout rects of the unit each member of [ordered] belongs to, by identity, formed
+ * as [clusterGlassMembers] forms units. Members it leaves out have no entry.
+ */
+internal fun glassUnitLayoutBounds(ordered: List<GlassMemberSnapshot>): Map<Any, Rect> =
+  formGlassGroupUnits(ordered.filter { it.rect.isValidGlassMember() }).flatMap { unit ->
+    val bounds = unit.map { it.layoutRect }.union()
+    unit.map { it.identity to bounds }
+  }.toMap()
+
 private fun GlassMemberSnapshot.canCluster() = translationOnly && !fading
 
 /** [opticalSize] defaults to every member's layout rect; a container passes its live members' only. */

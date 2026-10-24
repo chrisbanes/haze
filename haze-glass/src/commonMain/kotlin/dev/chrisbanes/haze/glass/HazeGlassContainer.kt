@@ -63,7 +63,7 @@ import kotlinx.coroutines.launch
  * Without RuntimeShader support, or when a cluster exceeds the render budget, each cluster draws
  * as one surface clipped to the hard union of its members, with no bridge. Members keep their own
  * tint and background, except that a group draws as its single shape with its first member's tint
- * and background. Where members overlap, the earlier registered member's colours apply.
+ * and background. Where members overlap, the colours of the member earlier in layout order apply.
  *
  * Members that attach or detach after the container's first draw animate their glass as each
  * member's [GlassMemberTransition] declares, timed by [transitionSpec], which defaults to
@@ -144,7 +144,7 @@ internal class GlassContainerNode(
   override var surfaceCoordinates: LayoutCoordinates? = null
     private set
 
-  /** Registration order: live members, and ghosts in the position of the member that left. */
+  /** Live members in layout order (see [orderRegistrationsByLayout]), and ghosts in the position of the member that left. */
   private val registrations = mutableListOf<Any>()
   private val members: List<GlassMemberNode> get() = registrations.filterIsInstance<GlassMemberNode>()
 
@@ -234,7 +234,7 @@ internal class GlassContainerNode(
     observeScroll()
     // ghostOf reads latest, so the pass that records this member's departure snapshot (or drops a
     // collapsed member's) runs before it is removed. While suppressed or off, no ghost is made.
-    if (leaving && reclusterPending && !suppressTransitions && !transitionsOff) recluster(layoutComplete = false)
+    if (leaving && reclusterPending && !suppressTransitions && !transitionsOff) recluster(layoutComplete = false, leaving = member)
     renderer.releaseMember(member)
     pending -= member
     attaching.remove(member)?.job?.cancel()
@@ -254,6 +254,22 @@ internal class GlassContainerNode(
       if (ghost != null) registrations[index] = ghost else registrations.removeAt(index)
     }
     memberChanged()
+  }
+
+  /**
+   * Refills the slots held by members this container's layout walk visits, in layout order. A member
+   * that reattaches or scrolls back in keeps its place among its neighbours instead of joining
+   * the end. Ghosts, members the walk does not visit and the [leaving] member keep their slots.
+   */
+  private fun orderRegistrationsByLayout(leaving: GlassMemberNode?) {
+    val ordered = mutableListOf<GlassMemberNode>()
+    traverseDescendants(GlassMemberTraversalKey) {
+      (it as GlassMemberNode).takeIf { member -> member !== leaving && member.container === this@GlassContainerNode }?.let(ordered::add)
+      TraverseDescendantsAction.ContinueTraversal
+    }
+    val visited = ordered.filter { it in registrations }
+    val slots = registrations.indices.filter { registrations[it] in visited }
+    slots.forEachIndexed { i, slot -> registrations[slot] = visited[i] }
   }
 
   private fun endGhosts(predicate: (GlassMemberGhost) -> Boolean) {
@@ -315,7 +331,8 @@ internal class GlassContainerNode(
     invalidateDraw()
   }
 
-  private fun recluster(layoutComplete: Boolean) {
+  /** [leaving] is a member being removed: a lazy layout can already have moved its node to the end of the layout, so it keeps its slot. */
+  private fun recluster(layoutComplete: Boolean, leaving: GlassMemberNode? = null) {
     if (!isAttached || refreshing || surfaceCoordinates == null) return
     reclusterPending = false
     reclusterPasses++
@@ -325,6 +342,7 @@ internal class GlassContainerNode(
       // Reached from a draw or a member's removal: the animated interaction and transition reads
       // below must not make that draw observe them and re-run every frame.
       Snapshot.withoutReadObservation {
+        orderRegistrationsByLayout(leaving)
         if (pending.isNotEmpty()) startTransitions(liveSnapshots())
         val registered = members
         val opticalSize = glassOpticalSize(opticalSizes(registered))
@@ -451,12 +469,16 @@ internal class GlassContainerNode(
 
   /**
    * Each member's [localSize], except that a run of consecutive members sharing a non-null group
-   * key counts once, at the size of the union of their layout rects.
+   * key counts once, at the size of the union of their layout rects. A member whose input,
+   * `expandLayerBounds`, optics or authored alpha differ from the run's first draws apart from it,
+   * so it starts a run of its own. Fading and pressed members stay in their run, so the optical
+   * size does not jump when a fade ends or a press starts.
    */
   private fun opticalSizes(nodes: Collection<GlassMemberNode>): List<Size> {
     val owner = surfaceCoordinates
     val sizes = mutableListOf<Size>()
     var runKey: Any? = null
+    var runFirst: GlassMemberNode? = null
     var runBounds: Rect? = null
     for (node in nodes) {
       val size = node.localSize() ?: continue
@@ -466,19 +488,29 @@ internal class GlassContainerNode(
       val current = runBounds
       if (bounds == null) {
         runKey = null
+        runFirst = null
         runBounds = null
         sizes += size
-      } else if (current != null && key == runKey) {
+      } else if (current != null && key == runKey && node.drawsWithGroupOf(checkNotNull(runFirst))) {
         val union = listOf(current, bounds).union()
         runBounds = union
         sizes[sizes.lastIndex] = union.size
       } else {
         runKey = key
+        runFirst = node
         runBounds = bounds
         sizes += size
       }
     }
     return sizes
+  }
+
+  private fun GlassMemberNode.drawsWithGroupOf(first: GlassMemberNode): Boolean {
+    val runtime = binding.runtime
+    val firstRuntime = first.binding.runtime
+    return runtime != null && firstRuntime != null &&
+      binding.input == first.binding.input && binding.expandLayerBounds == first.binding.expandLayerBounds &&
+      runtime.optics == firstRuntime.optics && runtime.styleAlpha == firstRuntime.styleAlpha
   }
 
   private fun liveSnapshots(): Map<GlassMemberNode, GlassMemberSnapshot> = members.mapNotNull { member ->
@@ -506,16 +538,22 @@ internal class GlassContainerNode(
   private fun GlassMemberSnapshot.isWithinMergeDistanceOf(neighbour: GlassMemberNode, live: Map<GlassMemberNode, GlassMemberSnapshot>): Boolean {
     val drawn = drawnSnapshot(neighbour, live) ?: return false
     if (isGroupedWith(drawn)) return true
-    // A growing neighbour can overshoot away from its own layout rect, which stays as near as it was.
-    return minOf(glassMemberGap(layoutRect, drawn.layoutRect), glassMemberGap(layoutRect, live.getValue(neighbour).layoutRect)) < mergeDistancePx
+    // A group counts as one member, so measure to its unit's bounds. A growing neighbour can
+    // overshoot away from its own layout rect, which stays as near as it was.
+    val unit = glassUnitLayoutBounds(drawnSnapshots(live))[neighbour] ?: drawn.layoutRect
+    return minOf(glassMemberGap(layoutRect, unit), glassMemberGap(layoutRect, live.getValue(neighbour).layoutRect)) < mergeDistancePx
   }
+
+  /** Every registration's snapshot as drawn now, in order. */
+  private fun drawnSnapshots(live: Map<GlassMemberNode, GlassMemberSnapshot>): List<GlassMemberSnapshot> =
+    registrations.mapNotNull { if (it is GlassMemberNode) drawnSnapshot(it, live) else latest[it] }
 
   /** What [member] draws now: a member growing out of its neighbour is at its last morphed shape. */
   private fun drawnSnapshot(member: GlassMemberNode, live: Map<GlassMemberNode, GlassMemberSnapshot>): GlassMemberSnapshot? =
     live[member]?.let { snapshot -> latest[member]?.takeIf { attaching[member]?.neighbour != null } ?: snapshot }
 
   private fun startTransitions(live: Map<GlassMemberNode, GlassMemberSnapshot>) {
-    val ordered = registrations.mapNotNull { if (it is GlassMemberNode) drawnSnapshot(it, live) else latest[it] }
+    val ordered = drawnSnapshots(live)
     // Members appearing in this pass are not visible yet, so none can grow out of another.
     val appearing = pending.toSet()
     for (member in pending.toList()) {

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -129,6 +130,38 @@ class GlassContainerGroupRenderTest : ContextTest() {
   }
 
   @Test
+  fun opticalSizes_groupMemberWithDifferentAlpha_doesNotInflateOpticalSize() = runComposeUiTest {
+    // The half-transparent member draws on its own, so it cannot widen the group's optical size.
+    val small = opticalGroup(grouped = true, secondAlpha = 0.5f)
+    assertThat(small.opticalSizeOverride).isEqualTo(Size(40f, 40f))
+  }
+
+  @Test
+  fun groupKeyToggled_joinsAndSplitsGroup() = runComposeUiTest {
+    val key = mutableStateOf<Any?>(null)
+    val fixture = group(stacked = true, secondKey = { key.value })
+    fun assertSplit() {
+      val surfaces = fixture.owner().model.surfaces
+      assertThat(surfaces).hasSize(2)
+      assertThat(surfaces.map { it.members.single().rect }).isEqualTo(
+        listOf(Rect(40f, 60f, 140f, 100f), Rect(40f, 160f, 140f, 200f)),
+      )
+      assertThat(fixture.first.opticalSizeOverride).isEqualTo(Size(40f, 40f))
+    }
+    assertSplit()
+
+    runOnIdle { key.value = "group" }
+    waitForIdle()
+    assertThat(fixture.field().members).hasSize(1)
+    assertThat(fixture.field().members.single().rect).isCloseTo(Rect(40f, 40f, 140f, 180f))
+    assertThat(fixture.first.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+
+    runOnIdle { key.value = null }
+    waitForIdle()
+    assertSplit()
+  }
+
+  @Test
   fun ungroupedMembers_setContainerOpticalSizeFromEachMember() = runComposeUiTest {
     val small = opticalGroup(grouped = false)
     assertThat(small.opticalSizeOverride).isEqualTo(Size(40f, 40f))
@@ -157,7 +190,7 @@ class GlassContainerGroupRenderTest : ContextTest() {
   }
 
   /** Two stacked 100x40 members and a separate 30x30 member; returns the small member's runtime. */
-  private fun ComposeUiTest.opticalGroup(grouped: Boolean, rotateSecond: Float = 0f, scaleSecond: Float = 1f): GlassRuntimeEffect {
+  private fun ComposeUiTest.opticalGroup(grouped: Boolean, rotateSecond: Float = 0f, scaleSecond: Float = 1f, secondAlpha: Float = 1f): GlassRuntimeEffect {
     val effects = List(3) { GlassRuntimeEffect() }
     val state = HazeState()
     setContent {
@@ -176,7 +209,7 @@ class GlassContainerGroupRenderTest : ContextTest() {
                 }.hazeGlass(
                   HazeEffectFactory { effects[index] },
                   HazeInput.Sources(state),
-                  containerTestStyle(Color.Red),
+                  containerTestStyle(Color.Red, alpha = if (index == 1) secondAlpha else 1f),
                   HazePerformanceMode.Quality,
                   true,
                   null,
@@ -198,6 +231,7 @@ class GlassContainerGroupRenderTest : ContextTest() {
     secondTint: Color = Color.Blue,
     pivot: GlassTransformPivot = GlassTransformPivot.Center,
     stacked: Boolean = false,
+    secondKey: () -> Any? = { "group" },
   ): GroupFixture {
     val first = GlassRuntimeEffect()
     val second = GlassRuntimeEffect()
@@ -228,7 +262,7 @@ class GlassContainerGroupRenderTest : ContextTest() {
               HazeEffectFactory { second }, HazeInput.Sources(state),
               containerTestStyle(secondTint).then(GlassStyle { shape(RoundedCornerShape(percent = 50)) }).then(pressed),
               HazePerformanceMode.Quality, true, secondSource, GlassTransformTarget.MaterialOnly, pivot,
-              GlassReducedMotionPolicy.Full, groupKey = "group",
+              GlassReducedMotionPolicy.Full, groupKey = secondKey(),
             ),
           )
         }
