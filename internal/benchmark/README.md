@@ -13,6 +13,7 @@ see the [performance guide](../../docs/performance.md); published historical mea
 | Diagnose one controlled scenario or run Gallery journeys | [Run a profile](#run-a-profile) |
 | Compare a merged Glass cluster with independent surfaces | [Glass container comparison](#glass-container-comparison) |
 | Compare container reclustering cost while a lazy grid scrolls | [Lazy container scroll workload](#lazy-container-scroll-workload) |
+| Compare resting gap, join/leave, group, press, lazy-independent or cold container workloads | [Animated container workloads](#animated-container-workloads) |
 | Compare source and native backdrop paths | [Android 37.2 comparisons](#android-372-sourcebackdrop-comparisons) |
 | Compare unshared, feed-only and nested input sharing | [Nested input-sharing comparison](#nested-input-sharing-comparison) |
 | Find artifacts and interpret metrics or traces | [Results](#results) |
@@ -151,8 +152,13 @@ parameter except the container:
 - `HazePerformanceMode.Default` (`Balanced`), `HazeInput.Sources`, and the Regular style;
 - the continuously changing source workload used by `source_update_balanced`.
 
-`source_update_container_2` wraps the grid in `hazeGlassContainer(mergeDistance = 32.dp)`. The 12 dp
-gap is less than half of the merge distance, so the two surfaces form one two-member cluster.
+`source_update_container_2` wraps the grid in `hazeGlassContainer(mergeDistance = 32.dp)`. Members
+join one cluster when the gap between them is below the merge distance, so the two surfaces form one
+two-member cluster. Within a cluster, the shader bridges members while their gap is below half the
+merge distance, and a member's standalone weight stays 0 until its nearest gap passes half the merge
+distance. The 12 dp gap is below half of 32 dp, so this pair sits in the weight-0 case. Resting gaps
+between half and the full merge distance take a different shader path, which
+[Animated container workloads](#animated-container-workloads) covers.
 
 Both use the changing-source workload, not the steady one. `HazeSource.record` re-records the same
 source layer every frame, but that does not re-enter the Glass draw: the Glass layers were recorded
@@ -189,8 +195,9 @@ system GPU data alongside CPU frame duration.
 - a fixed 360×560 dp `LazyVerticalGrid` of five columns, with 56 dp tall members 12 dp apart, shows
   about nine rows, so 40-45 members are visible;
 - the grid is `hazeGlassContainer(mergeDistance = 16.dp, scrollState = gridState)`. The 12 dp gap
-  is at least half of the merge distance, so every member is its own cluster. The GPU cost per
-  member stays constant, and the workload isolates the reclustering cost. Before #1567, every member
+  is below the merge distance, so adjacent members join clusters (at most four members per connected
+  component). The workload measures the reclustering cost together with the cost of those clusters;
+  `lazy_independent_scroll` is the like-for-like pair without a container. Before #1567, every member
   notification reclustered all members. Each pass checked on the order of the member count squared
   in pairs, so the one notification per member in a frame cost on the order of the member count
   cubed;
@@ -198,9 +205,35 @@ system GPU data alongside CPU frame duration.
   `gridState.scroll { }`, so `isScrollInProgress` is true, as it is for a real drag;
 - `HazeInput.Sources` over the scene's stationary source, the Regular style and `Balanced`.
 
-The row records frame timing, frame overrun and peak memory. It has no per-frame layer gate: every
-member is its own cluster, so the layer count follows the number of visible members. Compare it
-across builds only, with [Run the lazy container scroll comparison](#run-the-lazy-container-scroll-comparison).
+The row records frame timing, frame overrun and peak memory. It has no per-frame layer gate: the
+layer count follows the visible members and how they cluster. Compare it across builds only, with
+[Run the lazy container scroll comparison](#run-the-lazy-container-scroll-comparison).
+
+#### Animated container workloads
+
+These six scenarios extend the container comparison. Each runs through the existing
+`glass-profiling` route and the `BENCHMARK_SCENARIO` extra, and is a method of
+`GlassProfilingBenchmark`. The first four use the changing-source workload of
+`source_update_container_2`, so each differs from that control in one variable. The animated
+scenarios attach their Glass before the measured window, so they exclude first-effect
+initialization. Only `effect_attach_container_2` measures it.
+
+| Scenario | Method | Geometry and variable | Per-frame gate | Pairs with |
+| --- | --- | --- | --- | --- |
+| `container_gap_2` | `containerGap2` | Two members with a 24 dp resting gap, between half (16 dp) and the full 32 dp merge distance, so each keeps a standalone weight above 0 | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
+| `container_join_leave` | `containerJoinLeave` | Four fixed 60×120 dp slots 12 dp apart; the member count steps 2, 3, 4, 3, 2, 3, one change every half second, with `GlassReducedMotionPolicy.Reduced` so the morph runs at any animation scale | none: membership varies | `source_update_container_2` |
+| `container_group_3` | `containerGroup3` | Three members 48 dp apart, beyond the merge distance, sharing one `groupKey` | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
+| `container_press_2` | `containerPress2` | The `container_2` geometry; the first member is pressed and released three times, the second has no interaction source | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
+| `lazy_independent_scroll` | `lazyIndependentScroll` | The `lazy_container_scroll` grid with independent Glass members and no container | none: one layer per visible member | `lazy_container_scroll` |
+| `effect_attach_container_2` | `effectAttachContainer2` | The two-member container attached at the start of the measured window | none: cold initialization | `effect_attach` |
+
+The gates are provisional. A dry run writes only XML and cannot check them, so run a gated
+diagnostic on a device and confirm them before measuring. Add each of the first four methods to the
+`for method in` list of the loops in [Run the Glass container comparison](#run-the-glass-container-comparison);
+`gates_for` supplies its gates. The last two take no gates, like `lazy_container_scroll` and
+`effect_attach`; run them in a loop with `gates=()`, as in the lazy container loop. Check a dry run
+once per method, as described in [Validate automation](#validate-automation). Never publish a
+dry-run result as a measurement.
 
 ## Noise/tint construction
 
@@ -486,7 +519,8 @@ gates_for() {
   gates=(--per-frame hazeSourceRecordCount=0.9:1.1 --positive hazeGlassRuntimeDrawCount)
   case "$1" in
     sourceUpdateIndependent2) gates+=(--per-frame graphicsLayerDrawCount=1.8:2.2) ;;
-    sourceUpdateContainer2) gates+=(--per-frame graphicsLayerDrawCount=0.9:1.1) ;;
+    sourceUpdateContainer2|containerGap2|containerPress2|containerGroup3)
+      gates+=(--per-frame graphicsLayerDrawCount=0.9:1.1) ;;
   esac
 }
 ```
