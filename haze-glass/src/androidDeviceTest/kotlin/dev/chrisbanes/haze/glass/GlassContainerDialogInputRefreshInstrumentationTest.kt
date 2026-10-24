@@ -94,10 +94,10 @@ class GlassContainerDialogInputRefreshInstrumentationTest {
     }
     composeTestRule.waitForIdle()
 
+    val before = composeTestRule.awaitDialogCenterPixel { it.red > it.blue }
+    // The dialog window has drawn by now, so the container has reconciled its surfaces.
     val owner = checkNotNull(effects.first().memberBindingForTest?.node?.container)
     assertThat(owner.renderer.runtimeSurfaces, "merged surfaces").hasSize(1)
-
-    val before = composeTestRule.awaitDialogCenterPixel { it.red > it.blue }
     assertThat(before.red, "initial dialog red channel").isGreaterThan(before.blue)
 
     composeTestRule.mainClock.autoAdvance = false
