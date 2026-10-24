@@ -75,10 +75,12 @@ Members merge only when all of these hold:
 - **No rotation or scale.** A member rotated or scaled by its layout, for example with
   `graphicsLayer`, draws separately. Translation and a layer alpha, such as an `AnimatedVisibility`
   fade, don't prevent merging.
-- **Adjacent in order.** Members are ordered by when they attach: composition order at first, with
-  members added later placed after the existing ones. Only members next to each other in that order
-  share a cluster. A non-matching member between two compatible ones splits them, even when it is
-  far away, because merging never changes drawing order.
+- **Adjacent in order.** Members are ordered by their position in the layout tree, which is
+  composition order in a `Row` or `Column`. A member that hides and shows again, or a lazy item that
+  scrolls back in, keeps its place. A leaving member's glass keeps its place until its animation
+  ends. Only members next to each other in that order share a cluster. A non-matching member between
+  two compatible ones splits them, even when it is far away, because merging never changes drawing
+  order. Members that overlap draw in this order.
 - **At most four per cluster.** Extra members draw separately, without a bridge. Where an extra
   member overlaps the cluster, blur and tint apply twice in the overlap.
 
@@ -108,7 +110,7 @@ Row(
 ```
 
 Members of one container with an equal, non-null `groupKey` that are next to each other in
-registration order draw as one Glass shape over the bounding box of their rects. In the example, the
+layout order draw as one Glass shape over the bounding box of their rects. In the example, the
 two circles become one capsule that spans the row, although they are far apart. Keys compare with
 `==`. A `null` key leaves the member ungrouped, and Haze ignores `groupKey` outside a container.
 
@@ -126,8 +128,11 @@ two circles become one capsule that spans the row, although they are far apart. 
   bounds, so it can bridge with a neighbouring member. It also counts as one member towards the
   four-member limit.
 - **Optical size.** The group's bounds count once toward the container's
-  [optical size](#optical-size).
-- **Transitions.** Members of the same group are neighbours at any distance. With the default
+  [optical size](#optical-size). A member left out of the group because its input, layer-bounds
+  setting, optics or `alpha` differ counts on its own, and doesn't widen the group's size. Fading and
+  pressed members still count with their group.
+- **Transitions.** Members of the same group are neighbours at any distance, and another member
+  is a neighbour when it is within the merge distance of the group's bounds. With the default
   `MatchedGeometry`, a member that attaches grows the group's bounds, and one that detaches shrinks
   them, timed by `transitionSpec`. A fading member leaves the group while it fades. With
   `Materialize`, or any other fade, a fading member in the middle of a group therefore splits it
@@ -236,6 +241,9 @@ LazyRow(
 
 Drags, flings, `animateScrollBy` and `scrollToItem` are scrolls. Position changes made outside a
 scroll, such as `requestScrollToItem` or `dispatchRawDelta`, are not, so their items animate.
+
+A group of items that scrolls out and back in draws as one group again, because items keep their
+place in layout order.
 
 Without `scrollState`, items that scroll into view animate like any other new member. With the
 default `MatchedGeometry`, an item's glass grows out of its neighbor and lags its content, and an

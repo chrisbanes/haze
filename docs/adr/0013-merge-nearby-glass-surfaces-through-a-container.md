@@ -33,9 +33,9 @@ member's glass behind its own children. A member's own style still sets its shap
   arrays. Beyond four, the extra members draw on their own without a bridge, in a deterministic
   order. Where an extra member overlaps the cluster, blur and tint apply twice in the overlap,
   which is the visible cost of the cap.
-- A cluster draws at one z-position, so only members registered consecutively share a surface. A
-  member registered between two compatible neighbours splits them, even when it is far away, so
-  merging never reorders members.
+- A cluster draws at one z-position, so only members next to each other in layout order share a
+  surface. A member between two compatible neighbours in that order splits them, even when it is far
+  away, so merging never reorders members.
 - Members can merge only when their input, performance mode and material values are equal:
   optics, surface profile, specular and edge response, chromatic aberration, tone, light position
   and alpha. Values that belong to each member are excluded from that comparison: `shape`,
@@ -174,7 +174,7 @@ blends members by proximity. The captures are in the
 Both call the parameter `unionKey`; it ships as `groupKey`, and the entity is a **Glass group**.
 `mergeDistance` keeps both of its roles, because it also sets the width of the bridge.
 
-Members of one container with an equal, non-null `groupKey` that are consecutive in registration
+Members of one container with an equal, non-null `groupKey` that are consecutive in layout
 order draw as one Glass shape over the bounding box of their rects:
 
 - **Shape and appearance.** The first member supplies the `RoundedCornerShape`, resolved at the
@@ -182,14 +182,18 @@ order draw as one Glass shape over the bounding box of their rects:
   member keeps its own shape and colours, to members outside a group.
 - **Members left out.** A member whose merge key differs from the first member's, or that is
   rotated, scaled or fading, draws on its own under the existing rules.
-- **Order.** A member between two group members that isn't in the group splits them into separate
-  groups. This keeps the rule that merging never reorders members.
+- **Order.** Members are ordered by their position in the layout tree, so a member that reattaches
+  or a lazy item that scrolls back in keeps its place. A member between two group members that isn't
+  in the group splits them into separate groups. This keeps the rule that merging never reorders
+  members.
 - **Proximity.** A group counts as one member for `mergeDistance` clustering, measured from its
   bounds, and for the four-member cap.
-- **Optical size.** The group's bounds count as one member in the container-wide optical size.
+- **Optical size.** The group's bounds count as one member in the container-wide optical size. A
+  member whose input, `expandLayerBounds`, optics or authored alpha differ counts on its own.
 - **Transitions.** Members of the same group are transition neighbours at any distance, so a
   `MatchedGeometry` member that attaches or detaches animates the group's bounds through
-  `transitionSpec`. A fading member leaves the group while it fades.
+  `transitionSpec`. A fading member leaves the group while it fades. Another member is a neighbour
+  when it is within `mergeDistance` of the group's bounds.
 - **Interaction.** A press on any member drives the whole group's scale and light. Each member's
   content still follows its own transform target.
 - **Fallback and containers.** The fallback renderer draws a group as its single shape, and

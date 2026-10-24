@@ -75,7 +75,7 @@ surface. Their edges stretch towards each other and form smooth bridges as they 
 _Avoid_: Union, blob, merged group
 
 **Glass group**:
-Glass members of one container that share a group key and are consecutive in registration order.
+Glass members of one container that share a group key and are consecutive in layout order.
 They draw as one Glass shape over their combined bounds, whatever the distance between them. A
 group takes part in a Glass cluster as one member.
 _Avoid_: Glass container, union
