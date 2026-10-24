@@ -66,7 +66,13 @@ internal class RenderScriptBlurVisualEffectDelegate(
     private set
   private val drawScope = CanvasDrawScope()
 
-  private var currentJob: Job? = null
+  // Test seam: host tests have no input Surface, so they replace the write to it.
+  internal var writeToSurface: (RenderScriptContext, GraphicsLayer, Density) -> Unit =
+    { rs, layer, density -> rs.inputSurface.drawGraphicsLayer(layer, density, drawScope) }
+
+  // Internal so host tests can wait for the update to finish.
+  internal var currentJob: Job? = null
+    private set
   private var drawSkipped: Boolean = false
   private var completedCaptureKey: InputCaptureKey? = null
   private val retainedOutputState = BlurRetainedOutputState()
@@ -326,18 +332,22 @@ internal class RenderScriptBlurVisualEffectDelegate(
         return@traceAsync
       }
 
-      traceAsync("Haze-RenderScriptBlurEffect-updateSurface-drawLayerToSurface", 0) {
+      // The trace lambda is crossinline, so it reports failure rather than returning from this block.
+      val surfaceWritten = traceAsync("Haze-RenderScriptBlurEffect-updateSurface-drawLayerToSurface", 0) {
         try {
           // Draw the layer (this is async)
-          rs.inputSurface.drawGraphicsLayer(layer = paddedContent, density = density, drawScope = drawScope)
+          writeToSurface(rs, paddedContent, density)
         } catch (e: IllegalStateException) {
           HazeLogger.d(TAG) { "Surface draw failed, likely destroyed. Releasing context." }
           releaseRenderScriptContext()
-          return@traceAsync
+          return@traceAsync false
         }
         // Wait for the layer to be written to the Surface
         rs.awaitSurfaceWritten()
+        true
       }
+      // Without output, the capture key stays uncommitted and the next draw retries.
+      if (!surfaceWritten) return@traceAsync
 
       // If the retained output was cleared during surface operations, bail out before using stale data
       if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@traceAsync
