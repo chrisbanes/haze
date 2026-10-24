@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.LocalAwtWindow
@@ -48,6 +49,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotEmpty
+import assertk.assertions.isNotEqualTo
 import java.awt.Frame
 import kotlin.test.Test
 
@@ -406,6 +408,75 @@ class HazeEffectSurfaceDrawTest {
       assertThat(owner.draws).isGreaterThan(before)
       assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[30, 30]).isEqualTo(Color.Blue)
     } finally {
+      (sourceWindow as? Frame)?.dispose()
+      (effectWindow as? Frame)?.dispose()
+    }
+  }
+
+  @Test
+  fun configuredSurface_inputSnapshotChangesWhenCrossWindowCaptureGenerationAdvances() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val first = SurfaceFactory(owner)
+    val second = SurfaceFactory(owner)
+    val state = HazeState()
+    val layerAlpha = mutableFloatStateOf(1f)
+    val snapshots = mutableListOf<HazeEffectInputSnapshot>()
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    owner.resolveSurfaces = {
+      configured = configured ?: first.surface.createConfiguredSurface(
+        HazeEffectFactory {
+          object : HazeEffectRenderer<Unit> {
+            override fun HazeEffectDrawScope.draw(style: Unit) {
+              snapshots.add(checkNotNull((this as HazeEffectRuntimeDrawScope).inputSnapshot))
+              drawInput()
+            }
+          }
+        },
+        Unit, Rect(0f, 0f, 110f, 30f), listOf(first.surface, second.surface),
+      )
+      listOf(checkNotNull(configured).surface)
+    }
+    val sourceWindow = createTestWindow("SourceWindow")
+    val effectWindow = createTestWindow("EffectWindow")
+    try {
+      setContent {
+        Box(Modifier.size(160.dp).background(Color.White)) {
+          CompositionLocalProvider(LocalAwtWindow provides sourceWindow) {
+            Box(Modifier.size(60.dp).hazeSource(state)) {
+              // Changing this layer leaves the source's contentVersion unchanged.
+              Box(Modifier.fillMaxSize().graphicsLayer { alpha = layerAlpha.floatValue }.background(Color.Red))
+            }
+          }
+          CompositionLocalProvider(LocalAwtWindow provides effectWindow) {
+            Box(Modifier.size(160.dp).then(OwnerElement(owner))) {
+              Box(Modifier.size(30.dp).hazeEffect(first, HazeInput.Sources(state), Unit))
+              Box(Modifier.offset(x = 80.dp).size(30.dp).hazeEffect(second, HazeInput.Sources(state), Unit))
+            }
+          }
+        }
+      }
+      waitForIdle()
+
+      val area = state.areas.single()
+      val before = snapshots.last()
+      val versionBefore = area.contentVersion
+      val sizeBefore = area.size
+      val drawsBefore = snapshots.size
+
+      layerAlpha.floatValue = 0f
+      mainClock.advanceTimeByFrame()
+      mainClock.advanceTimeByFrame()
+      waitForIdle()
+
+      assertThat(area.contentVersion, "contentVersion").isEqualTo(versionBefore)
+      assertThat(area.size, "size").isEqualTo(sizeBefore)
+      assertThat(snapshots.size, "cluster draws").isGreaterThan(drawsBefore)
+      assertThat(snapshots.last()).isNotEqualTo(before)
+    } finally {
+      runOnIdle {
+        configured?.dispose()
+        owner.resolveSurfaces = null
+      }
       (sourceWindow as? Frame)?.dispose()
       (effectWindow as? Frame)?.dispose()
     }

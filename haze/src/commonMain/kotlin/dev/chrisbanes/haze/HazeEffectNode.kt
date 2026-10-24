@@ -146,7 +146,8 @@ internal class HazeEffectNode(
   private var sourceDemandState: HazeState? = null
   private var hasRenderedTypedSourceOutput = false
   private var lastInputSnapshot: HazeEffectInputSnapshotImpl? = null
-  private var inputCaptureGeneration = 0L
+  internal var inputCaptureGeneration = 0L
+    private set
   private var isDrawing = false
   private var lastKnownCoordinates: LayoutCoordinates? = null
   internal val surface = HazeEffectSurface(this)
