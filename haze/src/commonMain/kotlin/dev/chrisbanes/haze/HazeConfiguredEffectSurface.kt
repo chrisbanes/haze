@@ -86,6 +86,12 @@ private class ConfiguredSurface<Style>(
   private var nativeRenderer: HazeBackdropRenderer? = null
   private var preparedBackdrop: HazeEffectBackdrop? = null
   private var temporaryFallback = false
+
+  // The last native capture transform, reused to report a temporarily rejected cluster's footprint
+  // without re-preparing the native backdrop (which releases the layers the portable draw needs).
+  private var nativeTransform: HazeEffectContentTransform? = null
+  private var nativePrepared = false
+  private var recovered = false
   private var disposed = false
   private var entries = emptyList<HazeSurfaceInputEntry>()
   private var snapshot: HazeEffectInputSnapshot? = null
@@ -120,6 +126,8 @@ private class ConfiguredSurface<Style>(
       nativeRenderer?.release()
       nativeRenderer = null
       preparedBackdrop = null
+      nativeTransform = null
+      recovered = false
       temporaryFallback = false
       input = nextInput
       backend.attach(anchor.node.surfaceNativeEligible())
@@ -199,6 +207,7 @@ private class ConfiguredSurface<Style>(
     layerSize = layerBounds.size
     layerOffset = Offset.Zero - layerBounds.topLeft
     if (layerSize.minDimension <= 0f || !layerSize.width.isFinite() || !layerSize.height.isFinite()) return null
+    nativePrepared = false
     var native = input is HazeInput.Backdrop && (!backend.usesFallback || temporaryFallback)
     if (native) {
       try {
@@ -216,12 +225,16 @@ private class ConfiguredSurface<Style>(
       members.forEach { it.usePortableInput(backend.selection == HazeBackdropBackendSelection.FallbackFailed, temporary = temporaryFallback) }
     }
     resolveEntries(owner.surfaceCoordinates)
+    // A temporarily rejected cluster keeps drawing its portable fallback until the owner restores native.
+    val awaitingNative = native && temporaryFallback && nativeTransform != null
     if (!mixedSelection) {
       inSurface(scope) {
         val runtime = runtimeScope(this)
-        preparedBackdrop = if (native) {
+        preparedBackdrop = if (native && !awaitingNative) {
+          nativePrepared = true
           try {
             with(renderer as HazeEffectRendererBackdrop<Style>) { runtime.backdropEffect(style) }
+              .also { nativeTransform = it?.materialTransform }
           } catch (exception: Exception) {
             HazeLogger.d("HazeEffectSurface", exception) { "Configured native preparation failed" }
             usePortableInput(true, temporary = false)
@@ -236,7 +249,7 @@ private class ConfiguredSurface<Style>(
     }
     // Members draw individually through their own input policy when the cluster cannot be drawn:
     // mixed selections or a declined native effect.
-    fallbackMembers = mixedSelection || (native && preparedBackdrop == null)
+    fallbackMembers = mixedSelection || (native && !awaitingNative && preparedBackdrop == null)
     if (fallbackMembers) {
       val footprints = members.mapNotNull { it.footprint(scope) }
       if (footprints.isEmpty()) return null
@@ -248,13 +261,13 @@ private class ConfiguredSurface<Style>(
     }
     val local = Rect(floor(layerBounds.left), floor(layerBounds.top), ceil(layerBounds.right), ceil(layerBounds.bottom))
     val output = local.translate(bounds.topLeft)
-    val capture = if (native && preparedBackdrop != null) {
-      val transform = checkNotNull(preparedBackdrop).materialTransform
+    val captureTransform = if (awaitingNative) nativeTransform else preparedBackdrop?.materialTransform
+    val capture = if (native && captureTransform != null) {
       val material = Rect(
-        transform.pivot.x + (local.left - transform.pivot.x) * transform.scaleX,
-        transform.pivot.y + (local.top - transform.pivot.y) * transform.scaleY,
-        transform.pivot.x + (local.right - transform.pivot.x) * transform.scaleX,
-        transform.pivot.y + (local.bottom - transform.pivot.y) * transform.scaleY,
+        captureTransform.pivot.x + (local.left - captureTransform.pivot.x) * captureTransform.scaleX,
+        captureTransform.pivot.y + (local.top - captureTransform.pivot.y) * captureTransform.scaleY,
+        captureTransform.pivot.x + (local.right - captureTransform.pivot.x) * captureTransform.scaleX,
+        captureTransform.pivot.y + (local.bottom - captureTransform.pivot.y) * captureTransform.scaleY,
       ).translate(bounds.topLeft)
       val matrix = owner.surfaceCoordinates!!.transformToRoot()
       val root = matrix.map(material)
@@ -267,6 +280,8 @@ private class ConfiguredSurface<Style>(
   }
 
   override fun draw(scope: DrawScope, owner: HazeEffectSurfaceOwner?) {
+    val restoredNative = recovered
+    recovered = false
     if (disposed) return
     if (fallbackMembers) {
       members.forEach { it.draw(scope) }
@@ -288,9 +303,12 @@ private class ConfiguredSurface<Style>(
       if (!renderedSource || retained?.shouldDrawRetainedOutput() == false) return
     }
     if (hooks?.shouldPrepareDraw(style) == false) return
+    var declinedOnRestore = false
     inSurface(scope) {
       val runtime = runtimeScope(this)
-      val backdrop = preparedBackdrop
+      // The frame that restores native skipped its backdrop preparation while it waited.
+      val backdrop = preparedBackdrop ?: if (restoredNative) recoverBackdrop(runtime) else null
+      declinedOnRestore = restoredNative && backdrop == null && !backend.usesFallback
       if (input is HazeInput.Backdrop && !backend.usesFallback && backdrop != null) {
         var drawn = false
         try {
@@ -308,12 +326,31 @@ private class ConfiguredSurface<Style>(
           usePortableInput(true, temporary = false)
         }
       } else if (input !is HazeInput.Backdrop || backend.usesFallback) {
+        // The native preparation above released the layers this draw reads.
+        if (nativePrepared) hooks?.let { with(it) { runtime.prepareDraw(style) } }
         with(renderer) { runtime.draw(style) }
         hooks?.let { with(it) { runtime.drawForeground(style) } }
         if (drawable && sourceInput != null) renderedSource = true
       }
     }
+    // A now-declined effect draws member surfaces, as footprint selects for a declined first preparation.
+    if (declinedOnRestore) {
+      members.forEach {
+        it.footprint(scope)
+        it.draw(scope)
+      }
+    }
     preparedBackdrop = null
+  }
+
+  private fun recoverBackdrop(runtime: HazeEffectRuntimeDrawScope): HazeEffectBackdrop? = try {
+    nativePrepared = true
+    with(renderer as HazeEffectRendererBackdrop<Style>) { runtime.backdropEffect(style) }
+      .also { nativeTransform = it?.materialTransform }
+  } catch (exception: Exception) {
+    HazeLogger.d("HazeEffectSurface", exception) { "Configured native preparation failed" }
+    usePortableInput(true, temporary = false)
+    null
   }
 
   override fun usePortableInput(failed: Boolean, temporary: Boolean) {
@@ -321,8 +358,12 @@ private class ConfiguredSurface<Style>(
     val recoverable = temporary && !failed && (temporaryFallback || !backend.usesFallback)
     if (failed) backend.fail() else backend.resolve(false)
     temporaryFallback = recoverable
-    nativeRenderer?.release()
-    nativeRenderer = null
+    // A recoverable fallback keeps the renderer for the native frame that follows.
+    if (!recoverable) {
+      nativeRenderer?.release()
+      nativeRenderer = null
+      nativeTransform = null
+    }
     members.forEach { it.usePortableInput(failed, temporary = recoverable) }
     preparedBackdrop = null
   }
@@ -330,6 +371,7 @@ private class ConfiguredSurface<Style>(
   override fun useNativeInput() {
     if (!temporaryFallback) return
     temporaryFallback = false
+    recovered = true
     members.forEach { it.useNativeInput() }
     backend.attach(anchor.node.surfaceNativeEligible())
   }
