@@ -220,6 +220,18 @@ the same surfaces in `hazeGlassContainer(mergeDistance = 32.dp)`, so they merge 
 rows use [`HazePerformanceMode.Default`][HazePerformanceMode.Default] and `HazeInput.Sources`. It used a Pixel 8a running
 Android 17 (full SDK 37.2) at 60 Hz, with fixed-performance mode enabled and normal CPU scheduling.
 
+!!! note "Earlier build"
+
+    These figures come from an earlier 2.1 development build (`33e2371a`). It predates the
+    merged-shader and layer-padding changes in
+    [#1604](https://github.com/chrisbanes/haze/pull/1604),
+    [#1554](https://github.com/chrisbanes/haze/pull/1554),
+    [#1607](https://github.com/chrisbanes/haze/pull/1607) and
+    [#1619](https://github.com/chrisbanes/haze/pull/1619). The measured pair rests 12 dp apart,
+    below half the 32 dp merge distance. Members resting between half and the full merge
+    distance take a different shader path that these runs did not measure. The figures will be
+    replaced.
+
 Each per-pass value pools the frames of that pass's eight iterations; the table shows the
 **arithmetic mean of the two per-pass values**. Peak GPU memory uses each pass's median
 `memoryGpuMaxKb`.
