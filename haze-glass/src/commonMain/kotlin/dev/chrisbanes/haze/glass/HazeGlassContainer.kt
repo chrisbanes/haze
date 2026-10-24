@@ -276,7 +276,7 @@ internal class GlassContainerNode(
     }
     // Only members that can draw now may carry a ghost or split its neighbour's run; a member whose
     // material is unpublished keeps a stale snapshot.
-    val live = liveSnapshots().filterValues { it.layoutRect.isValidGlassMember() }.keys
+    val live = liveSnapshots().filterValues { it.layoutRect.isValidGlassMember() && it.rect.isValidGlassMember() }.keys
     val ordered = registrations.mapNotNull { if (it === member) last else latest[it] }
       .filter { it.identity === member || it.identity !is GlassMemberNode || it.identity in live }
     // A ghost draws through its anchor's input, so the anchor must resolve the same sources.
@@ -362,13 +362,14 @@ internal class GlassContainerNode(
         // A converted member's material changed, so its snapshot is retaken.
         if (broken.keys.map { endGrow(it) }.any { it }) live = liveSnapshots()
         // A ghost draws through its anchor's surface, so it ends once that anchor cannot draw it:
-        // the anchor collapsed, left the layout, or changed input or resolved sources. A valid
-        // anchor also keeps the model's optical size non-null while ghosts remain. A retracting
-        // ghost also needs a neighbour it could still have chosen: compatible and within the
-        // current merge distance.
+        // the anchor collapsed, left the layout, or changed input or resolved sources. An anchor valid
+        // in both layout and interaction (press) space also keeps the model's optical size non-null
+        // while ghosts remain. A retracting ghost also needs a neighbour it could still have chosen:
+        // compatible and within the current merge distance.
         endGhosts { ghost ->
           val anchor = live[ghost.anchor]
-          anchor == null || !anchor.layoutRect.isValidGlassMember() || !anchor.drawsSourcesOf(ghost.last) ||
+          anchor == null || !anchor.layoutRect.isValidGlassMember() || !anchor.rect.isValidGlassMember() ||
+            !anchor.drawsSourcesOf(ghost.last) ||
             anchor.key.input != ghost.last.key.input || anchor.key.expandLayerBounds != ghost.last.key.expandLayerBounds ||
             (ghost.neighbour != null && (!ghost.last.canTransitionWith(anchor) || !ghost.last.isWithinMergeDistanceOf(ghost.anchor, live)))
         }
