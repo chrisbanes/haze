@@ -13,7 +13,9 @@ import android.graphics.Shader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -36,6 +38,8 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
+import assertk.assertions.isNotNull
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
@@ -180,6 +184,118 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
 
   @Test
   fun nativeBackdrop_temporaryConfiguredBudgetFallback_recoversWhenOwnershipEnds() = assertTemporaryRecovery(configured = true, release = true)
+
+  @Test
+  fun nativeBackdrop_configuredGlassClusterBudgetRejected_drawsFallbackOutput() = assertBudgetRejectedGlassCluster(recover = false)
+
+  @Test
+  fun nativeBackdrop_configuredGlassClusterBudgetRejected_recoversNativeOutput() = assertBudgetRejectedGlassCluster(recover = true)
+
+  @Test
+  fun nativeBackdrop_configuredClusterBudgetRejected_keepsNativeRenderer() = runScreenshotTest {
+    val owner = BridgeOwner(allowGroup = false)
+    val input = HazeInput.Backdrop(HazeState())
+    val first = BridgeFactory(owner, ::redEffect)
+    val sibling = BridgeFactory(owner, ::blueBlurEffect)
+    var cluster: HazeConfiguredEffectSurface<Unit>? = null
+    owner.resolveSurfaces = {
+      cluster = cluster ?: first.surface.createConfiguredSurface(
+        HazeEffectFactory {
+          object : HazeEffectRenderer<Unit>, HazeEffectRendererBackdrop<Unit> {
+            override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
+            override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit) = HazeEffectBackdrop(redEffect())
+          }
+        },
+        Unit, checkNotNull(first.surface.boundsInOwner()), listOf(first.surface),
+      )
+      listOf(checkNotNull(cluster).surface, sibling.surface)
+    }
+    setContent {
+      Box(Modifier.size(200.dp, 100.dp).testTag("probe").background(Color.White)) {
+        Box(Modifier.size(200.dp, 100.dp).then(BridgeOwnerElement(owner))) {
+          Box(Modifier.size(100.dp, 80.dp).hazeEffect(first, input, Unit))
+          Box(Modifier.offset(x = 60.dp).size(100.dp, 80.dp).hazeEffect(sibling, input, Unit))
+        }
+      }
+    }
+    refreshNativeFrame()
+    assertThat(owner.groups).isGreaterThan(0)
+    val renderer = checkNotNull(cluster).nativeRendererForTest()
+    assertThat(renderer, "a rejected cluster keeps its native renderer").isNotNull()
+    repeat(3) {
+      composeTestRule.runOnIdle { owner.invalidateDraw() }
+      refreshNativeFrame()
+      assertThat(checkNotNull(cluster).nativeRendererForTest()).isSameInstanceAs(renderer)
+    }
+    composeTestRule.runOnIdle {
+      owner.resolveSurfaces = null
+      cluster.dispose()
+    }
+  }
+
+  // shortcut: reflection on private state (the wrapper's `renderer` is the ConfiguredSurface), since the renderer factory is not injectable; replace if one is added.
+  private fun HazeConfiguredEffectSurface<*>.nativeRendererForTest(): Any? {
+    val surface = javaClass.getDeclaredField("renderer").apply { isAccessible = true }.get(this)
+    return surface.javaClass.getDeclaredField("nativeRenderer").apply { isAccessible = true }.get(surface)
+  }
+
+  /**
+   * Two incompatible clusters wider than the 4096px layer limit force the container budget to reject
+   * their shared native composition while each member still fits. The source under an opaque cover tells
+   * the portable fallback (green) from the native backdrop (white); a cluster that draws nothing leaves
+   * the plain white background.
+   */
+  private fun assertBudgetRejectedGlassCluster(recover: Boolean) = runScreenshotTest {
+    val source = HazeState()
+    val secondWidth = mutableStateOf(800.dp)
+    fun style(tint: Color, exponent: Float) = GlassStyle {
+      optics(GlassOptics(refractionStrength = 0f, refractionDisplacement = 0.dp, refractionDetailIntensity = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp)))
+      tint(tint)
+      backgroundColor(Color.Transparent)
+      shape(RoundedCornerShape(0.dp))
+      edgeSoftness(0.dp)
+      edgeShadow(Color.Transparent)
+      specularIntensity(0f)
+      specularExponent(exponent)
+      ambientResponse(0f)
+      chromaticAberrationStrength(0f)
+      contrast(0f)
+      whitePoint(0f)
+      chromaMultiplier(1f)
+    }
+    val first = style(Color.Blue.copy(alpha = 0.5f), 2f)
+    val second = style(Color.Transparent, 4f)
+    setContent {
+      Box(Modifier.size(300.dp, 160.dp).testTag("probe")) {
+        Box(Modifier.size(300.dp, 160.dp).hazeSource(source).background(Color.Green))
+        Box(Modifier.size(300.dp, 160.dp).background(Color.White))
+        Box(Modifier.size(300.dp, 160.dp).hazeGlassContainer(40.dp)) {
+          Box(Modifier.offset(20.dp, 20.dp).requiredSize(800.dp, 100.dp).hazeGlass(HazeInput.Backdrop(source), first, HazePerformanceMode.Quality))
+          Box(Modifier.offset(800.dp, 20.dp).requiredSize(secondWidth.value, 100.dp).hazeGlass(HazeInput.Backdrop(source), first, HazePerformanceMode.Quality))
+          Box(Modifier.offset(40.dp, 110.dp).requiredSize(800.dp, 100.dp).hazeGlass(HazeInput.Backdrop(source), second, HazePerformanceMode.Quality))
+          Box(Modifier.offset(820.dp, 110.dp).requiredSize(secondWidth.value, 100.dp).hazeGlass(HazeInput.Backdrop(source), second, HazePerformanceMode.Quality))
+        }
+      }
+    }
+    fun sample(): Color {
+      val bounds = onNodeWithTag("probe").fetchSemanticsNode().boundsInRoot
+      return captureRootPixels()[(bounds.left + bounds.width / 2f).roundToInt(), (bounds.top + bounds.height / 2f).roundToInt()]
+    }
+    repeat(3) {
+      refreshNativeFrame()
+      val pixel = sample()
+      assertThat(pixel.red, "a rejected cluster draws the tinted source fallback, not the background: $pixel").isLessThan(0.1f)
+      assertThat(pixel.green, "the fallback samples the green source: $pixel").isGreaterThan(0.4f)
+    }
+    if (recover) {
+      composeTestRule.runOnIdle { secondWidth.value = 100.dp }
+      refreshNativeFrame()
+      val pixel = sample()
+      assertThat(pixel.red, "native output samples the white backdrop once the budget allows it: $pixel").isGreaterThan(0.4f)
+      assertThat(pixel.red).isLessThan(0.6f)
+      assertThat(pixel.blue).isGreaterThan(0.9f)
+    }
+  }
 
   @Test
   fun nativeBackdrop_declinedConfiguredSurface_drawsMemberSurfaces() = runScreenshotTest {
