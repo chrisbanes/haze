@@ -241,13 +241,14 @@ private fun GlassProfilingScene(
           if (scenario.pressesMergedMember) {
             // Press and release the first member on the schedule, while the source keeps changing.
             val held = press
-            if (glassProfilingPressed(value) && held == null) {
+            val pressed = glassProfilingPressed(value)
+            if (pressed && held == null) {
               val newPress = PressInteraction.Press(
                 Offset((surfaceSizePx.width - memberGapPx) / 4f, surfaceSizePx.height / 2f),
               )
               interactionSource.tryEmit(newPress)
               press = newPress
-            } else if (!glassProfilingPressed(value) && held != null) {
+            } else if (!pressed && held != null) {
               interactionSource.tryEmit(PressInteraction.Release(held))
               press = null
             }

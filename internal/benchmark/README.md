@@ -225,12 +225,13 @@ initialization. Only `effect_attach_container_2` measures it.
 | `container_group_3` | `containerGroup3` | Three members 48 dp apart, beyond the merge distance, sharing one `groupKey` | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
 | `container_press_2` | `containerPress2` | The `container_2` geometry; the first member is pressed and released three times, the second has no interaction source | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
 | `lazy_independent_scroll` | `lazyIndependentScroll` | The `lazy_container_scroll` grid with independent Glass members and no container | none: one layer per visible member | `lazy_container_scroll` |
-| `effect_attach_container_2` | `effectAttachContainer2` | The two-member container attached at the start of the measured window | none: cold initialization | `effect_attach` |
+| `effect_attach_container_2` | `effectAttachContainer2` | The two-member container attached at the start of the measured window | none: cold initialization | `effect_attach` (one member, no container) |
 
 The gates are provisional. A dry run writes only XML and cannot check them, so run a gated
 diagnostic on a device and confirm them before measuring. Add each of the first four methods to the
-`for method in` list of the loops in [Run the Glass container comparison](#run-the-glass-container-comparison);
-`gates_for` supplies its gates. The last two take no gates, like `lazy_container_scroll` and
+diagnostic loop's `for method in` list and to `pass_one` and `pass_two` in
+[Run the Glass container comparison](#run-the-glass-container-comparison); `gates_for` supplies its
+gates. The last two take no gates, like `lazy_container_scroll` and
 `effect_attach`; run them in a loop with `gates=()`, as in the lazy container loop. Check a dry run
 once per method, as described in [Validate automation](#validate-automation). Never publish a
 dry-run result as a measurement.
