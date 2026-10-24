@@ -76,9 +76,8 @@ Members merge only when all of these hold:
   `graphicsLayer`, draws separately. Translation and a layer alpha, such as an `AnimatedVisibility`
   fade, don't prevent merging.
 - **Adjacent in order.** Members are ordered by their position in the layout tree, which is
-  composition order in a `Row` or `Column`. A member that hides and shows again, or a lazy item that
-  scrolls back in, keeps its place. A leaving member's glass keeps its place until its animation
-  ends. Only members next to each other in that order share a cluster. A non-matching member between
+  composition order in a `Row` or `Column`. A member that hides and shows again keeps its place, and
+  a leaving member's glass keeps its place until its animation ends. Only members next to each other in that order share a cluster. A non-matching member between
   two compatible ones splits them, even when it is far away, because merging never changes drawing
   order. Members that overlap draw in this order.
 - **At most four per cluster.** Extra members draw separately, without a bridge. Where an extra
@@ -242,8 +241,9 @@ LazyRow(
 Drags, flings, `animateScrollBy` and `scrollToItem` are scrolls. Position changes made outside a
 scroll, such as `requestScrollToItem` or `dispatchRawDelta`, are not, so their items animate.
 
-A group of items that scrolls out and back in draws as one group again, because items keep their
-place in layout order.
+Members follow the lazy layout's own child order, which is item order once the list has measured
+forward. Items that scroll back in, several in one jump, can be out of item order until the next
+measure, so a group among them can briefly draw as separate groups.
 
 Without `scrollState`, items that scroll into view animate like any other new member. With the
 default `MatchedGeometry`, an item's glass grows out of its neighbor and lags its content, and an

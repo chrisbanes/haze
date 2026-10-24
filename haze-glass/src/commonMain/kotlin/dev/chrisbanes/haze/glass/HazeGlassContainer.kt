@@ -234,7 +234,7 @@ internal class GlassContainerNode(
     observeScroll()
     // ghostOf reads latest, so the pass that records this member's departure snapshot (or drops a
     // collapsed member's) runs before it is removed. While suppressed or off, no ghost is made.
-    if (leaving && reclusterPending && !suppressTransitions && !transitionsOff) recluster(layoutComplete = false, leaving = member)
+    if (leaving && reclusterPending && !suppressTransitions && !transitionsOff) recluster(layoutComplete = false)
     renderer.releaseMember(member)
     pending -= member
     attaching.remove(member)?.job?.cancel()
@@ -259,14 +259,16 @@ internal class GlassContainerNode(
   /**
    * Refills the slots held by members this container's layout walk visits, in layout order. A member
    * that reattaches or scrolls back in keeps its place among its neighbours instead of joining
-   * the end. Ghosts, members the walk does not visit and the [leaving] member keep their slots.
+   * the end. Ghosts and members the walk does not visit keep their slots.
    */
-  private fun orderRegistrationsByLayout(leaving: GlassMemberNode?) {
+  private fun orderRegistrationsByLayout() {
     val ordered = mutableListOf<GlassMemberNode>()
     traverseDescendants(GlassMemberTraversalKey) {
-      (it as GlassMemberNode).takeIf { member -> member !== leaving && member.container === this@GlassContainerNode }?.let(ordered::add)
+      // Members of a nested container register with that container.
+      if ((it as GlassMemberNode).container === this@GlassContainerNode) ordered += it
       TraverseDescendantsAction.ContinueTraversal
     }
+    // A removed member can still be in the layout, with its slot held by a ghost or gone.
     val visited = ordered.filter { it in registrations }
     val slots = registrations.indices.filter { registrations[it] in visited }
     slots.forEachIndexed { i, slot -> registrations[slot] = visited[i] }
@@ -331,8 +333,7 @@ internal class GlassContainerNode(
     invalidateDraw()
   }
 
-  /** [leaving] is a member being removed: a lazy layout can already have moved its node to the end of the layout, so it keeps its slot. */
-  private fun recluster(layoutComplete: Boolean, leaving: GlassMemberNode? = null) {
+  private fun recluster(layoutComplete: Boolean) {
     if (!isAttached || refreshing || surfaceCoordinates == null) return
     reclusterPending = false
     reclusterPasses++
@@ -342,7 +343,9 @@ internal class GlassContainerNode(
       // Reached from a draw or a member's removal: the animated interaction and transition reads
       // below must not make that draw observe them and re-run every frame.
       Snapshot.withoutReadObservation {
-        orderRegistrationsByLayout(leaving)
+        // A lazy layout parks the nodes it is about to remove at the end of its children, so the
+        // pass before a removal keeps the slots from the last draw for the ghost to take.
+        if (layoutComplete) orderRegistrationsByLayout()
         if (pending.isNotEmpty()) startTransitions(liveSnapshots())
         val registered = members
         val opticalSize = glassOpticalSize(opticalSizes(registered))
