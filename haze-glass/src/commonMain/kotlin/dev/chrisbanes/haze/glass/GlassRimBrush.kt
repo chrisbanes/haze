@@ -32,3 +32,10 @@ internal fun DrawScope.drawGlassRimWithBrush(brush: Brush): Boolean {
 /** Keep optional rim fallback limited to runtime exceptions; propagate other failures. */
 internal inline fun <T> runCatchingGlassRim(block: () -> T): Result<T> =
   runCatching(block).onFailure { if (it !is RuntimeException) throw it }
+
+/**
+ * Compiles a direct-draw program at most once per process. A failed compile is remembered as `null`
+ * instead of being retried by every delegate. Callers read it on the UI thread, hence no locking.
+ */
+internal fun <T : Any> lazyGlassProgram(compile: () -> T): Lazy<T?> =
+  lazy(LazyThreadSafetyMode.NONE) { runCatchingGlassRim(compile).getOrNull() }
