@@ -42,6 +42,8 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
+import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import assertk.assertions.prop
@@ -420,6 +422,68 @@ class GlassContainerInteractionTest : ContextTest() {
     assertThat(fixture.field().members[0].rect.width).isGreaterThan(width)
     // Let both animations finish so no coroutine outlives the test.
     repeat(20) { mainClock.advanceTimeByFrame() }
+  }
+
+  @Test
+  fun mergedClusterPress_keepsRuntimeDelegateAcrossFrames() = runComposeUiTest {
+    val linear = tween<Float>(300, easing = LinearEasing)
+    val fixture = cluster(pressed = GlassStyle { pressed { animate(linear, linear) { scale(0.9f) } } })
+    fixture.capture()
+    val runtime = fixture.owner().renderer.runtimeSurfaces.single()
+    val delegate = runtime.delegate as RuntimeShaderGlassDelegate
+    mainClock.autoAdvance = false
+    runBlocking { fixture.firstSource.emit(PressInteraction.Press(Offset(50f, 40f))) }
+    var sourceRecords = delegate.sourceRecordCount
+    var widths = setOf(fixture.field().members[0].rect.width)
+    repeat(10) {
+      mainClock.advanceTimeByFrame()
+      fixture.capture()
+      assertThat(fixture.owner().renderer.runtimeSurfaces.single().delegate).isSameInstanceAs(delegate)
+      assertThat(delegate.sourceRecordCount).isGreaterThanOrEqualTo(sourceRecords)
+      sourceRecords = delegate.sourceRecordCount
+      widths = widths + fixture.field().members[0].rect.width
+    }
+    // The press animated the merged field, so the snapshot changed on more than one frame.
+    assertThat(widths.size).isGreaterThan(1)
+    mainClock.autoAdvance = true
+    waitForIdle()
+  }
+
+  @Test
+  fun snapshotChange_doesNotMarkRuntimeEffectFactoryDirty() = runComposeUiTest {
+    val fixture = cluster(adjustableGap = true)
+    fixture.capture()
+    val delegate = fixture.owner().renderer.runtimeSurfaces.single().delegate
+    assertThat(delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
+    val field = fixture.field()
+    fixture.setGap(20)
+    assertThat(fixture.field()).isNotEqualTo(field)
+    fixture.capture()
+    assertThat(fixture.owner().renderer.runtimeSurfaces.single().delegate).isSameInstanceAs(delegate)
+  }
+
+  @Test
+  fun runtimeEffectFactoryChange_replacesRuntimeDelegate() = runComposeUiTest {
+    val fixture = cluster(adjustableGap = true)
+    fixture.capture()
+    val runtime = fixture.owner().renderer.runtimeSurfaces.single()
+    val delegate = runtime.delegate
+    var creations = 0
+    // Change the factory and the snapshot together, so no draw clears the dirty bit before the update.
+    runOnIdle {
+      runtime.runtimeEffectFactory = GlassRuntimeEffectFactory { create ->
+        creations++
+        create()
+      }
+      fixture.gap.intValue = 20
+    }
+    waitForIdle()
+    fixture.capture()
+    assertThat(fixture.owner().renderer.runtimeSurfaces.single().delegate).all {
+      isInstanceOf<RuntimeShaderGlassDelegate>()
+      isNotSameInstanceAs(delegate)
+    }
+    assertThat(creations).isGreaterThan(0)
   }
 
   private val lit = GlassStyle { pressed { lightingIntensity(1f) } }

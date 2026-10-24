@@ -448,7 +448,8 @@ internal class GlassRuntimeEffect() :
       val snapshot = style.surfaceSnapshot
       if (surfaceSnapshot != snapshot) {
         surfaceSnapshot = snapshot
-        markDirty(GlassDirtyFields.All)
+        // The container sets the factory once, when it creates the slot. Only its setter may replace the delegate.
+        markDirty(GlassDirtyFields.All and GlassDirtyFields.RuntimeEffectFactory.inv())
       }
       applyConfiguration(style, style.performanceMode ?: scope.currentValueOf(LocalHazePerformanceMode))
       if (snapshot != null) {
