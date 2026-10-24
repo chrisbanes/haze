@@ -12,7 +12,7 @@ https://github.com/user-attachments/assets/836dd79a-abdc-4cdc-b27d-baee394c1e26
 
 Haze provides hardware-accelerated visual effects for Compose Multiplatform — Android, iOS, macOS, Desktop, and Web. Its modular Haze 2 API lets you apply source-backed or own-content Blur, refraction-driven Glass, and custom effects with explicit, reusable configuration.
 
-Haze 2.0 is currently in beta. If you are upgrading from Haze 1.x or an earlier Haze 2 prerelease, see the [Haze 2 migration guide](https://chrisbanes.github.io/haze/migrating-2.0/).
+If you are upgrading from Haze 1.x, see the [Haze 2 migration guide](https://chrisbanes.github.io/haze/migrating-2.0/).
 
 ## Platforms
 
@@ -63,6 +63,7 @@ dependencies {
 
 ```kotlin
 val hazeState = rememberHazeState()
+val style = remember { HazeBlurStyle { blurRadius(20.dp) } }
 
 Box {
     Image(
@@ -75,7 +76,7 @@ Box {
             .matchParentSize()
             .hazeBlur(
                 input = HazeInput.Sources(hazeState),
-                style = HazeBlurStyle { blurRadius(20.dp) },
+                style = style,
             ),
     )
 }

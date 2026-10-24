@@ -28,6 +28,7 @@ kotlin {
       dependencies {
         api(projects.hazeBlur)
         implementation(libs.compose.material3)
+        implementation(projects.hazeUtils)
       }
     }
 

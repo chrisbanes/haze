@@ -22,6 +22,8 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isCloseTo
+import assertk.assertions.isEqualTo
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.HazeBlurStyle
@@ -70,6 +72,46 @@ class BlurMaterial3Test {
     waitForIdle()
 
     assertThat(recomposedStyle).isSameInstanceAs(initialStyle)
+  }
+
+  @Test
+  fun material3_withBlockReusesStyleAcrossUnrelatedRecompositions() = runComposeUiTest {
+    val recomposed = mutableStateOf(false)
+    val radius = 12.dp
+    lateinit var initialStyle: HazeBlurStyle
+    lateinit var recomposedStyle: HazeBlurStyle
+
+    setContent {
+      val style = HazeBlurStyle.Material3 { blurRadius(radius) }
+      val isRecomposed = recomposed.value
+      SideEffect {
+        if (isRecomposed) recomposedStyle = style else initialStyle = style
+      }
+      BlurMaterial3Content(style)
+    }
+
+    recomposed.value = true
+    waitForIdle()
+
+    assertThat(recomposedStyle).isEqualTo(initialStyle)
+  }
+
+  @Test
+  fun material3_withBlockDiffersWhenContainerColorChanges() = runComposeUiTest {
+    val color = mutableStateOf(Color.Red)
+    val radius = 12.dp
+    val styles = mutableListOf<HazeBlurStyle>()
+
+    setContent {
+      val style = HazeBlurStyle.Material3(containerColor = color.value) { blurRadius(radius) }
+      SideEffect { styles += style }
+      BlurMaterial3Content(style)
+    }
+
+    color.value = Color.Blue
+    waitForIdle()
+
+    assertThat(styles.last()).isNotEqualTo(styles.first())
   }
 
   @Test

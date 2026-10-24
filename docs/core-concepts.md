@@ -127,9 +127,9 @@ val style = HazeBlurStyle {
 ```
 
 Haze applies [`HazeBlurDefaults.style`][HazeBlurDefaults.style], then [`LocalHazeBlurStyle`][LocalHazeBlurStyle], then the explicit Style, and the
-last write wins. Styles hold no rendering state, so you can share them between modifiers. Two
-Styles with the same writes in the same order are equal, so recreating an identical Style during
-recomposition doesn't update the effect; pass a new Style when a value changes.
+last write wins. Styles hold no rendering state, so you can share them between modifiers. Styles you
+build compare by identity, so `remember` or hoist them; built-in presets compare by value. Pass a
+new Style, or write the snapshot state it reads, to change a value.
 
 ## Typed custom effects
 
