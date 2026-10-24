@@ -303,10 +303,12 @@ private class ConfiguredSurface<Style>(
       if (!renderedSource || retained?.shouldDrawRetainedOutput() == false) return
     }
     if (hooks?.shouldPrepareDraw(style) == false) return
+    var declinedOnRestore = false
     inSurface(scope) {
       val runtime = runtimeScope(this)
       // The frame that restores native skipped its backdrop preparation while it waited.
       val backdrop = preparedBackdrop ?: if (restoredNative) recoverBackdrop(runtime) else null
+      declinedOnRestore = restoredNative && backdrop == null && !backend.usesFallback
       if (input is HazeInput.Backdrop && !backend.usesFallback && backdrop != null) {
         var drawn = false
         try {
@@ -329,6 +331,13 @@ private class ConfiguredSurface<Style>(
         with(renderer) { runtime.draw(style) }
         hooks?.let { with(it) { runtime.drawForeground(style) } }
         if (drawable && sourceInput != null) renderedSource = true
+      }
+    }
+    // A now-declined effect draws member surfaces, as footprint selects for a declined first preparation.
+    if (declinedOnRestore) {
+      members.forEach {
+        it.footprint(scope)
+        it.draw(scope)
       }
     }
     preparedBackdrop = null

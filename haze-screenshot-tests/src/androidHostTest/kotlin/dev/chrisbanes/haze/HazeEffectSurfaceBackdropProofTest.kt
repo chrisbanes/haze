@@ -183,6 +183,10 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
   fun nativeBackdrop_temporaryConfiguredBudgetFallback_recoversWhenInterferenceEnds() = assertTemporaryRecovery(configured = true)
 
   @Test
+  fun nativeBackdrop_temporaryConfiguredBudgetFallback_declinedAtRecovery_drawsMemberSurfaces() =
+    assertTemporaryRecovery(configured = true, declineOnRecovery = true)
+
+  @Test
   fun nativeBackdrop_temporaryConfiguredBudgetFallback_recoversWhenOwnershipEnds() = assertTemporaryRecovery(configured = true, release = true)
 
   @Test
@@ -344,20 +348,26 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
     }
   }
 
-  private fun assertTemporaryRecovery(release: Boolean = false, configured: Boolean = false, budgetViable: Boolean = false) = runScreenshotTest {
+  private fun assertTemporaryRecovery(
+    release: Boolean = false,
+    configured: Boolean = false,
+    budgetViable: Boolean = false,
+    declineOnRecovery: Boolean = false,
+  ) = runScreenshotTest {
     val owner = BridgeOwner(allowGroup = false)
     val offset = mutableStateOf(60)
     val input = HazeInput.Backdrop(HazeState())
     val first = BridgeFactory(owner, ::redEffect)
     val sibling = BridgeFactory(owner, ::blueBlurEffect)
     var cluster: HazeConfiguredEffectSurface<Unit>? = null
+    var declined = false
     if (configured) {
       owner.resolveSurfaces = {
         cluster = cluster ?: first.surface.createConfiguredSurface(
           HazeEffectFactory {
             object : HazeEffectRenderer<Unit>, HazeEffectRendererBackdrop<Unit> {
               override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
-              override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit) = HazeEffectBackdrop(redEffect())
+              override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit) = if (declined) null else HazeEffectBackdrop(redEffect())
             }
           },
           Unit, checkNotNull(first.surface.boundsInOwner()), listOf(first.surface),
@@ -387,6 +397,7 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
       } else if (budgetViable) {
         owner.allowGroup = true
       } else {
+        declined = declineOnRecovery
         offset.value = 120
       }
       owner.invalidateDraw()
