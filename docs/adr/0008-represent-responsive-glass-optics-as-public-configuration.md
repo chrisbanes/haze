@@ -24,8 +24,9 @@ boundary without changing its decision to expose Regular and Clear as built-in G
 
 `OpticalSizeValue.Fixed<T>` and `OpticalSizeValue.Responsive<T>` are single-field domain values and
 therefore use `@JvmInline value class`; the responsive variant snapshots its public constructor
-input before the `init` block validates it. `OpticalSizePoint<T>` and `GlassOptics` remain data
-classes because they contain multiple independent values. The generic containers deliberately do
+input before the `init` block validates it. `OpticalSizePoint<T>` remains a data class because it
+holds two independent values. `GlassOptics` is a `@Poko` class with an explicit `copy`, so it can
+gain properties compatibly. The generic containers deliberately do
 not carry `@Immutable`, because callers may instantiate them with a mutable `T`; `GlassOptics`
 retains that annotation because its public properties constrain `T` to `Float` and `Dp`. Using the
 variants through `OpticalSizeValue<T>` may box them, so this choice states the domain model rather
