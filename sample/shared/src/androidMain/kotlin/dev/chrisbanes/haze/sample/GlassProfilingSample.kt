@@ -38,6 +38,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -143,6 +145,7 @@ private fun GlassProfilingScene(
   val surfaceSizePx = with(density) {
     Size(surfaceSize.width.toPx(), surfaceSize.height.toPx())
   }
+  val memberGapPx = with(density) { scenario.memberGap.toPx() }
   val effectSurfaceSizePx = profilingEffectSize(surfaceSizePx, scenario.effectCount)
   val styleSurfaceSizePx = if (scenario.resizesLayoutBounds) {
     with(density) {
@@ -185,6 +188,7 @@ private fun GlassProfilingScene(
       GlassProfilingScenario.EffectAttach3,
       GlassProfilingScenario.EffectAttach9,
       GlassProfilingScenario.EffectReattach,
+      GlassProfilingScenario.EffectAttachContainer2,
       -> {
         val startNanos = androidx.compose.runtime.withFrameNanos { it }
         repeat(8) { androidx.compose.runtime.withFrameNanos {} }
@@ -224,6 +228,7 @@ private fun GlassProfilingScene(
         }
       }
       else -> {
+        var press: PressInteraction.Press? = null
         Animatable(0f).animateTo(
           targetValue = 1f,
           animationSpec = tween(
@@ -233,6 +238,20 @@ private fun GlassProfilingScene(
         ) {
           state.updateProgress(value)
           effectFrame = glassProfilingFrame(scenario, value)
+          if (scenario.pressesMergedMember) {
+            // Press and release the first member on the schedule, while the source keeps changing.
+            val held = press
+            if (glassProfilingPressed(value) && held == null) {
+              val newPress = PressInteraction.Press(
+                Offset((surfaceSizePx.width - memberGapPx) / 4f, surfaceSizePx.height / 2f),
+              )
+              interactionSource.tryEmit(newPress)
+              press = newPress
+            } else if (!glassProfilingPressed(value) && held != null) {
+              interactionSource.tryEmit(PressInteraction.Release(held))
+              press = null
+            }
+          }
         }
       }
     }
@@ -240,6 +259,10 @@ private fun GlassProfilingScene(
   }
 
   val attachGlass = shouldAttachProfilingGlass(scenario, state.phase)
+  // Read inside the join/leave composable, so only it recomposes when membership changes.
+  val visibleMemberCount = remember(state) {
+    derivedStateOf { glassProfilingJoinLeaveMemberCount(state.progress) }
+  }
 
   Box(
     modifier = modifier
@@ -285,34 +308,52 @@ private fun GlassProfilingScene(
         performanceMode = scenario.performanceMode,
         interactionSource = interactionSource,
         memberGap = scenario.memberGap,
-        containerMergeDistance = checkNotNull(scenario.containerMergeDistance),
+        containerMergeDistance = scenario.containerMergeDistance,
         modifier = Modifier
           .align(Alignment.Center)
           .size(ProfilingLazyContainerSize)
-          .testTag("glass_profiling_container"),
-      )
-    } else if (scenario.glassEnabled && attachGlass) {
-      GlassProfilingEffectGrid(
-        hazeState = hazeState,
-        usesBackdrop = scenario.usesBackdrop,
-        styles = styles,
-        performanceMode = scenario.performanceMode,
-        interactionSource = interactionSource,
-        memberGap = scenario.memberGap,
-        containerMergeDistance = scenario.containerMergeDistance,
-        drawProgress = if (scenario.steadyDraw) {
-          { state.progress }
-        } else {
-          null
-        },
-        modifier = Modifier
-          .align(Alignment.Center)
-          .size(surfaceSize)
-          // A node keeps one test tag, so the container scenario tags the grid as its container.
           .testTag(
-            if (scenario.containerMergeDistance != null) "glass_profiling_container" else "glass_profiling_surface",
+            if (scenario.containerMergeDistance != null) "glass_profiling_container" else "glass_profiling_lazy_grid",
           ),
       )
+    } else if (scenario.glassEnabled && attachGlass) {
+      // A node keeps one test tag, so the container scenarios tag the layout as their container.
+      val containerModifier = Modifier
+        .align(Alignment.Center)
+        .size(surfaceSize)
+        .testTag(
+          if (scenario.containerMergeDistance != null) "glass_profiling_container" else "glass_profiling_surface",
+        )
+      if (scenario.joinsAndLeaves) {
+        GlassProfilingJoinLeaveContainer(
+          hazeState = hazeState,
+          styles = styles,
+          performanceMode = scenario.performanceMode,
+          interactionSource = interactionSource,
+          memberGap = scenario.memberGap,
+          containerMergeDistance = checkNotNull(scenario.containerMergeDistance),
+          memberCount = visibleMemberCount,
+          modifier = containerModifier,
+        )
+      } else {
+        GlassProfilingEffectGrid(
+          hazeState = hazeState,
+          usesBackdrop = scenario.usesBackdrop,
+          styles = styles,
+          performanceMode = scenario.performanceMode,
+          interactionSource = interactionSource,
+          pressesFirstMemberOnly = scenario.pressesMergedMember,
+          groupKey = scenario.groupKey,
+          memberGap = scenario.memberGap,
+          containerMergeDistance = scenario.containerMergeDistance,
+          drawProgress = if (scenario.steadyDraw) {
+            { state.progress }
+          } else {
+            null
+          },
+          modifier = containerModifier,
+        )
+      }
     }
 
     if (scenario == GlassProfilingScenario.RetainedReuse) {
@@ -373,7 +414,7 @@ private fun GlassProfilingLazyContainer(
   performanceMode: HazePerformanceMode,
   interactionSource: MutableInteractionSource,
   memberGap: Dp,
-  containerMergeDistance: Dp,
+  containerMergeDistance: Dp?,
   modifier: Modifier = Modifier,
 ) {
   LazyVerticalGrid(
@@ -381,7 +422,11 @@ private fun GlassProfilingLazyContainer(
     state = gridState,
     horizontalArrangement = Arrangement.spacedBy(memberGap),
     verticalArrangement = Arrangement.spacedBy(memberGap),
-    modifier = modifier.hazeGlassContainer(containerMergeDistance, scrollState = gridState),
+    modifier = if (containerMergeDistance != null) {
+      modifier.hazeGlassContainer(containerMergeDistance, scrollState = gridState)
+    } else {
+      modifier
+    },
   ) {
     items(PROFILING_LAZY_ITEM_COUNT) { index ->
       Box(
@@ -408,6 +453,8 @@ private fun GlassProfilingEffectGrid(
   styles: List<GlassStyle>,
   performanceMode: HazePerformanceMode,
   interactionSource: MutableInteractionSource,
+  pressesFirstMemberOnly: Boolean,
+  groupKey: String?,
   memberGap: Dp,
   containerMergeDistance: Dp?,
   drawProgress: (() -> Float)?,
@@ -441,13 +488,52 @@ private fun GlassProfilingEffectGrid(
                 },
                 style = styles[effectIndex],
                 performanceMode = performanceMode,
-                interactionSource = interactionSource,
+                interactionSource = if (pressesFirstMemberOnly && effectIndex != 0) null else interactionSource,
                 interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+                groupKey = groupKey,
               )
               .testTag("glass_profiling_surface_$effectIndex"),
           )
         }
       }
+    }
+  }
+}
+
+@Composable
+private fun GlassProfilingJoinLeaveContainer(
+  hazeState: dev.chrisbanes.haze.HazeState,
+  styles: List<GlassStyle>,
+  performanceMode: HazePerformanceMode,
+  interactionSource: MutableInteractionSource,
+  memberGap: Dp,
+  containerMergeDistance: Dp,
+  memberCount: State<Int>,
+  modifier: Modifier = Modifier,
+) {
+  // Reduced keeps the morph whatever the device animation scale; System snaps at scale 0.
+  Row(
+    modifier = modifier.hazeGlassContainer(
+      containerMergeDistance,
+      reducedMotionPolicy = GlassReducedMotionPolicy.Reduced,
+    ),
+    horizontalArrangement = Arrangement.spacedBy(memberGap),
+  ) {
+    val visibleCount = memberCount.value
+    // Members leave from the end, so the remaining members do not move.
+    repeat(visibleCount) { index ->
+      Box(
+        Modifier
+          .size(width = 60.dp, height = 120.dp)
+          .hazeGlass(
+            input = HazeInput.Sources(hazeState),
+            style = styles[index],
+            performanceMode = performanceMode,
+            interactionSource = interactionSource,
+            interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+          )
+          .testTag("glass_profiling_surface_$index"),
+      )
     }
   }
 }
@@ -543,6 +629,12 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.SourceScrollBalanced,
     GlassProfilingScenario.SourceScrollBalanced9,
     GlassProfilingScenario.LazyContainerScroll,
+    GlassProfilingScenario.ContainerGap2,
+    GlassProfilingScenario.ContainerJoinLeave,
+    GlassProfilingScenario.ContainerGroup3,
+    GlassProfilingScenario.ContainerPress2,
+    GlassProfilingScenario.LazyIndependentScroll,
+    GlassProfilingScenario.EffectAttachContainer2,
     -> Unit
   }
 }.then {

@@ -6,12 +6,14 @@ package dev.chrisbanes.haze.sample
 import androidx.compose.runtime.remember
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -20,7 +22,9 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.contains
+import assertk.assertions.containsAtLeast
 import assertk.assertions.isBetween
+import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isTrue
@@ -135,6 +139,143 @@ class GlassProfilingSampleTest : ContextTest() {
     onNodeWithTag("glass_profiling_surface_0").assertIsDisplayed()
     onNodeWithTag("glass_profiling_surface_1").assertIsDisplayed()
     onAllNodesWithTag("glass_profiling_container").assertCountEquals(0)
+  }
+
+  @Test
+  fun containerGap2_wrapsTwoMembersWithTheRestingGap() = runComposeUiTest {
+    setContent {
+      GlassProfilingSampleContent(
+        state = remember { GlassProfilingState() },
+        onBack = {},
+      )
+    }
+
+    onNodeWithTag("glass_profiling_select_container_gap_2").performScrollTo().performClick()
+    onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_container").assertExists()
+    val first = onNodeWithTag("glass_profiling_surface_0").assertIsDisplayed().getBoundsInRoot()
+    val second = onNodeWithTag("glass_profiling_surface_1").assertIsDisplayed().getBoundsInRoot()
+    assertThat((second.left - first.right).value).isCloseTo(24f, 0.5f)
+  }
+
+  @Test
+  fun containerJoinLeave_attachesAndDetachesMembersOnSchedule() = runComposeUiTest {
+    mainClock.autoAdvance = false
+    val state = GlassProfilingState().apply { select(GlassProfilingScenario.ContainerJoinLeave) }
+    setContent {
+      GlassProfilingSampleContent(
+        state = state,
+        onBack = {},
+      )
+    }
+
+    repeat(GLASS_PROFILING_SETTLING_FRAMES + 1) {
+      mainClock.advanceTimeByFrame()
+    }
+    waitForIdle()
+    onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_container").assertExists()
+    onNodeWithTag("glass_profiling_start").performClick()
+
+    val observedCounts = mutableSetOf<Int>()
+    repeat(11) {
+      mainClock.advanceTimeBy(250L)
+      val expected = glassProfilingJoinLeaveMemberCount(state.progress)
+      observedCounts += expected
+      assertThat(surfaceMemberCount(), name = "members at ${state.progress}").isEqualTo(expected)
+    }
+    assertThat(observedCounts).containsAtLeast(2, 3, 4)
+
+    mainClock.advanceTimeBy(500L)
+    onNodeWithTag("glass_profiling_phase_complete").assertIsDisplayed()
+  }
+
+  @Test
+  fun containerGroup3_wrapsThreeMembersInOneContainer() = runComposeUiTest {
+    setContent {
+      GlassProfilingSampleContent(
+        state = remember { GlassProfilingState() },
+        onBack = {},
+      )
+    }
+
+    onNodeWithTag("glass_profiling_select_container_group_3").performScrollTo().performClick()
+    onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_container").assertExists()
+    repeat(3) { index ->
+      onNodeWithTag("glass_profiling_surface_$index").assertIsDisplayed()
+    }
+  }
+
+  @Test
+  fun containerPress2_completesThePressProtocol() = runComposeUiTest {
+    setContent {
+      GlassProfilingSampleContent(
+        state = remember { GlassProfilingState() },
+        onBack = {},
+      )
+    }
+
+    onNodeWithTag("glass_profiling_select_container_press_2").performScrollTo().performClick()
+    onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_container").assertExists()
+    onNodeWithTag("glass_profiling_surface_0").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_surface_1").assertIsDisplayed()
+
+    onNodeWithTag("glass_profiling_start").performClick()
+    onNodeWithTag("glass_profiling_phase_complete").assertIsDisplayed()
+  }
+
+  @Test
+  fun lazyIndependentScroll_showsIndependentMembersWithoutAContainer() = runComposeUiTest {
+    setContent {
+      GlassProfilingSampleContent(
+        state = remember { GlassProfilingState() },
+        onBack = {},
+      )
+    }
+
+    onNodeWithTag("glass_profiling_select_lazy_independent_scroll")
+      .performScrollTo()
+      .performClick()
+    onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
+    onAllNodesWithTag("glass_profiling_container").assertCountEquals(0)
+    onNodeWithTag("glass_profiling_lazy_grid").assertExists()
+    val memberCount = onAllNodes(
+      SemanticsMatcher("tag starts with glass_profiling_lazy_member_") { node ->
+        node.config.getOrNull(SemanticsProperties.TestTag)
+          ?.startsWith("glass_profiling_lazy_member_") == true
+      },
+    ).fetchSemanticsNodes().size
+    assertThat(memberCount).isBetween(30, 50)
+
+    onNodeWithTag("glass_profiling_start").performClick()
+    onNodeWithTag("glass_profiling_phase_complete").assertIsDisplayed()
+  }
+
+  @Test
+  fun effectAttachContainer2_attachesTheContainerAtMeasurementStart() = runComposeUiTest {
+    mainClock.autoAdvance = false
+    val state = GlassProfilingState().apply { select(GlassProfilingScenario.EffectAttachContainer2) }
+    setContent {
+      GlassProfilingSampleContent(
+        state = state,
+        onBack = {},
+      )
+    }
+
+    repeat(GLASS_PROFILING_SETTLING_FRAMES + 2) {
+      mainClock.advanceTimeByFrame()
+    }
+    waitForIdle()
+
+    onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_container").assertDoesNotExist()
+    onNodeWithTag("glass_profiling_start").performClick()
+    mainClock.advanceTimeByFrame()
+    onNodeWithTag("glass_profiling_container").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_surface_0").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_surface_1").assertIsDisplayed()
   }
 
   @Test
@@ -297,3 +438,11 @@ class GlassProfilingSampleTest : ContextTest() {
     }
   }
 }
+
+@OptIn(ExperimentalTestApi::class)
+private fun ComposeUiTest.surfaceMemberCount(): Int = onAllNodes(
+  SemanticsMatcher("tag starts with glass_profiling_surface_") { node ->
+    node.config.getOrNull(SemanticsProperties.TestTag)
+      ?.startsWith("glass_profiling_surface_") == true
+  },
+).fetchSemanticsNodes().size
