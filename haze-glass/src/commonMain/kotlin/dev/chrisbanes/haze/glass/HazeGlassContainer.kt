@@ -258,8 +258,8 @@ internal class GlassContainerNode(
 
   /**
    * Refills the slots held by members this container's layout walk visits, in layout order. A member
-   * that reattaches or scrolls back in keeps its place among its neighbours instead of joining
-   * the end. Ghosts and members the walk does not visit keep their slots.
+   * that reattaches keeps its place among its neighbours instead of joining the end. Ghosts and
+   * members the walk does not visit keep their slots.
    */
   private fun orderRegistrationsByLayout() {
     val ordered = mutableListOf<GlassMemberNode>()

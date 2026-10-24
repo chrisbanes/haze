@@ -77,9 +77,10 @@ Members merge only when all of these hold:
   fade, don't prevent merging.
 - **Adjacent in order.** Members are ordered by their position in the layout tree, which is
   composition order in a `Row` or `Column`. A member that hides and shows again keeps its place, and
-  a leaving member's glass keeps its place until its animation ends. Only members next to each other in that order share a cluster. A non-matching member between
-  two compatible ones splits them, even when it is far away, because merging never changes drawing
-  order. Members that overlap draw in this order.
+  a leaving member's glass keeps its place until its animation ends. Only members next to each other
+  in that order share a cluster. A non-matching member between two compatible ones splits them, even
+  when it is far away, because merging never changes drawing order. Members that overlap draw in this
+  order.
 - **At most four per cluster.** Extra members draw separately, without a bridge. Where an extra
   member overlaps the cluster, blur and tint apply twice in the overlap.
 

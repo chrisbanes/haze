@@ -183,9 +183,9 @@ order draw as one Glass shape over the bounding box of their rects:
 - **Members left out.** A member whose merge key differs from the first member's, or that is
   rotated, scaled or fading, draws on its own under the existing rules.
 - **Order.** Members are ordered by their position in the layout tree, so a member that reattaches
-  keeps its place, and a lazy layout's members follow its own child order. A member between two group members that isn't
-  in the group splits them into separate groups. This keeps the rule that merging never reorders
-  members.
+  keeps its place, and a lazy layout's members follow its own child order. A member between two
+  group members that isn't in the group splits them into separate groups. This keeps the rule that
+  merging never reorders members.
 - **Proximity.** A group counts as one member for `mergeDistance` clustering, measured from its
   bounds, and for the four-member cap.
 - **Optical size.** The group's bounds count as one member in the container-wide optical size. A
