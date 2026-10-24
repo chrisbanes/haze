@@ -269,8 +269,10 @@ internal class GlassContainerNode(
       TraverseDescendantsAction.ContinueTraversal
     }
     // A removed member can still be in the layout, with its slot held by a ghost or gone.
-    val visited = ordered.filter { it in registrations }
-    val slots = registrations.indices.filter { registrations[it] in visited }
+    val registered = registrations.toHashSet()
+    val visited = ordered.filter { it in registered }
+    val visitedSet = visited.toHashSet()
+    val slots = registrations.indices.filter { registrations[it] in visitedSet }
     slots.forEachIndexed { i, slot -> registrations[slot] = visited[i] }
   }
 
@@ -366,6 +368,8 @@ internal class GlassContainerNode(
         }
         // Liveness and compatibility hold on every pass; merge distance is checked once layout is
         // complete.
+        // Built at most once per stage, since transitions and ghosts alike measure to unit bounds.
+        val attachBounds by lazy { glassUnitLayoutBounds(drawnSnapshots(live)) }
         val broken = attaching.filter { (member, attach) ->
           val neighbour = attach.neighbour ?: return@filter false
           val snapshot = live[member] ?: return@filter false
@@ -373,7 +377,7 @@ internal class GlassContainerNode(
           if (!snapshot.canTransitionWith(neighbourSnapshot)) return@filter true
           // Placement moves members one at a time, so merge distance can be transiently wrong
           // mid-layout.
-          if (snapshot.isWithinMergeDistanceOf(neighbour, live)) return@filter false
+          if (snapshot.isWithinMergeDistanceOf(neighbour, live, attachBounds)) return@filter false
           if (!layoutComplete) {
             mergeDistanceCheckPending = true
             return@filter false
@@ -387,12 +391,13 @@ internal class GlassContainerNode(
         // in both layout and interaction (press) space also keeps the model's optical size non-null
         // while ghosts remain. A retracting ghost also needs a neighbour it could still have chosen:
         // compatible and within the current merge distance.
+        val ghostBounds by lazy { glassUnitLayoutBounds(drawnSnapshots(live)) }
         endGhosts { ghost ->
           val anchor = live[ghost.anchor]
           anchor == null || !anchor.layoutRect.isValidGlassMember() || !anchor.rect.isValidGlassMember() ||
             !anchor.drawsSourcesOf(ghost.last) ||
             anchor.key.input != ghost.last.key.input || anchor.key.expandLayerBounds != ghost.last.key.expandLayerBounds ||
-            (ghost.neighbour != null && (!ghost.last.canTransitionWith(anchor) || !ghost.last.isWithinMergeDistanceOf(ghost.anchor, live)))
+            (ghost.neighbour != null && (!ghost.last.canTransitionWith(anchor) || !ghost.last.isWithinMergeDistanceOf(ghost.anchor, live, ghostBounds)))
         }
         // A transition's link only draws when it shares its neighbour's cluster, which can stop
         // holding when registrations between them change (for example a fading ghost splits a run).
@@ -538,12 +543,17 @@ internal class GlassContainerNode(
     )
   }
 
-  private fun GlassMemberSnapshot.isWithinMergeDistanceOf(neighbour: GlassMemberNode, live: Map<GlassMemberNode, GlassMemberSnapshot>): Boolean {
+  /** [unitBounds] is [glassUnitLayoutBounds] of [drawnSnapshots], which callers build once per stage. */
+  private fun GlassMemberSnapshot.isWithinMergeDistanceOf(
+    neighbour: GlassMemberNode,
+    live: Map<GlassMemberNode, GlassMemberSnapshot>,
+    unitBounds: Map<Any, Rect>,
+  ): Boolean {
     val drawn = drawnSnapshot(neighbour, live) ?: return false
     if (isGroupedWith(drawn)) return true
     // A group counts as one member, so measure to its unit's bounds. A growing neighbour can
     // overshoot away from its own layout rect, which stays as near as it was.
-    val unit = glassUnitLayoutBounds(drawnSnapshots(live))[neighbour] ?: drawn.layoutRect
+    val unit = unitBounds[neighbour] ?: drawn.layoutRect
     return minOf(glassMemberGap(layoutRect, unit), glassMemberGap(layoutRect, live.getValue(neighbour).layoutRect)) < mergeDistancePx
   }
 

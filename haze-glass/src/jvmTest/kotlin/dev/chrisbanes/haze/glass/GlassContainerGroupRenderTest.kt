@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -159,6 +161,62 @@ class GlassContainerGroupRenderTest : ContextTest() {
     runOnIdle { key.value = null }
     waitForIdle()
     assertSplit()
+  }
+
+  @Test
+  fun overlappingMembers_reorderedWithoutMoving_drawInTheNewLayoutOrder() = runComposeUiTest {
+    assertReorderedMembersDrawInNewOrder(nested = false)
+  }
+
+  @Test
+  fun overlappingMembersInWrapper_reorderedWithoutMoving_drawInTheNewLayoutOrder() = runComposeUiTest {
+    assertReorderedMembersDrawInNewOrder(nested = true)
+  }
+
+  /**
+   * Two members fill the same rect, so reordering them moves no bounds. The factories and style are
+   * built once, so a reorder recomposes nothing that compares by identity.
+   */
+  private fun ComposeUiTest.assertReorderedMembersDrawInNewOrder(nested: Boolean) {
+    val effects = List(2) { GlassRuntimeEffect() }
+    val factories = effects.map { effect -> HazeEffectFactory { effect } }
+    val style = containerTestStyle(Color.Red)
+    val order = mutableStateOf(listOf(0, 1))
+    val state = HazeState()
+    setContent {
+      val members: @Composable () -> Unit = {
+        order.value.forEach { index ->
+          key(index) {
+            Box(
+              Modifier.offset(40.dp, 40.dp).size(100.dp, 40.dp).hazeGlass(
+                factories[index],
+                HazeInput.Sources(state),
+                style,
+                HazePerformanceMode.Quality,
+                true,
+                null,
+              ),
+            )
+          }
+        }
+      }
+      Box(Modifier.size(300.dp, 200.dp).background(Color.White)) {
+        Box(Modifier.size(300.dp, 200.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(300.dp, 200.dp).hazeGlassContainer(10.dp)) {
+          // The wrapper variant puts the reorder in a plain parent below the container.
+          if (nested) Box(Modifier.size(300.dp, 200.dp)) { members() } else members()
+        }
+      }
+    }
+    waitForIdle()
+    val nodes = effects.map { checkNotNull(it.memberBindingForTest?.node) }
+    val container = checkNotNull(nodes.first().container)
+    fun drawOrder() = container.model.surfaces.flatMap { it.members }.map { it.identity }
+    assertThat(drawOrder()).isEqualTo(nodes)
+
+    runOnIdle { order.value = listOf(1, 0) }
+    waitForIdle()
+    assertThat(drawOrder()).isEqualTo(nodes.reversed())
   }
 
   @Test
