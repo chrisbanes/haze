@@ -1,0 +1,171 @@
+// Copyright 2026, Christopher Banes and the Haze project contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package dev.chrisbanes.haze.glass
+
+import androidx.activity.ComponentActivity
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.test.filters.SdkSuppress
+import assertk.assertThat
+import assertk.assertions.hasSize
+import assertk.assertions.isGreaterThan
+import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import org.junit.Rule
+import org.junit.Test
+
+/**
+ * A merged Glass cluster in a [Dialog] must refresh when a nested layer of its main-window source
+ * changes. The source's content version is unchanged, so only the cross-window capture signal
+ * marks the cluster's retained capture stale.
+ */
+// Cluster Glass renders through RuntimeShader from API 33; API 30-32 use the fallback delegate.
+@OptIn(ExperimentalTestApi::class)
+@SdkSuppress(minSdkVersion = 33)
+class GlassContainerDialogInputRefreshInstrumentationTest {
+
+  @get:Rule
+  val composeTestRule = createAndroidComposeRule<ComponentActivity>()
+
+  @Test
+  fun mergedMembersInDialog_updateWhenNestedSourceLayerChanges() {
+    val hazeState = HazeState()
+    val effects = List(2) { GlassRuntimeEffect() }
+    val overlayAlpha = mutableFloatStateOf(1f)
+    val showDialog = mutableStateOf(true)
+
+    composeTestRule.setContent {
+      Box(
+        Modifier
+          .fillMaxSize()
+          .hazeSource(hazeState)
+          .background(Color.Blue),
+      ) {
+        Box(
+          Modifier
+            .fillMaxSize()
+            .graphicsLayer { alpha = overlayAlpha.floatValue }
+            .background(Color.Red),
+        )
+      }
+
+      if (showDialog.value) {
+        Dialog(
+          onDismissRequest = {},
+          properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+          // The members are 20 dp apart, inside the 40 dp merge distance, so they form one cluster.
+          Box(Modifier.size(220.dp, 100.dp).hazeGlassContainer(40.dp)) {
+            Box(
+              Modifier
+                .size(100.dp)
+                .testTag(DIALOG_EFFECT_TAG)
+                .hazeGlass(effects[0], hazeState),
+            )
+            Box(
+              Modifier
+                .offset(x = 120.dp)
+                .size(100.dp)
+                .hazeGlass(effects[1], hazeState),
+            )
+          }
+        }
+      }
+    }
+    composeTestRule.waitForIdle()
+
+    val owner = checkNotNull(effects.first().memberBindingForTest?.node?.container)
+    assertThat(owner.renderer.runtimeSurfaces, "merged surfaces").hasSize(1)
+
+    val before = composeTestRule.awaitDialogCenterPixel { it.red > it.blue }
+    assertThat(before.red, "initial dialog red channel").isGreaterThan(before.blue)
+
+    composeTestRule.mainClock.autoAdvance = false
+    composeTestRule.runOnIdle { overlayAlpha.floatValue = 0f }
+    composeTestRule.advanceCrossWindowFrames()
+
+    val after = composeTestRule.awaitDialogCenterPixel { it.blue > it.red }
+    assertThat(after.blue, "updated dialog blue channel").isGreaterThan(after.red)
+
+    composeTestRule.runOnIdle { overlayAlpha.floatValue = 1f }
+    composeTestRule.advanceCrossWindowFrames()
+
+    val restored = composeTestRule.awaitDialogCenterPixel { it.red > it.blue }
+    assertThat(restored.red, "restored dialog red channel").isGreaterThan(restored.blue)
+
+    composeTestRule.runOnIdle { showDialog.value = false }
+    composeTestRule.advanceCrossWindowFrames()
+    composeTestRule.runOnIdle { overlayAlpha.floatValue = 0f }
+    composeTestRule.advanceCrossWindowFrames()
+  }
+
+  private fun Modifier.hazeGlass(effect: GlassRuntimeEffect, state: HazeState): Modifier = hazeGlass(
+    factory = HazeEffectFactory { effect },
+    input = HazeInput.Sources(state),
+    style = style,
+    performanceMode = null,
+    expandLayerBounds = true,
+    interactionSource = null,
+  )
+
+  private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.advanceCrossWindowFrames() {
+    mainClock.advanceTimeByFrame()
+    mainClock.advanceTimeByFrame()
+    waitForIdle()
+  }
+
+  private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.captureDialogCenterPixel(): Color {
+    val pixels = onNodeWithTag(DIALOG_EFFECT_TAG).captureToImage().toPixelMap()
+    return pixels[pixels.width / 2, pixels.height / 2]
+  }
+
+  // The glass output reaches the dialog window after the frames advanced by the test.
+  private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.awaitDialogCenterPixel(
+    predicate: (Color) -> Boolean,
+  ): Color {
+    var pixel = captureDialogCenterPixel()
+    repeat(MAX_POLLS) {
+      if (predicate(pixel)) return pixel
+      Thread.sleep(POLL_INTERVAL_MS)
+      advanceCrossWindowFrames()
+      pixel = captureDialogCenterPixel()
+    }
+    return pixel
+  }
+
+  private companion object {
+    const val DIALOG_EFFECT_TAG = "dialog_effect"
+    const val MAX_POLLS = 40
+    const val POLL_INTERVAL_MS = 50L
+
+    // No tint or optics, so the pixel is the backdrop colour.
+    val style = GlassStyle {
+      backgroundColor(Color.Transparent)
+      tint(Color.Transparent)
+      specularIntensity(0f)
+      edgeSoftness(0.dp)
+      edgeShadow(Color.Transparent)
+      ambientResponse(0f)
+    }
+  }
+}
