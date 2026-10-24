@@ -72,7 +72,11 @@ private class SurfaceInputVersion(
 )
 
 @Poko
-private class SurfaceInputSnapshot(val entries: List<SurfaceInputVersion>) : HazeEffectInputSnapshot
+private class SurfaceInputSnapshot(
+  val entries: List<SurfaceInputVersion>,
+  // A member's cross-window pre-draw pulse is the only signal when the source's contentVersion is unchanged.
+  val captureGenerations: List<Long>,
+) : HazeEffectInputSnapshot
 
 @Suppress("UNCHECKED_CAST")
 private class ConfiguredSurface<Style>(
@@ -148,7 +152,10 @@ private class ConfiguredSurface<Style>(
     mixedSelection = input !is HazeInput.Content && selections.map { it.mapTo(mutableSetOf()) { entry -> entry.area } }.distinct().size > 1
     entries = selections.flatten().distinctBy { it.area }.sortedBy { it.area.zIndex }
     snapshot = entries.takeIf { it.isNotEmpty() }?.let { input ->
-      SurfaceInputSnapshot(input.map { SurfaceInputVersion(it.area, it.layer, it.area.contentVersion, it.transform.values.toList(), it.area.size) })
+      SurfaceInputSnapshot(
+        entries = input.map { SurfaceInputVersion(it.area, it.layer, it.area.contentVersion, it.transform.values.toList(), it.area.size) },
+        captureGenerations = members.map { it.node.inputCaptureGeneration },
+      )
     }
   }
 
