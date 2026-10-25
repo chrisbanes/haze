@@ -1790,14 +1790,20 @@ internal class RuntimeShaderGlassDelegate(
           previousInputKey.interactionOptics != nextInputKey.interactionOptics ||
           previousInputKey.sharpDetail != nextInputKey.sharpDetail ||
           previousInputKey.merged != nextInputKey.merged
-        val nextInput = if (inputChanged) {
+        // The sharp, background-composited window pixels. The optical chain consumes it through the
+        // depth input and the detail shader directly, so both see the same pixels.
+        val backdropInput = if (inputChanged) {
           val sampleSize = key.optical.coordinates.sampleSize
           val backdropBackgroundShader = key.backdropMergedBackground?.let { field ->
             mergedBackgroundShader(key.optical.coordinates.materialOrigin, field)
           } ?: key.backdropBackground?.let { color ->
             (Brush.linearGradient(listOf(color, color)) as ShaderBrush).createShader(sampleSize)
           }
-          val backdropInput = backdropBackgroundShader?.let(::createGlassBackdropInputRenderEffect)
+          backdropBackgroundShader?.let(::createGlassBackdropInputRenderEffect)
+        } else {
+          null
+        }
+        val nextInput = if (inputChanged) {
           updateFusedDepthInputRenderEffect(
             blur = key.blur,
             depth = key.depth,
@@ -1835,18 +1841,28 @@ internal class RuntimeShaderGlassDelegate(
         }
         fusedInputKey = nextInputKey
         val detailKey = key.detail ?: return@let optical
-        val detailShader = refractionDetailShader ?: traceCreateRenderEffect {
+        // A new detail shader needs `backdropInput` here: it is only created when the fused shader
+        // is recreated, the merge or sharp-detail topology changes, or retained shaders were
+        // released, and each of those also clears `fusedInputKey`, so `inputChanged` is true.
+        val existingDetailShader = refractionDetailShader
+        val detailShader = existingDetailShader ?: traceCreateRenderEffect {
           createRefractionDetailRenderEffect(
             interactive = nextInputKey.interactionOptics,
             coverageOnly = false,
             merged = nextInputKey.merged,
+            input = backdropInput,
           )
         }.also {
           refractionDetailShader = it
         }
-        val detail = detailShader.updateUniforms {
+        val updateDetailUniforms: RuntimeShaderUniformProvider.() -> Unit = {
           setRefractionDetailUniforms(detailKey)
           key.interaction?.let(::setInteractionDetailUniforms)
+        }
+        val detail = if (existingDetailShader != null && inputChanged) {
+          detailShader.updateInputs(inputs = arrayOf(backdropInput), uniforms = updateDetailUniforms)
+        } else {
+          detailShader.updateUniforms(updateDetailUniforms)
         }
         wrapRuntimeShaderConstruction {
           createBlendRenderEffect(
@@ -2197,6 +2213,7 @@ private fun createRefractionDetailRenderEffect(
   interactive: Boolean,
   coverageOnly: Boolean,
   merged: Boolean = false,
+  input: PlatformRenderEffect? = null,
 ): MutableRuntimeShaderRenderEffect =
   createMutableRuntimeShaderRenderEffect(
     effect = when {
@@ -2209,7 +2226,7 @@ private fun createRefractionDetailRenderEffect(
       else -> GLASS_REFRACTION_DETAIL_EFFECT
     },
     shaderNames = arrayOf("content"),
-    inputs = arrayOf(null),
+    inputs = arrayOf(input),
   )
 
 internal fun createRetainedGlassRimRenderEffect(
