@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
@@ -39,11 +40,13 @@ import assertk.Assert
 import assertk.all
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.containsExactlyInAnyOrder
 import assertk.assertions.hasSize
 import assertk.assertions.isCloseTo
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isIn
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
@@ -191,6 +194,38 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun groupMember_reattached_rejoinsGroupInLayoutOrder() = runComposeUiTest {
+    // A and B share a group 200px apart; C is ungrouped and beyond the merge distance.
+    val fixture = fixture(gap = 200, width = 700, grouped = true, transition = GlassMemberTransition.None, cOffset = 600 to 60, cInitially = true)
+    fixture.toggle()
+    fixture.advance(16)
+    fixture.toggle()
+    fixture.advance(16)
+    val cNode = checkNotNull(fixture.c.memberBindingForTest?.node)
+    val bNode = checkNotNull(fixture.b.memberBindingForTest?.node)
+    // B re-registers after C, yet sits between A and C in layout, so the group stays one unit.
+    assertThat(fixture.owner().model.surfaces.map { cluster -> cluster.groups.map { unit -> unit.map { it.identity } } })
+      .isEqualTo(listOf(listOf(listOf(fixture.aNode, bNode)), listOf(listOf(cNode))))
+  }
+
+  @Test
+  fun resolveGlassNeighbour_nonMemberNearGroupBounds_growsFromGroup() = runComposeUiTest {
+    // The group spans 40..440 x 60..140. C is about 54px from each member but 20px from the group.
+    val fixture = fixture(gap = 200, width = 520, grouped = true, cOffset = 190 to 160)
+    val cNode by lazy { checkNotNull(fixture.c.memberBindingForTest?.node) }
+    fun c() = fixture.owner().model.surfaces.flatMap { it.members }.single { it.identity === cNode }
+    fixture.owner()
+    runOnIdle { fixture.cPresent.value = true }
+    fixture.advance(16)
+    val bNode = checkNotNull(fixture.b.memberBindingForTest?.node)
+    assertThat(c().link).isNotNull().isIn(fixture.aNode, bNode)
+    fixture.advance(96)
+    assertThat(c().link).isNotNull()
+    fixture.settle()
+    assertThat(fixture.owner().model.surfaces.single().members.map { it.identity }).containsExactlyInAnyOrder(fixture.aNode, bNode, cNode)
+  }
+
+  @Test
   fun groupedMember_detachRetractsIntoGroupBeyondMergeDistance() = runComposeUiTest {
     // B sits 60px from A, beyond the 40px merge distance.
     val fixture = fixture(gap = 60, grouped = true)
@@ -241,6 +276,17 @@ class GlassContainerTransitionTest : ContextTest() {
     fixture.advance(150)
     assertThat(fixture.b()).prop(GlassMemberSnapshot::rect).isCloseTo(Rect(200f, 60f, 300f, 140f))
     fixture.settle()
+  }
+
+  @Test
+  fun opticalSizes_fadingGroupMember_keepsGroupOpticalSize() = runComposeUiTest {
+    val fixture = fixture(gap = 60, present = false, grouped = true, transition = GlassMemberTransition.Materialize, bSize = Size(100f, 160f))
+    fixture.toggle()
+    fixture.advance(150)
+    // B is mid-fade, but fading is not an incompatibility: the 260x160 group still sets the size.
+    assertThat(fixture.a.opticalSizeOverride).isEqualTo(Size(160f, 160f))
+    fixture.settle()
+    assertThat(fixture.a.opticalSizeOverride).isEqualTo(Size(160f, 160f))
   }
 
   @Test
@@ -1143,7 +1189,7 @@ class GlassContainerTransitionTest : ContextTest() {
 
   @Test
   fun growSplitAtStartByMaterializingMember_fadesIn() = runComposeUiTest {
-    val fixture = fixture(cOffset = 40 to 150, cTransition = GlassMemberTransition.Materialize, cInitially = true)
+    val fixture = fixture(cOffset = 40 to 150, cTransition = GlassMemberTransition.Materialize, cInitially = true, cBeforeB = true)
     val owner = fixture.owner()
     val nodes = listOf(fixture.c, fixture.b).map { checkNotNull(it.memberBindingForTest?.node) }
     runOnIdle {
@@ -1325,6 +1371,7 @@ class GlassContainerTransitionTest : ContextTest() {
     cInitially: Boolean = false,
     width: Int = 360,
     grouped: Boolean = false,
+    cBeforeB: Boolean = false,
   ): Fixture {
     val c = GlassRuntimeEffect()
     val cPresent = mutableStateOf(cInitially)
@@ -1343,6 +1390,21 @@ class GlassContainerTransitionTest : ContextTest() {
     val aWidth = mutableStateOf(100)
     val aState = mutableStateOf(state)
     val fixture = Fixture(this, a, b, bPresent, aPresent, enabled, nested, aWidth, aState, c, cPresent)
+    val cMember: @Composable () -> Unit = {
+      if (cOffset != null && cPresent.value) {
+        Box(
+          Modifier.offset(cOffset.first.dp, cOffset.second.dp).size(100.dp, 80.dp).hazeGlass(
+            HazeEffectFactory { c },
+            HazeInput.Sources(state),
+            containerTestStyle(Color.Blue),
+            HazePerformanceMode.Quality,
+            true,
+            null,
+            memberTransition = cTransition,
+          ),
+        )
+      }
+    }
     setContent {
       Box(Modifier.size(width.dp, 240.dp).testTag("root").background(Color.White)) {
         Box(Modifier.size(width.dp, 240.dp).hazeSource(state).background(Color.White))
@@ -1355,6 +1417,7 @@ class GlassContainerTransitionTest : ContextTest() {
               }.hazeGlass(HazeEffectFactory { a }, HazeInput.Sources(aState.value), containerTestStyle(Color.Red).then(fixture.aExtra.value), HazePerformanceMode.Quality, true, fixture.aSource, groupKey = "group".takeIf { grouped }),
             )
           }
+          if (cBeforeB) cMember()
           Box(
             Modifier.size(width.dp, 240.dp)
               .then(if (fixture.bSourced.value) Modifier.hazeSource(state, zIndex = 1f) else Modifier)
@@ -1380,19 +1443,7 @@ class GlassContainerTransitionTest : ContextTest() {
               }
             }
           }
-          if (cOffset != null && cPresent.value) {
-            Box(
-              Modifier.offset(cOffset.first.dp, cOffset.second.dp).size(100.dp, 80.dp).hazeGlass(
-                HazeEffectFactory { c },
-                HazeInput.Sources(state),
-                containerTestStyle(Color.Blue),
-                HazePerformanceMode.Quality,
-                true,
-                null,
-                memberTransition = cTransition,
-              ),
-            )
-          }
+          if (!cBeforeB) cMember()
         }
       }
     }

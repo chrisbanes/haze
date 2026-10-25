@@ -31,6 +31,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.containsOnly
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -84,6 +85,20 @@ private const val TRANSITION_MILLIS = 150
  * registration path, not the foundation scheduler's timing on a device.
  */
 class GlassContainerLazyLayoutTest : ContextTest() {
+  @Test
+  fun lazyRowGroup_scrolledBack_drawsAsOneGroup() = runComposeUiTest {
+    val fixture = lazyFixture(GlassMemberTransition.None, withScrollState = true, splitClusters = false, groupKey = { index -> "row".takeIf { index <= 2 } })
+    // Items 0 and 1 leave, item 2 stays; scrolling back re-registers 0 and 1 after the ungrouped items.
+    fixture.frames(3, scrollPerFrame = 130f / 3)
+    fixture.frames(2)
+    assertThat(fixture.node(0)?.isAttached ?: false).isFalse()
+    fixture.frames(3, scrollPerFrame = -130f / 3)
+    fixture.frames(2)
+    val units = fixture.owner().model.surfaces.flatMap { it.groups }
+    val group = units.single { unit -> unit.any { it.identity === fixture.node(0) } }
+    assertThat(group.map { it.identity }).containsOnly(fixture.node(0), fixture.node(1), fixture.node(2))
+  }
+
   @Test
   fun lazyItem_matchedGeometry_atClusterCapacity_materializes() = runComposeUiTest {
     val fixture = lazyFixture(GlassMemberTransition.MatchedGeometry, splitClusters = false)
@@ -460,7 +475,12 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     }
   }
 
-  private fun ComposeUiTest.lazyFixture(transition: GlassMemberTransition, withScrollState: Boolean = false, splitClusters: Boolean = true): LazyFixture {
+  private fun ComposeUiTest.lazyFixture(
+    transition: GlassMemberTransition,
+    withScrollState: Boolean = false,
+    splitClusters: Boolean = true,
+    groupKey: (Int) -> Any? = { null },
+  ): LazyFixture {
     val effects = mutableMapOf<Int, GlassRuntimeEffect>()
     val hazeState = HazeState()
     val state = LazyListState(firstVisibleItemScrollOffset = 70)
@@ -496,6 +516,7 @@ class GlassContainerLazyLayoutTest : ContextTest() {
                 true,
                 null,
                 memberTransition = transition,
+                groupKey = groupKey(index),
               ),
             )
           }
