@@ -1631,7 +1631,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         Handler(Looper.getMainLooper()),
       )
       Shadows.shadowOf(Looper.getMainLooper()).idle()
-      check(result == PixelCopy.SUCCESS) { "PixelCopy failed: $result" }
+      assertThat(result).isEqualTo(PixelCopy.SUCCESS)
       bitmap
     }
 
