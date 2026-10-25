@@ -26,7 +26,10 @@ public class GlassAccessibilitySettings(
    * [reducedTransparencyFallbackColor] to match an in-app theme.
    */
   public val reduceTransparency: Boolean = false,
-  /** Enforces minimum tone contrast and edge separation. */
+  /**
+   * Enforces minimum tone contrast and edge separation. Tone contrast applies only to full
+   * rendering; fallback rendering omits color adjustments, so it gets the stronger edge alone.
+   */
   public val increaseContrast: Boolean = false,
   /** Enforces a visible edge without changing tone contrast. */
   public val showBorders: Boolean = false,
