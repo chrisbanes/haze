@@ -37,7 +37,8 @@ jobs:
         run: |
           run_build=true
           if [ "$GITHUB_EVENT_NAME" = push ] || [ "$GITHUB_EVENT_NAME" = pull_request ]; then
-            docs_only=$(sh scripts/is_docs_only_push.sh "$BEFORE_SHA" "$GITHUB_SHA")
+            # Fail closed: if the diff cannot be computed, run the full build.
+            docs_only=$(sh scripts/is_docs_only_push.sh "$BEFORE_SHA" "$GITHUB_SHA") || docs_only=false
             if [ "$docs_only" = true ]; then
               run_build=false
             fi
@@ -260,7 +261,10 @@ jobs:
 
   emulator_tests_matrix:
     needs: changes
-    if: needs.changes.outputs.run_build == 'true' && !contains(github.event.head_commit.message, 'skip ci')
+    # No job-level `if`: a skipped matrix job never expands, so the required
+    # `emulator_tests_matrix (31)` and `(34)` checks would stay pending. Gate each step instead.
+    env:
+      RUN_EMULATOR_TESTS: ${{ needs.changes.outputs.run_build == 'true' && !contains(github.event.head_commit.message, 'skip ci') }}
 
     strategy:
       fail-fast: false
@@ -273,14 +277,17 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        if: env.RUN_EMULATOR_TESTS == 'true'
 
       - name: Setup JDK
+        if: env.RUN_EMULATOR_TESTS == 'true'
         uses: actions/setup-java@v6
         with:
           distribution: 'zulu'
           java-version: 21
 
       - uses: gradle/actions/setup-gradle@v6
+        if: env.RUN_EMULATOR_TESTS == 'true'
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
           cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
@@ -288,7 +295,7 @@ jobs:
             caches/build-cache-1
 
       - name: Cache Gradle configuration
-        if: env.GRADLE_ENCRYPTION_KEY != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        if: env.RUN_EMULATOR_TESTS == 'true' && (env.GRADLE_ENCRYPTION_KEY != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository))
         uses: actions/cache@v6
         with:
           path: .gradle/configuration-cache
@@ -296,12 +303,14 @@ jobs:
           restore-keys: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ matrix.api-level }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-
 
       - name: Enable KVM
+        if: env.RUN_EMULATOR_TESTS == 'true'
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
       - name: Run instrumentation tests on emulator
+        if: env.RUN_EMULATOR_TESTS == 'true'
         uses: reactivecircus/android-emulator-runner@v2
         env:
           ORG_GRADLE_PROJECT_remoteBuildCacheUrl: ${{ secrets.GRADLE_REMOTE_CACHE_URL }}
@@ -318,7 +327,7 @@ jobs:
           script: ./gradlew connectedDebugAndroidTest connectedAndroidDeviceTest -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
 
       - name: Upload instrumentation reports
-        if: always()
+        if: always() && env.RUN_EMULATOR_TESTS == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: emulator-test-reports-api-${{ matrix.api-level }}
