@@ -455,6 +455,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val detailShader = checkNotNull(delegate.refractionDetailShader)
       val rimShader = checkNotNull(delegate.rimShader)
       val rimBrushProvider = checkNotNull(delegate.rimBrushProvider)
+      assertThat(rimBrushProvider).isInstanceOf<AndroidGlassRimBrushProvider>()
+      val compiledRim = (rimBrushProvider as AndroidGlassRimBrushProvider).shader
 
       attached.value = false
       waitForIdle()
@@ -491,6 +493,9 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(reattachedDelegate.refractionDetailShader).isNotSameInstanceAs(detailShader)
       assertThat(reattachedDelegate.rimShader).isNotSameInstanceAs(rimShader)
       assertThat(reattachedDelegate.rimBrushProvider).isNotSameInstanceAs(rimBrushProvider)
+      // The program is shared across release, so reattaching does not compile it again.
+      assertThat((reattachedDelegate.rimBrushProvider as AndroidGlassRimBrushProvider).shader)
+        .isSameInstanceAs(compiledRim)
       assertThat(reattachedRuntime.interactionSource).isSameInstanceAs(callerInteractionSource)
       assertThat(reattachedRuntime.shape).isSameInstanceAs(callerShape)
       assertThat(reattachedRuntime.interactionPositionAnimationSpec)

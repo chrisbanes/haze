@@ -10,7 +10,9 @@ import android.graphics.ColorMatrixColorFilter
 import android.graphics.RuntimeShader
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
@@ -58,27 +60,53 @@ internal actual fun DrawScope.supportsGlassRimBrush(): Boolean =
   drawContext.canvas.nativeCanvas.isHardwareAccelerated
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createGlassRimBrushProvider(merged: Boolean): GlassRimBrushProvider? {
-  val shader = runCatchingGlassRim { RuntimeShader(GlassShaders.buildRim(merged)) }.getOrNull() ?: return null
-  val brush = ShaderBrush(shader)
-  val uniforms = GlassRimUniformProvider(shader)
-  return GlassRimBrushProvider { key ->
+internal actual fun createGlassRimBrushProvider(merged: Boolean): GlassRimBrushProvider? =
+  (if (merged) GlassDirectDrawPrograms.mergedRim else GlassDirectDrawPrograms.rim)
+    ?.let { AndroidGlassRimBrushProvider(it.shader, it.brush) }
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+internal class AndroidGlassRimBrushProvider(
+  internal val shader: RuntimeShader,
+  private val brush: Brush,
+) : GlassRimBrushProvider {
+  private val uniforms = GlassRimUniformProvider(shader)
+
+  override fun invoke(key: GlassRimEffectKey): Brush {
     uniforms.setRimUniforms(key)
-    brush
+    return brush
   }
 }
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createGlassMergedBackgroundShaderProvider(): GlassMergedBackgroundShaderProvider? {
-  val shader = runCatchingGlassRim { RuntimeShader(GlassShaders.buildMergedBackground()) }.getOrNull()
-    ?: return null
-  val uniforms = GlassRimUniformProvider(shader)
-  return GlassMergedBackgroundShaderProvider { materialOrigin, field ->
-    // Recording or wrapping the shader snapshots its uniforms, as for the rim brush.
+internal actual fun createGlassMergedBackgroundShaderProvider(): GlassMergedBackgroundShaderProvider? =
+  GlassDirectDrawPrograms.mergedBackground?.let(::AndroidGlassMergedBackgroundShaderProvider)
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+internal class AndroidGlassMergedBackgroundShaderProvider(
+  internal val shader: RuntimeShader,
+) : GlassMergedBackgroundShaderProvider {
+  private val uniforms = GlassRimUniformProvider(shader)
+
+  override fun invoke(materialOrigin: Offset, field: GlassMergedField): Shader {
     uniforms.setFloatUniform("materialOrigin", materialOrigin.x, materialOrigin.y)
     uniforms.setMergedFieldUniforms(field, includeBackground = true)
-    shader
+    return shader
   }
+}
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+private class GlassRimProgram(val shader: RuntimeShader) {
+  val brush = ShaderBrush(shader)
+}
+
+// One compiled program per variant, shared by every provider. That is safe only because each
+// provider is invoked inside the recorded draw that uses its result, which snapshots the uniforms,
+// or passed straight to RenderEffect.createShaderEffect. Never invoke one outside such a call.
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+private object GlassDirectDrawPrograms {
+  val rim by lazyGlassProgram { GlassRimProgram(RuntimeShader(GlassShaders.buildRim(false))) }
+  val mergedRim by lazyGlassProgram { GlassRimProgram(RuntimeShader(GlassShaders.buildRim(true))) }
+  val mergedBackground by lazyGlassProgram { RuntimeShader(GlassShaders.buildMergedBackground()) }
 }
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
