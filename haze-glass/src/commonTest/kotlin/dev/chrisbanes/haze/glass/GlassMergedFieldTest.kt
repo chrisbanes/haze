@@ -265,6 +265,41 @@ class GlassMergedFieldTest {
   }
 
   @Test
+  fun setMergedFieldUniforms_reusesScratchArraysAcrossCalls() {
+    val scratch = MergedFieldUniformScratch()
+    val arrays = mutableMapOf<String, FloatArray>()
+    val values = mutableMapOf<String, List<Float>>()
+    val provider = capturingUniforms(arrays, values)
+    fun upload(vararg members: GlassMergedMember): Map<String, FloatArray> {
+      arrays.clear()
+      provider.setMergedFieldUniforms(
+        mergedField(*members),
+        includeLighting = true,
+        includeOptics = true,
+        scratch = scratch,
+      )
+      return arrays.toMap()
+    }
+    fun member(left: Float) = mergedMember(
+      left, 0f, 10f, 10f, radius = 3f, lightPosition = Offset(left, 1f), lightRadius = 2f, lightIntensity = 1f,
+      opticalPosition = Offset(left, 2f), opticalRadius = 4f, refractionMultiplier = 1.8f, whitePointDelta = 0.3f,
+    )
+
+    val four = upload(member(0f), member(20f), member(40f), member(60f))
+    val two = upload(member(0f), member(20f))
+
+    assertThat(two.keys).isEqualTo(four.keys)
+    assertThat(two.size).isEqualTo(12)
+    for ((name, array) in four) assertThat(two.getValue(name)).isSameInstanceAs(array)
+    // The slots the second call leaves unused are neutral again, not the fourth member's values.
+    assertThat(values.getValue("memberRects")).isEqualTo(listOf(0f, 0f, 10f, 10f, 20f, 0f, 10f, 10f) + List(8) { 0f })
+    assertThat(values.getValue("memberLightRadii")).isEqualTo(listOf(2f, 2f, 0f, 0f))
+    assertThat(values.getValue("memberRefractionMultipliers")).isEqualTo(listOf(1.8f, 1.8f, 1f, 1f))
+    assertThat(values.getValue("memberSmoothing").drop(2)).isEqualTo(listOf(0f, 0f))
+    assertThat(values.getValue("memberStandaloneWeights").drop(2)).isEqualTo(listOf(0f, 0f))
+  }
+
+  @Test
   fun setMergedFieldUniforms_padsLightingArrays() {
     val recorded = mutableMapOf<String, List<Float>>()
     recordingUniforms(recorded).setMergedFieldUniforms(
@@ -642,6 +677,30 @@ private fun recordingUniforms(recorded: MutableMap<String, List<Float>>) = objec
 
   override fun setFloatUniform(name: String, values: FloatArray) {
     recorded[name] = values.toList()
+  }
+
+  override fun setIntUniform(name: String, value: Int) = error(name)
+
+  override fun setChildShader(name: String, shader: Shader) = error(name)
+}
+
+/** Records each array by reference as well as a copy of its values at the time of the call. */
+private fun capturingUniforms(
+  arrays: MutableMap<String, FloatArray>,
+  snapshots: MutableMap<String, List<Float>>,
+) = object : RuntimeShaderUniformProvider {
+  override fun setColorUniform(name: String, color: Color) = Unit
+
+  override fun setFloatUniform(name: String, value: Float) = Unit
+
+  override fun setFloatUniform(name: String, value1: Float, value2: Float) = error(name)
+
+  override fun setFloatUniform(name: String, value1: Float, value2: Float, value3: Float, value4: Float) =
+    error(name)
+
+  override fun setFloatUniform(name: String, values: FloatArray) {
+    arrays[name] = values
+    snapshots[name] = values.toList()
   }
 
   override fun setIntUniform(name: String, value: Int) = error(name)

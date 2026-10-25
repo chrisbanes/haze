@@ -50,6 +50,8 @@ internal class RuntimeShaderGlassDelegate(
   internal val runtimeEffectFactoryForTest: GlassRuntimeEffectFactory
     get() = runtimeEffectFactory
 
+  /** Reused by every merged-field uniform upload; the shaders copy each array as it is set. */
+  private val mergedFieldScratch = MergedFieldUniformScratch()
   private var blurKey: GlassBlurEffectKey? = null
   private var blurEffects: GlassBlurRenderEffects? = null
   internal var blurHorizontalShader: MutableRuntimeShaderRenderEffect? = null
@@ -1519,7 +1521,7 @@ internal class RuntimeShaderGlassDelegate(
   ) {
     // The output effect replaces this layer's effect, so the optical effect is not attached.
     interactionOptical.bind(layer, key, uniforms, attach = !outputTargetsLayer) {
-      setOpticalUniforms(key)
+      setOpticalUniforms(key, mergedFieldScratch)
       setInteractionOpticalUniforms(uniforms)
     }
   }
@@ -1530,7 +1532,7 @@ internal class RuntimeShaderGlassDelegate(
     uniforms: GlassInteractionUniforms,
   ) {
     interactionDetail.bind(layer, key, uniforms) {
-      setRefractionDetailUniforms(key)
+      setRefractionDetailUniforms(key, mergedFieldScratch)
       setInteractionDetailUniforms(uniforms)
     }
   }
@@ -1541,7 +1543,7 @@ internal class RuntimeShaderGlassDelegate(
     uniforms: GlassInteractionUniforms,
   ) {
     interactionDetailCoverage.bind(layer, key, uniforms) {
-      setRefractionDetailUniforms(key)
+      setRefractionDetailUniforms(key, mergedFieldScratch)
       setInteractionDetailUniforms(uniforms)
     }
   }
@@ -1552,7 +1554,7 @@ internal class RuntimeShaderGlassDelegate(
     uniforms: GlassInteractionUniforms,
   ) {
     interactionLighting.bind(layer, key, uniforms) {
-      setInteractionLightingUniforms(key, uniforms)
+      setInteractionLightingUniforms(key, uniforms, mergedFieldScratch)
     }
   }
 
@@ -1698,7 +1700,7 @@ internal class RuntimeShaderGlassDelegate(
       }.also {
         opticalShader = it
       }
-      opticalEffect = shader.updateUniforms { setOpticalUniforms(nextOpticalKey) }
+      opticalEffect = shader.updateUniforms { setOpticalUniforms(nextOpticalKey, mergedFieldScratch) }
       opticalKey = nextOpticalKey
     }
     val nextRefractionDetailKey = render.refractionDetailKey
@@ -1717,7 +1719,7 @@ internal class RuntimeShaderGlassDelegate(
         }.also {
           refractionDetailShader = it
         }
-        shader.updateUniforms { setRefractionDetailUniforms(key) }
+        shader.updateUniforms { setRefractionDetailUniforms(key, mergedFieldScratch) }
       }
       refractionDetailCoverageEffect = nextRefractionDetailKey?.let { key ->
         val shader = refractionDetailCoverageShader
@@ -1730,7 +1732,7 @@ internal class RuntimeShaderGlassDelegate(
           }.also {
             refractionDetailCoverageShader = it
           }
-        shader.updateUniforms { setRefractionDetailUniforms(key) }
+        shader.updateUniforms { setRefractionDetailUniforms(key, mergedFieldScratch) }
       }
       refractionDetailKey = nextRefractionDetailKey
     }
@@ -1829,8 +1831,8 @@ internal class RuntimeShaderGlassDelegate(
         }
         val shader = checkNotNull(fusedShader)
         val updateUniforms: RuntimeShaderUniformProvider.() -> Unit = {
-          setOpticalUniforms(key.optical)
-          key.detail?.let { setRefractionDetailUniforms(it) }
+          setOpticalUniforms(key.optical, mergedFieldScratch)
+          key.detail?.let { setRefractionDetailUniforms(it, mergedFieldScratch) }
           key.interaction?.let { setFusedInteractionOpticalUniforms(it) }
         }
         val optical = if (inputChanged && !recreatedShader) {
@@ -1859,7 +1861,7 @@ internal class RuntimeShaderGlassDelegate(
           refractionDetailShader = it
         }
         val updateDetailUniforms: RuntimeShaderUniformProvider.() -> Unit = {
-          setRefractionDetailUniforms(detailKey)
+          setRefractionDetailUniforms(detailKey, mergedFieldScratch)
           key.interaction?.let(::setInteractionDetailUniforms)
         }
         val detail = if (existingDetailShader != null && inputChanged) {
@@ -1893,7 +1895,7 @@ internal class RuntimeShaderGlassDelegate(
         val shader = rimShader ?: traceCreateRenderEffect {
           createRetainedGlassRimRenderEffect(merged = key.mergedField != null)
         }.also { rimShader = it }
-        shader.updateUniforms { setRimUniforms(key) }
+        shader.updateUniforms { setRimUniforms(key, mergedFieldScratch) }
       }
       rimKey = nextRimKey
     }
@@ -2342,6 +2344,7 @@ private val GLASS_MERGED_INTERACTION_LIGHTING_EFFECT by lazy(LazyThreadSafetyMod
 
 internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
   key: GlassOpticalEffectKey,
+  scratch: MergedFieldUniformScratch = MergedFieldUniformScratch(),
 ) {
   setCommonUniforms(key.coordinates, key.sampleStepPx, key.edgeSoftnessPx, key.cornerRadii)
   setFloatUniform("refractionStrength", key.refractionStrength)
@@ -2359,11 +2362,12 @@ internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
   setFloatUniform("contentNormalBlend", key.contentNormalBlend)
   setFloatUniform("fresnelExponent", key.fresnelExponent)
   setColorUniform("tintColor", key.tint)
-  key.mergedField?.let { setMergedFieldUniforms(it, includeTint = true, includeOptics = true) }
+  key.mergedField?.let { setMergedFieldUniforms(it, includeTint = true, includeOptics = true, scratch = scratch) }
 }
 
 internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
   key: GlassRefractionDetailEffectKey,
+  scratch: MergedFieldUniformScratch = MergedFieldUniformScratch(),
 ) {
   setCommonUniforms(
     key.sampleSize,
@@ -2382,11 +2386,12 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
   setFloatUniform("detailWidth", key.detailWidthPx)
   setFloatUniform("detailIntensity", key.detailIntensity)
   setFloatUniform("detailVisibility", key.detailVisibility)
-  key.mergedField?.let { setMergedFieldUniforms(it, includeOptics = true) }
+  key.mergedField?.let { setMergedFieldUniforms(it, includeOptics = true, scratch = scratch) }
 }
 
 internal fun RuntimeShaderUniformProvider.setRimUniforms(
   key: GlassRimEffectKey,
+  scratch: MergedFieldUniformScratch = MergedFieldUniformScratch(),
 ) {
   setCommonUniforms(key.coordinates, key.sampleStepPx, key.edgeSoftnessPx, key.cornerRadii)
   setFloatUniform("specularIntensity", key.specularIntensity)
@@ -2397,7 +2402,7 @@ internal fun RuntimeShaderUniformProvider.setRimUniforms(
     key.lightPosition.x,
     key.lightPosition.y,
   )
-  key.mergedField?.let { setMergedFieldUniforms(it) }
+  key.mergedField?.let { setMergedFieldUniforms(it, scratch = scratch) }
 }
 
 internal fun RuntimeShaderUniformProvider.setInteractionOpticalUniforms(
@@ -2425,6 +2430,7 @@ internal fun RuntimeShaderUniformProvider.setInteractionDetailUniforms(
 internal fun RuntimeShaderUniformProvider.setInteractionLightingUniforms(
   key: GlassInteractionLightingKey,
   uniforms: GlassInteractionUniforms,
+  scratch: MergedFieldUniformScratch = MergedFieldUniformScratch(),
 ) {
   setFloatUniform("materialOrigin", key.coordinates.materialOrigin.x, key.coordinates.materialOrigin.y)
   setFloatUniform("materialSize", key.coordinates.materialSize.width, key.coordinates.materialSize.height)
@@ -2438,7 +2444,7 @@ internal fun RuntimeShaderUniformProvider.setInteractionLightingUniforms(
   )
   val field = key.mergedField
   if (field != null) {
-    setMergedFieldUniforms(field, includeLighting = true)
+    setMergedFieldUniforms(field, includeLighting = true, scratch = scratch)
   } else {
     setInteractionPositionUniforms(uniforms)
     setFloatUniform("interactionLightingIntensity", uniforms.lightingIntensity)
