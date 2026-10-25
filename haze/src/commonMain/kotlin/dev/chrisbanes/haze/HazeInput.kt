@@ -35,6 +35,10 @@ public sealed interface HazeInput {
    * pixels in the same window; it does not select individual source instances, include later
    * drawing, or sample content from another window.
    *
+   * Inside a dialog or popup, an eligible native backdrop therefore filters only that window's
+   * earlier pixels. Haze does not switch it to [fallback] because the fallback sources are in
+   * another window. To consume sources from the window behind, use [Sources] directly.
+   *
    * The experimental flag defaults to `false` and is read when the modifier node attaches.
    * Changing it affects later attachments only. A native-to-source fallback transition can take
    * one frame and remains selected until detachment after a known native failure.

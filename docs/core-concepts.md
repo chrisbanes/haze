@@ -305,6 +305,10 @@ Box {
 }
 ```
 
+A `HazeInput.Backdrop` in a dialog that is eligible for the native path filters only the dialog
+window's earlier pixels. Haze doesn't switch it to its `Sources` fallback, even though those sources
+are in another window.
+
 A blur that reads a source in another window recaptures its input after any snapshot state change
 in the app. A running animation therefore causes a recapture once per frame, even if the animation is
 unrelated to the source. With RenderScript, each recapture also starts a new blur pass. This applies
