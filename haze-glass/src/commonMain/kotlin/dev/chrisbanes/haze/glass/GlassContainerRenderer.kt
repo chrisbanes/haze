@@ -32,11 +32,16 @@ internal class GlassSurfaceSnapshot(
 
 /** Retains one independent renderer per capped cluster; singleton shaders stay local. */
 internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
-  private class Slot(val handle: HazeConfiguredEffectSurface<GlassNodeConfiguration>, val runtime: GlassRuntimeEffect)
+  private class Slot(
+    val handle: HazeConfiguredEffectSurface<GlassNodeConfiguration>,
+    val runtime: GlassRuntimeEffect,
+    val drawsMembersOnDecline: Boolean,
+  )
   private val slots = mutableMapOf<List<Any>, Slot>()
   private var drawn = emptyList<Pair<Rect, GlassRuntimeEffect>>()
   internal val runtimeSurfaces: List<GlassRuntimeEffect> get() = slots.values.map { it.runtime }
   internal val surfaceCount: Int get() = drawn.size
+  internal val drawsMembersOnDeclineForTest: List<Boolean> get() = slots.values.map { it.drawsMembersOnDecline }
 
   fun reconcile(): List<HazeEffectSurface> {
     val model = owner.model
@@ -88,7 +93,16 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
           it.runtimeEffectFactory = checkNotNull(nodes.first().binding.runtime).runtimeEffectFactory
           it.surfaceOwner = owner
         }
-        Slot(inputs.first().createConfiguredSurface(HazeEffectFactory { runtime }, configuration, bounds, inputs), runtime)
+        // A lone fading ghost borrows its anchor's surface, which the anchor's own cluster already outputs.
+        val drawsMembersOnDecline = members.any { it.identity is GlassMemberNode }
+        val handle = inputs.first().createConfiguredSurface(
+          HazeEffectFactory { runtime },
+          configuration,
+          bounds,
+          inputs,
+          drawsMembersOnDecline,
+        )
+        Slot(handle, runtime, drawsMembersOnDecline)
       }
       slot.handle.update(configuration, bounds, inputs)
       // The cluster draws in the surface translated by its origin, which moves with its members.

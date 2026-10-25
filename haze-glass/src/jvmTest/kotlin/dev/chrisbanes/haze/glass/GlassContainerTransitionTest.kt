@@ -653,6 +653,19 @@ class GlassContainerTransitionTest : ContextTest() {
   }
 
   @Test
+  fun loneFadingGhostSlot_doesNotDrawMembersOnDecline() = runComposeUiTest {
+    val fixture = fixture(gap = 100, transition = GlassMemberTransition.Materialize)
+    fixture.advance(16)
+    runOnIdle { fixture.present.value = false }
+    fixture.advance(16)
+    val clusters = fixture.owner().model.surfaces
+    assertThat(clusters.single { cluster -> cluster.members.any { it.identity is GlassMemberGhost } }.members).hasSize(1)
+    // The ghost borrows A as its anchor, so A's own cluster is the other slot and draws it.
+    assertThat(fixture.owner().renderer.drawsMembersOnDeclineForTest).containsExactly(false)
+    fixture.settle()
+  }
+
+  @Test
   fun ghostAnchor_pressCollapsed_endsMaterializeGhostWithoutCrashing() = runComposeUiTest {
     assertPressCollapsedAnchorEndsGhost(fixture(gap = 100, transition = GlassMemberTransition.Materialize), pressFirst = true)
   }

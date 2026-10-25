@@ -38,6 +38,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
@@ -348,16 +349,65 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
     }
   }
 
+  @Test
+  fun declinedBackdropGhostCluster_declinedAtRecovery_drawsAnchorOnce() =
+    assertTemporaryRecovery(configured = true, budgetViable = true, declineOnRecovery = true, ghost = true)
+
+  @Test
+  fun declinedBackdropGhostCluster_drawsAnchorOnce() = runScreenshotTest {
+    val owner = BridgeOwner()
+    val anchor = BridgeFactory(owner, ::translucentRedEffect)
+    val reference = BridgeFactory(owner, ::translucentRedEffect)
+    var cluster: HazeConfiguredEffectSurface<Unit>? = null
+    owner.resolveSurfaces = {
+      // The anchor is both the cluster's only member and an output of its own, as for a fading ghost.
+      cluster = cluster ?: anchor.surface.createConfiguredSurface(
+        HazeEffectFactory {
+          object : HazeEffectRenderer<Unit>, HazeEffectRendererBackdrop<Unit> {
+            override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
+            override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit): HazeEffectBackdrop? = null
+          }
+        },
+        Unit, checkNotNull(anchor.surface.boundsInOwner()), listOf(anchor.surface),
+        drawsMembersOnDecline = false,
+      )
+      listOf(checkNotNull(cluster).surface, anchor.surface, reference.surface)
+    }
+    val input = HazeInput.Backdrop()
+    setContent {
+      Box(Modifier.size(200.dp, 100.dp).testTag("probe").background(Color.White)) {
+        Box(Modifier.size(200.dp, 100.dp).then(BridgeOwnerElement(owner))) {
+          Box(Modifier.size(100.dp, 40.dp).hazeEffect(anchor, input, Unit))
+          Box(Modifier.offset(y = 50.dp).size(100.dp, 40.dp).hazeEffect(reference, input, Unit))
+        }
+      }
+    }
+    refreshNativeFrame()
+    val bounds = onNodeWithTag("probe").fetchSemanticsNode().boundsInRoot
+    val pixels = captureRootPixels()
+    val x = (bounds.left + bounds.width * 30f / 200f).roundToInt()
+    val anchorPixel = pixels[x, (bounds.top + bounds.height * 20f / 100f).roundToInt()]
+    val referencePixel = pixels[x, (bounds.top + bounds.height * 70f / 100f).roundToInt()]
+    assertThat(referencePixel, "the reference is the translucent effect applied once").isNotEqualTo(Color.White)
+    assertThat(anchorPixel, "a declined ghost cluster must not draw its anchor a second time").isEqualTo(referencePixel)
+    composeTestRule.runOnIdle {
+      owner.resolveSurfaces = null
+      cluster?.dispose()
+    }
+  }
+
   private fun assertTemporaryRecovery(
     release: Boolean = false,
     configured: Boolean = false,
     budgetViable: Boolean = false,
     declineOnRecovery: Boolean = false,
+    // The cluster's only member is also an owner output, as a fading ghost's borrowed anchor is.
+    ghost: Boolean = false,
   ) = runScreenshotTest {
     val owner = BridgeOwner(allowGroup = false)
     val offset = mutableStateOf(60)
     val input = HazeInput.Backdrop(HazeState())
-    val first = BridgeFactory(owner, ::redEffect)
+    val first = BridgeFactory(owner, if (ghost) ::translucentRedEffect else ::redEffect)
     val sibling = BridgeFactory(owner, ::blueBlurEffect)
     var cluster: HazeConfiguredEffectSurface<Unit>? = null
     var declined = false
@@ -367,12 +417,14 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
           HazeEffectFactory {
             object : HazeEffectRenderer<Unit>, HazeEffectRendererBackdrop<Unit> {
               override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
-              override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit) = if (declined) null else HazeEffectBackdrop(redEffect())
+              override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit) =
+                if (declined) null else HazeEffectBackdrop(if (ghost) translucentRedEffect() else redEffect())
             }
           },
           Unit, checkNotNull(first.surface.boundsInOwner()), listOf(first.surface),
+          drawsMembersOnDecline = !ghost,
         )
-        listOf(checkNotNull(cluster).surface, sibling.surface)
+        if (ghost) listOf(checkNotNull(cluster).surface, first.surface, sibling.surface) else listOf(checkNotNull(cluster).surface, sibling.surface)
       }
     }
     setContent {
@@ -395,6 +447,7 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
         cluster?.dispose()
         first.surface.relocateTo(null)
       } else if (budgetViable) {
+        declined = declineOnRecovery
         owner.allowGroup = true
       } else {
         declined = declineOnRecovery
@@ -403,7 +456,13 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
       owner.invalidateDraw()
     }
     refreshNativeFrame()
-    assertThat(captureRootPixels()[x, y], "genuine temporary rejection restores native output without detach").isEqualTo(Color.Red)
+    val recovered = captureRootPixels()[x, y]
+    if (ghost) {
+      assertThat(recovered.green, "a declined ghost cluster leaves one application of the translucent effect: $recovered").isGreaterThan(0.45f)
+      assertThat(recovered.green).isLessThan(0.55f)
+    } else {
+      assertThat(recovered, "genuine temporary rejection restores native output without detach").isEqualTo(Color.Red)
+    }
   }
 
   private fun assertStickyFailure(configured: Boolean, sourceFallback: Boolean, unavailable: Boolean = false) = runScreenshotTest {
@@ -795,6 +854,19 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
       beginRecording(width, height).drawColor(android.graphics.Color.TRANSPARENT)
       endRecording()
     }
+
+  private fun translucentRedEffect(): RenderEffect = RenderEffect.createColorFilterEffect(
+    ColorMatrixColorFilter(
+      ColorMatrix(
+        floatArrayOf(
+          0f, 0f, 0f, 0f, 255f,
+          0f, 0f, 0f, 0f, 0f,
+          0f, 0f, 0f, 0f, 0f,
+          0f, 0f, 0f, 0f, 128f,
+        ),
+      ),
+    ),
+  )
 
   private fun redEffect(): RenderEffect = RenderEffect.createColorFilterEffect(
     ColorMatrixColorFilter(
