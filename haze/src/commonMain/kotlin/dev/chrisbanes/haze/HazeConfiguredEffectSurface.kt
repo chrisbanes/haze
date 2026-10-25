@@ -63,21 +63,59 @@ internal interface HazeConfiguredSurfaceDraw {
 
 internal class HazeSurfaceInputEntry(val area: HazeArea, val layer: GraphicsLayer, val transform: Matrix)
 
-@Poko
 private class SurfaceInputVersion(
-  val area: HazeArea,
-  val layer: GraphicsLayer,
-  val version: Long,
-  val transform: List<Float>,
-  val size: Size,
-)
+  private val area: HazeArea,
+  private val layer: GraphicsLayer,
+  private val version: Long,
+  transform: Matrix,
+  private val size: Size,
+) {
+  private val transform: FloatArray = transform.values.copyOf()
+
+  fun matches(entry: HazeSurfaceInputEntry): Boolean =
+    area === entry.area &&
+      layer === entry.layer &&
+      version == entry.area.contentVersion &&
+      transform.contentEquals(entry.transform.values) &&
+      size == entry.area.size
+
+  override fun equals(other: Any?): Boolean =
+    other is SurfaceInputVersion &&
+      area === other.area &&
+      layer === other.layer &&
+      version == other.version &&
+      transform.contentEquals(other.transform) &&
+      size == other.size
+
+  override fun hashCode(): Int {
+    var result = area.hashCode()
+    result = 31 * result + layer.hashCode()
+    result = 31 * result + version.hashCode()
+    result = 31 * result + transform.contentHashCode()
+    return 31 * result + size.hashCode()
+  }
+
+  override fun toString(): String = "SurfaceInputVersion(area=$area, layer=$layer, version=$version, size=$size)"
+}
 
 @Poko
 private class SurfaceInputSnapshot(
   val entries: List<SurfaceInputVersion>,
   // A member's cross-window pre-draw pulse is the only signal when the source's contentVersion is unchanged.
   val captureGenerations: List<Long>,
-) : HazeEffectInputSnapshot
+) : HazeEffectInputSnapshot {
+  /** Whether [resolved] and the members' capture generations would build an equal snapshot. */
+  fun matches(resolved: List<HazeSurfaceInputEntry>, members: List<HazeEffectSurface>): Boolean {
+    if (entries.size != resolved.size || captureGenerations.size != members.size) return false
+    for (i in resolved.indices) {
+      if (!entries[i].matches(resolved[i])) return false
+    }
+    for (i in members.indices) {
+      if (captureGenerations[i] != members[i].node.inputCaptureGeneration) return false
+    }
+    return true
+  }
+}
 
 @Suppress("UNCHECKED_CAST")
 private class ConfiguredSurface<Style>(
@@ -101,7 +139,7 @@ private class ConfiguredSurface<Style>(
   private var recovered = false
   private var disposed = false
   private var entries = emptyList<HazeSurfaceInputEntry>()
-  private var snapshot: HazeEffectInputSnapshot? = null
+  private var snapshot: SurfaceInputSnapshot? = null
   private var layerBounds = Rect.Zero
   private var layerSize = Size.Zero
   private var layerOffset = Offset.Zero
@@ -157,9 +195,13 @@ private class ConfiguredSurface<Style>(
     // Equal Sources can still resolve differently (Behind ancestors); never draw one member's exclusions.
     mixedSelection = input !is HazeInput.Content && selections.map { it.mapTo(mutableSetOf()) { entry -> entry.area } }.distinct().size > 1
     entries = selections.flatten().distinctBy { it.area }.sortedBy { it.area.zIndex }
-    snapshot = entries.takeIf { it.isNotEmpty() }?.let { input ->
-      SurfaceInputSnapshot(
-        entries = input.map { SurfaceInputVersion(it.area, it.layer, it.area.contentVersion, it.transform.values.toList(), it.area.size) },
+    // Unchanged inputs keep the same snapshot, so the renderer's change check is an identity hit.
+    val previous = snapshot
+    snapshot = when {
+      entries.isEmpty() -> null
+      previous != null && previous.matches(entries, members) -> previous
+      else -> SurfaceInputSnapshot(
+        entries = entries.map { SurfaceInputVersion(it.area, it.layer, it.area.contentVersion, it.transform, it.area.size) },
         captureGenerations = members.map { it.node.inputCaptureGeneration },
       )
     }
