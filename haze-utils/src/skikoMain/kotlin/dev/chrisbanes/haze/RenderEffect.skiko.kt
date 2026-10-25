@@ -182,7 +182,8 @@ private class SkikoMutableRuntimeShaderRenderEffect(
     uniforms: RuntimeShaderUniformProvider.() -> Unit,
   ): PlatformRenderEffect {
     uniforms(provider)
-    // ImageFilter snapshots the builder's current uniforms, unlike Android's live RuntimeShader.
+    // ImageFilter snapshots the builder's current uniforms, as Android's RenderEffect copies them
+    // from the shared shader when it is created, so the previous effect keeps its old values.
     return wrapRuntimeShaderConstruction {
       ImageFilter.makeRuntimeShader(builder, shaderNames, inputs)
     }
