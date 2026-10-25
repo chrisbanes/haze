@@ -105,7 +105,8 @@ public sealed interface HazeSourceSelection {
   public data object All : HazeSourceSelection
 }
 
-private data class FilteredHazeSourceSelection(
+@Poko
+private class FilteredHazeSourceSelection(
   val selection: HazeSourceSelection,
   val predicate: (HazeSourceMetadata) -> Boolean,
 ) : HazeSourceSelection
