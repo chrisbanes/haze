@@ -7,6 +7,9 @@ package dev.chrisbanes.haze.glass
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.os.Handler
+import android.os.Looper
+import android.view.PixelCopy
 import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -79,6 +82,7 @@ import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -130,6 +134,57 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       onNodeWithTag("canvas-transition").captureToImage()
       assertThat(delegate.layers.rim).isSameInstanceAs(rim)
       assertThat(rim.renderEffect).isNull()
+    }
+
+  @Test
+  fun hardwareToSoftwareCanvas_drawsFallbackAndKeepsRuntimeDelegate() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = retainedBlurEffect()
+      setContent { RuntimeGlassTestContent(effect) }
+      waitForIdle()
+      drawFrame()
+      val runtimeDelegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      assertThat(effect.lastDrawDelegateForTest).isSameInstanceAs(runtimeDelegate)
+
+      runOnIdle {
+        val view = checkNotNull(activity).window.decorView
+        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        view.draw(Canvas(bitmap))
+        bitmap.recycle()
+      }
+      assertThat(effect.lastDrawDelegateForTest).isNotNull().isInstanceOf<FallbackGlassDelegate>()
+      assertThat(effect.delegate).isSameInstanceAs(runtimeDelegate)
+
+      // A software draw leaves the hardware display list valid, so request a redraw.
+      runOnIdle { checkNotNull(effect.attachedContextForTest).invalidateDraw() }
+      waitForIdle()
+      drawFrame()
+      assertThat(effect.lastDrawDelegateForTest).isSameInstanceAs(runtimeDelegate)
+      assertThat(effect.delegate).isSameInstanceAs(runtimeDelegate)
+    }
+
+  @Test
+  fun softwareDrawThenZeroAlpha_doesNotKeepFallbackContentBehind() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = retainedBlurEffect()
+      val style = mutableStateOf(effect.style)
+      setContent { RuntimeGlassTestContent(effect, style = style.value) }
+      waitForIdle()
+      drawFrame()
+      runOnIdle {
+        val view = checkNotNull(activity).window.decorView
+        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        view.draw(Canvas(bitmap))
+        bitmap.recycle()
+      }
+      assertThat(effect.lastDrawDelegateForTest).isNotNull().isInstanceOf<FallbackGlassDelegate>()
+      assertThat(effect.shouldDrawContentBehind()).isTrue()
+
+      // An alpha-0 frame skips prepareDraw, so the software-draw flag must not outlive it.
+      style.value = style.value.then { alpha(0f) }
+      waitForIdle()
+      drawFrame()
+      assertThat(effect.shouldDrawContentBehind()).isFalse()
     }
 
   @Test
@@ -632,8 +687,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val rimEffect = delegate.rimEffect
       val rimBrushProvider = checkNotNull(delegate.rimBrushProvider)
       val rimRecordCount = delegate.rimRecordCount
-      // drawFrame uses a software bitmap canvas, so the rim retains its RenderEffect fallback.
-      assertThat(delegate.layers.rim?.renderEffect).isNotNull()
+      assertThat(delegate.layers.rim?.renderEffect).isNull()
       style.value = style.value.then { lightPosition(exactLightAlignment(Offset(10f, 20f))) }
       waitForIdle()
       drawFrame()
@@ -642,7 +696,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.rimEffect).isNotSameInstanceAs(rimEffect)
       assertThat(delegate.rimBrushProvider).isSameInstanceAs(rimBrushProvider)
       assertThat(delegate.rimRecordCount).isGreaterThan(rimRecordCount)
-      assertThat(delegate.layers.rim?.renderEffect).isNotNull()
+      assertThat(delegate.layers.rim?.renderEffect).isNull()
     }
 
   @Test
@@ -1569,7 +1623,15 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     runOnIdle {
       val view = checkNotNull(activity).window.decorView
       val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
-      view.draw(Canvas(bitmap))
+      var result = -1
+      PixelCopy.request(
+        checkNotNull(activity).window,
+        bitmap,
+        { result = it },
+        Handler(Looper.getMainLooper()),
+      )
+      Shadows.shadowOf(Looper.getMainLooper()).idle()
+      check(result == PixelCopy.SUCCESS) { "PixelCopy failed: $result" }
       bitmap
     }
 

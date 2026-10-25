@@ -356,6 +356,13 @@ internal class GlassRuntimeEffect() :
   override val observesPointerEvents: Boolean
     get() = super.observesPointerEvents
 
+  // A software canvas cannot draw the runtime delegate. This draws instead, and the runtime delegate is kept.
+  private var softwareDrawDelegate: FallbackGlassDelegate? = null
+  private var drawsSoftwareFallback = false
+  private val drawDelegate: Delegate
+    get() = softwareDrawDelegate?.takeIf { drawsSoftwareFallback } ?: delegate
+  internal var lastDrawDelegateForTest: Delegate? = null
+
   internal var delegate: Delegate = FallbackGlassDelegate(this)
     set(value) {
       if (value != field) {
@@ -408,7 +415,10 @@ internal class GlassRuntimeEffect() :
       attachedContext = null
       isAttached = false
       delegate.release()
+      softwareDrawDelegate?.release()
     }
+    softwareDrawDelegate = null
+    drawsSoftwareFallback = false
     runtimeShaderIncompatible = false
     needsDelegateSelection = true
     resolvedInputScale = GLASS_FULL_RESOLUTION_SCALE
@@ -507,9 +517,19 @@ internal class GlassRuntimeEffect() :
     val context = this
     trace(GlassTraceSection.Prepare) {
       attachedContext?.let(::reconcileInteractionCompletion)
+      val runtimeShaderSupported = resolveRuntimeShaderSupport(context)
+      drawsSoftwareFallback = !runtimeShaderSupported && delegate.usesRuntimeShader
+      if (drawsSoftwareFallback) {
+        val fallback = softwareDrawDelegate ?: FallbackGlassDelegate(this@GlassRuntimeEffect).also {
+          softwareDrawDelegate = it
+          if (isAttached) it.attach()
+        }
+        with(fallback) { prepareDraw(context) }
+        return@trace
+      }
       if (canReusePreparedDraw(context)) return@trace
       trace(GlassTraceSection.PrepareBudget) {
-        prepareRenderBudget(context, runtimeShaderSupported = resolveRuntimeShaderSupport(context))
+        prepareRenderBudget(context, runtimeShaderSupported = runtimeShaderSupported)
       }
       trace(GlassTraceSection.SelectDelegate) {
         selectDelegateForDraw()
@@ -560,6 +580,9 @@ internal class GlassRuntimeEffect() :
 
   override fun shouldPrepareDraw(style: GlassNodeConfiguration): Boolean {
     if (alpha != 0f) return true
+    // No prepareDraw follows, so a previous software draw must not keep routing to the fallback.
+    // No prepareDraw follows, so a previous software draw must not keep routing to the fallback.
+    drawsSoftwareFallback = false
     resetDirtyTracker()
     return false
   }
@@ -601,7 +624,8 @@ internal class GlassRuntimeEffect() :
     val context = this as HazeEffectRuntimeDrawScope
     try {
       selectDelegateForDraw()
-      val selectedDelegate = delegate
+      val selectedDelegate = drawDelegate
+      lastDrawDelegateForTest = selectedDelegate
       try {
         withMaterialTransform(context) {
           with(selectedDelegate) { draw(context) }
@@ -639,7 +663,7 @@ internal class GlassRuntimeEffect() :
   override fun HazeEffectRuntimeDrawScope.drawForeground(style: GlassNodeConfiguration) {
     val context = this
     withMaterialTransform(context) {
-      with(delegate) { drawForeground(context) }
+      with(drawDelegate) { drawForeground(context) }
     }
   }
 
@@ -657,7 +681,7 @@ internal class GlassRuntimeEffect() :
     resolveTransform(size, interactionTransformTarget)
 
   override fun shouldDrawContentBehind(): Boolean {
-    return delegate.drawsContentBehind
+    return drawDelegate.drawsContentBehind
   }
 
   internal fun controllerConfiguration(
@@ -772,7 +796,10 @@ internal class GlassRuntimeEffect() :
   }
 
   override fun onTrimMemory(level: TrimMemoryLevel) {
-    attachedContext?.let { delegate.onTrimMemory(it, level) }
+    attachedContext?.let {
+      delegate.onTrimMemory(it, level)
+      softwareDrawDelegate?.onTrimMemory(it, level)
+    }
   }
 
   override fun canDrawRetainedOutput(): Boolean {
