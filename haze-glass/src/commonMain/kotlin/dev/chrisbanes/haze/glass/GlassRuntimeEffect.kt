@@ -551,6 +551,8 @@ internal class GlassRuntimeEffect() :
     style: GlassNodeConfiguration,
   ): HazeEffectBackdrop? {
     val context = this
+    // The native backdrop path never runs prepareDraw, so drop a flag left by a software draw.
+    drawsSoftwareFallback = false
     return try {
       attachedContext?.let(::reconcileInteractionCompletion)
       prepareRenderBudget(
@@ -580,7 +582,6 @@ internal class GlassRuntimeEffect() :
 
   override fun shouldPrepareDraw(style: GlassNodeConfiguration): Boolean {
     if (alpha != 0f) return true
-    // No prepareDraw follows, so a previous software draw must not keep routing to the fallback.
     // No prepareDraw follows, so a previous software draw must not keep routing to the fallback.
     drawsSoftwareFallback = false
     resetDirtyTracker()
