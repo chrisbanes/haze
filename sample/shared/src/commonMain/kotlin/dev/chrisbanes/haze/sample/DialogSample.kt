@@ -97,10 +97,12 @@ fun DialogSample(navController: NavHostController, effect: SampleEffect) {
 
                 SampleEffect.Glass -> Modifier.hazeGlass(
                   input = HazeInput.Sources(hazeState),
-                  style = GlassStyle.regular.then {
-                    backgroundColor(glassBackgroundColor)
-                    tint(glassTint)
-                    shape(dialogShape)
+                  style = remember(glassBackgroundColor, glassTint, dialogShape) {
+                    GlassStyle.regular.then {
+                      backgroundColor(glassBackgroundColor)
+                      tint(glassTint)
+                      shape(dialogShape)
+                    }
                   },
                 )
               },

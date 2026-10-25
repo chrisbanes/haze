@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.sample
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -36,10 +37,12 @@ fun CreditCardSample(
                 .clip(shape)
                 .hazeBlur(
                   input = HazeInput.Backdrop(hazeState),
-                  style = HazeBlurStyle {
-                    backgroundColor(Color.Black)
-                    colorEffects(listOf(HazeColorEffect.tint(Color.Yellow.copy(alpha = 0.4f))))
-                    blurRadius(8.dp)
+                  style = remember {
+                    HazeBlurStyle {
+                      backgroundColor(Color.Black)
+                      colorEffects(listOf(HazeColorEffect.tint(Color.Yellow.copy(alpha = 0.4f))))
+                      blurRadius(8.dp)
+                    }
                   },
                 )
 
@@ -47,10 +50,12 @@ fun CreditCardSample(
               Modifier
                 .hazeGlass(
                   input = HazeInput.Backdrop(hazeState),
-                  style = GlassStyle.regular.then {
-                    backgroundColor(glassBackgroundColor)
-                    tint(Color.Yellow.copy(alpha = 0.18f))
-                    shape(shape)
+                  style = remember(glassBackgroundColor, shape) {
+                    GlassStyle.regular.then {
+                      backgroundColor(glassBackgroundColor)
+                      tint(Color.Yellow.copy(alpha = 0.18f))
+                      shape(shape)
+                    }
                   },
                 )
                 .clip(shape)

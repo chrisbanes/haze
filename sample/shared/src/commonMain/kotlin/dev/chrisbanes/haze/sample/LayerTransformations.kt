@@ -29,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -121,15 +122,19 @@ fun LayerTransformations(
           when (effect) {
             SampleEffect.Blur -> Modifier.hazeBlur(
               input = HazeInput.Sources(hazeState),
-              style = HazeBlurStyle { blurRadius(20.dp) },
+              style = remember {
+                HazeBlurStyle { blurRadius(20.dp) }
+              },
             )
 
             SampleEffect.Glass -> Modifier.hazeGlass(
               input = HazeInput.Sources(hazeState),
-              style = GlassStyle.regular.then {
-                backgroundColor(glassBackgroundColor)
-                tint(Color.White.copy(alpha = 0.14f))
-                shape(RoundedCornerShape(16.dp))
+              style = remember(glassBackgroundColor) {
+                GlassStyle.regular.then {
+                  backgroundColor(glassBackgroundColor)
+                  tint(Color.White.copy(alpha = 0.14f))
+                  shape(RoundedCornerShape(16.dp))
+                }
               },
             )
           },

@@ -116,10 +116,12 @@ fun BottomSheet(navController: NavHostController, effect: SampleEffect) {
 
                 SampleEffect.Glass -> Modifier.hazeGlass(
                   input = HazeInput.Backdrop(hazeState),
-                  style = GlassStyle.regular.then {
-                    backgroundColor(glassBackgroundColor)
-                    tint(glassTint)
-                    shape(sheetShape)
+                  style = remember(glassBackgroundColor, glassTint, sheetShape) {
+                    GlassStyle.regular.then {
+                      backgroundColor(glassBackgroundColor)
+                      tint(glassTint)
+                      shape(sheetShape)
+                    }
                   },
                 )
               },

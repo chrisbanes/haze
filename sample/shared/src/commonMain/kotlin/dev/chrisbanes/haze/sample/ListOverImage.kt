@@ -113,10 +113,12 @@ fun ListOverImage(navController: NavHostController, effect: SampleEffect) {
 
                       SampleEffect.Glass -> Modifier.hazeGlass(
                         input = HazeInput.Backdrop(hazeState),
-                        style = GlassStyle.regular.then {
-                          backgroundColor(glassBackgroundColor)
-                          tint(glassTint)
-                          shape(shape)
+                        style = remember(glassBackgroundColor, glassTint, shape) {
+                          GlassStyle.regular.then {
+                            backgroundColor(glassBackgroundColor)
+                            tint(glassTint)
+                            shape(shape)
+                          }
                         },
                       )
                     },

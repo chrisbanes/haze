@@ -97,10 +97,12 @@ fun PopupSample(navController: NavHostController, effect: SampleEffect) {
 
                 SampleEffect.Glass -> Modifier.hazeGlass(
                   input = HazeInput.Sources(hazeState),
-                  style = GlassStyle.regular.then {
-                    backgroundColor(glassBackgroundColor)
-                    tint(glassTint)
-                    shape(popupShape)
+                  style = remember(glassBackgroundColor, glassTint, popupShape) {
+                    GlassStyle.regular.then {
+                      backgroundColor(glassBackgroundColor)
+                      tint(glassTint)
+                      shape(popupShape)
+                    }
                   },
                 )
               },
