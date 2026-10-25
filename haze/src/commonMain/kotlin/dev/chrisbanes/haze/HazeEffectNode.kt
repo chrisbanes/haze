@@ -35,6 +35,7 @@ import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.UnplacedAwareModifierNode
+import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.node.requireDensity
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -474,6 +476,7 @@ internal class HazeEffectNode(
   private var trimMemoryCallbackDisposable: DisposableHandle? = null
 
   override fun onAttach() {
+    updateLifecycle(currentValueOf(LocalLifecycleOwner).lifecycle)
     val previousSources = resolvedSourcesInput()
     backdropEnabledAtAttach = HazeFeatureFlags.isPlatformBackdropEnabled
     backdropBackendState.attach(backdropEnabledAtAttach)
@@ -702,6 +705,9 @@ internal class HazeEffectNode(
   }
 
   override fun ContentDrawScope.draw() {
+    // A LocalLifecycleOwner change redraws this node (see LifecycleOwnerInvalidationNode).
+    // Deactivated reusable content can still draw while detached, when locals cannot be read.
+    if (isAttached) updateLifecycle(currentValueOf(LocalLifecycleOwner).lifecycle)
     if (surface.owner != null) {
       if (layerBoundsRefreshPending) refreshObservedReads(notifySurface = false)
       isDrawing = true
