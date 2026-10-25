@@ -106,6 +106,8 @@ jobs:
 
   # The Skiko-rendered Desktop suites saturate a 4-core runner, so linux_build fans out across
   # shards and keeps its required check name as the aggregate result below.
+  # The sample checks have their own shard because running them beside the library checks exhausted
+  # the 16 GB runner (#1693). Keep the six :sample:* paths in step with settings.gradle.kts.
   linux_build_shards:
     name: ${{ matrix.name }}
     needs: changes
@@ -123,6 +125,22 @@ jobs:
               -x :haze-screenshot-tests:jvmTest
               -x :sample:screenshot-tests:jvmTest
               -x :haze-screenshot-tests:testAndroidHostTest
+              -x :sample:android:check
+              -x :sample:android:assembleDebug
+              -x :sample:desktop:check
+              -x :sample:screenshot-tests:check
+              -x :sample:shared:check
+              -x :sample:web:check
+          - shard: sample-checks
+            name: linux_build (sample checks)
+            tasks: >-
+              :sample:android:check
+              :sample:android:assembleDebug
+              :sample:desktop:check
+              :sample:screenshot-tests:check
+              :sample:shared:check
+              :sample:web:check
+              -x :sample:screenshot-tests:jvmTest
           - shard: glass-desktop-tests
             name: linux_build (Glass desktop tests)
             tasks: :haze-glass:jvmTest
