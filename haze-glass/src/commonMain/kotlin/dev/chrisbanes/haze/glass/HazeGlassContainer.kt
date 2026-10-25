@@ -287,8 +287,8 @@ internal class GlassContainerNode(
   }
 
   /**
-   * Whether layout has reordered members without moving them. Nothing is placed again then, and
-   * only a reconcile's own notifications used to bring the container back to reorder them.
+   * Whether layout has reordered members without moving them. Nothing is placed again then, so
+   * no placement callback reaches the container; the draw checks for it.
    */
   private fun layoutOrderChanged(): Boolean {
     val (slots, visited) = layoutOrderedSlots()
