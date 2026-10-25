@@ -17,6 +17,10 @@ import android.renderscript.RenderScript
  */
 internal object SharedRenderScript {
   private val lock = Any()
+
+  // Test seam: host tests cannot observe a destroyed RenderScript, so they record the call.
+  internal val defaultDestroy: (RenderScript) -> Unit = { it.destroy() }
+  internal var destroy: (RenderScript) -> Unit = defaultDestroy
   private var renderScript: RenderScript? = null
   private var references = 0
 
@@ -33,7 +37,7 @@ internal object SharedRenderScript {
     if (--references == 0) {
       val rs = renderScript
       renderScript = null
-      runCatching { rs?.destroy() }
+      if (rs != null) runCatching { destroy(rs) }
     }
   }
 

@@ -23,7 +23,9 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import assertk.assertFailure
 import assertk.assertThat
+import assertk.assertions.containsExactly
 import assertk.assertions.hasSize
+import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
@@ -149,6 +151,9 @@ class RenderScriptReleaseAndroidHostTest : ContextTest() {
 
   @Test
   fun detach_lastDelegateDestroysSharedRenderScript() {
+    // Robolectric's RenderScript is a process context, whose destroy() does nothing observable.
+    val destroyed = mutableListOf<Any>()
+    SharedRenderScript.destroy = { destroyed += it }
     val first = delegate()
     val second = delegate()
     val shared = first.getRenderScriptContext(IntSize(8, 8)).rs
@@ -161,10 +166,13 @@ class RenderScriptReleaseAndroidHostTest : ContextTest() {
     assertThat(remaining.rs).isSameInstanceAs(shared)
     assertThat(remaining.isDestroyed()).isFalse()
 
+    assertThat(destroyed).isEmpty()
+
     second.detach()
 
     assertThat(SharedRenderScript.currentForTest).isNull()
     assertThat(SharedRenderScript.referenceCountForTest).isEqualTo(0)
+    assertThat(destroyed).containsExactly(shared)
   }
 
   @Test
@@ -213,6 +221,7 @@ class RenderScriptReleaseAndroidHostTest : ContextTest() {
   @After
   fun detachDelegates() {
     delegates.forEach { it.detach() }
+    SharedRenderScript.destroy = SharedRenderScript.defaultDestroy
   }
 
   private fun delegate() = RenderScriptBlurVisualEffectDelegate(
