@@ -43,9 +43,9 @@ public sealed interface HazeInput {
    * Changing it affects later attachments only. After a known native failure the fallback remains
    * selected until detachment.
    *
-   * When a native Backdrop switches to its [fallback], the first frame after the switch draws the
-   * effect without input. The sources only record their layers while an effect asks for them, and
-   * on the native path no effect does. Later frames have input.
+   * When a native Backdrop switches to its [fallback], the first frame after the switch may draw the
+   * content unchanged, or the effect without input. The sources only record their layers while an
+   * effect asks for them, and on the native path no effect does. Later frames have input.
    *
    * @property fallback Optional source input used only when the native backdrop is unavailable or
    * fails. A `null` fallback leaves the content unchanged when native backdrop rendering is not

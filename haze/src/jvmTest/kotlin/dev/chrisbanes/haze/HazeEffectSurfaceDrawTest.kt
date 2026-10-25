@@ -159,9 +159,12 @@ class HazeEffectSurfaceDrawTest {
           }
         }
       }
-      assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[60, 60]).isEqualTo(Color.Red)
+      waitForIdle()
+      // The Backdrop switched to its source fallback, which now asks the source to record.
+      assertThat(state.areas.single().captureConsumerCount).isEqualTo(1)
       // The source records no layer while the Backdrop is native, so the first owner draw after the
-      // switch has no input. The accepted bound is that the effect draws by the second owner draw.
+      // switch can have no input. The accepted bound is that the effect first draws by the second
+      // owner draw. This pins when it draws, not what the first frame contains.
       assertThat(ownerDrawsAtMemberDraw).isNotEmpty()
       assertThat(ownerDrawsAtMemberDraw.first()).isLessThanOrEqualTo(2)
       runOnIdle {
