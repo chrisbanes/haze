@@ -40,6 +40,9 @@ public enum class HazeInputSharing {
    * The source re-decides this on every draw. As effects come and go, crossing between one and two
    * consumers allocates or frees the source-sized layer and turns the source's overflow clipping on
    * or off. Use [Always] for a source that draws outside its bounds.
+   *
+   * Each member of a Glass container counts as its own consumer, even when its cluster samples the
+   * source once. Two members over one source are therefore enough to share it.
    */
   Auto,
 

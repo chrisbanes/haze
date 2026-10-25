@@ -85,6 +85,10 @@ Sharing has two costs:
 two consumers allocates or frees the source-sized layer and turns the overflow clipping on or off.
 Use `Always` for a source that draws outside its bounds.
 
+Count each member of a Glass container, not each cluster, when you judge whether `Auto` shares.
+Every member is its own consumer, even when its cluster samples the source once, so two members
+over one source are enough.
+
 For a source that stays inside its bounds, the default zero outsets are enough:
 
 ```kotlin
