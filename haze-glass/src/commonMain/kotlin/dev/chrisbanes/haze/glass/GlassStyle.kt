@@ -42,8 +42,9 @@ public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
  *
  * A block may read snapshot state, such as an animated value. Each consuming node observes those
  * reads; when the state changes the node resolves the Style again and redraws on the next frame
- * without recomposition. Styles compare by identity, so `remember` or hoist a Style: constructing
- * a new Style in each composition replaces it on every node. The built-in Regular and Clear
+ * without recomposition. Styles created with [GlassStyle] compare by identity, so `remember` or
+ * hoist a Style: constructing a new one in each composition replaces it on every node. Styles
+ * joined with [then] compare by their parts. The built-in Regular and Clear
  * responses are selected from the attached node's current system appearance during resolution,
  * so a system appearance change does not require a replacement Style.
  *
