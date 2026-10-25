@@ -518,7 +518,7 @@ private fun GlassProfilingJoinLeaveContainer(
   Row(
     modifier = modifier.hazeGlassContainer(
       containerMergeDistance,
-      reducedMotionPolicy = GlassReducedMotionPolicy.Reduced,
+      memberReducedMotionPolicy = GlassReducedMotionPolicy.Reduced,
     ),
     horizontalArrangement = Arrangement.spacedBy(memberGap),
   ) {
