@@ -191,6 +191,7 @@ internal class GlassInteractionController(
   private var hasInitialPositionTarget = false
   private var positionJob: Job? = null
   private var primaryPointerId: PointerId? = null
+
   // The pointer whose raw press was cancelled; a source drag keeps following it until it lifts.
   private var cancelledPointerId: PointerId? = null
   private var rawHovered = false
