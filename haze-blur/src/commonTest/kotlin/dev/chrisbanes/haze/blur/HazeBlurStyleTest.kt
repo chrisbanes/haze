@@ -20,6 +20,7 @@ import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.InternalHazeApi
 import kotlin.test.Test
 
 class HazeBlurStyleTest {
@@ -42,6 +43,32 @@ class HazeBlurStyleTest {
 
     assertThat(first).isEqualTo(first)
     assertThat(first).isNotEqualTo(second)
+  }
+
+  @OptIn(InternalHazeApi::class)
+  @Test
+  fun blurStyle_comparesByIdentityWithoutInputsAndByValueWithInputs() {
+    val identity = HazeBlurStyle { blurRadius(24.dp) }
+    val value = valueBackedHazeBlurStyle("test", 24.dp) { blurRadius(24.dp) }
+    val equalValue = valueBackedHazeBlurStyle("test", 24.dp) { blurRadius(24.dp) }
+    val otherValue = valueBackedHazeBlurStyle("test", 32.dp) { blurRadius(32.dp) }
+
+    // Without inputs, only the same instance is equal.
+    assertThat(identity).isEqualTo(identity)
+    assertThat(identity.hashCode()).isEqualTo(identity.hashCode())
+    assertThat(identity).isNotEqualTo(HazeBlurStyle { blurRadius(24.dp) })
+    // With inputs, equal inputs are equal whichever block carries them.
+    assertThat(value).isEqualTo(equalValue)
+    assertThat(value.hashCode()).isEqualTo(equalValue.hashCode())
+    assertThat(value).isNotEqualTo(otherValue)
+    // The two modes never equal each other, and combinations compare their parts.
+    assertThat(value).isNotEqualTo(identity)
+    assertThat(identity).isNotEqualTo(value)
+    assertThat(value.then(otherValue)).isEqualTo(equalValue.then(otherValue))
+    assertThat(identity.then(value)).isNotEqualTo(HazeBlurStyle { blurRadius(24.dp) }.then(value))
+    // Both modes apply their writes when resolved.
+    assertThat(resolveHazeBlurStyle(HazeBlurStyle, value).blurRadius).isEqualTo(24.dp)
+    assertThat(resolveHazeBlurStyle(HazeBlurStyle, identity).blurRadius).isEqualTo(24.dp)
   }
 
   @Test
