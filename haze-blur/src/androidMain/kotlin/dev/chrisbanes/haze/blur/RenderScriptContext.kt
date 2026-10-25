@@ -92,7 +92,7 @@ internal class RenderScriptContext(
       blurScript.destroy()
       inputAlloc.destroy()
       outputAlloc.destroy()
-      // Note: rs (RenderScript) is NOT destroyed here — the delegate owns its lifecycle.
+      // Note: rs (RenderScript) is NOT destroyed here — SharedRenderScript owns its lifecycle.
     }
   }
 
