@@ -10,19 +10,26 @@ internal class RetainedGlassGroupAlphaLayer {
   var layer: GraphicsLayer? = null
     private set
 
+  /** The context that created [layer], which alone can release it. */
+  private var owner: GraphicsContext? = null
+
   val isAvailable: Boolean get() = layer?.isReleased == false
 
   fun prepare(required: Boolean, graphicsContext: GraphicsContext) {
     if (required) {
-      layer = ensureLayer(layer, graphicsContext)
+      if (layer?.isReleased != false) {
+        layer = graphicsContext.createGraphicsLayer()
+        owner = graphicsContext
+      }
     } else {
       release(graphicsContext)
     }
   }
 
   fun release(graphicsContext: GraphicsContext?) {
-    releaseLayer(layer, graphicsContext)
+    releaseLayer(layer, owner ?: graphicsContext)
     layer = null
+    owner = null
   }
 }
 
