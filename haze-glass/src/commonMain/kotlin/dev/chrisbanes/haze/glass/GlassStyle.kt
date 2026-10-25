@@ -182,6 +182,11 @@ private enum class BuiltInGlassStyle : GlassStyle {
 private class CombinedGlassStyle(
   val styles: List<GlassStyle>,
 ) : GlassStyle {
+  override fun equals(other: Any?): Boolean =
+    this === other || (other is CombinedGlassStyle && styles == other.styles)
+
+  override fun hashCode(): Int = styles.hashCode()
+
   fun replay(values: GlassStyleValues, appearance: GlassSystemAppearance) {
     for (style in styles) {
       style.replay(values, appearance)

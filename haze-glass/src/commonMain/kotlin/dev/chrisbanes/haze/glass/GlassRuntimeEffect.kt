@@ -453,16 +453,21 @@ internal class GlassRuntimeEffect() :
         // The container sets the factory once, when it creates the slot. Only its setter may replace the delegate.
         markDirty(GlassDirtyFields.All and GlassDirtyFields.RuntimeEffectFactory.inv())
       }
-      applyConfiguration(style, style.performanceMode ?: scope.currentValueOf(LocalHazePerformanceMode))
+      // The Style, appearance and composition-local Style all feed one resolution, which runs once.
+      batchStyleResolution {
+        applyConfiguration(style, style.performanceMode ?: scope.currentValueOf(LocalHazePerformanceMode))
+        if (snapshot == null) {
+          dirtyTrackerSignal
+          systemAppearance = appearanceReader(context)
+          compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
+        }
+      }
       if (snapshot != null) {
         // These values were evaluated in each member's observed context. Never replay a Style or
         // composition-local appearance at the container-owned surface.
         mergedField = snapshot.field
         opticalSizeOverride = snapshot.opticalSize
       } else {
-        dirtyTrackerSignal
-        systemAppearance = appearanceReader(context)
-        compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
         accessibilitySettings = context.currentValueOf(LocalGlassAccessibilitySettings)
         updateStyleInteractionSlots()
         syncInteractionController(context)

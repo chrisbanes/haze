@@ -171,7 +171,7 @@ internal abstract class GlassRuntimeState {
 
   internal var style: GlassStyle = GlassStyle
     set(value) {
-      if (field !== value) {
+      if (field != value) {
         HazeLogger.d(TAG) { "style changed. Current: $field. New: $value" }
         field = value
         updateInheritedStyleValues()
@@ -238,7 +238,37 @@ internal abstract class GlassRuntimeState {
   private var inheritedStyleValues: GlassStyleValues =
     resolveGlassStyleValues(compositionLocalStyle, style, systemAppearance)
 
+  private var styleBatchDepth = 0
+  private var styleResolutionPending = false
+
+  /** Resolves Styles once when [block] ends, however many of their inputs it changes. */
+  internal inline fun batchStyleResolution(block: () -> Unit) {
+    beginStyleBatch()
+    try {
+      block()
+    } finally {
+      endStyleBatch()
+    }
+  }
+
+  @PublishedApi
+  internal fun beginStyleBatch() {
+    styleBatchDepth++
+  }
+
+  @PublishedApi
+  internal fun endStyleBatch() {
+    if (--styleBatchDepth == 0 && styleResolutionPending) {
+      styleResolutionPending = false
+      updateInheritedStyleValues()
+    }
+  }
+
   private fun updateInheritedStyleValues() {
+    if (styleBatchDepth > 0) {
+      styleResolutionPending = true
+      return
+    }
     val resolved = resolveGlassStyleValues(compositionLocalStyle, style, systemAppearance)
     val previous = inheritedStyleValues
     inheritedStyleValues = resolved
