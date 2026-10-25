@@ -95,8 +95,8 @@ class DocsOnlyPushTest(unittest.TestCase):
         self.git("merge", "-q", "--no-ff", "-m", "Merge", "pr")
         return base
 
-    def test_pull_request_docs_only_ignores_newer_base_code(self):
-        base = self.merge_commit({"docs/guide.md": "new"}, {"README.md": "updated"})
+    def test_pull_request_docs_only_ignores_code_merged_to_base_later(self):
+        base = self.merge_commit({"docs/guide.md": "new"}, {"src/Main.kt": "updated"})
         self.assertEqual(self.decision(before=base).stdout.strip(), "true")
 
     def test_pull_request_with_code_is_not_docs_only(self):
