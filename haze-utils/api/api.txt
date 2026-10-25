@@ -114,7 +114,6 @@ package dev.chrisbanes.haze {
 
   public final class Shader_androidKt {
     method @KotlinOnly @RequiresApi(android.os.Build.VERSION_CODES.Q) @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.PlatformColorFilter createBlendColorFilter(int color, androidx.compose.ui.graphics.BlendMode blendMode);
-    method @RequiresApi(android.os.Build.VERSION_CODES.TIRAMISU) @dev.chrisbanes.haze.InternalHazeApi public static androidx.compose.ui.graphics.Shader createFractalNoiseShader(float baseFrequencyX, float baseFrequencyY, int numOctaves, float seed);
   }
 
   public final class Shader_skikoKt {

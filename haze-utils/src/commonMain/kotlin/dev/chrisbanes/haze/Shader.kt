@@ -4,18 +4,6 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Shader
-
-/**
- * Creates a fractal noise shader.
- */
-@InternalHazeApi
-public expect fun createFractalNoiseShader(
-  baseFrequencyX: Float,
-  baseFrequencyY: Float,
-  numOctaves: Int,
-  seed: Float,
-): Shader
 
 /**
  * Creates a color filter that blends with a given color.
