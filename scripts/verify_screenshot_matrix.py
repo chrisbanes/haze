@@ -8,6 +8,8 @@ from pathlib import Path
 
 SCENES = ["blur-credit-card", "glass-credit-card"]
 MODES = ["quality", "balanced", "performance"]
+# The Scrim fallback ignores input and performance mode, so one case per host profile is enough.
+SCRIM_FALLBACK_SELECTOR = "cupertino-scrim-fallback-sources-balanced"
 NATIVE_BACKDROP_PROOF = {
     "blurBackdrop_blursEarlierPixelsWithoutFallbackSources",
     "blurBackdrop_disabledFlag_leavesEarlierPixelsSharpWithoutFallbackSources",
@@ -48,6 +50,7 @@ def expected_cases(platform: str) -> set[str]:
     # Robolectric omits the suffix for the last SDK in @Config (currently 35).
     sdk_suffixes = ["[28]", "[32]", ""] if platform == "android" else [""]
     target_suffix = "[jvm]" if platform == "desktop" else ""
+    selectors.append(SCRIM_FALLBACK_SELECTOR)
     return {f"capture{sdk}[{selector}]{target_suffix}" for sdk in sdk_suffixes for selector in selectors}
 
 
