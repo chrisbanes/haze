@@ -325,7 +325,7 @@ internal class GlassInteractionController(
     retargetPosition(position)
   }
 
-  fun onPointerEvent(event: PointerEvent, size: Size) {
+  fun onPointerEvent(event: PointerEvent, size: Size, touchSlop: Float) {
     if (disposed) return
     val hasDrawableSize = size.isDrawable()
     var directPosition: Offset? = null
@@ -373,6 +373,9 @@ internal class GlassInteractionController(
         if (change.changedToUpIgnoreConsumed()) {
           primaryPointerId = null
           rawPressed = false
+        } else if (hasDrawableSize && change.position.isOutsideBounds(size, touchSlop)) {
+          // Mirrors Compose's clickable, which cancels once the pointer leaves the node plus slop.
+          cancelRawPress()
         }
       }
     }
@@ -659,6 +662,9 @@ internal object FullMotionDurationScale : MotionDurationScale {
 }
 
 private fun Offset.validOrNull(): Offset? = takeIf { isFinite }
+
+private fun Offset.isOutsideBounds(size: Size, slop: Float): Boolean =
+  isFinite && (x < -slop || x > size.width + slop || y < -slop || y > size.height + slop)
 
 // Accepted spring targets can overshoot; constrain derived samples without changing authored validation.
 internal fun Float.validScaleForRender(): Float = when {

@@ -24,6 +24,7 @@ import androidx.compose.ui.geometry.center
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -604,6 +605,44 @@ class GlassInteractionControllerTest : ContextTest() {
     source.tryEmit(PressInteraction.Release(sourcePress))
     waitForIdle()
     assertThat(renderState(effect).lightingIntensity).isEqualTo(0f)
+  }
+
+  @Test
+  fun pointerMovedOutOfBounds_cancelsRawPress() = runComposeUiTest {
+    val effect = reducedPressEffect()
+    val slop = setSlopMeasuredContent(effect)
+    waitForIdle()
+
+    onNodeWithTag("glass").performTouchInput {
+      down(Offset(20f, 20f))
+      moveTo(Offset(100f + slop + 1f, 20f))
+    }
+    waitForIdle()
+
+    assertThat(runtime(effect).currentInteractionSignals.rawPressed).isFalse()
+    assertThat(renderState(effect).lightingIntensity).isEqualTo(0f)
+    assertThat(renderState(effect).position).isEqualTo(Offset(100f, 20f))
+
+    onNodeWithTag("glass").performTouchInput { moveTo(Offset(50f, 20f)) }
+    waitForIdle()
+
+    assertThat(runtime(effect).currentInteractionSignals.rawPressed).isFalse()
+  }
+
+  @Test
+  fun pointerMovedWithinSlop_keepsRawPress() = runComposeUiTest {
+    val effect = reducedPressEffect()
+    val slop = setSlopMeasuredContent(effect)
+    waitForIdle()
+
+    onNodeWithTag("glass").performTouchInput {
+      down(Offset(20f, 20f))
+      moveTo(Offset(100f + slop - 1f, 20f))
+    }
+    waitForIdle()
+
+    assertThat(runtime(effect).currentInteractionSignals.rawPressed).isTrue()
+    assertThat(renderState(effect).lightingIntensity).isEqualTo(1f)
   }
 
   @Test
@@ -1351,6 +1390,23 @@ class GlassInteractionControllerTest : ContextTest() {
           .testGlass(effect),
       )
     }
+  }
+
+  private fun androidx.compose.ui.test.ComposeUiTest.setSlopMeasuredContent(
+    effect: GlassRuntimeEffect,
+  ): Float {
+    var slop = 0f
+    setContent {
+      slop = LocalViewConfiguration.current.touchSlop
+      Box(
+        Modifier
+          .size(100.dp)
+          .testTag("glass")
+          .testGlass(effect),
+      )
+    }
+    waitForIdle()
+    return slop
   }
 
   private fun Modifier.testGlass(
