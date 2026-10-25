@@ -1711,6 +1711,29 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun createGlassRimBrushProvider_afterRelease_doesNotRecompile() = runComposeUiTest {
+    val effect = animatedStageEffect()
+    setContent { RuntimeForegroundGlassTestContent(effect, style = effect.style) }
+    waitForIdle()
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
+    val released = checkNotNull(delegate.rimBrushProvider)
+    assertThat(released).isInstanceOf<SkiaGlassRimBrushProvider>()
+    val compiled = (released as SkiaGlassRimBrushProvider).effect
+
+    runOnIdle {
+      runtime(effect).onTrimMemory(TrimMemoryLevel.UI_HIDDEN)
+      assertThat(delegate.rimBrushProvider).isNull()
+      checkNotNull(effect.attachedContextForTest).invalidateDraw()
+    }
+    waitForIdle()
+
+    val recreated = checkNotNull(delegate.rimBrushProvider)
+    assertThat(recreated).isNotSameInstanceAs(released)
+    assertThat(recreated).isInstanceOf<SkiaGlassRimBrushProvider>()
+    assertThat((recreated as SkiaGlassRimBrushProvider).effect).isSameInstanceAs(compiled)
+  }
+
+  @Test
   fun uniformNativeBlurAndDetailChanges_cacheAndReplaceRenderEffects() = runComposeUiTest {
     val effect = retainedBlurEffect()
     val style = mutableStateOf(effect.style)

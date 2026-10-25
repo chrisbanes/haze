@@ -399,7 +399,12 @@ public fun DrawScope.drawScaledContent(
 
 /**
  * Records the effect input of [context], scaled by [scaleFactor], into [existingLayer] (or a new
- * layer when it is null or released) over [backgroundShader] or, without one, [backgroundColor].
+ * layer when it is null or released) over the shader [backgroundShader] returns or, without one,
+ * [backgroundColor].
+ *
+ * [backgroundShader] runs each time the layer's draw block runs, including when the platform
+ * replays the block after dropping the layer's display list. Produce the shader there, rather than
+ * capturing one, so a shader whose uniforms are shared is configured and drawn in the same call.
  *
  * Returns null without creating a layer when the scaled [layerSize] is empty.
  */
@@ -410,7 +415,7 @@ public fun DrawScope.createScaledContentLayer(
   scaleFactor: Float,
   layerSize: Size,
   existingLayer: GraphicsLayer? = null,
-  backgroundShader: Shader? = null,
+  backgroundShader: (() -> Shader?)? = null,
 ): GraphicsLayer? {
   val scaledLayerSize = (layerSize * scaleFactor).roundToIntSize()
 
@@ -422,8 +427,9 @@ public fun DrawScope.createScaledContentLayer(
     ?: context.requireGraphicsContext().createGraphicsLayer()
 
   layer.record(size = scaledLayerSize) {
-    if (backgroundShader != null) {
-      drawRect(ShaderBrush(backgroundShader))
+    val shader = backgroundShader?.invoke()
+    if (shader != null) {
+      drawRect(ShaderBrush(shader))
     } else if (backgroundColor.alpha > 0f) {
       drawRect(backgroundColor)
     }
