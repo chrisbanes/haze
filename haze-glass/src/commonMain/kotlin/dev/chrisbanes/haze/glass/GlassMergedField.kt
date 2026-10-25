@@ -237,17 +237,58 @@ internal class GlassMergedField(
   )
 }
 
-/** Only the merged shader variants declare these uniforms, so set them only for a merged field. */
+/**
+ * Arrays that [setMergedFieldUniforms] fills and uploads, kept so that each call does not allocate
+ * them again. Every [RuntimeShaderUniformProvider] copies an array when it is set, so a later call
+ * can overwrite these. Hold one per renderer, since a call overwrites the previous call's values.
+ */
+internal class MergedFieldUniformScratch {
+  private val arrays = arrayOfNulls<FloatArray>(SLOT_COUNT)
+
+  /** The array in [slot], created at [size] on first use and reset to [initial] on every call. */
+  fun floats(slot: Int, size: Int, initial: Float = 0f): FloatArray {
+    val array = arrays[slot] ?: FloatArray(size).also { arrays[slot] = it }
+    array.fill(initial)
+    return array
+  }
+
+  /** A copy of [values] padded with zeros to [size], without allocating. */
+  fun padded(slot: Int, values: FloatArray, size: Int): FloatArray =
+    floats(slot, size).also { values.copyInto(it, endIndex = minOf(values.size, size)) }
+
+  companion object {
+    const val RECTS = 0
+    const val LAYOUT_RECTS = 1
+    const val RADII = 2
+    const val SMOOTHING = 3
+    const val LIGHT_POSITIONS = 4
+    const val LIGHT_RADII = 5
+    const val LIGHT_INTENSITIES = 6
+    const val OPTICAL_POSITIONS = 7
+    const val OPTICAL_RADII = 8
+    const val MULTIPLIERS = 9
+    const val WHITE_POINT_DELTAS = 10
+    const val STANDALONE_WEIGHTS = 11
+    private const val SLOT_COUNT = 12
+  }
+}
+
+/**
+ * Only the merged shader variants declare these uniforms, so set them only for a merged field.
+ *
+ * [scratch] holds the arrays uploaded; pass one kept per renderer to avoid allocating them on each call.
+ */
 internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
   field: GlassMergedField,
   includeTint: Boolean = false,
   includeBackground: Boolean = false,
   includeLighting: Boolean = false,
   includeOptics: Boolean = false,
+  scratch: MergedFieldUniformScratch = MergedFieldUniformScratch(),
 ) {
-  val rects = FloatArray(MAX_GLASS_MERGED_MEMBERS * 4)
-  val layoutRects = FloatArray(MAX_GLASS_MERGED_MEMBERS * 4)
-  val radii = FloatArray(MAX_GLASS_MERGED_MEMBERS * 4)
+  val rects = scratch.floats(MergedFieldUniformScratch.RECTS, MAX_GLASS_MERGED_MEMBERS * 4)
+  val layoutRects = scratch.floats(MergedFieldUniformScratch.LAYOUT_RECTS, MAX_GLASS_MERGED_MEMBERS * 4)
+  val radii = scratch.floats(MergedFieldUniformScratch.RADII, MAX_GLASS_MERGED_MEMBERS * 4)
   field.members.forEachIndexed { index, member ->
     val offset = index * 4
     rects[offset] = member.rect.left
@@ -266,12 +307,15 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
   setFloatUniform("memberRects", rects)
   setFloatUniform("memberLayoutRects", layoutRects)
   setFloatUniform("memberRadii", radii)
-  setFloatUniform("memberSmoothing", field.memberSmoothingPx().copyOf(MAX_GLASS_MERGED_MEMBERS))
+  setFloatUniform(
+    "memberSmoothing",
+    scratch.padded(MergedFieldUniformScratch.SMOOTHING, field.memberSmoothingPx(), MAX_GLASS_MERGED_MEMBERS),
+  )
   setFloatUniform("memberCount", field.members.size.toFloat())
   if (includeLighting) {
-    val positions = FloatArray(MAX_GLASS_MERGED_MEMBERS * 2)
-    val lightRadii = FloatArray(MAX_GLASS_MERGED_MEMBERS)
-    val intensities = FloatArray(MAX_GLASS_MERGED_MEMBERS)
+    val positions = scratch.floats(MergedFieldUniformScratch.LIGHT_POSITIONS, MAX_GLASS_MERGED_MEMBERS * 2)
+    val lightRadii = scratch.floats(MergedFieldUniformScratch.LIGHT_RADII, MAX_GLASS_MERGED_MEMBERS)
+    val intensities = scratch.floats(MergedFieldUniformScratch.LIGHT_INTENSITIES, MAX_GLASS_MERGED_MEMBERS)
     field.members.forEachIndexed { index, member ->
       positions[index * 2] = member.lightPosition.x
       positions[index * 2 + 1] = member.lightPosition.y
@@ -283,10 +327,10 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
     setFloatUniform("memberLightIntensities", intensities)
   }
   if (includeOptics) {
-    val positions = FloatArray(MAX_GLASS_MERGED_MEMBERS * 2)
-    val opticalRadii = FloatArray(MAX_GLASS_MERGED_MEMBERS)
-    val multipliers = FloatArray(MAX_GLASS_MERGED_MEMBERS) { 1f }
-    val whitePointDeltas = FloatArray(MAX_GLASS_MERGED_MEMBERS)
+    val positions = scratch.floats(MergedFieldUniformScratch.OPTICAL_POSITIONS, MAX_GLASS_MERGED_MEMBERS * 2)
+    val opticalRadii = scratch.floats(MergedFieldUniformScratch.OPTICAL_RADII, MAX_GLASS_MERGED_MEMBERS)
+    val multipliers = scratch.floats(MergedFieldUniformScratch.MULTIPLIERS, MAX_GLASS_MERGED_MEMBERS, initial = 1f)
+    val whitePointDeltas = scratch.floats(MergedFieldUniformScratch.WHITE_POINT_DELTAS, MAX_GLASS_MERGED_MEMBERS)
     field.members.forEachIndexed { index, member ->
       positions[index * 2] = member.opticalPosition.x
       positions[index * 2 + 1] = member.opticalPosition.y
@@ -294,7 +338,10 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
       multipliers[index] = member.refractionMultiplier
       whitePointDeltas[index] = member.whitePointDelta
     }
-    setFloatUniform("memberStandaloneWeights", field.memberStandaloneWeights().copyOf(MAX_GLASS_MERGED_MEMBERS))
+    setFloatUniform(
+      "memberStandaloneWeights",
+      scratch.padded(MergedFieldUniformScratch.STANDALONE_WEIGHTS, field.memberStandaloneWeights(), MAX_GLASS_MERGED_MEMBERS),
+    )
     setFloatUniform("memberOpticalPositions", positions)
     setFloatUniform("memberOpticalRadii", opticalRadii)
     setFloatUniform("memberRefractionMultipliers", multipliers)
