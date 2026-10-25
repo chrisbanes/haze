@@ -98,17 +98,9 @@ internal class HazeSurfaceFootprint(val output: Rect, val nativeCapture: Rect?, 
  * Records children once, draws material output, then replays children once above every surface.
  * Interference components include all overlapping output and every output/native-capture overlap.
  * Only components requiring native isolation acquire a temporary, tightly bounded buffer.
+ *
+ * [surfaces] is resolved after child recording has refreshed member captures and snapshots.
  */
-@InternalHazeApi
-public fun ContentDrawScope.drawHazeEffectSurfaces(
-  owner: HazeEffectSurfaceOwner,
-  surfaces: List<HazeEffectSurface>,
-  children: GraphicsLayer,
-) {
-  drawHazeEffectSurfaces(owner, { surfaces }, children)
-}
-
-/** Resolves surface topology after child recording has refreshed member captures and snapshots. */
 @InternalHazeApi
 public fun ContentDrawScope.drawHazeEffectSurfaces(
   owner: HazeEffectSurfaceOwner,

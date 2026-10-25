@@ -148,7 +148,6 @@ package dev.chrisbanes.haze {
   }
 
   public final class HazeEffectSurfaceKt {
-    method @dev.chrisbanes.haze.InternalHazeApi public static void drawHazeEffectSurfaces(androidx.compose.ui.graphics.drawscope.ContentDrawScope, dev.chrisbanes.haze.HazeEffectSurfaceOwner owner, java.util.List<dev.chrisbanes.haze.HazeEffectSurface> surfaces, androidx.compose.ui.graphics.layer.GraphicsLayer children);
     method @dev.chrisbanes.haze.InternalHazeApi public static void drawHazeEffectSurfaces(androidx.compose.ui.graphics.drawscope.ContentDrawScope, dev.chrisbanes.haze.HazeEffectSurfaceOwner owner, kotlin.jvm.functions.Function0<? extends java.util.List<dev.chrisbanes.haze.HazeEffectSurface>> surfaces, androidx.compose.ui.graphics.layer.GraphicsLayer children);
   }
 
