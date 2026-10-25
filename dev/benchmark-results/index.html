@@ -1749,6 +1749,18 @@ continuously changing source. The independent row draws them separately. The con
 the same surfaces in <code>hazeGlassContainer(mergeDistance = 32.dp)</code>, so they merge into one cluster. Both
 rows use <a href="../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-default.html"><code>HazePerformanceMode.Default</code></a> and <code>HazeInput.Sources</code>. It used a Pixel 8a running
 Android 17 (full SDK 37.2) at 60 Hz, with fixed-performance mode enabled and normal CPU scheduling.</p>
+<div class="admonition note">
+<p class="admonition-title">Earlier build</p>
+<p>These figures come from an earlier 2.1 development build (<code>33e2371a</code>). It predates the
+merged-shader and layer-padding changes in
+<a href="https://github.com/chrisbanes/haze/pull/1604">#1604</a>,
+<a href="https://github.com/chrisbanes/haze/pull/1554">#1554</a>,
+<a href="https://github.com/chrisbanes/haze/pull/1607">#1607</a> and
+<a href="https://github.com/chrisbanes/haze/pull/1619">#1619</a>. The measured pair rests 12 dp apart,
+below half the 32 dp merge distance. Members resting between half and the full merge
+distance take a different shader path that these runs did not measure. The figures will be
+replaced.</p>
+</div>
 <p>Each per-pass value pools the frames of that pass's eight iterations; the table shows the
 <strong>arithmetic mean of the two per-pass values</strong>. Peak GPU memory uses each pass's median
 <code>memoryGpuMaxKb</code>.</p>

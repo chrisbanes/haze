@@ -1515,7 +1515,11 @@ it.</p>
 Regular Glass surfaces into one cluster over a changing source left about 4.5 ms less frame
 deadline margin at P90 and used about 7% more peak GPU memory than drawing them independently,
 even though its CPU frame duration P90 was 0.35 ms lower
-(<a href="../benchmark-results/#glass-containers">conditions and limits</a>).</p>
+(<a href="../benchmark-results/#glass-containers">conditions and limits</a>).
+These figures come from an earlier 2.1 development build (<code>33e2371a</code>) that predates later
+container changes, including <a href="https://github.com/chrisbanes/haze/pull/1604">#1604</a>, and they will
+be replaced. The measured pair rests closer than half the merge distance, so members resting
+between half and the full merge distance, which take a different shader path, are not covered.</p>
 <p>For styling examples, see the <a href="../effects/glass/">Glass overview</a>.</p>
 <p><a id="backdrop-input"></a></p>
 <h2 id="backdrop-versus-sources">Backdrop versus Sources<a class="headerlink" href="#backdrop-versus-sources" title="Permanent link">¶</a></h2>
