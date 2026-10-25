@@ -57,18 +57,13 @@ public sealed interface HazeBlurStyle {
   public companion object : HazeBlurStyle
 }
 
+/**
+ * A Style that runs one block. With [inputs] it compares by value, so equal inputs are equal;
+ * without them it compares by identity.
+ */
 @Immutable
-private class EvaluatedHazeBlurStyle(
-  private val block: HazeBlurStyleScope.() -> Unit,
-) : HazeBlurStyle {
-  fun replay(scope: HazeBlurStyleScope) {
-    scope.block()
-  }
-}
-
-@Immutable
-private class ValueHazeBlurStyle(
-  private val inputs: List<Any?>,
+private class LeafHazeBlurStyle(
+  private val inputs: List<Any?>?,
   private val block: HazeBlurStyleScope.() -> Unit,
 ) : HazeBlurStyle {
   fun replay(scope: HazeBlurStyleScope) {
@@ -76,9 +71,9 @@ private class ValueHazeBlurStyle(
   }
 
   override fun equals(other: Any?): Boolean =
-    this === other || (other is ValueHazeBlurStyle && inputs == other.inputs)
+    this === other || (inputs != null && other is LeafHazeBlurStyle && inputs == other.inputs)
 
-  override fun hashCode(): Int = inputs.hashCode()
+  override fun hashCode(): Int = inputs?.hashCode() ?: super.hashCode()
 }
 
 @Immutable
@@ -107,7 +102,7 @@ private class CombinedHazeBlurStyle(
  * [IllegalArgumentException] when [block] runs.
  */
 public fun HazeBlurStyle(block: HazeBlurStyleScope.() -> Unit): HazeBlurStyle =
-  EvaluatedHazeBlurStyle(block)
+  LeafHazeBlurStyle(inputs = null, block = block)
 
 /**
  * Creates a [HazeBlurStyle] which compares by value: two Styles are equal when their [inputs] are
@@ -118,7 +113,7 @@ public fun HazeBlurStyle(block: HazeBlurStyleScope.() -> Unit): HazeBlurStyle =
 public fun valueBackedHazeBlurStyle(
   vararg inputs: Any?,
   block: HazeBlurStyleScope.() -> Unit,
-): HazeBlurStyle = ValueHazeBlurStyle(inputs.toList(), block)
+): HazeBlurStyle = LeafHazeBlurStyle(inputs.toList(), block)
 
 private fun combineHazeBlurStyles(
   first: HazeBlurStyle,
@@ -134,8 +129,7 @@ private fun combineHazeBlurStyles(
 internal fun HazeBlurStyle.replay(scope: HazeBlurStyleScope) {
   when (this) {
     HazeBlurStyle -> Unit
-    is EvaluatedHazeBlurStyle -> replay(scope)
-    is ValueHazeBlurStyle -> replay(scope)
+    is LeafHazeBlurStyle -> replay(scope)
     is CombinedHazeBlurStyle -> replay(scope)
   }
 }
