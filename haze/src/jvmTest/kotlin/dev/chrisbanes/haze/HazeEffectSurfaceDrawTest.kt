@@ -52,6 +52,7 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotEmpty
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isSameInstanceAs
 import java.awt.Frame
 import kotlin.test.Test
 
@@ -441,6 +442,55 @@ class HazeEffectSurfaceDrawTest {
   }
 
   @Test
+  fun configuredSurface_unchangedMembersReuseTheInputSnapshotAcrossDraws() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val first = SurfaceFactory(owner)
+    val second = SurfaceFactory(owner)
+    val state = HazeState()
+    val snapshots = mutableListOf<HazeEffectInputSnapshot>()
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    owner.resolveSurfaces = {
+      configured = configured ?: first.surface.createConfiguredSurface(
+        HazeEffectFactory {
+          object : HazeEffectRenderer<Unit> {
+            override fun HazeEffectDrawScope.draw(style: Unit) {
+              snapshots.add(checkNotNull((this as HazeEffectRuntimeDrawScope).inputSnapshot))
+              drawInput()
+            }
+          }
+        },
+        Unit, Rect(0f, 0f, 110f, 30f), listOf(first.surface, second.surface),
+      )
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      Box(Modifier.size(160.dp).background(Color.White)) {
+        Box(Modifier.size(60.dp).hazeSource(state).background(Color.Red))
+        Box(Modifier.size(160.dp).then(OwnerElement(owner))) {
+          Box(Modifier.size(30.dp).hazeEffect(first, HazeInput.Sources(state), Unit))
+          Box(Modifier.offset(x = 80.dp).size(30.dp).hazeEffect(second, HazeInput.Sources(state), Unit))
+        }
+      }
+    }
+    waitForIdle()
+    val drawsBefore = snapshots.size
+
+    // Nothing the cluster reads has changed, so the owner's next draws find the same inputs.
+    repeat(2) {
+      runOnIdle { owner.redraw() }
+      waitForIdle()
+    }
+
+    assertThat(snapshots.size, "cluster draws").isGreaterThan(drawsBefore + 1)
+    assertThat(snapshots.last()).isSameInstanceAs(snapshots[snapshots.size - 2])
+    assertThat(snapshots.last()).isSameInstanceAs(snapshots[drawsBefore - 1])
+    runOnIdle {
+      configured?.dispose()
+      owner.resolveSurfaces = null
+    }
+  }
+
+  @Test
   fun configuredSurface_inputSnapshotChangesWhenCrossWindowCaptureGenerationAdvances() = runComposeUiTest {
     val owner = SurfaceOwnerNode()
     val first = SurfaceFactory(owner)
@@ -763,6 +813,7 @@ class HazeEffectSurfaceDrawTest {
     }
     var changes = 0
     var draws = 0
+    fun redraw() = invalidateDraw()
     override fun onSurfaceChanged(surface: HazeEffectSurface) {
       changes++
       if (surface !in surfaces) surfaces += surface
