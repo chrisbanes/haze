@@ -388,7 +388,7 @@ internal class GlassInteractionController(
           primaryPointerId = null
           rawPressed = false
         } else if (hasDrawableSize && change.position.isOutsideBounds(size, touchSlop)) {
-          // Mirrors Compose's clickable, which cancels once the pointer leaves the node plus slop.
+          // Same shape as Compose's isOutOfBounds, with touch slop as the margin.
           cancelRawPress()
         }
       }

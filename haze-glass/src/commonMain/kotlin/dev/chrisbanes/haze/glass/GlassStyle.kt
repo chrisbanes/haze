@@ -241,7 +241,7 @@ public class GlassStyleScope internal constructor(
    *
    * A `PressInteraction` or `DragInteraction` from the `interactionSource` keeps the node pressed
    * until its release, cancel or stop. While a drag is active the light follows the latest pointer
-   * position, and sits at the node centre when there are no pointer events.
+   * position, and sits at the node centre if it has received no pointer events.
    * A gesture detector that emits no `DragInteraction` can emit `PressInteraction.Press` and
    * `Release` or `Cancel` on the shared `interactionSource` itself to stay pressed through a drag.
    */
