@@ -1,9 +1,12 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(InternalHazeApi::class)
+
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.unit.IntSize
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.Poko
 
 internal const val MAX_GLASS_LAYER_DIMENSION_PX: Int = 4096

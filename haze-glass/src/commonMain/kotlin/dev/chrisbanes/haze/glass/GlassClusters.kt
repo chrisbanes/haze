@@ -1,6 +1,8 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(InternalHazeApi::class)
+
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,6 +12,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.LayoutDirection
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.Poko
 import kotlin.math.hypot
 
