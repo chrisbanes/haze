@@ -86,7 +86,8 @@ import kotlinx.coroutines.launch
  * stops placing it while keeping it in the layout leaves as if it detached, and appears again as
  * if it attached when it is placed again. [transitionSpec] and [reducedMotionPolicy] changes apply
  * from the next transition. Leaving members never count towards the shared optical size. Haze
- * animates only the glass, so callers animate member content themselves, for example with `AnimatedVisibility`. Cap diagnostics follow [HazeLogger.enabled].
+ * animates only the glass, so callers animate member content themselves, for example with
+ * `AnimatedVisibility`. Cap diagnostics follow [HazeLogger.enabled].
  *
  * For the items of a scrollable layout, such as a `LazyRow` or `LazyColumn`, pass its
  * [scrollState]. While [scrollState] [is scrolling][ScrollableState.isScrollInProgress], including
@@ -245,7 +246,8 @@ internal class GlassContainerNode(
   fun remove(member: GlassMemberNode, leaving: Boolean = true) {
     observeScroll()
     // ghostOf reads latest, so the pass that records this member's departure snapshot (or drops a
-    // collapsed member's) runs before it is removed. While suppressed or off, no ghost is made.
+    // collapsed member's) runs before it is removed. An unplaced member already left in an earlier
+    // pass, which consumed its last drawn snapshot. While suppressed or off, no ghost is made.
     if (leaving && reclusterPending && !suppressTransitions && !transitionsOff) recluster(layoutComplete = false)
     renderer.releaseMember(member)
     pending -= member
@@ -398,6 +400,7 @@ internal class GlassContainerNode(
         var live = liveSnapshots()
         // A collapsed member keeps its last full-size snapshot, which would become its ghost when it
         // leaves. A leaving member's release pass still has valid bounds, so it keeps its departure snapshot.
+        // An unplaced member's snapshot was already consumed by leaveOrRejoinUnplacedMembers.
         registered.forEach { member ->
           if (member !in live && member.binding.surface?.let { it.boundsInOwner() == null } == true) latest.remove(member)
         }
