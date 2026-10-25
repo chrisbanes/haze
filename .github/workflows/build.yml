@@ -108,6 +108,12 @@ jobs:
   # shards and keeps its required check name as the aggregate result below.
   # The sample checks have their own shard because running them beside the library checks exhausted
   # the 16 GB runner (#1693). Keep the six :sample:* paths in step with settings.gradle.kts.
+  # The checks shard still cannot be kept entirely clear of swap on a 16 GB hosted runner without
+  # a larger runner or lower heaps, which risk a daemon OOM. With the daemon caps below and
+  # --max-workers=3 it kept 2.0-3.0 GB available but swapped up to 96 MB (three attempts). Without
+  # the workers limit it fell to 1.4 GB available and swapped up to 177 MB. Mitigations: the shard
+  # split, those caps, the [mem] trail that names the gradle, kotlin and worker JVMs, and
+  # rerunning a shard that the runner shuts down.
   linux_build_shards:
     name: ${{ matrix.name }}
     needs: changes
