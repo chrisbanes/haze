@@ -225,8 +225,8 @@ public fun GlassContainerSampleContent(
       }
 
       // 2. Draggable members. Drag one circle towards the other, or change the merge distance. The
-      // circles merge while their gap is less than half of the merge distance. A merge distance of
-      // zero disables merging.
+      // circles join one cluster while their gap is less than the merge distance, and a bridge forms
+      // once the gap is less than half of it. A merge distance of zero disables merging.
       Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
           Text(

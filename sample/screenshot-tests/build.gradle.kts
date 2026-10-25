@@ -26,10 +26,6 @@ kotlin {
 
   jvm()
 
-  compilerOptions {
-    optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
-  }
-
   sourceSets {
     commonTest {
       dependencies {
