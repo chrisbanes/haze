@@ -38,7 +38,8 @@ public fun rememberHazeState(): HazeState = remember { HazeState() }
 /** Shared state that associates [hazeSource] content with source-backed Haze effects. */
 @Stable
 public class HazeState {
-  internal var positionStrategy: HazePositionStrategy by mutableStateOf(HazePositionStrategy.Auto)
+  // Only tests set this, before the state is used, so it is not snapshot state and effects do not observe it.
+  internal var positionStrategy: HazePositionStrategy = HazePositionStrategy.Auto
 
   private val _areas = mutableStateListOf<HazeArea>()
   internal val areas: List<HazeArea> get() = _areas
