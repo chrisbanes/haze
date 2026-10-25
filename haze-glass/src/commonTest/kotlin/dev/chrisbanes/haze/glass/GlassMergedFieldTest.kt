@@ -413,6 +413,63 @@ class GlassMergedFieldTest {
   }
 
   @Test
+  fun projections_preserveUntouchedMemberFields() {
+    val firstLayoutRect = Rect(1f, 2f, 21f, 22f)
+    fun member(left: Float) = GlassMergedMember(
+      rect = Rect(left, 4f, left + 40f, 44f),
+      cornerRadii = CornerRadii(1f, 2f, 3f, 4f),
+      tint = Color(0.1f, 0.2f, 0.3f, 0.4f),
+      backgroundColor = Color(0.5f, 0.6f, 0.7f, 0.8f),
+      lightPosition = Offset(5f, 6f),
+      lightRadius = 7f,
+      lightIntensity = 0.8f,
+      opticalPosition = Offset(9f, 10f),
+      opticalRadius = 11f,
+      refractionMultiplier = 1.5f,
+      whitePointDelta = 0.25f,
+      fallbackBaseColor = Color.Magenta,
+      layoutRect = firstLayoutRect.translate(left, 0f),
+    )
+    val field = GlassMergedField(listOf(member(0f), member(60f)), mergeDistancePx = 24f, opticalSize = Size(100f, 50f))
+    fun GlassMergedMember.fields() = listOf(
+      rect, cornerRadii, tint, backgroundColor, lightPosition, lightRadius, lightIntensity,
+      opticalPosition, opticalRadius, refractionMultiplier, whitePointDelta, fallbackBaseColor, layoutRect,
+    )
+    // Indices into fields(): each projection may change only these and must reset them to defaults.
+    val lights = mapOf(4 to Offset.Zero, 5 to 0f, 6 to 0f)
+    val optics = mapOf(7 to Offset.Zero, 8 to 0f, 9 to 1f, 10 to 0f)
+    fun assertProjection(name: String, projected: GlassMergedField, changed: Map<Int, Any?>) {
+      assertThat(projected.mergeDistancePx, "$name mergeDistancePx").isEqualTo(field.mergeDistancePx)
+      assertThat(projected.opticalSize, "$name opticalSize").isEqualTo(field.opticalSize)
+      assertThat(projected.members.size, "$name member count").isEqualTo(field.members.size)
+      for ((original, actual) in field.members.zip(projected.members)) {
+        val expected = original.fields().mapIndexed { index, value -> if (index in changed) changed.getValue(index) else value }
+        assertThat(actual.fields(), name).isEqualTo(expected)
+      }
+    }
+
+    assertProjection("withoutLights", field.withoutLights, lights)
+    assertProjection("withoutOptics", field.withoutOptics, optics)
+    assertProjection("withoutInteractions", field.withoutInteractions, lights + optics)
+    assertProjection("withoutFallbackBase", field.withoutFallbackBase, mapOf(11 to null))
+
+    val scaled = field.scaled(2f)
+    assertThat(scaled.mergeDistancePx).isEqualTo(48f)
+    assertThat(scaled.opticalSize).isEqualTo(Size(200f, 100f))
+    for ((original, actual) in field.members.zip(scaled.members)) {
+      fun Rect.doubled() = Rect(left * 2f, top * 2f, right * 2f, bottom * 2f)
+      assertThat(actual.fields()).isEqualTo(
+        listOf(
+          original.rect.doubled(), original.cornerRadii * 2f, original.tint, original.backgroundColor,
+          original.lightPosition * 2f, original.lightRadius * 2f, original.lightIntensity,
+          original.opticalPosition * 2f, original.opticalRadius * 2f, original.refractionMultiplier,
+          original.whitePointDelta, original.fallbackBaseColor, original.layoutRect.doubled(),
+        ),
+      )
+    }
+  }
+
+  @Test
   fun withoutOptics_preservesLightingAndGeometry() {
     val field = mergedField(
       mergedMember(

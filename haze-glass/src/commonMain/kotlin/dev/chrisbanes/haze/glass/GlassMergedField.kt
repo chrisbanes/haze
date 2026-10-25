@@ -19,8 +19,7 @@ internal const val MAX_GLASS_MERGED_MEMBERS = 4
  * One rounded-rectangle member of a [GlassMergedField], in material-local pixels, with its own
  * interaction lighting and optical response.
  */
-@Poko
-internal class GlassMergedMember(
+internal data class GlassMergedMember(
   val rect: Rect,
   val cornerRadii: CornerRadii,
   val tint: Color,
@@ -100,18 +99,7 @@ internal class GlassMergedField(
     } else {
       GlassMergedField(
         members.map {
-          GlassMergedMember(
-            it.rect,
-            it.cornerRadii,
-            it.tint,
-            it.backgroundColor,
-            fallbackBaseColor = it.fallbackBaseColor,
-            opticalPosition = it.opticalPosition,
-            opticalRadius = it.opticalRadius,
-            refractionMultiplier = it.refractionMultiplier,
-            whitePointDelta = it.whitePointDelta,
-            layoutRect = it.layoutRect,
-          )
+          it.copy(lightPosition = Offset.Zero, lightRadius = 0f, lightIntensity = 0f)
         },
         mergeDistancePx,
         opticalSize,
@@ -130,16 +118,11 @@ internal class GlassMergedField(
     } else {
       GlassMergedField(
         members.map {
-          GlassMergedMember(
-            it.rect,
-            it.cornerRadii,
-            it.tint,
-            it.backgroundColor,
-            fallbackBaseColor = it.fallbackBaseColor,
-            lightPosition = it.lightPosition,
-            lightRadius = it.lightRadius,
-            lightIntensity = it.lightIntensity,
-            layoutRect = it.layoutRect,
+          it.copy(
+            opticalPosition = Offset.Zero,
+            opticalRadius = 0f,
+            refractionMultiplier = 1f,
+            whitePointDelta = 0f,
           )
         },
         mergeDistancePx,
@@ -160,13 +143,14 @@ internal class GlassMergedField(
     } else {
       GlassMergedField(
         members.map {
-          GlassMergedMember(
-            it.rect,
-            it.cornerRadii,
-            it.tint,
-            it.backgroundColor,
-            fallbackBaseColor = it.fallbackBaseColor,
-            layoutRect = it.layoutRect,
+          it.copy(
+            lightPosition = Offset.Zero,
+            lightRadius = 0f,
+            lightIntensity = 0f,
+            opticalPosition = Offset.Zero,
+            opticalRadius = 0f,
+            refractionMultiplier = 1f,
+            whitePointDelta = 0f,
           )
         },
         mergeDistancePx,
@@ -182,12 +166,7 @@ internal class GlassMergedField(
     } else {
       GlassMergedField(
         members.map {
-          GlassMergedMember(
-            it.rect, it.cornerRadii, it.tint, it.backgroundColor,
-            it.lightPosition, it.lightRadius, it.lightIntensity,
-            it.opticalPosition, it.opticalRadius, it.refractionMultiplier, it.whitePointDelta,
-            layoutRect = it.layoutRect,
-          )
+          it.copy(fallbackBaseColor = null)
         },
         mergeDistancePx,
         opticalSize,
@@ -243,24 +222,14 @@ internal class GlassMergedField(
 
   fun scaled(scaleFactor: Float): GlassMergedField = GlassMergedField(
     members = members.map { member ->
-      GlassMergedMember(
-        rect = member.rect.let {
-          Rect(it.left * scaleFactor, it.top * scaleFactor, it.right * scaleFactor, it.bottom * scaleFactor)
-        },
+      member.copy(
+        rect = member.rect.scaledBy(scaleFactor),
         cornerRadii = member.cornerRadii * scaleFactor,
-        tint = member.tint,
-        backgroundColor = member.backgroundColor,
-        fallbackBaseColor = member.fallbackBaseColor,
         lightPosition = member.lightPosition * scaleFactor,
         lightRadius = member.lightRadius * scaleFactor,
-        lightIntensity = member.lightIntensity,
         opticalPosition = member.opticalPosition * scaleFactor,
         opticalRadius = member.opticalRadius * scaleFactor,
-        refractionMultiplier = member.refractionMultiplier,
-        whitePointDelta = member.whitePointDelta,
-        layoutRect = member.layoutRect.let {
-          Rect(it.left * scaleFactor, it.top * scaleFactor, it.right * scaleFactor, it.bottom * scaleFactor)
-        },
+        layoutRect = member.layoutRect.scaledBy(scaleFactor),
       )
     },
     mergeDistancePx = mergeDistancePx * scaleFactor,
@@ -339,3 +308,5 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
     }
   }
 }
+
+private fun Rect.scaledBy(scale: Float) = Rect(left * scale, top * scale, right * scale, bottom * scale)
