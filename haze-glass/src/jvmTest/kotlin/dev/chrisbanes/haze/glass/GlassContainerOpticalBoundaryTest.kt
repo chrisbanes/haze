@@ -274,7 +274,7 @@ class GlassContainerOpticalBoundaryTest {
     GlassShaders.buildOptical(merged = true).let { source ->
       val fieldWeight = Regex("float fieldWeight = ([^;]+);").find(source)!!.groupValues[1]
       val output = if (lighting) {
-        "surfaceLightingGradient(probe, sd, fieldWeight)"
+        "surfaceLightingGradient(probe, sd, fieldWeight, memberWeights(probe))"
       } else {
         """
           refractionDisplacement(
@@ -283,6 +283,7 @@ class GlassContainerOpticalBoundaryTest {
             edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : distance,
             1.0,
             fieldWeight,
+            memberWeights(probe),
             sampleDisplacement
           )
         """.trimIndent()
@@ -379,7 +380,7 @@ class GlassContainerOpticalBoundaryTest {
           val fieldWeight = Regex("float fieldWeight = ([^;]+);").find(source)!!.groupValues[1]
           val sd = if (merged) "shapeSd(probe)" else "sdRoundedRect(probe, materialSize, cornerRadii)"
           val output = if (lighting) {
-            "surfaceLightingGradient(probe, sd, fieldWeight)"
+            "surfaceLightingGradient(probe, sd, fieldWeight${if (merged) ", memberWeights(probe)" else ""})"
           } else {
             """
               refractionDisplacement(
@@ -387,12 +388,12 @@ class GlassContainerOpticalBoundaryTest {
                 height,
                 edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : distance,
                 1.0,
-                fieldWeight${if (merged) ", sampleDisplacement" else ""}
+                fieldWeight${if (merged) ", memberWeights(probe), sampleDisplacement" else ""}
               )
             """.trimIndent()
           }
           // A merged probe reports where it samples relative to the probe point.
-          val sampleOffset = if (merged && !lighting) "result = mergedSampleOffset(probe) + sampleDisplacement;" else ""
+          val sampleOffset = if (merged && !lighting) "result = mergedSampleOffset(probe, memberWeights(probe)) + sampleDisplacement;" else ""
           val encodingScale = if (lighting) 4f else 128f
           source.substringBefore("vec4 main(vec2 coord)") + """
           uniform float2 probe;
