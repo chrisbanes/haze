@@ -1445,10 +1445,12 @@ distance, a bridge forms.</p>
 <li><strong>No rotation or scale.</strong> A member rotated or scaled by its layout, for example with
   <code>graphicsLayer</code>, draws separately. Translation and a layer alpha, such as an <code>AnimatedVisibility</code>
   fade, don't prevent merging.</li>
-<li><strong>Adjacent in order.</strong> Members are ordered by when they attach: composition order at first, with
-  members added later placed after the existing ones. Only members next to each other in that order
-  share a cluster. A non-matching member between two compatible ones splits them, even when it is
-  far away, because merging never changes drawing order.</li>
+<li><strong>Adjacent in order.</strong> Members are ordered by their position in the layout tree, which is
+  composition order in a <code>Row</code> or <code>Column</code>. A member that hides and shows again keeps its place, and
+  a leaving member's glass keeps its place until its animation ends. Only members next to each other
+  in that order share a cluster. A non-matching member between two compatible ones splits them, even
+  when it is far away, because merging never changes drawing order. Members that overlap draw in this
+  order.</li>
 <li><strong>At most four per cluster.</strong> Extra members draw separately, without a bridge. Where an extra
   member overlaps the cluster, blur and tint apply twice in the overlap.</li>
 </ul>
@@ -1473,7 +1475,7 @@ them the same <code>groupKey</code>. A group is the counterpart of SwiftUI's <co
 <span class="p">}</span>
 </code></pre></div>
 <p>Members of one container with an equal, non-null <code>groupKey</code> that are next to each other in
-registration order draw as one Glass shape over the bounding box of their rects. In the example, the
+layout order draw as one Glass shape over the bounding box of their rects. In the example, the
 two circles become one capsule that spans the row, although they are far apart. Keys compare with
 <code>==</code>. A <code>null</code> key leaves the member ungrouped, and Haze ignores <code>groupKey</code> outside a container.</p>
 <ul>
@@ -1491,8 +1493,11 @@ two circles become one capsule that spans the row, although they are far apart. 
   bounds, so it can bridge with a neighbouring member. It also counts as one member towards the
   four-member limit.</li>
 <li><strong>Optical size.</strong> The group's bounds count once toward the container's
-  <a href="#optical-size">optical size</a>.</li>
-<li><strong>Transitions.</strong> Members of the same group are neighbours at any distance. With the default
+  <a href="#optical-size">optical size</a>. A member left out of the group because its input, layer-bounds
+  setting, optics or <code>alpha</code> differ counts on its own, and doesn't widen the group's size. Fading and
+  pressed members still count with their group.</li>
+<li><strong>Transitions.</strong> Members of the same group are neighbours at any distance, and another member
+  is a neighbour when it is within the merge distance of the group's bounds. With the default
   <code>MatchedGeometry</code>, a member that attaches grows the group's bounds, and one that detaches shrinks
   them, timed by <code>transitionSpec</code>. A fading member leaves the group while it fades. With
   <code>Materialize</code>, or any other fade, a fading member in the middle of a group therefore splits it
@@ -1586,6 +1591,9 @@ animation immediately.</p>
 </code></pre></div>
 <p>Drags, flings, <code>animateScrollBy</code> and <code>scrollToItem</code> are scrolls. Position changes made outside a
 scroll, such as <code>requestScrollToItem</code> or <code>dispatchRawDelta</code>, are not, so their items animate.</p>
+<p>Members follow the lazy layout's own child order, which is item order once the list has measured
+forward. Items that scroll back in, several in one jump, can be out of item order until the next
+measure, so a group among them can briefly draw as separate groups.</p>
 <p>Without <code>scrollState</code>, items that scroll into view animate like any other new member. With the
 default <code>MatchedGeometry</code>, an item's glass grows out of its neighbor and lags its content, and an
 item that scrolls out leaves a trailing ghost until the animation ends. Items present at the

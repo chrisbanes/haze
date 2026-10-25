@@ -1201,9 +1201,9 @@ member's glass behind its own children. A member's own style still sets its shap
   arrays. Beyond four, the extra members draw on their own without a bridge, in a deterministic
   order. Where an extra member overlaps the cluster, blur and tint apply twice in the overlap,
   which is the visible cost of the cap.</li>
-<li>A cluster draws at one z-position, so only members registered consecutively share a surface. A
-  member registered between two compatible neighbours splits them, even when it is far away, so
-  merging never reorders members.</li>
+<li>A cluster draws at one z-position, so only members next to each other in layout order share a
+  surface. A member between two compatible neighbours in that order splits them, even when it is far
+  away, so merging never reorders members.</li>
 <li>Members can merge only when their input, performance mode and material values are equal:
   optics, surface profile, specular and edge response, chromatic aberration, tone, light position
   and alpha. Values that belong to each member are excluded from that comparison: <code>shape</code>,
@@ -1333,7 +1333,7 @@ blends members by proximity. The captures are in the
 <a href="https://github.com/chrisbanes/haze/blob/fce3bf446175686281a6500c8c856cb9702fac5a/prototype-evidence/1438/v4/NOTES.md">v4 notes</a>.
 Both call the parameter <code>unionKey</code>; it ships as <code>groupKey</code>, and the entity is a <strong>Glass group</strong>.
 <code>mergeDistance</code> keeps both of its roles, because it also sets the width of the bridge.</p>
-<p>Members of one container with an equal, non-null <code>groupKey</code> that are consecutive in registration
+<p>Members of one container with an equal, non-null <code>groupKey</code> that are consecutive in layout
 order draw as one Glass shape over the bounding box of their rects:</p>
 <ul>
 <li><strong>Shape and appearance.</strong> The first member supplies the <code>RoundedCornerShape</code>, resolved at the
@@ -1341,14 +1341,18 @@ order draw as one Glass shape over the bounding box of their rects:</p>
   member keeps its own shape and colours, to members outside a group.</li>
 <li><strong>Members left out.</strong> A member whose merge key differs from the first member's, or that is
   rotated, scaled or fading, draws on its own under the existing rules.</li>
-<li><strong>Order.</strong> A member between two group members that isn't in the group splits them into separate
-  groups. This keeps the rule that merging never reorders members.</li>
+<li><strong>Order.</strong> Members are ordered by their position in the layout tree, so a member that reattaches
+  keeps its place, and a lazy layout's members follow its own child order. A member between two
+  group members that isn't in the group splits them into separate groups. This keeps the rule that
+  merging never reorders members.</li>
 <li><strong>Proximity.</strong> A group counts as one member for <code>mergeDistance</code> clustering, measured from its
   bounds, and for the four-member cap.</li>
-<li><strong>Optical size.</strong> The group's bounds count as one member in the container-wide optical size.</li>
+<li><strong>Optical size.</strong> The group's bounds count as one member in the container-wide optical size. A
+  member whose input, <code>expandLayerBounds</code>, optics or authored alpha differ counts on its own.</li>
 <li><strong>Transitions.</strong> Members of the same group are transition neighbours at any distance, so a
   <code>MatchedGeometry</code> member that attaches or detaches animates the group's bounds through
-  <code>transitionSpec</code>. A fading member leaves the group while it fades.</li>
+  <code>transitionSpec</code>. A fading member leaves the group while it fades. Another member is a neighbour
+  when it is within <code>mergeDistance</code> of the group's bounds.</li>
 <li><strong>Interaction.</strong> A press on any member drives the whole group's scale and light. Each member's
   content still follows its own transform target.</li>
 <li><strong>Fallback and containers.</strong> The fallback renderer draws a group as its single shape, and
