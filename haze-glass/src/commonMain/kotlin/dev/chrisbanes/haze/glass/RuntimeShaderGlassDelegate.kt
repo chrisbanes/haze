@@ -351,7 +351,7 @@ internal class RuntimeShaderGlassDelegate(
     preparedInteractionUniforms = interactionUniforms
     preparedInteractionPatch = interactionPatch
 
-    if (recordRimIfNeeded(params, currentRenderEffects) == null) return null
+    if (recordRimIfNeeded(currentPreparedRender, currentRenderEffects) == null) return null
     if (currentPreparedRender.interactionTopology.hasLighting) {
       val patch = interactionPatch ?: return null
       recordInteractionLighting(
@@ -535,7 +535,7 @@ internal class RuntimeShaderGlassDelegate(
           ) ?: return
           requireRetainedStage(
             if (invalidation.rim) {
-              trace(GlassTraceSection.Rim) { recordRimIfNeeded(params, effects) }
+              trace(GlassTraceSection.Rim) { recordRimIfNeeded(render, effects) }
             } else {
               retainedRim(effects)
             },
@@ -673,7 +673,7 @@ internal class RuntimeShaderGlassDelegate(
         }
         requireRetainedStage(
           if (invalidation.rim) {
-            trace(GlassTraceSection.Rim) { recordRimIfNeeded(params, effects) }
+            trace(GlassTraceSection.Rim) { recordRimIfNeeded(render, effects) }
           } else {
             retainedRim(effects)
           },
@@ -863,7 +863,7 @@ internal class RuntimeShaderGlassDelegate(
       layers.rim?.takeUnless { it.isReleased }?.let { rim ->
         if (supportsGlassRimBrush() != recordedRimSupportsDirectDrawing) {
           val effects = preparedRenderEffects ?: return
-          recordRimIfNeeded(params, effects) ?: return
+          recordRimIfNeeded(render, effects) ?: return
         }
         drawCompletedLayer(rim, context, params, alpha = render.alpha)
       }
@@ -1314,12 +1314,14 @@ internal class RuntimeShaderGlassDelegate(
     }
 
   private fun DrawScope.recordRimIfNeeded(
-    params: GlassRenderParams,
+    render: GlassPreparedRender,
     effects: GlassRenderEffects,
   ): Unit? {
+    val params = render.params
     val rimEffect = effects.rim ?: return Unit
     val layer = layers.rim?.takeUnless { it.isReleased } ?: return null
-    val key = params.rimEffectKey()
+    // The prepared render already holds this key whenever the rim is visible.
+    val key = render.rimKey ?: params.rimEffectKey()
     // Recording canvases may support shaders even when the destination canvas does not.
     val supportsDirectDrawing = supportsGlassRimBrush()
     layer.alpha = 1f
@@ -1776,16 +1778,28 @@ internal class RuntimeShaderGlassDelegate(
       backdrop && it.alpha > 0f
     }
     val backdropMergedBackground = render.params.mergedBackground.takeIf { backdrop }
-    val nextFusedEffectKey = GlassFusedEffectKey(
+    val interaction = render.interactionUniforms.takeIf { render.interactionTopology.hasOptics }
+    val currentFusedKey = fusedEffectKey
+    // Compare the components first, so an unchanged frame does not build a key to throw away.
+    val fusedKeyChanged = currentFusedKey == null || fusedEffect == null || !currentFusedKey.matches(
       blur = render.blurKey,
       depth = render.params.depth,
       optical = render.opticalKey,
       detail = render.refractionDetailKey,
-      interaction = render.interactionUniforms.takeIf { render.interactionTopology.hasOptics },
+      interaction = interaction,
       backdropBackground = backdropBackground,
       backdropMergedBackground = backdropMergedBackground,
     )
-    if (nextFusedEffectKey != fusedEffectKey || fusedEffect == null) {
+    if (fusedKeyChanged) {
+      val nextFusedEffectKey = GlassFusedEffectKey(
+        blur = render.blurKey,
+        depth = render.params.depth,
+        optical = render.opticalKey,
+        detail = render.refractionDetailKey,
+        interaction = interaction,
+        backdropBackground = backdropBackground,
+        backdropMergedBackground = backdropMergedBackground,
+      )
       fusedEffect = nextFusedEffectKey.let { key ->
         val nextInputKey = key.depthInputKey(interactionOptics = render.interactionTopology.hasOptics)
         val previousInputKey = fusedInputKey
@@ -2108,6 +2122,27 @@ internal class GlassFusedEffectKey(
   val backdropBackground: Color?,
   val backdropMergedBackground: GlassMergedField?,
 )
+
+/**
+ * Whether a [GlassFusedEffectKey] built from these components would equal this one, without
+ * building it. Every component of the key is compared, and floats as the generated `equals` does,
+ * so `NaN` equals itself and `-0f` differs from `0f`.
+ */
+internal fun GlassFusedEffectKey.matches(
+  blur: GlassBlurEffectKey?,
+  depth: Float,
+  optical: GlassOpticalEffectKey,
+  detail: GlassRefractionDetailEffectKey?,
+  interaction: GlassInteractionUniforms?,
+  backdropBackground: Color?,
+  backdropMergedBackground: GlassMergedField?,
+): Boolean = this.blur == blur &&
+  this.depth.compareTo(depth) == 0 &&
+  this.optical == optical &&
+  this.detail == detail &&
+  this.interaction == interaction &&
+  this.backdropBackground == backdropBackground &&
+  this.backdropMergedBackground == backdropMergedBackground
 
 @Poko
 internal class GlassDepthInputKey(
