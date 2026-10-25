@@ -26,6 +26,10 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import assertk.Assert
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -34,6 +38,7 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotNull
+import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
@@ -65,6 +70,14 @@ internal fun containerTestStyle(tint: Color, alpha: Float = 1f, background: Colo
   whitePoint(0f)
   chromaMultiplier(1f)
   alpha(alpha)
+}
+
+private class TestLifecycleOwner : LifecycleOwner {
+  private val registry = LifecycleRegistry(this)
+
+  override val lifecycle: Lifecycle get() = registry
+
+  fun handle(event: Lifecycle.Event) = registry.handleLifecycleEvent(event)
 }
 
 class GlassContainerRenderTest : ContextTest() {
@@ -155,6 +168,45 @@ class GlassContainerRenderTest : ContextTest() {
     val y = (80f * coordinates.scaleFactor + coordinates.materialOrigin.y).toInt()
     assertThat(pixels[firstX, y]).isEqualTo(Color.Red)
     assertThat(pixels[secondX, y]).isEqualTo(Color.Blue)
+  }
+
+  @Test
+  fun mergedCluster_trimMemoryReleasesClusterLayersAndRedraws() = runComposeUiTest {
+    val owner = TestLifecycleOwner()
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    setContent {
+      CompositionLocalProvider(LocalLifecycleOwner provides owner) {
+        Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
+          Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp)) {
+            Box(Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { first }, HazeInput.Content, containerTestStyle(Color.Transparent), HazePerformanceMode.Quality, true, null).background(Color.Red))
+            Box(Modifier.offset(150.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(HazeEffectFactory { second }, HazeInput.Content, containerTestStyle(Color.Transparent), HazePerformanceMode.Quality, true, null).background(Color.Blue))
+          }
+        }
+      }
+    }
+    runOnIdle {
+      owner.handle(Lifecycle.Event.ON_CREATE)
+      owner.handle(Lifecycle.Event.ON_START)
+    }
+    waitForIdle()
+    val renderer = checkNotNull(first.memberBindingForTest?.node?.container).renderer
+    val runtime = renderer.runtimeSurfaces.single()
+    val delegate = runtime.delegate as RuntimeShaderGlassDelegate
+    val before = checkNotNull(delegate.layers.source)
+    assertThat(before.isReleased).isFalse()
+
+    runOnIdle { owner.handle(Lifecycle.Event.ON_STOP) }
+
+    // One cluster surface serves both members, and the stop trims it through its anchor member.
+    assertThat(before.isReleased).isTrue()
+    assertThat(delegate.layers.isEmpty).isTrue()
+    waitForIdle()
+    assertThat(renderer.runtimeSurfaces.single()).isSameInstanceAs(runtime)
+    val after = checkNotNull((runtime.delegate as RuntimeShaderGlassDelegate).layers.source)
+    assertThat(after).isNotSameInstanceAs(before)
+    assertThat(after.isReleased).isFalse()
+    assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[80, 100]).isEqualTo(Color.Red)
   }
 
   @Test
