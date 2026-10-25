@@ -503,12 +503,8 @@ internal class GlassRuntimeEffect() :
     trace(GlassTraceSection.Prepare) {
       attachedContext?.let(::reconcileInteractionCompletion)
       if (canReusePreparedDraw(context)) return@trace
-      val previousBudget = preparedRenderBudget
       trace(GlassTraceSection.PrepareBudget) {
         prepareRenderBudget(context, runtimeShaderSupported = resolveRuntimeShaderSupport(context))
-      }
-      if (previousBudget::class != preparedRenderBudget::class) {
-        needsDelegateSelection = true
       }
       trace(GlassTraceSection.SelectDelegate) {
         selectDelegateForDraw()
@@ -532,16 +528,12 @@ internal class GlassRuntimeEffect() :
     val context = this
     return try {
       attachedContext?.let(::reconcileInteractionCompletion)
-      val previousBudget = preparedRenderBudget
       prepareRenderBudget(
         context = context,
         runtimeShaderSupported = resolveRuntimeShaderSupport(context),
         requestedScaleOverride = GLASS_FULL_RESOLUTION_SCALE,
         backdrop = true,
       )
-      if (previousBudget::class != preparedRenderBudget::class) {
-        needsDelegateSelection = true
-      }
       selectDelegateForDraw()
       val platformEffect = with(context as DrawScope) {
         with(delegate) { prepareBackdrop(context) }
@@ -1144,6 +1136,10 @@ internal class GlassRuntimeEffect() :
     )
     preparedRenderBudget = preparation.decision
     preparedRender = preparation.prepared
+    // A change between runtime and fallback budgets means the delegate may need replacing.
+    if (previousBudget::class != preparation.decision::class) {
+      needsDelegateSelection = true
+    }
     if (previousBudget != preparation.decision) {
       when (val decision = preparation.decision) {
         is GlassRenderBudgetDecision.Fallback -> HazeLogger.d(TAG) {
