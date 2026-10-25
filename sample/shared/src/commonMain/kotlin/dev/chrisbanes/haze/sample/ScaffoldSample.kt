@@ -404,24 +404,26 @@ private fun GlassScaffoldSurface(
       .hazeGlass(
         input = HazeInput.Sources(hazeState),
         performanceMode = performanceMode,
-        style = GlassStyle {
-          backgroundColor(backgroundColor)
-          tint(tint)
-          shape(shape)
-          optics(optics)
-          hovered {
-            animate(DefaultGlassHoverAnimationSpec, DefaultGlassReleaseAnimationSpec) {
-              lightingIntensity(0.35f)
-              refractionMultiplier(1.02f)
-              whitePointDelta(0.01f)
+        style = remember(backgroundColor, tint, shape, optics) {
+          GlassStyle {
+            backgroundColor(backgroundColor)
+            tint(tint)
+            shape(shape)
+            optics(optics)
+            hovered {
+              animate(DefaultGlassHoverAnimationSpec, DefaultGlassReleaseAnimationSpec) {
+                lightingIntensity(0.35f)
+                refractionMultiplier(1.02f)
+                whitePointDelta(0.01f)
+              }
             }
-          }
-          pressed {
-            animate(DefaultGlassPressAnimationSpec, DefaultGlassReleaseAnimationSpec) {
-              lightingIntensity(1f)
-              refractionMultiplier(1.08f)
-              whitePointDelta(0.04f)
-              scale(0.98f)
+            pressed {
+              animate(DefaultGlassPressAnimationSpec, DefaultGlassReleaseAnimationSpec) {
+                lightingIntensity(1f)
+                refractionMultiplier(1.08f)
+                whitePointDelta(0.04f)
+                scale(0.98f)
+              }
             }
           }
         },

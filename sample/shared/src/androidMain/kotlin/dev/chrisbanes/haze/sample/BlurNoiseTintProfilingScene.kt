@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -88,10 +89,12 @@ internal fun BlurNoiseTintProfilingScene(state: BlurProfilingState, scenario: Bl
             .hazeBlur(
               input = HazeInput.Sources(source),
               performanceMode = HazePerformanceMode.Quality,
-              style = HazeBlurStyle {
-                blurRadius(params.radius.dp)
-                noiseFactor(params.noise)
-                colorEffects(listOf(HazeColorEffect.tint(params.tint)))
+              style = remember(params) {
+                HazeBlurStyle {
+                  blurRadius(params.radius.dp)
+                  noiseFactor(params.noise)
+                  colorEffects(listOf(HazeColorEffect.tint(params.tint)))
+                }
               },
             ),
         )

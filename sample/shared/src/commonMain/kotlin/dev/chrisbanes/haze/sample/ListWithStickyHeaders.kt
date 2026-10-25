@@ -22,6 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -90,10 +91,12 @@ fun ListWithStickyHeaders(navController: NavHostController, effect: SampleEffect
 
                   SampleEffect.Glass -> Modifier.hazeGlass(
                     input = HazeInput.Backdrop(hazeState),
-                    style = GlassStyle.regular.then {
-                      backgroundColor(glassBackgroundColor)
-                      tint(glassTint)
-                      shape(glassShape)
+                    style = remember(glassBackgroundColor, glassTint, glassShape) {
+                      GlassStyle.regular.then {
+                        backgroundColor(glassBackgroundColor)
+                        tint(glassTint)
+                        shape(glassShape)
+                      }
                     },
                   )
                 },

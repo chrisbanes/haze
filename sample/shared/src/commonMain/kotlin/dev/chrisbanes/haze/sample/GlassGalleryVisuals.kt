@@ -19,6 +19,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -118,15 +119,18 @@ internal fun GlassSurface(
   interactionStyle: GlassStyle = GlassStyle,
   content: @Composable BoxScope.() -> Unit,
 ) {
+  val materialStyle = style.material3()
   Box(
     modifier = modifier
       // Let Glass own the material silhouette. An outer Compose clip creates a second,
       // independently-rasterized rounded boundary and exposes isolated carrier pixels on Skiko.
       .hazeGlass(
         input = HazeInput.Backdrop(hazeState),
-        style = style.material3().then {
-          this.shape(shape)
-        }.then(interactionStyle),
+        style = remember(materialStyle, shape, interactionStyle) {
+          materialStyle.then {
+            this.shape(shape)
+          }.then(interactionStyle)
+        },
         interactionSource = interactionSource,
         interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
         interactionTransformPivot = GlassTransformPivot.Pointer,
@@ -153,25 +157,29 @@ internal fun DemoChrome(
   val shape = RoundedCornerShape(24.dp)
   GlassSurface(
     hazeState = hazeState,
-    style = GlassStyle.regular.then {
-      tint(Color.Black.copy(alpha = 0.08f))
+    style = remember {
+      GlassStyle.regular.then {
+        tint(Color.Black.copy(alpha = 0.08f))
+      }
     },
     shape = shape,
     modifier = modifier,
-    interactionStyle = GlassStyle {
-      hovered {
-        animate(DefaultGlassHoverAnimationSpec, DefaultGlassReleaseAnimationSpec) {
-          lightingIntensity(0.35f)
-          refractionMultiplier(1.02f)
-          whitePointDelta(0.01f)
+    interactionStyle = remember {
+      GlassStyle {
+        hovered {
+          animate(DefaultGlassHoverAnimationSpec, DefaultGlassReleaseAnimationSpec) {
+            lightingIntensity(0.35f)
+            refractionMultiplier(1.02f)
+            whitePointDelta(0.01f)
+          }
         }
-      }
-      pressed {
-        animate(DefaultGlassPressAnimationSpec, DefaultGlassReleaseAnimationSpec) {
-          lightingIntensity(1f)
-          refractionMultiplier(1.08f)
-          whitePointDelta(0.04f)
-          scale(0.98f)
+        pressed {
+          animate(DefaultGlassPressAnimationSpec, DefaultGlassReleaseAnimationSpec) {
+            lightingIntensity(1f)
+            refractionMultiplier(1.08f)
+            whitePointDelta(0.04f)
+            scale(0.98f)
+          }
         }
       }
     },

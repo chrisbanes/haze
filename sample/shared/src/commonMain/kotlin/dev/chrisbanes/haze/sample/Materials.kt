@@ -31,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -267,10 +268,12 @@ private fun GlassMaterialsCard(
         .fillMaxSize()
         .hazeGlass(
           input = HazeInput.Backdrop(hazeState),
-          style = GlassStyle.regular.then {
-            backgroundColor(glassBackgroundColor)
-            this.tint(tint)
-            shape(shape)
+          style = remember(glassBackgroundColor, tint, shape) {
+            GlassStyle.regular.then {
+              backgroundColor(glassBackgroundColor)
+              this.tint(tint)
+              shape(shape)
+            }
           },
         )
         .clip(shape)
