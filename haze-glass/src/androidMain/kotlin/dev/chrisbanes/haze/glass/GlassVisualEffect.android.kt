@@ -3,7 +3,12 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.nativeCanvas
 import dev.chrisbanes.haze.isRuntimeShaderRenderEffectSupported
 
 internal actual fun isRuntimeShaderGlassSupported(): Boolean =
   isRuntimeShaderRenderEffectSupported()
+
+internal actual fun DrawScope.isGlassHardwareCanvas(): Boolean =
+  drawContext.canvas.nativeCanvas.isHardwareAccelerated

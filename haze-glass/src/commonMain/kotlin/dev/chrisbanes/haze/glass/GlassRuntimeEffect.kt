@@ -253,6 +253,7 @@ internal class GlassRuntimeEffect() :
     get() = interactionController?.currentSignals ?: IdleInteractionSignals
 
   private var needsDelegateSelection: Boolean = true
+  private var runtimeShaderSupportedForDraw: Boolean? = null
 
   internal var runtimeShaderIncompatible: Boolean = false
     private set
@@ -499,7 +500,7 @@ internal class GlassRuntimeEffect() :
       if (canReusePreparedDraw(context)) return@trace
       val previousBudget = preparedRenderBudget
       trace(GlassTraceSection.PrepareBudget) {
-        prepareRenderBudget(context, runtimeShaderSupported = isRuntimeShaderGlassSupported())
+        prepareRenderBudget(context, runtimeShaderSupported = resolveRuntimeShaderSupport(context))
       }
       if (previousBudget::class != preparedRenderBudget::class) {
         needsDelegateSelection = true
@@ -529,7 +530,7 @@ internal class GlassRuntimeEffect() :
       val previousBudget = preparedRenderBudget
       prepareRenderBudget(
         context = context,
-        runtimeShaderSupported = isRuntimeShaderGlassSupported(),
+        runtimeShaderSupported = resolveRuntimeShaderSupport(context),
         requestedScaleOverride = GLASS_FULL_RESOLUTION_SCALE,
         backdrop = true,
       )
@@ -1253,6 +1254,16 @@ internal class GlassRuntimeEffect() :
     }
   }
 
+  /** Runtime shaders need platform support and a hardware canvas, which can change between draws. */
+  private fun resolveRuntimeShaderSupport(context: DrawScope): Boolean {
+    val supported = isRuntimeShaderGlassSupported() && context.isGlassHardwareCanvas()
+    if (supported != runtimeShaderSupportedForDraw) {
+      runtimeShaderSupportedForDraw = supported
+      needsDelegateSelection = true
+    }
+    return supported
+  }
+
   private fun selectDelegateForDraw() {
     if (needsDelegateSelection) {
       delegate = updateDelegate()
@@ -1288,6 +1299,9 @@ internal fun GlassRuntimeEffect.updateDelegate(): GlassRuntimeEffect.Delegate {
 }
 
 internal expect fun isRuntimeShaderGlassSupported(): Boolean
+
+/** Whether this scope draws into a hardware canvas, the only canvas a runtime shader can render on. */
+internal expect fun DrawScope.isGlassHardwareCanvas(): Boolean
 
 internal fun RoundedCornerShape.hasZeroCornerRadii(): Boolean {
   // Use unit values to check if all corner sizes resolve to zero.
