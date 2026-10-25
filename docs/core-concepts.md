@@ -70,7 +70,7 @@ Modifier.hazeGlass(
 
 [`HazeInput.Backdrop`][HazeInput.Backdrop] works on every platform. On Android it can also use a native window
 backdrop, which is eligible only when the experimental flag is enabled, the built-in effect
-supports it, and the modifier is attached to a hardware-accelerated window on Android 37.2 or
+supports it, and the modifier is attached to a hardware-accelerated window on Android 17 (full SDK 37.2) or
 later. The native path filters the combined pixels already drawn earlier in the same window. It
 can't select individual Haze sources, include content drawn later, or cross a dialog, popup, or
 window boundary.
