@@ -8,7 +8,8 @@ internal object GlassShaders {
   // scales refraction by at most the localized refraction multiplier. In a merged field the
   // coverage displacement is also multiplied by a member's press scale, so a spring overshoot past
   // scale 1 can displace further than the bound allows. We accept this rather than widen the
-  // bound: the detail envelope has faded near the cut-off, so the clipped detail is imperceptible.
+  // bound: the detail envelope fades to zero at `detailWidth`, so a modest overshoot clips detail
+  // that was judged imperceptible.
   fun buildFused(
     interactionOptics: Boolean = false,
     sharpDetail: Boolean = true,
@@ -402,7 +403,8 @@ internal object GlassShaders {
   // scales refraction by at most the localized refraction multiplier. In a merged field the
   // coverage displacement is also multiplied by a member's press scale, so a spring overshoot past
   // scale 1 can displace further than the bound allows. We accept this rather than widen the
-  // bound: the detail envelope has faded near the cut-off, so the clipped detail is imperceptible.
+  // bound: the detail envelope fades to zero at `detailWidth`, so a modest overshoot clips detail
+  // that was judged imperceptible.
   fun buildRefractionDetail(
     interactive: Boolean = false,
     coverageOnly: Boolean = false,
