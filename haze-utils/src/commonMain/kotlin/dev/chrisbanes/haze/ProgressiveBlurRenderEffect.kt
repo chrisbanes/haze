@@ -13,6 +13,14 @@ import androidx.compose.ui.graphics.Shader
  * Creates a separable progressive blur clipped to [size] at [offset].
  *
  * [mask] supplies the per-pixel blur intensity and [blurRadiusPx] supplies its maximum radius.
+ *
+ * The shader samples at most 150 px either side of a pixel. Where a pixel's local radius
+ * ([blurRadiusPx] scaled by the mask intensity) exceeds that, the kernel is truncated but its
+ * Gaussian is still sized for the untruncated radius, so the result is weaker than a blur of that
+ * radius would be. [blurRadiusPx] is not clamped.
+ *
+ * Haze Blur uses this effect on Android 13 (API 33) and newer and on Skiko platforms. Older Android
+ * versions approximate progressive blur with layered or masked platform blur instead.
  */
 @InternalHazeApi
 public fun createProgressiveBlurRenderEffect(

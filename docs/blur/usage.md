@@ -186,6 +186,11 @@ val progressiveStyle = HazeBlurStyle {
 }
 ```
 
+On Android 13 and newer and on Skiko platforms, Progressive Blur samples at most 150 px either side
+of each pixel, measured in the effect's own pixels (after density and input scaling). Where the
+blur radius exceeds that, the kernel is truncated, so raising the radius further adds little blur.
+Older Android versions do not use this shader, so the limit does not apply there.
+
 A mask fades the effect's opacity instead, and is usually cheaper:
 
 ```kotlin
