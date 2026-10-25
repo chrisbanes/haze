@@ -86,6 +86,23 @@ class DocsOnlyPushTest(unittest.TestCase):
         self.git("clone", "-q", "--depth=1", self.repo.as_uri(), str(clone))
         self.assertEqual(self.decision(cwd=clone).stdout.strip(), "true")
 
+    def merge_commit(self, branch_files, base_files):
+        self.git("checkout", "-qb", "pr")
+        self.commit(branch_files)
+        self.git("checkout", "-q", "-")
+        self.commit(base_files)
+        base = self.git("rev-parse", "HEAD").stdout.strip()
+        self.git("merge", "-q", "--no-ff", "-m", "Merge", "pr")
+        return base
+
+    def test_pull_request_docs_only_ignores_code_merged_to_base_later(self):
+        base = self.merge_commit({"docs/guide.md": "new"}, {"src/Main.kt": "updated"})
+        self.assertEqual(self.decision(before=base).stdout.strip(), "true")
+
+    def test_pull_request_with_code_is_not_docs_only(self):
+        base = self.merge_commit({"docs/guide.md": "new", "src/Main.kt": "updated"}, {"README.md": "updated"})
+        self.assertEqual(self.decision(before=base).stdout.strip(), "false")
+
     def test_initial_push_uses_the_entire_tree(self):
         self.assertEqual(self.decision(before="0" * 40).stdout.strip(), "false")
 
