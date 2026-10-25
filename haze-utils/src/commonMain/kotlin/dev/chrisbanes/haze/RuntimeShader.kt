@@ -52,9 +52,14 @@ public expect fun isRuntimeShaderRenderEffectSupported(): Boolean
 /**
  * Creates a runtime shader [PlatformRenderEffect] with the given effect and child shaders.
  *
+ * Pass exactly one name in [shaderNames] and at most one entry in [inputs]. Platforms handle more
+ * differently: Skiko binds `inputs[i]` to `shaderNames[i]`, while Android applies a single content
+ * shader and chains every non-null input ahead of it.
+ *
  * @param effect The runtime effect to use.
- * @param shaderNames Names of the shader uniforms in the SKSL code.
+ * @param shaderNames Names of the shader uniforms in the SKSL code. Pass exactly one.
  * @param inputs The input render effects to use for each shader. Use null for the content shader.
+ * Pass at most one.
  * @param uniforms Block to configure uniforms on the shader.
  */
 @InternalHazeApi
@@ -92,7 +97,8 @@ public interface MutableRuntimeShaderRenderEffect {
  * Creates a mutable-uniform runtime shader render effect with the given child shaders.
  *
  * Platform implementations may retain different resources while preserving the same update
- * semantics.
+ * semantics. The contract for [shaderNames] and [inputs], including on update, is the same as for
+ * [createRuntimeShaderRenderEffect]: exactly one name and at most one input.
  */
 @InternalHazeApi
 public expect fun createMutableRuntimeShaderRenderEffect(
