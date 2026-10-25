@@ -119,6 +119,7 @@ jobs:
         include:
           - shard: checks
             name: linux_build (checks)
+            # --max-workers=3 trades checks wall time for memory headroom (#1693).
             tasks: >-
               check assembleDebug
               -x :haze-glass:jvmTest
@@ -131,6 +132,7 @@ jobs:
               -x :sample:screenshot-tests:check
               -x :sample:shared:check
               -x :sample:web:check
+              --max-workers=3
           - shard: sample-checks
             name: linux_build (sample checks)
             tasks: >-
