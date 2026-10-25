@@ -252,6 +252,20 @@ private class GlassGroupDraw(private val unit: List<GlassMemberSnapshot>, privat
 
   override fun toMergedMember(origin: Offset): GlassMergedMember {
     val first = unit.first()
+    val radii = first.shape.resolveCornerRadiiPx(layoutRect.size, density, first.key.layoutDirection)
+    // A retracting first member's ghost stays first, so its corners follow the retract towards the
+    // shape of the member that remains, as its tint already does.
+    val ghost = first.identity as? GlassMemberGhost
+    val remaining = ghost?.let { unit.firstOrNull { member -> member.identity !is GlassMemberGhost } }
+    val groupRadii = if (ghost != null && remaining != null) {
+      lerpCornerRadii(
+        from = remaining.shape.resolveCornerRadiiPx(layoutRect.size, density, remaining.key.layoutDirection),
+        to = radii,
+        fraction = ghost.progress.value.coerceIn(0f, 1f),
+      )
+    } else {
+      radii
+    }
     val scaleX = rect.width / layoutRect.width
     val scaleY = rect.height / layoutRect.height
     val topLeft = rect.topLeft - origin
@@ -265,10 +279,20 @@ private class GlassGroupDraw(private val unit: List<GlassMemberSnapshot>, privat
       rect = rect,
       sampleLayoutRect = sampleLayoutRect,
       material = first.material,
-      cornerRadii = first.shape.resolveCornerRadiiPx(layoutRect.size, density, first.key.layoutDirection) * minOf(scaleX, scaleY),
+      cornerRadii = groupRadii * minOf(scaleX, scaleY),
       interaction = lighting?.interaction,
       lightPosition = position,
       lightSize = lighting?.member?.rect?.minDimension ?: 0f,
     )
   }
+}
+
+private fun lerpCornerRadii(from: CornerRadii, to: CornerRadii, fraction: Float): CornerRadii {
+  fun lerp(start: Float, stop: Float) = start + (stop - start) * fraction
+  return CornerRadii(
+    lerp(from.topLeft, to.topLeft),
+    lerp(from.topRight, to.topRight),
+    lerp(from.bottomRight, to.bottomRight),
+    lerp(from.bottomLeft, to.bottomLeft),
+  )
 }
