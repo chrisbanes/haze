@@ -7,9 +7,6 @@ on:
       - main
       - v1
   pull_request:
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -33,10 +30,13 @@ jobs:
       - name: Detect code changes
         id: changes
         env:
-          BEFORE_SHA: ${{ github.event.before }}
+          # A pull_request run checks out the merge commit, so diffing the base tip against
+          # GITHUB_SHA covers exactly what the PR would add. Path filters would leave required
+          # checks unreported on docs-only PRs; this job skips the heavy jobs instead.
+          BEFORE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
           run_build=true
-          if [ "$GITHUB_EVENT_NAME" = push ]; then
+          if [ "$GITHUB_EVENT_NAME" = push ] || [ "$GITHUB_EVENT_NAME" = pull_request ]; then
             docs_only=$(sh scripts/is_docs_only_push.sh "$BEFORE_SHA" "$GITHUB_SHA")
             if [ "$docs_only" = true ]; then
               run_build=false

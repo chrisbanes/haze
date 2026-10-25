@@ -11,7 +11,7 @@ else
   git fetch --no-tags --depth=1 origin "$before"
 fi
 
-# Inspect the complete push; GitHub's workflow path filters are limited to 300 files.
+# Inspect the complete push or pull request (base tip to merge commit); GitHub's workflow path filters are limited to 300 files.
 if git diff --quiet --no-renames "$before" "$after" -- . \
     ':(exclude,glob)**/*.md' ':(exclude,glob)docs/**'; then
   echo true
