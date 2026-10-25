@@ -18,10 +18,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
-import assertk.assertions.isNotEmpty
-import assertk.assertions.isTrue
+import assertk.assertions.isGreaterThanOrEqualTo
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
@@ -84,21 +84,31 @@ class GlassGroupShapeTest : ContextTest() {
     waitForIdle()
     val owner = checkNotNull(second.memberBindingForTest?.node?.container)
     fun radii(): Float? = owner.renderer.runtimeSurfaces.singleOrNull()?.mergedField?.members?.singleOrNull()?.cornerRadii?.topLeft
-    fun retracting() = owner.model.surfaces.flatMap { it.members }.any { it.identity is GlassMemberGhost }
+    fun ghost() = owner.model.surfaces.flatMap { it.members }.map { it.identity }.filterIsInstance<GlassMemberGhost>().firstOrNull()
+    fun retracting() = ghost() != null
     assertThat(radii()).isEqualTo(departingRadius)
 
     runOnIdle { firstPresent.value = false }
-    val whileRetracting = mutableListOf<Float>()
+    // Each sample pairs the ghost's progress (1 at departure, 0 once retracted) with the drawn radius.
+    val whileRetracting = mutableListOf<Pair<Float, Float>>()
     repeat(40) {
       mainClock.advanceTimeBy(16)
       waitForIdle()
-      if (retracting()) radii()?.let(whileRetracting::add)
+      val progress = ghost()?.progress?.value
+      val radius = radii()
+      if (progress != null && radius != null) whileRetracting += progress to radius
     }
 
-    assertThat(whileRetracting).isNotEmpty()
-    // The group's shape follows the retract between the departing and the remaining shape, rather
-    // than holding the departed one until the ghost ends.
-    assertThat(whileRetracting.any { it > departingRadius && it < remainingRadius }).isTrue()
+    // The group's shape follows the retract from the departing to the remaining shape, rather than
+    // holding the departed one until the ghost ends or jumping to a fixed intermediate one.
+    val midway = whileRetracting.filter { (progress, _) -> progress > 0.05f && progress < 0.95f }
+    assertThat(midway.map { (progress, _) -> progress }.distinct().size).isGreaterThanOrEqualTo(3)
+    for ((progress, radius) in midway) {
+      val expected = remainingRadius + (departingRadius - remainingRadius) * progress
+      assertThat(radius).isCloseTo(expected, 0.5f)
+    }
+    val radiiOverTime = whileRetracting.map { (_, radius) -> radius }
+    assertThat(radiiOverTime).isEqualTo(radiiOverTime.sorted())
     mainClock.advanceTimeBy(2_000)
     waitForIdle()
     assertThat(retracting()).isFalse()
