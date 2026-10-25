@@ -58,9 +58,13 @@ vec4 main(vec2 coord) {
 }
 """
 
+/**
+ * Nothing calls this on Android. It stays as a hidden symbol because it is in released API files.
+ */
+@Deprecated("Unused on Android.", level = DeprecationLevel.HIDDEN)
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @InternalHazeApi
-public actual fun createFractalNoiseShader(
+public fun createFractalNoiseShader(
   baseFrequencyX: Float,
   baseFrequencyY: Float,
   numOctaves: Int,
