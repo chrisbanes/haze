@@ -67,7 +67,10 @@ distance, a bridge forms.
 Members merge only when all of these hold:
 
 - **Same input and rendering options.** Equal `input` (for [`HazeInput.Sources`][HazeInput.Sources], the same
-  `hazeState`, `selection` and `retention`), performance mode and `expandLayerBounds`.
+  `hazeState`, `selection` and `retention`), performance mode and `expandLayerBounds`. A refined
+  `selection` is equal only when it has the same base selection and an equal predicate (the same
+  lambda instance, or equal function references), so members that should merge must share one
+  selection value: hoist or `remember` it.
 - **Same material.** Equal optics, surface profile, specular and edge settings, chromatic
   aberration, tone, light position and `alpha`. Regular and Clear surfaces therefore never merge.
   Shape, tint, background color and interaction responses may differ; colors blend across the

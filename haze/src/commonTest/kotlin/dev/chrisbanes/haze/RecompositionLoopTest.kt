@@ -22,6 +22,8 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotNull
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
@@ -114,6 +116,49 @@ class RecompositionLoopTest : ContextTest() {
     showDialog.value = false
 
     awaitIdle()
+  }
+
+  @Test
+  fun hazeEffect_inlineWhereSelectionKeepsInputAcrossRecompositions() = runComposeUiTest {
+    val hazeState = HazeState()
+    val tick = mutableIntStateOf(0)
+    var updates = 0
+    var compositions = 0
+    val factory = LoopDetectingRendererFactory { updates++ }
+
+    setContent {
+      tick.intValue
+      compositions++
+
+      // The lambda captures a value, so strong skipping remembers it across recompositions.
+      val excluded = "x"
+      Box(Modifier.hazeSource(hazeState, key = "x").size(100.dp)) {
+        GradientBox(
+          Modifier
+            .hazeEffect(
+              factory = factory,
+              input = HazeInput.Sources(
+                state = hazeState,
+                selection = HazeSourceSelection.Behind.where { source -> source.key != excluded },
+              ),
+              style = Unit,
+            )
+            .size(100.dp),
+        )
+      }
+    }
+    waitForIdle()
+
+    val updatesBefore = updates
+    val compositionsBefore = compositions
+
+    repeat(5) {
+      tick.intValue++
+      waitForIdle()
+    }
+
+    assertThat(compositions).isGreaterThan(compositionsBefore)
+    assertThat(updates).isEqualTo(updatesBefore)
   }
 
   @Test

@@ -86,4 +86,21 @@ class HazeInputTest {
     assertThat(selection.matches(HazeSourceMetadata(key = "source", zIndex = 1f))).isFalse()
     assertThat(selection.matches(HazeSourceMetadata(key = "other", zIndex = 2f))).isFalse()
   }
+
+  @Test
+  fun sourceSelection_whereWithSameBaseAndPredicateIsEqual() {
+    val predicate: (HazeSourceMetadata) -> Boolean = { it.key == "a" }
+    val other: (HazeSourceMetadata) -> Boolean = { it.key == "a" }
+
+    val selection = HazeSourceSelection.Behind.where(predicate)
+    assertThat(selection).isEqualTo(HazeSourceSelection.Behind.where(predicate))
+    assertThat(selection.hashCode()).isEqualTo(HazeSourceSelection.Behind.where(predicate).hashCode())
+
+    // Same body, different instance: predicates compare by identity.
+    assertThat(selection).isNotEqualTo(HazeSourceSelection.Behind.where(other))
+    assertThat(selection).isNotEqualTo(HazeSourceSelection.All.where(predicate))
+
+    assertThat(HazeSourceSelection.All.where(predicate).where(other))
+      .isEqualTo(HazeSourceSelection.All.where(predicate).where(other))
+  }
 }
