@@ -13,15 +13,20 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -45,7 +50,7 @@ import dev.chrisbanes.haze.glass.hazeGlassContainer
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import kotlin.math.abs
 
-internal enum class GlassContainerScene { Merged, Separate, MixedColours, MixedKeys, Overflow, Nested, InteractiveRest, InteractivePressed, Overlap, Grouped }
+internal enum class GlassContainerScene { Merged, Separate, MixedColours, MixedKeys, Overflow, Nested, InteractiveRest, InteractivePressed, Overlap, Grouped, InsetLazyRow }
 
 /** [fallback] asserts the fallback renderer's hard union, which draws no bridge. */
 internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerScene, fallback: Boolean = false) {
@@ -90,6 +95,11 @@ internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerSce
       assertThat(pixels[280, 90].red).isGreaterThan(pixels[280, 90].blue)
       for ((x, y) in listOf(180 to 40, 180 to 140)) assertThat(pixels[x, y], "outside group at ($x, $y)").isEqualTo(sceneBackground(x, y))
     }
+    GlassContainerScene.InsetLazyRow -> {
+      // The list spans x 40..320. Scrolled by 40px, two chips are half out of it. Glass stays inside.
+      for ((x, y) in listOf(20 to 120, 330 to 120)) assertThat(pixels[x, y], "outside list at ($x, $y)").isEqualTo(sceneBackground(x, y))
+      for ((x, y) in listOf(60 to 120, 300 to 120)) assertThat(pixels[x, y].red, "inside list at ($x, $y)").isGreaterThan(pixels[x, y].blue)
+    }
     GlassContainerScene.Overflow -> {
       assertThat(pixels[52, 110].green).isLessThan(0.5f)
       assertThat(pixels[154, 110]).isEqualTo(sceneBackground(154, 110))
@@ -121,7 +131,12 @@ internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerSce
     }
   }
   // Opaque label strokes are replayed above the entire material phase.
-  assertThat(pixels[if (scene == GlassContainerScene.Overflow) 28 else 48, 68]).isEqualTo(Color.White)
+  val (labelX, labelY) = when (scene) {
+    GlassContainerScene.Overflow -> 28 to 68
+    GlassContainerScene.InsetLazyRow -> 96 to 88
+    else -> 48 to 68
+  }
+  assertThat(pixels[labelX, labelY]).isEqualTo(Color.White)
   captureRoot()
 }
 
@@ -239,8 +254,16 @@ private fun GlassContainerScreenshotScene(
           drawRect(colour, Offset(x.toFloat(), y.toFloat()), Size(12f, 12f))
         }
       }
-      Box(Modifier.size(360.dp, 240.dp).then(if (enabled) Modifier.hazeGlassContainer(40.dp, transitionSpec = transitionSpec) else Modifier)) {
+      Box(Modifier.size(360.dp, 240.dp).then(if (enabled && scene != GlassContainerScene.InsetLazyRow) Modifier.hazeGlassContainer(40.dp, transitionSpec = transitionSpec) else Modifier)) {
         when (scene) {
+          GlassContainerScene.InsetLazyRow -> LazyRow(
+            state = rememberLazyListState(initialFirstVisibleItemScrollOffset = 40),
+            // The container is on the list itself, so the clip must come first to cut its glass.
+            modifier = Modifier.offset(40.dp, 80.dp).size(280.dp, 80.dp).clipToBounds().hazeGlassContainer(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+          ) {
+            items(12) { GlassContainerSceneMember(state, 0, 0, 80, 80, sceneStyle(Color.Red)) }
+          }
           GlassContainerScene.Overflow -> repeat(6) { index ->
             GlassContainerSceneMember(state, 20 + index * 34, 60, 30, 80, sceneStyle(if (index % 2 == 0) Color.Red else Color.Blue))
           }

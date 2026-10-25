@@ -28,6 +28,8 @@ class GlassContainerAndroidScreenshotTest : ScreenshotTest() {
 
   @Test fun groupedMembersDrawOneShape() = runScreenshotTest { assertGlassContainerScene(GlassContainerScene.Grouped) }
 
+  @Test fun insetLazyRowPartlyScrolledClipsGlassToList() = runScreenshotTest { assertGlassContainerScene(GlassContainerScene.InsetLazyRow) }
+
   @Test fun removalRestoresOutsideContainerPixels() = runScreenshotTest { assertGlassContainerRemovalRestoresOutsidePixels() }
 
   @Test fun memberGrowsOutOfNeighbour() = runScreenshotTest { assertGlassContainerTransitionSequence(grow = true) }
