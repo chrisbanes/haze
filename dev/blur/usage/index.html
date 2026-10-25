@@ -1499,6 +1499,10 @@ does not schedule an update. An empty list clears inherited color effects:</p>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
+<p>On Android 13 and newer and on Skiko platforms, Progressive Blur samples at most 150 px either side
+of each pixel, measured in the effect's own pixels (after density and input scaling). Where the
+blur radius exceeds that, the kernel is truncated, so raising the radius further adds little blur.
+Older Android versions do not use this shader, so the limit does not apply there.</p>
 <p>A mask fades the effect's opacity instead, and is usually cheaper:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">maskedStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">mask</span><span class="p">(</span>

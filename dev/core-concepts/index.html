@@ -1477,6 +1477,9 @@ Repeated refinements combine with logical AND:</p>
 <span class="w">  </span><span class="p">.</span><span class="na">where</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">source</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="na">zIndex</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="m">1f</span><span class="w"> </span><span class="p">}</span>
 <span class="w">  </span><span class="p">.</span><span class="na">where</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">source</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="na">key</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">"sensitive"</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
+<p>A refined selection compares by its base selection and its predicate: the same lambda instance, or
+equal function references on platforms where those compare equal. Two <code>where { }</code> literals with
+identical bodies are not equal, so hoist or <code>remember</code> a selection that several effects share.</p>
 <h2 id="explicit-inputs">Explicit inputs<a class="headerlink" href="#explicit-inputs" title="Permanent link">¶</a></h2>
 <p>Typed effects always declare what they consume:</p>
 <table>
