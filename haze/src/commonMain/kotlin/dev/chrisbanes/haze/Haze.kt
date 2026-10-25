@@ -301,9 +301,11 @@ public fun Modifier.hazeSource(
  * while sharing is inactive, when the source draws as it would without sharing.
  *
  * @param inputSharing Whether this source renders once into an offscreen layer that it draws on
- * screen and that effects sampling it share. See [HazeInputSharing].
+ * screen and that effects sampling it share. Only Android reuses a render. See [HazeInputSharing].
  * @param inputSharingOutsets How far beyond each edge of its layout bounds this source keeps drawing
- * while sharing is active. Each edge must be finite and non-negative.
+ * while sharing is active. Each edge must be finite and non-negative. The edges are absolute and do
+ * not flip in a right-to-left layout, so `LayerOutsets(right = ...)` expands the right edge
+ * whatever the layout direction. Pass values adjusted for the layout direction.
  */
 @ExperimentalHazeApi
 @Stable

@@ -62,11 +62,14 @@ By default, each effect that samples a [`hazeSource`][hazeSource] through
 [`HazeInput.Sources`][HazeInput.Sources] replays the source's content whenever it changes. A
 busy source, such as a feed with playing video, then costs more for every effect over it.
 
-The experimental `inputSharing` parameter changes that. While sharing is active, the source
-renders once into an offscreen layer, and the window and every effect draw from that layer
+The experimental `inputSharing` parameter changes that on Android. While sharing is active, the
+source renders once into an offscreen layer, and the window and every effect draw from that layer
 instead of replaying the source. The activation rules are
 [`HazeInputSharing`][HazeInputSharing]'s: `Never` is the default, `Auto` shares on Android once
-two or more effects sample the source, and `Always` shares on every platform once one does.
+two or more effects sample the source, and `Always` shares once one does. Only Android reuses a
+render. On Desktop, iOS and Web, `Always` applies the clipping and an offscreen pass without
+reuse, so the source is still replayed for each effect, and it can cost more than `Never`. Haze
+has not measured that path.
 
 Sharing has two costs:
 
@@ -74,7 +77,13 @@ Sharing has two costs:
   expanded by `inputSharingOutsets`, both on screen and in effects. Anything drawn beyond that is
   not shown. Outsets don't change the source's layout size or position, and they have no effect
   while sharing is inactive, when the source draws normally again, overflow included.
-- **Memory.** Each active source holds one texture, the size of the source plus its outsets.
+- **Memory.** On a Pixel 8a, each active full-screen source added about 25–33 MiB of peak GPU
+  memory, more than one source-sized RGBA8 buffer. The benchmark did not isolate the cause, so
+  budget well above one source-sized buffer per shared source.
+
+`Auto` re-decides on every draw (Android only). As effects come and go, crossing between one and
+two consumers allocates or frees the source-sized layer and turns the overflow clipping on or off.
+Use `Always` for a source that draws outside its bounds.
 
 For a source that stays inside its bounds, the default zero outsets are enough:
 
@@ -83,7 +92,8 @@ Modifier.hazeSource(state, inputSharing = HazeInputSharing.Auto)
 ```
 
 If the source draws outside its bounds, for example a card with a shadow that reaches 4 dp to each
-side and 16 dp below it, declare that on each edge:
+side and 16 dp below it, declare that on each edge. The edges are absolute and don't flip in a
+right-to-left layout, so adjust them for the layout direction:
 
 ```kotlin
 Modifier.hazeSource(
