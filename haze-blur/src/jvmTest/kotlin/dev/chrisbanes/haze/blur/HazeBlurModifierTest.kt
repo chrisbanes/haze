@@ -553,6 +553,56 @@ class HazeBlurModifierTest {
   }
 
   @Test
+  fun localStyleStateReads_updateWithoutRecomposition() = runComposeUiTest {
+    val hazeState = HazeState()
+    val tint = mutableStateOf(Color.Blue)
+    var compositions = 0
+
+    setContent {
+      // The local style is remembered, so only its observed state read can change the output.
+      val localStyle = remember {
+        HazeBlurStyle {
+          blurEnabled(false)
+          fallbackColorEffect(HazeColorEffect.tint(tint.value))
+        }
+      }
+      CompositionLocalProvider(LocalHazeBlurStyle provides localStyle) {
+        Box(Modifier.size(100.dp)) {
+          Box(
+            Modifier
+              .fillMaxSize()
+              .hazeSource(hazeState)
+              .background(Color.Red),
+          )
+          compositions++
+          Box(
+            Modifier
+              .fillMaxSize()
+              .testTag("effect")
+              .hazeBlur(
+                input = HazeInput.Sources(hazeState),
+                performanceMode = HazePerformanceMode.Quality,
+                expandLayerBounds = false,
+              ),
+          )
+        }
+      }
+    }
+    waitForIdle()
+    assertThat(onNodeWithTag("effect").captureToImage().toPixelMap()[50, 50])
+      .isEqualTo(Color.Blue)
+    val compositionsBefore = compositions
+
+    mainClock.autoAdvance = false
+    tint.value = Color.Green
+    mainClock.advanceTimeByFrame()
+
+    assertThat(onNodeWithTag("effect").captureToImage().toPixelMap()[50, 50])
+      .isEqualTo(Color.Green)
+    assertThat(compositions).isEqualTo(compositionsBefore)
+  }
+
+  @Test
   fun sharedFactory_createsIsolatedRuntimesAndStyleReplacementReusesRuntime() {
     val sharedStyle = HazeBlurStyle {
       blurRadius(12.dp)
