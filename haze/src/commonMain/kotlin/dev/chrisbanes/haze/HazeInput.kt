@@ -79,6 +79,11 @@ public sealed interface HazeSourceSelection {
    * Refines this selection using immutable source metadata.
    *
    * Repeated refinements compose with logical AND.
+   *
+   * Two refinements are equal only when they share the same base selection and the same
+   * [predicate] instance. Lambdas compare by identity, so two separate lambda literals with
+   * identical bodies are not equal. Hoist or `remember` a refined selection that is shared, for
+   * example between Glass container members that should merge; they must use one selection value.
    */
   public fun where(
     predicate: (HazeSourceMetadata) -> Boolean,
@@ -99,7 +104,7 @@ public sealed interface HazeSourceSelection {
   public data object All : HazeSourceSelection
 }
 
-private class FilteredHazeSourceSelection(
+private data class FilteredHazeSourceSelection(
   val selection: HazeSourceSelection,
   val predicate: (HazeSourceMetadata) -> Boolean,
 ) : HazeSourceSelection

@@ -15,6 +15,8 @@ import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNull
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeSourceMetadata
+import dev.chrisbanes.haze.HazeSourceSelection
 import dev.chrisbanes.haze.HazeState
 import kotlin.test.Test
 
@@ -77,6 +79,32 @@ class GlassClustersTest {
     // 10 px apart, within merge distance: proximity alone does not override a different key.
     val near = member(2, 110f).copy(key = key.copy(alpha = 0.4f))
     assertThat(clusterGlassMembers(listOf(first, near), 40f).surfaces.map { it.members.size })
+      .containsExactly(1, 1)
+  }
+
+  @Test
+  fun cluster_membersSharingRefinedSelectionMerge() {
+    val state = HazeState()
+    val shared: (HazeSourceMetadata) -> Boolean = { it.key != "x" }
+    // Same body as `shared`, but a different instance: predicates compare by identity.
+    val separate: (HazeSourceMetadata) -> Boolean = { it.key != "x" }
+
+    fun keyFor(selection: HazeSourceSelection) = glassMergeKey(
+      HazeInput.Sources(state, selection),
+      true,
+      0.5f,
+      effect,
+      material,
+      LayoutDirection.Ltr,
+    )
+
+    val a = member(0).copy(key = keyFor(HazeSourceSelection.Behind.where(shared)))
+    val b = member(1).copy(key = keyFor(HazeSourceSelection.Behind.where(shared)))
+    assertThat(clusterGlassMembers(listOf(a, b), 40f).surfaces.map { it.members.size })
+      .containsExactly(2)
+
+    val c = member(1).copy(key = keyFor(HazeSourceSelection.Behind.where(separate)))
+    assertThat(clusterGlassMembers(listOf(a, c), 40f).surfaces.map { it.members.size })
       .containsExactly(1, 1)
   }
 

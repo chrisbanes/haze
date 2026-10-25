@@ -30,6 +30,10 @@ val selection = HazeSourceSelection.Behind
   .where { source -> source.key != "sensitive" }
 ```
 
+A refined selection compares by its base selection and the predicate instance. Two `where { }`
+literals with identical bodies are not equal, so hoist or `remember` a selection that several
+effects share.
+
 ## Explicit inputs
 
 Typed effects always declare what they consume:
