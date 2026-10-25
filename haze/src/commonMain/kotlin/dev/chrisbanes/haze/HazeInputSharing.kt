@@ -30,6 +30,8 @@ package dev.chrisbanes.haze
  * Sharing reduces the CPU cost of replaying an expensive source on a busy RenderThread, but the
  * offscreen layer is re-rendered whenever the source changes, which adds GPU work while it scrolls.
  * Sources default to [Never]; measure before opting a source in.
+ *
+ * Future minor releases may add entries. Keep an `else` branch when you match exhaustively with `when`.
  */
 @ExperimentalHazeApi
 public enum class HazeInputSharing {
