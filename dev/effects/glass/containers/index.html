@@ -1564,9 +1564,10 @@ merging and loses its matched-geometry transition.</p>
 <p>A member whose nearest container changes while it stays in the layout, for example when a nested
 container is added or removed around it, appears in the new container immediately. Moving
 a member with <code>movableContentOf</code> detaches and reattaches it, so it detaches from the old container
-and attaches to the new one, each with the transition described above. A running transition ends
-without animating when the member it grows from or retracts into leaves, or moves beyond the
-merge distance.</p>
+and attaches to the new one, each with the transition described above. A member whose parent stops
+placing it while keeping it in the layout leaves as if it detached, and appears again as if it
+attached when it is placed again. A running transition ends without animating when the member it
+grows from or retracts into leaves, or moves beyond the merge distance.</p>
 <h2 id="lazy-layouts">Lazy layouts<a class="headerlink" href="#lazy-layouts" title="Permanent link">¶</a></h2>
 <p>Pass the lazy layout's state to <a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass-container.html"><code>hazeGlassContainer</code></a> as <code>scrollState</code>. While that state is
 scrolling, including the frame in which it stops, members appear and disappear without a
