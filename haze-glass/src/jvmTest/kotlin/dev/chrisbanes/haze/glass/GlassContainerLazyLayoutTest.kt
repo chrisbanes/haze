@@ -69,7 +69,9 @@ private const val TRANSITION_MILLIS = 150
  * The container is on the `LazyRow` itself. Items 0 to 4 compose before the first draw, so they
  * never animate; item 5 is the first item to scroll in, with a settled neighbour (item 4), and
  * item 0 is the first to scroll out. The tests read the container's drawn state (`model`), so a
- * member is "visible" when its glass rect overlaps the 360x80 viewport. They do not read pixels.
+ * member is "visible" when its glass rect overlaps the 360x80 viewport. They do not read pixels,
+ * except the `insetLazyRow` tests, which use their own fixture, an inset 280x80 `LazyRow`, to read
+ * the pixels the container draws around the list.
  *
  * Pixel values assume a density of 1, as in the desktop test environment, and a positive
  * `dispatchRawDelta` scrolls towards later items.
@@ -106,7 +108,7 @@ class GlassContainerLazyLayoutTest : ContextTest() {
   }
 
   /**
-   * Pins the 2.1.0 limitation behind the `Modifier.clipToBounds()` guidance in
+   * Pins the current limitation behind the `Modifier.clipToBounds()` guidance in
    * `docs/effects/glass/containers.md`: the container draws its members' glass on its own canvas,
    * so a viewport clip applied after it does not cut that glass. A fix to the draw path has to
    * update this test.
