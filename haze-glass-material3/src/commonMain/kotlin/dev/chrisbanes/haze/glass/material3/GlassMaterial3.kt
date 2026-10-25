@@ -16,6 +16,12 @@ import dev.chrisbanes.haze.glass.GlassStyle
  * theme tint write, preserving any inherited tint. This Style can override either value. Call it
  * on [GlassStyle] for the Material 3 values alone. The returned Style is reused while this Style,
  * [containerColor], and [tint] are unchanged, so `remember` or hoist this Style.
+ *
+ * `Color.Unspecified` is not treated as null: the Style rejects an unspecified [tint] when it is
+ * evaluated, so pass null to omit the tint.
+ *
+ * It is named `material3` because it applies to an existing Style; `HazeBlurStyle.Material3()`
+ * creates one.
  */
 @Composable
 public fun GlassStyle.material3(

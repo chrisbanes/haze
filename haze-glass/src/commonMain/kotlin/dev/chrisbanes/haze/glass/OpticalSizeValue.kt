@@ -14,6 +14,8 @@ import kotlin.jvm.JvmInline
  * This type does not define interpolation for arbitrary [T]. [GlassOptics] accepts
  * [OpticalSizeValue] only for its `Float` depth and [Dp] blur-radius properties and owns the
  * corresponding interpolation and value validation.
+ *
+ * Future minor releases may add subtypes. Keep an `else` branch when you match exhaustively with `when`.
  */
 public sealed interface OpticalSizeValue<T> {
   /** A value which does not change with the material size. */

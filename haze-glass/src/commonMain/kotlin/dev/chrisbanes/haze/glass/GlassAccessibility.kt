@@ -35,7 +35,8 @@ public class GlassAccessibilitySettings(
   public val showBorders: Boolean = false,
   /**
    * Opaque base for reduced-transparency fallback, or null for white in light and black in dark
-   * host appearance. Set it when the app theme differs from the host appearance.
+   * host appearance. Set it when the app theme differs from the host appearance. `Color.Unspecified`
+   * is rejected, not treated as null: pass null to select the default.
    */
   public val reducedTransparencyFallbackColor: Color? = null,
 ) {

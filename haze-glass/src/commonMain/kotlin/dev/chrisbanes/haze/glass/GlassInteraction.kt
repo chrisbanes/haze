@@ -5,7 +5,11 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.animation.core.FiniteAnimationSpec
 
-/** Selects which visual layers receive the interaction scale transform. */
+/**
+ * Selects which visual layers receive the interaction scale transform.
+ *
+ * Future minor releases may add entries. Keep an `else` branch when you match exhaustively with `when`.
+ */
 public enum class GlassTransformTarget {
   /** Scales the generated Glass material while leaving the composable content unchanged. */
   MaterialOnly,
@@ -14,7 +18,11 @@ public enum class GlassTransformTarget {
   MaterialAndContent,
 }
 
-/** Selects the pivot used by the interaction scale transform. */
+/**
+ * Selects the pivot used by the interaction scale transform.
+ *
+ * Future minor releases may add entries. Keep an `else` branch when you match exhaustively with `when`.
+ */
 public enum class GlassTransformPivot {
   /** Uses the current pointer or interaction position as the transform pivot. */
   Pointer,
@@ -28,6 +36,8 @@ public enum class GlassTransformPivot {
  *
  * `hazeGlass` applies it to interaction responses. [hazeGlassContainer] applies it to member
  * transitions.
+ *
+ * Future minor releases may add entries. Keep an `else` branch when you match exhaustively with `when`.
  */
 public enum class GlassReducedMotionPolicy {
   /**

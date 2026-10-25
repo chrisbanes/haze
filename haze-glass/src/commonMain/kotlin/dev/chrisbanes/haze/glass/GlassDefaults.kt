@@ -13,7 +13,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/** Light-calibrated default values used by `hazeGlass`, `hazeGlassContainer` and [GlassStyle] resolution. */
+/**
+ * Light-calibrated default values used by `hazeGlass`, `hazeGlassContainer` and [GlassStyle] resolution.
+ *
+ * These values are calibrated and may change between releases. The `const val`s are inlined into
+ * your code when it compiles, so recompile to pick up a change.
+ */
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 public object GlassDefaults {
   /** Default interaction light radius as a fraction of the material's shortest side. */

@@ -26,6 +26,8 @@ package dev.chrisbanes.haze.glass
  *   }
  * }
  * ```
+ *
+ * Future minor releases may add entries. Keep an `else` branch when you match exhaustively with `when`.
  */
 public enum class GlassMemberTransition {
   /**
