@@ -2370,7 +2370,7 @@ APKs, <code>conditions.txt</code>, <code>run-order.txt</code> and <code>summary.
 verified.</p>
 <p><strong>Reporter's real-app retest.</strong> The report in
 <a href="https://github.com/chrisbanes/haze/issues/1615">#1615</a> came from a different app and device.
-A retest on that app is pending and has not been run, so these results neither confirm nor
+These results come from the benchmark app, not that app, so they neither confirm nor
 contradict its findings.</p>
 <p><strong>Earlier results.</strong> Input-sharing results measured before <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/1615" title="GitHub Issue chrisbanes/haze #1615">#1615</a> described a separate
 rendered copy of the source, which retained a second replay of it, and are no longer
@@ -2703,9 +2703,9 @@ The table above includes slow-core iterations.</p>
 timings varied more between passes than between builds. Resolving a difference smaller than
 about 0.5 ms would need more passes, again in alternating order.</p>
 <p>Raw JSON, benchmark messages, XML, and traces are retained locally, outside the repository,
-under <code>~/dev/haze-worktrees/1437-artifacts/</code>: <code>before-903b02e9/</code> and <code>after-1f1c8a3a/</code>, each
-with <code>pass1/</code> and <code>pass2/</code>. That directory also holds the dry-run XML, per-run device
-readbacks, the two builds' APK hashes, and the trace-analysis scripts.</p>
+for the <code>before-903b02e9</code> and <code>after-1f1c8a3a</code> builds, each with two passes. The retained set
+also holds the dry-run XML, per-run device readbacks, the two builds' APK hashes, and the
+trace-analysis scripts.</p>
 </details>
 <h2 id="representative-workloads">Representative workloads<a class="headerlink" href="#representative-workloads" title="Permanent link">¶</a></h2>
 <p>These Glass sample measurements cover paging, an animated timeline, and steady-state scenes
