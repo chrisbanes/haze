@@ -96,6 +96,14 @@ import kotlinx.coroutines.launch
  * immediately. Position changes made outside a scroll, such as `LazyListState.requestScrollToItem`,
  * are not scrolls. Without a [scrollState], items of a lazy layout that scroll into view animate like
  * any member that attaches after the first draw.
+ *
+ * The container draws its members' glass itself, on its own canvas, so a clip or `graphicsLayer`
+ * alpha on a layout between the container and a member applies to the member's content but not to
+ * its glass. A lazy layout adds its viewport clip after the modifiers it is given, so a container
+ * on the lazy layout sits outside that clip: in an inset list, a member scrolled half out keeps its
+ * full glass over the surrounding space. Put `Modifier.clipToBounds()` before `hazeGlassContainer`
+ * on the lazy layout to cut the glass at its bounds, which also cuts any glass that overflows them,
+ * such as a bridge. To fade glass, use the style's `alpha`.
  */
 @Stable
 public fun Modifier.hazeGlassContainer(
