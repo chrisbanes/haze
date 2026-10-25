@@ -1843,7 +1843,8 @@ internal class RuntimeShaderGlassDelegate(
         val detailKey = key.detail ?: return@let optical
         // A new detail shader needs `backdropInput` here: it is only created when the fused shader
         // is recreated, the merge or sharp-detail topology changes, or retained shaders were
-        // released, and each of those also clears `fusedInputKey`, so `inputChanged` is true.
+        // released, and each of those either clears `fusedInputKey` or changes one of its topology
+        // fields, so `inputChanged` is true.
         val existingDetailShader = refractionDetailShader
         val detailShader = existingDetailShader ?: traceCreateRenderEffect {
           createRefractionDetailRenderEffect(

@@ -475,8 +475,8 @@ class GlassBackdropInstrumentationTest {
     assertThat(updatedDraw.await(5, TimeUnit.SECONDS), "Green Glass presented").isEqualTo(true)
     // The new style applies on the frame after the draw that observed it, so poll for the change.
     var green = activity.copyWindow()
-    repeat(20) {
-      if (AndroidColor.green(green.pixel(green.width / 2, green.height / 2)) > 100) return@repeat
+    var attempts = 0
+    while (AndroidColor.green(green.pixel(green.width / 2, green.height / 2)) <= 100 && attempts++ < 20) {
       Thread.sleep(100)
       green = activity.copyWindow()
     }
