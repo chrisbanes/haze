@@ -58,13 +58,21 @@ public class HazeEffectSurface internal constructor(
    */
   public fun inputSelection(): Set<Any> = node.areas.toSet()
 
-  /** Creates an independently owned renderer over these members' core-selected input captures. */
+  /**
+   * Creates an independently owned renderer over these members' core-selected input captures.
+   *
+   * When a Backdrop cluster declines its native frame, its members' own surfaces draw in its place.
+   * Pass false for [drawsMembersOnDecline] when the owner already outputs those surfaces, so the
+   * cluster draws nothing instead of drawing them a second time.
+   */
   public fun <Style> createConfiguredSurface(
     factory: HazeEffectFactory<Style>,
     style: Style,
     bounds: Rect,
     members: List<HazeEffectSurface>,
-  ): HazeConfiguredEffectSurface<Style> = HazeConfiguredEffectSurface(this, factory, style, bounds, members)
+    drawsMembersOnDecline: Boolean = true,
+  ): HazeConfiguredEffectSurface<Style> =
+    HazeConfiguredEffectSurface(this, factory, style, bounds, members, drawsMembersOnDecline)
 
   internal fun changed() = owner?.onSurfaceChanged(this)
   internal fun release() = relocateTo(null)

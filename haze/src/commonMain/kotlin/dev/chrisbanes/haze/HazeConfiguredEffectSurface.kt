@@ -30,8 +30,9 @@ public class HazeConfiguredEffectSurface<Style> internal constructor(
   style: Style,
   bounds: Rect,
   members: List<HazeEffectSurface>,
+  drawsMembersOnDecline: Boolean,
 ) {
-  private val renderer = ConfiguredSurface(anchor, factory.createRenderer(), style, bounds, members)
+  private val renderer = ConfiguredSurface(anchor, factory.createRenderer(), style, bounds, members, drawsMembersOnDecline)
 
   /** Opaque handle submitted to the same owner draw boundary as ordinary surfaces. */
   public val surface: HazeEffectSurface = HazeEffectSurface(anchor.node, renderer).also {
@@ -85,6 +86,8 @@ private class ConfiguredSurface<Style>(
   private var style: Style,
   override var bounds: Rect,
   private var members: List<HazeEffectSurface>,
+  // False when the members' own surfaces are already drawn by the owner, as a borrowed anchor's is.
+  private val drawsMembersOnDecline: Boolean,
 ) : HazeConfiguredSurfaceDraw {
   private val backend = HazeBackdropBackendState().also { it.attach(anchor.node.surfaceNativeEligible()) }
   private var nativeRenderer: HazeBackdropRenderer? = null
@@ -258,6 +261,8 @@ private class ConfiguredSurface<Style>(
     // mixed selections or a declined native effect.
     fallbackMembers = mixedSelection || (native && !awaitingNative && preparedBackdrop == null)
     if (fallbackMembers) {
+      // A declined cluster whose members the owner already outputs has nothing more to draw.
+      if (!mixedSelection && !drawsMembersOnDecline) return null
       val footprints = members.mapNotNull { it.footprint(scope) }
       if (footprints.isEmpty()) return null
       return HazeSurfaceFootprint(
@@ -291,7 +296,7 @@ private class ConfiguredSurface<Style>(
     recovered = false
     if (disposed) return
     if (fallbackMembers) {
-      members.forEach { it.draw(scope) }
+      if (mixedSelection || drawsMembersOnDecline) members.forEach { it.draw(scope) }
       return
     }
     val sourceInput = when (val input = input) {
@@ -341,7 +346,7 @@ private class ConfiguredSurface<Style>(
       }
     }
     // A now-declined effect draws member surfaces, as footprint selects for a declined first preparation.
-    if (declinedOnRestore) {
+    if (declinedOnRestore && drawsMembersOnDecline) {
       members.forEach {
         it.footprint(scope)
         it.draw(scope)
