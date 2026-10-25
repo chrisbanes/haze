@@ -152,12 +152,14 @@ internal fun formGlassGroupUnits(members: List<GlassMemberSnapshot>): List<List<
 
 /**
  * The union of the layout rects of the unit each member of [ordered] belongs to, by identity, formed
- * as [clusterGlassMembers] forms units. Members it leaves out have no entry.
+ * as [clusterGlassMembers] forms units. Members it leaves out have no entry. Members in [excluded]
+ * still take their place in the order, but their rects are left out of the bounds: they are not
+ * visible yet, so they do not stretch their unit.
  */
-internal fun glassUnitLayoutBounds(ordered: List<GlassMemberSnapshot>): Map<Any, Rect> =
+internal fun glassUnitLayoutBounds(ordered: List<GlassMemberSnapshot>, excluded: Set<Any> = emptySet()): Map<Any, Rect> =
   formGlassGroupUnits(ordered.filter { it.rect.isValidGlassMember() }).flatMap { unit ->
-    val bounds = unit.map { it.layoutRect }.union()
-    unit.map { it.identity to bounds }
+    val bounds = unit.filter { it.identity !in excluded }.map { it.layoutRect }.takeIf { it.isNotEmpty() }?.union()
+    unit.mapNotNull { member -> bounds?.let { member.identity to it } }
   }.toMap()
 
 private fun GlassMemberSnapshot.canCluster() = translationOnly && !fading

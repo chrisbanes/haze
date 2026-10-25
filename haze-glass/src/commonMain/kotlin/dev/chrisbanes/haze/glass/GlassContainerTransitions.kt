@@ -84,7 +84,7 @@ internal fun resolveGlassNeighbour(
   excluded: Set<Any> = emptySet(),
 ): GlassMemberSnapshot? {
   // A group counts as one member, so a candidate is as near as its unit's bounds.
-  val unitBounds = glassUnitLayoutBounds(ordered)
+  val unitBounds = glassUnitLayoutBounds(ordered, excluded)
   fun GlassMemberSnapshot.gap() = glassMemberGap(member.layoutRect, unitBounds[identity] ?: layoutRect)
   return ordered
     .filter { candidate ->

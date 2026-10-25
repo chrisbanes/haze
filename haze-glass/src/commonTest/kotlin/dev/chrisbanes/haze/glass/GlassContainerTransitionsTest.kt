@@ -23,6 +23,8 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThanOrEqualTo
+import assertk.assertions.isNotNull
+import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.prop
 import dev.chrisbanes.haze.HazeInput
@@ -84,6 +86,27 @@ class GlassContainerTransitionsTest {
     val (rect, morphed) = member.morphedFrom(neighbour, 0f)
     assertThat(rect).isEqualTo(Rect(43f, 62.4f, 137f, 137.6f))
     assertThat(morphed.cornerRadii.topLeft).isCloseTo(18.8f, 0.001f)
+  }
+
+  @Test
+  fun resolveGlassNeighbour_appearingGroupMember_doesNotStretchGroupBounds() {
+    val effect = GlassRuntimeEffect()
+    val material = resolveGlassStyle(effect, Size(100f, 80f), Density(1f), LayoutDirection.Ltr)
+    val key = glassMergeKey(HazeInput.Content, true, 0.5f, effect, material, LayoutDirection.Ltr)
+    fun node(groupKey: Any?) = GlassMemberNode(GlassMemberBinding(HazeInput.Content, true), GlassMemberTransition.MatchedGeometry, groupKey)
+    fun snapshot(identity: Any, left: Float, groupKey: Any?) = Rect(left, 60f, left + 100f, 140f).let {
+      GlassMemberSnapshot(identity, it, key, material, translationOnly = true, layoutRect = it, groupKey = groupKey)
+    }
+    val a = snapshot(node("group"), 40f, "group")
+    // B joins A's group 200px away, and C appears 20px past B in the same frame, 320px from A.
+    val b = snapshot(node("group"), 340f, "group")
+    val c = snapshot(node(null), 460f, null)
+    val ordered = listOf(a, b, c)
+
+    // B is still growing out of A, so the group does not span B yet: C has nothing within 40px.
+    assertThat(resolveGlassNeighbour(c, ordered, 40f, excluded = setOf(b.identity, c.identity))).isNull()
+    // Once B has appeared, C is 20px from the group and from B itself.
+    assertThat(resolveGlassNeighbour(c, ordered, 40f, excluded = setOf(c.identity))).isNotNull()
   }
 
   private fun peak(spec: FiniteAnimationSpec<Float>): Float {
