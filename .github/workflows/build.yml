@@ -108,6 +108,12 @@ jobs:
   # shards and keeps its required check name as the aggregate result below.
   # The sample checks have their own shard because running them beside the library checks exhausted
   # the 16 GB runner (#1693). Keep the six :sample:* paths in step with settings.gradle.kts.
+  # The checks shard still cannot be kept entirely clear of swap on a 16 GB hosted runner without
+  # a larger runner or lower heaps, which risk a daemon OOM. With the daemon caps below and
+  # --max-workers=3 it kept 2.0-3.0 GB available but swapped up to 96 MB (three attempts). Without
+  # the workers limit it fell to 1.4 GB available and swapped up to 177 MB. Mitigations: the shard
+  # split, those caps, the [mem] trail that names the gradle, kotlin and worker JVMs, and
+  # rerunning a shard that the runner shuts down.
   linux_build_shards:
     name: ${{ matrix.name }}
     needs: changes
@@ -119,6 +125,7 @@ jobs:
         include:
           - shard: checks
             name: linux_build (checks)
+            # --max-workers=3 trades checks wall time for memory headroom (#1693).
             tasks: >-
               check assembleDebug
               -x :haze-glass:jvmTest
@@ -131,6 +138,7 @@ jobs:
               -x :sample:screenshot-tests:check
               -x :sample:shared:check
               -x :sample:web:check
+              --max-workers=3
           - shard: sample-checks
             name: linux_build (sample checks)
             tasks: >-
@@ -152,6 +160,13 @@ jobs:
 
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
+    env:
+      # Cap the Gradle and Kotlin daemon heaps on CI only (#1693); local builds keep the larger
+      # -Xmx8g from gradle.properties. Every ./gradlew call below must pass both, or it starts
+      # another daemon with a different heap.
+      CI_GRADLE_JVMARGS: -Xmx4g -Dfile.encoding=UTF-8
+      CI_KOTLIN_DAEMON_JVMARGS: -Xmx3g
 
     steps:
       - uses: actions/checkout@v7
@@ -181,15 +196,24 @@ jobs:
         run: |
           # Stream a memory trail into the step log (#1693): a runner shutdown skips post-step
           # diagnostics, but lines already streamed here survive it.
+          # Label each JVM by its main class and show its -Xmx, so the trail attributes the memory.
+          # shellcheck disable=SC2016  # awk program, not a shell expansion
+          MEM_AWK='{
+            l = ($0 ~ /KotlinCompileDaemon/) ? "kotlin" : ($0 ~ /GradleWorkerMain/) ? "worker" : ($0 ~ /GradleDaemon/) ? "gradle" : $2
+            sub(/.*\//, "", l); x = ""
+            for (i = 2; i <= NF; i++) if ($i ~ /^-Xmx/) x = "(" substr($i, 5) ")"
+            printf "%s%s=%dMB ", l, x, $1 / 1024
+          }'
           (
             while true; do
               echo "[mem] $(date -u +%T) $(free -m | awk '/^Mem:/ { printf "used=%sMB avail=%sMB", $3, $7 } /^Swap:/ { printf " swap=%sMB", $3 }')" \
-                "top: $(ps -eo rss=,comm= --sort=-rss | head -4 | awk '{ printf "%s=%dMB ", $2, $1 / 1024 }')"
+                "top: $(ps -ww -eo rss=,args= --sort=-rss | head -5 | awk "$MEM_AWK")"
               sleep 15
             done
           ) &
           trap 'kill $!' EXIT
-          ./gradlew ${{ matrix.tasks }} -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
+          ./gradlew ${{ matrix.tasks }} -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration \
+            "-Dorg.gradle.jvmargs=$CI_GRADLE_JVMARGS" "-Pkotlin.daemon.jvmargs=$CI_KOTLIN_DAEMON_JVMARGS"
         env:
           ORG_GRADLE_PROJECT_remoteBuildCacheUrl: ${{ secrets.GRADLE_REMOTE_CACHE_URL }}
           ORG_GRADLE_PROJECT_remoteBuildCacheUsername: ${{ secrets.GRADLE_REMOTE_CACHE_USERNAME }}
@@ -206,6 +230,7 @@ jobs:
         run: >
           SKIKO_RENDER_API=SOFTWARE xvfb-run -a -s '-screen 0 1280x800x24 -nolisten tcp'
           ./gradlew :haze:verifyDesktopWindowTests -Phaze.disableAppleTargets
+          "-Dorg.gradle.jvmargs=$CI_GRADLE_JVMARGS" "-Pkotlin.daemon.jvmargs=$CI_KOTLIN_DAEMON_JVMARGS"
 
       - name: Upload reports + Roborazzi outputs
         if: failure()
