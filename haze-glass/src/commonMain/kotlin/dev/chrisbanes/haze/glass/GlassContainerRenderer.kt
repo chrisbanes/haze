@@ -250,16 +250,29 @@ private class GlassGroupDraw(private val unit: List<GlassMemberSnapshot>, privat
   // Without a transform every member draws at its layout rect, so the union of those is the group.
   override val rect = scaling?.transform?.let { layoutRect.transformedBy(it) } ?: layoutRect
 
+  /**
+   * The density [member] lays out at, which its own `dp` shape is measured in. A ghost uses its
+   * anchor's. A node that detached since the last pass has none, so the container's stands in.
+   */
+  private fun densityOf(member: GlassMemberSnapshot): Density {
+    val node = when (val identity = member.identity) {
+      is GlassMemberNode -> identity
+      is GlassMemberGhost -> identity.anchor
+      else -> null
+    }
+    return node?.takeIf { it.isAttached }?.requireDensity() ?: density
+  }
+
   override fun toMergedMember(origin: Offset): GlassMergedMember {
     val first = unit.first()
-    val radii = first.shape.resolveCornerRadiiPx(layoutRect.size, density, first.key.layoutDirection)
+    val radii = first.shape.resolveCornerRadiiPx(layoutRect.size, densityOf(first), first.key.layoutDirection)
     // A retracting first member's ghost stays first, so its corners follow the retract towards the
     // shape of the member that remains, as its tint already does.
     val ghost = first.identity as? GlassMemberGhost
     val remaining = ghost?.let { unit.firstOrNull { member -> member.identity !is GlassMemberGhost } }
     val groupRadii = if (ghost != null && remaining != null) {
       lerpCornerRadii(
-        from = remaining.shape.resolveCornerRadiiPx(layoutRect.size, density, remaining.key.layoutDirection),
+        from = remaining.shape.resolveCornerRadiiPx(layoutRect.size, densityOf(remaining), remaining.key.layoutDirection),
         to = radii,
         fraction = ghost.progress.value.coerceIn(0f, 1f),
       )
