@@ -433,8 +433,7 @@ internal class RuntimeShaderGlassDelegate(
     graphicsContext: GraphicsContext,
   ) {
     if (!opticsRequired) {
-      releaseLayer(layers.interactionOptical, graphicsContext)
-      layers.interactionOptical = null
+      layers.releaseInteractionOptical(graphicsContext)
       clearInteractionOpticalLayerMetadata()
     }
     if (!detailRequired) {
@@ -442,8 +441,7 @@ internal class RuntimeShaderGlassDelegate(
       clearInteractionRefractionLayerMetadata()
     }
     if (!lightingRequired) {
-      releaseLayer(layers.interactionLighting, graphicsContext)
-      layers.interactionLighting = null
+      layers.releaseInteractionLighting(graphicsContext)
       clearInteractionLightingLayerMetadata()
     }
   }

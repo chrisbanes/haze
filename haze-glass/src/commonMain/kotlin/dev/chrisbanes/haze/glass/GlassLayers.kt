@@ -29,8 +29,15 @@ private val RetainedGlassReleaseOrder = arrayOf(
   GlassRetainedLayerKind.Rim,
 )
 
+/**
+ * The retained layers of one renderer. A layer made by `ensure*` is released through the
+ * [GraphicsContext] that created it, whichever context a release passes (or none), because only
+ * its creator can release it. A layer assigned directly has no recorded creator, so a release
+ * falls back to the context it is given.
+ */
 internal class GlassLayers {
   private val retained = arrayOfNulls<GraphicsLayer>(GlassRetainedLayerKind.entries.size)
+  private val owners = arrayOfNulls<GraphicsContext>(GlassRetainedLayerKind.entries.size)
 
   val groupAlpha = RetainedGlassGroupAlphaLayer()
 
@@ -189,6 +196,14 @@ internal class GlassLayers {
     release(GlassRetainedLayerKind.Rim, graphicsContext)
   }
 
+  fun releaseInteractionOptical(graphicsContext: GraphicsContext?) {
+    release(GlassRetainedLayerKind.InteractionOptical, graphicsContext)
+  }
+
+  fun releaseInteractionLighting(graphicsContext: GraphicsContext?) {
+    release(GlassRetainedLayerKind.InteractionLighting, graphicsContext)
+  }
+
   fun releaseRefractionDetail(graphicsContext: GraphicsContext?) {
     release(GlassRetainedLayerKind.RefractionDetail, graphicsContext)
     release(GlassRetainedLayerKind.RefractionDetailCoverage, graphicsContext)
@@ -224,16 +239,19 @@ internal class GlassLayers {
   fun release(graphicsContext: GraphicsContext?) {
     groupAlpha.release(graphicsContext)
     RetainedGlassReleaseOrder.forEach { kind ->
-      releaseLayer(get(kind), graphicsContext)
+      releaseLayer(get(kind), owners[kind.ordinal] ?: graphicsContext)
     }
     retained.fill(null)
+    owners.fill(null)
     scaledSize = null
   }
 
   private operator fun get(kind: GlassRetainedLayerKind): GraphicsLayer? = retained[kind.ordinal]
 
+  /** Assigns a layer with no recorded creator; [ensure] records one. */
   private operator fun set(kind: GlassRetainedLayerKind, layer: GraphicsLayer?) {
     retained[kind.ordinal] = layer
+    owners[kind.ordinal] = null
   }
 
   private fun has(kind: GlassRetainedLayerKind): Boolean = get(kind)?.isReleased == false
@@ -241,21 +259,22 @@ internal class GlassLayers {
   private fun ensure(
     kind: GlassRetainedLayerKind,
     graphicsContext: GraphicsContext,
-  ): GraphicsLayer = ensureLayer(get(kind), graphicsContext).also { set(kind, it) }
+  ): GraphicsLayer {
+    get(kind)?.takeUnless { it.isReleased }?.let { return it }
+    return graphicsContext.createGraphicsLayer().also {
+      set(kind, it)
+      owners[kind.ordinal] = graphicsContext
+    }
+  }
 
   private fun release(
     kind: GlassRetainedLayerKind,
     graphicsContext: GraphicsContext?,
   ) {
-    releaseLayer(get(kind), graphicsContext)
+    releaseLayer(get(kind), owners[kind.ordinal] ?: graphicsContext)
     set(kind, null)
   }
 }
-
-internal fun ensureLayer(
-  current: GraphicsLayer?,
-  graphicsContext: GraphicsContext,
-): GraphicsLayer = current?.takeUnless { it.isReleased } ?: graphicsContext.createGraphicsLayer()
 
 internal fun releaseLayer(layer: GraphicsLayer?, graphicsContext: GraphicsContext?) {
   if (layer?.isReleased == false) {
