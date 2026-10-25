@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.HoverInteraction
 import androidx.compose.foundation.interaction.Interaction
@@ -643,6 +644,124 @@ class GlassInteractionControllerTest : ContextTest() {
 
     assertThat(runtime(effect).currentInteractionSignals.rawPressed).isTrue()
     assertThat(renderState(effect).lightingIntensity).isEqualTo(1f)
+  }
+
+  @Test
+  fun dragInteractionStart_isPressedUntilStop() = runComposeUiTest {
+    val source = MutableInteractionSource()
+    val effect = reducedPressEffect().apply { interactionSource = source }
+    setTaggedEffectContent(effect)
+    waitForIdle()
+
+    val start = DragInteraction.Start()
+    source.tryEmit(start)
+    waitForIdle()
+    assertThat(runtime(effect).currentInteractionSignals.sourcePressed).isTrue()
+    assertThat(renderState(effect).lightingIntensity).isEqualTo(1f)
+
+    source.tryEmit(DragInteraction.Stop(start))
+    waitForIdle()
+    assertThat(runtime(effect).currentInteractionSignals.sourcePressed).isFalse()
+    assertThat(renderState(effect).lightingIntensity).isEqualTo(0f)
+  }
+
+  @Test
+  fun dragInteractionCancel_clearsPressed() = runComposeUiTest {
+    val source = MutableInteractionSource()
+    val effect = reducedPressEffect().apply { interactionSource = source }
+    setTaggedEffectContent(effect)
+    waitForIdle()
+
+    val start = DragInteraction.Start()
+    source.tryEmit(start)
+    waitForIdle()
+    assertThat(runtime(effect).currentInteractionSignals.sourcePressed).isTrue()
+
+    source.tryEmit(DragInteraction.Cancel(start))
+    waitForIdle()
+    assertThat(runtime(effect).currentInteractionSignals.sourcePressed).isFalse()
+    assertThat(renderState(effect).lightingIntensity).isEqualTo(0f)
+  }
+
+  @Test
+  fun dragInteractionWithoutRawEvents_usesNodeCenter() = runComposeUiTest {
+    val source = MutableInteractionSource()
+    val effect = reducedPressEffect().apply { interactionSource = source }
+    setTaggedEffectContent(effect)
+    waitForIdle()
+
+    source.tryEmit(DragInteraction.Start())
+    waitForIdle()
+
+    assertThat(renderState(effect).position).isEqualTo(Offset(50f, 50f))
+  }
+
+  @Test
+  fun dragInteraction_lightFollowsRawPointerAfterConsumedMove() = runComposeUiTest {
+    val source = MutableInteractionSource()
+    val effect = reducedPressEffect().apply { interactionSource = source }
+    setConsumingMoveContent(effect)
+    waitForIdle()
+
+    onNodeWithTag("glass").performTouchInput {
+      down(Offset(20f, 20f))
+      moveTo(Offset(30f, 30f))
+    }
+    val start = DragInteraction.Start()
+    source.tryEmit(start)
+    waitForIdle()
+    onNodeWithTag("glass").performTouchInput { moveTo(Offset(70f, 60f)) }
+    waitForIdle()
+
+    assertThat(renderState(effect).position).isEqualTo(Offset(70f, 60f))
+    assertThat(renderState(effect).lightingIntensity).isEqualTo(1f)
+
+    onNodeWithTag("glass").performTouchInput { up() }
+    source.tryEmit(DragInteraction.Stop(start))
+    waitForIdle()
+
+    assertThat(renderState(effect).lightingIntensity).isEqualTo(0f)
+  }
+
+  @Test
+  fun consumedMoveWithoutDrag_doesNotTrackPointerAfterCancel() = runComposeUiTest {
+    val effect = reducedPressEffect()
+    setConsumingMoveContent(effect)
+    waitForIdle()
+
+    onNodeWithTag("glass").performTouchInput {
+      down(Offset(20f, 20f))
+      moveTo(Offset(30f, 30f))
+      moveTo(Offset(70f, 60f))
+    }
+    waitForIdle()
+
+    assertThat(runtime(effect).currentInteractionSignals.rawPressed).isFalse()
+    assertThat(renderState(effect).position).isEqualTo(Offset(30f, 30f))
+  }
+
+  @Test
+  fun dragInteraction_stopsTrackingCancelledPointerAfterItLifts() = runComposeUiTest {
+    val source = MutableInteractionSource()
+    val effect = reducedPressEffect().apply { interactionSource = source }
+    setConsumingMoveContent(effect)
+    waitForIdle()
+
+    onNodeWithTag("glass").performTouchInput {
+      down(Offset(20f, 20f))
+      moveTo(Offset(30f, 30f))
+    }
+    val start = DragInteraction.Start()
+    source.tryEmit(start)
+    waitForIdle()
+    onNodeWithTag("glass").performTouchInput { up() }
+    waitForIdle()
+    // A fresh gesture on the same pointer id must not be mistaken for the cancelled one.
+    onNodeWithTag("glass").performTouchInput { down(Offset(10f, 10f)) }
+    waitForIdle()
+
+    assertThat(runtime(effect).currentInteractionSignals.rawPressed).isTrue()
+    assertThat(renderState(effect).position).isEqualTo(Offset(10f, 10f))
   }
 
   @Test
@@ -1407,6 +1526,28 @@ class GlassInteractionControllerTest : ContextTest() {
     }
     waitForIdle()
     return slop
+  }
+
+  private fun androidx.compose.ui.test.ComposeUiTest.setConsumingMoveContent(
+    effect: GlassRuntimeEffect,
+  ) {
+    setContent {
+      Box(
+        Modifier
+          .size(100.dp)
+          .testTag("glass")
+          .pointerInput(Unit) {
+            awaitPointerEventScope {
+              while (true) {
+                awaitPointerEvent(PointerEventPass.Main).changes.forEach { change ->
+                  if (change.positionChanged()) change.consume()
+                }
+              }
+            }
+          }
+          .testGlass(effect),
+      )
+    }
   }
 
   private fun Modifier.testGlass(
