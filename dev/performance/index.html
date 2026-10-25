@@ -1382,24 +1382,33 @@ fresh input, so always test those interactions as well as stationary content.</p
 <p>By default, each effect that samples a <a href="../api/haze/dev.chrisbanes.haze/haze-source.html"><code>hazeSource</code></a> through
 <a href="../api/haze/dev.chrisbanes.haze/-haze-input/-sources/"><code>HazeInput.Sources</code></a> replays the source's content whenever it changes. A
 busy source, such as a feed with playing video, then costs more for every effect over it.</p>
-<p>The experimental <code>inputSharing</code> parameter changes that. While sharing is active, the source
-renders once into an offscreen layer, and the window and every effect draw from that layer
+<p>The experimental <code>inputSharing</code> parameter changes that on Android. While sharing is active, the
+source renders once into an offscreen layer, and the window and every effect draw from that layer
 instead of replaying the source. The activation rules are
 <a href="../api/haze/dev.chrisbanes.haze/-haze-input-sharing/"><code>HazeInputSharing</code></a>'s: <code>Never</code> is the default, <code>Auto</code> shares on Android once
-two or more effects sample the source, and <code>Always</code> shares on every platform once one does.</p>
+two or more effects sample the source, and <code>Always</code> shares once one does. Only Android reuses a
+render. On Desktop, iOS and Web, <code>Always</code> applies the clipping and an offscreen pass without
+reuse, so the source is still replayed for each effect, and it can cost more than <code>Never</code>. Haze
+has not measured that path.</p>
 <p>Sharing has two costs:</p>
 <ul>
 <li><strong>Clipping.</strong> While sharing is active, the source's drawing is clipped to its layout bounds,
   expanded by <code>inputSharingOutsets</code>, both on screen and in effects. Anything drawn beyond that is
   not shown. Outsets don't change the source's layout size or position, and they have no effect
   while sharing is inactive, when the source draws normally again, overflow included.</li>
-<li><strong>Memory.</strong> Each active source holds one texture, the size of the source plus its outsets.</li>
+<li><strong>Memory.</strong> On a Pixel 8a, each active full-screen source added about 25–33 MiB of peak GPU
+  memory, more than one source-sized RGBA8 buffer. The benchmark did not isolate the cause, so
+  budget well above one source-sized buffer per shared source.</li>
 </ul>
+<p><code>Auto</code> re-decides on every draw (Android only). As effects come and go, crossing between one and
+two consumers allocates or frees the source-sized layer and turns the overflow clipping on or off.
+Use <code>Always</code> for a source that draws outside its bounds.</p>
 <p>For a source that stays inside its bounds, the default zero outsets are enough:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">state</span><span class="p">,</span><span class="w"> </span><span class="n">inputSharing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInputSharing</span><span class="p">.</span><span class="na">Auto</span><span class="p">)</span>
 </code></pre></div>
 <p>If the source draws outside its bounds, for example a card with a shadow that reaches 4 dp to each
-side and 16 dp below it, declare that on each edge:</p>
+side and 16 dp below it, declare that on each edge. The edges are absolute and don't flip in a
+right-to-left layout, so adjust them for the layout direction:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span>
 <span class="w">  </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">state</span><span class="p">,</span>
 <span class="w">  </span><span class="n">inputSharing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInputSharing</span><span class="p">.</span><span class="na">Auto</span><span class="p">,</span>
