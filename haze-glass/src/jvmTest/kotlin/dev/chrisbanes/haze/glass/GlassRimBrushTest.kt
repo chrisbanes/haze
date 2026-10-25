@@ -19,7 +19,10 @@ import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThanOrEqualTo
+import assertk.assertions.isNotSameInstanceAs
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
 import kotlin.math.abs
@@ -70,6 +73,57 @@ class GlassRimBrushTest {
 
     assertThat(maxChannelDifference(before, drawBrush(second))).isGreaterThan(0.1f)
     assertThat(maxChannelDifference(before, drawBrush(first))).isEqualTo(0f)
+  }
+
+  @Test
+  fun createGlassRimBrushProvider_twiceForSameVariant_reusesCompiledEffect() {
+    for (merged in listOf(false, true)) {
+      val first = rimProvider(merged)
+      val second = rimProvider(merged)
+      assertThat(second).isNotSameInstanceAs(first)
+      assertThat(second.effect).isSameInstanceAs(first.effect)
+    }
+  }
+
+  @Test
+  fun createGlassMergedBackgroundShaderProvider_twice_reusesCompiledEffect() {
+    val first = mergedBackgroundProvider()
+    val second = mergedBackgroundProvider()
+    assertThat(second).isNotSameInstanceAs(first)
+    assertThat(second.effect).isSameInstanceAs(first.effect)
+  }
+
+  @Test
+  fun createGlassRimBrushProvider_mergedAndStandalone_useDistinctEffects() {
+    assertThat(rimProvider(merged = true).effect).isNotSameInstanceAs(rimProvider(merged = false).effect)
+  }
+
+  @Test
+  fun createGlassRimBrushProvider_interleavedProviders_drawTheirOwnKeys() {
+    val a = rimProvider(merged = false)
+    val b = rimProvider(merged = false)
+    val keyA = rimKey().copy(lightPosition = Offset(110f, 85f), specularIntensity = 0.3f)
+    val keyA2 = rimKey().copy(specularIntensity = 0f, edgeShadow = Color(0.9f, 0.1f, 0.1f, 0.9f))
+    val keyB = rimKey().copy(specularIntensity = 0f, edgeShadow = Color(0.1f, 0.9f, 0.1f, 0.9f))
+
+    a(keyA)
+    val brushB = checkNotNull(b(keyB))
+    val brushA = checkNotNull(a(keyA2))
+
+    assertThat(maxChannelDifference(drawBrush(brushB), drawFilter(keyB))).isLessThanOrEqualTo(1f / 255f)
+    assertThat(maxChannelDifference(drawBrush(brushA), drawFilter(keyA2))).isLessThanOrEqualTo(1f / 255f)
+  }
+
+  private fun rimProvider(merged: Boolean): SkiaGlassRimBrushProvider {
+    val provider = checkNotNull(createGlassRimBrushProvider(merged))
+    assertThat(provider).isInstanceOf<SkiaGlassRimBrushProvider>()
+    return provider as SkiaGlassRimBrushProvider
+  }
+
+  private fun mergedBackgroundProvider(): SkiaGlassMergedBackgroundShaderProvider {
+    val provider = checkNotNull(createGlassMergedBackgroundShaderProvider())
+    assertThat(provider).isInstanceOf<SkiaGlassMergedBackgroundShaderProvider>()
+    return provider as SkiaGlassMergedBackgroundShaderProvider
   }
 
   private fun drawBrush(brush: Brush): ImageBitmap = ImageBitmap(128, 96).also { image ->

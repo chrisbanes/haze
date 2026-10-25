@@ -1141,8 +1141,10 @@ internal class RuntimeShaderGlassDelegate(
       layerSize = context.layerSize,
       existingLayer = layers.source,
       backgroundColor = params.sourceBackgroundColor,
-      backgroundShader = params.mergedBackground?.let {
-        mergedBackgroundShader(params.coordinates.materialOrigin, it)
+      // Produced inside the recorded block, so a replay sets this delegate's uniforms again.
+      backgroundShader = params.mergedBackground?.let { field ->
+        val materialOrigin = params.coordinates.materialOrigin
+        { mergedBackgroundShader(materialOrigin, field) }
       },
     )?.also {
       layers.source = it
@@ -1330,12 +1332,14 @@ internal class RuntimeShaderGlassDelegate(
         rimBrushProviderInitialized = true
         rimBrushProviderMerged = merged
       }
-      val brush = rimBrushProvider?.invoke(key)
-      var drawnDirectly = false
-      recordGlassLayer(layer, params.coordinates.sampleSize.roundToIntSize()) {
-        drawnDirectly = supportsDirectDrawing && brush != null && drawGlassRimWithBrush(brush)
-        if (!drawnDirectly) drawRect(Color.Black)
-      }
+      // Capture the provider: a replay must not read a field that release has since cleared.
+      val drawnDirectly = recordGlassRimLayer(
+        layer,
+        params.coordinates.sampleSize.roundToIntSize(),
+        rimBrushProvider,
+        key,
+        supportsDirectDrawing,
+      )
       // The rim is procedural: supported canvases can draw it without an offscreen effect.
       // Keep the original RenderEffect path for canvases that cannot draw a RuntimeShader.
       layer.renderEffect = rimEffect.takeUnless { drawnDirectly }?.asComposeRenderEffect()

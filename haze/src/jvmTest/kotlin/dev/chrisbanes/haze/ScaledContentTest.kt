@@ -183,6 +183,45 @@ class ScaledContentTest {
     assertThat(backgroundPixel(Color.Unspecified)).isEqualTo(Color.Transparent)
   }
 
+  @Test
+  fun createScaledContentLayer_backgroundShaderReturningNull_drawsBackgroundColor() {
+    val context = FakeRuntimeDrawScope()
+    val pixels = render {
+      drawLayer(
+        checkNotNull(
+          context.createScaledContentLayer(
+            context = context,
+            backgroundColor = Color.Red,
+            scaleFactor = 1f,
+            layerSize = Size(10f, 10f),
+            backgroundShader = { null },
+          ),
+        ),
+      )
+    }
+
+    assertThat(pixels[5, 5]).isEqualTo(Color.Red)
+  }
+
+  @Test
+  fun createScaledContentLayer_backgroundShader_isInvokedInsideRecord() {
+    val events = mutableListOf<String>()
+    val context = FakeRuntimeDrawScope(onDrawInput = { events += "input" })
+
+    context.createScaledContentLayer(
+      context = context,
+      backgroundColor = Color.Red,
+      scaleFactor = 1f,
+      layerSize = Size(10f, 10f),
+      backgroundShader = {
+        events += "shader"
+        null
+      },
+    )
+
+    assertThat(events).isEqualTo(listOf("shader", "input"))
+  }
+
   private fun backgroundPixel(
     color: Color,
     shader: androidx.compose.ui.graphics.Shader? = null,
@@ -195,7 +234,7 @@ class ScaledContentTest {
         backgroundColor = color,
         scaleFactor = 1f,
         layerSize = Size(10f, 10f),
-        backgroundShader = shader,
+        backgroundShader = { shader },
       )
       drawLayer(checkNotNull(layer))
     }[5, 5]
@@ -223,6 +262,7 @@ class ScaledContentTest {
   /** A runtime draw scope whose input draws nothing, so captures hold only their background. */
   private class FakeRuntimeDrawScope(
     drawScope: CanvasDrawScope = CanvasDrawScope(),
+    private val onDrawInput: () -> Unit = {},
   ) : HazeEffectRuntimeDrawScope, DrawScope by drawScope {
     val graphicsContext = CountingGraphicsContext()
     val createdLayers: Int get() = graphicsContext.createdLayers
@@ -241,6 +281,6 @@ class ScaledContentTest {
     override fun <T> currentValueOf(local: CompositionLocal<T>): T = error("Unused")
     override fun invalidateDraw() = Unit
     override fun drawInput() = Unit
-    override fun DrawScope.drawInput() = Unit
+    override fun DrawScope.drawInput() = this@FakeRuntimeDrawScope.onDrawInput()
   }
 }

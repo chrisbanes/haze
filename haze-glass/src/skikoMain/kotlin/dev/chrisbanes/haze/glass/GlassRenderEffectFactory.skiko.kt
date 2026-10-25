@@ -5,6 +5,9 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeShader
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -22,14 +25,26 @@ internal actual fun createGlassDepthInputRenderEffect(
 
 internal actual val supportsFusedGlassRenderEffect: Boolean = false
 
+// Compiled once per process and shared by every provider. A RuntimeEffect is immutable; each provider
+// keeps its own RuntimeShaderBuilder. Never close() these: providers only drop their references.
+private val GlassRimEffect by lazyGlassProgram { RuntimeEffect.makeForShader(GlassShaders.buildRim(false)) }
+private val GlassMergedRimEffect by lazyGlassProgram { RuntimeEffect.makeForShader(GlassShaders.buildRim(true)) }
+private val GlassMergedBackgroundEffect by lazyGlassProgram {
+  RuntimeEffect.makeForShader(GlassShaders.buildMergedBackground())
+}
+
 internal actual fun createGlassRimBrushProvider(merged: Boolean): GlassRimBrushProvider? {
-  val builder = runCatchingGlassRim {
-    RuntimeShaderBuilder(RuntimeEffect.makeForShader(GlassShaders.buildRim(merged)))
-  }.getOrNull() ?: return null
-  val uniforms = builder.asUniformProvider()
-  return GlassRimBrushProvider { key ->
+  val effect = (if (merged) GlassMergedRimEffect else GlassRimEffect) ?: return null
+  return runCatchingGlassRim { SkiaGlassRimBrushProvider(effect) }.getOrNull()
+}
+
+internal class SkiaGlassRimBrushProvider(internal val effect: RuntimeEffect) : GlassRimBrushProvider {
+  private val builder = RuntimeShaderBuilder(effect)
+  private val uniforms = builder.asUniformProvider()
+
+  override fun invoke(key: GlassRimEffectKey): Brush? {
     uniforms.setRimUniforms(key)
-    runCatchingGlassRim {
+    return runCatchingGlassRim {
       // Skia snapshots the uniforms, so each recorded rim needs its own shader.
       ShaderBrush(builder.makeShader().asComposeShader())
     }.getOrNull()
@@ -39,13 +54,19 @@ internal actual fun createGlassRimBrushProvider(merged: Boolean): GlassRimBrushP
 internal actual fun DrawScope.supportsGlassRimBrush(): Boolean = true
 
 internal actual fun createGlassMergedBackgroundShaderProvider(): GlassMergedBackgroundShaderProvider? {
-  val builder = runCatchingGlassRim {
-    RuntimeShaderBuilder(RuntimeEffect.makeForShader(GlassShaders.buildMergedBackground()))
-  }.getOrNull() ?: return null
-  val uniforms = builder.asUniformProvider()
-  return GlassMergedBackgroundShaderProvider { materialOrigin, field ->
+  val effect = GlassMergedBackgroundEffect ?: return null
+  return runCatchingGlassRim { SkiaGlassMergedBackgroundShaderProvider(effect) }.getOrNull()
+}
+
+internal class SkiaGlassMergedBackgroundShaderProvider(
+  internal val effect: RuntimeEffect,
+) : GlassMergedBackgroundShaderProvider {
+  private val builder = RuntimeShaderBuilder(effect)
+  private val uniforms = builder.asUniformProvider()
+
+  override fun invoke(materialOrigin: Offset, field: GlassMergedField): Shader? {
     uniforms.setFloatUniform("materialOrigin", materialOrigin.x, materialOrigin.y)
     uniforms.setMergedFieldUniforms(field, includeBackground = true)
-    runCatchingGlassRim { builder.makeShader().asComposeShader() }.getOrNull()
+    return runCatchingGlassRim { builder.makeShader().asComposeShader() }.getOrNull()
   }
 }
