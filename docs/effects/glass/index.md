@@ -195,8 +195,9 @@ whole material, so source detail is hidden at alpha 1 and can show through durin
 reduced-transparency fallback; full rendering keeps its stronger blur.
 
 `increaseContrast` raises tone contrast and enforces a visible
-edge. `showBorders` enforces a visible edge without changing tone. The edge appears even when the
-Style has zero edge softness.
+edge. Tone contrast applies only to full rendering. Fallback rendering omits color adjustments, so
+it gets the stronger edge alone. `showBorders` enforces a visible edge without changing tone. The
+edge appears even when the Style has zero edge softness.
 
 ### Light alignment
 
