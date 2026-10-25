@@ -1756,8 +1756,9 @@ whole material, so source detail is hidden at alpha 1 and can show through durin
 <code>reduceTransparency</code> off restores ordinary fallback rendering. The colour override only affects
 reduced-transparency fallback; full rendering keeps its stronger blur.</p>
 <p><code>increaseContrast</code> raises tone contrast and enforces a visible
-edge. <code>showBorders</code> enforces a visible edge without changing tone. The edge appears even when the
-Style has zero edge softness.</p>
+edge. Tone contrast applies only to full rendering. Fallback rendering omits color adjustments, so
+it gets the stronger edge alone. <code>showBorders</code> enforces a visible edge without changing tone. The
+edge appears even when the Style has zero edge softness.</p>
 <h3 id="light-alignment">Light alignment<a class="headerlink" href="#light-alignment" title="Permanent link">¶</a></h3>
 <p>Use Compose <code>Alignment</code> values so lighting adapts to each surface. Logical alignments such as
 <code>Alignment.CenterStart</code> and <code>Alignment.CenterEnd</code> also follow LTR or RTL layout direction.</p>
