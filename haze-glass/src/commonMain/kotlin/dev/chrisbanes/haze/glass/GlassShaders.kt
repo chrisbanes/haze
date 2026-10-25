@@ -4,6 +4,11 @@
 package dev.chrisbanes.haze.glass
 
 internal object GlassShaders {
+  // The detail early-out skips pixels beyond `detailWidth + maxPossibleDisplacement`. That bound
+  // scales refraction by at most the localized refraction multiplier. In a merged field the
+  // coverage displacement is also multiplied by a member's press scale, so a spring overshoot past
+  // scale 1 can displace further than the bound allows. We accept this rather than widen the
+  // bound: the detail envelope has faded near the cut-off, so the clipped detail is imperceptible.
   fun buildFused(
     interactionOptics: Boolean = false,
     sharpDetail: Boolean = true,
@@ -393,6 +398,11 @@ internal object GlassShaders {
     }
   """
 
+  // The refraction-detail early-out skips pixels beyond `detailWidth + maxPossibleDisplacement`. That bound
+  // scales refraction by at most the localized refraction multiplier. In a merged field the
+  // coverage displacement is also multiplied by a member's press scale, so a spring overshoot past
+  // scale 1 can displace further than the bound allows. We accept this rather than widen the
+  // bound: the detail envelope has faded near the cut-off, so the clipped detail is imperceptible.
   fun buildRefractionDetail(
     interactive: Boolean = false,
     coverageOnly: Boolean = false,
