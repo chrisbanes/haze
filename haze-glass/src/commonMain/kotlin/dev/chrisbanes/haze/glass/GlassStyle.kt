@@ -232,7 +232,19 @@ public class GlassStyleScope internal constructor(
     values.focusedInteraction = buildGlassInteractionResponse(response)
   }
 
-  /** Declares the response evaluated by each node while it is pressed. */
+  /**
+   * Declares the response evaluated by each node while it is pressed.
+   *
+   * A raw touch or pointer press ends when the pointer is released, when a child consumes its
+   * movement (as scroll containers do), or when the pointer moves beyond the node's bounds plus the
+   * platform touch slop. A cancelled press does not resume if the pointer returns.
+   *
+   * A `PressInteraction` or `DragInteraction` from the `interactionSource` keeps the node pressed
+   * until its release, cancel or stop. While a drag is active the light follows the latest pointer
+   * position, and sits at the node centre if it has received no pointer events.
+   * A gesture detector that emits no `DragInteraction` can emit `PressInteraction.Press` and
+   * `Release` or `Cancel` on the shared `interactionSource` itself to stay pressed through a drag.
+   */
   public fun pressed(response: GlassInteractionScope.() -> Unit) {
     values.pressedInteraction = buildGlassInteractionResponse(response)
   }

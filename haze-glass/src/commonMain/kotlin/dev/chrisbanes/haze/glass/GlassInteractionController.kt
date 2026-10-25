@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.VectorConverter
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.HoverInteraction
 import androidx.compose.foundation.interaction.InteractionSource
@@ -190,6 +191,9 @@ internal class GlassInteractionController(
   private var hasInitialPositionTarget = false
   private var positionJob: Job? = null
   private var primaryPointerId: PointerId? = null
+
+  // The pointer whose raw press was cancelled; a source drag keeps following it until it lifts.
+  private var cancelledPointerId: PointerId? = null
   private var rawHovered = false
   private var rawPressed = false
   private var rawPosition: Offset? = null
@@ -197,6 +201,7 @@ internal class GlassInteractionController(
   private var interactionSource: InteractionSource? = null
   private var sourceJob: Job? = null
   private val sourcePresses = mutableSetOf<PressInteraction.Press>()
+  private val sourceDrags = mutableSetOf<DragInteraction.Start>()
   private val sourceHovers = mutableSetOf<HoverInteraction.Enter>()
   private val sourceFocuses = mutableSetOf<FocusInteraction.Focus>()
   private var sourcePosition: Offset? = null
@@ -253,7 +258,7 @@ internal class GlassInteractionController(
       sourceHovered = sourceHovers.isNotEmpty(),
       sourceFocused = sourceFocuses.isNotEmpty(),
       rawPressed = rawPressed,
-      sourcePressed = sourcePresses.isNotEmpty(),
+      sourcePressed = sourcePresses.isNotEmpty() || sourceDrags.isNotEmpty(),
     )
 
   val renderState: GlassInteractionRenderState
@@ -325,7 +330,7 @@ internal class GlassInteractionController(
     retargetPosition(position)
   }
 
-  fun onPointerEvent(event: PointerEvent, size: Size) {
+  fun onPointerEvent(event: PointerEvent, size: Size, touchSlop: Float) {
     if (disposed) return
     val hasDrawableSize = size.isDrawable()
     var directPosition: Offset? = null
@@ -358,7 +363,16 @@ internal class GlassInteractionController(
     }
 
     if (primaryPointerId == null) {
+      cancelledPointerId?.let { id ->
+        event.changes.firstOrNull { it.id == id }?.let { change ->
+          if (hasDrawableSize && sourceDrags.isNotEmpty()) {
+            directPosition = captureRawPosition(change.position, size)
+          }
+          if (change.changedToUpIgnoreConsumed()) cancelledPointerId = null
+        }
+      }
       event.changes.firstOrNull { it.changedToDownIgnoreConsumed() }?.let { change ->
+        cancelledPointerId = null
         primaryPointerId = change.id
         rawPressed = true
         if (hasDrawableSize) {
@@ -373,6 +387,9 @@ internal class GlassInteractionController(
         if (change.changedToUpIgnoreConsumed()) {
           primaryPointerId = null
           rawPressed = false
+        } else if (hasDrawableSize && change.position.isOutsideBounds(size, touchSlop)) {
+          // Same shape as Compose's isOutOfBounds, with touch slop as the margin.
+          cancelRawPress()
         }
       }
     }
@@ -384,6 +401,7 @@ internal class GlassInteractionController(
     if (disposed) return
     rawHovered = false
     cancelRawPress()
+    cancelledPointerId = null
     updateSignalsAndPosition(size)
   }
 
@@ -397,6 +415,7 @@ internal class GlassInteractionController(
     sourceJob = null
     interactionSource = source
     sourcePresses.clear()
+    sourceDrags.clear()
     sourceHovers.clear()
     sourceFocuses.clear()
     sourcePosition = null
@@ -420,6 +439,10 @@ internal class GlassInteractionController(
               sourcePresses -= interaction.press
               updateSourcePosition()
             }
+
+            is DragInteraction.Start -> sourceDrags += interaction
+            is DragInteraction.Stop -> sourceDrags -= interaction.start
+            is DragInteraction.Cancel -> sourceDrags -= interaction.start
 
             is HoverInteraction.Enter -> sourceHovers += interaction
             is HoverInteraction.Exit -> sourceHovers -= interaction.enter
@@ -447,6 +470,7 @@ internal class GlassInteractionController(
     sourceJob = null
     interactionSource = null
     sourcePresses.clear()
+    sourceDrags.clear()
     sourceHovers.clear()
     sourceFocuses.clear()
     sourcePosition = null
@@ -463,6 +487,7 @@ internal class GlassInteractionController(
     position.validOrNull()?.clampTo(size)?.also { rawPosition = it }
 
   private fun cancelRawPress() {
+    cancelledPointerId = primaryPointerId
     primaryPointerId = null
     rawPressed = false
   }
@@ -484,6 +509,10 @@ internal class GlassInteractionController(
     when {
       rawPressed -> retargetPosition(
         target = (rawPosition ?: sourcePosition ?: size.center).clampTo(size),
+        immediate = rawPosition != null,
+      )
+      sourceDrags.isNotEmpty() -> retargetPosition(
+        target = (rawPosition ?: size.center).clampTo(size),
         immediate = rawPosition != null,
       )
       sourcePresses.isNotEmpty() -> updatePosition(
@@ -659,6 +688,9 @@ internal object FullMotionDurationScale : MotionDurationScale {
 }
 
 private fun Offset.validOrNull(): Offset? = takeIf { isFinite }
+
+private fun Offset.isOutsideBounds(size: Size, slop: Float): Boolean =
+  isFinite && (x < -slop || x > size.width + slop || y < -slop || y > size.height + slop)
 
 // Accepted spring targets can overshoot; constrain derived samples without changing authored validation.
 internal fun Float.validScaleForRender(): Float = when {

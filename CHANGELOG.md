@@ -190,6 +190,10 @@ performance guidance.
   crash from negative spring scales ([#1380](https://github.com/chrisbanes/haze/pull/1380)).
 - Android runtime shaders now set integer uniforms with the native integer setter
   ([#1391](https://github.com/chrisbanes/haze/pull/1391)).
+- Glass pressed responses now end when the pointer leaves the node plus the touch slop, and an
+  active `DragInteraction` from the `interactionSource` keeps the surface pressed, with the light
+  following the pointer ([#1637](https://github.com/chrisbanes/haze/issues/1637),
+  [#1660](https://github.com/chrisbanes/haze/pull/1660)).
 
 ## 2.0.1 <small>2026-09-29</small> { id="2.0.1" }
 

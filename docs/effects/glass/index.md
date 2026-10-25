@@ -471,6 +471,13 @@ per element to `hazeGlass`, so one Style can be reused without sharing interacti
 Mouse, stylus, and touch positions are tracked immediately. `interactionPositionAnimationSpec`
 animates the light towards focus and other `InteractionSource`-derived positions.
 
+A raw touch or pointer press ends on release, when a child consumes its movement (as scroll
+containers do), or when the pointer moves beyond the node plus the platform touch slop. A
+`PressInteraction` or `DragInteraction` from the `interactionSource` keeps the element pressed until
+its release, cancel or stop, and during a drag the light follows the latest pointer position, or
+sits at the centre if it has received no pointer events. A gesture detector that emits no
+`DragInteraction` can emit `PressInteraction.Press` and `Release` or `Cancel` itself.
+
 When states overlap, pressed takes priority over hovered, which takes priority over focused. Use
 `animate(toSpec, fromSpec)` when arrival and departure need different motion.
 

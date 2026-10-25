@@ -22,6 +22,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.node.requireLayoutCoordinates
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -481,7 +482,11 @@ internal class GlassRuntimeEffect() :
   }
 
   override fun onPointerEvent(event: PointerEvent, scope: HazeEffectLifecycleScope) {
-    interactionController?.onPointerEvent(event, scope.modifierSize)
+    interactionController?.onPointerEvent(
+      event,
+      scope.modifierSize,
+      scope.currentValueOf(LocalViewConfiguration).touchSlop,
+    )
   }
 
   override fun onCancelPointerInput(scope: HazeEffectLifecycleScope) {
