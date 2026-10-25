@@ -7659,6 +7659,12 @@ performance guidance.</p>
 <li>Documented that <code>HazeSourceRetention.KeepLastFrame</code> does not guarantee frozen pixels: on Android,
   retained Glass output can redraw from live or changed source content after its source is lost
   (<a href="https://github.com/chrisbanes/haze/pull/1432">#1432</a>).</li>
+<li>Documented that the Glass enums and sealed types (<code>GlassMemberTransition</code>,
+  <code>ChromaticAberrationMode</code>, <code>SurfaceProfile</code>, <code>GlassTransformTarget</code>, <code>GlassTransformPivot</code>,
+  <code>GlassReducedMotionPolicy</code>, <code>RefractionProfile</code> and <code>OpticalSizeValue</code>) may gain entries or
+  subtypes in minor releases, so keep an <code>else</code> branch when you match them exhaustively, and that
+  <code>GlassDefaults</code> values may change between releases
+  (<a href="https://github.com/chrisbanes/haze/issues/1630">#1630</a>).</li>
 <li><code>GlassStyle</code> blocks are now evaluated by each node under snapshot observation, so a remembered
   style that reads animated state (for example, a shape radius or alpha) updates without recomposing
   the <code>hazeGlass</code> call site (<a href="https://github.com/chrisbanes/haze/pull/1427">#1427</a>).</li>

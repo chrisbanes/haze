@@ -1152,6 +1152,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-name-the-containers-member-transition-parameters-2026-10-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment: name the container's member-transition parameters (2026-10-24)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1359,7 +1370,12 @@ order draw as one Glass shape over the bounding box of their rects:</p>
   <code>groupKey</code> is ignored outside a container.</li>
 </ul>
 <p>A group becomes one member of the merged field, so the shaders and the field's members limit are
-unchanged. Not checked: iOS 26 or an on-device build.</p></div>
+unchanged. Not checked: iOS 26 or an on-device build.</p>
+<h2 id="amendment-name-the-containers-member-transition-parameters-2026-10-24">Amendment: name the container's member-transition parameters (2026-10-24)<a class="headerlink" href="#amendment-name-the-containers-member-transition-parameters-2026-10-24" title="Permanent link">¶</a></h2>
+<p>The container's parameters are <code>memberTransitionSpec</code> and <code>memberReducedMotionPolicy</code>. They were
+renamed before release to match <code>hazeGlass</code>'s <code>memberTransition</code>, and to say that the policy
+covers member transitions only. Behavior is unchanged, and every earlier mention of <code>transitionSpec</code>
+or <code>reducedMotionPolicy</code> in this record refers to them.</p></div>
 
 
 

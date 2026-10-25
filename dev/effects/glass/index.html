@@ -1628,6 +1628,9 @@ color:</p>
 composable, so the Style follows theme changes when the call site recomposes.</p>
 <p>Material 3 supplies only colors. Regular and Clear still pick their light or dark response from the
 system appearance, not from <code>MaterialTheme</code>, and you don't need Material 3 for that.</p>
+<p><code>material3()</code> is named in lower case because it applies to an existing Style; <code>HazeBlurStyle.Material3()</code>
+creates one. A <code>Color.Unspecified</code> <code>tint</code> is not treated as null: the Style rejects it when it is
+evaluated, so pass null to omit the tint.</p>
 <p>Apply Material 3 to a built-in or custom Style with <code>material3()</code>. The Material 3 colors are
 written first, so the receiver Style can override either:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">regular</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">material3</span><span class="p">()</span>
