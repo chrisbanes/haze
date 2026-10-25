@@ -94,7 +94,8 @@ internal object GlassShaders {
         : smootherstep(clamp(outputDistToEdge / max(edgeSoftness, 0.0001), 0.0, 1.0));
       ${if (merged) {
     """
-      vec2 memberOptics = mergedOpticalValues(localCoord);
+      vec4 w = memberWeights(localCoord);
+      vec2 memberOptics = mergedOpticalValues(localCoord, w);
       float localizedRefractionMultiplier = memberOptics.x;
       float localizedWhitePoint = clamp(whitePoint + memberOptics.y, -1.0, 1.0);
       """
@@ -142,7 +143,7 @@ internal object GlassShaders {
         if (fresnelExponent == 0.0) {
           ambient = 1.0 + clampedAmbientResponse;
         } else {
-          vec2 gradient = surfaceLightingGradient(localCoord, outputSd, fieldWeight);
+          vec2 gradient = surfaceLightingGradient(localCoord, outputSd, fieldWeight${if (merged) ", w" else ""});
           vec3 shapeNormal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
           vec3 normal = shapeNormal;
           if (contentNormalBlend > 0.0) {
@@ -323,7 +324,8 @@ internal object GlassShaders {
         : smootherstep(clamp(distToEdge / max(edgeSoftness, 0.0001), 0.0, 1.0));
       ${if (merged) {
     """
-      vec2 memberOptics = mergedOpticalValues(localCoord);
+      vec4 w = memberWeights(localCoord);
+      vec2 memberOptics = mergedOpticalValues(localCoord, w);
       float localizedRefractionMultiplier = memberOptics.x;
       float localizedWhitePoint = clamp(whitePoint + memberOptics.y, -1.0, 1.0);
       """
@@ -367,7 +369,7 @@ internal object GlassShaders {
         if (fresnelExponent == 0.0) {
           ambient = 1.0 + clampedAmbientResponse;
         } else {
-          vec2 gradient = surfaceLightingGradient(localCoord, sd, fieldWeight);
+          vec2 gradient = surfaceLightingGradient(localCoord, sd, fieldWeight${if (merged) ", w" else ""});
           vec3 shapeNormal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
           vec3 normal = shapeNormal;
           if (contentNormalBlend > 0.0) {
@@ -456,7 +458,8 @@ internal object GlassShaders {
       float outputDistToEdge = max(-outputSd, 0.0);
       ${if (merged) {
     """
-      float localizedRefractionMultiplier = mergedOpticalValues(localCoord).x;
+      vec4 w = memberWeights(localCoord);
+      float localizedRefractionMultiplier = mergedOpticalValues(localCoord, w).x;
       """
   } else if (interactive) {
     """
@@ -909,7 +912,7 @@ internal object GlassShaders {
       vec2 size,
       vec4 radii,
       float height,
-      bool mergedField
+      bool mergedField${if (merged) ",\n      vec4 w" else ""}
     ) {
       float effectiveRefractionStrength =
         clamp(refractionStrength * refractionMultiplier, 0.0, 1.0);
@@ -921,18 +924,19 @@ internal object GlassShaders {
         float profile = exp(-t / 0.225) * cutoff * cutoff;
         float magnitude = foldedRefractionHeightNorm(profile, opticalDistance, height) * min(
           effectiveRefractionStrength * refractionScale,
-          ${if (merged) "mergedField ? mergeMaxDisplacement(localCoord) : min(size.x, size.y) * 0.5" else "min(size.x, size.y) * 0.5"}
+          ${if (merged) "mergedField ? mergeMaxDisplacement(w) : min(size.x, size.y) * 0.5" else "min(size.x, size.y) * 0.5"}
         );
-        vec2 gradient = edgeRefractionGradient(localCoord, size, radii);
         ${if (merged) {
-    """
+    """vec2 gradient;
         if (mergedField) {
           gradient = shapeRefractionGradient(localCoord);
           magnitude *= shapeThicknessWeight(localCoord, gradient);
+        } else {
+          gradient = edgeRefractionGradient(localCoord, size, radii);
         }
         """
   } else {
-    ""
+    "vec2 gradient = edgeRefractionGradient(localCoord, size, radii);\n        "
   }}
         float gradientLength = length(gradient);
         float centerFade = smootherstep(clamp(gradientLength / 0.5, 0.0, 1.0));
@@ -956,13 +960,13 @@ internal object GlassShaders {
     }
     vec2 refractionDisplacement(vec2 p, float heightNorm, float distance, float multiplier, float weight${sampleDisplacementArgument(merged, declaration = true)}) {
       vec2 mergedResult = evaluateRefraction(
-        p, heightNorm, distance, multiplier, weight, materialSize, cornerRadii, refractionHeight, $merged
+        p, heightNorm, distance, multiplier, weight, materialSize, cornerRadii, refractionHeight, $merged${if (merged) ", w" else ""}
       );
       ${if (merged) {
     """
       sampleDisplacement = mergedResult;
       if (dot(memberStandaloneWeights, vec4(1.0)) <= 0.0) return mergedResult;
-      vec4 shares = memberWeights(p) * memberStandaloneWeights;
+      vec4 shares = w * memberStandaloneWeights;
       vec2 result = mergedResult;
       for (int i = 0; i < 4; i++) {
         if (float(i) >= memberCount) break;
@@ -979,7 +983,7 @@ internal object GlassShaders {
         float height = surfaceHeightNormFromOpticalDistance(optical);
         vec2 standalone = evaluateRefraction(
           local, height, edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : optical,
-          multiplier, field, size, radii, refractionHeight, false
+          multiplier, field, size, radii, refractionHeight, false, w
         );
         // Sampling reads through the press transform, so it keeps the unpressed displacement.
         sampleDisplacement += shares[i] * (standalone - mergedResult);
@@ -1026,12 +1030,12 @@ internal object GlassShaders {
       return surfaceGradient(localCoord, fieldWeight);
     }
 
-    vec2 surfaceLightingGradient(vec2 p, float sd, float weight) {
+    vec2 surfaceLightingGradient(vec2 p, float sd, float weight${if (merged) ", vec4 w" else ""}) {
       vec2 result = mergedSurfaceLightingGradient(p, sd, weight);
       ${if (merged) {
     """
       if (dot(memberStandaloneWeights, vec4(1.0)) <= 0.0) return result;
-      vec4 shares = memberWeights(p) * memberStandaloneWeights;
+      vec4 shares = w * memberStandaloneWeights;
       vec2 blended = result;
       for (int i = 0; i < 4; i++) {
         if (float(i) >= memberCount) break;
@@ -1188,14 +1192,14 @@ internal object GlassShaders {
   // the unpressed refraction displacement; coverage keeps the pressed-space displacement.
   private fun mergedSampleDeclarations(merged: Boolean, sampling: Boolean = true): String = when {
     !merged -> ""
-    sampling -> "vec2 sampleOffset = mergedSampleOffset(localCoord);\n      vec2 sampleDisplacement;\n      "
+    sampling -> "vec2 sampleOffset = mergedSampleOffset(localCoord, w);\n      vec2 sampleDisplacement;\n      "
     else -> "vec2 sampleDisplacement;\n      "
   }
 
   private fun sampleDisplacementArgument(merged: Boolean, declaration: Boolean = false): String = when {
     !merged -> ""
-    declaration -> ", out vec2 sampleDisplacement"
-    else -> ", sampleDisplacement"
+    declaration -> ", vec4 w, out vec2 sampleDisplacement"
+    else -> ", w, sampleDisplacement"
   }
 
   private fun sampledDisplacement(merged: Boolean): String = if (merged) "sampleDisplacement" else "displacement"
@@ -1210,7 +1214,7 @@ internal object GlassShaders {
 
   // Chroma is strongest at a member's corners, so merged fields weight by the nearest member.
   private fun cornerWeight(merged: Boolean): String = if (merged) {
-    "memberCornerWeight(localCoord)"
+    "memberCornerWeight(localCoord, w)"
   } else {
     "abs(\n        (centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 0.001)\n      )"
   }
@@ -1241,7 +1245,7 @@ internal object GlassShaders {
     """
 
   private fun tintedColor(merged: Boolean): String = if (merged) {
-    "vec4 mergedTint = blendMemberColors(memberWeights(localCoord), memberTint0, memberTint1, memberTint2, memberTint3);\n" +
+    "vec4 mergedTint = blendMemberColors(w, memberTint0, memberTint1, memberTint2, memberTint3);\n" +
       "      vec3 tintedColor = mix(gradedColor, mergedTint.rgb, mergedTint.a);"
   } else {
     "vec3 tintedColor = mix(gradedColor, tintColor.rgb, tintColor.a);"
@@ -1324,14 +1328,14 @@ internal object GlassShaders {
       return p.a > 0.0001 ? vec4(p.rgb / p.a, p.a) : vec4(0.0);
     }
 
-    float4 nearestMemberRect(vec2 localCoord) {
+    // The member with the largest share is the nearest one, as the shares fall with distance.
+    float4 nearestMemberRect(vec4 w) {
       float4 rect = memberRects[0];
-      float nearest = memberSd(localCoord, memberRects[0], memberRadii[0]);
+      float largest = w[0];
       for (int i = 1; i < 4; i++) {
         if (float(i) >= memberCount) break;
-        float d = memberSd(localCoord, memberRects[i], memberRadii[i]);
-        if (d < nearest) {
-          nearest = d;
+        if (w[i] > largest) {
+          largest = w[i];
           rect = memberRects[i];
         }
       }
@@ -1369,8 +1373,7 @@ internal object GlassShaders {
 
     uniform float4 memberStandaloneWeights;
 
-    vec2 mergedOpticalValues(vec2 localCoord) {
-      vec4 w = memberWeights(localCoord);
+    vec2 mergedOpticalValues(vec2 localCoord, vec4 w) {
       float multiplierDelta = 0.0;
       float whitePointDelta = 0.0;
       for (int i = 0; i < 4; i++) {
@@ -1404,8 +1407,7 @@ internal object GlassShaders {
     // Maps a field point back through each pressed member's press transform to its unpressed
     // layout point, weighted by member ownership, so a pressed member samples the content it would
     // sample drawn alone. An unpressed member maps every point to itself.
-    vec2 mergedSampleOffset(vec2 localCoord) {
-      vec4 w = memberWeights(localCoord);
+    vec2 mergedSampleOffset(vec2 localCoord, vec4 w) {
       vec2 offset = vec2(0.0);
       for (int i = 0; i < 4; i++) {
         if (float(i) >= memberCount) break;
@@ -1417,8 +1419,8 @@ internal object GlassShaders {
     }
 
     // Normalized by the member's half size, so the press transform leaves it unchanged.
-    float memberCornerWeight(vec2 localCoord) {
-      float4 member = nearestMemberRect(localCoord);
+    float memberCornerWeight(vec2 localCoord, vec4 w) {
+      float4 member = nearestMemberRect(w);
       vec2 memberHalfSize = member.zw * 0.5;
       vec2 memberCentered = localCoord - member.xy - memberHalfSize;
       return abs(
@@ -1429,8 +1431,7 @@ internal object GlassShaders {
     // Each member caps displacement at half its own shortest side. Blending those caps by the
     // members' field weights keeps a large member's cap away from a small one, and stays
     // continuous across a bridge.
-    float mergeMaxDisplacement(vec2 localCoord) {
-      vec4 w = memberWeights(localCoord);
+    float mergeMaxDisplacement(vec4 w) {
       float cap = 0.0;
       for (int i = 0; i < 4; i++) {
         if (float(i) >= memberCount) break;

@@ -19,6 +19,39 @@ import kotlin.test.Test
 class GlassShadersTest {
 
   @Test
+  fun mergedShaders_evaluateMemberWeightsOncePerMain() {
+    val shaders = mapOf(
+      "fused" to GlassShaders.buildFused(merged = true),
+      "fused-no-detail" to GlassShaders.buildFused(sharpDetail = false, merged = true),
+      "optical" to GlassShaders.buildOptical(merged = true),
+      "detail" to GlassShaders.buildRefractionDetail(merged = true),
+      "detail-coverage" to GlassShaders.buildRefractionDetail(coverageOnly = true, merged = true),
+    )
+
+    shaders.forEach { (name, shader) ->
+      // One definition and one call, which `main` passes down to the helpers.
+      assertThat(shader.occurrences("memberWeights("), "$name memberWeights").isEqualTo(2)
+      assertThat(shader, name).contains("vec4 w = memberWeights(localCoord);")
+    }
+  }
+
+  @Test
+  fun mergedShaders_computeTheEdgeGradientOnlyForStandaloneProfiles() {
+    listOf(
+      GlassShaders.buildFused(merged = true),
+      GlassShaders.buildOptical(merged = true),
+      GlassShaders.buildRefractionDetail(merged = true),
+    ).forEach { shader ->
+      assertThat(shader).doesNotContain("vec2 gradient = edgeRefractionGradient(")
+      assertThat(shader).contains("gradient = shapeRefractionGradient(localCoord);")
+      assertThat(shader).contains("} else {\n          gradient = edgeRefractionGradient(localCoord, size, radii);")
+    }
+    assertThat(GlassShaders.buildOptical()).contains("vec2 gradient = edgeRefractionGradient(localCoord, size, radii);")
+  }
+
+  private fun String.occurrences(needle: String): Int = windowed(needle.length).count { it == needle }
+
+  @Test
   fun fusedShader_preservesZeroExponentFresnelResponse() {
     val shader = GlassShaders.buildFused()
 
