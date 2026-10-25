@@ -43,10 +43,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isBetween
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotEmpty
 import assertk.assertions.isNotEqualTo
@@ -96,6 +98,31 @@ class HazeEffectSurfaceDrawTest {
       owner.resolveSurfaces = null
     }
     assertThat(disposed).isEqualTo(1)
+  }
+
+  @Test
+  fun configuredSurface_lifecycleScope_doesNotExposeTheAnchorSurface() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val anchor = SurfaceFactory(owner)
+    setContent {
+      Box(Modifier.size(100.dp).then(OwnerElement(owner))) {
+        Box(Modifier.size(20.dp).hazeEffect(anchor, HazeInput.Content, Unit))
+      }
+    }
+    waitForIdle()
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+        override fun attach(scope: HazeEffectLifecycleScope) {
+          scope.surface
+        }
+        override fun HazeEffectDrawScope.draw(style: Unit) = Unit
+      }
+    }
+
+    // The anchor member owns its own surface; a configured surface's scope must not hand it out.
+    assertFailure {
+      anchor.surface.createConfiguredSurface(factory, Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+    }.isInstanceOf<IllegalStateException>()
   }
 
   @Test

@@ -110,6 +110,9 @@ private class ConfiguredSurface<Style>(
   private var renderedSource = false
   private var input: HazeInput = checkNotNull(anchor.node.explicitInput)
   private val context = object : HazeEffectLifecycleScope by anchor.node.surfaceLifecycleScope() {
+    // The delegate would hand out the anchor member's own surface, not this configured one.
+    override val surface: HazeEffectSurface
+      get() = error("A configured surface's renderer cannot relocate a surface of its own")
     override val modifierSize: Size get() = bounds.size
   }
   private val lifecycle get() = renderer as? HazeEffectRendererLifecycle<Style>
