@@ -1147,7 +1147,7 @@ internal class RuntimeShaderGlassDelegate(
         { mergedBackgroundShader(materialOrigin, field) }
       },
     )?.also {
-      layers.source = it
+      layers.adoptSource(it, context.requireGraphicsContext())
       sourceRecordCount++
     }
   }

@@ -61,6 +61,32 @@ class GlassLayersTest {
   }
 
   @Test
+  fun release_afterTheSameLayerIsAssignedBack_stillReleasesThroughAcquiringContext() {
+    val acquiring = RecordingGraphicsContext()
+    val layers = GlassLayers()
+    val source = layers.ensureSource(acquiring)
+
+    // A recording that reuses the live layer assigns the same instance back.
+    layers.source = layers.source
+    layers.release(null)
+
+    assertThat(acquiring.released).containsExactly(source)
+  }
+
+  @Test
+  fun adoptSource_recordsTheCreatorOfANewLayerAndKeepsItForTheSameLayer() {
+    val creator = RecordingGraphicsContext()
+    val layers = GlassLayers()
+    val source = creator.createGraphicsLayer()
+
+    layers.adoptSource(source, creator)
+    layers.adoptSource(source, RecordingGraphicsContext())
+    layers.release(null)
+
+    assertThat(creator.released).containsExactly(source)
+  }
+
+  @Test
   fun groupAlphaRelease_withoutContext_releasesThroughAcquiringContext() {
     val acquiring = RecordingGraphicsContext()
     val groupAlpha = RetainedGlassGroupAlphaLayer()

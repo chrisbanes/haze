@@ -248,10 +248,23 @@ internal class GlassLayers {
 
   private operator fun get(kind: GlassRetainedLayerKind): GraphicsLayer? = retained[kind.ordinal]
 
-  /** Assigns a layer with no recorded creator; [ensure] records one. */
+  /**
+   * Assigns a layer. Putting back the instance already held keeps its recorded creator, as when a
+   * recording reuses a live layer. Any other layer has none until [ensure] or [adoptSource] records one.
+   */
   private operator fun set(kind: GlassRetainedLayerKind, layer: GraphicsLayer?) {
+    if (retained[kind.ordinal] !== layer) owners[kind.ordinal] = null
     retained[kind.ordinal] = layer
-    owners[kind.ordinal] = null
+  }
+
+  /**
+   * Holds a source layer that a recording returned. The recording reuses the held layer, or makes
+   * a new one in [creator], whose context alone can release it.
+   */
+  fun adoptSource(layer: GraphicsLayer, creator: GraphicsContext) {
+    if (source === layer) return
+    source = layer
+    owners[GlassRetainedLayerKind.Source.ordinal] = creator
   }
 
   private fun has(kind: GlassRetainedLayerKind): Boolean = get(kind)?.isReleased == false
