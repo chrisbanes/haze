@@ -18,6 +18,9 @@ import androidx.compose.ui.graphics.Shader
  * ([blurRadiusPx] scaled by the mask intensity) exceeds that, the kernel is truncated but its
  * Gaussian is still sized for the untruncated radius, so the result is weaker than a blur of that
  * radius would be. [blurRadiusPx] is not clamped.
+ *
+ * Haze Blur uses this effect on Android 13 (API 33) and newer and on Skiko platforms. Older Android
+ * versions approximate progressive blur with layered or masked platform blur instead.
  */
 @InternalHazeApi
 public fun createProgressiveBlurRenderEffect(
