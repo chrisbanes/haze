@@ -34,6 +34,7 @@ import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.node.TraversableNode
+import androidx.compose.ui.node.UnplacedAwareModifierNode
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.node.requireDensity
@@ -61,6 +62,7 @@ internal class HazeEffectNode(
   ModifierLocalModifierNode,
   GlobalPositionAwareModifierNode,
   LayoutAwareModifierNode,
+  UnplacedAwareModifierNode,
   ObserverModifierNode,
   DrawModifierNode,
   TraversableNode {
@@ -153,6 +155,9 @@ internal class HazeEffectNode(
   internal val surface = HazeEffectSurface(this)
   private var preparedSurfaceBackdrop: HazeEffectBackdrop? = null
   private var surfaceBudgetFallback = false
+
+  // Set while a parent has stopped calling place(); the node stays attached with stale coordinates.
+  private var isUnplaced = false
 
   // False means a read refresh is pending: the last configuration pass, or its geometry pass, did not finish.
   private var observedUpdateCompleted = false
@@ -492,6 +497,8 @@ internal class HazeEffectNode(
   }
 
   override fun onDetach() {
+    // A reactivated node with an unchanged layout is not placed again, so it must start placed.
+    isUnplaced = false
     surface.release()
     unregisterSourceDemand()
     stopSourceSelectionSnapshotObserver()
@@ -615,6 +622,8 @@ internal class HazeEffectNode(
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
+    val wasUnplaced = isUnplaced
+    isUnplaced = false
     Snapshot.withoutReadObservation {
       lastKnownCoordinates = coordinates
       // onPlaced is needed before first draw because onGloballyPositioned can arrive
@@ -628,6 +637,14 @@ internal class HazeEffectNode(
         onPositioned(coordinates, fromPlacement = true)
       }
     }
+    // Re-placement at an identical position reports no geometry change, so notify explicitly.
+    if (wasUnplaced) surface.changed()
+  }
+
+  override fun onUnplaced() {
+    if (!isAttached || isUnplaced) return
+    isUnplaced = true
+    surface.changed()
   }
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
@@ -1572,7 +1589,7 @@ internal class HazeEffectNode(
 
   internal fun surfaceBounds(owner: LayoutCoordinates?): Rect? {
     val member = lastKnownCoordinates ?: return null
-    if (!isAttached || !member.isAttached || owner?.isAttached != true || size.minDimension <= 0f) return null
+    if (!isAttached || isUnplaced || !member.isAttached || owner?.isAttached != true || size.minDimension <= 0f) return null
     return owner.localBoundingBoxOf(member, clipBounds = false)
   }
 

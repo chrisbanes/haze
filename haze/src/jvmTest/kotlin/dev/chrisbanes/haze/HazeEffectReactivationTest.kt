@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.findRootCoordinates
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.node.requireLayoutCoordinates
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -102,7 +103,11 @@ class HazeEffectReactivationTest : ContextTest() {
       waitForIdle()
     }
 
-    val reattached = attachCounts.filter { it.value > 1 }.keys.filter { it.isAttached }
+    // A pooled item stays attached but is unplaced, so it has no bounds and its coordinates are stale.
+    // Only a node at the offset of a visible item is placed.
+    val placedOffsets = state.layoutInfo.visibleItemsInfo.map { it.offset.toFloat() }
+    val reattached = attachCounts.filter { it.value > 1 }.keys
+      .filter { it.isAttached && it.requireLayoutCoordinates().positionInRoot().y in placedOffsets }
     assertThat(attachCounts.values.max()).isGreaterThan(1)
     assertThat(reattached).isNotEmpty()
     for (node in reattached) {

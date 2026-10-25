@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReusableContentHost
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +30,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.IntOffset
@@ -217,6 +219,111 @@ class GlassContainerMembershipTest : ContextTest() {
     runOnIdle { scale.value = 1f }
     waitForIdle()
     assertThat(card.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+  }
+
+  /** Measures [content] but only calls `place()` while [visible] is true; [tick] forces a placement pass. */
+  @Composable
+  private fun PlacementGate(visible: State<Boolean>, tick: State<Int>, content: @Composable () -> Unit) {
+    Layout(content) { measurables, constraints ->
+      val placeables = measurables.map { it.measure(constraints) }
+      layout(placeables.maxOf { it.width }, placeables.maxOf { it.height }) {
+        tick.value
+        if (visible.value) placeables.forEach { it.place(0, 0) }
+      }
+    }
+  }
+
+  @Test
+  fun membership_memberThatStopsBeingPlaced_leavesItsCluster() = runComposeUiTest {
+    val card = GlassRuntimeEffect()
+    val pill = GlassRuntimeEffect()
+    val visible = mutableStateOf(true)
+    val tick = mutableIntStateOf(0)
+    setContent {
+      Row(Modifier.hazeGlassContainer(40.dp)) {
+        PlacementGate(visible, tick) { Member(card, Modifier.size(300.dp, 100.dp)) }
+        Member(pill, Modifier.size(140.dp, 64.dp))
+      }
+    }
+    waitForIdle()
+    fun members() = container(pill).model.surfaces.flatMap { it.members }.map { it.identity }
+    val cardNode = checkNotNull(card.memberBindingForTest?.node)
+    val pillNode = checkNotNull(pill.memberBindingForTest?.node)
+    assertThat(members()).contains(cardNode)
+    assertThat(members()).contains(pillNode)
+    assertThat(card.memberBindingForTest?.surface?.boundsInOwner()).isNotNull()
+    runOnIdle { visible.value = false }
+    waitForIdle()
+    assertThat(members()).containsExactly(pillNode)
+    assertThat(card.memberBindingForTest?.surface?.boundsInOwner()).isNull()
+  }
+
+  @Test
+  fun membership_unplacedMember_doesNotCountTowardsOpticalSize() = runComposeUiTest {
+    val card = GlassRuntimeEffect()
+    val pill = GlassRuntimeEffect()
+    val visible = mutableStateOf(true)
+    val tick = mutableIntStateOf(0)
+    setContent {
+      Row(Modifier.hazeGlassContainer(40.dp)) {
+        PlacementGate(visible, tick) { Member(card, Modifier.size(300.dp, 100.dp)) }
+        Member(pill, Modifier.size(140.dp, 64.dp))
+      }
+    }
+    waitForIdle()
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+    runOnIdle { visible.value = false }
+    waitForIdle()
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(64f, 64f))
+    assertThat(container(pill).model.opticalSize).isEqualTo(Size(64f, 64f))
+  }
+
+  @Test
+  fun membership_unchangedMember_staysInClusterAcrossPasses() = runComposeUiTest {
+    val card = GlassRuntimeEffect()
+    val pill = GlassRuntimeEffect()
+    val visible = mutableStateOf(true)
+    val tick = mutableIntStateOf(0)
+    setContent {
+      Row(Modifier.hazeGlassContainer(40.dp)) {
+        PlacementGate(visible, tick) { Member(card, Modifier.size(300.dp, 100.dp)) }
+        Member(pill, Modifier.size(140.dp, 64.dp))
+      }
+    }
+    waitForIdle()
+    val cardNode = checkNotNull(card.memberBindingForTest?.node)
+    val pillNode = checkNotNull(pill.memberBindingForTest?.node)
+    repeat(3) {
+      runOnIdle { tick.intValue++ }
+      waitForIdle()
+      val members = container(pill).model.surfaces.flatMap { it.members }.map { it.identity }
+      assertThat(members).contains(cardNode)
+      assertThat(members).contains(pillNode)
+      assertThat(pill.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+    }
+  }
+
+  @Test
+  fun membership_unplacedMemberPlacedAgain_rejoinsClusterAtSamePosition() = runComposeUiTest {
+    val card = GlassRuntimeEffect()
+    val pill = GlassRuntimeEffect()
+    val visible = mutableStateOf(true)
+    val tick = mutableIntStateOf(0)
+    setContent {
+      Row(Modifier.hazeGlassContainer(40.dp)) {
+        PlacementGate(visible, tick) { Member(card, Modifier.size(300.dp, 100.dp)) }
+        Member(pill, Modifier.size(140.dp, 64.dp))
+      }
+    }
+    waitForIdle()
+    val cardNode = checkNotNull(card.memberBindingForTest?.node)
+    runOnIdle { visible.value = false }
+    waitForIdle()
+    assertThat(pill.opticalSizeOverride).isEqualTo(Size(64f, 64f))
+    runOnIdle { visible.value = true }
+    waitForIdle()
+    assertThat(container(pill).model.surfaces.flatMap { it.members }.map { it.identity }).contains(cardNode)
     assertThat(pill.opticalSizeOverride).isEqualTo(Size(100f, 100f))
   }
 

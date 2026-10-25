@@ -82,10 +82,12 @@ import kotlinx.coroutines.launch
  * member whose nearest container changes while it stays in the layout, for example when a nested
  * container is added or removed around it, appears in the new container immediately. Moving a
  * member with `movableContentOf` detaches and reattaches it, so it detaches from the old container
- * and attaches to the new one, each with the transition described above. [transitionSpec] and
- * [reducedMotionPolicy] changes apply from the next transition. Leaving members never count towards
- * the shared optical size. Haze animates only the glass, so callers animate member content
- * themselves, for example with `AnimatedVisibility`. Cap diagnostics follow [HazeLogger.enabled].
+ * and attaches to the new one, each with the transition described above. A member whose parent
+ * stops placing it while keeping it in the layout leaves as if it detached, and appears again as
+ * if it attached when it is placed again. [transitionSpec] and [reducedMotionPolicy] changes apply
+ * from the next transition. Leaving members never count towards the shared optical size. Haze
+ * animates only the glass, so callers animate member content themselves, for example with
+ * `AnimatedVisibility`. Cap diagnostics follow [HazeLogger.enabled].
  *
  * For the items of a scrollable layout, such as a `LazyRow` or `LazyColumn`, pass its
  * [scrollState]. While [scrollState] [is scrolling][ScrollableState.isScrollInProgress], including
@@ -158,6 +160,9 @@ internal class GlassContainerNode(
 
   /** Members whose glass has not appeared yet; their transition starts with their first snapshot. */
   private val pending = mutableSetOf<GlassMemberNode>()
+
+  /** Registered members that have already left because their parent stopped placing them. */
+  private val unplacedMembers = mutableSetOf<GlassMemberNode>()
   private val attaching = mutableMapOf<GlassMemberNode, GlassMemberAttach>()
 
   /** Each registration's last drawn snapshot; a leaving member's surface may already be released. */
@@ -241,10 +246,12 @@ internal class GlassContainerNode(
   fun remove(member: GlassMemberNode, leaving: Boolean = true) {
     observeScroll()
     // ghostOf reads latest, so the pass that records this member's departure snapshot (or drops a
-    // collapsed member's) runs before it is removed. While suppressed or off, no ghost is made.
+    // collapsed member's) runs before it is removed. An unplaced member already left in an earlier
+    // pass, which consumed its last drawn snapshot. While suppressed or off, no ghost is made.
     if (leaving && reclusterPending && !suppressTransitions && !transitionsOff) recluster(layoutComplete = false)
     renderer.releaseMember(member)
     pending -= member
+    unplacedMembers -= member
     attaching.remove(member)?.job?.cancel()
     // Transitions with the leaving member end now rather than retargeting: a growing member snaps
     // to its own shape (or fades in, if it had not started) and a ghost drawn through the leaving
@@ -282,6 +289,26 @@ internal class GlassContainerNode(
     val visitedSet = visited.toHashSet()
     val slots = registrations.indices.filter { registrations[it] in visitedSet }
     slots.forEachIndexed { i, slot -> registrations[slot] = visited[i] }
+  }
+
+  /**
+   * A registered member whose parent stopped placing it leaves as if it detached: its last drawn
+   * snapshot becomes a ghost in its slot. When it is placed again its ghost ends and it appears again.
+   */
+  private fun leaveOrRejoinUnplacedMembers() {
+    for (member in members) {
+      if (member.isUnplaced) {
+        if (!unplacedMembers.add(member)) continue
+        pending -= member
+        attaching.remove(member)?.job?.cancel()
+        val last = latest.remove(member) ?: continue
+        ghostOf(member, last)?.let { registrations.add(registrations.indexOf(member), it) }
+      } else if (unplacedMembers.remove(member)) {
+        endGhosts { it.last.identity === member }
+        observeScroll()
+        if (!suppressTransitions) pending += member
+      }
+    }
   }
 
   private fun endGhosts(predicate: (GlassMemberGhost) -> Boolean) {
@@ -353,6 +380,8 @@ internal class GlassContainerNode(
       // Reached from a draw or a member's removal: the animated interaction and transition reads
       // below must not make that draw observe them and re-run every frame.
       Snapshot.withoutReadObservation {
+        // Before reordering, which would move an unplaced lazy item's slot to the end before its ghost takes it.
+        leaveOrRejoinUnplacedMembers()
         // A lazy layout parks the nodes it is about to remove at the end of its children, so the
         // pass before a removal keeps the slots from the last draw for the ghost to take.
         if (layoutComplete) orderRegistrationsByLayout()
@@ -371,6 +400,7 @@ internal class GlassContainerNode(
         var live = liveSnapshots()
         // A collapsed member keeps its last full-size snapshot, which would become its ghost when it
         // leaves. A leaving member's release pass still has valid bounds, so it keeps its departure snapshot.
+        // An unplaced member's snapshot was already consumed by leaveOrRejoinUnplacedMembers.
         registered.forEach { member ->
           if (member !in live && member.binding.surface?.let { it.boundsInOwner() == null } == true) latest.remove(member)
         }
@@ -476,7 +506,7 @@ internal class GlassContainerNode(
    * are degenerate, matching its exclusion from clusters. Those rects would grow with rotation or scale, so they only gate.
    */
   private fun GlassMemberNode.localSize(): Size? {
-    if (!isAttached) return null
+    if (!isAttached || isUnplaced) return null
     val bounds = binding.surface?.boundsInOwner()?.takeIf { it.isValidGlassMember() } ?: return null
     val transform = binding.runtime?.currentInteractionTransform(bounds.size)
     if (transform != null && !bounds.transformedBy(transform).isValidGlassMember()) return null
@@ -530,6 +560,7 @@ internal class GlassContainerNode(
   }
 
   private fun liveSnapshots(): Map<GlassMemberNode, GlassMemberSnapshot> = members.mapNotNull { member ->
+    if (member.isUnplaced) return@mapNotNull null
     val binding = member.binding
     val layoutRect = binding.surface?.boundsInOwner() ?: return@mapNotNull null
     val key = binding.key ?: return@mapNotNull null
@@ -623,6 +654,7 @@ internal class GlassContainerNode(
     }
     registrations.clear()
     pending.clear()
+    unplacedMembers.clear()
     attaching.clear()
     latest.clear()
     reclusterPending = false

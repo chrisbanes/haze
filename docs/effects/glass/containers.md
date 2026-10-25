@@ -209,9 +209,10 @@ The glass disappears immediately, without a transition, when:
 A member whose nearest container changes while it stays in the layout, for example when a nested
 container is added or removed around it, appears in the new container immediately. Moving
 a member with `movableContentOf` detaches and reattaches it, so it detaches from the old container
-and attaches to the new one, each with the transition described above. A running transition ends
-without animating when the member it grows from or retracts into leaves, or moves beyond the
-merge distance.
+and attaches to the new one, each with the transition described above. A member whose parent stops
+placing it while keeping it in the layout leaves as if it detached, and appears again as if it
+attached when it is placed again. A running transition ends without animating when the member it
+grows from or retracts into leaves, or moves beyond the merge distance.
 
 ## Lazy layouts
 
