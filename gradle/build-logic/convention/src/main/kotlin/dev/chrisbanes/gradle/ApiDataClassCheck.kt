@@ -18,10 +18,16 @@ import org.gradle.api.tasks.TaskAction
  * the Metalava API signature, which is how a Kotlin `data class` appears there.
  *
  * Adding a property to a public `data class` changes its constructor, `copy` and `componentN` JVM
- * signatures, so it breaks binary compatibility. These classes shipped as data classes and are
- * already stable, so they can only be converted in the next major version. New public value types
- * must use `@Poko` with an explicit `copy` instead (see AGENTS.md). Add an entry only when
- * destructuring is an intentional part of the API, and remove an entry when its class is converted.
+ * signatures, so it breaks binary compatibility. New public value types must use `@Poko` with an
+ * explicit `copy` instead (see AGENTS.md). Add an entry only when destructuring is an intentional
+ * part of the API, and remove an entry when its class is converted.
+ *
+ * The `haze` entries (`HazeInput.Sources`, `HazeInput.Backdrop` and `HazeProgressive.LinearGradient`)
+ * shipped as data classes in a stable API, so they can only be converted in the next major version.
+ * `OpticalSizePoint` and `RefractionProfile.Edge` were `@ExperimentalHazeApi` in 2.0.1 and could
+ * have been converted for 2.1.0; they stay data classes by the decision in
+ * https://github.com/chrisbanes/haze/issues/1559, so adding a property to either needs the same
+ * bridge treatment as a stable class.
  */
 internal val API_DATA_CLASS_ALLOWLIST: Set<String> = setOf(
   "dev.chrisbanes.haze.HazeInput.Sources",
