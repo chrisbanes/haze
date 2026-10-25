@@ -19,6 +19,8 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isNotEmpty
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
@@ -93,12 +95,12 @@ class GlassGroupShapeTest : ContextTest() {
       if (retracting()) radii()?.let(whileRetracting::add)
     }
 
-    assertThat(whileRetracting.isNotEmpty()).isTrue()
+    assertThat(whileRetracting).isNotEmpty()
     // The group's shape follows the retract between the departing and the remaining shape, rather
     // than holding the departed one until the ghost ends.
     assertThat(whileRetracting.any { it > departingRadius && it < remainingRadius }).isTrue()
     mainClock.advanceTimeBy(2_000)
     waitForIdle()
-    assertThat(owner.model.surfaces.flatMap { it.members }.none { it.identity is GlassMemberGhost }).isTrue()
+    assertThat(retracting()).isFalse()
   }
 }
