@@ -11,11 +11,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.each
 import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.test.ContextTest
@@ -23,6 +26,26 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class HazeEffectFactoryLifecycleTest : ContextTest() {
+
+  @Test
+  fun hazeEffect_buildsAModifierNodeElementWithoutComposition() {
+    val sources = Modifier.hazeEffect(
+      factory = RecordingFactory(),
+      input = HazeInput.Sources(HazeState()),
+      style = RecordingStyle("sources"),
+    ).elements()
+    val content = Modifier.hazeEffect(
+      factory = RecordingFactory(),
+      input = HazeInput.Content,
+      style = RecordingStyle("content"),
+    ).elements()
+
+    assertThat(sources).each { it.isInstanceOf<ModifierNodeElement<*>>() }
+    assertThat(content).each { it.isInstanceOf<ModifierNodeElement<*>>() }
+  }
+
+  private fun Modifier.elements(): List<Modifier.Element> =
+    foldIn(emptyList()) { elements, element -> elements + element }
 
   @Test
   fun sharedFactory_createsOneRendererPerNode() = runComposeUiTest {
