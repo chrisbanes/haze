@@ -12,10 +12,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isCloseTo
@@ -112,5 +115,50 @@ class GlassGroupShapeTest : ContextTest() {
     mainClock.advanceTimeBy(2_000)
     waitForIdle()
     assertThat(retracting()).isFalse()
+  }
+
+  @Test
+  fun groupedRadii_resolveAtMemberDensity() = runComposeUiTest {
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    val state = HazeState()
+    setContent {
+      Box(Modifier.size(400.dp, 200.dp).background(Color.White)) {
+        Box(Modifier.size(400.dp, 200.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(400.dp, 200.dp).hazeGlassContainer(40.dp)) {
+          // The container lays out at density 1; the first member's own density is 2.
+          CompositionLocalProvider(LocalDensity provides Density(2f)) {
+            Box(
+              Modifier.offset(20.dp, 30.dp).size(40.dp, 40.dp).hazeGlass(
+                HazeEffectFactory { first },
+                HazeInput.Sources(state),
+                containerTestStyle(Color.Red).then(GlassStyle { shape(RoundedCornerShape(12.dp)) }),
+                HazePerformanceMode.Quality,
+                true,
+                null,
+                groupKey = "group",
+              ),
+            )
+          }
+          Box(
+            Modifier.offset(150.dp, 60.dp).size(100.dp, 40.dp).hazeGlass(
+              HazeEffectFactory { second },
+              HazeInput.Sources(state),
+              containerTestStyle(Color.Blue).then(GlassStyle { shape(RoundedCornerShape(16.dp)) }),
+              HazePerformanceMode.Quality,
+              true,
+              null,
+              groupKey = "group",
+            ),
+          )
+        }
+      }
+    }
+    waitForIdle()
+    val owner = checkNotNull(second.memberBindingForTest?.node?.container)
+
+    // 12dp at the first member's density of 2 is 24px, not the container's 12px.
+    val member = checkNotNull(owner.renderer.runtimeSurfaces.singleOrNull()?.mergedField?.members?.singleOrNull())
+    assertThat(member.cornerRadii).isEqualTo(CornerRadii(24f, 24f, 24f, 24f))
   }
 }
