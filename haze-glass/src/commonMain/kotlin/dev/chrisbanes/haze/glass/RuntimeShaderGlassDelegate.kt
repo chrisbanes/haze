@@ -1677,9 +1677,11 @@ internal class RuntimeShaderGlassDelegate(
   ): Boolean = params.depth > 0f && params.depth < 1f && shouldBlur(params, effects)
 
   private fun getRenderEffects(render: GlassPreparedRender): GlassRenderEffects {
-    // Android mutations update a shared, live RuntimeShader, whereas Skiko snapshots uniforms
-    // into each ImageFilter. Every effect mutated here must be reassigned before its retained
-    // layer is recorded; never update uniforms on a path that presents retained output as-is.
+    // updateUniforms and updateInputs each return a new effect that snapshots the uniforms and
+    // inputs given so far, on Android (copied from the shared compiled shader) as on Skiko (into
+    // the ImageFilter). The previous effect is not updated, so every effect mutated here must be
+    // reassigned before its retained layer is recorded; never update uniforms on a path that
+    // presents retained output as-is.
     if (supportsFusedGlassRenderEffect) {
       return getFusedRenderEffects(render)
     }
