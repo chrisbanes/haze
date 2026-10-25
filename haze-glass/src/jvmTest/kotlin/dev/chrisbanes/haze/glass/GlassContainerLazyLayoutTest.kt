@@ -22,11 +22,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.SubcomposeLayoutState
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ComposeUiTest
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
@@ -63,7 +69,9 @@ private const val TRANSITION_MILLIS = 150
  * The container is on the `LazyRow` itself. Items 0 to 4 compose before the first draw, so they
  * never animate; item 5 is the first item to scroll in, with a settled neighbour (item 4), and
  * item 0 is the first to scroll out. The tests read the container's drawn state (`model`), so a
- * member is "visible" when its glass rect overlaps the 360x80 viewport. They do not read pixels.
+ * member is "visible" when its glass rect overlaps the 360x80 viewport. They do not read pixels,
+ * except the `insetLazyRow` tests, which use their own fixture, an inset 280x80 `LazyRow`, to read
+ * the pixels the container draws around the list.
  *
  * Pixel values assume a density of 1, as in the desktop test environment, and a positive
  * `dispatchRawDelta` scrolls towards later items.
@@ -97,6 +105,37 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     val units = fixture.owner().model.surfaces.flatMap { it.groups }
     val group = units.single { unit -> unit.any { it.identity === fixture.node(0) } }
     assertThat(group.map { it.identity }).containsOnly(fixture.node(0), fixture.node(1), fixture.node(2))
+  }
+
+  /**
+   * Pins the current limitation behind the `Modifier.clipToBounds()` guidance in
+   * `docs/effects/glass/containers.md`: the container draws its members' glass on its own canvas,
+   * so a viewport clip applied after it does not cut that glass. A fix to the draw path has to
+   * update this test.
+   */
+  @Test
+  fun insetLazyRow_withoutClipToBounds_glassDrawsPastListBounds() = runComposeUiTest {
+    val image = insetLazyRow(clipToBounds = false)
+
+    // Inside the list, glass is drawing over the half-scrolled items.
+    assertThat(image[60, 120]).isEqualTo(Color.Red)
+    assertThat(image[300, 120]).isEqualTo(Color.Red)
+    // Outside the list, the glass of items scrolled half out is not clipped.
+    assertThat(image[20, 120]).isEqualTo(Color.Red)
+    assertThat(image[330, 120]).isEqualTo(Color.Red)
+  }
+
+  /** Pins the recipe documented in `docs/effects/glass/containers.md`: `clipToBounds()` before the container cuts its glass at the list. */
+  @Test
+  fun insetLazyRow_withClipToBoundsBeforeContainer_glassStaysInsideListBounds() = runComposeUiTest {
+    val image = insetLazyRow(clipToBounds = true)
+
+    // Glass still draws inside the list.
+    assertThat(image[60, 120]).isEqualTo(Color.Red)
+    assertThat(image[300, 120]).isEqualTo(Color.Red)
+    // Nothing is drawn outside it.
+    assertThat(image[20, 120]).isEqualTo(Color.White)
+    assertThat(image[330, 120]).isEqualTo(Color.White)
   }
 
   @Test
@@ -526,6 +565,50 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     waitForIdle()
     mainClock.autoAdvance = false
     return LazyFixture(this, state, effects, keys, scope)
+  }
+
+  /**
+   * Draws a 280x80dp `LazyRow` inset at (40, 80) in a 360x240dp root, scrolls it by 40px so the
+   * first and fourth items are half out of the list, and returns the root's pixels. Items are
+   * opaque red glass over a white root, so a glass pixel is [Color.Red] and an uncovered pixel is
+   * [Color.White].
+   */
+  private fun ComposeUiTest.insetLazyRow(clipToBounds: Boolean): PixelMap {
+    val hazeState = HazeState()
+    val state = LazyListState()
+    setContent {
+      Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(360.dp, 240.dp).hazeSource(hazeState).background(Color.White))
+        LazyRow(
+          state = state,
+          modifier = Modifier
+            .offset(40.dp, 80.dp)
+            .size(280.dp, 80.dp)
+            .then(if (clipToBounds) Modifier.clipToBounds() else Modifier)
+            .hazeGlassContainer(16.dp, transitionSpec = tween(TRANSITION_MILLIS, easing = LinearEasing), reducedMotionPolicy = GlassReducedMotionPolicy.Full),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+          items(12) {
+            val effect = remember { GlassRuntimeEffect() }
+            Box(
+              Modifier.size(80.dp).hazeGlass(
+                HazeEffectFactory { effect },
+                HazeInput.Sources(hazeState),
+                containerTestStyle(Color.Red),
+                HazePerformanceMode.Quality,
+                true,
+                null,
+                memberTransition = GlassMemberTransition.None,
+              ),
+            )
+          }
+        }
+      }
+    }
+    waitForIdle()
+    runOnIdle { state.dispatchRawDelta(40f) }
+    waitForIdle()
+    return onNodeWithTag("root").captureToImage().toPixelMap()
   }
 
   private fun lazyItemStyle(index: Int): GlassStyle = containerTestStyle(Color.Red).then {

@@ -74,7 +74,8 @@ Members merge only when all of these hold:
   bridge.
 - **No rotation or scale.** A member rotated or scaled by its layout, for example with
   `graphicsLayer`, draws separately. Translation and a layer alpha, such as an `AnimatedVisibility`
-  fade, don't prevent merging.
+  fade, don't prevent merging, but the alpha doesn't fade the member's glass
+  (see [Lazy layouts](#lazy-layouts)).
 - **Adjacent in order.** Members are ordered by their position in the layout tree, which is
   composition order in a `Row` or `Column`. A member that hides and shows again keeps its place, and
   a leaving member's glass keeps its place until its animation ends. Only members next to each other
@@ -224,7 +225,10 @@ val listState = rememberLazyListState()
 
 LazyRow(
   state = listState,
-  modifier = Modifier.hazeGlassContainer(mergeDistance = 16.dp, scrollState = listState),
+  modifier = Modifier
+    // The container draws its members' glass, so it must sit inside any clip that should cut it.
+    .clipToBounds()
+    .hazeGlassContainer(mergeDistance = 16.dp, scrollState = listState),
   horizontalArrangement = Arrangement.spacedBy(8.dp),
 ) {
   items(chips, key = { it.id }) { chip ->
@@ -238,6 +242,18 @@ LazyRow(
   }
 }
 ```
+
+The container draws its members' glass itself, on its own canvas, and a lazy layout clips to its
+viewport after the modifiers you pass it. Without `clipToBounds()` before the container, a chip
+scrolled half out of an inset list is clipped, but its glass still draws in full over the padding or
+header around the list. Without `scrollState`, the trailing ghost of a chip that scrolled out draws
+entirely outside the list. Put `Modifier.clipToBounds()` before `hazeGlassContainer(...)`, as above.
+The clip cuts all glass at the list bounds, including overflow that you want, such as a bridge or an
+expanded layer bound.
+
+The same applies to anything between the container and a member. A clip or a `graphicsLayer` alpha
+on a layout there applies to the member's content, but not to its glass. To fade glass, use the
+style's `alpha`.
 
 Drags, flings, `animateScrollBy` and `scrollToItem` are scrolls. Position changes made outside a
 scroll, such as `requestScrollToItem` or `dispatchRawDelta`, are not, so their items animate.
