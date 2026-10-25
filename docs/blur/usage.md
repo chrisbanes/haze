@@ -186,9 +186,9 @@ val progressiveStyle = HazeBlurStyle {
 }
 ```
 
-Progressive Blur samples at most 150 px either side of each pixel. A blur radius above 150 px
-(after density scaling) is truncated, so it looks weaker than a uniform blur of the same radius.
-Keep the radius at or below 150 px when you need the blur to match.
+Progressive Blur samples at most 150 px either side of each pixel, measured in the effect's own
+pixels (after density and input scaling). Where the blur radius exceeds that, the kernel is
+truncated, so raising the radius further does not widen the blur.
 
 A mask fades the effect's opacity instead, and is usually cheaper:
 

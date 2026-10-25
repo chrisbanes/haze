@@ -14,9 +14,10 @@ import androidx.compose.ui.graphics.Shader
  *
  * [mask] supplies the per-pixel blur intensity and [blurRadiusPx] supplies its maximum radius.
  *
- * The shader samples at most 150 px either side of a pixel, but still sizes its Gaussian for the
- * full [blurRadiusPx]. A larger radius is therefore truncated, giving a weaker blur than a uniform
- * blur of the same radius. The radius is not clamped to compensate.
+ * The shader samples at most 150 px either side of a pixel. Where a pixel's local radius
+ * ([blurRadiusPx] scaled by the mask intensity) exceeds that, the kernel is truncated but its
+ * Gaussian is still sized for the untruncated radius, so the result is weaker than a blur of that
+ * radius would be. [blurRadiusPx] is not clamped.
  */
 @InternalHazeApi
 public fun createProgressiveBlurRenderEffect(
