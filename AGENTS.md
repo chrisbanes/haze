@@ -28,6 +28,9 @@ in `sample/`; library screenshots in `haze-screenshot-tests`, sample screenshots
 - Binary compatibility binds only released signatures: those in the module's latest
   `api/<version>.txt`. Evolve an unreleased declaration in place, such as adding a parameter with
   a default, and add forwarding overloads only to keep a released signature working.
+- Public enums and `sealed exhaustive` types, in core `haze` too, may gain entries or subtypes in
+  minor releases. In the KDoc of each one you add or change, say so and tell callers to keep an
+  `else` branch when they match exhaustively. Record each addition in `CHANGELOG.md`.
 - Use AssertK for value, type, collection, boolean, and exception assertions, including custom
   assertion helpers. Do not use assertions from `kotlin.test`, JUnit, or Truth. Prefer semantic
   assertions (`isNull`, `contains`, `isInstanceOf`); use `isTrue`/`isFalse` only for boolean results.

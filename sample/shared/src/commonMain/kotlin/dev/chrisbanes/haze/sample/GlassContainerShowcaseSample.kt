@@ -337,7 +337,7 @@ private fun DrawingPalette(state: GlassContainerShowcaseState, hazeState: HazeSt
     val strokeWidth = if (vertical) minOf(248.dp, maxWidth) else if (compactHorizontal) compactWidth * 0.32f else 232.dp
     val colorWidth = if (vertical) minOf(248.dp, maxWidth) else if (compactHorizontal) compactWidth * 0.32f else 256.dp
     val travelPx = with(LocalDensity.current) { travel.toPx() }
-    val containerModifier = Modifier.hazeGlassContainer(mergeDistance = 40.dp, transitionSpec = memberSpec)
+    val containerModifier = Modifier.hazeGlassContainer(mergeDistance = 40.dp, memberTransitionSpec = memberSpec)
 
     @Composable
     fun Members() {

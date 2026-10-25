@@ -66,10 +66,12 @@ import kotlinx.coroutines.launch
  * and background. Where members overlap, the colours of the member earlier in layout order apply.
  *
  * Members that attach or detach after the container's first draw animate their glass as each
- * member's [GlassMemberTransition] declares, timed by [transitionSpec], which defaults to
+ * member's [GlassMemberTransition] declares, timed by [memberTransitionSpec], which defaults to
  * `spring()`. [GlassReducedMotionPolicy.Reduced] keeps the morph with a critically damped spring at
  * full duration, whatever the platform scale is. [GlassReducedMotionPolicy.System] snaps,
  * as with [GlassMemberTransition.None], when the platform motion-duration scale is zero.
+ * [memberReducedMotionPolicy] covers container member transitions only. It does not change the
+ * members' interaction responses, which follow each `hazeGlass`'s `interactionReducedMotionPolicy`.
  *
  * A detached member's glass is drawn by the container through a live member with the same input,
  * resolving the same sources, until its animation ends. When no such member remains, for example
@@ -84,10 +86,10 @@ import kotlinx.coroutines.launch
  * member with `movableContentOf` detaches and reattaches it, so it detaches from the old container
  * and attaches to the new one, each with the transition described above. A member whose parent
  * stops placing it while keeping it in the layout leaves as if it detached, and appears again as
- * if it attached when it is placed again. [transitionSpec] and [reducedMotionPolicy] changes apply
- * from the next transition. Leaving members never count towards the shared optical size. Haze
- * animates only the glass, so callers animate member content themselves, for example with
- * `AnimatedVisibility`. Cap diagnostics follow [HazeLogger.enabled].
+ * if it attached when it is placed again. [memberTransitionSpec] and [memberReducedMotionPolicy]
+ * changes apply from the next transition. Leaving members never count towards the shared optical
+ * size. Haze animates only the glass, so callers animate member content themselves, for example
+ * with `AnimatedVisibility`. Cap diagnostics follow [HazeLogger.enabled].
  *
  * For the items of a scrollable layout, such as a `LazyRow` or `LazyColumn`, pass its
  * [scrollState]. While [scrollState] [is scrolling][ScrollableState.isScrollInProgress], including
@@ -111,11 +113,11 @@ import kotlinx.coroutines.launch
 public fun Modifier.hazeGlassContainer(
   mergeDistance: Dp = GlassDefaults.mergeDistance,
   scrollState: ScrollableState? = null,
-  transitionSpec: FiniteAnimationSpec<Float> = spring(),
-  reducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
+  memberTransitionSpec: FiniteAnimationSpec<Float> = spring(),
+  memberReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
 ): Modifier {
   requireSpecifiedFiniteNonNegative("mergeDistance", mergeDistance)
-  return then(GlassContainerElement(mergeDistance, scrollState, transitionSpec, reducedMotionPolicy))
+  return then(GlassContainerElement(mergeDistance, scrollState, memberTransitionSpec, memberReducedMotionPolicy))
 }
 
 internal object GlassContainerTraversalKey
@@ -124,31 +126,31 @@ internal object GlassContainerTraversalKey
 internal class GlassContainerElement(
   val mergeDistance: Dp,
   val scrollState: ScrollableState?,
-  val transitionSpec: FiniteAnimationSpec<Float>,
-  val reducedMotionPolicy: GlassReducedMotionPolicy,
+  val memberTransitionSpec: FiniteAnimationSpec<Float>,
+  val memberReducedMotionPolicy: GlassReducedMotionPolicy,
 ) : ModifierNodeElement<GlassContainerNode>() {
-  override fun create() = GlassContainerNode(mergeDistance, scrollState, transitionSpec, reducedMotionPolicy)
+  override fun create() = GlassContainerNode(mergeDistance, scrollState, memberTransitionSpec, memberReducedMotionPolicy)
   override fun update(node: GlassContainerNode) {
     node.mergeDistance = mergeDistance
     node.scrollState = scrollState
-    node.transitionSpec = transitionSpec
-    node.reducedMotionPolicy = reducedMotionPolicy
+    node.memberTransitionSpec = memberTransitionSpec
+    node.memberReducedMotionPolicy = memberReducedMotionPolicy
     node.memberChanged()
   }
   override fun InspectorInfo.inspectableProperties() {
     name = "hazeGlassContainer"
     properties["mergeDistance"] = mergeDistance
     properties["scrollState"] = scrollState
-    properties["transitionSpec"] = transitionSpec
-    properties["reducedMotionPolicy"] = reducedMotionPolicy
+    properties["memberTransitionSpec"] = memberTransitionSpec
+    properties["memberReducedMotionPolicy"] = memberReducedMotionPolicy
   }
 }
 
 internal class GlassContainerNode(
   var mergeDistance: Dp,
   var scrollState: ScrollableState?,
-  var transitionSpec: FiniteAnimationSpec<Float>,
-  var reducedMotionPolicy: GlassReducedMotionPolicy,
+  var memberTransitionSpec: FiniteAnimationSpec<Float>,
+  var memberReducedMotionPolicy: GlassReducedMotionPolicy,
 ) : Modifier.Node(), TraversableNode, DrawModifierNode, LayoutAwareModifierNode, HazeEffectSurfaceOwner {
   override val traverseKey: Any get() = GlassContainerTraversalKey
   override var surfaceCoordinates: LayoutCoordinates? = null
@@ -180,7 +182,7 @@ internal class GlassContainerNode(
    * case members snap as with [GlassMemberTransition.None]. Read it only while attached.
    */
   private val transitionsOff: Boolean
-    get() = reducedMotionPolicy == GlassReducedMotionPolicy.System &&
+    get() = memberReducedMotionPolicy == GlassReducedMotionPolicy.System &&
       coroutineScope.coroutineContext[MotionDurationScale]?.scaleFactor == 0f
 
   private fun observeScroll() {
@@ -348,10 +350,10 @@ internal class GlassContainerNode(
 
   private fun animate(progress: Animatable<Float, AnimationVector1D>, target: Float, onEnd: () -> Unit): Job {
     val systemScale = coroutineScope.coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f
-    val (reduced, full) = reducedMotion(reducedMotionPolicy, systemScale)
+    val (reduced, full) = reducedMotion(memberReducedMotionPolicy, systemScale)
     // Reduced keeps a non-overshooting morph at a zero scale; System at zero snaps before reaching here.
     return coroutineScope.launch(if (reduced || full) FullMotionDurationScale else EmptyCoroutineContext) {
-      progress.animateTo(target, glassTransitionSpec(transitionSpec, reduced)) { memberChanged() }
+      progress.animateTo(target, glassTransitionSpec(memberTransitionSpec, reduced)) { memberChanged() }
       onEnd()
       memberChanged()
     }

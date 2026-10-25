@@ -7,7 +7,7 @@ package dev.chrisbanes.haze.glass
  * How a Glass member's material enters and leaves its [hazeGlassContainer].
  *
  * Members have no identifiers: a member's modifier node is its identity for as long as it stays
- * attached. Timing comes from the container's `transitionSpec` and `reducedMotionPolicy`. Outside
+ * attached. Timing comes from the container's `memberTransitionSpec` and `memberReducedMotionPolicy`. Outside
  * a container, the value is ignored.
  *
  * Haze animates only the glass. Callers animate member content themselves, for example by
@@ -26,6 +26,8 @@ package dev.chrisbanes.haze.glass
  *   }
  * }
  * ```
+ *
+ * Future minor releases may add entries. Keep an `else` branch when you match exhaustively with `when`.
  */
 public enum class GlassMemberTransition {
   /**

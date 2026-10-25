@@ -6,7 +6,11 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
 
-/** Controls how refraction displaces content independently of the material's lighting. */
+/**
+ * Controls how refraction displaces content independently of the material's lighting.
+ *
+ * Future minor releases may add subtypes. Keep an `else` branch when you match exhaustively with `when`.
+ */
 @Immutable
 public sealed interface RefractionProfile {
   /** Uses [SurfaceProfile] and [GlassOptics.refractionHeightFraction] for refraction and lighting. */

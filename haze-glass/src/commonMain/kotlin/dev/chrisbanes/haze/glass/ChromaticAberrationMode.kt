@@ -6,6 +6,8 @@ package dev.chrisbanes.haze.glass
 /**
  * Controls the quality and appearance of chromatic aberration (color dispersion)
  * at the refraction edges.
+ *
+ * Future minor releases may add entries. Keep an `else` branch when you match exhaustively with `when`.
  */
 public enum class ChromaticAberrationMode {
   /**

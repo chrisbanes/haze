@@ -18,6 +18,10 @@ import dev.chrisbanes.haze.Poko
  *
  * Responsive values require at least two points with positive, finite, strictly increasing
  * dimensions. Invalid numeric values throw [IllegalArgumentException] during construction.
+ *
+ * The constructor defaults are not a preset. They match neither `GlassOptics.regular` nor
+ * `GlassOptics.clear`, so `GlassOptics(blurRadius = ...)` does not keep Regular's edge refraction.
+ * To adjust a built-in look, start from `GlassOptics.regular.copy(...)`.
  */
 @Immutable
 @Poko

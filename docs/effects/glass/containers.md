@@ -45,7 +45,7 @@ Row(
 `mergeDistance` has two roles. It decides which members merge, and it shapes the merge; see the
 [merge rule](#merge-rule). It does not lay out or space the container's children. It defaults to
 `GlassDefaults.mergeDistance` (16 dp), and must be finite and not negative. A merge distance of zero
-disables merging by proximity. Optionally pass `transitionSpec` and `reducedMotionPolicy`, which are
+disables merging by proximity. Optionally pass `memberTransitionSpec` and `memberReducedMotionPolicy`, which are
 described under [Transitions](#transitions).
 
 Every [`hazeGlass`][hazeGlass] modifier below the container becomes a member of its nearest container. A member
@@ -138,7 +138,7 @@ two circles become one capsule that spans the row, although they are far apart. 
 - **Transitions.** Members of the same group are neighbours at any distance, and another member
   is a neighbour when it is within the merge distance of the group's bounds. With the default
   `MatchedGeometry`, a member that attaches grows the group's bounds, and one that detaches shrinks
-  them, timed by `transitionSpec`. A fading member leaves the group while it fades. With
+  them, timed by `memberTransitionSpec`. A fading member leaves the group while it fades. With
   `Materialize`, or any other fade, a fading member in the middle of a group therefore splits it
   into separate shapes until the fade ends, and then they snap back into one shape.
 - **Interaction.** Pressing any member scales and lights the whole group. Each member's content
@@ -182,19 +182,21 @@ the transition with `hazeGlass(memberTransition = ...)`:
   on its own until it is fully opaque.
 - [`GlassMemberTransition.None`][GlassMemberTransition.None] applies no transition.
 
-`transitionSpec` times the animation and defaults to `spring()`. Members with
-`GlassMemberTransition.None` do not animate. `reducedMotionPolicy` decides how the transition
-responds to the platform motion-duration scale:
+`memberTransitionSpec` times the animation and defaults to `spring()`. Members with
+`GlassMemberTransition.None` do not animate. `memberReducedMotionPolicy` decides how the transition
+responds to the platform motion-duration scale. It covers container member transitions only, and
+does not change the members' interaction responses, which follow each `hazeGlass`'s
+`interactionReducedMotionPolicy`:
 
 - [`GlassReducedMotionPolicy.System`][GlassReducedMotionPolicy.System], the default, follows the scale. Above zero, transitions run
   under that scale. At zero, because animations are off, members snap: they appear and disappear
   with no transition, as with `GlassMemberTransition.None`.
 - [`GlassReducedMotionPolicy.Reduced`][GlassReducedMotionPolicy.Reduced] keeps the morph but uses a critically damped spring, so it
-  does not overshoot, at full duration whatever the scale is. The spring keeps `transitionSpec`'s
+  does not overshoot, at full duration whatever the scale is. The spring keeps `memberTransitionSpec`'s
   stiffness when it is a spring and otherwise uses medium stiffness.
-- [`GlassReducedMotionPolicy.Full`][GlassReducedMotionPolicy.Full] uses `transitionSpec` as written, whatever the scale is.
+- [`GlassReducedMotionPolicy.Full`][GlassReducedMotionPolicy.Full] uses `memberTransitionSpec` as written, whatever the scale is.
 
-Changes to `transitionSpec` and `reducedMotionPolicy` apply from the next transition.
+Changes to `memberTransitionSpec` and `memberReducedMotionPolicy` apply from the next transition.
 
 Haze animates only the glass. Animate member content yourself, for example with
 `AnimatedVisibility` and fades. Don't animate a member's layout scale: a scaled member stops
