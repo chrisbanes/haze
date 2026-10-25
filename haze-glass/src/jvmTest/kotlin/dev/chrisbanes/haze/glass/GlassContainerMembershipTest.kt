@@ -110,6 +110,39 @@ class GlassContainerMembershipTest : ContextTest() {
   }
 
   @Test
+  fun mergeDistanceChange_mergesAndSplitsMembersInPlace() = runComposeUiTest {
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    val mergeDistance = mutableIntStateOf(10)
+    setContent {
+      Box(Modifier.size(300.dp, 100.dp).hazeGlassContainer(mergeDistance.intValue.dp)) {
+        Member(first)
+        Member(second, Modifier.offset(120.dp, 0.dp).size(100.dp, 40.dp))
+      }
+    }
+    waitForIdle()
+    val container = container(first)
+    // The members are 20dp apart, so a 10dp merge distance leaves them separate.
+    assertThat(container.model.surfaces).hasSize(2)
+
+    runOnIdle { mergeDistance.intValue = 30 }
+    mainClock.advanceTimeBy(2_000)
+    waitForIdle()
+
+    assertThat(container(first)).isSameInstanceAs(container)
+    assertThat(container.model.surfaces).hasSize(1)
+    assertThat(container.model.surfaces.single().members).hasSize(2)
+
+    runOnIdle { mergeDistance.intValue = 10 }
+    mainClock.advanceTimeBy(2_000)
+    waitForIdle()
+
+    assertThat(container(first)).isSameInstanceAs(container)
+    assertThat(container(second)).isSameInstanceAs(container)
+    assertThat(container.model.surfaces).hasSize(2)
+  }
+
+  @Test
   fun membership_memberMoveWithoutResizeReclustersWithoutMemberUpdate() = runComposeUiTest {
     val first = GlassRuntimeEffect()
     val second = GlassRuntimeEffect()
