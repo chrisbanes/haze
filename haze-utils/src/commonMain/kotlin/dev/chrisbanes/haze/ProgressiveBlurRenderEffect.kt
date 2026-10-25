@@ -13,6 +13,10 @@ import androidx.compose.ui.graphics.Shader
  * Creates a separable progressive blur clipped to [size] at [offset].
  *
  * [mask] supplies the per-pixel blur intensity and [blurRadiusPx] supplies its maximum radius.
+ *
+ * The shader samples at most 150 px either side of a pixel, but still sizes its Gaussian for the
+ * full [blurRadiusPx]. A larger radius is therefore truncated, giving a weaker blur than a uniform
+ * blur of the same radius. The radius is not clamped to compensate.
  */
 @InternalHazeApi
 public fun createProgressiveBlurRenderEffect(
