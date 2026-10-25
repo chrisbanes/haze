@@ -5,6 +5,8 @@ package dev.chrisbanes.haze.glass
 
 import android.graphics.Bitmap
 import android.graphics.Color as AndroidColor
+import android.graphics.PixelFormat
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -33,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import assertk.assertThat
+import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
@@ -437,6 +440,91 @@ class GlassBackdropInstrumentationTest {
     ).isLessThan(0.5f)
   }
 
+  @Test
+  fun backdropInput_opaqueBackgroundColorKeepsRefractionDetailBandOpaque() {
+    assumeTrue(
+      "HazeInput.Backdrop requires Android 37.2 or the matching preview",
+      isBackdropSdkSupported(),
+    )
+    val backgroundColor = mutableStateOf(Color.Blue)
+    renderDetailBandScene(backgroundColor).assertDetailBandMatchesInterior(
+      density = Density(activity.resources.displayMetrics.density),
+      label = "Blue background",
+    )
+  }
+
+  @Test
+  fun backdropInput_backgroundColorChangeUpdatesRefractionDetailBand() {
+    assumeTrue(
+      "HazeInput.Backdrop requires Android 37.2 or the matching preview",
+      isBackdropSdkSupported(),
+    )
+    val backgroundColor = mutableStateOf(Color.Blue)
+    val initialDraw = CountDownLatch(1)
+    val updatedDraw = CountDownLatch(1)
+    val density = Density(activity.resources.displayMetrics.density)
+
+    val blue = renderDetailBandScene(backgroundColor) {
+      if (backgroundColor.value == Color.Blue) initialDraw.countDown() else updatedDraw.countDown()
+    }
+    assertThat(initialDraw.await(5, TimeUnit.SECONDS), "Blue Glass presented").isEqualTo(true)
+    blue.assertDetailBandMatchesInterior(density, "Blue background")
+    val blueBand = blue.pixel(blue.detailBandX(density), blue.height / 2)
+
+    backgroundColor.value = Color.Green
+    assertThat(updatedDraw.await(5, TimeUnit.SECONDS), "Green Glass presented").isEqualTo(true)
+    // The new style applies on the frame after the draw that observed it, so poll for the change.
+    var green = activity.copyWindow()
+    var attempts = 0
+    while (AndroidColor.green(green.pixel(green.width / 2, green.height / 2)) <= 100 && attempts++ < 20) {
+      Thread.sleep(100)
+      green = activity.copyWindow()
+    }
+    green.assertDetailBandMatchesInterior(density, "Green background")
+    val greenBand = green.pixel(green.detailBandX(density), green.height / 2)
+    assertThat(
+      (AndroidColor.green(greenBand) - AndroidColor.green(blueBand)) / 255f,
+      "Band follows the new background colour",
+    ).isGreaterThan(0.2f)
+  }
+
+  /**
+   * Renders Glass with an opaque, state-driven `backgroundColor` over a translucent window, so
+   * the window pixels behind the Glass carry alpha < 1. Returns the window once the first draw has
+   * been presented.
+   */
+  private fun renderDetailBandScene(
+    backgroundColor: androidx.compose.runtime.State<Color>,
+    onDraw: () -> Unit = {},
+  ): Bitmap {
+    val emptyFallbackState = HazeState()
+    val drawReady = CountDownLatch(1)
+    val style = detailBandGlassStyle { backgroundColor.value }
+    activityScenario.onActivity { activity ->
+      activity.window.setFormat(PixelFormat.TRANSLUCENT)
+      activity.window.setBackgroundDrawable(ColorDrawable(AndroidColor.TRANSPARENT))
+      activity.setContent {
+        Box(Modifier.fillMaxSize().background(Color.Red.copy(alpha = 0.2f))) {
+          Box(
+            Modifier
+              .align(Alignment.Center)
+              .size(width = 200.dp, height = 100.dp)
+              .hazeGlass(input = HazeInput.Backdrop(emptyFallbackState), style = style)
+              .drawWithContent {
+                drawContent()
+                onDraw()
+                drawReady.countDown()
+              },
+          )
+        }
+      }
+    }
+    assertThat(drawReady.await(5, TimeUnit.SECONDS), "Glass presented its first draw")
+      .isEqualTo(true)
+    InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+    return activity.copyWindow()
+  }
+
   private fun ComponentActivity.copyWindow(): Bitmap {
     val bitmap = Bitmap.createBitmap(
       window.decorView.width,
@@ -455,6 +543,20 @@ class GlassBackdropInstrumentationTest {
   }
 
   private companion object {
+    fun detailBandGlassStyle(backgroundColor: () -> Color) = GlassStyle.clear.then {
+      backgroundColor(backgroundColor())
+      specularIntensity(0f)
+      edgeShadow(Color.Transparent)
+      ambientResponse(0f)
+      tint(Color.Transparent)
+      chromaticAberrationStrength(0f)
+      contrast(0f)
+      whitePoint(0f)
+      chromaMultiplier(1f)
+      // Clear's default 56dp displacement pushes the detail envelope out of the Glass entirely.
+      optics(GlassOptics.clear.copy(refractionDisplacement = 8.dp))
+    }
+
     fun pureBlurGlassStyle(blurRadius: androidx.compose.ui.unit.Dp) = GlassStyle.regular.then {
       optics(
         GlassOptics(
@@ -496,6 +598,38 @@ class GlassBackdropInstrumentationTest {
 private fun Bitmap.red(x: Int, y: Int): Float {
   val pixel = getPixel(x.coerceIn(0, width - 1), y.coerceIn(0, height - 1))
   return AndroidColor.red(pixel) / 255f
+}
+
+private fun Bitmap.pixel(x: Int, y: Int): Int =
+  getPixel(x.coerceIn(0, width - 1), y.coerceIn(0, height - 1))
+
+// Distance inside the Glass edge that falls in the refraction-detail band.
+private val DetailBandInset = 9.dp
+
+private fun Bitmap.detailBandX(density: Density): Int =
+  width / 2 - 100.dp.roundToPx(density) + DetailBandInset.roundToPx(density)
+
+/**
+ * Asserts the refraction-detail band shows the same opaque, background-composited colour as the
+ * Glass interior. Needs a translucent window so the raw window pixels differ from that colour.
+ */
+private fun Bitmap.assertDetailBandMatchesInterior(density: Density, label: String) {
+  val outside = pixel(width / 2 - 130.dp.roundToPx(density), height / 2)
+  assertThat(
+    AndroidColor.alpha(outside) / 255f,
+    "$label: window pixels outside the Glass keep their alpha",
+  ).isLessThan(0.9f)
+  val interior = pixel(width / 2, height / 2)
+  val band = pixel(detailBandX(density), height / 2)
+  assertThat(AndroidColor.alpha(band) / 255f, "$label band alpha").isGreaterThan(0.98f)
+  listOf(
+    "red" to AndroidColor::red,
+    "green" to AndroidColor::green,
+    "blue" to AndroidColor::blue,
+  ).forEach { (channel, read) ->
+    assertThat(read(band) / 255f, "$label band $channel matches interior")
+      .isCloseTo(read(interior) / 255f, 0.02f)
+  }
 }
 
 private fun Bitmap.assertCenterEdgeSoftened(density: Density) {
