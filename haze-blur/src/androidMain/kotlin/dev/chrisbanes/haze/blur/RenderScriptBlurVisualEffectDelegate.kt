@@ -58,8 +58,22 @@ internal class RenderScriptBlurVisualEffectDelegate(
   private val platformContext: PlatformContext,
 ) : BlurVisualEffect.Delegate {
 
-  @Volatile
-  private var renderScript = RenderScript.create(platformContext.applicationContext)
+  // The shared context, held between acquire and release. Taken in the constructor so a device
+  // that cannot create one fails here, where [createOrNull] falls back, and again on demand after
+  // a trim or detach released it.
+  private val renderScriptLock = Any()
+  private var renderScript: RenderScript? = SharedRenderScript.acquire(platformContext)
+
+  private fun requireRenderScript(): RenderScript = synchronized(renderScriptLock) {
+    renderScript ?: SharedRenderScript.acquire(platformContext).also { renderScript = it }
+  }
+
+  private fun releaseRenderScript() = synchronized(renderScriptLock) {
+    if (renderScript != null) {
+      renderScript = null
+      SharedRenderScript.release()
+    }
+  }
 
   @Volatile
   internal var renderScriptContext: RenderScriptContext? = null
@@ -288,14 +302,10 @@ internal class RenderScriptBlurVisualEffectDelegate(
     if (level.severity >= TrimMemoryLevel.MODERATE.severity) {
       currentJob?.cancel()
       releaseRenderScriptContext()
-      // Create the new RenderScript first, then destroy the old instance.
-      // This avoids leaving renderScript in a destroyed state if creation fails.
-      runCatching { RenderScript.create(platformContext.applicationContext) }
-        .onSuccess { newRs ->
-          val oldRs = renderScript
-          renderScript = newRs
-          runCatching { oldRs.destroy() }
-        }
+      // Drop this node's reference, which destroys the shared context only if no other node holds
+      // it, then take a new one. If that fails the next use tries again.
+      releaseRenderScript()
+      runCatching { requireRenderScript() }
         .onFailure { HazeLogger.d(TAG) { "Failed to recreate RenderScript after trim" } }
       // Bump generation so in-flight coroutines know their context is stale
       trimGeneration++
@@ -450,7 +460,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
     // Release any existing context
     releaseRenderScriptContext()
     // Return a new context and store it
-    return RenderScriptContext(rs = renderScript, size = size)
+    return RenderScriptContext(rs = requireRenderScript(), size = size)
       .also { renderScriptContext = it }
   }
 
@@ -470,7 +480,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
   override fun detach() {
     releaseRetainedOutput()
-    runCatching { renderScript.destroy() }
+    releaseRenderScript()
   }
 
   // Drops the output and what produces it, but keeps the capture, padded and presentation layers

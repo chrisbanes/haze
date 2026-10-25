@@ -23,7 +23,9 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import assertk.assertFailure
 import assertk.assertThat
+import assertk.assertions.containsExactly
 import assertk.assertions.hasSize
+import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
@@ -135,11 +137,91 @@ class RenderScriptReleaseAndroidHostTest : ContextTest() {
     assertThat(scope.invalidateDrawCalls).isEqualTo(0)
   }
 
+  @Test
+  fun getRenderScriptContext_twoDelegates_shareOneRenderScript() {
+    val first = delegate()
+    val second = delegate()
+
+    val firstContext = first.getRenderScriptContext(IntSize(8, 8))
+    val secondContext = second.getRenderScriptContext(IntSize(8, 8))
+
+    assertThat(secondContext.rs).isSameInstanceAs(firstContext.rs)
+    assertThat(firstContext).isNotSameInstanceAs(secondContext)
+  }
+
+  @Test
+  fun detach_lastDelegateDestroysSharedRenderScript() {
+    // Robolectric's RenderScript is a process context, whose destroy() does nothing observable.
+    val destroyed = mutableListOf<Any>()
+    SharedRenderScript.destroy = { destroyed += it }
+    val first = delegate()
+    val second = delegate()
+    val shared = first.getRenderScriptContext(IntSize(8, 8)).rs
+
+    first.detach()
+
+    // The other delegate still holds the shared context, and can still make allocations on it.
+    assertThat(SharedRenderScript.currentForTest).isSameInstanceAs(shared)
+    val remaining = second.getRenderScriptContext(IntSize(8, 8))
+    assertThat(remaining.rs).isSameInstanceAs(shared)
+    assertThat(remaining.isDestroyed()).isFalse()
+
+    assertThat(destroyed).isEmpty()
+
+    second.detach()
+
+    assertThat(SharedRenderScript.currentForTest).isNull()
+    assertThat(SharedRenderScript.referenceCountForTest).isEqualTo(0)
+    assertThat(destroyed).containsExactly(shared)
+  }
+
+  @Test
+  fun detach_calledTwice_releasesTheReferenceOnce() {
+    val first = delegate()
+    val second = delegate()
+    val shared = first.getRenderScriptContext(IntSize(8, 8)).rs
+
+    first.detach()
+    first.detach()
+
+    assertThat(SharedRenderScript.currentForTest).isSameInstanceAs(shared)
+    assertThat(SharedRenderScript.referenceCountForTest).isEqualTo(1)
+    second.detach()
+    assertThat(SharedRenderScript.currentForTest).isNull()
+  }
+
+  @Test
+  fun onTrimMemory_moderate_keepsTheSharedRenderScriptForOtherDelegates() {
+    val trimmed = delegate()
+    val other = delegate()
+    val shared = other.getRenderScriptContext(IntSize(8, 8)).rs
+    val scope = HostLifecycleScope(context)
+
+    trimmed.onTrimMemory(scope, TrimMemoryLevel.MODERATE)
+
+    assertThat(SharedRenderScript.currentForTest).isSameInstanceAs(shared)
+    assertThat(other.getRenderScriptContext(IntSize(8, 8)).isDestroyed()).isFalse()
+    // The trimmed delegate takes a new reference when it next needs the context.
+    assertThat(trimmed.getRenderScriptContext(IntSize(8, 8)).rs).isSameInstanceAs(shared)
+  }
+
+  @Test
+  fun getRenderScriptContext_afterDetach_acquiresTheSharedRenderScriptAgain() {
+    val delegate = delegate()
+    delegate.detach()
+    assertThat(SharedRenderScript.currentForTest).isNull()
+
+    val rs = delegate.getRenderScriptContext(IntSize(8, 8)).rs
+
+    assertThat(SharedRenderScript.currentForTest).isSameInstanceAs(rs)
+  }
+
   private val delegates = mutableListOf<RenderScriptBlurVisualEffectDelegate>()
 
   @After
   fun detachDelegates() {
     delegates.forEach { it.detach() }
+    SharedRenderScript.destroy = SharedRenderScript.defaultDestroy
   }
 
   private fun delegate() = RenderScriptBlurVisualEffectDelegate(
