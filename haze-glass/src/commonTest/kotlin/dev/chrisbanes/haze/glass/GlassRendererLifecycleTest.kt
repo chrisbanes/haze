@@ -100,6 +100,39 @@ class GlassRendererLifecycleTest {
   }
 
   @Test
+  fun styleUpdate_resolvesEachStyleBlockOncePerUpdate() {
+    val renderer = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
+    val scope = TrackingLifecycleScope(localStyle = GlassStyle { tint(Color.Red) })
+    renderer.attach(scope)
+    fun update(style: GlassStyle) = renderer.update(
+      scope,
+      GlassNodeConfiguration(style = style, interactionSource = null),
+      HazeSampling.Default,
+    )
+    update(GlassStyle { contrast(0.1f) })
+    var localRuns = 0
+    var explicitRuns = 0
+
+    // Both the explicit Style and the composition-local Style change in this one update.
+    scope.localStyle = GlassStyle {
+      localRuns++
+      tint(Color.Blue)
+    }
+    update(
+      GlassStyle {
+        explicitRuns++
+        contrast(0.2f)
+      },
+    )
+
+    assertThat(localRuns).isEqualTo(1)
+    assertThat(explicitRuns).isEqualTo(1)
+    assertThat(renderer.tint).isEqualTo(Color.Blue)
+    assertThat(renderer.contrast).isEqualTo(0.2f)
+    renderer.detach()
+  }
+
+  @Test
   fun styleReplacement_omittedValuesFallBackWithoutReplacingRenderer() {
     val renderer = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
     val scope = TrackingLifecycleScope(

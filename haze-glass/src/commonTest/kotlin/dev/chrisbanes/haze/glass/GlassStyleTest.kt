@@ -317,6 +317,19 @@ class GlassStyleTest {
   }
 
   @Test
+  fun combinedGlassStyle_equalElementsCompareEqual() {
+    val shared = GlassStyle { alpha(0.5f) }
+
+    val first = GlassStyle.regular.then(shared)
+    val second = GlassStyle.regular.then(shared)
+
+    assertThat(first).isEqualTo(second)
+    assertThat(first.hashCode()).isEqualTo(second.hashCode())
+    assertThat(first).isNotEqualTo(GlassStyle.regular.then(GlassStyle { alpha(0.5f) }))
+    assertThat(first).isNotEqualTo(GlassStyle.clear.then(shared))
+  }
+
+  @Test
   fun then_composesStylesAndRunsEachBlockOncePerResolution() {
     var baseExecutions = 0
     var overrideExecutions = 0
