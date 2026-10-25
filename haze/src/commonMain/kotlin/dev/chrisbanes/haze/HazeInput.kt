@@ -80,10 +80,11 @@ public sealed interface HazeSourceSelection {
    *
    * Repeated refinements compose with logical AND.
    *
-   * Two refinements are equal only when they share the same base selection and the same
-   * [predicate] instance. Lambdas compare by identity, so two separate lambda literals with
-   * identical bodies are not equal. Hoist or `remember` a refined selection that is shared, for
-   * example between Glass container members that should merge; they must use one selection value.
+   * Two refinements are equal only when they share the same base selection and equal
+   * [predicate]s: the same lambda instance, or equal function references on platforms where those
+   * compare equal. Lambdas compare by identity, so two separate lambda literals with identical
+   * bodies are not equal. Hoist or `remember` a refined selection that is shared, for example
+   * between Glass container members that should merge; they must use one selection value.
    */
   public fun where(
     predicate: (HazeSourceMetadata) -> Boolean,
