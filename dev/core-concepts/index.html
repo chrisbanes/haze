@@ -1576,9 +1576,9 @@ modifier arguments, not part of <a href="../api/haze-blur/dev.chrisbanes.haze.bl
 <span class="p">}</span>
 </code></pre></div>
 <p>Haze applies <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-defaults/style.html"><code>HazeBlurDefaults.style</code></a>, then <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html"><code>LocalHazeBlurStyle</code></a>, then the explicit Style, and the
-last write wins. Styles hold no rendering state, so you can share them between modifiers. Two
-Styles with the same writes in the same order are equal, so recreating an identical Style during
-recomposition doesn't update the effect; pass a new Style when a value changes.</p>
+last write wins. Styles hold no rendering state, so you can share them between modifiers. Styles you
+build compare by identity, so <code>remember</code> or hoist them; built-in presets compare by value. Pass a
+new Style, or write the snapshot state it reads, to change a value.</p>
 <h2 id="typed-custom-effects">Typed custom effects<a class="headerlink" href="#typed-custom-effects" title="Permanent link">¶</a></h2>
 <p>Custom effects use a shareable factory that creates one renderer per modifier:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">factory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeEffectFactory</span><span class="o">&lt;</span><span class="n">MyStyle</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
