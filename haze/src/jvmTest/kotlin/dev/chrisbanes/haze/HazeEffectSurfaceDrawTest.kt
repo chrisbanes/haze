@@ -50,6 +50,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
+import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEmpty
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isSameInstanceAs
@@ -124,6 +125,52 @@ class HazeEffectSurfaceDrawTest {
     assertFailure {
       anchor.surface.createConfiguredSurface(factory, Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
     }.isInstanceOf<IllegalStateException>()
+  }
+
+  @Test
+  fun nativeToPortableSwitch_drawsEffectWithinOneFrame() = runComposeUiTest {
+    val previousFlag = HazeFeatureFlags.isPlatformBackdropEnabled
+    HazeFeatureFlags.isPlatformBackdropEnabled = true
+    try {
+      val owner = SurfaceOwnerNode()
+      val member = SurfaceFactory(owner)
+      val state = HazeState()
+      var configured: HazeConfiguredEffectSurface<Unit>? = null
+      val ownerDrawsAtMemberDraw = mutableListOf<Int>()
+      owner.resolveSurfaces = {
+        configured = configured ?: member.surface.createConfiguredSurface(
+          HazeEffectFactory {
+            object : HazeEffectRenderer<Unit> {
+              override fun HazeEffectDrawScope.draw(style: Unit) {
+                ownerDrawsAtMemberDraw += owner.draws
+                drawInput()
+              }
+            }
+          },
+          Unit, Rect(10f, 15f, 70f, 75f), listOf(member.surface),
+        )
+        listOf(checkNotNull(configured).surface)
+      }
+      setContent {
+        Box(Modifier.size(160.dp).testTag("root").background(Color.White)) {
+          Box(Modifier.size(160.dp).hazeSource(state).background(Color.Red))
+          Box(Modifier.offset(20.dp, 10.dp).size(120.dp).then(OwnerElement(owner))) {
+            Box(Modifier.offset(10.dp, 15.dp).size(60.dp).hazeEffect(member, HazeInput.Backdrop(state), Unit))
+          }
+        }
+      }
+      assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[60, 60]).isEqualTo(Color.Red)
+      // The source records no layer while the Backdrop is native, so the first owner draw after the
+      // switch has no input. The accepted bound is that the effect draws by the second owner draw.
+      assertThat(ownerDrawsAtMemberDraw).isNotEmpty()
+      assertThat(ownerDrawsAtMemberDraw.first()).isLessThanOrEqualTo(2)
+      runOnIdle {
+        configured?.dispose()
+        owner.resolveSurfaces = null
+      }
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousFlag
+    }
   }
 
   @Test

@@ -40,8 +40,12 @@ public sealed interface HazeInput {
    * another window. To consume sources from the window behind, use [Sources] directly.
    *
    * The experimental flag defaults to `false` and is read when the modifier node attaches.
-   * Changing it affects later attachments only. A native-to-source fallback transition can take
-   * one frame and remains selected until detachment after a known native failure.
+   * Changing it affects later attachments only. After a known native failure the fallback remains
+   * selected until detachment.
+   *
+   * When a native Backdrop switches to its [fallback], the first frame after the switch draws the
+   * effect without input. The sources only record their layers while an effect asks for them, and
+   * on the native path no effect does. Later frames have input.
    *
    * @property fallback Optional source input used only when the native backdrop is unavailable or
    * fails. A `null` fallback leaves the content unchanged when native backdrop rendering is not
