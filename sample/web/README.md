@@ -73,6 +73,8 @@ playback, reset, and recording controls; navigation back to the sample browser i
 | Layer Transformations | `layer-transformations` | `blur`, `glass` |
 | Glass — Product | `glass-product` | `glass` |
 | Glass — Playground | `glass-playground` | `glass` |
+| Glass — Music Player | `glass-music-player` | `glass` |
+| Glass — Shape Morph | `glass-shape-morph` | `glass` |
 | Glass — Container | `glass-container` | `glass` |
 | Glass — Container Showcase | `glass-container-showcase` | `glass` |
 
