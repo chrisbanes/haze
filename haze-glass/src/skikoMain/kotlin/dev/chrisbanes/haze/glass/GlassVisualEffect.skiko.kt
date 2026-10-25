@@ -3,4 +3,8 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.ui.graphics.drawscope.DrawScope
+
 internal actual fun isRuntimeShaderGlassSupported(): Boolean = true
+
+internal actual fun DrawScope.isGlassHardwareCanvas(): Boolean = true

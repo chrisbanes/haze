@@ -3,20 +3,27 @@
 
 package dev.chrisbanes.haze.glass
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocal
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.hasMessage
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
@@ -37,6 +44,7 @@ import kotlinx.coroutines.CoroutineScope
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
 class GlassRuntimeEffectAndroidCapabilityTest {
@@ -205,6 +213,33 @@ class GlassRuntimeEffectAndroidCapabilityTest {
 
   @Test
   @Config(sdk = [35])
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  fun softwareCanvas_selectsFallbackAndRecoversOnHardwareCanvas() {
+    val configuration = GlassNodeConfiguration(style = GlassStyle, interactionSource = null)
+    val effect = GlassRuntimeEffect(configuration)
+    val context = AndroidCapabilityContext()
+    val software = Canvas(ImageBitmap(100, 100))
+    val hardware = Canvas(
+      object : android.graphics.Canvas(Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)) {
+        override fun isHardwareAccelerated(): Boolean = true
+      },
+    )
+
+    context.prepareDraw(effect, configuration, software)
+
+    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(effect.preparedRender).isNull()
+
+    // Reaching the runtime delegate's layer allocation is as far as this context can go.
+    assertFailure { context.prepareDraw(effect, configuration, hardware) }
+      .hasMessage(LAYER_REJECTED)
+
+    assertThat(effect.delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
+    assertThat(effect.preparedRender).isNotNull()
+  }
+
+  @Test
+  @Config(sdk = [35])
   fun runtimeEffectFactoryChange_replacesRuntimeDelegate() {
     val effect = GlassRuntimeEffect()
     val context = AndroidCapabilityContext()
@@ -225,9 +260,17 @@ class GlassRuntimeEffectAndroidCapabilityTest {
 @OptIn(InternalComposeUiApi::class, InternalHazeApi::class)
 private class AndroidCapabilityContext(
   private val contextSize: Size = Size(100f, 100f),
+  private val drawScope: CanvasDrawScope = CanvasDrawScope(),
 ) :
   HazeEffectRuntimeDrawScope,
-  DrawScope by CanvasDrawScope() {
+  DrawScope by drawScope {
+
+  fun prepareDraw(effect: GlassRuntimeEffect, configuration: GlassNodeConfiguration, canvas: Canvas) {
+    drawScope.draw(Density(1f), LayoutDirection.Ltr, canvas, contextSize) {
+      with(effect) { this@AndroidCapabilityContext.prepareDraw(configuration) }
+    }
+  }
+
   override val modifierSize: Size = contextSize
   override val modifierBounds: Rect = Rect(Offset.Zero, modifierSize)
   override val sampling: HazeSampling = HazeSampling.FullResolution
@@ -242,7 +285,7 @@ private class AndroidCapabilityContext(
   @Suppress("UNCHECKED_CAST")
   override fun <T> currentValueOf(local: CompositionLocal<T>): T = LayoutDirection.Ltr as T
 
-  override fun requireGraphicsContext(): GraphicsContext = error("Unused")
+  override fun requireGraphicsContext(): GraphicsContext = RejectingGraphicsContext
 
   override fun drawInput() = Unit
 
@@ -253,3 +296,11 @@ private class AndroidCapabilityContext(
 
 @OptIn(InternalHazeApi::class)
 private object AndroidCapabilityInputSnapshot : HazeEffectInputSnapshot
+
+private const val LAYER_REJECTED = "Graphics layers are not available in this test"
+
+private object RejectingGraphicsContext : GraphicsContext {
+  override fun createGraphicsLayer(): GraphicsLayer = error(LAYER_REJECTED)
+
+  override fun releaseGraphicsLayer(layer: GraphicsLayer) = Unit
+}
