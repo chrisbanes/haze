@@ -30,6 +30,8 @@ package dev.chrisbanes.haze
  * Sharing reduces the CPU cost of replaying an expensive source on a busy RenderThread, but the
  * offscreen layer is re-rendered whenever the source changes, which adds GPU work while it scrolls.
  * Sources default to [Never]; measure before opting a source in.
+ *
+ * Future minor releases may add entries. Keep an `else` branch when you match exhaustively with `when`.
  */
 @ExperimentalHazeApi
 public enum class HazeInputSharing {
@@ -40,6 +42,9 @@ public enum class HazeInputSharing {
    * The source re-decides this on every draw. As effects come and go, crossing between one and two
    * consumers allocates or frees the source-sized layer and turns the source's overflow clipping on
    * or off. Use [Always] for a source that draws outside its bounds.
+   *
+   * Each member of a Glass container counts as its own consumer, even when its cluster samples the
+   * source once. Two members over one source are therefore enough to share it.
    */
   Auto,
 
