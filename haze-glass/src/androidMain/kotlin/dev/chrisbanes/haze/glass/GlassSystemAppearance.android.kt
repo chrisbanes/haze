@@ -1,11 +1,14 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(InternalHazeApi::class)
+
 package dev.chrisbanes.haze.glass
 
 import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
+import dev.chrisbanes.haze.InternalHazeApi
 
 internal actual fun readPlatformGlassSystemAppearance(scope: HazeEffectLifecycleScope): GlassSystemAppearance =
   when (scope.currentValueOf(LocalConfiguration).uiMode and Configuration.UI_MODE_NIGHT_MASK) {

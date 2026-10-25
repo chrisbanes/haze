@@ -88,9 +88,10 @@ kotlin {
     }
   }
 
-  compilerOptions {
-    optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
-    optIn.add("dev.chrisbanes.haze.InternalHazeApi")
+  // Main sources opt in file by file; tests use the experimental and internal APIs freely.
+  sourceSets.matching { it.name.endsWith("Test") }.configureEach {
+    languageSettings.optIn("dev.chrisbanes.haze.ExperimentalHazeApi")
+    languageSettings.optIn("dev.chrisbanes.haze.InternalHazeApi")
   }
 }
 

@@ -1,7 +1,7 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(androidx.compose.ui.InternalComposeUiApi::class)
+@file:OptIn(androidx.compose.ui.InternalComposeUiApi::class, InternalHazeApi::class)
 @file:Suppress("DEPRECATION")
 
 package dev.chrisbanes.haze.glass
@@ -9,6 +9,7 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
+import dev.chrisbanes.haze.InternalHazeApi
 
 internal actual fun readPlatformGlassSystemAppearance(scope: HazeEffectLifecycleScope): GlassSystemAppearance =
   when (scope.currentValueOf(LocalSystemTheme)) {
