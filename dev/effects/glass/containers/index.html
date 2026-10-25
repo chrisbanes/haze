@@ -1444,7 +1444,8 @@ distance, a bridge forms.</p>
   bridge.</li>
 <li><strong>No rotation or scale.</strong> A member rotated or scaled by its layout, for example with
   <code>graphicsLayer</code>, draws separately. Translation and a layer alpha, such as an <code>AnimatedVisibility</code>
-  fade, don't prevent merging.</li>
+  fade, don't prevent merging, but the alpha doesn't fade the member's glass
+  (see <a href="#lazy-layouts">Lazy layouts</a>).</li>
 <li><strong>Adjacent in order.</strong> Members are ordered by their position in the layout tree, which is
   composition order in a <code>Row</code> or <code>Column</code>. A member that hides and shows again keeps its place, and
   a leaving member's glass keeps its place until its animation ends. Only members next to each other
@@ -1575,7 +1576,10 @@ animation immediately.</p>
 
 <span class="n">LazyRow</span><span class="p">(</span>
 <span class="w">  </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listState</span><span class="p">,</span>
-<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlassContainer</span><span class="p">(</span><span class="n">mergeDistance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">16.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="n">scrollState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listState</span><span class="p">),</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">    </span><span class="c1">// The container draws its members' glass, so it must sit inside any clip that should cut it.</span>
+<span class="w">    </span><span class="p">.</span><span class="na">clipToBounds</span><span class="p">()</span>
+<span class="w">    </span><span class="p">.</span><span class="na">hazeGlassContainer</span><span class="p">(</span><span class="n">mergeDistance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">16.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="n">scrollState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">horizontalArrangement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arrangement</span><span class="p">.</span><span class="na">spacedBy</span><span class="p">(</span><span class="m">8.</span><span class="n">dp</span><span class="p">),</span>
 <span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">items</span><span class="p">(</span><span class="n">chips</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">it</span><span class="p">.</span><span class="na">id</span><span class="w"> </span><span class="p">})</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">chip</span><span class="w"> </span><span class="o">-&gt;</span>
@@ -1589,6 +1593,16 @@ animation immediately.</p>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
+<p>The container draws its members' glass itself, on its own canvas, and a lazy layout clips to its
+viewport after the modifiers you pass it. Without <code>clipToBounds()</code> before the container, a chip
+scrolled half out of an inset list is clipped, but its glass still draws in full over the padding or
+header around the list. Without <code>scrollState</code>, the trailing ghost of a chip that scrolled out draws
+entirely outside the list. Put <code>Modifier.clipToBounds()</code> before <code>hazeGlassContainer(...)</code>, as above.
+The clip cuts all glass at the list bounds, including overflow that you want, such as a bridge or an
+expanded layer bound.</p>
+<p>The same applies to anything between the container and a member. A clip or a <code>graphicsLayer</code> alpha
+on a layout there applies to the member's content, but not to its glass. To fade glass, use the
+style's <code>alpha</code>.</p>
 <p>Drags, flings, <code>animateScrollBy</code> and <code>scrollToItem</code> are scrolls. Position changes made outside a
 scroll, such as <code>requestScrollToItem</code> or <code>dispatchRawDelta</code>, are not, so their items animate.</p>
 <p>Members follow the lazy layout's own child order, which is item order once the list has measured
