@@ -197,6 +197,9 @@ internal class GlassContainerNode(
   private var children: GraphicsLayer? = null
   private var membersClaimed = false
   private var refreshing = false
+
+  /** True while [renderer] reconciles during a draw; the surfaces it creates, updates and disposes are not membership changes. */
+  private var reconciling = false
   private var mergeDistanceCheckPending = false
 
   /** Set by [memberChanged]; the next draw (or a leaving member's ghost) reclusters once for all of them. */
@@ -279,6 +282,20 @@ internal class GlassContainerNode(
    * members the walk does not visit keep their slots.
    */
   private fun orderRegistrationsByLayout() {
+    val (slots, visited) = layoutOrderedSlots()
+    slots.forEachIndexed { i, slot -> registrations[slot] = visited[i] }
+  }
+
+  /**
+   * Whether layout has reordered members without moving them. Nothing is placed again then, and
+   * only a reconcile's own notifications used to bring the container back to reorder them.
+   */
+  private fun layoutOrderChanged(): Boolean {
+    val (slots, visited) = layoutOrderedSlots()
+    return slots.indices.any { registrations[slots[it]] !== visited[it] }
+  }
+
+  private fun layoutOrderedSlots(): Pair<List<Int>, List<GlassMemberNode>> {
     val ordered = mutableListOf<GlassMemberNode>()
     traverseDescendants(GlassMemberTraversalKey) {
       // Members of a nested container register with that container.
@@ -289,8 +306,7 @@ internal class GlassContainerNode(
     val registered = registrations.toHashSet()
     val visited = ordered.filter { it in registered }
     val visitedSet = visited.toHashSet()
-    val slots = registrations.indices.filter { registrations[it] in visitedSet }
-    slots.forEachIndexed { i, slot -> registrations[slot] = visited[i] }
+    return registrations.indices.filter { registrations[it] in visitedSet } to visited
   }
 
   /**
@@ -621,12 +637,17 @@ internal class GlassContainerNode(
     }
   }
 
-  override fun onSurfaceChanged(surface: HazeEffectSurface) = memberChanged()
-  override fun onSurfaceReleased(surface: HazeEffectSurface) = memberChanged()
+  // A release outside draw (releaseMember, remove) still notifies; the renderer's own slots do not.
+  override fun onSurfaceChanged(surface: HazeEffectSurface) {
+    if (!reconciling) memberChanged()
+  }
+  override fun onSurfaceReleased(surface: HazeEffectSurface) {
+    if (!reconciling) memberChanged()
+  }
   override fun canComposeNativeSurfaces(bounds: Rect): Boolean = renderer.canComposeNativeSurfaces(bounds)
 
   override fun ContentDrawScope.draw() {
-    if (reclusterPending || mergeDistanceCheckPending) recluster(layoutComplete = true)
+    if (reclusterPending || mergeDistanceCheckPending || (surfaceCoordinates != null && layoutOrderChanged())) recluster(layoutComplete = true)
     // A detached node (deactivated reusable content) can still be drawn once more.
     val layer = children ?: return
     drawHazeEffectSurfaces(
@@ -635,7 +656,12 @@ internal class GlassContainerNode(
         // Recording the children can publish a member's first material, which would otherwise
         // reach the model a frame late.
         if (reclusterPending) recluster(layoutComplete = true)
-        renderer.reconcile()
+        reconciling = true
+        try {
+          renderer.reconcile()
+        } finally {
+          reconciling = false
+        }
       },
       layer,
     )

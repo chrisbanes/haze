@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -140,6 +141,64 @@ class GlassContainerMembershipTest : ContextTest() {
     assertThat(container(first)).isSameInstanceAs(container)
     assertThat(container(second)).isSameInstanceAs(container)
     assertThat(container.model.surfaces).hasSize(2)
+  }
+
+  @Test
+  fun clusterMerge_surfaceCreationDoesNotScheduleAnotherReclusterPass() = runComposeUiTest {
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    val secondX = mutableIntStateOf(300)
+    val redraws = mutableIntStateOf(0)
+    setContent {
+      Box(Modifier.size(500.dp, 100.dp).drawBehind { redraws.intValue }.hazeGlassContainer(40.dp)) {
+        Member(first)
+        Member(second, Modifier.offset { IntOffset(secondX.intValue.dp.roundToPx(), 0) }.size(100.dp, 40.dp))
+      }
+    }
+    waitForIdle()
+    val container = container(first)
+    assertThat(container.model.surfaces).hasSize(2)
+    val before = container.reclusterPasses
+
+    // The merge replaces two cluster surfaces with one. Creating and disposing them while the
+    // container draws must not mark it dirty again, or the settled frame reclusters a second time.
+    runOnIdle { secondX.intValue = 110 }
+    mainClock.advanceTimeBy(2_000)
+    waitForIdle()
+
+    assertThat(container.model.surfaces).hasSize(1)
+    // A dirty flag left behind by the draw would recluster on the next draw, whatever caused it.
+    runOnIdle { redraws.intValue++ }
+    waitForIdle()
+    assertThat(container.reclusterPasses - before).isEqualTo(1)
+  }
+
+  @Test
+  fun surfaceNotifications_outsideReconcileStillReclusterTheContainer() = runComposeUiTest {
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    setContent {
+      Box(Modifier.size(500.dp, 100.dp).hazeGlassContainer(40.dp)) {
+        Member(first)
+        Member(second, Modifier.offset(110.dp, 0.dp).size(100.dp, 40.dp))
+      }
+    }
+    waitForIdle()
+    val container = container(first)
+    val surface = checkNotNull(second.memberBindingForTest?.node?.binding?.surface)
+
+    // Only the renderer's own cluster surfaces are silent, and only while it reconciles in a draw.
+    val beforeChange = container.reclusterPasses
+    runOnIdle { container.onSurfaceChanged(surface) }
+    mainClock.advanceTimeBy(2_000)
+    waitForIdle()
+    assertThat(container.reclusterPasses - beforeChange).isEqualTo(1)
+
+    val beforeRelease = container.reclusterPasses
+    runOnIdle { container.onSurfaceReleased(surface) }
+    mainClock.advanceTimeBy(2_000)
+    waitForIdle()
+    assertThat(container.reclusterPasses - beforeRelease).isEqualTo(1)
   }
 
   @Test
