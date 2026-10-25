@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
@@ -30,6 +31,7 @@ import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.captureToImage
@@ -191,6 +193,67 @@ class GlassContainerTransitionTest : ContextTest() {
     assertThat(fixture.owner().renderer.runtimeSurfaces).isEmpty()
     assertThat(fixture.owner().model.surfaces.single().members.single().identity).isEqualTo(fixture.aNode)
     assertThat(fixture.capture()[200, 100]).isEqualTo(Color.White)
+  }
+
+  @Test
+  fun matchedGeometry_unplace_retractsGhostIntoNeighbourThenReleases() = runComposeUiTest {
+    val fixture = fixture()
+    fixture.owner()
+    fixture.b()
+    runOnIdle { fixture.bPlaced.value = false }
+    fixture.advance(16)
+    assertThat(fixture.b()).all {
+      prop(GlassMemberSnapshot::identity).isInstanceOf<GlassMemberGhost>()
+      prop(GlassMemberSnapshot::rect).isCloseTo(Rect(150f, 60f, 250f, 140f))
+    }
+    // The member stays registered, only its parent stopped placing it.
+    assertThat(fixture.b.memberBindingForTest?.node?.container).isNotNull()
+    fixture.settle()
+    assertThat(fixture.owner().model.surfaces.single().members.single().identity).isEqualTo(fixture.aNode)
+  }
+
+  @Test
+  fun noneTransition_unplaceLeavesImmediately() = runComposeUiTest {
+    val fixture = fixture(transition = GlassMemberTransition.None)
+    fixture.owner()
+    fixture.b()
+    runOnIdle { fixture.bPlaced.value = false }
+    fixture.advance(16)
+    val members = fixture.owner().model.surfaces.flatMap { it.members }
+    assertThat(members.map { it.identity }).containsExactly(fixture.aNode)
+    fixture.settle()
+  }
+
+  @Test
+  fun unplacedMember_placedAgainMidGhost_endsGhostAndGrowsBack() = runComposeUiTest {
+    val fixture = fixture()
+    fixture.owner()
+    fixture.b()
+    runOnIdle { fixture.bPlaced.value = false }
+    fixture.advance(16)
+    runOnIdle { fixture.bPlaced.value = true }
+    fixture.advance(16)
+    // b() uses single, so the ghost has ended and only the live member remains.
+    assertThat(fixture.b()).all {
+      prop(GlassMemberSnapshot::identity).isInstanceOf<GlassMemberNode>()
+      prop(GlassMemberSnapshot::link).isNotNull()
+    }
+    fixture.settle()
+    assertThat(fixture.b().rect).isCloseTo(Rect(150f, 60f, 250f, 140f))
+  }
+
+  @Test
+  fun unplacedMember_detachedAfterLeaving_makesNoSecondGhost() = runComposeUiTest {
+    val fixture = fixture()
+    fixture.owner()
+    val bNode = checkNotNull(fixture.b.memberBindingForTest?.node)
+    runOnIdle { fixture.bPlaced.value = false }
+    fixture.advance(16)
+    runOnIdle { fixture.present.value = false }
+    fixture.advance(16)
+    val ghosts = fixture.owner().model.surfaces.flatMap { it.members }.filter { it.identity is GlassMemberGhost }
+    assertThat(ghosts.map { (it.identity as GlassMemberGhost).last.identity }).containsExactly(bNode)
+    fixture.settle()
   }
 
   @Test
@@ -1293,6 +1356,7 @@ class GlassContainerTransitionTest : ContextTest() {
     val aExtra = mutableStateOf(GlassStyle { })
     val bSourced = mutableStateOf(false)
     val bCollapsed = mutableStateOf(false)
+    val bPlaced = mutableStateOf(true)
     val mergeDistance = mutableStateOf(40)
 
     val aSource = MutableInteractionSource()
@@ -1438,20 +1502,22 @@ class GlassContainerTransitionTest : ContextTest() {
           ) {
             if (bPresent.value) {
               CompositionLocalProvider(LocalGlassAccessibilitySettings provides bAccessibility) {
-                Box(
-                  Modifier.offset((140 + gap).dp, 60.dp).size(if (fixture.bCollapsed.value) 0.dp else bSize.width.dp, bSize.height.dp).graphicsLayer { rotationZ = fixture.bRotation.value }.hazeGlass(
-                    HazeEffectFactory { b },
-                    HazeInput.Sources(state),
-                    containerTestStyle(bTint).then(bStyle).then(fixture.bExtra.value),
-                    HazePerformanceMode.Quality,
-                    true,
-                    fixture.bSource,
-                    interactionTransformPivot = bPivot,
-                    memberTransition = transition,
-                    groupKey = "group".takeIf { grouped },
-                  ),
-                ) {
-                  Box(Modifier.size(10.dp).background(Color.Green))
+                UnplaceGate(fixture.bPlaced) {
+                  Box(
+                    Modifier.offset((140 + gap).dp, 60.dp).size(if (fixture.bCollapsed.value) 0.dp else bSize.width.dp, bSize.height.dp).graphicsLayer { rotationZ = fixture.bRotation.value }.hazeGlass(
+                      HazeEffectFactory { b },
+                      HazeInput.Sources(state),
+                      containerTestStyle(bTint).then(bStyle).then(fixture.bExtra.value),
+                      HazePerformanceMode.Quality,
+                      true,
+                      fixture.bSource,
+                      interactionTransformPivot = bPivot,
+                      memberTransition = transition,
+                      groupKey = "group".takeIf { grouped },
+                    ),
+                  ) {
+                    Box(Modifier.size(10.dp).background(Color.Green))
+                  }
                 }
               }
             }
@@ -1472,6 +1538,17 @@ class GlassContainerTransitionTest : ContextTest() {
 
   private class SwitchableMotion : MotionDurationScale {
     override var scaleFactor: Float = 1f
+  }
+}
+
+/** Measures [content] but places it only while [placed] is true, so the parent leaves it attached and unplaced. */
+@Composable
+private fun UnplaceGate(placed: State<Boolean>, content: @Composable () -> Unit) {
+  Layout(content) { measurables, constraints ->
+    val placeables = measurables.map { it.measure(constraints) }
+    layout(placeables.maxOf { it.width }, placeables.maxOf { it.height }) {
+      if (placed.value) placeables.forEach { it.place(0, 0) }
+    }
   }
 }
 

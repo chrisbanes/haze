@@ -11,6 +11,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.TraversableNode
+import androidx.compose.ui.node.UnplacedAwareModifierNode
 import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.node.requireLayoutCoordinates
 import androidx.compose.ui.platform.InspectorInfo
@@ -112,10 +113,14 @@ internal class GlassMemberNode(
   var binding: GlassMemberBinding,
   var transition: GlassMemberTransition,
   var groupKey: Any? = null,
-) : Modifier.Node(), LayoutAwareModifierNode, TraversableNode {
+) : Modifier.Node(), LayoutAwareModifierNode, UnplacedAwareModifierNode, TraversableNode {
   override val traverseKey: Any get() = GlassMemberTraversalKey
 
   var container: GlassContainerNode? = null
+    private set
+
+  /** Whether the parent has stopped placing this attached member, for example a lazy item that scrolled out. */
+  var isUnplaced: Boolean = false
     private set
 
   override fun onAttach() {
@@ -123,7 +128,18 @@ internal class GlassMemberNode(
     connect()
   }
 
-  override fun onPlaced(coordinates: LayoutCoordinates) = connect()
+  override fun onPlaced(coordinates: LayoutCoordinates) {
+    val wasUnplaced = isUnplaced
+    isUnplaced = false
+    connect()
+    if (wasUnplaced) changed()
+  }
+
+  override fun onUnplaced() {
+    if (!isAttached || isUnplaced) return
+    isUnplaced = true
+    changed()
+  }
 
   fun connect() {
     if (!isAttached) return
@@ -171,6 +187,8 @@ internal class GlassMemberNode(
 
   override fun onDetach() {
     container?.remove(this)
+    // After remove, so it still sees an unplaced member; a reactivated node with an unchanged layout is not placed again.
+    isUnplaced = false
     container = null
     binding.surface?.relocateTo(null)
     binding.runtime?.opticalSizeOverride = null
