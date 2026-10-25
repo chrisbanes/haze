@@ -223,6 +223,40 @@ class GlassProfilingBenchmark {
   @Test
   fun lazyContainerScroll() = measureScenario("lazy_container_scroll", includeMemory = true)
 
+  @Test
+  fun containerGap2() = measureScenario(
+    scenarioId = "container_gap_2",
+    includeMemory = true,
+    includeRedrawMetrics = true,
+  )
+
+  @Test
+  fun containerJoinLeave() = measureScenario(
+    scenarioId = "container_join_leave",
+    includeMemory = true,
+    includeRedrawMetrics = true,
+  )
+
+  @Test
+  fun containerGroup3() = measureScenario(
+    scenarioId = "container_group_3",
+    includeMemory = true,
+    includeRedrawMetrics = true,
+  )
+
+  @Test
+  fun containerPress2() = measureScenario(
+    scenarioId = "container_press_2",
+    includeMemory = true,
+    includeRedrawMetrics = true,
+  )
+
+  @Test
+  fun lazyIndependentScroll() = measureScenario("lazy_independent_scroll", includeMemory = true)
+
+  @Test
+  fun effectAttachContainer2() = measureColdInitializationScenario("effect_attach_container_2")
+
   private fun measureColdInitializationScenario(scenarioId: String) {
     measureScenario(
       scenarioId = scenarioId,

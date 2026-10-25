@@ -202,6 +202,10 @@ Regular Glass surfaces into one cluster over a changing source left about 4.5 ms
 deadline margin at P90 and used about 7% more peak GPU memory than drawing them independently,
 even though its CPU frame duration P90 was 0.35 ms lower
 ([conditions and limits](benchmark-results.md#glass-containers)).
+These figures come from an earlier 2.1 development build (`33e2371a`) that predates later
+container changes, including [#1604](https://github.com/chrisbanes/haze/pull/1604), and they will
+be replaced. The measured pair rests closer than half the merge distance, so members resting
+between half and the full merge distance, which take a different shader path, are not covered.
 
 For styling examples, see the [Glass overview](effects/glass/index.md).
 

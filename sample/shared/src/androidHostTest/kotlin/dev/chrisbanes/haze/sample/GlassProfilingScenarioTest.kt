@@ -7,17 +7,23 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
+import assertk.assertions.isBetween
 import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isGreaterThan
+import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
+import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.OpticalSizeValue
+import kotlin.math.abs
 import kotlin.test.Test
 
 class GlassProfilingScenarioTest {
@@ -185,6 +191,12 @@ class GlassProfilingScenarioTest {
         "source_scroll_balanced",
         "source_scroll_balanced_9",
         "lazy_container_scroll",
+        "container_gap_2",
+        "container_join_leave",
+        "container_group_3",
+        "container_press_2",
+        "lazy_independent_scroll",
+        "effect_attach_container_2",
       ),
     )
     assertThat(
@@ -260,6 +272,10 @@ class GlassProfilingScenarioTest {
         GlassProfilingScenario.SourceUpdateNoGlass,
         GlassProfilingScenario.SourceUpdateIndependent2,
         GlassProfilingScenario.SourceUpdateContainer2,
+        GlassProfilingScenario.ContainerGap2,
+        GlassProfilingScenario.ContainerJoinLeave,
+        GlassProfilingScenario.ContainerGroup3,
+        GlassProfilingScenario.ContainerPress2,
         -> setOf("sourceOffset")
         else -> emptySet()
       }
@@ -347,7 +363,11 @@ class GlassProfilingScenarioTest {
         scenario == GlassProfilingScenario.BackdropSourceUpdate9 ||
         scenario == GlassProfilingScenario.SourceUpdateNoGlass ||
         scenario == GlassProfilingScenario.SourceUpdateIndependent2 ||
-        scenario == GlassProfilingScenario.SourceUpdateContainer2
+        scenario == GlassProfilingScenario.SourceUpdateContainer2 ||
+        scenario == GlassProfilingScenario.ContainerGap2 ||
+        scenario == GlassProfilingScenario.ContainerJoinLeave ||
+        scenario == GlassProfilingScenario.ContainerGroup3 ||
+        scenario == GlassProfilingScenario.ContainerPress2
 
       assertThat(readCount, name = scenario.id).isEqualTo(if (updatesSource) 1 else 0)
       assertThat(resolved, name = scenario.id).isEqualTo(if (updatesSource) 0.75f else 0f)
@@ -389,7 +409,8 @@ class GlassProfilingScenarioTest {
     }
     assertThat(independent.containerMergeDistance).isNull()
     assertThat(container.containerMergeDistance).isEqualTo(32.dp)
-    // The members merge only when their gap is less than half of the merge distance.
+    // The members join one cluster below the merge distance. This gap is also below half of it, so
+    // the shader's standalone weight stays 0.
     assertThat(container.memberGap).isLessThan(checkNotNull(container.containerMergeDistance) / 2)
 
     val independentOffset = glassProfilingFrame(independent, 0.75f).sourceOffset
@@ -398,11 +419,114 @@ class GlassProfilingScenarioTest {
   }
 
   @Test
+  fun containerScenarios_restWithGapBetweenHalfAndFullMergeDistance() {
+    val control = GlassProfilingScenario.SourceUpdateContainer2
+    val scenario = GlassProfilingScenario.ContainerGap2
+    val mergeDistance = checkNotNull(scenario.containerMergeDistance)
+
+    assertThat(scenario.memberGap).isGreaterThan(mergeDistance / 2)
+    assertThat(scenario.memberGap).isLessThan(mergeDistance)
+    assertThat(scenario.effectCount).isEqualTo(control.effectCount)
+    assertThat(scenario.performanceMode).isEqualTo(control.performanceMode)
+    assertThat(scenario.containerMergeDistance).isEqualTo(control.containerMergeDistance)
+    assertThat(scenario.usesBackdrop).isEqualTo(control.usesBackdrop)
+    assertThat(glassProfilingFrame(scenario, 0.75f).sourceOffset)
+      .isEqualTo(glassProfilingFrame(control, 0.75f).sourceOffset)
+  }
+
+  @Test
+  fun groupScenario_sharesOneGroupKey() {
+    val scenario = GlassProfilingScenario.ContainerGroup3
+
+    assertThat(scenario.groupKey).isNotNull()
+    assertThat(scenario.effectCount).isEqualTo(3)
+    assertThat(scenario.memberGap).isGreaterThanOrEqualTo(checkNotNull(scenario.containerMergeDistance))
+    (GlassProfilingScenario.entries - scenario).forEach {
+      assertThat(it.groupKey, name = it.id).isNull()
+    }
+  }
+
+  @Test
+  fun joinLeaveScenario_changesMembershipOneMemberPerHalfSecond() {
+    val scenario = GlassProfilingScenario.ContainerJoinLeave
+    assertThat(scenario.joinsAndLeaves).isTrue()
+    assertThat(scenario.effectCount).isEqualTo(4)
+
+    val progress = listOf(0f, 0.1f, 0.2f, 0.34f, 0.5f, 0.67f, 0.84f, 1f)
+    assertThat(progress.map(::glassProfilingJoinLeaveMemberCount))
+      .isEqualTo(listOf(2, 2, 3, 4, 3, 2, 3, 3))
+
+    val counts = (0..100).map { glassProfilingJoinLeaveMemberCount(it / 100f) }
+    counts.forEach { assertThat(it).isBetween(2, scenario.effectCount) }
+    counts.zipWithNext().forEach { (a, b) -> assertThat(abs(a - b)).isLessThanOrEqualTo(1) }
+    GlassProfilingScenario.entries.filter { it != scenario }.forEach {
+      assertThat(it.joinsAndLeaves, name = it.id).isFalse()
+    }
+  }
+
+  @Test
+  fun pressScenario_pressesFirstMemberInThreeCycles() {
+    val control = GlassProfilingScenario.SourceUpdateContainer2
+    val scenario = GlassProfilingScenario.ContainerPress2
+
+    assertThat(scenario.pressesMergedMember).isTrue()
+    GlassProfilingScenario.entries.filter { it != scenario }.forEach {
+      assertThat(it.pressesMergedMember, name = it.id).isFalse()
+    }
+    assertThat(scenario.effectCount).isEqualTo(control.effectCount)
+    assertThat(scenario.memberGap).isEqualTo(control.memberGap)
+    assertThat(scenario.containerMergeDistance).isEqualTo(control.containerMergeDistance)
+    assertThat(scenario.performanceMode).isEqualTo(control.performanceMode)
+
+    val pressed = (0..1_000).map { glassProfilingPressed(it / 1_000f) }
+    assertThat(pressed.first()).isFalse()
+    assertThat(pressed.last()).isFalse()
+    val edges = pressed.zipWithNext()
+    assertThat(edges.count { (a, b) -> !a && b }).isEqualTo(3)
+    assertThat(edges.count { (a, b) -> a && !b }).isEqualTo(3)
+    assertThat(glassProfilingPressed(0.10f)).isTrue()
+    assertThat(glassProfilingPressed(0.25f)).isFalse()
+    assertThat(glassProfilingPressed(0.40f)).isTrue()
+    assertThat(glassProfilingPressed(0.55f)).isFalse()
+    assertThat(glassProfilingPressed(0.70f)).isTrue()
+    assertThat(glassProfilingPressed(0.85f)).isFalse()
+  }
+
+  @Test
+  fun lazyIndependentScroll_pairsLazyContainerScrollWithoutAContainer() {
+    val control = GlassProfilingScenario.LazyContainerScroll
+    val scenario = GlassProfilingScenario.LazyIndependentScroll
+
+    assertThat(scenario.scrollsLazyContainer).isTrue()
+    assertThat(scenario.containerMergeDistance).isNull()
+    assertThat(scenario.memberGap).isEqualTo(control.memberGap)
+    assertThat(scenario.performanceMode).isEqualTo(control.performanceMode)
+  }
+
+  @Test
+  fun effectAttachContainer2_attachesTheSameContainerPairAsContainer2() {
+    val control = GlassProfilingScenario.SourceUpdateContainer2
+    val scenario = GlassProfilingScenario.EffectAttachContainer2
+
+    assertThat(scenario.attachesDuringMeasurement).isTrue()
+    assertThat(scenario.prewarmsBeforeMeasurement).isFalse()
+    assertThat(scenario.effectCount).isEqualTo(control.effectCount)
+    assertThat(scenario.memberGap).isEqualTo(control.memberGap)
+    assertThat(scenario.containerMergeDistance).isEqualTo(control.containerMergeDistance)
+  }
+
+  @Test
   fun existingScenarios_keepTheirGeometryWithoutAContainer() {
     val containerPair = setOf(
       GlassProfilingScenario.SourceUpdateIndependent2,
       GlassProfilingScenario.SourceUpdateContainer2,
       GlassProfilingScenario.LazyContainerScroll,
+      GlassProfilingScenario.ContainerGap2,
+      GlassProfilingScenario.ContainerJoinLeave,
+      GlassProfilingScenario.ContainerGroup3,
+      GlassProfilingScenario.ContainerPress2,
+      GlassProfilingScenario.LazyIndependentScroll,
+      GlassProfilingScenario.EffectAttachContainer2,
     )
     (GlassProfilingScenario.entries - containerPair).forEach { scenario ->
       assertThat(scenario.memberGap, name = scenario.id).isEqualTo(0.dp)
@@ -574,7 +698,7 @@ class GlassProfilingScenarioTest {
       GlassProfilingScenario.entries
         .filter { it.attachesDuringMeasurement && !it.prewarmsBeforeMeasurement }
         .map(GlassProfilingScenario::effectCount),
-    ).isEqualTo(listOf(1, 3, 9))
+    ).isEqualTo(listOf(1, 3, 9, 2))
 
     GlassProfilingScenario.entries
       .filter { it.glassEnabled && !it.attachesDuringMeasurement }
