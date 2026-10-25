@@ -26,6 +26,8 @@ import dev.chrisbanes.haze.HazeFeatureFlags
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -90,21 +92,45 @@ class BlurBackdropFallbackInstrumentationTest {
     }
     composeTestRule.waitForIdle()
 
+    // RenderScript (API 30) delivers its first blurred frame asynchronously, after waitForIdle().
+    var samples = captureSamples()
+    repeat(39) {
+      if (samples.softensBothEdges()) return@repeat // Settled; remaining iterations are no-ops.
+      CountDownLatch(1).await(100, TimeUnit.MILLISECONDS)
+      samples = captureSamples()
+    }
+    val (blackInterior, blackNearEdge, whiteNearEdge, whiteInterior) = samples
+
+    assertThat(blackNearEdge - blackInterior, "Fallback softens the black side")
+      .isGreaterThan(SOFTEN_THRESHOLD)
+    assertThat(whiteInterior - whiteNearEdge, "Fallback softens the white side")
+      .isGreaterThan(SOFTEN_THRESHOLD)
+  }
+
+  private data class EdgeSamples(
+    val blackInterior: Float,
+    val blackNearEdge: Float,
+    val whiteNearEdge: Float,
+    val whiteInterior: Float,
+  ) {
+    fun softensBothEdges() = blackNearEdge - blackInterior > SOFTEN_THRESHOLD &&
+      whiteInterior - whiteNearEdge > SOFTEN_THRESHOLD
+  }
+
+  private fun captureSamples(): EdgeSamples {
     val pixels = composeTestRule.onNodeWithTag(EFFECT_TAG).captureToImage().toPixelMap()
     val centerX = pixels.width / 2
     val centerY = pixels.height / 2
-    val blackInterior = pixels[centerX - 60, centerY].red
-    val blackNearEdge = pixels[centerX - 3, centerY].red
-    val whiteNearEdge = pixels[centerX + 3, centerY].red
-    val whiteInterior = pixels[centerX + 60, centerY].red
-
-    assertThat(blackNearEdge - blackInterior, "Fallback softens the black side")
-      .isGreaterThan(0.05f)
-    assertThat(whiteInterior - whiteNearEdge, "Fallback softens the white side")
-      .isGreaterThan(0.05f)
+    return EdgeSamples(
+      blackInterior = pixels[centerX - 60, centerY].red,
+      blackNearEdge = pixels[centerX - 3, centerY].red,
+      whiteNearEdge = pixels[centerX + 3, centerY].red,
+      whiteInterior = pixels[centerX + 60, centerY].red,
+    )
   }
 
   private companion object {
+    const val SOFTEN_THRESHOLD = 0.05f
     const val EFFECT_TAG = "effect"
   }
 }
