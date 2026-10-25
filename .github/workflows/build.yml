@@ -160,10 +160,18 @@ jobs:
           restore-keys: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ matrix.shard }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-
 
       - name: Assemble and check
-        run: >
-          ./gradlew ${{ matrix.tasks }}
-          -Phaze.disableAppleTargets
-          -Pandroidx.baselineprofile.skipgeneration
+        run: |
+          # Stream a memory trail into the step log (#1693): a runner shutdown skips post-step
+          # diagnostics, but lines already streamed here survive it.
+          (
+            while true; do
+              echo "[mem] $(date -u +%T) $(free -m | awk '/^Mem:/ { printf "used=%sMB avail=%sMB", $3, $7 } /^Swap:/ { printf " swap=%sMB", $3 }')" \
+                "top: $(ps -eo rss=,comm= --sort=-rss | head -4 | awk '{ printf "%s=%dMB ", $2, $1 / 1024 }')"
+              sleep 15
+            done
+          ) &
+          trap 'kill $!' EXIT
+          ./gradlew ${{ matrix.tasks }} -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
         env:
           ORG_GRADLE_PROJECT_remoteBuildCacheUrl: ${{ secrets.GRADLE_REMOTE_CACHE_URL }}
           ORG_GRADLE_PROJECT_remoteBuildCacheUsername: ${{ secrets.GRADLE_REMOTE_CACHE_USERNAME }}
