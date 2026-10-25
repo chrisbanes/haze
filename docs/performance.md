@@ -89,7 +89,8 @@ Count each member of a Glass container, not each cluster, when you judge whether
 Every member is its own consumer, even when its cluster samples the source once, so two members
 over one source are enough.
 
-For a source that stays inside its bounds, the default zero outsets are enough:
+`inputSharing` is experimental, so opt in with `@OptIn(ExperimentalHazeApi::class)`. For a source
+that stays inside its bounds, the default zero outsets are enough:
 
 ```kotlin
 Modifier.hazeSource(state, inputSharing = HazeInputSharing.Auto)
@@ -223,7 +224,7 @@ for examples.
 
 !!! warning "Experimental native Backdrop"
 
-    Native rendering requires a hardware-accelerated window on Android 37.2 or later and
+    Native rendering requires a hardware-accelerated window on Android 17 (full SDK 37.2) or later and
     is disabled by default. Set `HazeFeatureFlags.isPlatformBackdropEnabled = true` before the
     effect is first composed to make it eligible. Unsupported configurations use source fallback.
     See [Android window backdrops](core-concepts.md#android-window-backdrops).

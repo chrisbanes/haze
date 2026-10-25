@@ -66,7 +66,7 @@ Image(
 
 ## Android window-backdrop Blur
 
-On Android 37.2 or later, [`HazeInput.Backdrop`][HazeInput.Backdrop] can blur the window backdrop natively. This is
+On Android 17 (full SDK 37.2) or later, [`HazeInput.Backdrop`][HazeInput.Backdrop] can blur the window backdrop natively. This is
 experimental and off by default. Enable it before the Blur modifiers you want to affect are
 attached:
 

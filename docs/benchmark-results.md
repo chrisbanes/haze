@@ -548,7 +548,7 @@ whose RenderThread is already close to its budget. Measure a source before optin
 
     **Reporter's real-app retest.** The report in
     [#1615](https://github.com/chrisbanes/haze/issues/1615) came from a different app and device.
-    A retest on that app is pending and has not been run, so these results neither confirm nor
+    These results come from the benchmark app, not that app, so they neither confirm nor
     contradict its findings.
 
     **Earlier results.** Input-sharing results measured before #1615 described a separate
@@ -694,9 +694,9 @@ overrun) in both builds. CPU frame duration does not measure GPU cost.
     about 0.5 ms would need more passes, again in alternating order.
 
     Raw JSON, benchmark messages, XML, and traces are retained locally, outside the repository,
-    under `~/dev/haze-worktrees/1437-artifacts/`: `before-903b02e9/` and `after-1f1c8a3a/`, each
-    with `pass1/` and `pass2/`. That directory also holds the dry-run XML, per-run device
-    readbacks, the two builds' APK hashes, and the trace-analysis scripts.
+    for the `before-903b02e9` and `after-1f1c8a3a` builds, each with two passes. The retained set
+    also holds the dry-run XML, per-run device readbacks, the two builds' APK hashes, and the
+    trace-analysis scripts.
 
 ## Representative workloads
 

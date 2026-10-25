@@ -39,7 +39,7 @@ unchanged and Haze does not demand source capture. A known unavailable or failed
 remains sticky until that modifier node detaches. Existing attached nodes keep the value observed
 at attachment; a later attachment reads the current value.
 
-The current implementation is experimental and has not established physical Android 37.2
+The current implementation is experimental and has not established physical Android 17 (full SDK 37.2)
 acceptance or a performance result. Those remain release gates. The rollout is deliberately
 staged: after acceptance a later release may enable the default, retain `false` temporarily as a
 regression escape hatch, and then remove the flag.
