@@ -72,11 +72,11 @@ class GlassContainerMembershipTest : ContextTest() {
       assertFailure { Modifier.hazeGlassContainer(value.dp) }.isInstanceOf<IllegalArgumentException>()
     }
     val spec = tween<Float>(321)
-    val element = Modifier.hazeGlassContainer(0.dp, transitionSpec = spec, reducedMotionPolicy = GlassReducedMotionPolicy.Reduced)
+    val element = Modifier.hazeGlassContainer(0.dp, memberTransitionSpec = spec, memberReducedMotionPolicy = GlassReducedMotionPolicy.Reduced)
       .foldIn<GlassContainerElement?>(null) { _, item -> item as? GlassContainerElement }
     assertThat(checkNotNull(element).mergeDistance).isEqualTo(0.dp)
-    assertThat(element.transitionSpec).isSameInstanceAs(spec)
-    assertThat(element.reducedMotionPolicy).isEqualTo(GlassReducedMotionPolicy.Reduced)
+    assertThat(element.memberTransitionSpec).isSameInstanceAs(spec)
+    assertThat(element.memberReducedMotionPolicy).isEqualTo(GlassReducedMotionPolicy.Reduced)
   }
 
   @Test
@@ -395,8 +395,8 @@ class GlassContainerMembershipTest : ContextTest() {
             Box(
               Modifier.size(200.dp, 100.dp).hazeGlassContainer(
                 40.dp,
-                transitionSpec = tween(300, easing = LinearEasing),
-                reducedMotionPolicy = GlassReducedMotionPolicy.Full,
+                memberTransitionSpec = tween(300, easing = LinearEasing),
+                memberReducedMotionPolicy = GlassReducedMotionPolicy.Full,
               ),
             ) {
               Box(

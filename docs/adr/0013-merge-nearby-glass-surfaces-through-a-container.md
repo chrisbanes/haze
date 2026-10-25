@@ -201,3 +201,10 @@ order draw as one Glass shape over the bounding box of their rects:
 
 A group becomes one member of the merged field, so the shaders and the field's members limit are
 unchanged. Not checked: iOS 26 or an on-device build.
+
+## Amendment: name the container's member-transition parameters (2026-10-24)
+
+The container's parameters are `memberTransitionSpec` and `memberReducedMotionPolicy`. They were
+renamed before release to match `hazeGlass`'s `memberTransition`, and to say that the policy
+covers member transitions only. Behavior is unchanged, and every earlier mention of `transitionSpec`
+or `reducedMotionPolicy` in this record refers to them.

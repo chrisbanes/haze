@@ -254,7 +254,7 @@ private fun GlassContainerScreenshotScene(
           drawRect(colour, Offset(x.toFloat(), y.toFloat()), Size(12f, 12f))
         }
       }
-      Box(Modifier.size(360.dp, 240.dp).then(if (enabled && scene != GlassContainerScene.InsetLazyRow) Modifier.hazeGlassContainer(40.dp, transitionSpec = transitionSpec) else Modifier)) {
+      Box(Modifier.size(360.dp, 240.dp).then(if (enabled && scene != GlassContainerScene.InsetLazyRow) Modifier.hazeGlassContainer(40.dp, memberTransitionSpec = transitionSpec) else Modifier)) {
         when (scene) {
           GlassContainerScene.InsetLazyRow -> LazyRow(
             state = rememberLazyListState(initialFirstVisibleItemScrollOffset = 40),

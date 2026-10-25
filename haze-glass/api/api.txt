@@ -176,7 +176,7 @@ package dev.chrisbanes.haze.glass {
   }
 
   public final class HazeGlassContainerKt {
-    method @KotlinOnly @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeGlassContainer(androidx.compose.ui.Modifier, optional androidx.compose.ui.unit.Dp mergeDistance, optional androidx.compose.foundation.gestures.ScrollableState? scrollState, optional androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> transitionSpec, optional dev.chrisbanes.haze.glass.GlassReducedMotionPolicy reducedMotionPolicy);
+    method @KotlinOnly @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeGlassContainer(androidx.compose.ui.Modifier, optional androidx.compose.ui.unit.Dp mergeDistance, optional androidx.compose.foundation.gestures.ScrollableState? scrollState, optional androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> memberTransitionSpec, optional dev.chrisbanes.haze.glass.GlassReducedMotionPolicy memberReducedMotionPolicy);
   }
 
   public final class HazeGlassKt {
