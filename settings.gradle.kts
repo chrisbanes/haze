@@ -9,9 +9,10 @@ pluginManagement {
 
   repositories {
     google {
-      content {
-        includeGroupByRegex(".*google.*")
-        includeGroupByRegex(".*android.*")
+      mavenContent {
+        includeGroupAndSubgroups("androidx")
+        includeGroupAndSubgroups("com.android")
+        includeGroupAndSubgroups("com.google")
       }
     }
     mavenCentral()
