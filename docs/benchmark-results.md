@@ -217,8 +217,9 @@ appearance and frame timing on the actual screen under normal scheduling.
 These comparisons measure `hazeGlassContainer` against independent Glass surfaces on a Pixel 8a
 running Android 17 (full SDK 37.2) at 60 Hz, with fixed-performance mode enabled and normal CPU
 scheduling. Every row uses [`HazePerformanceMode.Default`][HazePerformanceMode.Default],
-`HazeInput.Sources` and the Regular style over a continuously changing source, and runs eight
-measured iterations per pass. Each per-pass value pools the frames of that pass's eight iterations;
+`HazeInput.Sources` and the Regular style, and runs eight measured iterations per pass. The steady
+and animated comparisons use a continuously changing source; the lazy-scroll and first-appearance
+rows use a stationary source. Each per-pass value pools the frames of that pass's eight iterations;
 the tables show the **arithmetic mean of the two per-pass values**. Peak GPU memory uses each
 pass's median `memoryGpuMaxKb`. A second pass ran every method in the reverse order of the first.
 
@@ -246,14 +247,16 @@ its deadline at P90.
 ### Animated and resting container workloads
 
 Each row below changes one variable from the 12 dp container row above, except the three-member
-group, which has a different member count. They share its Glass settings and changing source.
+group and join and leave. The group has a different member count. Join and leave uses 60 × 120 dp
+members, against about 134 × 180 dp for the others, and varies their count from two to four. They
+share its Glass settings and changing source.
 
 | Workload | What changes | CPU frame duration P90 (ms) | Per-pass CPU P90 (ms) | Frame overrun P90 (ms) | Peak GPU memory (KB) |
 | --- | --- | ---: | --- | ---: | ---: |
 | Resting gap | Two members rest 24 dp apart, between half and the full merge distance | 4.70 | 4.76, 4.65 | -1.17 | 113,264 |
 | Group | Three members 48 dp apart, beyond the merge distance, share one `groupKey` | 4.58 | 4.62, 4.55 | -2.36 | 111,000 |
 | Press | The first member is pressed and released three times | 6.19 | 5.79, 6.59 | -1.60 | 113,484 |
-| Join and leave | Members join and leave one slot at a time, every half second | 5.30 | 5.61, 5.00 | -2.15 | 117,102 |
+| Join and leave | Two to four 60 × 120 dp members; one joins or leaves every half second | 5.30 | 5.61, 5.00 | -2.15 | 117,102 |
 
 The 12 dp container row's CPU frame duration P90 was 4.70 ms (4.69 and 4.72 ms per pass), with
 -2.54 ms frame overrun P90. Every row drew about one Glass layer per frame (0.99–1.02).
@@ -262,10 +265,13 @@ The 12 dp container row's CPU frame duration P90 was 4.70 ms (4.69 and 4.72 ms p
   duration and peak GPU memory, but finished about 1.4 ms closer to the deadline at P90. The two
   passes agreed within 0.01 ms.
 - The three-member group matched the two-member container within pass spread.
-- Pressing a merged member raised CPU frame duration P90 by about 1.5 ms. Join and leave raised it
-  by about 0.6 ms, and its P99 was 10.1 ms against 7.1 ms. Both rows were above the container row in
-  both passes, but their passes differed by 0.8 ms and 0.6 ms, so treat the size as approximate.
-- Join and leave used 3,838 KB (about 3%) more peak GPU memory than the two-member container.
+- Pressing a merged member raised CPU frame duration P90 by about 1.5 ms. The join and leave
+  workload raised it by about 0.6 ms, and its P99 was 10.1 ms against 7.1 ms. Both rows were above
+  the container row in both passes, but their passes differed by 0.8 ms and 0.6 ms, so treat the
+  size as approximate.
+- The join and leave workload used 3,838 KB (about 3%) more peak GPU memory than the two-member
+  container. Its member size and count differ from the control, so this compares workloads and does
+  not isolate the cost of membership changes.
 
 CPU placement differed in these two rows. The main thread spent 42–71% of its running time on the
 little cluster in the press and join-and-leave rows, against 81–86% in the other two-member rows,
@@ -292,8 +298,9 @@ the second, so treat the 7.3 ms mean as approximate. Peak GPU memory was about 1
 
 Mean main-thread running time inside the measured window was about 1,440 ms for the container and
 1,180 ms for the independent members, a 22% increase. RenderThread running time was similar, at
-about 2,020 ms and 2,040 ms. Both rows ran the RenderThread mostly (79–84%) on the big core, so
-placement does not explain the difference.
+about 2,020 ms and 2,040 ms. Both rows ran the RenderThread mostly (79–84%) on the big core and
+the main thread almost entirely on the middle and big cores (36–43% on the big core). Placement
+was not controlled.
 
 Neither row met the 60 Hz deadline: the median frame overran in both. These runs did not measure
 GPU timings, so they do not show where the remaining frame time goes. The result describes this
