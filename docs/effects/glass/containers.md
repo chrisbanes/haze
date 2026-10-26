@@ -273,6 +273,18 @@ default `MatchedGeometry`, an item's glass grows out of its neighbor and lags it
 item that scrolls out leaves a trailing ghost until the animation ends. Items present at the
 container's first draw never animate.
 
+### Cost while scrolling
+
+A container clusters its members again as they move. In a Pixel 8a benchmark of a five-column grid
+with 40–45 visible members that joined clusters of up to four, wrapping the grid in a container
+raised CPU frame duration P90 by about 7 ms (from 25.3 to 32.6 ms) and peak GPU memory by about 13%
+over drawing the same members independently. Neither version met the 60 Hz deadline. See the
+[measurements](../../benchmark-results.md#glass-container-lazy-scroll).
+
+- If the surfaces in a scrolling grid never need to merge, draw them independently.
+- Measure your own layout while it scrolls, with and without the container. The benchmark is a
+  deliberately dense scene on one device, not a budget.
+
 ## Fallback
 
 Without `RuntimeShader` support, or when a cluster is too large to render in full, each cluster

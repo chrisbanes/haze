@@ -214,149 +214,138 @@ appearance and frame timing on the actual screen under normal scheduling.
 
 ## Glass containers
 
-This comparison draws two Regular Glass surfaces, each about 134 × 180 dp and 12 dp apart, over a
-continuously changing source. The independent row draws them separately. The container row wraps
-the same surfaces in `hazeGlassContainer(mergeDistance = 32.dp)`, so they merge into one cluster. Both
-rows use [`HazePerformanceMode.Default`][HazePerformanceMode.Default] and `HazeInput.Sources`. It used a Pixel 8a running
-Android 17 (full SDK 37.2) at 60 Hz, with fixed-performance mode enabled and normal CPU scheduling.
+These comparisons measure `hazeGlassContainer` against independent Glass surfaces on a Pixel 8a
+running Android 17 (full SDK 37.2) at 60 Hz, with fixed-performance mode enabled and normal CPU
+scheduling. Every row uses [`HazePerformanceMode.Default`][HazePerformanceMode.Default],
+`HazeInput.Sources` and the Regular style, and runs eight measured iterations per pass. The steady
+and animated comparisons use a continuously changing source; the lazy-scroll and first-appearance
+rows use a stationary source. Each per-pass value pools the frames of that pass's eight iterations;
+the tables show the **arithmetic mean of the two per-pass values**. Peak GPU memory uses each
+pass's median `memoryGpuMaxKb`. A second pass ran every method in the reverse order of the first.
 
-!!! note "Earlier build"
+### Two members: merged against independent
 
-    These figures come from an earlier 2.1 development build (`33e2371a`). It predates the
-    merged-shader and layer-padding changes in
-    [#1604](https://github.com/chrisbanes/haze/pull/1604),
-    [#1554](https://github.com/chrisbanes/haze/pull/1554),
-    [#1607](https://github.com/chrisbanes/haze/pull/1607) and
-    [#1619](https://github.com/chrisbanes/haze/pull/1619). The measured pair rests 12 dp apart,
-    below half the 32 dp merge distance. Members resting between half and the full merge
-    distance take a different shader path that these runs did not measure. The figures will be
-    replaced.
-
-Each per-pass value pools the frames of that pass's eight iterations; the table shows the
-**arithmetic mean of the two per-pass values**. Peak GPU memory uses each pass's median
-`memoryGpuMaxKb`.
+The independent row draws two Regular Glass surfaces, each about 134 × 180 dp and 12 dp apart,
+separately. The container row wraps the same surfaces in `hazeGlassContainer(mergeDistance =
+32.dp)`, so they merge into one cluster.
 
 | Row | CPU frame duration P50 (ms) | CPU frame duration P90 (ms) | Frame overrun P90 (ms) | Peak GPU memory (KB) |
 | --- | ---: | ---: | ---: | ---: |
-| Independent surfaces | 2.97 | 4.86 | -7.26 | 100,016 |
-| One container cluster | 2.84 | 4.51 | -2.79 | 107,190 |
+| Independent surfaces | 2.70 | 4.62 | -7.18 | 99,476 |
+| One container cluster | 2.64 | 4.70 | -2.54 | 113,264 |
 
-Both rows re-rendered their Glass layers on every frame. HWUI's `drawLayer [graphicsLayer]` slice
-shows what each row drew:
+HWUI's `drawLayer [graphicsLayer]` slice shows what each row drew: 2.00–2.01 layers per frame for
+the independent surfaces and 1.00–1.01 for the cluster, which draws one layer that covers both
+members and the bridge between them.
 
-| Row | `graphicsLayerDrawCount` per frame | Layer size (px) |
-| --- | ---: | --- |
-| Independent surfaces | 1.93–2.00 | two 527 × 623 layers |
-| One container cluster | 0.95–1.00 | one 952 × 745 layer |
+CPU frame duration P90 was 0.08 ms higher for the container, within the 0.13 ms spread between the
+independent row's passes. The container row finished about 4.6 ms closer to the frame deadline at P90 and used 13,788 KB (about 14%) more peak GPU
+memory. CPU frame duration does not measure GPU shader cost. These runs did not measure GPU
+timings, so they do not show why the container finished closer to its deadline. Neither row missed
+its deadline at P90.
 
-The cluster draws one layer that covers both members and the bridge between them. The cluster's
-single layer is about 8% larger in area than the two independent layers combined.
+### Animated and resting container workloads
 
-The container row had 0.35 ms lower CPU P90, but about 4.5 ms less deadline margin at P90 and
-7,174 KB (about 7%) more peak GPU memory. CPU frame duration does not measure GPU shader cost.
-These runs did not measure GPU timings, so they do not show why the container finished closer to
-its deadline despite its lower CPU frame duration. Neither row missed its deadline at P90.
+Each row below changes one variable from the 12 dp container row above, except the three-member
+group and join and leave. The group has a different member count. Join and leave uses 60 × 120 dp
+members, against about 134 × 180 dp for the others, and varies their count from two to four. They
+share its Glass settings and changing source.
 
-These results describe two surfaces at one merge distance on one device. They do not establish the
-cost of larger clusters, more members, other styles, or higher refresh rates. Measure clustered
-screens against independent surfaces before adopting a container.
+| Workload | What changes | CPU frame duration P90 (ms) | Per-pass CPU P90 (ms) | Frame overrun P90 (ms) | Peak GPU memory (KB) |
+| --- | --- | ---: | --- | ---: | ---: |
+| Resting gap | Two members rest 24 dp apart, between half and the full merge distance | 4.70 | 4.76, 4.65 | -1.17 | 113,264 |
+| Group | Three members 48 dp apart, beyond the merge distance, share one `groupKey` | 4.58 | 4.62, 4.55 | -2.36 | 111,000 |
+| Press | The first member is pressed and released three times | 6.19 | 5.79, 6.59 | -1.60 | 113,484 |
+| Join and leave | Two to four 60 × 120 dp members; one joins or leaves every half second | 5.30 | 5.61, 5.00 | -2.15 | 117,102 |
 
-??? info "Measurement details"
+The 12 dp container row's CPU frame duration P90 was 4.70 ms (4.69 and 4.72 ms per pass), with
+-2.54 ms frame overrun P90. Every row drew about one Glass layer per frame (0.99–1.02).
 
-    The `benchmarkRelease` APKs were built from commit `33e2371a`. The sample APK SHA-256 was
-    `0dab212a8b5d285b99ab9c1483352f43666b27a1242e0831ce66dbbe90a18194` and the benchmark APK
-    SHA-256 was `5a9ea749589d95107cf2bf72d7671cc5825afe888ad57ebee4a257cbbf0c0c0a`. The Android
-    build was `CP41.260831.007.A3`. The device was on AC power at 80% charge, and both passes
-    started at thermal status 0, with the battery at 27.8°C and 28.1°C.
+- A resting gap between half and the full merge distance matched the 12 dp pair's CPU frame
+  duration and peak GPU memory, but finished about 1.4 ms closer to the deadline at P90. The two
+  passes agreed within 0.01 ms.
+- The three-member group matched the two-member container within pass spread.
+- Pressing a merged member raised CPU frame duration P90 by about 1.5 ms. The join and leave
+  workload raised it by about 0.6 ms, and its P99 was 10.1 ms against 7.1 ms. Both rows were above
+  the container row in both passes, but their passes differed by 0.8 ms and 0.6 ms, so treat the
+  size as approximate.
+- The join and leave workload used 3,838 KB (about 3%) more peak GPU memory than the two-member
+  container. Its member size and count differ from the control, so this compares workloads and does
+  not isolate the cost of membership changes.
 
-    Each method ran eight measured iterations per pass in its own Gradle invocation. The first
-    pass ran independent then container, and the second pass reversed that order. This produced
-    32 iterations, 32 Perfetto traces, and 5,846 measured frames. No completed iteration was
-    discarded. Every iteration recorded one `HazeSource.record` per frame (0.95–1.00) and at
-    least one `HazeGlass.runtimeDraw`, confirming the changing source and the runtime Glass path.
-    The Google app was temporarily disabled to prevent its Chromium trace producer from delaying
-    collection.
-
-    The two passes agreed closely: per-pass CPU P90 differed by at most 0.08 ms, and frame
-    overrun P90 by at most 0.12 ms.
-
-    CPU placement differed between the rows. Main-thread placement was similar, with 72%
-    (container) and 79% (independent) of its running time on the little cluster on average.
-    RenderThread spent an average of 18% of its running time on the big core in the independent
-    row, compared with 6% in the container row. Grouping iterations by RenderThread big-core
-    share kept the same ranking. With at most 5% on the big core, the pooled CPU P90 was 4.80 ms
-    independent (4 iterations) against 4.55 ms container (10 iterations). Above 5%, it was
-    4.90 ms (12 iterations) against 4.45 ms (6 iterations). The overrun P90 difference stayed
-    between 4.2 and 4.7 ms in both groups.
-
-    Raw JSON, benchmark messages, traces, per-iteration placement, and device readbacks are
-    retained locally under `internal/benchmark/build/benchmark-results/container.dy8ZmS/`. The
-    on-device sample check is recorded in the
-    [replan report](https://github.com/chrisbanes/haze/issues/1448#issuecomment-6120179344).
+CPU placement differed in these two rows. The main thread spent 42–71% of its running time on the
+little cluster in the press and join-and-leave rows, against 81–86% in the other two-member rows,
+so part of their CPU difference may come from where the threads ran rather than from the workload.
 
 <a id="glass-container-lazy-scroll"></a>
 
 ### Lazy container scroll
 
-This comparison scrolls a five-column `LazyVerticalGrid` with 40–45 visible members inside
-`hazeGlassContainer(mergeDistance = 16.dp)`. Every member is its own cluster, so the workload
-isolates reclustering. Build A reclusters on every member notification. Build B coalesces them into
-one pass per frame ([#1567](https://github.com/chrisbanes/haze/issues/1567)). It used a Pixel 8a
-running Android 17 at 60 Hz, with fixed-performance mode enabled and normal CPU scheduling.
+This comparison scrolls a five-column `LazyVerticalGrid` with 40–45 visible members and a 12 dp gap
+over a stationary source. The container row wraps the grid in
+`hazeGlassContainer(mergeDistance = 16.dp, scrollState = gridState)`, so adjacent members join
+clusters of at most four members. The independent row draws the same members as separate Glass
+surfaces, with no container.
 
-Each per-pass value pools the frames of that pass's eight iterations; the table shows the
-**arithmetic mean of the two per-pass values** for each build.
-
-| Build | CPU frame duration P50 (ms) | CPU frame duration P90 (ms) | CPU frame duration P99 (ms) | Frame overrun P50 (ms) | Frame overrun P90 (ms) | Measured frames, both passes |
+| Row | CPU frame duration P50 (ms) | CPU frame duration P90 (ms) | CPU frame duration P99 (ms) | Frame overrun P50 (ms) | Frame overrun P90 (ms) | Peak GPU memory (KB) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| A: recluster per notification | 33.2 | 49.7 | 65.6 | 35.1 | 56.6 | 2,376 |
-| B: one recluster per frame | 27.7 | 32.5 | 35.7 | 18.6 | 24.5 | 2,830 |
+| Independent members | 16.5 | 25.3 | 31.7 | 7.8 | 17.2 | 159,230 |
+| Container | 24.7 | 32.6 | 36.9 | 16.6 | 25.1 | 179,448 |
 
-Build B cut main-thread running time inside the measured window from a mean of 3,005 ms to
-1,412 ms, out of about 3,330 ms. In build A the main thread was busy for almost the whole window.
-RenderThread running time stayed similar, at 2,006 ms and 2,149 ms. Build B delivered about
-19% more frames and roughly halved the overrun.
+The container ranked higher in CPU frame duration P90 in both passes, at 33.3 and 31.9 ms against
+22.1 and 28.5 ms for the independent members. The gap was 11.2 ms in the first pass and 3.4 ms in
+the second, so treat the 7.3 ms mean as approximate. Peak GPU memory was about 13% higher.
 
-Neither build met the 60 Hz deadline: 94% (A) and 97% (B) of frames overran. In build B neither
-thread was busy for the whole window: RenderThread ran for about 65% of it while drawing about 40
-separate Glass layers. These runs did not measure GPU timings, so they don't show where the
-remaining frame time goes. The result describes this deliberately dense scene, not a typical
-container.
+Mean main-thread running time inside the measured window was about 1,440 ms for the container and
+1,180 ms for the independent members, a 22% increase. RenderThread running time was similar, at
+about 2,020 ms and 2,040 ms. Both rows ran the RenderThread mostly (79–84%) on the big core and
+the main thread almost entirely on the middle and big cores (36–43% on the big core). Placement
+was not controlled.
 
-The two-member container workloads above ran as guards in the same passes. The container row's
-mean CPU P90 was 4.82 ms (A) and 4.80 ms (B). The independent row's was 4.86 ms and 5.48 ms, but
-that difference came from one B pass at 6.31 ms; the other B pass, at 4.66 ms, was below both A
-passes. Neither guard missed its deadline at P90.
+Neither row met the 60 Hz deadline: the median frame overran in both. These runs did not measure
+GPU timings, so they do not show where the remaining frame time goes. The result describes this
+deliberately dense scene, not a typical container.
+
+### First appearance
+
+The cold-initialization rows attach the Glass at the start of the measured window. The control
+attaches one independent surface, and the container row attaches a two-member container, so the
+member counts differ.
+
+| Row | CPU frame duration P50 (ms) | CPU frame duration P90 (ms) | Frame overrun P90 (ms) | Peak GPU memory (KB) |
+| --- | ---: | ---: | ---: | ---: |
+| One independent surface | 4.64 | 8.02 | -6.00 | 95,028 |
+| Two-member container | 6.31 | 9.95 | -1.79 | 107,791 |
+
+Each pass recorded only 10 frames across its eight iterations, so these percentiles come from 20
+frames per row and are indicative only. The container had a CPU frame duration P50 about 1.7 ms
+higher and about 4.2 ms less deadline margin at P90. Neither row missed its deadline at P90.
+
+These results describe a few two- and three-member layouts and one dense grid on one device. They
+do not establish the cost of other cluster sizes, other styles, or higher refresh rates. Measure
+clustered screens against independent surfaces before adopting a container.
 
 ??? info "Measurement details"
 
-    Build A was commit `7ffbcc45`, which adds the scenario without a library change. Build B was
-    commit `68217119`, the head of [#1592](https://github.com/chrisbanes/haze/pull/1592). The sample
-    APK SHA-256 was `b08454af9eb5bb363f8796339022994532ca0a00a45d0b8bdccf65e6edeb6c63` for A and
-    `b31b86e4e3951c999005cd969cfacd270ec333bd65ed7efe4c8ecee35a8a8b70` for B; both used benchmark
-    APK `6dc136d3dacc31b813554622d8b2a518bad3748a63160d4f6822feb30172f93f`. The Android build was
-    `CP41.260831.016`. The device was on AC power at 80% charge and reported thermal status 0
-    before and after every pass. Battery temperature rose from 28.8°C to 33.9°C across the run.
+    The `benchmarkRelease` APKs were built from commit `a4803f6a1` (`2.1.0-SNAPSHOT`). The sample
+    APK SHA-256 was `3936fc8d6608d53a980662f965faf1cbf5cd8b330dcf76b7846712ccb8f061d5` and the
+    benchmark APK SHA-256 was
+    `ff92fbf3289f15c5ddf42ff32da3ef5c1e9b44f5e80da987ca6106c8e1aeaf2f`. The Android build was
+    `CP41.260831.019`. The device was on AC power and reported thermal status 0 throughout.
 
-    The passes ran in the order A, B, B, A, each running the lazy scroll and then both two-member
-    guards, eight measured iterations per method in its own Gradle invocation. Each build was
-    dry-run first. This produced 96 iterations and 96 Perfetto traces. The Google app was
-    temporarily disabled to prevent its Chromium trace producer from delaying collection; an
-    earlier pass that hit that delay was discarded and rerun.
+    The second pass ran the first pass's ten methods in exactly the opposite order. Each method ran
+    eight measured iterations in its own Gradle invocation, which produced 160 iterations and 160
+    Perfetto traces. No completed iteration was discarded. The per-frame layer gates passed on the
+    two-member, resting-gap, group and press rows. The Google app was temporarily disabled to
+    prevent its Chromium trace producer from delaying collection.
 
-    Build A slowed as the device warmed: its per-pass CPU P90 was 40.9 ms in the first pass and
-    58.6 ms in the last. Build B's per-pass CPU P90 was 32.6 ms and 32.5 ms. Using only the first,
-    coolest A pass, build B still lowered CPU P90 by 8.3 ms and overrun P50 by 10.5 ms.
+    CPU placement was not controlled. In the steady two-member rows the main thread ran 81–86% on
+    the little cluster. The RenderThread ran 11–23% on the big core in every container row and
+    27–31% in the independent row, with similar total running time (352–371 ms). Two lazy-scroll
+    traces had no scheduler data and are excluded from the running-time means.
 
-    CPU placement differed between builds. In every A iteration the main thread ran mostly on the
-    big core and RenderThread mostly on the middle cluster. In every B iteration the scheduler
-    swapped them. Build B's main-thread reduction was therefore measured on slower cores. Two of the
-    32 lazy-scroll traces, one per B pass, had no scheduler data in the measured window and are
-    excluded from the running-time means. Build B's iterations split into two groups, with CPU P50
-    of 17.5–20.9 ms and 28.2–30.4 ms, without a matching placement difference.
-
-    Raw JSON, benchmark messages, traces, per-pass device readbacks, and the discarded pass are
-    retained locally under `internal/benchmark/build/benchmark-results/lazy-container-2026-10-18/`.
+    Raw JSON, traces and device readbacks are retained locally under
+    `internal/benchmark/build/benchmark-results/container-2.1.9TQlOX/`.
 
 <a id="blur-noise-tint"></a>
 

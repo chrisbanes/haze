@@ -197,15 +197,16 @@ measure clustered screens against independent surfaces before adopting them. A c
 shares one optical size, so one large member changes the diffusion of the small members next to
 it.
 
-In a two-pass test on a Pixel 8a (Android 17, 60 Hz, fixed-performance mode), merging two nearby
-Regular Glass surfaces into one cluster over a changing source left about 4.5 ms less frame
-deadline margin at P90 and used about 7% more peak GPU memory than drawing them independently,
-even though its CPU frame duration P90 was 0.35 ms lower
-([conditions and limits](benchmark-results.md#glass-containers)).
-These figures come from an earlier 2.1 development build (`33e2371a`) that predates later
-container changes, including [#1604](https://github.com/chrisbanes/haze/pull/1604), and they will
-be replaced. The measured pair rests closer than half the merge distance, so members resting
-between half and the full merge distance, which take a different shader path, are not covered.
+On a Pixel 8a (Android 17, 60 Hz, fixed-performance mode), in two passes run in opposite orders,
+merging two nearby Regular Glass surfaces into one cluster over a changing source left about 4.6 ms
+less frame deadline margin at P90 and used about 14% more peak GPU memory than drawing them
+independently, with about the same CPU frame duration P90 (4.70 against 4.62 ms). Members resting
+between half and the full merge distance left about 1.4 ms less margin again, and pressing a merged
+member raised CPU frame duration P90 by about 1.5 ms.
+
+A container around a dense scrolling grid cost more. With 40–45 visible members, its CPU frame
+duration P90 was about 7 ms above the same grid of independent members, and neither met the 60 Hz
+deadline ([conditions and limits](benchmark-results.md#glass-containers)).
 
 For styling examples, see the [Glass overview](effects/glass/index.md).
 
