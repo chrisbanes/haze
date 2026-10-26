@@ -159,6 +159,9 @@ performance guidance.
   ([#1516](https://github.com/chrisbanes/haze/pull/1516)). Fallback Glass bounds over-budget
   clusters to the window ([#1533](https://github.com/chrisbanes/haze/pull/1533)) and no longer
   clears neighbouring members on API 23–27 ([#1517](https://github.com/chrisbanes/haze/pull/1517)).
+- Glass containers no longer draw a lazy item that prefetch composed but has not placed. It used
+  to appear where the item's reused node was last placed
+  ([#1714](https://github.com/chrisbanes/haze/pull/1714)).
 - Effects now redraw when an ancestor layer-only move changes their visible part
   ([#1543](https://github.com/chrisbanes/haze/pull/1543)).
 - Effects that switch from `HazeInput.Content` to another input now release their content layer

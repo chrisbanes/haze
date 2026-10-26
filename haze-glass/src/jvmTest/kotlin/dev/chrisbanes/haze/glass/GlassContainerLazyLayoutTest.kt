@@ -1,7 +1,12 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(androidx.compose.ui.test.ExperimentalTestApi::class, dev.chrisbanes.haze.ExperimentalHazeApi::class, dev.chrisbanes.haze.InternalHazeApi::class)
+@file:OptIn(
+  androidx.compose.foundation.ExperimentalFoundationApi::class,
+  androidx.compose.ui.test.ExperimentalTestApi::class,
+  dev.chrisbanes.haze.ExperimentalHazeApi::class,
+  dev.chrisbanes.haze.InternalHazeApi::class,
+)
 
 package dev.chrisbanes.haze.glass
 
@@ -14,7 +19,14 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridPrefetchStrategy
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.layout.PrefetchRequest
+import androidx.compose.foundation.lazy.layout.PrefetchRequestScope
+import androidx.compose.foundation.lazy.layout.PrefetchScheduler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -88,8 +100,9 @@ private const val TRANSITION_MILLIS = 150
  * `runComposeUiTest` fails a body that takes more than 60 seconds of wall-clock time, so
  * [LazyFixture.settle] runs only as many frames as the animations need.
  *
- * `PrefetchScheduler` cannot be driven from `jvmTest`, so the prefetch test uses the API that lazy
- * prefetch is built on, [SubcomposeLayoutState.precompose] and `premeasure`. It shows the same
+ * The platform `PrefetchScheduler` cannot be driven from `jvmTest`. The grid prefetch test supplies a
+ * deprecated custom scheduler and runs its requests by hand; the other uses the API that lazy
+ * prefetch is built on, [SubcomposeLayoutState.precompose] and `premeasure`. Both show the
  * registration path, not the foundation scheduler's timing on a device.
  */
 class GlassContainerLazyLayoutTest : ContextTest() {
@@ -432,6 +445,79 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     mainClock.autoAdvance = true
     waitForIdle()
     runOnIdle { handle.dispose() }
+  }
+
+  /**
+   * Grid prefetch precomposes the next row by reusing the pooled node of a row that scrolled out.
+   * The node attaches with that row's coordinates but is not placed, so it must not draw there.
+   */
+  // A custom PrefetchScheduler is deprecated, but it is the only way to run prefetch from jvmTest.
+  @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+  @Test
+  fun lazyGrid_prefetchedReusedRow_staysOutOfClusters() = runComposeUiTest {
+    val requests = mutableListOf<PrefetchRequest>()
+    val state = LazyGridState(
+      prefetchStrategy = object : LazyGridPrefetchStrategy by LazyGridPrefetchStrategy() {
+        override val prefetchScheduler = object : PrefetchScheduler {
+          override fun schedulePrefetch(prefetchRequest: PrefetchRequest) {
+            requests += prefetchRequest
+          }
+        }
+      },
+    )
+    val effects = mutableMapOf<Int, GlassRuntimeEffect>()
+    val hazeState = HazeState()
+    setContent {
+      Box(Modifier.size(360.dp, 240.dp)) {
+        Box(Modifier.size(360.dp, 240.dp).hazeSource(hazeState))
+        LazyVerticalGrid(
+          columns = GridCells.Fixed(3),
+          state = state,
+          modifier = Modifier.size(360.dp, 240.dp).hazeGlassContainer(16.dp),
+          verticalArrangement = Arrangement.spacedBy(40.dp),
+        ) {
+          items(60) { index ->
+            val effect = remember { GlassRuntimeEffect().also { effects[index] = it } }
+            Box(
+              Modifier.size(80.dp).hazeGlass(
+                HazeEffectFactory { effect },
+                HazeInput.Sources(hazeState),
+                lazyItemStyle(index),
+                HazePerformanceMode.Quality,
+                true,
+                null,
+                memberTransition = GlassMemberTransition.None,
+              ),
+            )
+          }
+        }
+      }
+    }
+    waitForIdle()
+    // Scroll rows out into the reuse pool, then let prefetch precompose the next row from it.
+    repeat(4) {
+      runOnIdle { state.dispatchRawDelta(60f) }
+      waitForIdle()
+    }
+    runOnIdle {
+      val scope = object : PrefetchRequestScope {
+        override fun availableTimeNanos() = Long.MAX_VALUE
+      }
+      while (requests.isNotEmpty()) with(requests.removeAt(0)) { scope.execute() }
+    }
+    waitForIdle()
+
+    val visible = state.layoutInfo.visibleItemsInfo
+    val prefetched = effects.filterKeys { index -> visible.none { it.index == index } }
+      .mapNotNull { it.value.memberBindingForTest?.node }
+      .filter { it.isAttached }
+    assertThat(prefetched).isNotEmpty()
+    val owner = effects.getValue(visible.first().index).memberBindingForTest?.node?.container
+    val members = checkNotNull(owner).model.surfaces.flatMap { it.members }
+    assertThat(members.map { it.rect }.toSet()).isEqualTo(
+      visible.map { Rect(it.offset.x.toFloat(), it.offset.y.toFloat(), (it.offset.x + it.size.width).toFloat(), (it.offset.y + it.size.height).toFloat()) }.toSet(),
+    )
+    for (node in prefetched) assertThat(node.binding.surface?.boundsInOwner()).isNull()
   }
 
   private class LazyFixture(
