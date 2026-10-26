@@ -716,6 +716,8 @@ internal class GlassRuntimeEffect() :
     target: GlassTransformTarget,
   ): HazeEffectContentTransform {
     if (interactionTransformTarget != target) return HazeEffectContentTransform.Identity
+    // A member without a scale transform skips reading its position and lighting channels.
+    if (interactionController?.hasTransform == false) return HazeEffectContentTransform.Identity
     val state = currentInteractionState
     if (!state.hasTransform || !size.isDrawable()) return HazeEffectContentTransform.Identity
     val pivot = when (interactionTransformPivot) {
