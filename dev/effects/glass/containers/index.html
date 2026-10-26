@@ -774,6 +774,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Lazy layouts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cost-while-scrolling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost while scrolling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1335,6 +1352,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Lazy layouts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cost-while-scrolling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost while scrolling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1618,6 +1652,17 @@ measure, so a group among them can briefly draw as separate groups.</p>
 default <code>MatchedGeometry</code>, an item's glass grows out of its neighbor and lags its content, and an
 item that scrolls out leaves a trailing ghost until the animation ends. Items present at the
 container's first draw never animate.</p>
+<h3 id="cost-while-scrolling">Cost while scrolling<a class="headerlink" href="#cost-while-scrolling" title="Permanent link">¶</a></h3>
+<p>A container clusters its members again as they move. In a Pixel 8a benchmark of a five-column grid
+with 40–45 visible members that joined clusters of up to four, wrapping the grid in a container
+raised CPU frame duration P90 by about 7 ms (from 25.3 to 32.6 ms) and peak GPU memory by about 13%
+over drawing the same members independently. Neither version met the 60 Hz deadline. See the
+<a href="../../../benchmark-results/#glass-container-lazy-scroll">measurements</a>.</p>
+<ul>
+<li>If the surfaces in a scrolling grid never need to merge, draw them independently.</li>
+<li>Measure your own layout while it scrolls, with and without the container. The benchmark is a
+  deliberately dense scene on one device, not a budget.</li>
+</ul>
 <h2 id="fallback">Fallback<a class="headerlink" href="#fallback" title="Permanent link">¶</a></h2>
 <p>Without <code>RuntimeShader</code> support, or when a cluster is too large to render in full, each cluster
 draws as one surface clipped to the hard union of the member shapes, with no bridge. Members keep
