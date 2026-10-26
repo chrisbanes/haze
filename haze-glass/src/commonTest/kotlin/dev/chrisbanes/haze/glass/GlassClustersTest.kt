@@ -234,6 +234,21 @@ class GlassClustersTest {
     assertThat(model.translatedTo(emptyList(), emptyList(), null)).isNull()
   }
 
+  @Test
+  fun translatedTo_fractionalTranslationNeedsClustering() {
+    fun GlassMemberSnapshot.moved(dx: Float) =
+      copy(rect = rect.translate(dx, 0f), layoutRect = layoutRect.translate(dx, 0f), sampleLayoutRect = sampleLayoutRect.translate(dx, 0f))
+    // A gap of exactly the merge distance stays separate; moved by -0.1 it rounds to about 39.999992.
+    val members = listOf(member(0, Rect(0f, 0f, 100f, 100f)), member(1, Rect(140f, 0f, 240f, 100f)))
+    val moved = members.map { it.moved(-0.1f) }
+    assertThat(clusterGlassMembers(members, 40f).surfaces.size).isEqualTo(2)
+    assertThat(clusterGlassMembers(moved, 40f).surfaces.size).isEqualTo(1)
+
+    assertThat(clusterGlassMembers(members, 40f).translatedTo(members, moved, null)).isNull()
+    // Fractional rects stay ineligible even when moved by whole pixels.
+    assertThat(clusterGlassMembers(moved, 40f).translatedTo(moved, moved.map { it.moved(1f) }, null)).isNull()
+  }
+
   private fun grouped(index: Int, left: Float, groupKey: Any? = "group") = member(index, left).copy(groupKey = groupKey)
 
   private fun GlassClusterModel.units() = surfaces.map { surface -> surface.groups.map { unit -> unit.map { it.identity } } }

@@ -14,6 +14,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.Poko
+import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.hypot
 
 /** Value key deliberately excludes member geometry, colours and interaction declarations. */
@@ -247,6 +249,9 @@ private fun List<Int>.toCluster(units: List<List<GlassMemberSnapshot>>) =
  * [previous] in the same order translated by one offset with every other field equal. Clustering
  * reads only relative geometry, so a scrolling container keeps its partition without clustering
  * again; [opticalSize] is passed through as [clusterGlassMembers] would.
+ *
+ * Only whole-pixel offsets and rects qualify: their sums and gaps are exact, while a fractional
+ * translation can round a gap across the merge distance and change a fresh clustering's result.
  */
 internal fun GlassClusterModel.translatedTo(
   previous: List<GlassMemberSnapshot>,
@@ -255,6 +260,7 @@ internal fun GlassClusterModel.translatedTo(
 ): GlassClusterModel? {
   if (members.size != previous.size || members.isEmpty()) return null
   val offset = members.first().rect.topLeft - previous.first().rect.topLeft
+  if (!offset.x.isExactPixel() || !offset.y.isExactPixel()) return null
   val placed = HashMap<Any, GlassMemberSnapshot>(members.size)
   for (i in members.indices) {
     val member = members[i]
@@ -264,7 +270,7 @@ internal fun GlassClusterModel.translatedTo(
       layoutRect = before.layoutRect.translate(offset),
       sampleLayoutRect = before.sampleLayoutRect.translate(offset),
     )
-    if (member != expected) return null
+    if (member != expected || !before.rect.isExactPixels() || !member.rect.isExactPixels()) return null
     placed[member.identity] = member
   }
   return GlassClusterModel(
@@ -273,3 +279,10 @@ internal fun GlassClusterModel.translatedTo(
     overflow,
   )
 }
+
+/** Whole numbers below 2^23 in magnitude, whose sums and differences floats represent exactly. */
+private fun Float.isExactPixel(): Boolean = this == floor(this) && abs(this) < EXACT_PIXEL_LIMIT
+
+private fun Rect.isExactPixels(): Boolean = left.isExactPixel() && top.isExactPixel() && right.isExactPixel() && bottom.isExactPixel()
+
+private const val EXACT_PIXEL_LIMIT = (1 shl 23).toFloat()
