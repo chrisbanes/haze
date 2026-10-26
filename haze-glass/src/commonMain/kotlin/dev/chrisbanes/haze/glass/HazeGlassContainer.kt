@@ -225,6 +225,9 @@ internal class GlassContainerNode(
   /** Members' owner bounds, read once per [recluster] pass: layout cannot change during one. */
   private var passBounds: HashMap<HazeEffectSurface, Rect?>? = null
 
+  /** Members' interaction transforms by size, resolved once per [recluster] pass: animations do not advance during one. */
+  private var passTransforms: HashMap<GlassRuntimeEffect, Pair<Size, HazeEffectContentTransform>>? = null
+
   override fun onAttach() {
     children = requireGraphicsContext().createGraphicsLayer()
     // Reactivation with an unchanged layout is not placed again (#1473), so members reattaching
@@ -406,6 +409,7 @@ internal class GlassContainerNode(
     if (layoutComplete) mergeDistanceCheckPending = false
     refreshing = true
     passBounds = HashMap()
+    passTransforms = HashMap()
     try {
       // Reached from a draw or a member's removal: the animated interaction and transition reads
       // below must not make that draw observe them and re-run every frame.
@@ -514,7 +518,14 @@ internal class GlassContainerNode(
     } finally {
       refreshing = false
       passBounds = null
+      passTransforms = null
     }
+  }
+
+  private fun GlassRuntimeEffect.passInteractionTransform(size: Size): HazeEffectContentTransform {
+    val cache = passTransforms ?: return currentInteractionTransform(size)
+    cache[this]?.takeIf { it.first == size }?.let { return it.second }
+    return currentInteractionTransform(size).also { cache[this] = size to it }
   }
 
   private fun HazeEffectSurface.ownerBounds(): Rect? {
@@ -549,7 +560,7 @@ internal class GlassContainerNode(
   private fun GlassMemberNode.localSize(): Size? {
     if (!isAttached || isUnplaced) return null
     val bounds = binding.surface?.ownerBounds()?.takeIf { it.isValidGlassMember() } ?: return null
-    val transform = binding.runtime?.currentInteractionTransform(bounds.size)
+    val transform = binding.runtime?.passInteractionTransform(bounds.size)
     if (transform != null && !bounds.transformedBy(transform).isValidGlassMember()) return null
     return requireLayoutCoordinates().size.toSize()
   }
@@ -613,7 +624,7 @@ internal class GlassContainerNode(
   private fun GlassMemberNode.snapshot(layoutRect: Rect, key: GlassMergeKey, material: ResolvedGlassStyle, link: Any? = null): GlassMemberSnapshot {
     val owner = checkNotNull(surfaceCoordinates)
     // Interaction transforms are draw-time scales, applied after the transition rect.
-    val transform = binding.runtime?.currentInteractionTransform(layoutRect.size)
+    val transform = binding.runtime?.passInteractionTransform(layoutRect.size)
     val rect = transform?.let { layoutRect.transformedBy(it) } ?: layoutRect
     // A merged member is one rounded rect with one circular light, so unequal axes draw standalone.
     val uniformScale = transform == null || abs(transform.scaleX - transform.scaleY) < 1e-4f

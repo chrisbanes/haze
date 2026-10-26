@@ -264,6 +264,11 @@ internal class GlassInteractionController(
       sourcePressed = sourcePresses.isNotEmpty() || sourceDrags.isNotEmpty(),
     )
 
+  /** [renderState]'s [GlassInteractionRenderState.hasTransform], reading only the scale channels. */
+  val hasTransform: Boolean
+    get() = !configuration.reducedMotion &&
+      (scaleX.currentValue.validScaleForRender() != 1f || scaleY.currentValue.validScaleForRender() != 1f)
+
   val renderState: GlassInteractionRenderState
     get() {
       val position = position.value
