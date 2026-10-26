@@ -13,6 +13,7 @@ import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
+import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeSourceMetadata
@@ -196,6 +197,56 @@ class GlassClustersTest {
     assertThat(result.surfaces).isEmpty()
     assertThat(result.opticalSize).isNull()
     assertThat(clusterGlassMembers(emptyList(), 40f).opticalSize).isNull()
+  }
+
+  @Test
+  fun translatedTo_uniformTranslationMatchesClustering() {
+    // Over the cap, with a group, an invalid member and an intervening key.
+    val members = List(6) { member(it) } + grouped(6, 700f) + grouped(7, 900f) +
+      member(8, Rect.Zero) + member(9, 1000f).copy(key = key.copy(alpha = 0.4f))
+    val model = clusterGlassMembers(members, 40f)
+    val moved = members.map {
+      it.copy(rect = it.rect.translate(-3f, 57f), layoutRect = it.layoutRect.translate(-3f, 57f), sampleLayoutRect = it.sampleLayoutRect.translate(-3f, 57f))
+    }
+    val opticalSize = Size(12f, 12f)
+
+    assertThat(model.translatedTo(members, moved, opticalSize)).isEqualTo(clusterGlassMembers(moved, 40f, opticalSize))
+  }
+
+  @Test
+  fun translatedTo_otherChangesNeedClustering() {
+    val members = List(3) { member(it) }
+    val model = clusterGlassMembers(members, 40f)
+    fun GlassMemberSnapshot.moved(dx: Float) =
+      copy(rect = rect.translate(dx, 0f), layoutRect = layoutRect.translate(dx, 0f), sampleLayoutRect = sampleLayoutRect.translate(dx, 0f))
+    fun moved(dx: Float) = members.map { it.moved(dx) }
+
+    // The control: a uniform move alone reuses the partition, so each case below fails on its change.
+    assertThat(model.translatedTo(members, moved(10f), null)).isNotNull()
+    // One member moved further than the others, so gaps changed.
+    assertThat(model.translatedTo(members, moved(10f).mapIndexed { i, it -> if (i == 2) it.moved(1f) else it }, null)).isNull()
+    // The interaction rect moved without the layout rect.
+    assertThat(model.translatedTo(members, members.map { it.copy(rect = it.rect.translate(5f, 0f)) }, null)).isNull()
+    assertThat(model.translatedTo(members, moved(10f).reversed(), null)).isNull()
+    assertThat(model.translatedTo(members, moved(10f).drop(1), null)).isNull()
+    assertThat(model.translatedTo(members, moved(10f).map { it.copy(identity = it.identity.toString()) }, null)).isNull()
+    assertThat(model.translatedTo(members, moved(10f).mapIndexed { i, it -> if (i == 1) it.copy(fading = true) else it }, null)).isNull()
+    assertThat(model.translatedTo(emptyList(), emptyList(), null)).isNull()
+  }
+
+  @Test
+  fun translatedTo_fractionalTranslationNeedsClustering() {
+    fun GlassMemberSnapshot.moved(dx: Float) =
+      copy(rect = rect.translate(dx, 0f), layoutRect = layoutRect.translate(dx, 0f), sampleLayoutRect = sampleLayoutRect.translate(dx, 0f))
+    // A gap of exactly the merge distance stays separate; moved by -0.1 it rounds to about 39.999992.
+    val members = listOf(member(0, Rect(0f, 0f, 100f, 100f)), member(1, Rect(140f, 0f, 240f, 100f)))
+    val moved = members.map { it.moved(-0.1f) }
+    assertThat(clusterGlassMembers(members, 40f).surfaces.size).isEqualTo(2)
+    assertThat(clusterGlassMembers(moved, 40f).surfaces.size).isEqualTo(1)
+
+    assertThat(clusterGlassMembers(members, 40f).translatedTo(members, moved, null)).isNull()
+    // Fractional rects stay ineligible even when moved by whole pixels.
+    assertThat(clusterGlassMembers(moved, 40f).translatedTo(moved, moved.map { it.moved(1f) }, null)).isNull()
   }
 
   private fun grouped(index: Int, left: Float, groupKey: Any? = "group") = member(index, left).copy(groupKey = groupKey)

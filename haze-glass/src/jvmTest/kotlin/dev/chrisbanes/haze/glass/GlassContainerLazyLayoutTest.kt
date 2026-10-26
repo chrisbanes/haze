@@ -326,6 +326,25 @@ class GlassContainerLazyLayoutTest : ContextTest() {
   }
 
   @Test
+  fun lazyContainer_scrollingWithoutMembershipChange_reusesClustering() = runComposeUiTest {
+    val fixture = lazyFixture(GlassMemberTransition.MatchedGeometry, withScrollState = true)
+    fixture.settle()
+    val owner = fixture.owner()
+    fixture.startScroll(count = 16, px = 6f)
+    // As above: no item enters or leaves between frame 4 and about frame 15.
+    fixture.frames(4)
+    val reclusters = owner.reclusterPasses
+    val clusterings = owner.clusteringPasses
+
+    fixture.frames(6)
+
+    assertThat(owner.reclusterPasses - reclusters).isEqualTo(6)
+    assertThat(owner.clusteringPasses - clusterings).isEqualTo(0)
+    val members = owner.model.surfaces.flatMap { it.members }
+    assertThat(owner.model).isEqualTo(clusterGlassMembers(members, owner.mergeDistancePx, owner.model.opticalSize))
+  }
+
+  @Test
   fun lazyContainer_idleFrame_doesNotRecluster() = runComposeUiTest {
     val fixture = lazyFixture(GlassMemberTransition.MatchedGeometry, withScrollState = true)
     fixture.settle()
