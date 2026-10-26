@@ -1612,7 +1612,10 @@ internal class HazeEffectNode(
   internal fun unregisterConfiguredSurface(surface: HazeConfiguredSurfaceDraw) {
     configuredSurfaces -= surface
   }
-  internal fun completeSurfaceDraw() = onPostDraw()
+  internal fun completeSurfaceDraw() {
+    surfaceDrawTransform = null
+    onPostDraw()
+  }
   internal fun surfaceNativeEligible(): Boolean = !backdropBackendState.usesFallback || surfaceBudgetFallback
 
   internal fun surfaceInputEntries(owner: LayoutCoordinates?): List<HazeSurfaceInputEntry> {
@@ -1631,10 +1634,17 @@ internal class HazeEffectNode(
     return Matrix().also { checkNotNull(owner).transformFrom(member, it) }
   }
 
-  /** [matrix] is this member's [surfaceTransform], which callers resolve once per footprint or draw. */
+  /** This member's [surfaceTransform] from its footprint, which the same owner pass's draw reuses. */
+  private var surfaceDrawTransform: Matrix? = null
+
+  /**
+   * [matrix] is this member's [surfaceTransform]. A translation, as a scrolled member's is, applies
+   * as one: concatenating a matrix allocates a platform matrix on every call.
+   */
   private fun <T> withSurfaceScope(scope: DrawScope, matrix: Matrix, block: ContentDrawScope.() -> T): T? {
     var result: T? = null
-    scope.withTransform({ transform(matrix) }) {
+    val translates = matrix.isTranslationOnly()
+    scope.withTransform({ if (translates) translate(matrix.values[Matrix.TranslateX], matrix.values[Matrix.TranslateY]) else transform(matrix) }) {
       val previousSize = drawContext.size
       drawContext.size = this@HazeEffectNode.size
       try {
@@ -1650,7 +1660,10 @@ internal class HazeEffectNode(
   }
 
   internal fun surfaceFootprint(scope: DrawScope, owner: LayoutCoordinates?): HazeSurfaceFootprint? {
-    val matrix = surfaceTransform(owner) ?: return null
+    // Layout cannot change before the owner draws this member in the same pass. Stored before any
+    // early return, so a draw never reuses a previous pass's transform.
+    surfaceDrawTransform = surfaceTransform(owner)
+    val matrix = surfaceDrawTransform ?: return null
     if (layerBoundsRefreshPending) refreshObservedReads(notifySurface = false)
     if (!layerSize.isSpecified || layerSize.minDimension <= 0f) return null
     val interaction = (typedEffectRenderer as? HazeEffectRendererInteraction)?.currentContentTransform()
@@ -1743,7 +1756,7 @@ internal class HazeEffectNode(
   internal fun drawRelocatedSurface(scope: DrawScope, owner: LayoutCoordinates?) {
     try {
       isDrawing = true
-      val matrix = surfaceTransform(owner) ?: return
+      val matrix = surfaceDrawTransform ?: surfaceTransform(owner) ?: return
       withSurfaceScope(scope, matrix) {
         for (area in areas) {
           require(!area.isContentDrawing) {
@@ -1767,6 +1780,7 @@ internal class HazeEffectNode(
       }
     } finally {
       preparedSurfaceBackdrop = null
+      surfaceDrawTransform = null
       isDrawing = false
     }
   }
@@ -2005,3 +2019,13 @@ internal val LayerBoundsDirtyFields: Int =
     DirtyFields.Areas or
     DirtyFields.ExpandLayer or
     DirtyFields.VisualEffectLayerBounds
+
+/** Whether this matrix only translates in x and y, by its [Matrix.TranslateX] and [Matrix.TranslateY] values. */
+internal fun Matrix.isTranslationOnly(): Boolean {
+  for (i in values.indices) {
+    if (i == Matrix.TranslateX || i == Matrix.TranslateY) continue
+    // The diagonal (indices 0, 5, 10 and 15) is 1 in an identity matrix, every other entry 0.
+    if (values[i] != if (i % 5 == 0) 1f else 0f) return false
+  }
+  return true
+}

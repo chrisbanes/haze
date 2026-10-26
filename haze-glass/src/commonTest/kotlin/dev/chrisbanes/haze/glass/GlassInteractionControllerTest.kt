@@ -147,6 +147,32 @@ class GlassInteractionControllerTest : ContextTest() {
   }
 
   @Test
+  fun controllerHasTransform_matchesRenderState() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply {
+      style = style.then { pressed { scale(0.9f) } }
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+    }
+    setContent {
+      Box(Modifier.size(100.dp, 80.dp).testGlass(effect))
+    }
+    waitForIdle()
+    val controller = checkNotNull(runtime(effect).interactionControllerForTest)
+    val context = checkNotNull(runtime(effect).attachedContextForTest)
+
+    assertThat(controller.hasTransform).isFalse()
+    assertThat(controller.renderState.hasTransform).isFalse()
+    assertThat(runtime(effect).currentContentTransform()).isEqualTo(HazeEffectContentTransform.Identity)
+
+    runtime(effect).setPressedForTest(position = Offset(20f, 30f))
+    waitForIdle()
+
+    assertThat(controller.hasTransform).isTrue()
+    assertThat(controller.renderState.hasTransform).isTrue()
+    assertThat(runtime(effect).currentInteractionTransform(context.modifierSize))
+      .isEqualTo(HazeEffectContentTransform(0.9f, 0.9f, Offset(20f, 30f)))
+  }
+
+  @Test
   fun invalidGeometry_returnsIdentityTransform() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
       style = style.then { pressed { scale(0.9f) } }
