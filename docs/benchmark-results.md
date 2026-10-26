@@ -324,31 +324,20 @@ clustered screens against independent surfaces before adopting a container.
     APK SHA-256 was `3936fc8d6608d53a980662f965faf1cbf5cd8b330dcf76b7846712ccb8f061d5` and the
     benchmark APK SHA-256 was
     `ff92fbf3289f15c5ddf42ff32da3ef5c1e9b44f5e80da987ca6106c8e1aeaf2f`. The Android build was
-    `CP41.260831.019`. The device was on AC power at 80% charge and reported thermal status 0 at
-    every one of 23 readbacks. The battery temperature rose from 26.5°C at the start to 33.8°C at
-    the end of the session.
+    `CP41.260831.019`. The device was on AC power and reported thermal status 0 throughout.
 
-    Ten methods ran in the first pass, in the order independent, container, resting gap, join and
-    leave, group, press, lazy container, lazy independent, cold independent, cold container. The
-    second pass ran them in exactly the opposite order. Each method ran eight measured
-    iterations in its own Gradle invocation, after a one-iteration dry run. This produced 160
-    iterations, 20 JSON reports, 20 XML results, 160 Perfetto traces and 23,194 measured frames.
-    No completed iteration was discarded. `archive_result.py` verified each archive's method label,
-    iteration count and trace count. It also enforced the per-frame layer gates (one source
-    record per frame, a positive runtime-draw count, and about two layers per frame for the
-    independent row or about one for the others) on the
+    The second pass ran the first pass's ten methods in exactly the opposite order. Each method ran
+    eight measured iterations in its own Gradle invocation, which produced 160 iterations and 160
+    Perfetto traces. No completed iteration was discarded. The per-frame layer gates passed on the
     two-member, resting-gap, group and press rows. The Google app was temporarily disabled to
     prevent its Chromium trace producer from delaying collection.
 
-    Per-iteration CPU placement came from `placement.sql` over every trace. Two traces, one per
-    lazy-scroll row in the second pass, had no scheduler data in the measured window and are
-    excluded from the lazy running-time means. In the steady two-member rows the main thread ran
-    81–86% on the little cluster. The RenderThread ran 11–23% on the big core in every container
-    row and 27–31% in the independent row. On the little cluster it ran 42–45% in the two-member
-    container row against 18–19% in the independent row. Total RenderThread running time was similar
-    (352–371 ms). The runs did not control CPU placement.
+    CPU placement was not controlled. In the steady two-member rows the main thread ran 81–86% on
+    the little cluster. The RenderThread ran 11–23% on the big core in every container row and
+    27–31% in the independent row, with similar total running time (352–371 ms). Two lazy-scroll
+    traces had no scheduler data and are excluded from the running-time means.
 
-    Raw JSON, benchmark messages, traces, and device readbacks are retained locally under
+    Raw JSON, traces and device readbacks are retained locally under
     `internal/benchmark/build/benchmark-results/container-2.1.9TQlOX/`.
 
 <a id="blur-noise-tint"></a>
