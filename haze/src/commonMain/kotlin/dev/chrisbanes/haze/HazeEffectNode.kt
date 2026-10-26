@@ -161,6 +161,10 @@ internal class HazeEffectNode(
   // Set while a parent has stopped calling place(); the node stays attached with stale coordinates.
   private var isUnplaced = false
 
+  // False while lastKnownCoordinates are only those adopted on attach. A reused lazy item that
+  // prefetch precomposes is attached but not placed, with the coordinates of its last placement.
+  private var coordinatesConfirmed = false
+
   // False means a read refresh is pending: the last configuration pass, or its geometry pass, did not finish.
   private var observedUpdateCompleted = false
 
@@ -502,6 +506,7 @@ internal class HazeEffectNode(
   override fun onDetach() {
     // A reactivated node with an unchanged layout is not placed again, so it must start placed.
     isUnplaced = false
+    coordinatesConfirmed = false
     surface.release()
     unregisterSourceDemand()
     stopSourceSelectionSnapshotObserver()
@@ -626,7 +631,9 @@ internal class HazeEffectNode(
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
     val wasUnplaced = isUnplaced
+    val wasConfirmed = coordinatesConfirmed
     isUnplaced = false
+    coordinatesConfirmed = true
     Snapshot.withoutReadObservation {
       lastKnownCoordinates = coordinates
       // onPlaced is needed before first draw because onGloballyPositioned can arrive
@@ -641,7 +648,7 @@ internal class HazeEffectNode(
       }
     }
     // Re-placement at an identical position reports no geometry change, so notify explicitly.
-    if (wasUnplaced) surface.changed()
+    if (wasUnplaced || !wasConfirmed) surface.changed()
   }
 
   override fun onUnplaced() {
@@ -652,6 +659,13 @@ internal class HazeEffectNode(
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
     onPositioned(coordinates, fromPlacement = false)
+    confirmCoordinates()
+  }
+
+  private fun confirmCoordinates() {
+    if (coordinatesConfirmed || !isAttached) return
+    coordinatesConfirmed = true
+    surface.changed()
   }
 
   private fun onPositioned(coordinates: LayoutCoordinates, fromPlacement: Boolean) {
@@ -708,6 +722,8 @@ internal class HazeEffectNode(
     // A LocalLifecycleOwner change redraws this node (see LifecycleOwnerInvalidationNode).
     // Deactivated reusable content can still draw while detached, when locals cannot be read.
     if (isAttached) updateLifecycle(currentValueOf(LocalLifecycleOwner).lifecycle)
+    // Only a placed node draws, so a reactivated node that is not placed again is placed where it was.
+    confirmCoordinates()
     if (surface.owner != null) {
       if (layerBoundsRefreshPending) refreshObservedReads(notifySurface = false)
       isDrawing = true
@@ -1601,7 +1617,7 @@ internal class HazeEffectNode(
   /** This member's coordinates while it can draw relocated into [owner]; null when [surfaceBounds] is. */
   private fun surfaceCoordinates(owner: LayoutCoordinates?): LayoutCoordinates? {
     val member = lastKnownCoordinates ?: return null
-    if (!isAttached || isUnplaced || !member.isAttached || owner?.isAttached != true || size.minDimension <= 0f) return null
+    if (!isAttached || isUnplaced || !coordinatesConfirmed || !member.isAttached || owner?.isAttached != true || size.minDimension <= 0f) return null
     return member
   }
 
