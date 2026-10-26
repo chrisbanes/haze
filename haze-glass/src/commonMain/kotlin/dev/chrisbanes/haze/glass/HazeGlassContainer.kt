@@ -214,6 +214,17 @@ internal class GlassContainerNode(
   internal var model = GlassClusterModel(emptyList(), null, emptyList())
     private set
 
+  /** The snapshots and merge distance [model] was clustered from, which a translated pass reuses. */
+  private var clustered = emptyList<GlassMemberSnapshot>()
+  private var clusteredMergeDistance = Float.NaN
+
+  /** Clustering passes run so far, which a translated pass skips; tests count them. */
+  internal var clusteringPasses = 0
+    private set
+
+  /** Members' owner bounds, read once per [recluster] pass: layout cannot change during one. */
+  private var passBounds: HashMap<HazeEffectSurface, Rect?>? = null
+
   override fun onAttach() {
     children = requireGraphicsContext().createGraphicsLayer()
     // Reactivation with an unchanged layout is not placed again (#1473), so members reattaching
@@ -394,6 +405,7 @@ internal class GlassContainerNode(
     reclusterPasses++
     if (layoutComplete) mergeDistanceCheckPending = false
     refreshing = true
+    passBounds = HashMap()
     try {
       // Reached from a draw or a member's removal: the animated interaction and transition reads
       // below must not make that draw observe them and re-run every frame.
@@ -420,7 +432,7 @@ internal class GlassContainerNode(
         // leaves. A leaving member's release pass still has valid bounds, so it keeps its departure snapshot.
         // An unplaced member's snapshot was already consumed by leaveOrRejoinUnplacedMembers.
         registered.forEach { member ->
-          if (member !in live && member.binding.surface?.let { it.boundsInOwner() == null } == true) latest.remove(member)
+          if (member !in live && member.binding.surface?.let { it.ownerBounds() == null } == true) latest.remove(member)
         }
         // Liveness and compatibility hold on every pass; merge distance is checked once layout is
         // complete.
@@ -478,7 +490,12 @@ internal class GlassContainerNode(
           }
           snapshots.forEach { latest[it.identity] = it }
           // Optical size changes immediately and counts live layout rects only, never ghosts.
-          model = clusterGlassMembers(snapshots, mergeDistancePx, glassOpticalSize(opticalSizes(live.keys)))
+          val liveOpticalSize = glassOpticalSize(opticalSizes(live.keys))
+          val mergeDistance = mergeDistancePx
+          model = model.takeIf { mergeDistance == clusteredMergeDistance }?.translatedTo(clustered, snapshots, liveOpticalSize)
+            ?: clusterGlassMembers(snapshots, mergeDistance, liveOpticalSize).also { clusteringPasses++ }
+          clustered = snapshots
+          clusteredMergeDistance = mergeDistance
           val split = model.surfaces.flatMap { cluster ->
             cluster.members.filter { member -> member.link != null && cluster.members.none { it.identity === member.link } }
           }.map { it.identity }
@@ -496,7 +513,13 @@ internal class GlassContainerNode(
       }
     } finally {
       refreshing = false
+      passBounds = null
     }
+  }
+
+  private fun HazeEffectSurface.ownerBounds(): Rect? {
+    val cache = passBounds ?: return boundsInOwner()
+    return if (cache.containsKey(this)) cache[this] else boundsInOwner().also { cache[this] = it }
   }
 
   /**
@@ -525,7 +548,7 @@ internal class GlassContainerNode(
    */
   private fun GlassMemberNode.localSize(): Size? {
     if (!isAttached || isUnplaced) return null
-    val bounds = binding.surface?.boundsInOwner()?.takeIf { it.isValidGlassMember() } ?: return null
+    val bounds = binding.surface?.ownerBounds()?.takeIf { it.isValidGlassMember() } ?: return null
     val transform = binding.runtime?.currentInteractionTransform(bounds.size)
     if (transform != null && !bounds.transformedBy(transform).isValidGlassMember()) return null
     return requireLayoutCoordinates().size.toSize()
@@ -548,7 +571,7 @@ internal class GlassContainerNode(
       val size = node.localSize() ?: continue
       val key = node.groupKey
       // A rotated or scaled member leaves the drawn group, so it counts alone like an ungrouped one.
-      val bounds = if (key != null && owner != null && node.hasTranslationOnlyTransform(owner)) node.binding.surface?.boundsInOwner() else null
+      val bounds = if (key != null && owner != null && node.hasTranslationOnlyTransform(owner)) node.binding.surface?.ownerBounds() else null
       val current = runBounds
       if (bounds == null) {
         runKey = null
@@ -580,7 +603,7 @@ internal class GlassContainerNode(
   private fun liveSnapshots(): Map<GlassMemberNode, GlassMemberSnapshot> = members.mapNotNull { member ->
     if (member.isUnplaced) return@mapNotNull null
     val binding = member.binding
-    val layoutRect = binding.surface?.boundsInOwner() ?: return@mapNotNull null
+    val layoutRect = binding.surface?.ownerBounds() ?: return@mapNotNull null
     val key = binding.key ?: return@mapNotNull null
     val material = binding.material ?: return@mapNotNull null
     member to member.snapshot(layoutRect, key, material).copy(sourceSelection = checkNotNull(binding.surface).inputSelection())
@@ -687,6 +710,8 @@ internal class GlassContainerNode(
     latest.clear()
     reclusterPending = false
     model = GlassClusterModel(emptyList(), null, emptyList())
+    clustered = emptyList()
+    clusteredMergeDistance = Float.NaN
     suppressTransitions = true
     children?.let { requireGraphicsContext().releaseGraphicsLayer(it) }
     children = null

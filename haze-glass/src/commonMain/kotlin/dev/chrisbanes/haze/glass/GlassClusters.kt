@@ -241,3 +241,35 @@ internal fun clusterGlassMembers(
 
 private fun List<Int>.toCluster(units: List<List<GlassMemberSnapshot>>) =
   GlassCluster(map { units[it] })
+
+/**
+ * This model, clustered from [previous], re-placed at [members], or null unless [members] are
+ * [previous] in the same order translated by one offset with every other field equal. Clustering
+ * reads only relative geometry, so a scrolling container keeps its partition without clustering
+ * again; [opticalSize] is passed through as [clusterGlassMembers] would.
+ */
+internal fun GlassClusterModel.translatedTo(
+  previous: List<GlassMemberSnapshot>,
+  members: List<GlassMemberSnapshot>,
+  opticalSize: Size?,
+): GlassClusterModel? {
+  if (members.size != previous.size || members.isEmpty()) return null
+  val offset = members.first().rect.topLeft - previous.first().rect.topLeft
+  val placed = HashMap<Any, GlassMemberSnapshot>(members.size)
+  for (i in members.indices) {
+    val member = members[i]
+    val before = previous[i]
+    val expected = before.copy(
+      rect = before.rect.translate(offset),
+      layoutRect = before.layoutRect.translate(offset),
+      sampleLayoutRect = before.sampleLayoutRect.translate(offset),
+    )
+    if (member != expected) return null
+    placed[member.identity] = member
+  }
+  return GlassClusterModel(
+    surfaces.map { cluster -> GlassCluster(cluster.groups.map { unit -> unit.map { placed.getValue(it.identity) } }) },
+    opticalSize,
+    overflow,
+  )
+}

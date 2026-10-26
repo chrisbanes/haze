@@ -1594,9 +1594,15 @@ internal class HazeEffectNode(
   }
 
   internal fun surfaceBounds(owner: LayoutCoordinates?): Rect? {
+    val member = surfaceCoordinates(owner) ?: return null
+    return checkNotNull(owner).localBoundingBoxOf(member, clipBounds = false)
+  }
+
+  /** This member's coordinates while it can draw relocated into [owner]; null when [surfaceBounds] is. */
+  private fun surfaceCoordinates(owner: LayoutCoordinates?): LayoutCoordinates? {
     val member = lastKnownCoordinates ?: return null
     if (!isAttached || isUnplaced || !member.isAttached || owner?.isAttached != true || size.minDimension <= 0f) return null
-    return owner.localBoundingBoxOf(member, clipBounds = false)
+    return member
   }
 
   internal fun surfaceLifecycleScope(): HazeEffectLifecycleScope = HazeEffectLifecycleScopeImpl(this)
@@ -1621,12 +1627,12 @@ internal class HazeEffectNode(
   }
 
   private fun surfaceTransform(owner: LayoutCoordinates?): Matrix? {
-    if (surfaceBounds(owner) == null) return null
-    return Matrix().also { checkNotNull(owner).transformFrom(checkNotNull(lastKnownCoordinates), it) }
+    val member = surfaceCoordinates(owner) ?: return null
+    return Matrix().also { checkNotNull(owner).transformFrom(member, it) }
   }
 
-  private fun <T> withSurfaceScope(scope: DrawScope, owner: LayoutCoordinates?, block: ContentDrawScope.() -> T): T? {
-    val matrix = surfaceTransform(owner) ?: return null
+  /** [matrix] is this member's [surfaceTransform], which callers resolve once per footprint or draw. */
+  private fun <T> withSurfaceScope(scope: DrawScope, matrix: Matrix, block: ContentDrawScope.() -> T): T? {
     var result: T? = null
     scope.withTransform({ transform(matrix) }) {
       val previousSize = drawContext.size
@@ -1672,7 +1678,7 @@ internal class HazeEffectNode(
     }
     if (native) {
       preparedSurfaceBackdrop = try {
-        withSurfaceScope(scope, owner) {
+        withSurfaceScope(scope, matrix) {
           val capability = typedEffectRenderer as? HazeEffectRendererBackdrop<Any?>
           capability?.let { with(it) { HazeEffectDrawScopeImpl(this@withSurfaceScope, this@HazeEffectNode, typedEffectSampling).backdropEffect(typedEffectStyle) } }
         }
@@ -1686,7 +1692,7 @@ internal class HazeEffectNode(
       preparedSurfaceBackdrop?.let { material = material.transformedBy(it.materialTransform) }
     }
     if (!native && shouldPrepareEffectDraw()) {
-      withSurfaceScope(scope, owner) { prepareEffectDraw(effectDrawScope()) }
+      withSurfaceScope(scope, matrix) { prepareEffectDraw(effectDrawScope()) }
     }
     val output = matrix.map(layer.transformedBy(interaction))
     val capture = if (native) {
@@ -1737,7 +1743,8 @@ internal class HazeEffectNode(
   internal fun drawRelocatedSurface(scope: DrawScope, owner: LayoutCoordinates?) {
     try {
       isDrawing = true
-      withSurfaceScope(scope, owner) {
+      val matrix = surfaceTransform(owner) ?: return
+      withSurfaceScope(scope, matrix) {
         for (area in areas) {
           require(!area.isContentDrawing) {
             "Modifier.hazeEffect nodes cannot draw an ancestor Modifier.hazeSource. " +
