@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -31,6 +32,8 @@ internal class GlassMemberBinding(val input: HazeInput, val expandLayerBounds: B
   var surface: HazeEffectSurface? = null
   var material: ResolvedGlassStyle? = null
   var key: GlassMergeKey? = null
+  private var publishedShape: RoundedCornerShape? = null
+  private var publishedAlpha = Float.NaN
   var maxRefractionMultiplier: Float = 1f
     private set
 
@@ -45,11 +48,14 @@ internal class GlassMemberBinding(val input: HazeInput, val expandLayerBounds: B
     this.surface = surface
     if (
       this.material != material || this.key != key ||
-      this.maxRefractionMultiplier != maxRefractionMultiplier
+      this.maxRefractionMultiplier != maxRefractionMultiplier ||
+      publishedShape != runtime.shape || publishedAlpha != runtime.styleAlpha
     ) {
       this.material = material
       this.key = key
       this.maxRefractionMultiplier = maxRefractionMultiplier
+      publishedShape = runtime.shape
+      publishedAlpha = runtime.styleAlpha
       node?.changed()
     }
     node?.connect()
@@ -62,12 +68,16 @@ internal class GlassMemberBinding(val input: HazeInput, val expandLayerBounds: B
     material = material ?: previous.material
     key = key ?: previous.key
     maxRefractionMultiplier = previous.maxRefractionMultiplier
+    publishedShape = previous.publishedShape
+    publishedAlpha = previous.publishedAlpha
     previous.node = null
     previous.runtime = null
     previous.surface = null
     previous.material = null
     previous.key = null
     previous.maxRefractionMultiplier = 1f
+    previous.publishedShape = null
+    previous.publishedAlpha = Float.NaN
   }
 
   fun release(runtime: GlassRuntimeEffect) {
@@ -78,6 +88,8 @@ internal class GlassMemberBinding(val input: HazeInput, val expandLayerBounds: B
     material = null
     key = null
     maxRefractionMultiplier = 1f
+    publishedShape = null
+    publishedAlpha = Float.NaN
     node?.changed()
   }
 }

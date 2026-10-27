@@ -281,8 +281,8 @@ internal fun GlassClusterModel.translatedTo(
 }
 
 /** Whole numbers below 2^23 in magnitude, whose sums and differences floats represent exactly. */
-private fun Float.isExactPixel(): Boolean = this == floor(this) && abs(this) < EXACT_PIXEL_LIMIT
+internal fun Float.isExactPixel(): Boolean = this == floor(this) && abs(this) < EXACT_PIXEL_LIMIT
 
-private fun Rect.isExactPixels(): Boolean = left.isExactPixel() && top.isExactPixel() && right.isExactPixel() && bottom.isExactPixel()
+internal fun Rect.isExactPixels(): Boolean = left.isExactPixel() && top.isExactPixel() && right.isExactPixel() && bottom.isExactPixel()
 
 private const val EXACT_PIXEL_LIMIT = (1 shl 23).toFloat()

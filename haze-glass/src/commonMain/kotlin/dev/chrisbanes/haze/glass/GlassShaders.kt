@@ -84,7 +84,14 @@ internal object GlassShaders {
       vec2 localCoord = materialCoord(coord);
       vec2 halfSize = materialSize * 0.5;
       vec2 centeredCoord = localCoord - halfSize;
-      float outputSd = ${shapeSd(merged, "localCoord")};
+      ${if (merged) {
+    """
+      vec4 memberDistancesAtCoord = memberDistances(localCoord);
+      float outputSd = shapeSdFromDistances(memberDistancesAtCoord);
+      """
+  } else {
+    "float outputSd = ${shapeSd(merged, "localCoord")};"
+  }}
       float coverage = shapeCoverage(outputSd, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
 
@@ -94,7 +101,7 @@ internal object GlassShaders {
         : smootherstep(clamp(outputDistToEdge / max(edgeSoftness, 0.0001), 0.0, 1.0));
       ${if (merged) {
     """
-      vec4 w = memberWeights(localCoord);
+      vec4 w = memberWeightsFromDistances(memberDistancesAtCoord);
       vec2 memberOptics = mergedOpticalValues(localCoord, w);
       float localizedRefractionMultiplier = memberOptics.x;
       float localizedWhitePoint = clamp(whitePoint + memberOptics.y, -1.0, 1.0);
@@ -314,7 +321,14 @@ internal object GlassShaders {
       vec2 localCoord = materialCoord(coord);
       vec2 halfSize = materialSize * 0.5;
       vec2 centeredCoord = localCoord - halfSize;
-      float sd = ${shapeSd(merged, "localCoord")};
+      ${if (merged) {
+    """
+      vec4 memberDistancesAtCoord = memberDistances(localCoord);
+      float sd = shapeSdFromDistances(memberDistancesAtCoord);
+      """
+  } else {
+    "float sd = ${shapeSd(merged, "localCoord")};"
+  }}
       float coverage = shapeCoverage(sd, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
 
@@ -324,7 +338,7 @@ internal object GlassShaders {
         : smootherstep(clamp(distToEdge / max(edgeSoftness, 0.0001), 0.0, 1.0));
       ${if (merged) {
     """
-      vec4 w = memberWeights(localCoord);
+      vec4 w = memberWeightsFromDistances(memberDistancesAtCoord);
       vec2 memberOptics = mergedOpticalValues(localCoord, w);
       float localizedRefractionMultiplier = memberOptics.x;
       float localizedWhitePoint = clamp(whitePoint + memberOptics.y, -1.0, 1.0);
@@ -1297,16 +1311,32 @@ internal object GlassShaders {
       return d;
     }
 
-    // Each member's share of the smooth minimum, independent of member order: members within the
-    // largest smoothing radius of the nearest one share it, and otherwise the nearest one wins.
-    vec4 memberWeights(vec2 localCoord) {
+    vec4 memberDistances(vec2 localCoord) {
       vec4 d = vec4(0.0);
-      float nearest = memberSd(localCoord, memberRects[0], memberRadii[0]);
-      float k = 0.001;
-      d[0] = nearest;
+      d[0] = memberSd(localCoord, memberRects[0], memberRadii[0]);
       for (int i = 1; i < 4; i++) {
         if (float(i) >= memberCount) break;
         d[i] = memberSd(localCoord, memberRects[i], memberRadii[i]);
+      }
+      return d;
+    }
+
+    float shapeSdFromDistances(vec4 memberDistances) {
+      float d = memberDistances[0];
+      for (int i = 1; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        d = smoothMin(d, memberDistances[i], memberSmoothing[i]);
+      }
+      return d;
+    }
+
+    // Each member's share of the smooth minimum, independent of member order: members within the
+    // largest smoothing radius of the nearest one share it, and otherwise the nearest one wins.
+    vec4 memberWeightsFromDistances(vec4 d) {
+      float nearest = d[0];
+      float k = 0.001;
+      for (int i = 1; i < 4; i++) {
+        if (float(i) >= memberCount) break;
         nearest = min(nearest, d[i]);
         k = max(k, memberSmoothing[i]);
       }
@@ -1319,6 +1349,10 @@ internal object GlassShaders {
         total += w[i];
       }
       return w / max(total, 0.000001);
+    }
+
+    vec4 memberWeights(vec2 localCoord) {
+      return memberWeightsFromDistances(memberDistances(localCoord));
     }
 
     // Blends unpremultiplied colours in premultiplied space, so a transparent member fades out.

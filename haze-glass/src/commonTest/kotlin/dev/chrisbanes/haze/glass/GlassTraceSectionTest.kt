@@ -13,6 +13,11 @@ class GlassTraceSectionTest {
   fun names_areStableUniqueAndWithinAndroidLimit() {
     assertThat(GlassTraceSection.all).isEqualTo(
       listOf(
+        "HazeGlass.containerPlacement",
+        "HazeGlass.containerRecluster",
+        "HazeGlass.containerTranslate",
+        "HazeGlass.containerCluster",
+        "HazeGlass.containerReconcile",
         "HazeGlass.prepare",
         "HazeGlass.prepareBudget",
         "HazeGlass.selectDelegate",

@@ -12,6 +12,7 @@ import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -22,10 +23,16 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ComposeUiTest
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import assertk.Assert
 import assertk.all
@@ -34,10 +41,14 @@ import assertk.assertions.hasSize
 import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isNotEmpty
+import assertk.assertions.isNotEqualTo
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.prop
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
+import dev.chrisbanes.haze.HazeSourceSelection
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
@@ -62,6 +73,58 @@ class GlassContainerGroupRenderTest : ContextTest() {
     val member = fixture.field().members.single()
     assertThat(member.cornerRadii).isEqualTo(CornerRadii(12f, 12f, 12f, 12f))
     assertThat(member.tint).isEqualTo(Color.Red)
+  }
+
+  @Test
+  fun groupCornerReadOnlyAtGroupSize_updatesWithoutModelChange() = runComposeUiTest {
+    val radius = mutableStateOf(12f)
+    val corner = object : CornerSize {
+      override fun toPx(shapeSize: Size, density: Density): Float =
+        if (shapeSize.width > 100f) radius.value else 8f
+    }
+    val fixture = group(firstShape = RoundedCornerShape(corner))
+    val model = fixture.owner().model
+    assertThat(fixture.field().members.single().cornerRadii).isEqualTo(CornerRadii(12f, 12f, 12f, 12f))
+
+    radius.value = 16f
+    waitForIdle()
+
+    assertThat(fixture.owner().model).isSameInstanceAs(model)
+    assertThat(fixture.field().members.single().cornerRadii).isEqualTo(CornerRadii(16f, 16f, 16f, 16f))
+  }
+
+  @Test
+  fun translatedFieldWithFractionalMargin_keepsFreshCaptureSize() = runComposeUiTest {
+    val shift = mutableStateOf(0)
+    val margin = 16.50001f
+    val state = HazeState()
+    val effects = List(2) { GlassRuntimeEffect() }
+    val factories = effects.map { runtime -> HazeEffectFactory { runtime } }
+    val style = containerTestStyle(Color.Red)
+    setContent {
+      Box(Modifier.size(600.dp, 300.dp)) {
+        Box(Modifier.size(600.dp, 300.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.offset(200.dp, 40.dp).size(300.dp, 200.dp).hazeGlassContainer(margin.dp)) {
+          repeat(2) { index ->
+            Box(
+              Modifier.offset { IntOffset(shift.value, index * 50) }.size(100.dp, 40.dp)
+                .hazeGlass(factories[index], HazeInput.Sources(state), style, HazePerformanceMode.Quality, true, null),
+            )
+          }
+        }
+      }
+    }
+    waitForIdle()
+    val owner = checkNotNull(effects.first().memberBindingForTest?.node?.container)
+    repeat(19) {
+      runOnIdle { shift.value -= 6 }
+      waitForIdle()
+    }
+
+    val runtime = owner.renderer.runtimeSurfaces.single()
+    val expected = Rect(-114f, 0f, -14f, 90f).inflate(margin)
+    assertThat(runtime.surfaceOrigin).isEqualTo(expected.topLeft)
+    assertThat(checkNotNull(runtime.attachedContextForTest).modifierSize).isEqualTo(expected.size)
   }
 
   @Test
@@ -136,6 +199,97 @@ class GlassContainerGroupRenderTest : ContextTest() {
     // The half-transparent member draws on its own, so it cannot widen the group's optical size.
     val small = opticalGroup(grouped = true, secondAlpha = 0.5f)
     assertThat(small.opticalSizeOverride).isEqualTo(Size(40f, 40f))
+  }
+
+  @Test
+  fun materialChangeFollowedByPlacement_rebuildsGroupOptics() = runComposeUiTest {
+    val alpha = mutableStateOf(1f)
+    val shift = mutableStateOf(0)
+    val fixture = group(stacked = true, firstAlpha = { alpha.value }, shift = { shift.value })
+    val owner = fixture.owner()
+    val before = owner.placementReusePasses
+    runOnIdle { shift.value = 10 }
+    waitForIdle()
+    assertThat(owner.placementReusePasses).isGreaterThan(before)
+    assertThat(fixture.first.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+    val placements = owner.placementReusePasses
+    runOnIdle {
+      alpha.value = 0.5f
+      shift.value = 20
+    }
+    waitForIdle()
+    assertThat(owner.placementReusePasses).isEqualTo(placements)
+    assertThat(fixture.first.opticalSizeOverride).isEqualTo(Size(40f, 40f))
+    runOnIdle {
+      alpha.value = 1f
+      shift.value = 30
+    }
+    waitForIdle()
+    assertThat(fixture.first.opticalSizeOverride).isEqualTo(Size(100f, 100f))
+  }
+
+  @Test
+  fun sourceSelectionChangeFollowedByPlacement_rebuildsCachedSnapshots() = runComposeUiTest {
+    assertSourceSelectionChange(grouped = true)
+  }
+
+  @Test
+  fun ungroupedSourceSelectionChangeFollowedByPlacement_rebuildsCachedField() = runComposeUiTest {
+    assertSourceSelectionChange(grouped = false)
+  }
+
+  private fun ComposeUiTest.assertSourceSelectionChange(grouped: Boolean) {
+    val picked = mutableStateOf("a")
+    val shift = mutableStateOf(0)
+    val state = HazeState()
+    val effects = List(2) { GlassRuntimeEffect() }
+    val factories = effects.map { runtime -> HazeEffectFactory { runtime } }
+    val input = HazeInput.Sources(state, HazeSourceSelection.All.where { it.key == picked.value })
+    setContent {
+      Box(Modifier.size(300.dp).testTag("source_selection_fixture")) {
+        Box(Modifier.size(300.dp).hazeSource(state, key = "a").background(Color.Red))
+        Box(Modifier.size(300.dp).hazeSource(state, key = "b").background(Color.Blue))
+        Box(Modifier.size(300.dp).hazeGlassContainer(16.dp)) {
+          repeat(2) { index ->
+            Box(
+              Modifier.offset { IntOffset((40 + shift.value).dp.roundToPx(), (40 + index * if (grouped) 80 else 50).dp.roundToPx()) }
+                .size(100.dp, 40.dp).hazeGlass(
+                  factories[index],
+                  input,
+                  containerTestStyle(Color.Transparent),
+                  HazePerformanceMode.Quality,
+                  true,
+                  null,
+                  groupKey = "group".takeIf { grouped },
+                ),
+            )
+          }
+        }
+      }
+    }
+    waitForIdle()
+    val owner = checkNotNull(effects.first().memberBindingForTest?.node?.container)
+    val previous = checkNotNull(effects.first().memberBindingForTest?.surface).inputSelection()
+    assertThat(previous).isNotEmpty()
+    val before = owner.placementReusePasses
+    runOnIdle { shift.value = 10 }
+    waitForIdle()
+    assertThat(owner.placementReusePasses).isGreaterThan(before)
+    val placements = owner.placementReusePasses
+    val field = checkNotNull(owner.renderer.runtimeSurfaces.single().mergedField)
+    assertThat(field.members).hasSize(if (grouped) 1 else 2)
+    assertThat(onNodeWithTag("source_selection_fixture").captureToImage().toPixelMap()[100, 60]).isEqualTo(Color.Red)
+    runOnIdle {
+      picked.value = "b"
+      shift.value = 20
+    }
+    waitForIdle()
+    val current = checkNotNull(effects.first().memberBindingForTest?.surface).inputSelection()
+    assertThat(current).isNotEmpty()
+    assertThat(current).isNotEqualTo(previous)
+    assertThat(owner.placementReusePasses).isEqualTo(placements)
+    assertThat(onNodeWithTag("source_selection_fixture").captureToImage().toPixelMap()[100, 60]).isEqualTo(Color.Blue)
+    owner.model.surfaces.flatMap { it.members }.forEach { assertThat(it.sourceSelection).isEqualTo(current) }
   }
 
   @Test
@@ -290,6 +444,8 @@ class GlassContainerGroupRenderTest : ContextTest() {
     pivot: GlassTransformPivot = GlassTransformPivot.Center,
     stacked: Boolean = false,
     secondKey: () -> Any? = { "group" },
+    firstAlpha: () -> Float = { 1f },
+    shift: () -> Int = { 0 },
   ): GroupFixture {
     val first = GlassRuntimeEffect()
     val second = GlassRuntimeEffect()
@@ -308,15 +464,15 @@ class GlassContainerGroupRenderTest : ContextTest() {
         Box(Modifier.size(520.dp, 300.dp).hazeSource(state).background(Color.White))
         Box(Modifier.size(520.dp, 300.dp).hazeGlassContainer(40.dp)) {
           Box(
-            Modifier.offset(40.dp, 60.dp).size(100.dp, 40.dp).hazeGlass(
+            Modifier.offset { IntOffset((40 + shift()).dp.roundToPx(), 60.dp.roundToPx()) }.size(100.dp, 40.dp).hazeGlass(
               HazeEffectFactory { first }, HazeInput.Sources(state),
-              containerTestStyle(firstTint).then(GlassStyle { shape(firstShape) }).then(pressed),
+              containerTestStyle(firstTint, alpha = firstAlpha()).then(GlassStyle { shape(firstShape) }).then(pressed),
               HazePerformanceMode.Quality, true, firstSource, GlassTransformTarget.MaterialOnly, pivot,
               GlassReducedMotionPolicy.Full, groupKey = "group",
             ),
           )
           Box(
-            Modifier.offset(if (stacked) 40.dp else 340.dp, if (stacked) 160.dp else 60.dp).size(100.dp, 40.dp).hazeGlass(
+            Modifier.offset { IntOffset(((if (stacked) 40 else 340) + shift()).dp.roundToPx(), (if (stacked) 160 else 60).dp.roundToPx()) }.size(100.dp, 40.dp).hazeGlass(
               HazeEffectFactory { second }, HazeInput.Sources(state),
               containerTestStyle(secondTint).then(GlassStyle { shape(RoundedCornerShape(percent = 50)) }).then(pressed),
               HazePerformanceMode.Quality, true, secondSource, GlassTransformTarget.MaterialOnly, pivot,

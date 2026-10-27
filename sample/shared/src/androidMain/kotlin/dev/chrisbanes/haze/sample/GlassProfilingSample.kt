@@ -5,6 +5,9 @@
 
 package dev.chrisbanes.haze.sample
 
+import android.os.Build
+import android.os.Debug
+import android.os.Trace
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -47,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -420,15 +424,26 @@ private fun GlassProfilingLazyContainer(
   containerMergeDistance: Dp?,
   modifier: Modifier = Modifier,
 ) {
+  // Relocated Glass draws outside the lazy layout's internal clip. Match the documented setup
+  // and keep both comparison paths within the same viewport.
+  val measuredModifier = modifier.clipToBounds().drawWithContent {
+    if (Build.VERSION.SDK_INT >= 29 && Trace.isEnabled() && gridState.isScrollInProgress) {
+      val start = Debug.threadCpuTimeNanos()
+      drawContent()
+      Trace.setCounter("HazeGlass.lazyDrawCpuNs", Debug.threadCpuTimeNanos() - start)
+    } else {
+      drawContent()
+    }
+  }
   LazyVerticalGrid(
     columns = GridCells.Fixed(PROFILING_LAZY_COLUMN_COUNT),
     state = gridState,
     horizontalArrangement = Arrangement.spacedBy(memberGap),
     verticalArrangement = Arrangement.spacedBy(memberGap),
     modifier = if (containerMergeDistance != null) {
-      modifier.hazeGlassContainer(containerMergeDistance, scrollState = gridState)
+      measuredModifier.hazeGlassContainer(containerMergeDistance, scrollState = gridState)
     } else {
-      modifier
+      measuredModifier
     },
   ) {
     items(PROFILING_LAZY_ITEM_COUNT) { index ->

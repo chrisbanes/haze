@@ -14,6 +14,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
@@ -40,6 +41,7 @@ import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.drawHazeEffectSurfaces
+import dev.chrisbanes.haze.trace
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.math.abs
 import kotlinx.coroutines.Job
@@ -204,6 +206,12 @@ internal class GlassContainerNode(
 
   /** Set by [memberChanged]; the next draw (or a leaving member's ghost) reclusters once for all of them. */
   private var reclusterPending = false
+  private var modelDirty = true
+  private var canReusePlacement = false
+  internal var placementPreviousModel: GlassClusterModel? = null
+    private set
+  internal var placementOffset: Offset = Offset.Zero
+    private set
 
   /** Reclustering passes run so far; tests count them to prove a frame reclusters once. */
   internal var reclusterPasses = 0
@@ -220,6 +228,9 @@ internal class GlassContainerNode(
 
   /** Clustering passes run so far, which a translated pass skips; tests count them. */
   internal var clusteringPasses = 0
+    private set
+
+  internal var placementReusePasses = 0
     private set
 
   /** Members' owner bounds, read once per [recluster] pass: layout cannot change during one. */
@@ -246,7 +257,7 @@ internal class GlassContainerNode(
         TraverseDescendantsAction.ContinueTraversal
       }
     }
-    memberChanged()
+    placementChanged()
   }
 
   /** [appearing] is false when the member moves from another container, where it was visible. */
@@ -297,7 +308,10 @@ internal class GlassContainerNode(
    */
   private fun orderRegistrationsByLayout() {
     val (slots, visited) = layoutOrderedSlots()
-    slots.forEachIndexed { i, slot -> registrations[slot] = visited[i] }
+    slots.forEachIndexed { i, slot ->
+      if (registrations[slot] !== visited[i]) modelDirty = true
+      registrations[slot] = visited[i]
+    }
   }
 
   /**
@@ -345,6 +359,7 @@ internal class GlassContainerNode(
 
   private fun endGhosts(predicate: (GlassMemberGhost) -> Boolean) {
     val ended = registrations.filterIsInstance<GlassMemberGhost>().filter(predicate)
+    if (ended.isNotEmpty()) modelDirty = true
     ended.forEach {
       it.job?.cancel()
       latest.remove(it)
@@ -394,6 +409,11 @@ internal class GlassContainerNode(
    * passes through here, so this only marks the container dirty; [recluster] runs once per frame.
    */
   fun memberChanged() {
+    modelDirty = true
+    placementChanged()
+  }
+
+  private fun placementChanged() {
     // A member can register before this container has coordinates; onPlaced marks it dirty then.
     if (!isAttached || refreshing || surfaceCoordinates == null) return
     // A scroll that ends before the next draw must still suppress transitions.
@@ -402,9 +422,10 @@ internal class GlassContainerNode(
     invalidateDraw()
   }
 
-  private fun recluster(layoutComplete: Boolean) {
-    if (!isAttached || refreshing || surfaceCoordinates == null) return
+  private fun recluster(layoutComplete: Boolean): Unit = trace(GlassTraceSection.ContainerRecluster) {
+    if (!isAttached || refreshing || surfaceCoordinates == null) return@trace
     reclusterPending = false
+    placementPreviousModel = null
     reclusterPasses++
     if (layoutComplete) mergeDistanceCheckPending = false
     refreshing = true
@@ -419,6 +440,7 @@ internal class GlassContainerNode(
         // A lazy layout parks the nodes it is about to remove at the end of its children, so the
         // pass before a removal keeps the slots from the last draw for the ghost to take.
         if (layoutComplete) orderRegistrationsByLayout()
+        if (layoutComplete && !modelDirty && trace(GlassTraceSection.ContainerPlacement) { reusePlacedModel() }) return@withoutReadObservation
         if (pending.isNotEmpty()) startTransitions(liveSnapshots())
         val registered = members
         val opticalSize = glassOpticalSize(opticalSizes(registered))
@@ -496,8 +518,11 @@ internal class GlassContainerNode(
           // Optical size changes immediately and counts live layout rects only, never ghosts.
           val liveOpticalSize = glassOpticalSize(opticalSizes(live.keys))
           val mergeDistance = mergeDistancePx
-          model = model.takeIf { mergeDistance == clusteredMergeDistance }?.translatedTo(clustered, snapshots, liveOpticalSize)
-            ?: clusterGlassMembers(snapshots, mergeDistance, liveOpticalSize).also { clusteringPasses++ }
+          model = trace(GlassTraceSection.ContainerTranslate) {
+            model.takeIf { mergeDistance == clusteredMergeDistance }?.translatedTo(clustered, snapshots, liveOpticalSize)
+          } ?: trace(GlassTraceSection.ContainerCluster) {
+            clusterGlassMembers(snapshots, mergeDistance, liveOpticalSize).also { clusteringPasses++ }
+          }
           clustered = snapshots
           clusteredMergeDistance = mergeDistance
           val split = model.surfaces.flatMap { cluster ->
@@ -508,6 +533,13 @@ internal class GlassContainerNode(
           if (split.filterIsInstance<GlassMemberNode>().map { endGrow(it) }.any { it }) live = liveSnapshots()
           endGhosts { it in split }
         }
+        canReusePlacement = pending.isEmpty() && attaching.isEmpty() &&
+          registrations.none { it is GlassMemberGhost } && clustered.isNotEmpty() &&
+          clustered.all {
+            it.identity is GlassMemberNode && it.translationOnly && it.link == null && !it.fading &&
+              it.rect == it.layoutRect && it.sampleLayoutRect == it.layoutRect
+          }
+        modelDirty = false
         if (model.overflow != overflow) {
           overflow = model.overflow
           overflow.forEach { component ->
@@ -520,6 +552,25 @@ internal class GlassContainerNode(
       passBounds = null
       passTransforms = null
     }
+  }
+
+  /** Placement notifications certify unchanged member size, transforms and model inputs. */
+  private fun reusePlacedModel(): Boolean {
+    if (!canReusePlacement || mergeDistancePx != clusteredMergeDistance) return false
+    val snapshots = ArrayList<GlassMemberSnapshot>(clustered.size)
+    for (before in clustered) {
+      val member = before.identity as GlassMemberNode
+      val bounds = member.binding.surface?.ownerBounds()?.takeIf { it.isValidGlassMember() } ?: return false
+      snapshots += before.copy(rect = bounds, layoutRect = bounds, sampleLayoutRect = bounds)
+    }
+    val translated = model.translatedTo(clustered, snapshots, model.opticalSize) ?: return false
+    placementPreviousModel = model
+    placementOffset = snapshots.first().rect.topLeft - clustered.first().rect.topLeft
+    snapshots.forEach { latest[it.identity] = it }
+    clustered = snapshots
+    model = translated
+    placementReusePasses++
+    return true
   }
 
   private fun GlassRuntimeEffect.passInteractionTransform(size: Size): HazeEffectContentTransform {
@@ -675,6 +726,9 @@ internal class GlassContainerNode(
   override fun onSurfaceChanged(surface: HazeEffectSurface) {
     if (!reconciling) memberChanged()
   }
+  override fun onSurfacePlacementChanged(surface: HazeEffectSurface) {
+    if (!reconciling) placementChanged()
+  }
   override fun onSurfaceReleased(surface: HazeEffectSurface) {
     if (!reconciling) memberChanged()
   }
@@ -720,6 +774,9 @@ internal class GlassContainerNode(
     attaching.clear()
     latest.clear()
     reclusterPending = false
+    modelDirty = true
+    canReusePlacement = false
+    placementPreviousModel = null
     model = GlassClusterModel(emptyList(), null, emptyList())
     clustered = emptyList()
     clusteredMergeDistance = Float.NaN

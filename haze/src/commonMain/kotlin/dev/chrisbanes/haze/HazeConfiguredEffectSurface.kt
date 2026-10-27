@@ -53,6 +53,7 @@ public class HazeConfiguredEffectSurface<Style> internal constructor(
 
 internal interface HazeConfiguredSurfaceDraw {
   val bounds: Rect
+  val hasBackdropInput: Boolean
   fun footprint(scope: DrawScope, owner: HazeEffectSurfaceOwner?): HazeSurfaceFootprint?
   fun draw(scope: DrawScope, owner: HazeEffectSurfaceOwner?)
   fun usePortableInput(failed: Boolean, temporary: Boolean)
@@ -147,6 +148,8 @@ private class ConfiguredSurface<Style>(
   private var mixedSelection = false
   private var renderedSource = false
   private var input: HazeInput = checkNotNull(anchor.node.explicitInput)
+  override val hasBackdropInput: Boolean
+    get() = input is HazeInput.Backdrop || members.any { it.hasBackdropInput }
   private val context = object : HazeEffectLifecycleScope by anchor.node.surfaceLifecycleScope() {
     // The delegate would hand out the anchor member's own surface, not this configured one.
     override val surface: HazeEffectSurface

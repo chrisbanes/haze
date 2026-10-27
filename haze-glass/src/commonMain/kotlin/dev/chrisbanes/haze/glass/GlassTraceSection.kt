@@ -5,6 +5,11 @@ package dev.chrisbanes.haze.glass
 
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 internal object GlassTraceSection {
+  const val ContainerPlacement = "HazeGlass.containerPlacement"
+  const val ContainerRecluster = "HazeGlass.containerRecluster"
+  const val ContainerTranslate = "HazeGlass.containerTranslate"
+  const val ContainerCluster = "HazeGlass.containerCluster"
+  const val ContainerReconcile = "HazeGlass.containerReconcile"
   const val Prepare = "HazeGlass.prepare"
   const val PrepareBudget = "HazeGlass.prepareBudget"
   const val SelectDelegate = "HazeGlass.selectDelegate"
@@ -28,6 +33,11 @@ internal object GlassTraceSection {
   const val FallbackForeground = "HazeGlass.fallbackForeground"
 
   val all = listOf(
+    ContainerPlacement,
+    ContainerRecluster,
+    ContainerTranslate,
+    ContainerCluster,
+    ContainerReconcile,
     Prepare,
     PrepareBudget,
     SelectDelegate,

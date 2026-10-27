@@ -182,6 +182,83 @@ class MergedGlassFieldShaderTest {
   }
 
   @Test
+  fun fusedAndOpticalDistanceReuse_matchesPreviousSkiaEvaluation() {
+    val red = Color.Red
+    val blue = Color(0f, 0f, 1f, 0.45f)
+    val green = Color.Green
+    val fields = listOf(
+      mergedField(mergedMember(20f, 20f, 100f, 40f, tint = red), mergeDistancePx = 0f),
+      mergedField(
+        mergedMember(20f, 20f, 100f, 40f, tint = red),
+        mergedMember(140f, 20f, 100f, 40f, tint = blue),
+        mergeDistancePx = 0f,
+      ),
+      mergedField(
+        mergedMember(20f, 20f, 100f, 40f, tint = red),
+        mergedMember(140f, 20f, 100f, 40f, tint = blue),
+        mergeDistancePx = 40f,
+      ),
+      mergedField(
+        mergedMember(20f, 20f, 100f, 40f, tint = red),
+        mergedMember(90f, 20f, 100f, 40f, tint = blue),
+        mergeDistancePx = 40f,
+      ),
+      mergedField(
+        mergedMember(20f, 20f, 80f, 40f, tint = red),
+        mergedMember(112f, 20f, 80f, 40f, tint = Color.Transparent),
+        mergedMember(170f, 20f, 80f, 40f, tint = green),
+        mergeDistancePx = 40f,
+      ),
+      mergedField(
+        mergedMember(20f, 20f, 80f, 40f, tint = red),
+        mergedMember(112f, 20f, 80f, 40f, tint = blue),
+        mergedMember(204f, 20f, 80f, 40f, tint = green),
+        mergedMember(296f, 20f, 80f, 40f, tint = Color.Transparent),
+        mergeDistancePx = 40f,
+      ),
+    )
+    val sources = listOf(
+      GlassShaders.buildFused(merged = true),
+      GlassShaders.buildOptical(merged = true),
+    )
+    for (source in sources) {
+      val optimizedShader = createRuntimeEffect(distanceReuseShader(source, optimized = true))
+      val previousShader = createRuntimeEffect(distanceReuseShader(source, optimized = false))
+      for (field in fields) {
+        val first = field.members.first().rect
+        val points = buildList {
+          add(first.center)
+          add(Offset(first.left - 0.125f, first.center.y))
+          add(Offset(first.left + 0.125f, first.center.y))
+          add(Offset(first.left - 0.5f, first.center.y))
+          add(Offset(first.left + 0.5f, first.center.y))
+          if (field.members.size > 1) {
+            val second = field.members[1].rect
+            add(Offset((first.right + second.left) * 0.5f, first.center.y))
+            add(second.center)
+          }
+          val last = field.members.last().rect
+          add(Offset(last.right + 8f, last.center.y))
+        }
+        for (point in points) {
+          val optimized = reuseEvaluationPixel(optimizedShader, field, point)
+          val previous = reuseEvaluationPixel(previousShader, field, point)
+          assertThat(
+            abs(optimized.red - previous.red),
+            "signed field at $point with ${field.members.size} members",
+          ).isLessThan(2f / 255f)
+          assertThat(abs(optimized.green - previous.green), "red tint blend at $point")
+            .isLessThan(2f / 255f)
+          assertThat(abs(optimized.blue - previous.blue), "blue tint blend at $point")
+            .isLessThan(2f / 255f)
+          assertThat(abs(optimized.alpha - previous.alpha), "coverage and transparency at $point")
+            .isLessThan(2f / 255f)
+        }
+      }
+    }
+  }
+
+  @Test
   fun mergedSources_compile() {
     listOf(
       GlassShaders.buildFused(merged = true),
@@ -262,6 +339,86 @@ class MergedGlassFieldShaderTest {
       restore()
     }
     return image.toPixelMap()[0, 0]
+  }
+
+  private fun reuseEvaluationPixel(
+    shader: RuntimeEffect,
+    field: GlassMergedField,
+    point: Offset,
+  ): Color {
+    val effect = GlassRuntimeEffect()
+    val size = Size(400f, 200f)
+    val params = buildGlassRenderParams(
+      resolveGlassStyle(effect, size, Density(1f), LayoutDirection.Ltr),
+      GlassCoordinates(size, Offset.Zero, size, 1f),
+    )
+    val filter = createRuntimeShaderRenderEffect(shader, arrayOf("content"), arrayOf(null)) {
+      setOpticalUniforms(params.opticalEffectKey())
+      setMergedFieldUniforms(field, includeTint = true)
+      setFloatUniform("probe", point.x, point.y)
+    }
+    val image = ImageBitmap(1, 1)
+    with(Canvas(image)) {
+      val bounds = Rect(0f, 0f, 1f, 1f)
+      saveLayer(bounds, Paint().apply { skiaPaint.imageFilter = filter })
+      drawRect(bounds, Paint().apply { color = Color.Black })
+      restore()
+    }
+    return image.toPixelMap()[0, 0]
+  }
+
+  private fun distanceReuseShader(source: String, optimized: Boolean): String {
+    val fieldEvaluation = if (optimized) {
+      """
+        vec4 distances = memberDistances(probe);
+        float sd = shapeSdFromDistances(distances);
+      """.trimIndent()
+    } else {
+      "float sd = shapeSd(probe);"
+    }
+    val weightEvaluation = if (optimized) {
+      "vec4 weights = memberWeightsFromDistances(distances);"
+    } else {
+      "vec4 weights = referenceMemberWeights(probe);"
+    }
+    return source.substringBefore("vec4 main(vec2 coord)") + """
+      uniform float2 probe;
+
+      // Independent copy of the original memberWeights formula for the reference path.
+      vec4 referenceMemberWeights(vec2 localCoord) {
+        vec4 d = vec4(0.0);
+        float nearest = memberSd(localCoord, memberRects[0], memberRadii[0]);
+        float k = 0.001;
+        d[0] = nearest;
+        for (int i = 1; i < 4; i++) {
+          if (float(i) >= memberCount) break;
+          d[i] = memberSd(localCoord, memberRects[i], memberRadii[i]);
+          nearest = min(nearest, d[i]);
+          k = max(k, memberSmoothing[i]);
+        }
+        vec4 w = vec4(0.0);
+        float total = 0.0;
+        for (int i = 0; i < 4; i++) {
+          if (float(i) >= memberCount) break;
+          float share = max(k - (d[i] - nearest), 0.0);
+          w[i] = share * share;
+          total += w[i];
+        }
+        return w / max(total, 0.000001);
+      }
+
+      vec4 main(vec2 coord) {
+        $fieldEvaluation
+        float coverage = shapeCoverage(sd, sampleStep * 0.5);
+        if (coverage <= 0.0) return vec4(0.0);
+        $weightEvaluation
+        vec4 blended = blendMemberColors(
+          weights, memberTint0, memberTint1, memberTint2, memberTint3
+        );
+        float alpha = coverage * blended.a;
+        return vec4(vec3(0.5 + sd / 256.0, blended.r, blended.b) * alpha, alpha);
+      }
+    """.trimIndent()
   }
 
   /** Evaluates the merged lighting stage's per-member light at [point], encoded in red. */
