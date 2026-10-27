@@ -7574,204 +7574,61 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">¶</a></h2>
-<p>Glass is now stable: <code>haze-glass</code> and <code>haze-glass-material3</code> no longer require
-<code>@ExperimentalHazeApi</code>. A few APIs changed before freezing; see the Changed and Removed sections.</p>
-<p>This release also adds Glass containers. Wrap nearby Glass surfaces in
-<code>Modifier.hazeGlassContainer</code>, and compatible members merge into one cluster with shared optics,
-while each member keeps its own interaction effects and can animate as it joins or leaves. See
-<a href="https://chrisbanes.github.io/haze/effects/glass/containers/">Glass containers</a> for usage and
-performance guidance.</p>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">¶</a></h3>
 <ul>
-<li>
-<p>Added the experimental <code>HazeInputSharing</code> and a <code>hazeSource(..., inputSharing = ...)</code> overload.
-  Effects that sample one source normally replay its content once each whenever it changes. On
-  Android, with sharing, the source renders once into an offscreen layer that it draws on screen
-  and every effect samples. With <code>Auto</code>, sources on Android share once two or more effects sample
-  them, and switch sharing on and off as the effect count crosses one and two. <code>Always</code> shares
-  once one effect samples the source, but only Android reuses a render: on Desktop, iOS and Web it
-  applies the clipping and an offscreen pass without reuse, and can cost more than <code>Never</code>. This
-  can reduce RenderThread time for an expensive source on Android, but each full-screen source
-  added about 25-33 MiB of peak GPU memory on a Pixel 8a, more than one source-sized buffer with
-  the cause not isolated, and sharing adds GPU work while the source scrolls.
-  While sharing is active, the source's drawing is clipped to its layout bounds, both on screen
-  and in effects. To keep drawing beyond them, such as a shadow, pass <code>inputSharingOutsets</code> to
-  expand the clip by a <code>LayerOutsets</code> on each edge; anything drawn beyond those is not shown. The
-  default is <code>Never</code>, which draws as before
-  (<a href="https://github.com/chrisbanes/haze/issues/1611">#1611</a>,
-  <a href="https://github.com/chrisbanes/haze/issues/1615">#1615</a>).</p>
-</li>
-<li>
-<p>Added <code>GlassOptics.regular</code> and <code>GlassOptics.clear</code> as reusable optical configurations, and
-  <code>optics { copy(...) }</code> to modify the optics established by earlier style writes.</p>
-</li>
-<li>
-<p>Added <code>Modifier.hazeGlassContainer</code>, which merges nearby compatible Glass
-  members into Glass clusters and gives them one container-wide optical size
-  (<a href="https://github.com/chrisbanes/haze/pull/1472">#1472</a>). Each member's interaction transforms and
-  lighting apply to its part of a cluster
-  (<a href="https://github.com/chrisbanes/haze/pull/1476">#1476</a>). Without <code>RuntimeShader</code> support, a
-  cluster draws as the hard union of its member shapes
-  (<a href="https://github.com/chrisbanes/haze/pull/1479">#1479</a>) and keeps per-member press lights
-  (<a href="https://github.com/chrisbanes/haze/pull/1487">#1487</a>). <code>GlassMemberTransition</code> and
-  <code>hazeGlass(memberTransition = ...)</code> animate members as they join or leave a container
-  (<a href="https://github.com/chrisbanes/haze/pull/1482">#1482</a>).</p>
-</li>
-<li>Added <code>hazeGlass(groupKey = ...)</code>. Members of one container with an equal, non-null group key
-  that are consecutive in layout order draw as one Glass shape over their combined bounds, at
-  any distance, using the first member's shape and appearance. A group counts as one member for
-  merging, the cluster cap and the container's optical size, and its members grow out of and
-  retract into each other at any distance (<a href="https://github.com/chrisbanes/haze/pull/1619">#1619</a>).</li>
-<li>Added the <code>Glass — Container</code> sample and Glass container documentation and performance guidance
-  (<a href="https://github.com/chrisbanes/haze/pull/1491">#1491</a>).</li>
-<li>Added the <code>Glass — Container Showcase</code> sample, a drawing palette whose Glass bar merges, splits
-  and grows a brush, a stroke width and draggable colours in a scripted loop, with a half-speed
-  control (<a href="https://github.com/chrisbanes/haze/pull/1552">#1552</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1603">#1603</a>).</li>
-<li>Added an optional <code>scrollState</code> to <code>hazeGlassContainer</code>. Members of a lazy layout appear and
-  disappear without a transition while it scrolls
-  (<a href="https://github.com/chrisbanes/haze/pull/1544">#1544</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1571">#1571</a>).</li>
+<li>Glass surfaces can merge into connected shapes and animate as members join or leave. Use
+  <code>hazeGlassContainer</code> for nearby surfaces or group related controls into one shape. New container
+  samples show these interactions in practice. See the
+  <a href="https://chrisbanes.github.io/haze/dev/effects/glass/containers/">Glass containers guide</a>.</li>
+<li>Apps with several effects over the same source can reduce repeated source rendering on Android
+  with experimental <code>HazeInputSharing</code>. It is off by default, uses more GPU memory, and clips the
+  source to its bounds plus any configured outsets. See the
+  <a href="https://chrisbanes.github.io/haze/dev/performance/">input-sharing trade-offs</a>.</li>
+<li>Glass optics are easier to customize: start from <code>GlassOptics.regular</code> or <code>GlassOptics.clear</code>
+  and use <code>optics { copy(...) }</code> to change selected values without replacing the rest of a style.</li>
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">¶</a></h3>
 <ul>
-<li>Glass APIs in <code>haze-glass</code> and <code>haze-glass-material3</code> are stable and no longer require opting in
-  to <code>@ExperimentalHazeApi</code> (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
-<li>Glass is not binary-compatible with the experimental 2.0.x API. Recompile code that uses Glass
-  against this release (<a href="https://github.com/chrisbanes/haze/pull/1571">#1571</a>).</li>
-<li><code>GlassOptics</code> and <code>GlassAccessibilitySettings</code> are no longer data classes, so they no longer
-  support destructuring. Named-argument construction and <code>copy</code> are unchanged. They are <code>@Poko</code>
-  classes with an explicit <code>copy</code>, so compatible additions need a forwarding constructor and <code>copy</code>
-  overload (<a href="https://github.com/chrisbanes/haze/pull/1571">#1571</a>).</li>
-<li><code>GlassAccessibilitySettings.reduceTransparency</code> now makes Glass more opaque, with a stronger,
-  fully diffused blur. Previously it reduced blur, which made content behind Glass more visible
-  (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>). Without <code>RuntimeShader</code> support, it
-  draws an opaque white (light) or black (dark) base under the background and tint instead of
-  showing source detail, and the new nullable <code>GlassAccessibilitySettings.reducedTransparencyFallbackColor</code>
-  overrides that base with an opaque colour (<a href="https://github.com/chrisbanes/haze/pull/1555">#1555</a>).</li>
-<li>Renamed <code>GlassDefaults.positionAnimationSpec</code> to <code>GlassDefaults.interactionPositionAnimationSpec</code>,
-  matching <code>GlassStyleScope.interactionPositionAnimationSpec</code> (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
-<li><code>GlassReducedMotionPolicy</code> also controls Glass container member transitions. Under <code>System</code>, with
-  animations off (a zero motion scale), members now snap with no transition, as with
-  <code>GlassMemberTransition.None</code>. <code>Reduced</code> keeps a critically damped morph at full duration
-  (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1591">#1591</a>).</li>
-<li>Documented that <code>HazeSourceRetention.KeepLastFrame</code> does not guarantee frozen pixels: on Android,
-  retained Glass output can redraw from live or changed source content after its source is lost
-  (<a href="https://github.com/chrisbanes/haze/pull/1432">#1432</a>).</li>
-<li>Documented that the Glass enums and sealed types (<code>GlassMemberTransition</code>,
-  <code>ChromaticAberrationMode</code>, <code>SurfaceProfile</code>, <code>GlassTransformTarget</code>, <code>GlassTransformPivot</code>,
-  <code>GlassReducedMotionPolicy</code>, <code>RefractionProfile</code> and <code>OpticalSizeValue</code>) may gain entries or
-  subtypes in minor releases, so keep an <code>else</code> branch when you match them exhaustively, and that
-  <code>GlassDefaults</code> values may change between releases
-  (<a href="https://github.com/chrisbanes/haze/issues/1630">#1630</a>).</li>
-<li><code>GlassStyle</code> blocks are now evaluated by each node under snapshot observation, so a remembered
-  style that reads animated state (for example, a shape radius or alpha) updates without recomposing
-  the <code>hazeGlass</code> call site (<a href="https://github.com/chrisbanes/haze/pull/1427">#1427</a>).</li>
-<li><code>HazeBlurStyle</code> blocks now run under snapshot observation each time a node resolves its Style, so
-  a remembered Style that reads animated state updates without recomposing the <code>hazeBlur</code> call
-  site. Styles you build with <code>HazeBlurStyle { }</code> now compare by identity rather than by value as in
-  2.0.x, so <code>remember</code> or hoist them; constructing one in each composition makes the effect treat
-  it as changed. The <code>HazeMaterials</code> presets, and <code>HazeBlurStyle.Material3</code> when given a block,
-  compare by value. Invalid values throw when the block runs, and a negative <code>blurRadius</code> is
-  clamped to zero instead of throwing (<a href="https://github.com/chrisbanes/haze/pull/1602">#1602</a>, by
-  <a href="https://github.com/moyaver">Mohammad Jaber</a>).</li>
-<li>On Android 14+, a background trim-memory callback now releases retained Blur and Glass layers
-  (<a href="https://github.com/chrisbanes/haze/pull/1401">#1401</a>).</li>
-<li>Reduced per-frame work in Blur and Glass: unchanged Blur draws reuse their <code>RenderEffect</code>,
-  graphics layers, progressive brushes and compiled noise and tint shaders; Glass keeps retained
-  layers across resizes and reuses recorded stages on unchanged draws; and effects avoid duplicate
-  updates per frame (<a href="https://github.com/chrisbanes/haze/pull/1381">#1381</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1402">#1402</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1410">#1410</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1434">#1434</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1435">#1435</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1439">#1439</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1441">#1441</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1492">#1492</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1499">#1499</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1503">#1503</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1515">#1515</a>).</li>
-<li>Published Glass container benchmark results
-  (<a href="https://github.com/chrisbanes/haze/pull/1511">#1511</a>).</li>
-<li>Updated Kotlin to 2.4.21, Compose Multiplatform to 1.12.2, AndroidX Collection to 1.7.0, and
-  AndroidX Tracing to 2.0.5 (<a href="https://github.com/chrisbanes/haze/pull/1396">#1396</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1397">#1397</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1532">#1532</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1546">#1546</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1610">#1610</a>).</li>
+<li>Glass is now stable in both <code>haze-glass</code> and <code>haze-glass-material3</code>, with no
+  <code>@ExperimentalHazeApi</code> opt-in required.</li>
+<li>Blur and Glass styles can respond to animated state without rebuilding the style or recomposing
+  the effect's call site. Remember a style once, then read animated values inside its block.
+  Blur support contributed by <a href="https://github.com/moyaver">Mohammad Jaber</a>
+  (<a href="https://github.com/chrisbanes/haze/pull/1602">#1602</a>).</li>
+<li>Glass better respects reduced-transparency preferences: it obscures background detail with
+  stronger blur and a more opaque appearance. Apps can customize the opaque fallback color.</li>
+<li>Blur and Glass do less repeated rendering work and reuse more of their retained output.
+  See the <a href="https://chrisbanes.github.io/haze/dev/performance/">performance guide</a> for measurements
+  and trade-offs; Glass containers can still add substantial cost to dense scrolling layouts.</li>
+<li>Updated Kotlin to 2.4.21 and Compose Multiplatform to 1.12.2.</li>
+<li>When upgrading from experimental Glass in 2.0.x, recompile code that uses it.
+  <code>GlassOptics</code> and <code>GlassAccessibilitySettings</code> no longer support destructuring, and
+  <code>GlassDefaults.positionAnimationSpec</code> is now <code>GlassDefaults.interactionPositionAnimationSpec</code>.</li>
+<li>Remember or hoist <code>HazeBlurStyle { }</code> instances: they now compare by identity rather than value.
+  Material presets continue to compare by value.</li>
 </ul>
 <h3 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">¶</a></h3>
 <ul>
-<li>Removed <code>GlassDefaults.optics</code>. Use <code>GlassOptics.regular</code>
-  (<a href="https://github.com/chrisbanes/haze/pull/1571">#1571</a>).</li>
-<li>Removed the <code>GlassStyleScope.optics(refractionStrength = ..., ...)</code> overload. Its defaults were
-  the <code>GlassOptics()</code> constructor defaults rather than Regular's, so setting one value reset the
-  others. Pass a <code>GlassOptics</code> instead; to change part of Regular, use
-  <code>optics(GlassOptics.regular.copy(...))</code> (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
-<li>Removed both <code>GlassStyle.Material3()</code> overloads. Use <code>GlassStyle.material3()</code> for the Material 3
-  colors alone, or <code>style.material3()</code> to apply them under another Style (<a href="https://github.com/chrisbanes/haze/pull/1547">#1547</a>).</li>
+<li><code>GlassDefaults.optics</code>; use <code>GlassOptics.regular</code>.</li>
+<li>The parameter-based <code>GlassStyleScope.optics(...)</code> overload; use <code>optics { copy(...) }</code> or pass
+  a <code>GlassOptics</code> value.</li>
+<li><code>GlassStyle.Material3()</code> overloads; use <code>GlassStyle.material3()</code> or <code>style.material3()</code>.</li>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
-<li>A pressed Glass container member now samples the same content as it would drawn alone, so its
-  content no longer shifts when it joins or leaves a cluster, and a pressed ghost of a detached
-  member keeps sampling through its press transform
-  (<a href="https://github.com/chrisbanes/haze/pull/1607">#1607</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1608">#1608</a>).</li>
-<li>Fallback Glass surfaces with a <code>backgroundColor</code> no longer draw their backdrop offset by the
-  layer padding (<a href="https://github.com/chrisbanes/haze/pull/1526">#1526</a>).</li>
-<li>Glass containers now keep members across reactivated reusable content
-  (<a href="https://github.com/chrisbanes/haze/pull/1489">#1489</a>), keep growing members linked during
-  partial lazy placement (<a href="https://github.com/chrisbanes/haze/pull/1541">#1541</a>), and avoid
-  re-observing every member when one member changes
-  (<a href="https://github.com/chrisbanes/haze/pull/1516">#1516</a>). Fallback Glass bounds over-budget
-  clusters to the window (<a href="https://github.com/chrisbanes/haze/pull/1533">#1533</a>) and no longer
-  clears neighbouring members on API 23–27 (<a href="https://github.com/chrisbanes/haze/pull/1517">#1517</a>).</li>
-<li>Glass containers no longer draw a lazy item that prefetch composed but has not placed. It used
-  to appear where the item's reused node was last placed
-  (<a href="https://github.com/chrisbanes/haze/pull/1714">#1714</a>).</li>
-<li>Effects now redraw when an ancestor layer-only move changes their visible part
-  (<a href="https://github.com/chrisbanes/haze/pull/1543">#1543</a>).</li>
-<li>Effects that switch from <code>HazeInput.Content</code> to another input now release their content layer
-  (<a href="https://github.com/chrisbanes/haze/pull/1580">#1580</a>).</li>
-<li>Fixed source placement when member or owner transforms include scale or rotation
-  (<a href="https://github.com/chrisbanes/haze/pull/1542">#1542</a>).</li>
-<li>Fixed effects not tracking sources newly selected by a <code>HazeSourceSelection.where</code> predicate
-  (<a href="https://github.com/chrisbanes/haze/pull/1423">#1423</a>).</li>
-<li>Native backdrop rendering no longer falls back permanently after a declined frame
-  (<a href="https://github.com/chrisbanes/haze/pull/1400">#1400</a>) or an empty layer
-  (<a href="https://github.com/chrisbanes/haze/pull/1430">#1430</a>, by
-  <a href="https://github.com/mvanhorn">Matt Van Horn</a>).</li>
-<li>On Desktop, effects now use window identity to position sources in other windows
-  (<a href="https://github.com/chrisbanes/haze/pull/1387">#1387</a>, by
-  <a href="https://github.com/shayann07">Shayan Khan</a>), and refresh when a source window moves
-  (<a href="https://github.com/chrisbanes/haze/pull/1390">#1390</a>).</li>
-<li>Blur fixes: stale output over scrolling lists on API 31
-  (<a href="https://github.com/chrisbanes/haze/pull/1518">#1518</a>); <code>mask</code> and <code>progressive</code> now combine on
-  every platform path (<a href="https://github.com/chrisbanes/haze/pull/1428">#1428</a>); RenderScript noise
-  blend mode and gradient and masked tints (<a href="https://github.com/chrisbanes/haze/pull/1429">#1429</a>);
-  noise fade and color-filter alignment in expanded layers
-  (<a href="https://github.com/chrisbanes/haze/pull/1424">#1424</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1384">#1384</a>); downsampled edge clipping and brush
-  geometry (<a href="https://github.com/chrisbanes/haze/pull/1393">#1393</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1399">#1399</a>); <code>SolidColor</code> brushes for masks, tints and
-  progressive (<a href="https://github.com/chrisbanes/haze/pull/1382">#1382</a>); and unbounded work from
-  reverse bounds-relative progressive gradients on API 31–32
-  (<a href="https://github.com/chrisbanes/haze/pull/1379">#1379</a>).</li>
-<li><code>HazeColorEffect.colorFilter</code> on the RenderScript blur path (Android 11 and below) now filters the
-  blurred output instead of drawing a filtered white rectangle over it
-  (<a href="https://github.com/chrisbanes/haze/pull/1576">#1576</a>).</li>
-<li>Glass fixes: stale Skiko interaction input and doubled mask
-  (<a href="https://github.com/chrisbanes/haze/pull/1425">#1425</a>), blank material when a pressed style
-  changes during an exit animation (<a href="https://github.com/chrisbanes/haze/pull/1406">#1406</a>), and a
-  crash from negative spring scales (<a href="https://github.com/chrisbanes/haze/pull/1380">#1380</a>).</li>
-<li>Android runtime shaders now set integer uniforms with the native integer setter
-  (<a href="https://github.com/chrisbanes/haze/pull/1391">#1391</a>).</li>
-<li>Glass pressed responses now end when the pointer leaves the node plus the touch slop, and an
-  active <code>DragInteraction</code> from the <code>interactionSource</code> keeps the surface pressed, with the light
-  following the pointer (<a href="https://github.com/chrisbanes/haze/issues/1637">#1637</a>,
-  <a href="https://github.com/chrisbanes/haze/pull/1660">#1660</a>).</li>
+<li>Blur no longer shows stale content while scrolling on Android API 31. Effects also keep tracking
+  sources that move or resize after being selected by a <code>HazeSourceSelection.where</code> predicate.</li>
+<li>Corrected masks, progressive blur opacity, tints and color filters across Android rendering
+  paths, including combining a mask with progressive blur.</li>
+<li>Cupertino materials preserve text contrast with a frosted fallback when blur is disabled.</li>
+<li>Glass press animations no longer crash when a spring overshoots. Press responses cancel when
+  the pointer leaves the surface and stay active during drag interactions.</li>
+<li>Native backdrop effects recover after declined frames or empty layers, rather than remaining
+  in fallback rendering, with a contribution from <a href="https://github.com/mvanhorn">Matt Van Horn</a>
+  (<a href="https://github.com/chrisbanes/haze/pull/1430">#1430</a>).</li>
+<li>Desktop effects stay aligned with sources in other windows and refresh when those windows move,
+  with a contribution from <a href="https://github.com/shayann07">Shayan Khan</a>
+  (<a href="https://github.com/chrisbanes/haze/pull/1387">#1387</a>).</li>
 </ul>
 <h2 id="2.0.1">2.0.1 <small>2026-09-29</small><a class="headerlink" href="#2.0.1" title="Permanent link">¶</a></h2>
 <h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">¶</a></h3>
