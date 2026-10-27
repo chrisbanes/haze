@@ -104,6 +104,58 @@ class GlassInteractionControllerTest : ContextTest() {
   }
 
   @Test
+  fun controller_idleSizeChange_snapsPositionWithoutAnimating() = runComposeUiTest {
+    mainClock.autoAdvance = false
+    var width by mutableStateOf(100.dp)
+    val effect = GlassRuntimeEffect().apply {
+      testPressResponse()
+      style = style.then { interactionPositionAnimationSpec(tween(1_000)) }
+    }
+    setContent {
+      Box(Modifier.size(width, 100.dp).testGlass(effect))
+    }
+    mainClock.advanceTimeByFrame()
+    assertThat(renderState(effect).position).isEqualTo(Offset(50f, 50f))
+
+    width = 102.dp
+    mainClock.advanceTimeByFrame()
+    waitForIdle()
+
+    assertThat(renderState(effect).position).isEqualTo(Offset(51f, 50f))
+    assertThat(renderState(effect).lightingIntensity).isEqualTo(0f)
+    assertThat(renderState(effect).refractionMultiplier).isEqualTo(1f)
+    assertThat(renderState(effect).hasTransform).isFalse()
+  }
+
+  @Test
+  fun controller_responseSettles_finishesInvisiblePositionMotion() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply {
+      style = style.then {
+        interactionPositionAnimationSpec(tween(1_000))
+        pressed { animate(snap(), tween(100)) { lightingIntensity(1f) } }
+      }
+    }
+    setContent {
+      Box(Modifier.size(100.dp).testGlass(effect))
+    }
+    waitForIdle()
+    val controller = checkNotNull(runtime(effect).interactionControllerForTest)
+    mainClock.autoAdvance = false
+    controller.updateSignals(GlassInteractionSignals(rawPressed = true))
+    mainClock.advanceTimeByFrame()
+    controller.updatePosition(Offset(100f, 100f))
+    mainClock.advanceTimeBy(200)
+    assertThat(controller.renderState.position.x).isGreaterThan(50f)
+    assertThat(controller.renderState.position.x).isLessThan(100f)
+
+    controller.updateSignals(GlassInteractionSignals())
+    mainClock.advanceTimeBy(150)
+
+    assertThat(controller.renderState.hasLighting).isFalse()
+    assertThat(controller.renderState.position).isEqualTo(Offset(100f, 100f))
+  }
+
+  @Test
   fun materialOnlyTransform_isNotExposedToHazeNode() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
       style = style.then { pressed { scale(0.9f, 0.8f) } }
@@ -420,9 +472,11 @@ class GlassInteractionControllerTest : ContextTest() {
   fun mouseHoverAtSyntheticTarget_cancelsInFlightAnimation() = runComposeUiTest {
     mainClock.autoAdvance = false
     val effect = GlassRuntimeEffect().apply {
-      testHoverResponse()
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
-      style = style.then { interactionPositionAnimationSpec(tween(1_000)) }
+      style = style.then {
+        interactionPositionAnimationSpec(tween(1_000))
+        hovered { animate(snap(), tween(1_000)) { lightingIntensity(0.35f) } }
+      }
     }
     setTaggedEffectContent(effect)
     mainClock.advanceTimeByFrame()
@@ -433,6 +487,7 @@ class GlassInteractionControllerTest : ContextTest() {
     onNodeWithTag("glass").performMouseInput { exit() }
     controller.updatePosition(Offset(50f, 50f))
     mainClock.advanceTimeBy(200)
+    assertThat(renderState(effect).hasLighting).isTrue()
     assertThat(renderState(effect).position.x).isGreaterThan(10f)
     assertThat(renderState(effect).position.x).isLessThan(50f)
 
@@ -1239,6 +1294,7 @@ class GlassInteractionControllerTest : ContextTest() {
     val controller = checkNotNull(runtime(effect).interactionControllerForTest)
     mainClock.autoAdvance = false
 
+    controller.updateSignals(GlassInteractionSignals(rawPressed = true))
     controller.updatePosition(Offset(100f, 100f))
     mainClock.advanceTimeBy(200)
     val positionBeforeSpecChange = controller.renderState.position.x

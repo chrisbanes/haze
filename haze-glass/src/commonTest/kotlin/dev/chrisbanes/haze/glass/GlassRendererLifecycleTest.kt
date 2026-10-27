@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocal
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
@@ -16,6 +17,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
@@ -70,6 +72,44 @@ class GlassRendererLifecycleTest {
 
     assertThat(scope.layerBoundsInvalidations).isEqualTo(invalidations + 1)
     assertThat(renderer.calculateLayerBounds(rect, Density(1f))).isNotEqualTo(smallBounds)
+    renderer.detach()
+  }
+
+  @Test
+  fun update_unchangedConfigurationWithPendingOpticalSize_doesNotRepeatInvalidations() {
+    val renderer = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
+    val scope = TrackingLifecycleScope()
+    val configuration = GlassNodeConfiguration(style = GlassStyle, interactionSource = null)
+    renderer.attach(scope)
+    renderer.update(scope, configuration, HazeSampling.Default)
+    renderer.opticalSizeOverride = Size(240f, 240f)
+    val bounds = scope.layerBoundsInvalidations
+    val draws = scope.drawInvalidations
+    val expected = renderer.calculateLayerBounds(Rect(Offset.Zero, scope.modifierSize), Density(1f))
+
+    // A merged member can be updated again without drawing its original renderer in between.
+    repeat(3) { renderer.update(scope, configuration, HazeSampling.Default) }
+
+    assertThat(scope.layerBoundsInvalidations).isEqualTo(bounds)
+    assertThat(scope.drawInvalidations).isEqualTo(draws)
+    assertThat(renderer.calculateLayerBounds(Rect(Offset.Zero, scope.modifierSize), Density(1f))).isEqualTo(expected)
+    renderer.detach()
+  }
+
+  @Test
+  fun update_shapeChangesBeforeDrawing_eachInvalidateCurrentBounds() {
+    val renderer = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
+    val scope = TrackingLifecycleScope()
+    renderer.attach(scope)
+    for (radius in listOf(4.dp, 12.dp, 24.dp)) {
+      val before = scope.layerBoundsInvalidations
+      renderer.update(
+        scope,
+        GlassNodeConfiguration(style = GlassStyle { shape(RoundedCornerShape(radius)) }, interactionSource = null),
+        HazeSampling.Default,
+      )
+      assertThat(scope.layerBoundsInvalidations).isEqualTo(before + 1)
+    }
     renderer.detach()
   }
 

@@ -17,6 +17,7 @@ import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectSurface
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.Poko
+import dev.chrisbanes.haze.trace
 import kotlin.math.abs
 import kotlin.math.ceil
 
@@ -36,15 +37,36 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
     val handle: HazeConfiguredEffectSurface<GlassNodeConfiguration>,
     val runtime: GlassRuntimeEffect,
     val drawsMembersOnDecline: Boolean,
+    var configuration: GlassNodeConfiguration,
+    var bounds: Rect,
+    var inputs: List<HazeEffectSurface>,
   )
   private val slots = mutableMapOf<List<Any>, Slot>()
   private var drawn = emptyList<Pair<Rect, GlassRuntimeEffect>>()
+  private var reconciledModel: GlassClusterModel? = null
+  private var cachedOutput = emptyList<HazeEffectSurface>()
   internal val runtimeSurfaces: List<GlassRuntimeEffect> get() = slots.values.map { it.runtime }
   internal val surfaceCount: Int get() = drawn.size
   internal val drawsMembersOnDeclineForTest: List<Boolean> get() = slots.values.map { it.drawsMembersOnDecline }
 
-  fun reconcile(): List<HazeEffectSurface> {
+  fun reconcile(): List<HazeEffectSurface> = trace(GlassTraceSection.ContainerReconcile) {
     val model = owner.model
+    if (model === reconciledModel) return@trace cachedOutput
+    if (reconciledModel != null && reconciledModel === owner.placementPreviousModel &&
+      owner.mergeDistancePx.isExactPixel() && slots.values.all {
+        it.bounds.isExactPixels() && it.bounds.translate(owner.placementOffset).isExactPixels()
+      }
+    ) {
+      val offset = owner.placementOffset
+      slots.values.forEach { slot ->
+        slot.bounds = slot.bounds.translate(offset)
+        slot.handle.update(slot.configuration, slot.bounds, slot.inputs)
+        slot.runtime.surfaceOrigin = slot.bounds.topLeft
+      }
+      drawn = drawn.map { (bounds, runtime) -> bounds.translate(offset) to runtime }
+      reconciledModel = model
+      return@trace cachedOutput
+    }
     val mergeDistance = owner.mergeDistancePx
     val validKeys = model.surfaces.filterNot { it.drawsOwnSurface() }.map { it.slotKey() }.toSet()
     slots.keys.filter { it !in validKeys }.forEach { slots.remove(it)?.handle?.dispose() }
@@ -102,16 +124,23 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
           inputs,
           drawsMembersOnDecline,
         )
-        Slot(handle, runtime, drawsMembersOnDecline)
+        Slot(handle, runtime, drawsMembersOnDecline, configuration, bounds, inputs)
       }
       slot.handle.update(configuration, bounds, inputs)
+      slot.configuration = configuration
+      slot.bounds = bounds
+      slot.inputs = inputs
       // The cluster draws in the surface translated by its origin, which moves with its members.
       slot.runtime.surfaceOrigin = bounds.topLeft
       output += slot.handle.surface
       runtimes += bounds to slot.runtime
     }
     drawn = runtimes
-    return output
+    cachedOutput = output
+    // Group shapes can read state at their combined size only during this draw. Preserve those
+    // observed reads and rebuild their fields even when the container model itself is unchanged.
+    reconciledModel = model.takeIf { it.surfaces.all { cluster -> cluster.groups.all { unit -> unit.size == 1 } } }
+    output
   }
 
   /** Full-resolution transient native buffer plus actual plans of intersecting surfaces. */
@@ -134,8 +163,11 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
     slots.values.forEach { it.handle.dispose() }
     slots.clear()
     drawn = emptyList()
+    reconciledModel = null
+    cachedOutput = emptyList()
   }
   fun releaseMember(member: GlassMemberNode) {
+    reconciledModel = null
     slots.keys.filter { member in it }.forEach { slots.remove(it)?.handle?.dispose() }
   }
 }

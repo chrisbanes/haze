@@ -23,6 +23,15 @@ public interface HazeEffectSurfaceOwner {
   /** Called when geometry, input, or renderer state changes. */
   public fun onSurfaceChanged(surface: HazeEffectSurface)
 
+  /**
+   * Only XY placement or capture bounds changed; member size and its translation-only linear
+   * transform are unchanged. Owners must still redraw and refresh capture/composition footprints.
+   * Defaults to the full-change notification for owners that do not distinguish placement.
+   */
+  public fun onSurfacePlacementChanged(surface: HazeEffectSurface) {
+    onSurfaceChanged(surface)
+  }
+
   /** Called when the member releases this owner or detaches. */
   public fun onSurfaceReleased(surface: HazeEffectSurface)
 
@@ -75,7 +84,15 @@ public class HazeEffectSurface internal constructor(
     HazeConfiguredEffectSurface(this, factory, style, bounds, members, drawsMembersOnDecline)
 
   internal fun changed() = owner?.onSurfaceChanged(this)
+  internal fun placementChanged() = owner?.onSurfacePlacementChanged(this)
   internal fun release() = relocateTo(null)
+  internal val hasBackdropInput: Boolean
+    get() = configured?.hasBackdropInput ?: (node.explicitInput is HazeInput.Backdrop)
+
+  /** Resolves captures and bounds for the whole batch before any member draws. */
+  internal fun preparePortableDraw(scope: DrawScope): Boolean =
+    if (configured != null) configured.footprint(scope, owner) != null else node.preparePortableSurface(scope, owner?.surfaceCoordinates)
+
   internal fun footprint(scope: DrawScope): HazeSurfaceFootprint? =
     if (configured != null) configured.footprint(scope, owner) else node.surfaceFootprint(scope, owner?.surfaceCoordinates)
   internal fun draw(scope: DrawScope) {
@@ -111,6 +128,17 @@ public fun ContentDrawScope.drawHazeEffectSurfaces(
     this@drawHazeEffectSurfaces.drawContent()
   }
   val current = surfaces().filter { it.owner === owner }
+  // Portable captures already contain the input. Only backdrop sampling needs footprint overlap
+  // groups to keep one surface's output out of another surface's native capture.
+  if (current.none { it.hasBackdropInput }) {
+    trace("HazeSurfaces.portable") {
+      val drawable = current.filter { it.preparePortableDraw(this) }
+      drawable.forEach { it.draw(this) }
+    }
+    current.forEach { it.completeDraw() }
+    drawLayer(children)
+    return
+  }
   val footprints = current.map { it.footprint(this) }
   val remaining = current.indices.filter { footprints[it] != null }.toMutableList()
   val components = mutableListOf<List<Int>>()

@@ -195,8 +195,9 @@ system GPU data alongside CPU frame duration.
 - a fixed 360×560 dp `LazyVerticalGrid` of five columns, with 56 dp tall members 12 dp apart, shows
   about nine rows, so 40-45 members are visible;
 - the grid is `hazeGlassContainer(mergeDistance = 16.dp, scrollState = gridState)`. The 12 dp gap
-  is below the merge distance, so adjacent members join clusters (at most four members per connected
-  component). The workload measures the reclustering cost together with the cost of those clusters;
+  joins the visible grid into one connected component. Its first four members in layout order share
+  a capped merged field; the remaining members draw as relocated singletons. The workload measures
+  reclustering and relocation for many singletons, rather than a grid of four-member merged fields;
   `lazy_independent_scroll` is the like-for-like pair without a container. Before #1567, every member
   notification reclustered all members. Each pass checked on the order of the member count squared
   in pairs, so the one notification per member in a frame cost on the order of the member count
@@ -204,6 +205,10 @@ system GPU data alongside CPU frame duration.
 - there are 1,000 items, scrolled linearly by 1,200 dp over the three-second window inside
   `gridState.scroll { }`, so `isScrollInProgress` is true, as it is for a real drag;
 - `HazeInput.Sources` over the scene's stationary source, the Regular style and `Balanced`.
+- Both lazy variants use an outer `clipToBounds()` before the container, matching the documented
+  lazy-layout setup. Without it, relocated Glass shades beyond the viewport while independent
+  Glass is clipped by the lazy layout. Record this clip configuration with results: changing it
+  changes visible coverage and must not be attributed to a library optimization.
 
 The row records frame timing, frame overrun and peak memory. It has no per-frame layer gate: the
 layer count follows the visible members and how they cluster. Compare it across builds only, with
@@ -815,6 +820,10 @@ rule out untraced driver work. Use native call stacks when finer CPU attribution
 
 Expected Glass markers include:
 
+- `HazeGlass.containerRecluster`
+  - `HazeGlass.containerTranslate` attempts to reuse the previous partition
+  - `HazeGlass.containerCluster` runs when the partition cannot be reused
+- `HazeGlass.containerReconcile`
 - `HazeGlass.prepare`
   - `HazeGlass.prepareBudget`
   - `HazeGlass.selectDelegate`
@@ -834,6 +843,19 @@ Expected Glass markers include:
 - `HazeGlass.interactionLighting`
 - `HazeGlass.groupAlpha`
 - `HazeGlass.compose`
+
+Container markers cover whole passes, rather than individual members. Compare their total duration
+per frame; the fraction of partition checks that reuse is
+`1 - containerClusterCount / containerTranslateCount` when the latter is nonzero.
+`HazeSurfaces.portable` covers preparation and drawing when every surface uses portable input.
+Members resolve their captures and bounds as a batch before drawing.
+On API 29 and newer, the lazy profiling grid also records `HazeGlass.lazyDrawCpuNs` while app tracing
+is enabled and the grid is scrolling. Each counter value is the calling thread's CPU time inside one
+grid draw, in nanoseconds; it excludes blocked time and does not measure the complete frame or GPU work.
+Check that the counter spans the scroll with a sample per draw before comparing it. Independent
+members can redraw through cached child layers without redrawing the grid modifier, so this counter
+does not measure their scene cost. Compare main-thread running time inside `AndroidOwner:draw`
+slices for container-versus-independent scene comparisons.
 
 ## Android 37.2 source/backdrop comparisons
 

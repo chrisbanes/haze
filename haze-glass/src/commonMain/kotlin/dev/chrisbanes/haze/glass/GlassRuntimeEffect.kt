@@ -295,6 +295,7 @@ internal class GlassRuntimeEffect() :
   // update() don't bump it, as that update already handles them (#1408).
   private var dirtyTrackerSignal: Int by mutableIntStateOf(0)
   private var isUpdating: Boolean = false
+  private var updateDirtyFields: Bitmask = Bitmask()
   internal var dirtyTracker: Bitmask = Bitmask()
     private set
 
@@ -457,6 +458,7 @@ internal class GlassRuntimeEffect() :
     // An equal binding is the same membership, already handed over by GlassMemberNode.
     if (memberBinding != style.member) memberBinding?.release(this)
     memberBinding = style.member
+    updateDirtyFields = Bitmask()
     isUpdating = true
     try {
       val snapshot = style.surfaceSnapshot
@@ -489,13 +491,13 @@ internal class GlassRuntimeEffect() :
       isUpdating = false
     }
 
-    if (dirtyTracker.any(GlassDirtyFields.LayerBoundsFlags)) {
+    // Pending renderer work survives until prepare/draw, but an unchanged update must not
+    // invalidate the owner again (merged members may not draw their original renderer).
+    if (updateDirtyFields.any(GlassDirtyFields.LayerBoundsFlags)) {
       context.invalidateLayerBounds()
     }
-    if (dirtyTracker.any(GlassDirtyFields.InvalidateFlags)) {
-      needsDelegateSelection = true
-      context.invalidateDraw()
-    }
+    if (dirtyTracker.any(GlassDirtyFields.InvalidateFlags)) needsDelegateSelection = true
+    if (updateDirtyFields.any(GlassDirtyFields.InvalidateFlags)) context.invalidateDraw()
   }
 
   override fun onPointerEvent(event: PointerEvent, scope: HazeEffectLifecycleScope) {
@@ -1275,6 +1277,7 @@ internal class GlassRuntimeEffect() :
   }
 
   private fun markDirty(fields: Int) {
+    if (isUpdating) updateDirtyFields += fields
     val updated = dirtyTracker + fields
     if (updated != dirtyTracker) {
       dirtyTracker = updated

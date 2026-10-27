@@ -83,6 +83,7 @@ internal class HazeEffectNode(
         clearRetainedOutput()
         dirtyTracker += DirtyFields.Areas
         field = value
+        surfaceInputsChanged = true
         reconcileSourceDemand()
       }
     }
@@ -94,6 +95,7 @@ internal class HazeEffectNode(
         val previousInput = field
         val previousSources = resolvedSourcesInput()
         field = value
+        surfaceInputsChanged = true
         if (previousInput is HazeInput.Backdrop && value !is HazeInput.Backdrop) {
           releaseBackdropRenderer()
         }
@@ -178,6 +180,8 @@ internal class HazeEffectNode(
 
   // The member's geometry in its surface owner when the owner was last notified.
   private var notifiedSurfaceOwner: HazeEffectSurfaceOwner? = null
+  private var notifiedSurfaceTranslationOnly = false
+  private var surfaceInputsChanged = false
   private var notifiedSurfaceTransform: FloatArray? = null
   private var notifiedSurfaceSize: Size = Size.Unspecified
   private var notifiedLayerSize: Size = Size.Unspecified
@@ -325,6 +329,7 @@ internal class HazeEffectNode(
           area.preDrawListeners += areaPreDrawListener
         }
         field = value
+        surfaceInputsChanged = true
         syncCaptureDemand()
       }
     }
@@ -570,7 +575,13 @@ internal class HazeEffectNode(
     // Cleared first so an early exit leaves a read refresh pending.
     observedUpdateCompleted = false
     observeReads(::updateConfiguration)
-    if (notifySurface) notifySurfaceIfGeometryChanged()
+    if (notifySurface) {
+      notifySurfaceIfGeometryChanged()
+    } else if (surfaceInputsChanged) {
+      // Input identity affects grouping even when draw-time geometry notification is deferred.
+      surfaceInputsChanged = false
+      surface.changed()
+    }
   }
 
   private fun refreshGeometry(fromObserver: Boolean = false) {
@@ -607,7 +618,9 @@ internal class HazeEffectNode(
       return
     }
     // A new owner has not been told about this member's geometry yet.
-    var changed = owner !== notifiedSurfaceOwner
+    var placementOnly = owner === notifiedSurfaceOwner && !surfaceInputsChanged &&
+      notifiedSurfaceTranslationOnly && notifiedSurfaceSize == size
+    var changed = owner !== notifiedSurfaceOwner || surfaceInputsChanged
     notifiedSurfaceOwner = owner
     if (notifiedLayerSize != layerSize || notifiedLayerOffset != layerOffset) {
       notifiedLayerSize = layerSize
@@ -616,17 +629,27 @@ internal class HazeEffectNode(
     }
     val member = lastKnownCoordinates
     val ownerCoordinates = owner.surfaceCoordinates
-    if (member != null && member.isAttached && ownerCoordinates?.isAttached == true) {
+    if (member != null && member.isAttached && ownerCoordinates?.isAttached == true && !isUnplaced && coordinatesConfirmed) {
       surfaceTransformScratch.reset()
       ownerCoordinates.transformFrom(member, surfaceTransformScratch)
       val values = surfaceTransformScratch.values
+      val translationOnly = surfaceTransformScratch.isTranslationOnly() &&
+        values[Matrix.TranslateX].isFinite() && values[Matrix.TranslateY].isFinite()
+      placementOnly = placementOnly && translationOnly
+      notifiedSurfaceTranslationOnly = translationOnly
       if (notifiedSurfaceTransform?.contentEquals(values) != true || notifiedSurfaceSize != size) {
         notifiedSurfaceTransform = values.copyOf()
         notifiedSurfaceSize = size
         changed = true
       }
+    } else {
+      placementOnly = false
+      notifiedSurfaceTranslationOnly = false
     }
-    if (changed) surface.changed()
+    if (changed) {
+      surfaceInputsChanged = false
+      if (placementOnly) surface.placementChanged() else surface.changed()
+    }
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
@@ -654,6 +677,7 @@ internal class HazeEffectNode(
   override fun onUnplaced() {
     if (!isAttached || isUnplaced) return
     isUnplaced = true
+    notifiedSurfaceTranslationOnly = false
     surface.changed()
   }
 
@@ -1673,6 +1697,18 @@ internal class HazeEffectNode(
       }
     }
     return result
+  }
+
+  /** Prepares portable members in the same batch as native footprints, without output geometry. */
+  internal fun preparePortableSurface(scope: DrawScope, owner: LayoutCoordinates?): Boolean {
+    surfaceDrawTransform = surfaceTransform(owner)
+    val matrix = surfaceDrawTransform ?: return false
+    if (layerBoundsRefreshPending) refreshObservedReads(notifySurface = false)
+    if (!layerSize.isSpecified || layerSize.minDimension <= 0f) return false
+    if (shouldPrepareEffectDraw()) {
+      withSurfaceScope(scope, matrix) { prepareEffectDraw(effectDrawScope()) }
+    }
+    return true
   }
 
   internal fun surfaceFootprint(scope: DrawScope, owner: LayoutCoordinates?): HazeSurfaceFootprint? {

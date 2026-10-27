@@ -20,6 +20,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.PixelMap
@@ -47,6 +49,7 @@ import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isBetween
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
@@ -54,10 +57,207 @@ import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEmpty
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isSameInstanceAs
+import assertk.assertions.isTrue
 import java.awt.Frame
 import kotlin.test.Test
+import org.jetbrains.skia.FilterTileMode
+import org.jetbrains.skia.ImageFilter
 
 class HazeEffectSurfaceDrawTest {
+  @Test
+  fun relocatedBackdrop_boundsInvalidatedDuringPreparation_keepPreparedGeometryForCurrentDraw() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val preparedBounds = mutableListOf<Rect>()
+    val drawnBounds = mutableListOf<Rect>()
+    var expansion = 0f
+    var invalidateDuringPreparation = false
+    lateinit var lifecycle: HazeEffectLifecycleScope
+    val native = object : HazeBackdropRenderer {
+      override fun isSupported(canvas: Canvas): Boolean = true
+      override fun configure(bounds: Rect, clip: Rect?, effect: PlatformRenderEffect, alpha: Float): Boolean {
+        drawnBounds += bounds
+        return true
+      }
+      override fun draw(canvas: Canvas): Boolean = true
+      override fun release() = Unit
+    }
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit>, HazeEffectRendererBackdrop<Unit> {
+        override fun attach(scope: HazeEffectLifecycleScope) {
+          lifecycle = scope
+          scope.surface.relocateTo(owner)
+        }
+        override fun HazeEffectLayoutScope.calculateLayerBounds(style: Unit): Rect = modifierBounds.inflate(expansion)
+        override fun HazeEffectDrawScope.draw(style: Unit) = Unit
+        override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit): HazeEffectBackdrop {
+          preparedBounds += Rect(Offset.Zero - layerOffset, layerSize)
+          if (invalidateDuringPreparation) {
+            invalidateDuringPreparation = false
+            expansion = 8f
+            lifecycle.invalidateLayerBounds()
+          }
+          return HazeEffectBackdrop(ImageFilter.makeBlur(0f, 0f, FilterTileMode.CLAMP))
+        }
+      }
+    }
+    val previousFlag = HazeFeatureFlags.isPlatformBackdropEnabled
+    HazeFeatureFlags.isPlatformBackdropEnabled = true
+    try {
+      val effect = HazeEffectNode { native }.apply {
+        explicitInput = HazeInput.Backdrop()
+        updateTypedEffect(factory, Unit, HazeSampling.Default)
+      }
+      setContent {
+        Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+          Box(Modifier.offset(20.dp, 20.dp).size(20.dp).then(EffectElement(effect)))
+        }
+      }
+      waitForIdle()
+      runOnIdle {
+        preparedBounds.clear()
+        drawnBounds.clear()
+        invalidateDuringPreparation = true
+        owner.redraw()
+      }
+      waitForIdle()
+      runOnIdle {
+        assertThat(preparedBounds).isNotEmpty()
+        assertThat(drawnBounds).isNotEmpty()
+        assertThat(drawnBounds.first()).isEqualTo(preparedBounds.first())
+      }
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousFlag
+    }
+  }
+
+  @Test
+  fun relocatedPortableMembers_prepareWholeBatchBeforeAnyDraw() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val first = SurfaceFactory(owner)
+    val second = SurfaceFactory(owner)
+    val prepared = mutableSetOf<SurfaceFactory>()
+    var drewBeforeBatchWasPrepared = false
+    listOf(first, second).forEach { member ->
+      member.onPrepare = { prepared += member }
+      member.onDraw = { if (prepared.size != 2) drewBeforeBatchWasPrepared = true }
+    }
+    setContent {
+      Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+        Box(Modifier.size(20.dp).hazeEffect(first, HazeInput.Content, Unit))
+        Box(Modifier.offset(30.dp).size(20.dp).hazeEffect(second, HazeInput.Content, Unit))
+      }
+    }
+    waitForIdle()
+    runOnIdle {
+      prepared.clear()
+      first.draws = 0
+      second.draws = 0
+      drewBeforeBatchWasPrepared = false
+      owner.redraw()
+    }
+    waitForIdle()
+    runOnIdle {
+      assertThat(first.draws).isGreaterThan(0)
+      assertThat(second.draws).isGreaterThan(0)
+      assertThat(drewBeforeBatchWasPrepared).isFalse()
+    }
+  }
+
+  @Test
+  fun relocatedPortableMember_refreshesBoundsChangedAfterChildRecording() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val member = SurfaceFactory(owner)
+    var requested: Rect? = null
+    var recording = false
+    val preparedSizes = mutableListOf<Size>()
+    owner.resolveSurfaces = {
+      requested?.let {
+        requested = null
+        member.layerBounds = it
+        member.scope.invalidateLayerBounds()
+      }
+      listOf(member.surface)
+    }
+    owner.afterRecord = { if (recording) preparedSizes += member.preparedLayerSize }
+    setContent {
+      Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+        Box(Modifier.size(20.dp).hazeEffect(member, HazeInput.Content, Unit).background(Color.Red))
+      }
+    }
+    waitForIdle()
+    val expanded = runOnIdle {
+      Rect(Offset.Zero, member.scope.modifierSize.copy(width = member.scope.modifierSize.width + 30f))
+    }
+    runOnIdle {
+      requested = expanded
+      recording = true
+      owner.redraw()
+    }
+    waitForIdle()
+    runOnIdle { assertThat(preparedSizes.first()).isEqualTo(expanded.size) }
+  }
+
+  @Test
+  fun relocatedPortableMember_emptyLayerAfterChildRecording_doesNotDraw() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val member = SurfaceFactory(owner)
+    var empty = false
+    owner.resolveSurfaces = {
+      if (empty) {
+        empty = false
+        member.layerBounds = Rect.Zero
+        member.scope.invalidateLayerBounds()
+      }
+      listOf(member.surface)
+    }
+    setContent {
+      Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+        Box(Modifier.size(20.dp).hazeEffect(member, HazeInput.Content, Unit).background(Color.Red))
+      }
+    }
+    waitForIdle()
+    runOnIdle {
+      member.draws = 0
+      member.prepares = 0
+      empty = true
+      owner.redraw()
+    }
+    waitForIdle()
+    runOnIdle {
+      assertThat(member.draws).isEqualTo(0)
+      assertThat(member.prepares).isEqualTo(0)
+    }
+  }
+
+  @Test
+  fun configuredSurface_backdropMemberRequiresNativeCompositionWithPortableAnchor() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val portable = SurfaceFactory(owner)
+    val backdrop = SurfaceFactory(owner)
+    setContent {
+      Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+        Box(Modifier.size(20.dp).hazeEffect(portable, HazeInput.Content, Unit))
+        Box(Modifier.offset(30.dp).size(20.dp).hazeEffect(backdrop, HazeInput.Backdrop(), Unit))
+      }
+    }
+    waitForIdle()
+    runOnIdle {
+      val factory = HazeEffectFactory<Unit> {
+        object : HazeEffectRenderer<Unit> {
+          override fun HazeEffectDrawScope.draw(style: Unit) = Unit
+        }
+      }
+      val configured = portable.surface.createConfiguredSurface(
+        factory,
+        Unit,
+        Rect(0f, 0f, 50f, 20f),
+        listOf(portable.surface, backdrop.surface),
+      )
+      assertThat(configured.surface.hasBackdropInput).isTrue()
+      configured.dispose()
+    }
+  }
+
   @Test
   fun configuredContent_combinesDistinctRecordingsAtNonzeroOffsetsOnce() = runComposeUiTest {
     val owner = SurfaceOwnerNode()
@@ -411,9 +611,91 @@ class HazeEffectSurfaceDrawTest {
     assertThat(owner.changes).isEqualTo(changes)
 
     changes = owner.changes
+    val placements = owner.placementChanges
+    val fullChanges = owner.fullChanges
     memberX.value = 20
     waitForIdle()
     assertThat(owner.changes).isGreaterThan(changes)
+    assertThat(owner.placementChanges).isGreaterThan(placements)
+    assertThat(owner.fullChanges).isEqualTo(fullChanges)
+    assertThat(factory.surface.boundsInOwner()?.left).isEqualTo(20f)
+  }
+
+  @Test
+  fun relocatedMember_sizeScaleAndRotation_reportFullChanges() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val factory = SurfaceFactory(owner)
+    val state = HazeState()
+    val width = mutableStateOf(60)
+    val scale = mutableStateOf(1f)
+    val rotation = mutableStateOf(0f)
+    setContent {
+      Box(Modifier.size(200.dp)) {
+        Box(Modifier.size(200.dp).hazeSource(state).background(Color.Red))
+        Box(Modifier.size(200.dp).then(OwnerElement(owner))) {
+          Box(
+            Modifier.offset(40.dp, 40.dp).size(width.value.dp, 60.dp).graphicsLayer {
+              scaleX = scale.value
+              scaleY = scale.value
+              rotationZ = rotation.value
+            }.hazeEffect(factory, HazeInput.Sources(state), Unit),
+          )
+        }
+      }
+    }
+    waitForIdle()
+    var full = owner.fullChanges
+    runOnIdle { width.value = 70 }
+    waitForIdle()
+    assertThat(owner.fullChanges, "size change").isGreaterThan(full)
+    runOnIdle { width.value = 60 }
+    waitForIdle()
+    full = owner.fullChanges
+    runOnIdle { scale.value = 0.8f }
+    waitForIdle()
+    assertThat(owner.fullChanges, "graphics-layer scale change").isGreaterThan(full)
+    runOnIdle { scale.value = 1f }
+    waitForIdle()
+    full = owner.fullChanges
+    // A square's 90-degree rotation leaves its local size and bounding rectangle unchanged.
+    runOnIdle { rotation.value = 90f }
+    waitForIdle()
+    assertThat(owner.fullChanges, "graphics-layer rotation change").isGreaterThan(full)
+  }
+
+  @Test
+  fun relocatedMember_sourceSelectionAndInputPolicy_reportFullChangesAtEqualBounds() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val factory = SurfaceFactory(owner)
+    val state = HazeState()
+    val picked = mutableStateOf("red")
+    val retention = mutableStateOf<HazeSourceRetention>(HazeSourceRetention.KeepLastFrame)
+    val x = mutableStateOf(10)
+    val selection = HazeSourceSelection.All.where { it.key == picked.value }
+    setContent {
+      Box(Modifier.size(120.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(120.dp).hazeSource(state, key = "red").background(Color.Red))
+        Box(Modifier.size(120.dp).hazeSource(state, key = "blue").background(Color.Blue))
+        Box(Modifier.size(120.dp).background(Color.White))
+        Box(Modifier.size(120.dp).then(OwnerElement(owner))) {
+          Box(Modifier.offset { IntOffset(x.value, 10) }.size(60.dp).hazeEffect(factory, HazeInput.Sources(state, selection, retention.value), Unit))
+        }
+      }
+    }
+    waitForIdle()
+    assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[30, 30]).isEqualTo(Color.Red)
+    var full = owner.fullChanges
+    runOnIdle { picked.value = "blue" }
+    waitForIdle()
+    assertThat(owner.fullChanges).isGreaterThan(full)
+    assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[30, 30]).isEqualTo(Color.Blue)
+    full = owner.fullChanges
+    runOnIdle {
+      retention.value = HazeSourceRetention.ClearWhenUnavailable
+      x.value = 20
+    }
+    waitForIdle()
+    assertThat(owner.fullChanges, "input policy change must survive a same-frame placement").isGreaterThan(full)
     assertThat(factory.surface.boundsInOwner()?.left).isEqualTo(20f)
   }
 
@@ -820,26 +1102,39 @@ class HazeEffectSurfaceDrawTest {
 
   private class SurfaceFactory(val owner: SurfaceOwnerNode, val spill: Boolean = false, val retainedColor: Color? = null, val relocate: Boolean = true) : HazeEffectFactory<Unit> {
     lateinit var surface: HazeEffectSurface
+    lateinit var scope: HazeEffectLifecycleScope
     var draws = 0
-    override fun createRenderer(): HazeEffectRenderer<Unit> = object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit>, HazeEffectRendererRetainedOutput {
+    var prepares = 0
+    var onPrepare: () -> Unit = {}
+    var onDraw: () -> Unit = {}
+    var layerBounds: Rect? = null
+    var preparedLayerSize = Size.Unspecified
+    override fun createRenderer(): HazeEffectRenderer<Unit> = object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit>, HazeEffectRendererRetainedOutput, HazeEffectRendererDrawHooks<Unit> {
       var retained = false
       override fun canDrawRetainedOutput(): Boolean = retained
       override fun clearRetainedOutput() {
         retained = false
       }
       override fun attach(scope: HazeEffectLifecycleScope) {
+        this@SurfaceFactory.scope = scope
         surface = scope.surface
         if (relocate) surface.relocateTo(owner)
       }
+      override fun HazeEffectRuntimeDrawScope.prepareDraw(style: Unit) {
+        prepares++
+        onPrepare()
+        preparedLayerSize = layerSize
+      }
       override fun HazeEffectDrawScope.draw(style: Unit) {
         draws++
+        onDraw()
         if (retainedColor != null) {
           retained = true
           drawRect(retainedColor)
         } else if (spill) translate(left = 40f) { this@draw.drawInput() } else drawInput()
       }
       override fun HazeEffectLayoutScope.calculateLayerBounds(style: Unit): Rect =
-        if (spill) Rect(0f, 0f, modifierBounds.right + 40f, modifierBounds.bottom) else modifierBounds
+        layerBounds ?: if (spill) Rect(0f, 0f, modifierBounds.right + 40f, modifierBounds.bottom) else modifierBounds
     }
   }
 
@@ -862,9 +1157,19 @@ class HazeEffectSurfaceDrawTest {
       surfaceCoordinates = coordinates
     }
     var changes = 0
+    var fullChanges = 0
+    var placementChanges = 0
     var draws = 0
     fun redraw() = invalidateDraw()
     override fun onSurfaceChanged(surface: HazeEffectSurface) {
+      fullChanges++
+      changed(surface)
+    }
+    override fun onSurfacePlacementChanged(surface: HazeEffectSurface) {
+      placementChanges++
+      changed(surface)
+    }
+    private fun changed(surface: HazeEffectSurface) {
       changes++
       if (surface !in surfaces) surfaces += surface
       if (isAttached) invalidateDraw()
@@ -881,6 +1186,12 @@ class HazeEffectSurfaceDrawTest {
       drawHazeEffectSurfaces(this@SurfaceOwnerNode, { resolveSurfaces?.invoke() ?: surfaces.toList() }, children)
       afterRecord()
     }
+  }
+
+  private data class EffectElement(val node: HazeEffectNode) : ModifierNodeElement<HazeEffectNode>() {
+    override fun create(): HazeEffectNode = node
+    override fun update(node: HazeEffectNode) = Unit
+    override fun InspectorInfo.inspectableProperties() = Unit
   }
 
   private data class OwnerElement(val owner: SurfaceOwnerNode) : ModifierNodeElement<SurfaceOwnerNode>() {

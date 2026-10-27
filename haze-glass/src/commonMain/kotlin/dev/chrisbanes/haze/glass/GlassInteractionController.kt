@@ -14,6 +14,7 @@ import androidx.compose.foundation.interaction.HoverInteraction
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.runtime.MonotonicFrameClock
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -193,6 +194,7 @@ internal class GlassInteractionController(
   private var positionTarget = Offset.Zero
   private var hasInitialPositionTarget = false
   private var positionJob: Job? = null
+  private var positionJobAnimates = false
   private var primaryPointerId: PointerId? = null
 
   // The pointer whose raw press was cancelled; a source drag keeps following it until it lifts.
@@ -249,7 +251,12 @@ internal class GlassInteractionController(
       whitePointDelta.isPending || scaleX.isPending || scaleY.isPending
 
   private fun responseCompleted() {
-    if (!disposed) onResponseCompleted(this)
+    if (!disposed) {
+      if (positionJobAnimates && positionJob?.isActive == true && !hasPendingResponseWork) {
+        retargetPosition(positionTarget)
+      }
+      onResponseCompleted(this)
+    }
   }
 
   internal val configurationForTest: GlassInteractionControllerConfiguration
@@ -575,25 +582,27 @@ internal class GlassInteractionController(
     force: Boolean = false,
     immediate: Boolean = false,
   ) {
-    if (!hasInitialPositionTarget) {
-      hasInitialPositionTarget = true
-      positionTarget = target
-      positionJob?.cancel()
-      positionJob = scope.launch {
-        position.snapTo(target)
-        invalidateDraw()
-      }
+    // The position has no visual effect while all response channels are at rest. Keep the
+    // next interaction's starting point current without animating idle layout-size changes.
+    val affectsRendering = Snapshot.withoutReadObservation { hasPendingResponseWork }
+    val stopIdleAnimation = !affectsRendering && positionJobAnimates && positionJob?.isActive == true
+    if (hasInitialPositionTarget && !force && !stopIdleAnimation &&
+      target == positionTarget && (!immediate || position.value == target)
+    ) {
       return
     }
-    if (!force && target == positionTarget && (!immediate || position.value == target)) return
+    val animate = hasInitialPositionTarget && affectsRendering &&
+      !immediate && !configuration.reducedMotion && hasFrameClock
+    hasInitialPositionTarget = true
     positionTarget = target
     positionJob?.cancel()
+    positionJobAnimates = animate
     positionJob = scope.launch(
       if (configuration.forceFullMotion) FullMotionDurationScale else EmptyCoroutineContext,
     ) {
-      if (immediate || configuration.reducedMotion || !hasFrameClock) {
+      if (!animate) {
         position.snapTo(target)
-        invalidateDraw()
+        if (affectsRendering) invalidateDraw()
       } else {
         position.animateTo(target, configuration.positionAnimationSpec) {
           invalidateDraw()

@@ -35,7 +35,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.toPixelMap
@@ -58,6 +60,7 @@ import assertk.assertions.isLessThan
 import assertk.assertions.isNotEmpty
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import assertk.assertions.matchesPredicate
 import dev.chrisbanes.haze.HazeEffectFactory
@@ -348,11 +351,19 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     fixture.frames(4)
     val reclusters = owner.reclusterPasses
     val clusterings = owner.clusteringPasses
+    val placements = owner.placementReusePasses
+    val fields = owner.renderer.runtimeSurfaces.associateWith { checkNotNull(it.mergedField) to it.surfaceOrigin }
+    assertThat(fields).isNotEmpty()
 
     fixture.frames(6)
 
     assertThat(owner.reclusterPasses - reclusters).isEqualTo(6)
     assertThat(owner.clusteringPasses - clusterings).isEqualTo(0)
+    assertThat(owner.placementReusePasses - placements).isEqualTo(6)
+    fields.forEach { (runtime, before) ->
+      assertThat(runtime.mergedField).isSameInstanceAs(before.first)
+      assertThat(runtime.surfaceOrigin).isEqualTo(before.second + Offset(-36f, 0f))
+    }
     val members = owner.model.surfaces.flatMap { it.members }
     assertThat(owner.model).isEqualTo(clusterGlassMembers(members, owner.mergeDistancePx, owner.model.opticalSize))
   }
@@ -402,8 +413,10 @@ class GlassContainerLazyLayoutTest : ContextTest() {
             .size(360.dp, 80.dp)
             .hazeGlassContainer(16.dp, memberTransitionSpec = tween(TRANSITION_MILLIS, easing = LinearEasing), memberReducedMotionPolicy = GlassReducedMotionPolicy.Full),
         ) { constraints ->
-          val fixed = Constraints.fixed(80.dp.roundToPx(), 80.dp.roundToPx())
-          val items = placed.value.map { index -> index to subcompose(index, content(index)).map { it.measure(fixed) } }
+          val items = placed.value.map { index ->
+            val size = (if (index == 4) 120.dp else 80.dp).roundToPx()
+            index to subcompose(index, content(index)).map { it.measure(Constraints.fixed(size, size)) }
+          }
           layout(constraints.maxWidth, constraints.maxHeight) {
             items.forEach { (index, placeables) -> placeables.forEach { it.place(index * 88 - scrollX.value, 0) } }
           }
@@ -413,9 +426,10 @@ class GlassContainerLazyLayoutTest : ContextTest() {
     waitForIdle()
     mainClock.autoAdvance = false
 
+    val container = checkNotNull(effects.getValue(0).memberBindingForTest?.node?.container)
     // Pass content(4) straight to precompose: wrapping it makes the layout compose a second node.
     val handle = runOnIdle {
-      subcompose.precompose(4, content(4)).also { it.premeasure(0, Constraints.fixed(80, 80)) }
+      subcompose.precompose(4, content(4)).also { it.premeasure(0, Constraints.fixed(120, 120)) }
     }
     repeat(3) {
       mainClock.advanceTimeBy(16)
@@ -424,7 +438,8 @@ class GlassContainerLazyLayoutTest : ContextTest() {
 
     // The member registered with the container, but it has no bounds and draws nothing yet.
     val node = checkNotNull(effects.getValue(4).memberBindingForTest?.node)
-    val container = checkNotNull(node.container)
+    assertThat(node.container).isSameInstanceAs(container)
+    assertThat(container.model.opticalSize).isEqualTo(Size(80f, 80f))
     assertThat(node.binding.surface?.boundsInOwner()).isNull()
     assertThat(container.model.surfaces.flatMap { it.members }.any { it.identity === node }).isFalse()
 
@@ -433,9 +448,13 @@ class GlassContainerLazyLayoutTest : ContextTest() {
       scrollX.value = 60
       placed.value = listOf(0, 1, 2, 3, 4)
     }
-    repeat(3) {
+    repeat(3) { frame ->
       mainClock.advanceTimeBy(16)
       waitForIdle()
+      if (frame == 0) {
+        assertThat(container.model.opticalSize).isEqualTo(Size(120f, 120f))
+        effects.values.forEach { assertThat(it.opticalSizeOverride).isEqualTo(Size(120f, 120f)) }
+      }
     }
 
     val entering = checkNotNull(container.model.surfaces.flatMap { it.members }.firstOrNull { it.identity === node })
