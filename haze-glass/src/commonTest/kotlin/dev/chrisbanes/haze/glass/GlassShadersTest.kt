@@ -19,11 +19,27 @@ import kotlin.test.Test
 class GlassShadersTest {
 
   @Test
-  fun mergedShaders_evaluateMemberWeightsOncePerMain() {
+  fun mergedShaders_reuseMemberDistancesForCoverageAndWeights() {
     val shaders = mapOf(
       "fused" to GlassShaders.buildFused(merged = true),
       "fused-no-detail" to GlassShaders.buildFused(sharpDetail = false, merged = true),
       "optical" to GlassShaders.buildOptical(merged = true),
+    )
+
+    shaders.forEach { (name, shader) ->
+      val main = shader.substringAfter("vec4 main(vec2 coord) {")
+      assertThat(main.occurrences("memberDistances("), "$name memberDistances").isEqualTo(1)
+      assertThat(main.occurrences("memberWeightsFromDistances("), "$name memberWeights").isEqualTo(1)
+      assertThat(main, name).contains("shapeSdFromDistances(memberDistancesAtCoord)")
+      assertThat(main, name).contains("vec4 w = memberWeightsFromDistances(memberDistancesAtCoord);")
+      assertThat(main, name).doesNotContain("memberWeights(localCoord)")
+      assertThat(main, name).doesNotContain("shapeSd(localCoord)")
+    }
+  }
+
+  @Test
+  fun mergedDetailShaders_evaluateMemberWeightsOncePerMain() {
+    val shaders = mapOf(
       "detail" to GlassShaders.buildRefractionDetail(merged = true),
       "detail-coverage" to GlassShaders.buildRefractionDetail(coverageOnly = true, merged = true),
     )

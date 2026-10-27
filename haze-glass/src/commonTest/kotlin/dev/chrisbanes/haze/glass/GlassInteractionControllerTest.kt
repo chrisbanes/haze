@@ -118,8 +118,11 @@ class GlassInteractionControllerTest : ContextTest() {
     assertThat(renderState(effect).position).isEqualTo(Offset(50f, 50f))
 
     width = 102.dp
+    // Deliver the state change before stepping the paused Android test clock.
+    Snapshot.sendApplyNotifications()
     mainClock.advanceTimeByFrame()
     waitForIdle()
+    assertThat(context(effect).modifierSize.width).isEqualTo(102f)
 
     assertThat(renderState(effect).position).isEqualTo(Offset(51f, 50f))
     assertThat(renderState(effect).lightingIntensity).isEqualTo(0f)
