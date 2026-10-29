@@ -278,6 +278,12 @@ Box {
 
 The Card consumes the Background, while the TopAppBar consumes both lower sources.
 
+## Multiple Android ComposeViews
+
+Source-backed effects can consume content from a sibling `ComposeView` in the same Android window.
+Share one `HazeState` between the source and effect and use `HazeInput.Sources`; Haze aligns their
+coordinates automatically, so each view can keep its own composition.
+
 ## Dialogs
 
 Effects in a dialog can consume sources from the window behind it. Use `HazeInput.Sources`,

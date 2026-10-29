@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
@@ -70,9 +71,10 @@ internal fun resolvePositionStrategy(
   configured: HazePositionStrategy,
   areas: List<HazeArea>,
   windowId: Any?,
+  hasDifferentRoot: Boolean = false,
 ): HazePositionStrategy = when (configured) {
   HazePositionStrategy.Auto -> {
-    if (areas.any { it.windowId != null && it.windowId != windowId }) {
+    if (hasDifferentRoot || areas.any { it.windowId != null && it.windowId != windowId }) {
       HazePositionStrategy.Screen
     } else {
       HazePositionStrategy.Local
@@ -117,6 +119,9 @@ internal class HazeArea {
   internal var layoutCoordinates: LayoutCoordinates? = null
     private set
 
+  internal var rootCoordinates: LayoutCoordinates? = null
+    private set
+
   private var coordinateTransformValues: FloatArray? = null
   private val coordinateTransformScratch = Matrix()
 
@@ -125,9 +130,11 @@ internal class HazeArea {
 
   internal fun updateLayoutCoordinates(coordinates: LayoutCoordinates) {
     layoutCoordinates = coordinates
+    val root = coordinates.findRootCoordinates()
     coordinates.transformToScreenOrRoot(coordinateTransformScratch)
     val transform = coordinateTransformScratch.values
-    if (coordinateTransformValues?.contentEquals(transform) != true) {
+    if (rootCoordinates !== root || coordinateTransformValues?.contentEquals(transform) != true) {
+      rootCoordinates = root
       coordinateTransformValues = transform.copyOf()
       coordinateVersion++
     }
@@ -135,6 +142,7 @@ internal class HazeArea {
 
   internal fun clearLayoutCoordinates() {
     layoutCoordinates = null
+    rootCoordinates = null
     coordinateTransformValues = null
   }
 
