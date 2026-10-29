@@ -7578,11 +7578,14 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <ul>
 <li>Glass surfaces can merge into connected shapes and animate as members join or leave. Use
   <code>hazeGlassContainer</code> for nearby surfaces or group related controls into one shape. New container
-  samples show these interactions in practice. See the
+  samples show these interactions in practice
+  (<a href="https://github.com/chrisbanes/haze/issues/1409">#1409</a>,
+  <a href="https://github.com/chrisbanes/haze/issues/1447">#1447</a>). See the
   <a href="https://chrisbanes.github.io/haze/dev/effects/glass/containers/">Glass containers guide</a>.</li>
 <li>Apps with several effects over the same source can reduce repeated source rendering on Android
   with experimental <code>HazeInputSharing</code>. It is off by default, uses more GPU memory, and clips the
-  source to its bounds plus any configured outsets. See the
+  source to its bounds plus any configured outsets
+  (<a href="https://github.com/chrisbanes/haze/issues/1611">#1611</a>). See the
   <a href="https://chrisbanes.github.io/haze/dev/performance/">input-sharing trade-offs</a>.</li>
 <li>Glass optics are easier to customize: start from <code>GlassOptics.regular</code> or <code>GlassOptics.clear</code>
   and use <code>optics { copy(...) }</code> to change selected values without replacing the rest of a style.</li>
@@ -7596,7 +7599,8 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   Blur support contributed by <a href="https://github.com/moyaver">Mohammad Jaber</a>
   (<a href="https://github.com/chrisbanes/haze/pull/1602">#1602</a>).</li>
 <li>Glass better respects reduced-transparency preferences: it obscures background detail with
-  stronger blur and a more opaque appearance. Apps can customize the opaque fallback color.</li>
+  stronger blur and a more opaque appearance. Apps can customize the opaque fallback color
+  (<a href="https://github.com/chrisbanes/haze/issues/1549">#1549</a>).</li>
 <li>Blur and Glass do less repeated rendering work and reuse more of their retained output.
   See the <a href="https://chrisbanes.github.io/haze/dev/performance/">performance guide</a> for measurements
   and trade-offs; Glass containers can still add substantial cost to dense scrolling layouts.</li>
@@ -7616,19 +7620,30 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
-<li>Blur no longer shows stale content while scrolling on Android API 31. Effects also keep tracking
-  sources that move or resize after being selected by a <code>HazeSourceSelection.where</code> predicate.</li>
+<li>Blur no longer shows stale content while scrolling on Android API 31
+  (<a href="https://github.com/chrisbanes/haze/issues/1509">#1509</a>). Effects also keep tracking sources that
+  move or resize after being selected by a <code>HazeSourceSelection.where</code> predicate
+  (<a href="https://github.com/chrisbanes/haze/issues/1412">#1412</a>).</li>
 <li>Corrected masks, progressive blur opacity, tints and color filters across Android rendering
-  paths, including combining a mask with progressive blur.</li>
-<li>Cupertino materials preserve text contrast with a frosted fallback when blur is disabled.</li>
-<li>Glass press animations no longer crash when a spring overshoots. Press responses cancel when
-  the pointer leaves the surface and stay active during drag interactions.</li>
+  paths, including combining a mask with progressive blur
+  (<a href="https://github.com/chrisbanes/haze/issues/1415">#1415</a>,
+  <a href="https://github.com/chrisbanes/haze/issues/1635">#1635</a>,
+  <a href="https://github.com/chrisbanes/haze/issues/1413">#1413</a>,
+  <a href="https://github.com/chrisbanes/haze/issues/1374">#1374</a>).</li>
+<li>Cupertino materials preserve text contrast with a frosted fallback when blur is disabled
+  (<a href="https://github.com/chrisbanes/haze/issues/1638">#1638</a>).</li>
+<li>Glass press animations no longer crash when a spring overshoots
+  (<a href="https://github.com/chrisbanes/haze/issues/1371">#1371</a>). Press responses cancel when the pointer
+  leaves the surface and stay active during drag interactions
+  (<a href="https://github.com/chrisbanes/haze/issues/1637">#1637</a>).</li>
 <li>Native backdrop effects recover after declined frames or empty layers, rather than remaining
   in fallback rendering, with a contribution from <a href="https://github.com/mvanhorn">Matt Van Horn</a>
-  (<a href="https://github.com/chrisbanes/haze/pull/1430">#1430</a>).</li>
+  (<a href="https://github.com/chrisbanes/haze/issues/1417">#1417</a>,
+  <a href="https://github.com/chrisbanes/haze/pull/1430">#1430</a>).</li>
 <li>Desktop effects stay aligned with sources in other windows and refresh when those windows move,
   with a contribution from <a href="https://github.com/shayann07">Shayan Khan</a>
-  (<a href="https://github.com/chrisbanes/haze/pull/1387">#1387</a>).</li>
+  (<a href="https://github.com/chrisbanes/haze/issues/1377">#1377</a>,
+  <a href="https://github.com/chrisbanes/haze/pull/1387">#1387</a>).</li>
 </ul>
 <h2 id="2.0.1">2.0.1 <small>2026-09-29</small><a class="headerlink" href="#2.0.1" title="Permanent link">¶</a></h2>
 <h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">¶</a></h3>
