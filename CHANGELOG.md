@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Source-backed effects sample the correct content across sibling Android `ComposeView`s in the
+  same window.
 - Blur no longer shows stale content while scrolling on Android API 31. Effects also keep tracking
   sources that move or resize after being selected by a `HazeSourceSelection.where` predicate.
 - Corrected masks, progressive blur opacity, tints and color filters across Android rendering
