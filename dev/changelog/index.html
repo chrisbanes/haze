@@ -7620,6 +7620,8 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
+<li>Source-backed effects sample the correct content across sibling Android <code>ComposeView</code>s in the
+  same window (<a href="https://github.com/chrisbanes/haze/issues/1718">#1718</a>).</li>
 <li>Blur no longer shows stale content while scrolling on Android API 31
   (<a href="https://github.com/chrisbanes/haze/issues/1509">#1509</a>). Effects also keep tracking sources that
   move or resize after being selected by a <code>HazeSourceSelection.where</code> predicate

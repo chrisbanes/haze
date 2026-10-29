@@ -490,6 +490,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#multiple-android-composeviews" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiple Android ComposeViews
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#dialogs" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1414,6 +1425,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#multiple-android-composeviews" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiple Android ComposeViews
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#dialogs" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1697,6 +1719,10 @@ local:</p>
 <span class="p">}</span>
 </code></pre></div>
 <p>The Card consumes the Background, while the TopAppBar consumes both lower sources.</p>
+<h2 id="multiple-android-composeviews">Multiple Android ComposeViews<a class="headerlink" href="#multiple-android-composeviews" title="Permanent link">¶</a></h2>
+<p>Source-backed effects can consume content from a sibling <code>ComposeView</code> in the same Android window.
+Share one <code>HazeState</code> between the source and effect and use <code>HazeInput.Sources</code>; Haze aligns their
+coordinates automatically, so each view can keep its own composition.</p>
 <h2 id="dialogs">Dialogs<a class="headerlink" href="#dialogs" title="Permanent link">¶</a></h2>
 <p>Effects in a dialog can consume sources from the window behind it. Use <code>HazeInput.Sources</code>,
 because the native backdrop can't cross windows; Haze aligns the two automatically:</p>
