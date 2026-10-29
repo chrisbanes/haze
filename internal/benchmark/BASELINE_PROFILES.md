@@ -101,15 +101,19 @@ python3 internal/benchmark/verify_baseline_profile.py \
 ```
 
 The retained profile combines two API 30 collections, four API 34 collections, and five collections
-from a physical Pixel 8a running Android 37.2. The verifier reports 3,043 rules
-(495 class and 2,548 method), zero missing ordinary AAR members, and zero missing
-consumer-Dex members. Its ordinary counts are `691` (`haze`), `386` (`haze-blur`),
-`1,603` (`haze-glass`), `69` (`haze-utils`), `7` (`haze-materials`), and `2`
-(`haze-glass-material3`). The generated counts are 268 external-synthetic entries,
-16 lambda bridges, zero `$-CC` interface companions, and one namespaced `R$drawable`
+from a physical Pixel 8a running Android 37.2. The verifier reports 3,190 rules
+(518 class and 2,672 method), zero missing ordinary AAR members, and zero missing
+consumer-Dex members. Its ordinary counts are `724` (`haze`), `373` (`haze-blur`),
+`1,703` (`haze-glass`), `69` (`haze-utils`), `7` (`haze-materials`), and `2`
+(`haze-glass-material3`). The generated counts are 293 external-synthetic entries,
+18 lambda bridges, zero `$-CC` interface companions, and one namespaced `R$drawable`
 class. Generated entries still require exact consumer-Dex definitions;
 `$-CC` entries also require an interface owner with the interface access flag in an AAR, and
 `R$drawable` requires the matching AAR manifest namespace.
+
+The Pixel 8a's combined sample journey reached the 15-iteration collection limit
+with only one stable iteration at the end. It produced a profile and passed the
+test, but did not reach two consecutive stable iterations.
 
 Only the root `haze` AAR may contain `baseline-prof.txt`, and its bytes must match the checked-in
 file exactly. The other five AARs must contain no profile asset. The verifier preserves HSP flags,
