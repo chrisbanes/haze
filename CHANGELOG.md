@@ -11,11 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Glass surfaces can merge into connected shapes and animate as members join or leave. Use
   `hazeGlassContainer` for nearby surfaces or group related controls into one shape. New container
-  samples show these interactions in practice. See the
+  samples show these interactions in practice
+  ([#1409](https://github.com/chrisbanes/haze/issues/1409),
+  [#1447](https://github.com/chrisbanes/haze/issues/1447)). See the
   [Glass containers guide](https://chrisbanes.github.io/haze/dev/effects/glass/containers/).
 - Apps with several effects over the same source can reduce repeated source rendering on Android
   with experimental `HazeInputSharing`. It is off by default, uses more GPU memory, and clips the
-  source to its bounds plus any configured outsets. See the
+  source to its bounds plus any configured outsets
+  ([#1611](https://github.com/chrisbanes/haze/issues/1611)). See the
   [input-sharing trade-offs](https://chrisbanes.github.io/haze/dev/performance/).
 - Glass optics are easier to customize: start from `GlassOptics.regular` or `GlassOptics.clear`
   and use `optics { copy(...) }` to change selected values without replacing the rest of a style.
@@ -29,7 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Blur support contributed by [Mohammad Jaber](https://github.com/moyaver)
   ([#1602](https://github.com/chrisbanes/haze/pull/1602)).
 - Glass better respects reduced-transparency preferences: it obscures background detail with
-  stronger blur and a more opaque appearance. Apps can customize the opaque fallback color.
+  stronger blur and a more opaque appearance. Apps can customize the opaque fallback color
+  ([#1549](https://github.com/chrisbanes/haze/issues/1549)).
 - Blur and Glass do less repeated rendering work and reuse more of their retained output.
   See the [performance guide](https://chrisbanes.github.io/haze/dev/performance/) for measurements
   and trade-offs; Glass containers can still add substantial cost to dense scrolling layouts.
@@ -51,19 +55,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Source-backed effects sample the correct content across sibling Android `ComposeView`s in the
   same window ([#1718](https://github.com/chrisbanes/haze/issues/1718)).
-- Blur no longer shows stale content while scrolling on Android API 31. Effects also keep tracking
-  sources that move or resize after being selected by a `HazeSourceSelection.where` predicate.
+- Blur no longer shows stale content while scrolling on Android API 31
+  ([#1509](https://github.com/chrisbanes/haze/issues/1509)). Effects also keep tracking sources that
+  move or resize after being selected by a `HazeSourceSelection.where` predicate
+  ([#1412](https://github.com/chrisbanes/haze/issues/1412)).
 - Corrected masks, progressive blur opacity, tints and color filters across Android rendering
-  paths, including combining a mask with progressive blur.
-- Cupertino materials preserve text contrast with a frosted fallback when blur is disabled.
-- Glass press animations no longer crash when a spring overshoots. Press responses cancel when
-  the pointer leaves the surface and stay active during drag interactions.
+  paths, including combining a mask with progressive blur
+  ([#1415](https://github.com/chrisbanes/haze/issues/1415),
+  [#1635](https://github.com/chrisbanes/haze/issues/1635),
+  [#1413](https://github.com/chrisbanes/haze/issues/1413),
+  [#1374](https://github.com/chrisbanes/haze/issues/1374)).
+- Cupertino materials preserve text contrast with a frosted fallback when blur is disabled
+  ([#1638](https://github.com/chrisbanes/haze/issues/1638)).
+- Glass press animations no longer crash when a spring overshoots
+  ([#1371](https://github.com/chrisbanes/haze/issues/1371)). Press responses cancel when the pointer
+  leaves the surface and stay active during drag interactions
+  ([#1637](https://github.com/chrisbanes/haze/issues/1637)).
 - Native backdrop effects recover after declined frames or empty layers, rather than remaining
   in fallback rendering, with a contribution from [Matt Van Horn](https://github.com/mvanhorn)
-  ([#1430](https://github.com/chrisbanes/haze/pull/1430)).
+  ([#1417](https://github.com/chrisbanes/haze/issues/1417),
+  [#1430](https://github.com/chrisbanes/haze/pull/1430)).
 - Desktop effects stay aligned with sources in other windows and refresh when those windows move,
   with a contribution from [Shayan Khan](https://github.com/shayann07)
-  ([#1387](https://github.com/chrisbanes/haze/pull/1387)).
+  ([#1377](https://github.com/chrisbanes/haze/issues/1377),
+  [#1387](https://github.com/chrisbanes/haze/pull/1387)).
 
 ## 2.0.1 <small>2026-09-29</small> { id="2.0.1" }
 

@@ -85,10 +85,12 @@ Share application infrastructure, fixtures, or abstractions that are themselves 
 
 Read the relevant guide before starting that work:
 
-- Whenever editing `CHANGELOG.md`, write every pull request reference you add or edit as an explicit
-  Markdown link, such as [#1332](https://github.com/chrisbanes/haze/pull/1332); do not rely on GitHub
-  auto-linking. For pull requests by non-maintainers, include the contributor's name or username
-  linked to their GitHub profile, and verify the author and maintainer status before attributing them.
+- Whenever editing `CHANGELOG.md`, link entries to the relevant GitHub issues where available,
+  verifying that each issue matches the change. Write every issue or pull request reference you add
+  or edit as an explicit Markdown link, such as [#1412](https://github.com/chrisbanes/haze/issues/1412)
+  or [#1332](https://github.com/chrisbanes/haze/pull/1332). For pull requests by non-maintainers, include
+  the contributor's name or username linked to their GitHub profile, and verify the author and
+  maintainer status before attributing them.
 
 | Task | Guidance |
 | --- | --- |
