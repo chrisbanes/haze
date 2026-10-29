@@ -1171,13 +1171,19 @@ internal class HazeEffectNode(
     }
     val state = this.state
 
-    // Auto-promote position strategy when cross-window is detected
-    // This is now node-local to prevent oscillation between effects in different windows
+    // Different Compose roots can share one window but cannot share root-local coordinates.
     state?.let { hazeState ->
+      val effectRoot = lastKnownCoordinates?.takeIf { it.isAttached }?.findRootCoordinates()
+      val hasDifferentRoot = effectRoot != null && _areas.any { area ->
+        val sourceCoordinates = area.observedLayoutCoordinates
+        val sourceRoot = area.rootCoordinates
+        sourceCoordinates?.isAttached == true && sourceRoot?.isAttached == true && sourceRoot !== effectRoot
+      }
       val newResolved = resolvePositionStrategy(
         configured = hazeState.positionStrategy,
         areas = _areas,
         windowId = windowId,
+        hasDifferentRoot = hasDifferentRoot,
       )
       if (resolvedPositionStrategy != newResolved) {
         resolvedPositionStrategy = newResolved
