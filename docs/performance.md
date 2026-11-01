@@ -157,13 +157,13 @@ subtree, provide [`LocalHazePerformanceMode`][LocalHazePerformanceMode]; an expl
 
 !!! note "Measured quality trade-offs"
 
-    In a single-pass test on a Pixel 8a (Android 17, 60 Hz, fixed-performance mode) with a changing
-    background, Glass `Balanced` left about **7.8 ms** of frame-deadline headroom at P90,
-    compared with **6.6 ms** for `Quality`. Glass `Performance` used roughly **9% less peak GPU
+    In a two-pass test on a Pixel 8a (Android 17, 60 Hz, fixed-performance mode) with a changing
+    background, Glass `Balanced` left about **7.9 ms** of frame-deadline headroom at P90,
+    compared with **6.7 ms** for `Quality`. Glass `Performance` used roughly **9% less peak GPU
     memory** than `Quality` in both stable and changing-background tests, comparing each method's
-    peak-memory median. Each method ran eight measured iterations. These are reference points,
-    not guaranteed savings or a universal mode ranking. See the [full mode comparison and its
-    repeat-coverage limits](benchmark-results.md#performance-mode-calibration).
+    peak-memory median. Each method ran eight measured iterations in each pass. These are
+    reference points, not guaranteed savings or a universal mode ranking. See the [full mode
+    comparison and its limits](benchmark-results.md#performance-mode-calibration).
 
 Keep a fixed override only when repeated measurements and visual checks show a useful benefit.
 A lower quality setting does not guarantee a lower CPU frame time in every workload.

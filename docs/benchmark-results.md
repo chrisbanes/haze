@@ -24,75 +24,68 @@ These are the latest source-backed results for `Quality`, `Balanced`, and `Perfo
 stable and continuously changing source input. They used a Pixel 8a running Android 17 (full SDK
 37.2) at 60 Hz, with fixed-performance mode enabled and normal Android CPU scheduling.
 
-Values are **P90 CPU frame duration / P90 frame overrun**, in milliseconds, as reported by
-AndroidX for one pass of eight measured iterations per method. These are single-pass values,
-not averages across passes. Other style choices stay fixed within each sample.
+Values are **P90 CPU frame duration / P90 frame overrun**, in milliseconds, computed from the
+frames of two passes of eight measured iterations per method, about 2,880 frames per cell. The
+second pass reversed the method order. The P90s are of the pooled frames, not averages of
+per-pass P90s. Other style choices stay fixed within each sample.
 
 ### Blur
 
 | Workload | Quality | Balanced | Performance |
 | --- | ---: | ---: | ---: |
-| Stable source | 4.74 / -9.09 | 4.78 / -9.15 | 4.83 / -9.07 |
-| Continuously changing source | 5.10 / -6.10 | 4.98 / -6.80 | 5.35 / -7.44 |
+| Stable source | 4.84 / -8.97 | 4.84 / -8.89 | 4.82 / -8.97 |
+| Continuously changing source | 5.24 / -6.14 | 5.37 / -6.85 | 5.41 / -7.21 |
 
 ### Glass
 
 | Workload | Quality | Balanced | Performance |
 | --- | ---: | ---: | ---: |
-| Stable source | 4.43 / -10.18 | 4.31 / -10.28 | 4.44 / -10.18 |
-| Continuously changing source | 4.51 / -6.63 | 5.02 / -7.76 | 5.03 / -8.87 |
+| Stable source | 4.45 / -10.18 | 4.45 / -10.14 | 4.37 / -10.24 |
+| Continuously changing source | 4.80 / -6.65 | 4.60 / -7.86 | 4.64 / -8.96 |
 
 All configurations had spare time at P90. For changing-input Glass, `Balanced` left about
-7.8 ms of deadline margin, compared with 6.6 ms for `Quality`. `Performance` used roughly
+7.9 ms of deadline margin, compared with 6.7 ms for `Quality`. `Performance` used roughly
 9% less peak GPU memory than `Quality` in both workloads. This compares each method's
-`memoryGpuMaxKb` median: 96,460 KB versus 106,532 KB for the stable source, and 96,660 KB
-versus 106,532 KB for the changing source. CPU frame duration did not follow one mode ordering
-across workloads.
+`memoryGpuMaxKb` median over the 16 iterations: 93,456 KB versus 103,120 KB for the stable
+source, and 93,248 KB versus 103,224 KB for the changing source. CPU frame duration did not
+follow one mode ordering across workloads.
 
-!!! warning "Single-pass results are not a universal mode ranking"
+!!! warning "These results are not a universal mode ranking"
 
-    The complete mode matrix ran once. Normal-scheduling repeats of Blur stable `Balanced`
-    and Glass changing `Balanced` recorded CPU P90s of 4.76 ms and 4.94 ms, compared with
-    4.78 ms and 5.02 ms in the table. Other modes were not repeated on this build.
-    Perfetto showed different CPU-placement mixes between passes; fixed-performance mode
-    does not fix CPU placement. CPU frame duration also does not measure GPU shader cost.
-    Repeat with reversed run order and check appearance on your screen before choosing an override.
+    Differences of a few tenths of a millisecond in CPU P90 are within the spread between the
+    two passes, which reached 0.5 ms (Blur stable `Balanced`: 5.04 ms in the first pass and
+    4.54 ms in the second). The order of the modes was not consistent across workloads.
+    CPU placement was not examined, and fixed-performance mode does not fix it. CPU frame
+    duration also does not measure GPU shader cost. Check appearance on your screen and
+    repeat with reversed run order before choosing an override.
 
 ??? info "Measurement details"
 
-    The measured code and regenerated 3,043-rule baseline profile match commit `68439df3`.
-    Both target and benchmark used `benchmarkRelease`; the target APK was minified. The sample
-    APK SHA-256 was `212441675ec83042accef15b823e0ec48bb6880186eba35d54e86cf202e407ef`
-    and the benchmark APK `4fff9aa2c5650d09292584aafeea828519441790ad7cf54a0333f2be13f96e9b`.
-    The Android build was `CP41.260831.016`. The device was on AC power at 80% charge,
-    with manual brightness 32. Each invocation began at thermal status 0 and battery
-    temperature at or below 30.0°C; after-run thermal status was also 0.
+    The `benchmarkRelease` APKs were built from commit `193c0774f` (`2.1.0-SNAPSHOT`). The
+    sample APK SHA-256 was
+    `c78023ad93f68d391686ed46ba210a18b22c285f752b8b7e6d0dba3d9faa66bb` and the benchmark APK
+    `403817b0eebc783331814a04c54bab00274fca67b568c48d253944144eaabc6e`; they were hashed after
+    the second pass from the build outputs, and the installed copies were not read back. The Android
+    build was `CP41.260831.019`. The device was on AC power at 80% charge, thermal status 0 before
+    every method, and a battery temperature at or below 30.0°C before each invocation. Brightness
+    was not recorded.
 
-    The twelve methods ran Blur stable, Blur changing, Glass stable, then Glass changing;
-    each group ran Quality, Balanced, then Performance. Each method ran in its own invocation.
-    The table's complete pass produced 96 measured iterations and 96 Perfetto traces. JSON
-    method identity, XML success, eight metric runs, and eight distinct non-empty trace
-    references were verified for every method. Slower completed iterations were retained.
+    The first pass ran Blur stable, Blur changing, Glass stable, then Glass changing, each in
+    Quality, Balanced, then Performance order. The second pass ran the exact reverse. Each method
+    ran in its own invocation, which produced 192 measured iterations and 192 Perfetto traces
+    across both passes. Method identity, XML success, eight metric runs, and eight distinct
+    non-empty trace references were verified for every archive. Slower completed iterations were
+    retained. The automation dry run was skipped; the archive verification stood in for it.
 
-    This pass was part of a release-regression investigation with 256 accepted iterations and
-    256 traces across both builds and follow-ups. Only the current build's normal-scheduling
-    mode pass supplies the tables above. Two selected methods received normal-scheduling
-    repeats; changing-input Balanced Glass also received two passes restricted to the middle
-    CPU cluster, with main-thread and RenderThread placement verified in all 16 current-build
-    traces. Those controlled results are excluded from these tables.
+    The Google app was temporarily disabled to avoid a Chromium trace-producer delay, then
+    re-enabled and read back afterward. Fixed-performance mode was disabled and the sample process
+    stopped. The sample ran under the default CPU scheduling; no affinity mask was applied.
 
-    An incomplete attempt with a Google-app Chromium trace-producer delay was preserved
-    separately and excluded. The Google app was temporarily disabled for accepted measurements.
-    Its original enabled state, refresh settings, brightness, and stay-awake setting were
-    restored and read back afterward. Fixed-performance mode was disabled and the sample
-    processes stopped, clearing temporary affinity.
-
-    Blur rows did not all record GPU memory. Raw JSON, XML, benchmark messages, APK hashes,
-    and traces are retained locally under
-    `internal/benchmark/build/benchmark-results/regression-2.0.1-20261020/`.
-    `candidate-forward/` contains the complete mode pass; `candidate-repeat-normal/` contains
-    the two normal-scheduling repeats. The report and `validation.json` record the full
-    experiment and excluded attempts.
+    Blur rows other than `Quality` did not record GPU memory. Raw JSON, XML, benchmark messages and
+    traces are retained locally under
+    `internal/benchmark/build/benchmark-results/modes-2.1.0-vs-2.0.1/`; `pass1-2.1.0/` and
+    `pass2-2.1.0/` hold the results above. The same directory holds an equivalent two-pass run of
+    the `2.0.1` tag, which is not used here.
 
     See [ADR-0004][blur-adr] and [ADR-0005][glass-adr] for adaptive-policy decisions, and
     [ADR-0006][performance-mode-adr] for the public terminology.
