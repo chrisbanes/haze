@@ -45,8 +45,11 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -65,6 +68,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -233,7 +237,8 @@ public fun GlassContainerShowcaseSampleContent(
   modifier: Modifier = Modifier,
 ) {
   val hazeState = rememberHazeState()
-  Box(modifier.fillMaxSize().background(Color(0xFFF4F1E9))) {
+  val background = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) Color(0xFF1B1D24) else Color(0xFFF4F1E9)
+  Box(modifier.fillMaxSize().background(background)) {
     Box(
       Modifier.fillMaxSize().pointerInput(state) {
         awaitPointerEventScope {
@@ -244,7 +249,7 @@ public fun GlassContainerShowcaseSampleContent(
       },
     ) {
       Canvas(Modifier.fillMaxSize().hazeSource(hazeState)) {
-        drawRect(Color(0xFFF4F1E9))
+        drawRect(background)
         val secondStroke = Path().apply {
           moveTo(size.width * 0.10f, size.height * 0.24f)
           cubicTo(
@@ -276,26 +281,29 @@ public fun GlassContainerShowcaseSampleContent(
       visible = !state.recordingMode,
       modifier = Modifier.align(Alignment.BottomStart).safeDrawingPadding().padding(24.dp),
     ) {
-      DemoChrome(
-        hazeState = hazeState,
-        onBack = onBack,
-        onEnterRecordingMode = { state.updateRecordingMode(true) },
-        onReset = state::reset,
-        isPlaying = state.isPlaying,
-        onPlayPause = state::togglePlayback,
-        playbackControls = {
-          IconToggleButton(
-            checked = state.isSlowMotion,
-            onCheckedChange = { state.toggleSlowMotion() },
-            modifier = Modifier.width(64.dp).semantics {
-              contentDescription = "Slow motion"
-              stateDescription = if (state.isSlowMotion) "Half speed" else "Normal speed"
-            },
-          ) {
-            Text(if (state.isSlowMotion) "0.5×" else "1×", maxLines = 1)
-          }
-        },
-      )
+      val contentColor = if (background.luminance() < 0.5f) MaterialTheme.colorScheme.onBackground else LocalContentColor.current
+      CompositionLocalProvider(LocalContentColor provides contentColor) {
+        DemoChrome(
+          hazeState = hazeState,
+          onBack = onBack,
+          onEnterRecordingMode = { state.updateRecordingMode(true) },
+          onReset = state::reset,
+          isPlaying = state.isPlaying,
+          onPlayPause = state::togglePlayback,
+          playbackControls = {
+            IconToggleButton(
+              checked = state.isSlowMotion,
+              onCheckedChange = { state.toggleSlowMotion() },
+              modifier = Modifier.width(64.dp).semantics {
+                contentDescription = "Slow motion"
+                stateDescription = if (state.isSlowMotion) "Half speed" else "Normal speed"
+              },
+            ) {
+              Text(if (state.isSlowMotion) "0.5×" else "1×", maxLines = 1)
+            }
+          },
+        )
+      }
     }
   }
 }
@@ -303,7 +311,11 @@ public fun GlassContainerShowcaseSampleContent(
 @Composable
 private fun DrawingPalette(state: GlassContainerShowcaseState, hazeState: HazeState, modifier: Modifier) {
   val style = remember { GlassStyle.regular.then { shape(CircleShape) } }
-  val foreground = Color(0xFF252B3A)
+  val foreground = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+    MaterialTheme.colorScheme.onBackground
+  } else {
+    Color(0xFF252B3A)
+  }
   val scope = rememberCoroutineScope()
   var settleJob by remember { mutableStateOf<Job?>(null) }
   LaunchedEffect(state.isPlaying, state.autoplayGeneration, state.expanded) { settleJob?.cancel() }
