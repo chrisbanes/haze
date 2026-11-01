@@ -7604,6 +7604,9 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Blur and Glass do less repeated rendering work and reuse more of their retained output.
   See the <a href="https://chrisbanes.github.io/haze/dev/performance/">performance guide</a> for measurements
   and trade-offs; Glass containers can still add substantial cost to dense scrolling layouts.</li>
+<li>Blur and Glass use less peak GPU memory on Android. In the sample workloads on a Pixel 8a, Glass
+  used about 7% less than in 2.0.1, and Blur <code>Quality</code>, where it was recorded, used at least 9%
+  less.</li>
 <li>Updated Kotlin to 2.4.21 and Compose Multiplatform to 1.12.2.</li>
 <li>When upgrading from experimental Glass in 2.0.x, recompile code that uses it.
   <code>GlassOptics</code> and <code>GlassAccessibilitySettings</code> no longer support destructuring, and
