@@ -7623,6 +7623,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
+<li>Content-based Blur no longer leaks transparent pixels along edges when its captured input is downscaled (<a href="https://github.com/chrisbanes/haze/issues/1726">#1726</a>).</li>
 <li>Source-backed effects sample the correct content across sibling Android <code>ComposeView</code>s in the
   same window (<a href="https://github.com/chrisbanes/haze/issues/1718">#1718</a>).</li>
 <li>Blur no longer shows stale content while scrolling on Android API 31
