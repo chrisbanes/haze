@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 2.1.0 <small>2026-11-02</small> { id="2.1.0" }
+
 ### Added
 
 - Glass surfaces can merge into connected shapes and animate as members join or leave. Use
