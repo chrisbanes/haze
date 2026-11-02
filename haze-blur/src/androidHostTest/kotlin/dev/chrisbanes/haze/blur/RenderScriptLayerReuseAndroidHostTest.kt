@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
@@ -58,6 +59,49 @@ import org.robolectric.annotation.Config
  */
 class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
   private val context get() = ApplicationProvider.getApplicationContext<android.content.Context>()
+
+  @Test
+  @Config(sdk = [35])
+  fun drawPresentation_nonuniformCaptureScale_usesUnpaddedGeometryAndOffset() = runScreenshotTest {
+    val h = Harness(PLAIN)
+    h.factory.scale = 0.5f
+    h.factory.captureScale = ScaleFactor(0.6f, 0.3f)
+    h.factory.offset = Offset(5f, 7f)
+    h.factory.paddedOutput = true
+    setContent { h.Content() }
+    val pixels = frame()
+
+    // The unpadded 60x24 capture represents 100x80 logical pixels; the allocation is 64x32.
+    // At x=45, the capture samples x=(45.5+5)*0.6=30.3, halfway through the gradient.
+    assertThat(pixels[45, 20].red).isCloseTo(0.495f, 0.025f)
+    assertThat(pixels[45, 20].green).isCloseTo(0.505f, 0.025f)
+    // A black stripe at capture y=18..21 maps to output y=53..63, independently of x.
+    assertThat(pixels[45, 58].red).isCloseTo(0f, 0.025f)
+    assertThat(pixels[45, 58].blue).isCloseTo(0f, 0.025f)
+  }
+
+  @Test
+  @Config(sdk = [35])
+  fun drawPresentation_nonuniformCaptureScale_appliesMaskAndAlphaOnce() = runScreenshotTest {
+    val h = Harness(
+      HazeBlurStyle {
+        noiseFactor(0f)
+        alpha(0.5f)
+        mask(Brush.verticalGradient(listOf(Color.Black, Color.Transparent), endY = 100f))
+      },
+    )
+    h.factory.scale = 0.5f
+    h.factory.captureScale = ScaleFactor(0.6f, 0.3f)
+    h.factory.offset = Offset(5f, 7f)
+    h.factory.paddedOutput = true
+    setContent { h.Content() }
+    val pixels = frame()
+
+    // At this row the output has green=0.505; one mask and alpha composite over white.
+    val alpha = 0.5f * (1f - 20.5f / 100f)
+    assertThat(pixels[45, 20].green).isCloseTo(1f - alpha * (1f - 0.505f), 0.025f)
+    assertThat(pixels[45, 20].blue).isCloseTo(1f, 0.025f)
+  }
 
   @Test
   @Config(sdk = [35])
@@ -307,6 +351,9 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
 
   private class PresentationFactory(val effect: BlurVisualEffect) : HazeEffectFactory<Int> {
     var scale = 1f
+    var captureScale = ScaleFactor(1f, 1f)
+    var offset = Offset.Zero
+    var paddedOutput = false
 
     /** Runs the delegate's whole draw, over an empty layer, instead of only its presentation. */
     var drawsEmptyLayer = false
@@ -339,8 +386,14 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
           delegate = it
         }
         val layer = output ?: graphicsContext.createGraphicsLayer().also {
-          it.record(IntSize(256, 256)) {
-            drawRect(Brush.horizontalGradient(listOf(Color.Magenta, Color.Cyan)))
+          it.record(if (paddedOutput) IntSize(64, 32) else IntSize(256, 256)) {
+            if (paddedOutput) {
+              drawRect(Color.Yellow)
+              drawRect(Brush.horizontalGradient(listOf(Color.Magenta, Color.Cyan), endX = 60f), size = Size(60f, 24f))
+              drawRect(Color.Black, topLeft = Offset(0f, 18f), size = Size(60f, 3f))
+            } else {
+              drawRect(Brush.horizontalGradient(listOf(Color.Magenta, Color.Cyan)))
+            }
           }
           output = it
           outputOwner = graphicsContext
@@ -354,7 +407,7 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
               },
             )
           } else {
-            drawPresentation(runtime, layer, Offset.Zero, scale)
+            drawPresentation(runtime, layer, offset, scale, captureScale)
           }
         }
         draws++
