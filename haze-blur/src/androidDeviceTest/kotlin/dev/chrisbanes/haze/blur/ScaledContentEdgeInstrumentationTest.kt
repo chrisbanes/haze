@@ -6,7 +6,7 @@ package dev.chrisbanes.haze.blur
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -38,110 +38,128 @@ class ScaledContentEdgeInstrumentationTest {
   val rule = createAndroidComposeRule<ComponentActivity>()
 
   @Test
+  fun contentBlur_reported413x384DefaultCaseHasNoTransparentEdge() {
+    val config = mutableStateOf(EdgeCase(413, 384, 4, 1f, HazePerformanceMode.Default))
+    setContent(config, density = 1f)
+    assertEdges(config.value)
+  }
+
+  @Test
   fun contentBlur_coversRoundedCaptureEdgesAcrossModesSizesAndAlpha() {
-    val cases = listOf(413 to 384, 412 to 383, 414 to 385, 400 to 371, 405 to 376, 203 to 203, 208 to 208)
+    val config = mutableStateOf(EdgeCase(413, 384, 4, 1f, HazePerformanceMode.Default))
+    setContent(config, density = 1f)
+    val sizes = listOf(413 to 384, 412 to 383, 414 to 385, 400 to 371, 405 to 376, 203 to 203, 208 to 208)
     val modes = listOf(
       HazePerformanceMode.Quality,
       HazePerformanceMode.Default,
       HazePerformanceMode.Performance,
       HazePerformanceMode.Fixed(0.75f),
     )
-    for ((width, height) in cases) for (radius in listOf(4, 80)) for (alpha in listOf(1f, 0.5f)) {
+    for ((width, height) in sizes) for (radius in listOf(4, 80)) for (alpha in listOf(1f, 0.5f)) {
       for (mode in modes) {
-        val pixels = render(width, height, radius, alpha, mode)
-        assertThat(pixels.width).isEqualTo(width + 20)
-        assertThat(pixels.height).isEqualTo(height + 20)
-        for (x in 10 until width + 10) {
-          assertFlat(pixels[x, height + 9], alpha, "${width}x$height $mode alpha=$alpha bottom x=$x")
-        }
-        for (y in 10 until height + 10) {
-          assertFlat(pixels[width + 9, y], alpha, "${width}x$height $mode alpha=$alpha right y=$y")
-        }
+        val case = EdgeCase(width, height, radius, alpha, mode)
+        rule.runOnIdle { config.value = case }
+        rule.waitForIdle()
+        assertEdges(case)
       }
     }
   }
 
   @Test
   fun contentBlur_reversesSizeAndQualityChangesOnTheSameNode() {
-    val size = mutableStateOf(413)
-    val mode = mutableStateOf(HazePerformanceMode.Quality)
-    rule.setContent { content(size.value, 384, mode.value, 4, 1f, density = 1f) }
-    for ((nextSize, nextMode) in listOf(
-      413 to HazePerformanceMode.Quality,
-      414 to HazePerformanceMode.Default,
-      413 to HazePerformanceMode.Quality,
+    val config = mutableStateOf(EdgeCase(413, 384, 4, 1f, HazePerformanceMode.Quality))
+    setContent(config, density = 1f)
+    for (case in listOf(
+      EdgeCase(413, 384, 4, 1f, HazePerformanceMode.Quality),
+      EdgeCase(414, 385, 4, 1f, HazePerformanceMode.Default),
+      EdgeCase(413, 384, 4, 1f, HazePerformanceMode.Quality),
     )) {
-      rule.runOnIdle {
-        size.value = nextSize
-        mode.value = nextMode
-      }
+      rule.runOnIdle { config.value = case }
       rule.waitForIdle()
-      val map = rule.onNodeWithTag(ROOT).captureToImage().toPixelMap()
-      assertThat(map.width).isEqualTo(nextSize + 20)
-      assertFlat(map[nextSize + 9, 200], 0f, "resize/mode reverse right edge")
+      assertEdges(case)
+    }
+    for (mode in listOf(HazePerformanceMode.Quality, HazePerformanceMode.Default, HazePerformanceMode.Quality)) {
+      val case = EdgeCase(413, 384, 4, 1f, mode)
+      rule.runOnIdle { config.value = case }
+      rule.waitForIdle()
+      assertEdges(case)
     }
   }
 
   @Test
   fun contentBlur_supportsOrdinaryDensityWithPixelDerivedSize() {
-    val pixels = render(413, 384, 4, 1f, HazePerformanceMode.Default, density = 2f)
-    assertThat(pixels.width).isEqualTo(866)
-    assertThat(pixels.height).isEqualTo(808)
-    assertFlat(pixels[845, 400], 1f, "ordinary-density right edge")
+    val config = mutableStateOf(EdgeCase(413, 384, 4, 1f, HazePerformanceMode.Default))
+    setContent(config, density = 2f)
+    rule.waitForIdle()
+    val pixels = capture()
+    assertThat(pixels.width).isEqualTo(433)
+    assertThat(pixels.height).isEqualTo(404)
+    assertFlat(pixels[422, 200], 1f, "413x384 radius=4 density=2 right edge")
+    assertFlat(pixels[200, 393], 1f, "413x384 radius=4 density=2 bottom edge")
   }
 
-  private fun render(
-    width: Int,
-    height: Int,
-    radius: Int,
-    alpha: Float,
-    mode: HazePerformanceMode,
-    density: Float = 1f,
-  ): androidx.compose.ui.graphics.PixelMap {
-    rule.setContent { content(width, height, mode, radius, alpha, density) }
+  private fun setContent(config: androidx.compose.runtime.State<EdgeCase>, density: Float) {
+    rule.setContent { edgeContent(config.value, density) }
     rule.waitForIdle()
-    return rule.onNodeWithTag(ROOT).captureToImage().toPixelMap()
   }
+
+  private fun assertEdges(case: EdgeCase) {
+    val pixels = capture()
+    assertThat(pixels.width).isEqualTo(case.width + 20)
+    assertThat(pixels.height).isEqualTo(case.height + 20)
+    for (x in 10 until case.width + 10) {
+      assertFlat(pixels[x, case.height + 9], case.alpha, case.label("bottom x=$x"))
+    }
+    for (y in 10 until case.height + 10) {
+      assertFlat(pixels[case.width + 9, y], case.alpha, case.label("right y=$y"))
+    }
+  }
+
+  private fun capture() = rule.onNodeWithTag(ROOT).captureToImage().toPixelMap()
 
   @Composable
-  private fun content(
-    width: Int,
-    height: Int,
-    mode: HazePerformanceMode,
-    radius: Int,
-    alpha: Float,
-    density: Float,
-  ) {
+  private fun edgeContent(case: EdgeCase, density: Float) {
     CompositionLocalProvider(LocalDensity provides Density(density)) {
-      Box(Modifier.size((width + 20).dp / density, (height + 20).dp / density).background(Color.Magenta).testTag(ROOT)) {
+      Box(
+        Modifier.size((case.width + 20).dp / density, (case.height + 20).dp / density)
+          .background(Color.Magenta).testTag(ROOT),
+      ) {
         Box(
-          Modifier.padding((10.dp / density)).size(width.dp / density, height.dp / density).background(Color.White.copy(alpha = alpha))
+          Modifier.offset(10.dp / density, 10.dp / density)
+            .size(case.width.dp / density, case.height.dp / density)
             .hazeBlur(
               input = HazeInput.Content,
               expandLayerBounds = false,
-              performanceMode = mode,
+              performanceMode = case.mode,
               style = HazeBlurStyle {
-                blurRadius(radius.dp / density)
+                blurRadius(case.radius.dp / density)
                 noiseFactor(0f)
                 backgroundColor(Color.Transparent)
                 colorEffects(emptyList())
               },
-            ),
+            )
+            .background(Color.White.copy(alpha = case.alpha)),
         )
       }
     }
   }
 
-  private fun assertFlat(pixel: androidx.compose.ui.graphics.Color, whiteAlpha: Float, context: String) {
-    val whiteWeight = whiteAlpha * 0.5f
-    val expectedRed = 1f
-    val expectedGreen = 1f - whiteWeight
-    val expectedBlue = 1f
+  private fun assertFlat(pixel: Color, whiteAlpha: Float, context: String) {
     val tolerance = 8f / 255f
-    assertThat(pixel.red, "$context red").isCloseTo(expectedRed, tolerance)
-    assertThat(pixel.green, "$context green").isCloseTo(expectedGreen, tolerance)
-    assertThat(pixel.blue, "$context blue").isCloseTo(expectedBlue, tolerance)
+    assertThat(pixel.red, "$context red").isCloseTo(1f, tolerance)
+    assertThat(pixel.green, "$context green").isCloseTo(whiteAlpha, tolerance)
+    assertThat(pixel.blue, "$context blue").isCloseTo(1f, tolerance)
     assertThat(pixel.alpha, "$context alpha").isCloseTo(1f, tolerance)
+  }
+
+  private data class EdgeCase(
+    val width: Int,
+    val height: Int,
+    val radius: Int,
+    val alpha: Float,
+    val mode: HazePerformanceMode,
+  ) {
+    fun label(probe: String) = "$width x $height radius=$radius mode=$mode alpha=$alpha $probe"
   }
 
   private companion object {
