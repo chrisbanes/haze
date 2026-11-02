@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
@@ -25,6 +26,7 @@ import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.createScaledContentLayer
 import dev.chrisbanes.haze.drawScaledContent
+import dev.chrisbanes.haze.scaledContentScale
 import kotlin.math.ceil
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
@@ -78,6 +80,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
       inputSnapshot = context.inputSnapshot,
       scaleFactor = scaleFactor,
       scaledLayerSize = currentScaledSize,
+      captureScale = scaledContentScale(context.layerSize, scaleFactor),
       layerOffset = context.layerOffset,
       backgroundColor = blurVisualEffect.backgroundColor,
     )
@@ -112,6 +115,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
         layerSize = context.layerSize,
         backgroundColor = blurVisualEffect.backgroundColor,
         existingLayer = layer,
+        fillCapture = true,
       )?.also {
         inputCaptureKey = currentCaptureKey
       } ?: return
@@ -130,7 +134,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
     layer.clip = clip
     drawScaledContent(
       offset = -context.layerOffset,
-      scaledSize = size * scaleFactor,
+      captureScale = scaledContentScale(context.layerSize, scaleFactor),
       clip = clip,
     ) {
       val p = blurVisualEffect.progressive
@@ -231,6 +235,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
     val inputSnapshot: HazeEffectInputSnapshot?,
     val scaleFactor: Float,
     val scaledLayerSize: Size,
+    val captureScale: ScaleFactor,
     val layerOffset: Offset,
     val backgroundColor: Color,
   )

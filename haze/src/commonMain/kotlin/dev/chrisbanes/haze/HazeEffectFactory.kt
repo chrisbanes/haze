@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
@@ -397,6 +398,31 @@ public fun DrawScope.drawScaledContent(
   }
 }
 
+/** Draws content recorded with a per-axis capture scale back at its original geometry. */
+@InternalHazeApi
+public fun DrawScope.drawScaledContent(
+  offset: Offset,
+  captureScale: ScaleFactor,
+  clip: Boolean = true,
+  block: DrawScope.() -> Unit,
+) {
+  withTransform({ if (clip) clipRect() }) {
+    translate(offset) {
+      scale(scaleX = 1f / captureScale.scaleX, scaleY = 1f / captureScale.scaleY, pivot = Offset.Zero) {
+        block()
+      }
+    }
+  }
+}
+
+/** Returns the actual per-axis scale after rounding a uniformly scaled capture to integer pixels. */
+@InternalHazeApi
+public fun scaledContentScale(layerSize: Size, scaleFactor: Float): ScaleFactor {
+  val captureSize = (layerSize * scaleFactor).roundToIntSize()
+  if (captureSize.width <= 0 || captureSize.height <= 0) return ScaleFactor(scaleFactor, scaleFactor)
+  return ScaleFactor(captureSize.width / layerSize.width, captureSize.height / layerSize.height)
+}
+
 /**
  * Records the effect input of [context], scaled by [scaleFactor], into [existingLayer] (or a new
  * layer when it is null or released) over the shader [backgroundShader] returns or, without one,
@@ -407,6 +433,8 @@ public fun DrawScope.drawScaledContent(
  * capturing one, so a shader whose uniforms are shared is configured and drawn in the same call.
  *
  * Returns null without creating a layer when the scaled [layerSize] is empty.
+ * When [fillCapture] is true, the input fills the rounded allocation independently on each axis;
+ * present that capture with the matching [drawScaledContent] overload and [scaledContentScale].
  */
 @InternalHazeApi
 public fun DrawScope.createScaledContentLayer(
@@ -416,6 +444,7 @@ public fun DrawScope.createScaledContentLayer(
   layerSize: Size,
   existingLayer: GraphicsLayer? = null,
   backgroundShader: (() -> Shader?)? = null,
+  fillCapture: Boolean = false,
 ): GraphicsLayer? {
   val scaledLayerSize = (layerSize * scaleFactor).roundToIntSize()
 
@@ -434,14 +463,15 @@ public fun DrawScope.createScaledContentLayer(
       drawRect(backgroundColor)
     }
 
-    scale(scale = scaleFactor, pivot = Offset.Zero) {
+    val actualScale = if (fillCapture) scaledContentScale(layerSize, scaleFactor) else ScaleFactor(scaleFactor, scaleFactor)
+    scale(scaleX = actualScale.scaleX, scaleY = actualScale.scaleY, pivot = Offset.Zero) {
       with(context) { this@record.drawInput() }
     }
   }
 
   // Refresh the outline when a retained layer is resized. Round it outward independently of the
   // capture allocation: rounding down can clip the last output row or column after upscaling.
-  val outlineSize = layerSize * scaleFactor
+  val outlineSize = if (fillCapture) Size(scaledLayerSize.width.toFloat(), scaledLayerSize.height.toFloat()) else layerSize * scaleFactor
   layer.setRectOutline(size = Size(ceil(outlineSize.width), ceil(outlineSize.height)))
 
   return layer
