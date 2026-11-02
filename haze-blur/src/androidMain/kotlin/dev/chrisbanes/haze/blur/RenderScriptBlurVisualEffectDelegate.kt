@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
@@ -43,6 +44,7 @@ import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.createScaledContentLayer
 import dev.chrisbanes.haze.drawScaledContent
+import dev.chrisbanes.haze.scaledContentScale
 import dev.chrisbanes.haze.trace
 import dev.chrisbanes.haze.traceAsync
 import dev.chrisbanes.haze.translate
@@ -89,6 +91,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
     private set
   private var drawSkipped: Boolean = false
   private var completedCaptureKey: InputCaptureKey? = null
+  private var completedCaptureScale: ScaleFactor? = null
   private val retainedOutputState = BlurRetainedOutputState()
 
   @Volatile
@@ -122,6 +125,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
     }
 
     HazeLogger.d(TAG) { "drawEffect. blurRadius=${blurRadiusPx}px. scaleFactor=$scaleFactor" }
+    val captureScale = scaledContentScale(context.layerSize, scaleFactor)
 
     val hasDrawableSourceLayers = context.hasDrawableInput
     val captureKey = InputCaptureKey(
@@ -144,6 +148,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
         // The currentJob gate allows one update at a time, so the one capture layer is re-recorded
         // only while no job reads it.
         existingLayer = captureLayer.acquire(graphicsContext),
+        fillCapture = true,
       )?.let { layer ->
         layer.clip = blurVisualEffect.shouldClipToNodeBounds()
         if (contentLayer == null || contentLayer!!.isReleased) {
@@ -164,7 +169,11 @@ internal class RenderScriptBlurVisualEffectDelegate(
             retainedOutputState.finishOutputUpdate(retainedOutputGenerationAtStart)
           }
 
-          if (outputUpdated) completedCaptureKey = captureKey
+          if (outputUpdated) {
+            // Publish geometry with its successful output, never with a pending or cancelled capture.
+            completedCaptureKey = captureKey
+            completedCaptureScale = captureScale
+          }
           if (outputUpdated || drawSkipped) {
             // Present the completed output, or catch up with input changed during the update.
             context.invalidateDraw()
@@ -187,7 +196,8 @@ internal class RenderScriptBlurVisualEffectDelegate(
       return
     }
 
-    drawPresentation(context, contentLayer, offset, scaleFactor)
+    val outputScale = completedCaptureScale ?: return
+    drawPresentation(context, contentLayer, offset, scaleFactor, outputScale)
   }
 
   internal fun DrawScope.drawPresentation(
@@ -195,6 +205,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
     output: GraphicsLayer?,
     offset: Offset,
     scaleFactor: Float,
+    captureScale: ScaleFactor,
   ) {
     val layer = presentationLayer.acquire(graphicsContext)
     // The layer keeps what the previous draw set, so set every property on every draw.
@@ -221,7 +232,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
       fun DrawScope.drawOutputAndNoise() {
         drawScaledContent(
           offset = -offset,
-          scaledSize = size * scaleFactor,
+          captureScale = captureScale,
           clip = blurVisualEffect.shouldClipToNodeBounds(),
         ) {
           output?.let(::drawLayer)
@@ -492,6 +503,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
     currentJob = null
     retainedOutputState.clear()
     completedCaptureKey = null
+    completedCaptureScale = null
     contentLayer?.let(graphicsContext::releaseGraphicsLayer)
     contentLayer = null
     releaseRenderScriptContext()

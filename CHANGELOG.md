@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Content-based Blur no longer leaks transparent pixels along edges when its captured input is downscaled ([#1726](https://github.com/chrisbanes/haze/issues/1726)).
 - Source-backed effects sample the correct content across sibling Android `ComposeView`s in the
   same window ([#1718](https://github.com/chrisbanes/haze/issues/1718)).
 - Blur no longer shows stale content while scrolling on Android API 31

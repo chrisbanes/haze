@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
@@ -109,6 +110,50 @@ class ScaledContentTest {
 
     assertThat(pixelOutsideScope(clip = true)).isEqualTo(Color.Transparent)
     assertThat(pixelOutsideScope(clip = false)).isEqualTo(Color.Red)
+  }
+
+  @Test
+  fun drawScaledContent_perAxisScaleRestoresPixelsAfterOffsetAndClipsInOutputSpace() {
+    val pixels = render(scopeSize = Size(20f, 20f)) {
+      drawScaledContent(Offset(2f, 3f), ScaleFactor(0.5f, 0.25f)) {
+        drawRect(Color.Red, size = Size(10f, 5f))
+      }
+    }
+    assertThat(pixels[3, 4]).isEqualTo(Color.Red)
+    assertThat(pixels[19, 19]).isEqualTo(Color.Red)
+    assertThat(pixels[1, 4]).isEqualTo(Color.Transparent)
+    assertThat(pixels[20, 19]).isEqualTo(Color.Transparent)
+  }
+
+  @Test
+  fun createScaledContentLayer_fillCaptureUsesIntegerOutlinesAndCoversPixels() {
+    for ((size, factor, capture) in listOf(
+      Triple(Size(21f, 19f), 0.4f, IntSize(8, 8)), Triple(Size(21f, 19f), 0.5f, IntSize(11, 10)),
+      Triple(Size(21f, 19f), 0.75f, IntSize(16, 14)), Triple(Size(21f, 19f), 1f, IntSize(21, 19)),
+      Triple(Size(20f, 20f), 0.4f, IntSize(8, 8)), Triple(Size(20f, 20f), 0.5f, IntSize(10, 10)),
+      Triple(Size(20f, 20f), 0.75f, IntSize(15, 15)), Triple(Size(20f, 20f), 1f, IntSize(20, 20)),
+      Triple(Size(21f, 21f), 0.4f, IntSize(8, 8)), Triple(Size(21f, 21f), 0.5f, IntSize(11, 11)),
+      Triple(Size(21f, 21f), 0.75f, IntSize(16, 16)), Triple(Size(21f, 21f), 1f, IntSize(21, 21)),
+    )) {
+      val context = FakeRuntimeDrawScope(onDrawInput = { drawRect(Color.Red, size = size) })
+      val layer = checkNotNull(
+        context.createScaledContentLayer(
+          context = context,
+          backgroundColor = Color.Transparent,
+          scaleFactor = factor,
+          layerSize = size,
+          fillCapture = true,
+        ),
+      )
+      assertThat(layer.size).isEqualTo(capture)
+      assertThat(layer.outline).isInstanceOf<Outline.Rectangle>()
+        .prop(Outline.Rectangle::rect).isEqualTo(Rect(0f, 0f, capture.width.toFloat(), capture.height.toFloat()))
+      val pixels = render(scopeSize = Size(capture.width.toFloat(), capture.height.toFloat())) { drawLayer(layer) }
+      for (y in 0 until capture.height) for (x in 0 until capture.width) {
+        assertThat(pixels[x, y], "capture $size at $factor pixel ($x,$y)").isEqualTo(Color.Red)
+      }
+      context.graphicsContext.releaseGraphicsLayer(layer)
+    }
   }
 
   @Test
@@ -259,10 +304,10 @@ class ScaledContentTest {
     override fun releaseGraphicsLayer(layer: GraphicsLayer) = delegate.releaseGraphicsLayer(layer)
   }
 
-  /** A runtime draw scope whose input draws nothing, so captures hold only their background. */
+  /** A runtime draw scope with configurable recorded input. */
   private class FakeRuntimeDrawScope(
     drawScope: CanvasDrawScope = CanvasDrawScope(),
-    private val onDrawInput: () -> Unit = {},
+    private val onDrawInput: DrawScope.() -> Unit = {},
   ) : HazeEffectRuntimeDrawScope, DrawScope by drawScope {
     val graphicsContext = CountingGraphicsContext()
     val createdLayers: Int get() = graphicsContext.createdLayers
@@ -281,6 +326,6 @@ class ScaledContentTest {
     override fun <T> currentValueOf(local: CompositionLocal<T>): T = error("Unused")
     override fun invalidateDraw() = Unit
     override fun drawInput() = Unit
-    override fun DrawScope.drawInput() = this@FakeRuntimeDrawScope.onDrawInput()
+    override fun DrawScope.drawInput() = this@FakeRuntimeDrawScope.onDrawInput(this)
   }
 }
