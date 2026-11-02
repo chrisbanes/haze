@@ -1,0 +1,1754 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual effects (blur and more) for Compose Multiplatform">
+      
+      
+        <meta name="author" content="Chris Banes">
+      
+      
+        <link rel="canonical" href="https://chrisbanes.github.io/haze/2.1.0/effects/glass/containers/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../../../custom-effects/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../media/logo.webp">
+      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Containers - Haze</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=DM+Sans:300,300i,400,400i,700,700i%7CDM+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"DM Sans";--md-code-font:"DM Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Containers - Haze" />
+<meta property="og:description" content="Visual effects (blur and more) for Compose Multiplatform" />
+<meta property="og:image" content="https://chrisbanes.github.io/haze/2.1.0/assets/images/social/effects/glass/containers.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="https://chrisbanes.github.io/haze/2.1.0/effects/glass/containers/" />
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:title" content="Containers - Haze" />
+<meta property="twitter:description" content="Visual effects (blur and more) for Compose Multiplatform" />
+<meta property="twitter:image" content="https://chrisbanes.github.io/haze/2.1.0/assets/images/social/effects/glass/containers.png" />
+</head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#glass-containers" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Haze" class="md-header__button md-logo" aria-label="Haze" data-md-component="logo">
+      
+  <img src="../../../media/logo.webp" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haze
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Containers
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/chrisbanes/haze" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Haze
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Haze" class="md-nav__button md-logo" aria-label="Haze" data-md-component="logo">
+      
+  <img src="../../../media/logo.webp" alt="logo">
+
+    </a>
+    Haze
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/chrisbanes/haze" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Haze
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../core-concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blur
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blur
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/materials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Material presets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/material3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Material 3 integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/platforms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platforms
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glass
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Glass
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Containers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#container-and-members" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container and members
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#merge-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Merge rule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Groups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optical-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optical size
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-glass-samples-from" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where Glass samples from
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interaction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#transitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transitions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lazy-layouts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lazy layouts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Lazy layouts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cost-while-scrolling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost while scrolling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fallback
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#samples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Samples
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../custom-effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Effects
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Performance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../benchmark-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmark results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scenarios
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Scenarios
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../scenarios/camera/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Camera
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../scenarios/uikit-interop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UIKit interop on iOS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../recipes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../migrating-2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating to Haze 2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sample code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sample/wasm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🕸️ Sample app (Wasm)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#container-and-members" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container and members
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#merge-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Merge rule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Groups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optical-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optical size
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-glass-samples-from" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where Glass samples from
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interaction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#transitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transitions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lazy-layouts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lazy layouts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Lazy layouts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cost-while-scrolling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost while scrolling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fallback
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#samples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Samples
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<div><h1 id="glass-containers">Glass containers<a class="headerlink" href="#glass-containers" title="Permanent link">¶</a></h1>
+<p>A Glass container draws its Glass members' surfaces together, so that nearby members merge into
+one shape. Use it for controls that should read as one object, such as a toolbar or a segmented
+control, and for surfaces that appear next to an existing one and should grow out of it.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked id="__tabbed_1_1" name="__tabbed_1" type="radio"><input id="__tabbed_1_2" name="__tabbed_1" type="radio"><div class="tabbed-labels"><label for="__tabbed_1_1">Video</label><label for="__tabbed_1_2">Interactive demo</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p><div class="video-container"><video style="width:100%;height:auto" loop muted autoplay alt="type:video" aria-label="Glass drawing palette expanding, separating and merging" playsinline="playsinline"><source src="../../../media/glass-container.mp4" type="video/mp4"></source></video></div></p>
+</div>
+<div class="tabbed-block">
+<p><iframe data-haze-sample-src="../../../sample/wasm/index.html?embed=true&amp;sample=glass-container-showcase&amp;effect=glass&amp;theme=light" title="Interactive Glass drawing palette" style="width:100%;height:560px;border:0"></iframe></p>
+<p>Open Brush to reveal the controls, then drag the colour control away and release it to rejoin.
+Use the speed button to switch between normal and half speed.
+Switching back to Video resets the demo.
+<a href="../../../sample/wasm/?embed=true&amp;sample=glass-container-showcase&amp;effect=glass&amp;theme=light">Open the sample on its own</a>.</p>
+</div>
+</div>
+</div>
+<p>The brush palette expands into connected stroke and colour controls. The colour control separates
+and rejoins before the palette collapses.</p>
+<p>This page assumes you are familiar with <a href="../">Glass</a> styles, inputs and interaction.</p>
+<h2 id="container-and-members">Container and members<a class="headerlink" href="#container-and-members" title="Permanent link">¶</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">// Styles compare by identity, so remember the style.</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">shape</span><span class="p">(</span><span class="n">CircleShape</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+
+<span class="n">Row</span><span class="p">(</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlassContainer</span><span class="p">(</span><span class="n">mergeDistance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">16.</span><span class="n">dp</span><span class="p">),</span>
+<span class="w">  </span><span class="n">horizontalArrangement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arrangement</span><span class="p">.</span><span class="na">spacedBy</span><span class="p">(</span><span class="m">4.</span><span class="n">dp</span><span class="p">),</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">repeat</span><span class="p">(</span><span class="m">3</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Box</span><span class="p">(</span>
+<span class="w">      </span><span class="n">Modifier</span>
+<span class="w">        </span><span class="p">.</span><span class="na">size</span><span class="p">(</span><span class="m">48.</span><span class="n">dp</span><span class="p">)</span>
+<span class="w">        </span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span><span class="w"> </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">),</span>
+<span class="w">    </span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><code>mergeDistance</code> has two roles. It decides which members merge, and it shapes the merge; see the
+<a href="#merge-rule">merge rule</a>. It does not lay out or space the container's children. It defaults to
+<code>GlassDefaults.mergeDistance</code> (16 dp), and must be finite and not negative. A merge distance of zero
+disables merging by proximity. Optionally pass <code>memberTransitionSpec</code> and <code>memberReducedMotionPolicy</code>, which are
+described under <a href="#transitions">Transitions</a>.</p>
+<p>Every <a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass.html"><code>hazeGlass</code></a> modifier below the container becomes a member of its nearest container. A member
+keeps its own style, shape, colors and interaction response, unless it is in a <a href="#groups">group</a>,
+which draws as one shape. A <code>hazeGlass</code> modifier outside a container is unchanged.</p>
+<h2 id="merge-rule">Merge rule<a class="headerlink" href="#merge-rule" title="Permanent link">¶</a></h2>
+<p>The merge distance decides which members merge. Compatible members join a cluster when the gap
+between them is less than the merge distance. A member that joins no cluster draws as a separate
+surface.</p>
+<p>It also shapes the merge. The container draws each cluster as one surface. As the gap closes from the
+full merge distance to half of it, facing edges gradually stretch towards each other, and each
+member's refraction and lighting smoothly change from its standalone profile to the merged profile,
+so elongated surfaces keep a continuous response as they join or separate. Below half the merge
+distance, a bridge forms.</p>
+<p>Members merge only when all of these hold:</p>
+<ul>
+<li><strong>Same input and rendering options.</strong> Equal <code>input</code> (for <a href="../../../api/haze/dev.chrisbanes.haze/-haze-input/-sources/"><code>HazeInput.Sources</code></a>, the same
+  <code>hazeState</code>, <code>selection</code> and <code>retention</code>), performance mode and <code>expandLayerBounds</code>. A refined
+  <code>selection</code> is equal only when it has the same base selection and an equal predicate (the same
+  lambda instance, or equal function references), so members that should merge must share one
+  selection value: hoist or <code>remember</code> it.</li>
+<li><strong>Same material.</strong> Equal optics, surface profile, specular and edge settings, chromatic
+  aberration, tone, light position and <code>alpha</code>. Regular and Clear surfaces therefore never merge.
+  Shape, tint, background color and interaction responses may differ; colors blend across the
+  bridge.</li>
+<li><strong>No rotation or scale.</strong> A member rotated or scaled by its layout, for example with
+  <code>graphicsLayer</code>, draws separately. Translation and a layer alpha, such as an <code>AnimatedVisibility</code>
+  fade, don't prevent merging, but the alpha doesn't fade the member's glass
+  (see <a href="#lazy-layouts">Lazy layouts</a>).</li>
+<li><strong>Adjacent in order.</strong> Members are ordered by their position in the layout tree, which is
+  composition order in a <code>Row</code> or <code>Column</code>. A member that hides and shows again keeps its place, and
+  a leaving member's glass keeps its place until its animation ends. Only members next to each other
+  in that order share a cluster. A non-matching member between two compatible ones splits them, even
+  when it is far away, because merging never changes drawing order. Members that overlap draw in this
+  order.</li>
+<li><strong>At most four per cluster.</strong> Extra members draw separately, without a bridge. Where an extra
+  member overlaps the cluster, blur and tint apply twice in the overlap.</li>
+</ul>
+<p>Lower-quality performance modes also render the merged shape at lower resolution.</p>
+<h2 id="groups">Groups<a class="headerlink" href="#groups" title="Permanent link">¶</a></h2>
+<p>The merge distance joins members that are close together. To join members at any distance, give
+them the same <code>groupKey</code>. A group is the counterpart of SwiftUI's <code>glassEffectUnion</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Styles compare by identity, so remember the style.</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">shape</span><span class="p">(</span><span class="n">CircleShape</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+
+<span class="n">Row</span><span class="p">(</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">fillMaxWidth</span><span class="p">().</span><span class="na">hazeGlassContainer</span><span class="p">(</span><span class="n">mergeDistance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">16.</span><span class="n">dp</span><span class="p">),</span>
+<span class="w">  </span><span class="n">horizontalArrangement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arrangement</span><span class="p">.</span><span class="na">SpaceBetween</span><span class="p">,</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">repeat</span><span class="p">(</span><span class="m">2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Box</span><span class="p">(</span>
+<span class="w">      </span><span class="n">Modifier</span>
+<span class="w">        </span><span class="p">.</span><span class="na">size</span><span class="p">(</span><span class="m">48.</span><span class="n">dp</span><span class="p">)</span>
+<span class="w">        </span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span><span class="w"> </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">,</span><span class="w"> </span><span class="n">groupKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"pair"</span><span class="p">),</span>
+<span class="w">    </span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Members of one container with an equal, non-null <code>groupKey</code> that are next to each other in
+layout order draw as one Glass shape over the bounding box of their rects. In the example, the
+two circles become one capsule that spans the row, although they are far apart. Keys compare with
+<code>==</code>. A <code>null</code> key leaves the member ungrouped, and Haze ignores <code>groupKey</code> outside a container.</p>
+<ul>
+<li><strong>Shape.</strong> The group uses the first member's <code>RoundedCornerShape</code>, resolved at the group's size, so
+  a capsule stays a capsule.</li>
+<li><strong>Appearance.</strong> The group uses the first member's tint, background color and light. The other
+  members' values are not drawn. If the first member starts to fade out, the group takes the next
+  member's shape and appearance at once.</li>
+<li><strong>Members left out.</strong> A member that couldn't merge with the first member, because its input or
+  material differs, draws on its own. So does a member that is rotated, scaled or fading, under
+  the usual <a href="#merge-rule">merge rule</a>.</li>
+<li><strong>Order.</strong> A member that isn't in the group, between two members that are, splits the group into
+  separate groups, because merging never changes drawing order.</li>
+<li><strong>Neighbours.</strong> A group counts as one member when the merge distance is measured, using its
+  bounds, so it can bridge with a neighbouring member. It also counts as one member towards the
+  four-member limit.</li>
+<li><strong>Optical size.</strong> The group's bounds count once toward the container's
+  <a href="#optical-size">optical size</a>. A member left out of the group because its input, layer-bounds
+  setting, optics or <code>alpha</code> differ counts on its own, and doesn't widen the group's size. Fading and
+  pressed members still count with their group.</li>
+<li><strong>Transitions.</strong> Members of the same group are neighbours at any distance, and another member
+  is a neighbour when it is within the merge distance of the group's bounds. With the default
+  <code>MatchedGeometry</code>, a member that attaches grows the group's bounds, and one that detaches shrinks
+  them, timed by <code>memberTransitionSpec</code>. A fading member leaves the group while it fades. With
+  <code>Materialize</code>, or any other fade, a fading member in the middle of a group therefore splits it
+  into separate shapes until the fade ends, and then they snap back into one shape.</li>
+<li><strong>Interaction.</strong> Pressing any member scales and lights the whole group. Each member's content
+  still follows its own <code>interactionTransformTarget</code>.</li>
+<li><strong>Fallback.</strong> The <a href="#fallback">fallback</a> draws the group as its single shape.</li>
+</ul>
+<h2 id="optical-size">Optical size<a class="headerlink" href="#optical-size" title="Permanent link">¶</a></h2>
+<p>A container uses one optical size: the largest shortest side among its members. A <a href="#groups">group</a>
+counts as one member, using the size of its bounds. Every member's optics use that size, whether or
+not it is in a cluster, so a small member next to a large one takes on the large member's
+diffusion, even when the two don't merge.</p>
+<p>The size updates immediately, without animation, when a member is added, removed or resized.
+Members that are animating out, or whose bounds have collapsed to zero area, don't count.</p>
+<h2 id="where-glass-samples-from">Where Glass samples from<a class="headerlink" href="#where-glass-samples-from" title="Permanent link">¶</a></h2>
+<p>A container draws all of its members' Glass behind all of its children. With
+<a href="../../../api/haze/dev.chrisbanes.haze/-haze-input/-backdrop/"><code>HazeInput.Backdrop</code></a>, the glass samples only content drawn before the container. With
+<code>HazeInput.Sources</code>, the glass samples the captured sources as usual. Joining or leaving a cluster
+never changes a member's z-order.</p>
+<h2 id="interaction">Interaction<a class="headerlink" href="#interaction" title="Permanent link">¶</a></h2>
+<p>Interaction responses work as described in <a href="../#interaction">Glass interaction</a>, applied to
+the member's own part of the merged shape: pressing a member scales and lights only that part. In a
+<a href="#groups">group</a>, pressing any member scales and lights the whole group. A uniform pressed <code>scale</code>
+does not split the cluster.</p>
+<h2 id="transitions">Transitions<a class="headerlink" href="#transitions" title="Permanent link">¶</a></h2>
+<p>A member that attaches or detaches after the container's first draw animates its glass. Choose
+the transition with <code>hazeGlass(memberTransition = ...)</code>:</p>
+<ul>
+<li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-member-transition/-matched-geometry/"><code>GlassMemberTransition.MatchedGeometry</code></a> is the default. A member that attaches within the
+  merge distance of another member grows out of it, and a member that detaches retracts into it.
+  Beyond the merge distance, it falls back to <code>Materialize</code>, except between members of the same
+  <a href="#groups">group</a>, which are neighbours at any distance.</li>
+<li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-member-transition/-materialize/"><code>GlassMemberTransition.Materialize</code></a> fades the glass in or out where it is. A fading member draws
+  on its own until it is fully opaque.</li>
+<li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-member-transition/-none/"><code>GlassMemberTransition.None</code></a> applies no transition.</li>
+</ul>
+<p><code>memberTransitionSpec</code> times the animation and defaults to <code>spring()</code>. Members with
+<code>GlassMemberTransition.None</code> do not animate. <code>memberReducedMotionPolicy</code> decides how the transition
+responds to the platform motion-duration scale. It covers container member transitions only, and
+does not change the members' interaction responses, which follow each <code>hazeGlass</code>'s
+<code>interactionReducedMotionPolicy</code>:</p>
+<ul>
+<li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-reduced-motion-policy/-system/"><code>GlassReducedMotionPolicy.System</code></a>, the default, follows the scale. Above zero, transitions run
+  under that scale. At zero, because animations are off, members snap: they appear and disappear
+  with no transition, as with <code>GlassMemberTransition.None</code>.</li>
+<li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-reduced-motion-policy/-reduced/"><code>GlassReducedMotionPolicy.Reduced</code></a> keeps the morph but uses a critically damped spring, so it
+  does not overshoot, at full duration whatever the scale is. The spring keeps <code>memberTransitionSpec</code>'s
+  stiffness when it is a spring and otherwise uses medium stiffness.</li>
+<li><a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-reduced-motion-policy/-full/"><code>GlassReducedMotionPolicy.Full</code></a> uses <code>memberTransitionSpec</code> as written, whatever the scale is.</li>
+</ul>
+<p>Changes to <code>memberTransitionSpec</code> and <code>memberReducedMotionPolicy</code> apply from the next transition.</p>
+<p>Haze animates only the glass. Animate member content yourself, for example with
+<code>AnimatedVisibility</code> and fades. Don't animate a member's layout scale: a scaled member stops
+merging and loses its matched-geometry transition.</p>
+<p>The glass disappears immediately, without a transition, when:</p>
+<ul>
+<li>the member uses <a href="../../../api/haze/dev.chrisbanes.haze/-haze-input/-content/"><code>HazeInput.Content</code></a>;</li>
+<li>the member is rotated or scaled;</li>
+<li>no remaining member uses the same input and sources, including when the last member leaves.</li>
+</ul>
+<p>A member whose nearest container changes while it stays in the layout, for example when a nested
+container is added or removed around it, appears in the new container immediately. Moving
+a member with <code>movableContentOf</code> detaches and reattaches it, so it detaches from the old container
+and attaches to the new one, each with the transition described above. A member whose parent stops
+placing it while keeping it in the layout leaves as if it detached, and appears again as if it
+attached when it is placed again. A running transition ends without animating when the member it
+grows from or retracts into leaves, or moves beyond the merge distance.</p>
+<h2 id="lazy-layouts">Lazy layouts<a class="headerlink" href="#lazy-layouts" title="Permanent link">¶</a></h2>
+<p>Pass the lazy layout's state to <a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass-container.html"><code>hazeGlassContainer</code></a> as <code>scrollState</code>. While that state is
+scrolling, including the frame in which it stops, members appear and disappear without a
+transition, whatever their <code>memberTransition</code>. Items inserted or removed while the layout is idle
+still animate, but a scroll that starts while an item's glass is still animating out ends that
+animation immediately.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Styles compare by identity, so remember the style.</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">shape</span><span class="p">(</span><span class="n">CircleShape</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">listState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberLazyListState</span><span class="p">()</span>
+
+<span class="n">LazyRow</span><span class="p">(</span>
+<span class="w">  </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listState</span><span class="p">,</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">    </span><span class="c1">// The container draws its members' glass, so it must sit inside any clip that should cut it.</span>
+<span class="w">    </span><span class="p">.</span><span class="na">clipToBounds</span><span class="p">()</span>
+<span class="w">    </span><span class="p">.</span><span class="na">hazeGlassContainer</span><span class="p">(</span><span class="n">mergeDistance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">16.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="n">scrollState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listState</span><span class="p">),</span>
+<span class="w">  </span><span class="n">horizontalArrangement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arrangement</span><span class="p">.</span><span class="na">spacedBy</span><span class="p">(</span><span class="m">8.</span><span class="n">dp</span><span class="p">),</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">items</span><span class="p">(</span><span class="n">chips</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">it</span><span class="p">.</span><span class="na">id</span><span class="w"> </span><span class="p">})</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">chip</span><span class="w"> </span><span class="o">-&gt;</span>
+<span class="w">    </span><span class="n">Chip</span><span class="p">(</span>
+<span class="w">      </span><span class="n">chip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">chip</span><span class="p">,</span>
+<span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
+<span class="w">        </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">        </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">,</span>
+<span class="w">      </span><span class="p">),</span>
+<span class="w">    </span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The container draws its members' glass itself, on its own canvas, and a lazy layout clips to its
+viewport after the modifiers you pass it. Without <code>clipToBounds()</code> before the container, a chip
+scrolled half out of an inset list is clipped, but its glass still draws in full over the padding or
+header around the list. Without <code>scrollState</code>, the trailing ghost of a chip that scrolled out draws
+entirely outside the list. Put <code>Modifier.clipToBounds()</code> before <code>hazeGlassContainer(...)</code>, as above.
+The clip cuts all glass at the list bounds, including overflow that you want, such as a bridge or an
+expanded layer bound.</p>
+<p>The same applies to anything between the container and a member. A clip or a <code>graphicsLayer</code> alpha
+on a layout there applies to the member's content, but not to its glass. To fade glass, use the
+style's <code>alpha</code>.</p>
+<p>Drags, flings, <code>animateScrollBy</code> and <code>scrollToItem</code> are scrolls. Position changes made outside a
+scroll, such as <code>requestScrollToItem</code> or <code>dispatchRawDelta</code>, are not, so their items animate.</p>
+<p>Members follow the lazy layout's own child order, which is item order once the list has measured
+forward. Items that scroll back in, several in one jump, can be out of item order until the next
+measure, so a group among them can briefly draw as separate groups.</p>
+<p>Without <code>scrollState</code>, items that scroll into view animate like any other new member. With the
+default <code>MatchedGeometry</code>, an item's glass grows out of its neighbor and lags its content, and an
+item that scrolls out leaves a trailing ghost until the animation ends. Items present at the
+container's first draw never animate.</p>
+<h3 id="cost-while-scrolling">Cost while scrolling<a class="headerlink" href="#cost-while-scrolling" title="Permanent link">¶</a></h3>
+<p>A container clusters its members again as they move. In a Pixel 8a benchmark of a five-column grid
+with 40–45 visible members that joined clusters of up to four, wrapping the grid in a container
+raised CPU frame duration P90 by about 7 ms (from 25.3 to 32.6 ms) and peak GPU memory by about 13%
+over drawing the same members independently. Neither version met the 60 Hz deadline. See the
+<a href="../../../benchmark-results/#glass-container-lazy-scroll">measurements</a>.</p>
+<ul>
+<li>If the surfaces in a scrolling grid never need to merge, draw them independently.</li>
+<li>Measure your own layout while it scrolls, with and without the container. The benchmark is a
+  deliberately dense scene on one device, not a budget.</li>
+</ul>
+<h2 id="fallback">Fallback<a class="headerlink" href="#fallback" title="Permanent link">¶</a></h2>
+<p>Without <code>RuntimeShader</code> support, or when a cluster is too large to render in full, each cluster
+draws as one surface clipped to the hard union of the member shapes, with no bridge. Members keep
+their own tint and background color, except that a <a href="#groups">group</a> draws as its single shape with
+its first member's tint and background color. Where members overlap, the earlier member's colors
+apply.
+Each member resolves <a href="../../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-accessibility-settings/"><code>GlassAccessibilitySettings</code></a> and appearance in its own context. With
+<code>reduceTransparency</code>, it draws an opaque white/light or black/dark base (or its opaque
+<code>reducedTransparencyFallbackColor</code> override), then its authored background colour and tint. Earlier
+members still own overlapping regions, and overall alpha still fades the material. Disabling the
+preference restores that member's ordinary fallback appearance. A <a href="#groups">group</a> draws once, so it
+uses its first member's accessibility settings and fallback base color along with that member's
+background color and tint. A later member's own <code>reduceTransparency</code> override doesn't give the group
+an opaque base.</p>
+<p>Per-member press lighting is still drawn. A group draws one light, from the pressed member. See <a href="../#fallbacks">Fallbacks</a> for what else
+fallback rendering omits.</p>
+<h2 id="samples">Samples<a class="headerlink" href="#samples" title="Permanent link">¶</a></h2>
+<p>The <code>Glass — Container</code> sample shows a merging toolbar, two draggable members with a merge
+distance control, a member added and removed with <code>AnimatedVisibility</code>, a cluster of members
+with different tints, and two distant pills that a <code>Group</code> switch joins into one shape. Its source is in
+<a href="https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerSample.kt"><code>GlassContainerSample.kt</code></a>.</p>
+<p>The <code>Glass — Container Showcase</code> sample places a drawing palette over two brushstrokes. Open
+Brush to reveal stroke-width and colour controls, then drag the colour control away to separate it
+from the palette. Releasing it rejoins the controls, and closing Brush retracts them. The sample
+plays these transitions as a loop until you interact with it. Its source is in
+<a href="https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassContainerShowcaseSample.kt"><code>GlassContainerShowcaseSample.kt</code></a>.</p></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.tabs.link", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+        <script src="../../../javascripts/snapshot-version.js"></script>
+      
+        <script src="../../../javascripts/sample-tabs.js"></script>
+      
+    
+  </body>
+</html>
