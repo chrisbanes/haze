@@ -5,7 +5,7 @@
 
 package dev.chrisbanes.haze.glass
 
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -87,7 +87,7 @@ internal data class GlassMemberSnapshot(
   val sourceSelection: Set<Any> = emptySet(),
   val sampleLayoutRect: Rect = layoutRect,
   val groupKey: Any? = null,
-  val shape: RoundedCornerShape? = null,
+  val shape: CornerBasedShape? = null,
 )
 
 /** Whether two members declare the same Glass group. */

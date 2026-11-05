@@ -303,11 +303,11 @@ private class GlassGroupDraw(private val unit: List<GlassMemberSnapshot>, privat
     val ghost = first.identity as? GlassMemberGhost
     val remaining = ghost?.let { unit.firstOrNull { member -> member.identity !is GlassMemberGhost } }
     val groupRadii = if (ghost != null && remaining != null) {
-      lerpCornerRadii(
+      lerp(
         from = remaining.shape.resolveCornerRadiiPx(layoutRect.size, densityOf(remaining), remaining.key.layoutDirection),
         to = radii,
         fraction = ghost.progress.value.coerceIn(0f, 1f),
-      )
+      ).fitSmoothingTo(layoutRect.size)
     } else {
       radii
     }
@@ -330,14 +330,4 @@ private class GlassGroupDraw(private val unit: List<GlassMemberSnapshot>, privat
       lightSize = lighting?.member?.rect?.minDimension ?: 0f,
     )
   }
-}
-
-private fun lerpCornerRadii(from: CornerRadii, to: CornerRadii, fraction: Float): CornerRadii {
-  fun lerp(start: Float, stop: Float) = start + (stop - start) * fraction
-  return CornerRadii(
-    lerp(from.topLeft, to.topLeft),
-    lerp(from.topRight, to.topRight),
-    lerp(from.bottomRight, to.bottomRight),
-    lerp(from.bottomLeft, to.bottomLeft),
-  )
 }

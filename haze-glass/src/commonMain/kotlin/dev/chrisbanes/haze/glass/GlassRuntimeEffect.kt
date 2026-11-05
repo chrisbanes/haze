@@ -5,7 +5,7 @@
 
 package dev.chrisbanes.haze.glass
 
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -1344,7 +1344,7 @@ internal expect fun isRuntimeShaderGlassSupported(): Boolean
 /** Whether this scope draws into a hardware canvas, the only canvas a runtime shader can render on. */
 internal expect fun DrawScope.isGlassHardwareCanvas(): Boolean
 
-internal fun RoundedCornerShape.hasZeroCornerRadii(): Boolean {
+internal fun CornerBasedShape.hasZeroCornerRadii(): Boolean {
   // Use unit values to check if all corner sizes resolve to zero.
   val unitSize = androidx.compose.ui.geometry.Size(1f, 1f)
   val unitDensity = androidx.compose.ui.unit.Density(1f)

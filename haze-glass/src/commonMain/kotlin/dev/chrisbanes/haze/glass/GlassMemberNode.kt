@@ -5,7 +5,7 @@
 
 package dev.chrisbanes.haze.glass
 
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -32,7 +32,7 @@ internal class GlassMemberBinding(val input: HazeInput, val expandLayerBounds: B
   var surface: HazeEffectSurface? = null
   var material: ResolvedGlassStyle? = null
   var key: GlassMergeKey? = null
-  private var publishedShape: RoundedCornerShape? = null
+  private var publishedShape: CornerBasedShape? = null
   private var publishedAlpha = Float.NaN
   var maxRefractionMultiplier: Float = 1f
     private set

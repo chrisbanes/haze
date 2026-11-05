@@ -21,6 +21,7 @@ import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
+import assertk.assertions.isLessThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotNull
@@ -63,6 +64,25 @@ class GlassContainerTransitionsTest {
     assertThat(half.rect).isEqualTo(Rect(55f, 0f, 155f, 80f))
     assertThat(half.cornerRadii).isEqualTo(CornerRadii(8f, 8f, 8f, 8f))
     assertThat(half.tint).isEqualTo(lerp(Color.Red, Color.Blue, 0.5f))
+  }
+
+  @Test
+  fun lerpGlassMergedMember_smoothingIsInterpolatedAndRefitted() {
+    // Both endpoints fill their width exactly; halfway, the lerped extents would not fit.
+    val from = GlassMergedMember(Rect(0f, 0f, 60f, 80f), CornerRadii(30f, 30f, 30f, 30f), Color.Red, Color.Transparent)
+    val to = GlassMergedMember(
+      Rect(0f, 0f, 30.6f, 80f),
+      CornerRadii(10f, 10f, 10f, 10f, 1f, 1f, 1f, 1f),
+      Color.Blue,
+      Color.Transparent,
+    )
+    val half = lerpGlassMergedMember(from, to, 0.5f)
+
+    assertThat(half.cornerRadii.topLeft).isEqualTo(20f)
+    assertThat(half.cornerRadii.topLeftSmoothing).isGreaterThan(0f)
+    assertThat(half.cornerRadii.topLeftSmoothing).isLessThan(0.5f)
+    assertThat(continuousCornerExtent(half.cornerRadii.topLeft, half.cornerRadii.topLeftSmoothing) * 2f)
+      .isLessThanOrEqualTo(half.rect.width + 0.001f)
   }
 
   @Test

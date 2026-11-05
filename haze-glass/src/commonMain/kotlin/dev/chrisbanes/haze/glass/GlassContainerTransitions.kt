@@ -31,14 +31,10 @@ internal fun lerpGlassMergedMember(from: GlassMergedMember, to: GlassMergedMembe
     return Rect(left, top, maxOf(lerp(start.right, stop.right), left + 1f), maxOf(lerp(start.bottom, stop.bottom), top + 1f))
   }
   val colour = fraction.coerceIn(0f, 1f)
+  val rect = lerp(from.rect, to.rect)
   return GlassMergedMember(
-    rect = lerp(from.rect, to.rect),
-    cornerRadii = CornerRadii(
-      lerp(from.cornerRadii.topLeft, to.cornerRadii.topLeft).coerceAtLeast(0f),
-      lerp(from.cornerRadii.topRight, to.cornerRadii.topRight).coerceAtLeast(0f),
-      lerp(from.cornerRadii.bottomRight, to.cornerRadii.bottomRight).coerceAtLeast(0f),
-      lerp(from.cornerRadii.bottomLeft, to.cornerRadii.bottomLeft).coerceAtLeast(0f),
-    ),
+    rect = rect,
+    cornerRadii = lerp(from.cornerRadii, to.cornerRadii, fraction).fitSmoothingTo(rect.size),
     tint = lerp(from.tint, to.tint, colour),
     backgroundColor = lerp(from.backgroundColor, to.backgroundColor, colour),
     fallbackBaseColor = to.fallbackBaseColor,
