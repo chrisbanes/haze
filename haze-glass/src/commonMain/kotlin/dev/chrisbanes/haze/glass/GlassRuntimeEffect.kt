@@ -1267,7 +1267,8 @@ internal class GlassRuntimeEffect() :
     return with(density) { drawExtent.toPx() }
   }
 
-  override fun shouldPreferClipToInputBounds(): Boolean = !shouldClipToNodeBounds()
+  // Output drawn beyond the shape, such as an edge outline, would be lost to a layer cut to the input.
+  override fun shouldPreferClipToInputBounds(): Boolean = !shouldClipToNodeBounds() && nodeClipOutsetPx() <= 0f
 
   private fun maximumInteractionRefractionMultiplier(): Float =
     interactionTopologySnapshot.maxRefractionMultiplier
