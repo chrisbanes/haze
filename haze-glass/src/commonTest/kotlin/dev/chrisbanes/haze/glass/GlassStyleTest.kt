@@ -238,15 +238,15 @@ class GlassStyleTest {
       invalidUnitInterval("lightingIntensity") { hovered { lightingIntensity(it) } },
       invalidDoubleInterval("refractionMultiplier") { hovered { refractionMultiplier(it) } },
       invalidSignedUnitInterval("whitePointDelta") { hovered { whitePointDelta(it) } },
-      invalidPositiveAtMostOne("scaleX") { hovered { scale(scaleX = it, scaleY = 1f) } },
-      invalidPositiveAtMostOne("scaleY") { hovered { scale(scaleX = 1f, scaleY = it) } },
+      invalidInteractionScale("scaleX") { hovered { scale(scaleX = it, scaleY = 1f) } },
+      invalidInteractionScale("scaleY") { hovered { scale(scaleX = 1f, scaleY = it) } },
     )
   }
 
   @Test
   fun uniformScale_delegatesToAxisValidation() {
     assertInvalidFloatWrites(
-      invalidPositiveAtMostOne("scaleX") { hovered { scale(it) } },
+      invalidInteractionScale("scaleX") { hovered { scale(it) } },
     )
   }
 
@@ -270,7 +270,7 @@ class GlassStyleTest {
           lightingIntensity(1f)
           refractionMultiplier(2f)
           whitePointDelta(1f)
-          scale(1f)
+          scale(1.2f)
         }
       },
     )
@@ -283,8 +283,8 @@ class GlassStyleTest {
     assertThat(upperValues.focusedInteraction?.lightingIntensity?.value).isEqualTo(1f)
     assertThat(upperValues.focusedInteraction?.refractionMultiplier?.value).isEqualTo(2f)
     assertThat(upperValues.focusedInteraction?.whitePointDelta?.value).isEqualTo(1f)
-    assertThat(upperValues.focusedInteraction?.scaleX?.value).isEqualTo(1f)
-    assertThat(upperValues.focusedInteraction?.scaleY?.value).isEqualTo(1f)
+    assertThat(upperValues.focusedInteraction?.scaleX?.value).isEqualTo(1.2f)
+    assertThat(upperValues.focusedInteraction?.scaleY?.value).isEqualTo(1.2f)
   }
 
   @Test
@@ -981,13 +981,13 @@ private fun invalidNonNegative(
   write,
 )
 
-private fun invalidPositiveAtMostOne(
+private fun invalidInteractionScale(
   property: String,
   write: GlassStyleScope.(Float) -> Unit,
 ): InvalidFloatWrite = InvalidFloatWrite(
   property,
-  "finite and in 0f < value <= 1f",
-  listOf(Float.NaN, Float.NEGATIVE_INFINITY, -0.1f, 0f, 1.1f, Float.POSITIVE_INFINITY),
+  "finite and in 0f < value <= 1.2f",
+  listOf(Float.NaN, Float.NEGATIVE_INFINITY, -0.1f, 0f, 1.21f, Float.POSITIVE_INFINITY),
   write,
 )
 

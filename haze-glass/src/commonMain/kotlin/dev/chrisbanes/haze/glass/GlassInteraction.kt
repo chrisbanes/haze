@@ -76,12 +76,20 @@ public sealed interface GlassInteractionScope {
   /** Sets the finite additive white-point adjustment in the inclusive range `-1f..1f`. */
   public fun whitePointDelta(delta: Float)
 
-  /** Sets a finite uniform scale in `0f < scale <= 1f`. */
+  /**
+   * Sets a finite uniform scale in `0f < scale <= 1.2f`. Values above `1` grow the surface, which
+   * then draws beyond its layout bounds with no `expandLayerBounds` opt-in. In a
+   * [hazeGlassContainer], the grown rect counts toward merging with nearby members.
+   */
   public fun scale(scale: Float) {
     scale(scaleX = scale, scaleY = scale)
   }
 
-  /** Sets finite horizontal and vertical scales in `0f < value <= 1f`. */
+  /**
+   * Sets finite horizontal and vertical scales in `0f < value <= 1.2f`. Values above `1` grow the
+   * surface, which then draws beyond its layout bounds with no `expandLayerBounds` opt-in. In a
+   * [hazeGlassContainer], the grown rect counts toward merging with nearby members.
+   */
   public fun scale(scaleX: Float, scaleY: Float)
 
   /**
@@ -181,16 +189,3 @@ internal class GlassInteractionScopeImpl : GlassInteractionScope {
 internal fun buildGlassInteractionResponse(
   block: GlassInteractionScope.() -> Unit,
 ): GlassInteractionResponse = GlassInteractionScopeImpl().apply(block).build()
-
-// shortcut: test-only widening of the authored scale domain; #1735 deletes it when it widens
-// the domain for real.
-internal var glassInteractionScaleLimitForTest: Float = 1f
-
-private fun requireInteractionScale(property: String, value: Float): Float {
-  val limit = glassInteractionScaleLimitForTest
-  if (limit == 1f) return requirePositiveAtMostOne(property, value)
-  require(value.isFinite() && value > 0f && value <= limit) {
-    "$property must be finite and in 0f < value <= ${limit}f"
-  }
-  return value
-}

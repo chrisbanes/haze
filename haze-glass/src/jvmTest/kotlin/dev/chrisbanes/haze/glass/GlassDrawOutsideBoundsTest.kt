@@ -54,10 +54,12 @@ class GlassDrawOutsideBoundsTest {
   fun glassScale_singleSurfaceGrowsOutsideLayoutRect_fallback() = assertPressGrowsOutsideLayoutRect(fallback = true)
 
   @Test
-  fun glassScale_validationUnchangedAtDefaultLimit() {
-    assertFailure { GlassInteractionScopeImpl().scale(1.2f) }
+  fun glassScale_acceptsUpToMaximumAndRejectsAbove() {
+    val response = GlassInteractionScopeImpl().apply { scale(1.2f) }.build()
+    assertThat(response.scaleX?.value).isEqualTo(1.2f)
+    assertFailure { GlassInteractionScopeImpl().scale(1.21f) }
       .isInstanceOf<IllegalArgumentException>()
-      .hasMessage("scaleX must be $POSITIVE_AT_MOST_ONE_DOMAIN")
+      .hasMessage("scaleX must be $INTERACTION_SCALE_DOMAIN")
   }
 
   @Test
@@ -127,44 +129,40 @@ class GlassDrawOutsideBoundsTest {
   }
 
   @Test
-  fun pressAnimation_singleSurfaceLayerBoundsStable() = withGlassScaleLimit(1.2f) {
-    runComposeUiTest {
-      val linear = tween<Float>(300, easing = LinearEasing)
-      val fixture = surface(GlassStyle { pressed { animate(linear, linear) { scale(1.2f) } } }, fallback = false)
-      mainClock.autoAdvance = false
-      runBlocking { fixture.source.emit(PressInteraction.Press(Offset(50f, 40f))) }
+  fun pressAnimation_singleSurfaceLayerBoundsStable() = runComposeUiTest {
+    val linear = tween<Float>(300, easing = LinearEasing)
+    val fixture = surface(GlassStyle { pressed { animate(linear, linear) { scale(1.2f) } } }, fallback = false)
+    mainClock.autoAdvance = false
+    runBlocking { fixture.source.emit(PressInteraction.Press(Offset(50f, 40f))) }
+    mainClock.advanceTimeByFrame()
+    val resolves = fixture.effect.layerPaddingResolveCountForTest
+    val sampleSize = checkNotNull(fixture.effect.preparedRender).params.coordinates.sampleSize
+    val scales = mutableSetOf<Float>()
+    repeat(10) {
       mainClock.advanceTimeByFrame()
-      val resolves = fixture.effect.layerPaddingResolveCountForTest
-      val sampleSize = checkNotNull(fixture.effect.preparedRender).params.coordinates.sampleSize
-      val scales = mutableSetOf<Float>()
-      repeat(10) {
-        mainClock.advanceTimeByFrame()
-        fixture.capture()
-        scales += fixture.effect.currentInteractionState.scaleX
-        assertThat(fixture.effect.layerPaddingResolveCountForTest).isEqualTo(resolves)
-        assertThat(checkNotNull(fixture.effect.preparedRender).params.coordinates.sampleSize).isEqualTo(sampleSize)
-      }
-      assertThat(scales.size, "press animated").isGreaterThan(1)
-      mainClock.autoAdvance = true
-      waitForIdle()
+      fixture.capture()
+      scales += fixture.effect.currentInteractionState.scaleX
+      assertThat(fixture.effect.layerPaddingResolveCountForTest).isEqualTo(resolves)
+      assertThat(checkNotNull(fixture.effect.preparedRender).params.coordinates.sampleSize).isEqualTo(sampleSize)
     }
+    assertThat(scales.size, "press animated").isGreaterThan(1)
+    mainClock.autoAdvance = true
+    waitForIdle()
   }
 
-  private fun assertPressGrowsOutsideLayoutRect(fallback: Boolean) = withGlassScaleLimit(1.2f) {
-    runComposeUiTest {
-      val fixture = surface(GlassStyle { pressed { animate(snap(), snap()) { scale(1.2f) } } }, fallback)
-      val idle = fixture.capture()
-      runBlocking { fixture.source.emit(PressInteraction.Press(Offset(50f, 40f))) }
-      waitForIdle()
-      val pressed = fixture.capture()
+  private fun assertPressGrowsOutsideLayoutRect(fallback: Boolean) = runComposeUiTest {
+    val fixture = surface(GlassStyle { pressed { animate(snap(), snap()) { scale(1.2f) } } }, fallback)
+    val idle = fixture.capture()
+    runBlocking { fixture.source.emit(PressInteraction.Press(Offset(50f, 40f))) }
+    waitForIdle()
+    val pressed = fixture.capture()
 
-      // Layout rect is (100, 80)-(200, 160); the 1.2x Center-pivot rect is (90, 72)-(210, 168).
-      for ((x, y) in listOf(96 to 120, 203 to 120, 150 to 76, 150 to 163)) {
-        assertThat(pixelDifference(pressed, idle, x, y), "grown probe ($x, $y)").isGreaterThan(0.01f)
-      }
-      for ((x, y) in listOf(85 to 120, 214 to 120, 150 to 67, 150 to 172)) {
-        assertThat(pixelDifference(pressed, idle, x, y), "outside probe ($x, $y)").isLessThan(1f / 255f)
-      }
+    // Layout rect is (100, 80)-(200, 160); the 1.2x Center-pivot rect is (90, 72)-(210, 168).
+    for ((x, y) in listOf(96 to 120, 203 to 120, 150 to 76, 150 to 163)) {
+      assertThat(pixelDifference(pressed, idle, x, y), "grown probe ($x, $y)").isGreaterThan(0.01f)
+    }
+    for ((x, y) in listOf(85 to 120, 214 to 120, 150 to 67, 150 to 172)) {
+      assertThat(pixelDifference(pressed, idle, x, y), "outside probe ($x, $y)").isLessThan(1f / 255f)
     }
   }
 

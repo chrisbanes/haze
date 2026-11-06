@@ -431,44 +431,42 @@ class GlassContainerInteractionTest : ContextTest() {
   @Test
   fun grownPressedMember_clusterSurfaceStableAndUnclipped_fallback() = assertGrownPressedMemberStable(unavailable = true)
 
-  private fun assertGrownPressedMemberStable(unavailable: Boolean) = withGlassScaleLimit(1.2f) {
-    runComposeUiTest {
-      val linear = tween<Float>(300, easing = LinearEasing)
-      val fixture = cluster(
-        gap = 0,
-        mergeDistance = 2,
-        pressed = GlassStyle { pressed { animate(linear, linear) { scale(1.2f) } } },
-        unavailable = unavailable,
-      )
-      val idle = fixture.capture()
-      val runtime = fixture.owner().renderer.runtimeSurfaces.single()
-      // Both members reserve their 1.2x Center growth, (10, 8) per side, inside a 2px merge distance.
-      val surface = Rect(28f, 50f, 252f, 150f)
-      assertThat(runtime.surfaceOrigin).isCloseTo(surface.topLeft)
-      val sampleSize = runtime.preparedRender?.params?.coordinates?.sampleSize
-      mainClock.autoAdvance = false
-      runBlocking { fixture.firstSource.emit(PressInteraction.Press(Offset(50f, 40f))) }
+  private fun assertGrownPressedMemberStable(unavailable: Boolean) = runComposeUiTest {
+    val linear = tween<Float>(300, easing = LinearEasing)
+    val fixture = cluster(
+      gap = 0,
+      mergeDistance = 2,
+      pressed = GlassStyle { pressed { animate(linear, linear) { scale(1.2f) } } },
+      unavailable = unavailable,
+    )
+    val idle = fixture.capture()
+    val runtime = fixture.owner().renderer.runtimeSurfaces.single()
+    // Both members reserve their 1.2x Center growth, (10, 8) per side, inside a 2px merge distance.
+    val surface = Rect(28f, 50f, 252f, 150f)
+    assertThat(runtime.surfaceOrigin).isCloseTo(surface.topLeft)
+    val sampleSize = runtime.preparedRender?.params?.coordinates?.sampleSize
+    mainClock.autoAdvance = false
+    runBlocking { fixture.firstSource.emit(PressInteraction.Press(Offset(50f, 40f))) }
+    mainClock.advanceTimeByFrame()
+    val width = fixture.field().members[0].rect.width
+    repeat(10) {
       mainClock.advanceTimeByFrame()
-      val width = fixture.field().members[0].rect.width
-      repeat(10) {
-        mainClock.advanceTimeByFrame()
-        fixture.capture()
-        val current = fixture.owner().renderer.runtimeSurfaces.single()
-        assertThat(current.surfaceOrigin).isCloseTo(surface.topLeft)
-        assertThat(current.preparedRender?.params?.coordinates?.sampleSize).isEqualTo(sampleSize)
-        fixture.field().members.forEach { member ->
-          assertThat(member.rect.left).isGreaterThanOrEqualTo(-0.01f)
-          assertThat(member.rect.top).isGreaterThanOrEqualTo(-0.01f)
-          assertThat(member.rect.right).isLessThanOrEqualTo(surface.width + 0.01f)
-          assertThat(member.rect.bottom).isLessThanOrEqualTo(surface.height + 0.01f)
-        }
+      fixture.capture()
+      val current = fixture.owner().renderer.runtimeSurfaces.single()
+      assertThat(current.surfaceOrigin).isCloseTo(surface.topLeft)
+      assertThat(current.preparedRender?.params?.coordinates?.sampleSize).isEqualTo(sampleSize)
+      fixture.field().members.forEach { member ->
+        assertThat(member.rect.left).isGreaterThanOrEqualTo(-0.01f)
+        assertThat(member.rect.top).isGreaterThanOrEqualTo(-0.01f)
+        assertThat(member.rect.right).isLessThanOrEqualTo(surface.width + 0.01f)
+        assertThat(member.rect.bottom).isLessThanOrEqualTo(surface.height + 0.01f)
       }
-      assertThat(fixture.field().members[0].rect.width).isGreaterThan(width)
-      mainClock.autoAdvance = true
-      waitForIdle()
-      // 4px left of the first member's rest rect, at mid-height, is inside its grown rect.
-      assertThat(regionDifference(fixture.capture(), idle, 36, 100, 37, 101)).isGreaterThan(0.01f)
     }
+    assertThat(fixture.field().members[0].rect.width).isGreaterThan(width)
+    mainClock.autoAdvance = true
+    waitForIdle()
+    // 4px left of the first member's rest rect, at mid-height, is inside its grown rect.
+    assertThat(regionDifference(fixture.capture(), idle, 36, 100, 37, 101)).isGreaterThan(0.01f)
   }
 
   @Test
