@@ -640,38 +640,35 @@ class GlassContainerInteractionTest : ContextTest() {
   @Test
   fun outlinedPressedMember_scale12_notClipped_fallback() = assertOutlinedPressedMemberNotClipped(unavailable = true)
 
-  private fun assertOutlinedPressedMemberNotClipped(unavailable: Boolean) = withGlassScaleLimit(1.2f) {
-    runComposeUiTest {
-      val linear = tween<Float>(300, easing = LinearEasing)
-      val fixture = cluster(
-        gap = 0,
-        mergeDistance = 2,
-        pressed = GlassStyle {
-          edgeOutline(Color.Green, 4.dp)
-          pressed { animate(linear, linear) { scale(1.2f) } }
-        },
-        unavailable = unavailable,
-      )
-      val runtime = fixture.owner().renderer.runtimeSurfaces.single()
-      val origin = runtime.surfaceOrigin
-      val sampleSize = runtime.preparedRender?.params?.coordinates?.sampleSize
-      mainClock.autoAdvance = false
-      runBlocking { fixture.firstSource.emit(PressInteraction.Press(Offset(50f, 40f))) }
-      repeat(10) {
-        mainClock.advanceTimeByFrame()
-        fixture.capture()
-        val current = fixture.owner().renderer.runtimeSurfaces.single()
-        assertThat(current.surfaceOrigin).isCloseTo(origin)
-        assertThat(current.preparedRender?.params?.coordinates?.sampleSize).isEqualTo(sampleSize)
-      }
-      mainClock.autoAdvance = true
-      waitForIdle()
-      // The grown first rect is (30, 52)-(150, 148); each probe is 2.5px outside it, beyond the
-      // 2px merge distance.
-      val capture = fixture.capture()
-      for ((x, y) in listOf(27 to 100, 90 to 49)) {
-        GlassDrawOutsideBoundsTest.assertGreen(capture, x, y, "unavailable=$unavailable ($x, $y)")
-      }
+  private fun assertOutlinedPressedMemberNotClipped(unavailable: Boolean) = runComposeUiTest {
+    val fixture = cluster(
+      gap = 0,
+      mergeDistance = 2,
+      pressed = GlassStyle {
+        edgeOutline(Color.Green, 4.dp)
+        pressed { animate(linear300, linear300) { scale(1.2f) } }
+      },
+      unavailable = unavailable,
+    )
+    val runtime = fixture.owner().renderer.runtimeSurfaces.single()
+    val origin = runtime.surfaceOrigin
+    val sampleSize = runtime.preparedRender?.params?.coordinates?.sampleSize
+    mainClock.autoAdvance = false
+    runBlocking { fixture.firstSource.emit(PressInteraction.Press(Offset(50f, 40f))) }
+    repeat(10) {
+      mainClock.advanceTimeByFrame()
+      fixture.capture()
+      val current = fixture.owner().renderer.runtimeSurfaces.single()
+      assertThat(current.surfaceOrigin).isCloseTo(origin)
+      assertThat(current.preparedRender?.params?.coordinates?.sampleSize).isEqualTo(sampleSize)
+    }
+    mainClock.autoAdvance = true
+    waitForIdle()
+    // The grown first rect is (30, 52)-(150, 148); each probe is 2.5px outside it, beyond the
+    // 2px merge distance.
+    val capture = fixture.capture()
+    for ((x, y) in listOf(27 to 100, 90 to 49)) {
+      GlassDrawOutsideBoundsTest.assertGreen(capture, x, y, "unavailable=$unavailable ($x, $y)")
     }
   }
 
