@@ -25,6 +25,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -167,7 +168,7 @@ internal fun CreditCardGlassSample(
   style: GlassStyle,
   styles: List<GlassStyle> = listOf(style),
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
-  shape: RoundedCornerShape = RoundedCornerShape(16.dp),
+  shape: CornerBasedShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
   performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
   input: (HazeState) -> HazeInput = { HazeInput.Sources(it) },

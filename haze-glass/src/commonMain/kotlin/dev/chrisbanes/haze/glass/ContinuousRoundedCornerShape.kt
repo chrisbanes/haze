@@ -26,7 +26,8 @@ import androidx.compose.ui.unit.dp
  *
  * Corner sizes resolve like [RoundedCornerShape]'s. When a corner's eased extent would not fit
  * along an edge, its smoothing is reduced, never its radius. A capsule, whose radius is half its
- * shortest side, therefore draws circular ends.
+ * shortest side, therefore draws circular ends, and a shape whose corners overlap, such as a leaf,
+ * draws circular corners.
  *
  * @param topStart The top-start corner size.
  * @param topEnd The top-end corner size.

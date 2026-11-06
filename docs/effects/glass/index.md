@@ -110,8 +110,13 @@ Modifier.hazeGlass(
   opacity). Its alpha controls strength; set `Color.Transparent` to disable it.
 - **ambientResponse**: Fresnel/edge lift `0..1` (default 0.15).
 - **edgeSoftness**: Soft fade at the edges (default 1.dp). Set to 0.dp for hard edges.
-- **shape** (`RoundedCornerShape`): Boundary for refraction and masking (default 16.dp corners).
-  Add an outer `Modifier.clip()` with the same shape only when child content also needs clipping.
+- **shape** (`RoundedCornerShape` or `ContinuousRoundedCornerShape`): Boundary for refraction and
+  masking (default 16.dp circular corners). `ContinuousRoundedCornerShape` gives continuous,
+  iOS-style corners that ease into each edge; its `smoothing` runs from `0f` (circular) to `1f`
+  (the default, matching SwiftUI's `.continuous` style). When a corner cannot ease within its edges,
+  as in a capsule, its smoothing is reduced and its radius kept. When corners would overlap, as in a
+  leaf shape, smoothing is removed and the radii kept. Add an outer `Modifier.clip()` with
+  the same shape only when child content also needs clipping.
 - **surfaceProfile**: Cross-section for lighting and, with [`RefractionProfile.Surface`][RefractionProfile.Surface], refraction. Options: `Circle` (default), `Squircle`, `Lip`, `Concave`.
 - **lightPosition**: `Alignment` of the light within the surface (default `Alignment.Center`).
   Start and end follow layout direction.
@@ -141,6 +146,19 @@ val emphasizedStyle = baseStyle.then { specularIntensity(0.7f) }
 CompositionLocalProvider(LocalGlassStyle provides baseStyle) {
   // Use baseStyle as the default for Glass in this subtree.
 }
+```
+
+For continuous, iOS-style corners, pass a `ContinuousRoundedCornerShape`. It is a Compose shape, so
+the same instance can clip content or draw a border that matches the Glass silhouette:
+
+```kotlin
+val shape = ContinuousRoundedCornerShape(20.dp)
+val style = remember { GlassStyle { shape(shape) } }
+Box(
+  Modifier
+    .border(1.dp, Color.White.copy(alpha = 0.3f), shape)
+    .hazeGlass(input = HazeInput.Backdrop(hazeState), style = style),
+)
 ```
 
 A Style's block runs whenever a Glass surface resolves its style, not when the Style is built. The

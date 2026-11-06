@@ -8,6 +8,7 @@ package dev.chrisbanes.haze
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.OpticalSizeValue
@@ -102,6 +103,27 @@ class GlassDepthAndroidScreenshotTest : ScreenshotTest() {
   @Test
   fun glass_roundedEdgePixelsAreContinuous() = runScreenshotTest {
     assertGlassRoundedEdgePixelsAreContinuous()
+  }
+
+  @Test
+  fun glass_continuousEdgePixelsAreContinuous() = runScreenshotTest {
+    assertGlassRoundedEdgePixelsAreContinuous(ContinuousRoundedCornerShape(31.dp))
+  }
+
+  @Test
+  fun glass_continuousCapsuleEdgePixelsAreContinuous() = runScreenshotTest {
+    assertGlassRoundedEdgePixelsAreContinuous(ContinuousRoundedCornerShape(percent = 50))
+  }
+
+  @Test
+  fun glass_continuousLeafEdgePixelsAreContinuous() = runScreenshotTest {
+    // Overlapping corner boxes keep their radii and render circular.
+    assertGlassRoundedEdgePixelsAreContinuous(ContinuousRoundedCornerShape(topStartPercent = 100, bottomEndPercent = 100))
+  }
+
+  @Test
+  fun glass_circularMaskDiffersFromContinuousClip() = runScreenshotTest {
+    assertGlassCircularMaskDiffersFromContinuousClip()
   }
 
   @Test

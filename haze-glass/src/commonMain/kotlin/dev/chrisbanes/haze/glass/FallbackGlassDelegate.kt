@@ -8,7 +8,6 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.translate
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -61,9 +60,7 @@ internal class FallbackGlassDelegate(
       val shapePath = mergedPaths?.union ?: previous
         ?.takeIf { it.size == size && it.mergedPaths == null && it.style.cornerRadii == style.cornerRadii }
         ?.shapePath
-        ?: style.cornerRadii.takeUnless { it.isZero() }
-          ?.toRoundRect(size)
-          ?.let { Path().apply { addRoundRect(it) } }
+        ?: style.cornerRadii.takeUnless { it.isZero() }?.toPath(size)
 
       val highlightAlpha = 0.25f * style.specularIntensity * style.alpha
       val highlightRadius = max(size.minDimension / 2f, style.edgeSoftnessPx * 4f)
@@ -506,7 +503,7 @@ internal class FallbackMergedPaths(val field: GlassMergedField) {
 }
 
 private fun GlassMergedMember.fallbackPath(): Path = Path().apply {
-  addRoundRect(cornerRadii.toRoundRect(rect.size).translate(rect.topLeft))
+  addContinuousRoundRect(rect, cornerRadii)
 }
 
 private fun unionOf(paths: List<Path>): Path = paths.reduceOrNull { union, path ->

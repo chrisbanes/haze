@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Glass supports continuous, iOS-style corners with the new `ContinuousRoundedCornerShape`, passed
+  to `GlassStyle`'s `shape`. Masking, refraction, lighting, and the rim all follow the smoothed
+  corners, and the same shape works with `Modifier.clip` and `Modifier.border`
+  ([#1734](https://github.com/chrisbanes/haze/issues/1734)).
+
 ## 2.1.0 <small>2026-11-02</small> { id="2.1.0" }
 
 ### Added
