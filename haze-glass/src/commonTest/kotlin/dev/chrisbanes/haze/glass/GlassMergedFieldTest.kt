@@ -80,6 +80,14 @@ class GlassMergedFieldTest {
   }
 
   @Test
+  fun withExactCorners_overlappingExtentsMakeFieldCircular() {
+    // The radii fit (80 <= 100), but the smoothed extents (2 x 61) do not.
+    val member = member(Rect(0f, 0f, 100f, 60f), CornerRadii(40f, 40f, 0f, 0f, 1f, 1f, 0f, 0f))
+
+    assertThat(listOf(member).withExactCorners().single().cornerRadii).isEqualTo(CornerRadii(40f, 40f, 0f, 0f))
+  }
+
+  @Test
   fun withExactCorners_disjointMembersKeepSmoothing() {
     val members = listOf(
       member(Rect(0f, 0f, 100f, 60f), CornerRadii(16f, 16f, 16f, 16f, 1f, 1f, 1f, 1f)),

@@ -684,7 +684,7 @@ internal object GlassShaders {
       return outside + inside;
     }
 
-    ${sdRoundedRectSource(continuous)}
+    ${if (continuous) CONTINUOUS_SD_ROUNDED_RECT else CIRCULAR_SD_ROUNDED_RECT}
 
     vec2 safeNormalize(vec2 value, vec2 fallback) {
       float len = length(value);
@@ -717,7 +717,7 @@ internal object GlassShaders {
         max(totalWeight, 0.0001);
     }
 
-    ${gradSdRoundedRectSource(continuous)}
+    ${if (continuous) CONTINUOUS_GRAD_SD_ROUNDED_RECT else CIRCULAR_GRAD_SD_ROUNDED_RECT}
 
   """
 
@@ -835,7 +835,7 @@ internal object GlassShaders {
       return mix(heightNorm, foldTarget, foldWeight);
     }
 
-    ${edgeRefractionGradientSource(continuous)}
+    ${if (continuous) CONTINUOUS_EDGE_REFRACTION_GRADIENT else CIRCULAR_EDGE_REFRACTION_GRADIENT}
 
     ${if (merged) MERGED_REFRACTION_GRADIENT else ""}vec2 evaluateRefraction(
       vec2 localCoord,
@@ -1184,15 +1184,6 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
   } else {
     "vec3 tintedColor = mix(gradedColor, tintColor.rgb, tintColor.a);"
   }
-
-  private fun sdRoundedRectSource(continuous: Boolean): String =
-    if (continuous) CONTINUOUS_SD_ROUNDED_RECT else CIRCULAR_SD_ROUNDED_RECT
-
-  private fun gradSdRoundedRectSource(continuous: Boolean): String =
-    if (continuous) CONTINUOUS_GRAD_SD_ROUNDED_RECT else CIRCULAR_GRAD_SD_ROUNDED_RECT
-
-  private fun edgeRefractionGradientSource(continuous: Boolean): String =
-    if (continuous) CONTINUOUS_EDGE_REFRACTION_GRADIENT else CIRCULAR_EDGE_REFRACTION_GRADIENT
 
   /** Returns [text] in continuous-corner sources and nothing in circular ones. */
   private fun ifContinuous(continuous: Boolean, text: String): String = if (continuous) text else ""

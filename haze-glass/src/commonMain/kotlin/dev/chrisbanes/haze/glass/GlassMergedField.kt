@@ -80,9 +80,10 @@ internal fun continuousCorners(cornerRadii: CornerRadii, mergedField: GlassMerge
 internal fun List<GlassMergedMember>.withExactCorners(): List<GlassMergedMember> {
   if (none { it.cornerRadii.isContinuous }) return this
   val disjoint = all { member ->
+    // The shader evaluates corner extents, which equal the radii for circular corners.
+    val extents = member.cornerRadii.extents()
     val scale = minOf(member.rect.width / member.layoutRect.width, member.rect.height / member.layoutRect.height)
-    member.cornerRadii.isRadiusDisjoint(member.rect.size) &&
-      (member.cornerRadii * (1f / scale)).isRadiusDisjoint(member.layoutRect.size)
+    extents.isRadiusDisjoint(member.rect.size) && (extents * (1f / scale)).isRadiusDisjoint(member.layoutRect.size)
   }
   return if (disjoint) this else map { it.copy(cornerRadii = it.cornerRadii.withoutSmoothing()) }
 }
@@ -328,12 +329,12 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
     layoutRects[offset + 1] = member.layoutRect.top
     layoutRects[offset + 2] = member.layoutRect.width
     layoutRects[offset + 3] = member.layoutRect.height
-    // Extents equal radii for circular corners.
-    val corners = member.cornerRadii
-    radii[offset] = continuousCornerExtent(corners.topLeft, corners.topLeftSmoothing)
-    radii[offset + 1] = continuousCornerExtent(corners.topRight, corners.topRightSmoothing)
-    radii[offset + 2] = continuousCornerExtent(corners.bottomRight, corners.bottomRightSmoothing)
-    radii[offset + 3] = continuousCornerExtent(corners.bottomLeft, corners.bottomLeftSmoothing)
+    // A circular field has no smoothing, so its extents are its radii.
+    val corners = member.cornerRadii.extents()
+    radii[offset] = corners.topLeft
+    radii[offset + 1] = corners.topRight
+    radii[offset + 2] = corners.bottomRight
+    radii[offset + 3] = corners.bottomLeft
   }
   setFloatUniform("memberRects", rects)
   setFloatUniform("memberLayoutRects", layoutRects)

@@ -301,6 +301,14 @@ internal fun CornerRadii.fitSmoothingTo(size: Size): CornerRadii {
   )
 }
 
+/** Each corner's continuous extent as a circular radius, without smoothing. */
+internal fun CornerRadii.extents(): CornerRadii = CornerRadii(
+  continuousCornerExtent(topLeft, topLeftSmoothing),
+  continuousCornerExtent(topRight, topRightSmoothing),
+  continuousCornerExtent(bottomRight, bottomRightSmoothing),
+  continuousCornerExtent(bottomLeft, bottomLeftSmoothing),
+)
+
 /** Whether no two corner boxes can overlap in [size], judging by the radii alone. */
 internal fun CornerRadii.isRadiusDisjoint(size: Size): Boolean {
   val longest = size.maxDimension

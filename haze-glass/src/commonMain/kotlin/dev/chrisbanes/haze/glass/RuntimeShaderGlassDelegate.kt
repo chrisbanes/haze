@@ -2554,17 +2554,13 @@ private fun RuntimeShaderUniformProvider.setCommonUniforms(
 }
 
 /**
- * Uploads each corner's extent as `cornerRadii`, which equals its radius when circular. Only the
- * continuous variant declares `cornerExponents`, and Android rejects undeclared uniforms.
+ * Uploads `cornerRadii`: radii for the circular variant, as on main, and corner extents for the
+ * continuous one. Only the continuous variant declares `cornerExponents`, and Android rejects
+ * undeclared uniforms.
  */
 private fun RuntimeShaderUniformProvider.setCornerUniforms(radii: CornerRadii, continuous: Boolean) {
-  setFloatUniform(
-    "cornerRadii",
-    continuousCornerExtent(radii.topLeft, radii.topLeftSmoothing),
-    continuousCornerExtent(radii.topRight, radii.topRightSmoothing),
-    continuousCornerExtent(radii.bottomRight, radii.bottomRightSmoothing),
-    continuousCornerExtent(radii.bottomLeft, radii.bottomLeftSmoothing),
-  )
+  val uploaded = if (continuous) radii.extents() else radii
+  setFloatUniform("cornerRadii", uploaded.topLeft, uploaded.topRight, uploaded.bottomRight, uploaded.bottomLeft)
   if (!continuous) return
   setFloatUniform(
     "cornerExponents",
