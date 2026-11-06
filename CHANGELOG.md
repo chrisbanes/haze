@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `rimHighlight(intensity, width, sides)`, where `sides` sets how strongly the left and right edges
   are lit. It is off by default and follows merged container shapes
   ([#1742](https://github.com/chrisbanes/haze/issues/1742)).
+- Glass interaction responses accept a `scale` up to `1.2f`, so a pressed surface can grow instead of
+  shrinking. A grown member of a `hazeGlassContainer` merges with nearby neighbours while pressed
+  ([#1735](https://github.com/chrisbanes/haze/issues/1735)).
 
 ## 2.1.0 <small>2026-11-02</small> { id="2.1.0" }
 

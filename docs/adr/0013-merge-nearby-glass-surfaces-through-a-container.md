@@ -47,8 +47,9 @@ member's glass behind its own children. A member's own style still sets its shap
   changes because a member was added, removed or resized, it changes immediately and is not
   animated. A member that is leaving does not count.
 - Each member's interaction transform and interaction lighting apply to that member's part of the
-  field. Pressing one member can shrink it within the merged shape (interaction scales are at most
-  1), and only that member brightens.
+  field. Pressing one member can shrink it within the merged shape, and only that member brightens.
+  (Interaction scales were at most 1; they may now grow a member up to 1.2, see the
+  [amendment](#amendment-interaction-scales-may-exceed-1-2026-11-06).)
 
 ## Transitions
 
@@ -208,3 +209,17 @@ The container's parameters are `memberTransitionSpec` and `memberReducedMotionPo
 renamed before release to match `hazeGlass`'s `memberTransition`, and to say that the policy
 covers member transitions only. Behavior is unchanged, and every earlier mention of `transitionSpec`
 or `reducedMotionPolicy` in this record refers to them.
+
+## Amendment: interaction scales may exceed 1 (2026-11-06)
+
+Authored interaction scales are in `0f < value <= 1.2f`, so a pressed member can grow the way iOS
+interactive Liquid Glass does ([#1735](https://github.com/chrisbanes/haze/issues/1735)). Writing a
+value above 1 is the opt-in; there is no separate flag, and the default pressed response still
+shrinks.
+
+- **Bounds.** A grown surface draws beyond its layout bounds automatically, without
+  `expandLayerBounds`. At rest, a cluster's bounds already reserve each member's largest grown rect
+  ([#1739](https://github.com/chrisbanes/haze/issues/1739)).
+- **Merging.** Clustering measures gaps on each member's pressed rect, so a grown member merges
+  with neighbours within `mergeDistance` of its grown rect, and leaves the cluster on release.
+- **Transitions.** Transition-neighbour checks keep using rest (layout) geometry.
