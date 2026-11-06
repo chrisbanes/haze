@@ -112,6 +112,9 @@ Modifier.hazeGlass(
   drawn above content. `sides` scales the left and right edges: `0` lights only the top and bottom,
   `1` lights every edge equally. It ignores `lightPosition`, follows merged container shapes, and is
   off by default. Limited renderers approximate it.
+- **edgeOutline**(color, width): Hard line of `width` drawn just outside the shape, composited with
+  the color's alpha over what lies behind the Glass. It follows merged container shapes, limited
+  renderers draw an equivalent stroke, and it is off by default. An outer `Modifier.clip()` hides it.
 - **ambientResponse**: Fresnel/edge lift `0..1` (default 0.15).
 - **edgeSoftness**: Soft fade at the edges (default 1.dp). Set to 0.dp for hard edges.
 - **shape** (`RoundedCornerShape` or `ContinuousRoundedCornerShape`): Boundary for refraction and

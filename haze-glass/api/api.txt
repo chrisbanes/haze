@@ -165,6 +165,7 @@ package dev.chrisbanes.haze.glass {
     method public void chromaticAberrationStrength(float strength);
     method public void contentNormalBlend(float blend);
     method public void contrast(float contrast);
+    method @KotlinOnly public void edgeOutline(androidx.compose.ui.graphics.Color color, androidx.compose.ui.unit.Dp width);
     method @KotlinOnly public void edgeShadow(androidx.compose.ui.graphics.Color color);
     method @KotlinOnly public void edgeSoftness(androidx.compose.ui.unit.Dp softness);
     method public void focused(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> response);

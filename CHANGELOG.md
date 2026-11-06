@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Glass interaction responses accept a `scale` up to `1.2f`, so a pressed surface can grow instead of
   shrinking. A grown member of a `hazeGlassContainer` merges with nearby neighbours while pressed
   ([#1735](https://github.com/chrisbanes/haze/issues/1735)).
+- Glass styles can draw a thin line just outside a surface's shape with `edgeOutline(color, width)`,
+  separating the Glass from its backdrop. It is off by default, follows merged container shapes, and
+  has an equivalent stroke on limited renderers
+  ([#1741](https://github.com/chrisbanes/haze/issues/1741)).
 
 ## 2.1.0 <small>2026-11-02</small> { id="2.1.0" }
 

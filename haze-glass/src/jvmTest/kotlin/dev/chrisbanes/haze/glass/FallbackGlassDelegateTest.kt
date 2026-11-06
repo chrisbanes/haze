@@ -485,6 +485,32 @@ class FallbackGlassDelegateTest {
     assertThat(restoredEdge.edgeStroke).isNotNull()
   }
 
+  @Test
+  fun edgeOutline_unchangedOutline_reusesStroke() {
+    val effect = GlassRuntimeEffect().apply {
+      style = style.then {
+        tint(Color.Red)
+        edgeOutline(Color.Black, 2.dp)
+      }
+    }
+    val delegate = FallbackGlassDelegate(effect)
+    val context = FallbackRecordingContext(size = Size(100f, 100f))
+    fun stroke(): Any? = checkNotNull(delegate.preparedDrawForTest()).run {
+      javaClass.getDeclaredField("edgeOutlineStroke").let { field ->
+        field.isAccessible = true
+        field.get(this)
+      }
+    }
+
+    delegate.prepare(context)
+    val first = checkNotNull(stroke())
+    // A light move rebuilds the prepared draw but leaves the outline unchanged.
+    effect.style = effect.style.then { lightPosition(exactLightAlignment(Offset(24f, 36f))) }
+    delegate.prepare(context)
+
+    assertThat(stroke()).isSameInstanceAs(first)
+  }
+
   private fun FallbackGlassDelegate.prepare(context: FallbackRecordingContext) {
     CanvasDrawScope().draw(
       density = Density(1f),

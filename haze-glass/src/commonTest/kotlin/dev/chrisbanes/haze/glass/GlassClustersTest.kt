@@ -157,6 +157,7 @@ class GlassClustersTest {
       key.copy(lightAlignment = Alignment.BottomEnd),
       key.copy(layoutDirection = LayoutDirection.Rtl),
       key.copy(alpha = 0.4f),
+      key.copy(edgeOutline = GlassEdgeOutline(Color.Black, 2f)),
     )
     alternatives.forEachIndexed { index, alternative ->
       assertThat(

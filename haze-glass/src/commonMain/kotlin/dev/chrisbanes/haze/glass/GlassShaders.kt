@@ -593,6 +593,8 @@ internal object GlassShaders {
     uniform float rimHighlightIntensity;
     uniform float rimHighlightWidth;
     uniform float rimHighlightSides;
+    layout(color) uniform vec4 edgeOutline;
+    uniform float edgeOutlineWidth;
 
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
@@ -618,7 +620,14 @@ internal object GlassShaders {
       vec2 localCoord = materialCoord(coord);
       float sd = materialSdf(localCoord);
       float coverage = shapeCoverage(sd, sampleStep * 0.5);
-      if (coverage <= 0.0) return vec4(0.0);
+      // A hard band just outside the shape, complementing its coverage so the two leave no seam.
+      vec4 outline = vec4(0.0);
+      if (edgeOutlineWidth > 0.0) {
+        float outlineAlpha =
+          edgeOutline.a * (1.0 - coverage) * shapeCoverage(sd - edgeOutlineWidth, sampleStep * 0.5);
+        outline = vec4(edgeOutline.rgb * outlineAlpha, outlineAlpha);
+      }
+      if (coverage <= 0.0) return outline;
 
       float edgeWidth = max(edgeSoftness, sampleStep);
       float edge = 1.0 - smootherstep(clamp(-sd / max(edgeWidth, 0.0001), 0.0, 1.0));
@@ -626,7 +635,7 @@ internal object GlassShaders {
       if (rimHighlightIntensity > 0.0 && rimHighlightWidth > 0.0) {
         highlightBand = 1.0 - smoothstep(max(rimHighlightWidth - sampleStep, 0.0), rimHighlightWidth, -sd);
       }
-      if (edge <= 0.0 && highlightBand <= 0.0) return vec4(0.0);
+      if (edge <= 0.0 && highlightBand <= 0.0) return outline;
       vec2 gradient = sdfGradient(localCoord);
       vec3 normal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
       vec2 lightDirection2D = safeNormalize(lightPosition - localCoord, vec2(0.0, -1.0));
@@ -645,7 +654,8 @@ internal object GlassShaders {
         color = vec3(highlight) + color * (1.0 - highlight);
         alpha = highlight + alpha * (1.0 - highlight);
       }
-      return alpha > 0.0 ? vec4(color, alpha) * coverage : vec4(0.0);
+      vec4 rim = alpha > 0.0 ? vec4(color, alpha) * coverage : vec4(0.0);
+      return rim + outline * (1.0 - rim.a);
     }
   """
 

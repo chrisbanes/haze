@@ -1236,10 +1236,13 @@ internal class HazeEffectNode(
           right = max(right, bounds.right)
           bottom = max(bottom, bounds.bottom)
         }
-        val clippedLayerBounds = Rect(Offset.Zero, size)
-          .letIf(shouldExpandLayer()) {
-            calculateEffectLayerBounds(it, requireDensity())
-          }
+        val nodeRect = Rect(Offset.Zero, size)
+        val expanded = if (shouldExpandLayer()) {
+          calculateEffectLayerBounds(nodeRect, requireDensity())
+        } else {
+          nodeRect.inflate(nodeClipOutsetPx())
+        }
+        val clippedLayerBounds = expanded
           .letIf(shouldClipToAreaBounds()) { rect ->
             rect.intersect(left, top, right, bottom)
           }
@@ -1258,8 +1261,10 @@ internal class HazeEffectNode(
         size.isSpecified
       ) {
         val rect = size.toRect()
-        val expanded = rect.letIf(shouldExpandLayer()) {
-          calculateEffectLayerBounds(it, requireDensity())
+        val expanded = if (shouldExpandLayer()) {
+          calculateEffectLayerBounds(rect, requireDensity())
+        } else {
+          rect.inflate(nodeClipOutsetPx())
         }
         val clippedLayerBounds = expanded.intersect(rootInEffect)
         _layerSize = Size(
@@ -1280,9 +1285,9 @@ internal class HazeEffectNode(
       } else if (
         explicitInput === HazeInput.Content &&
         size.isSpecified &&
-        shouldClipEffectToNodeBounds() &&
         nodeClipOutsetPx() > 0f
       ) {
+        // Clipping or not, a layer that does not expand still reaches the draw outset.
         val expanded = size.toRect().inflate(nodeClipOutsetPx())
         _layerSize = expanded.size
         _layerOffset = -expanded.topLeft

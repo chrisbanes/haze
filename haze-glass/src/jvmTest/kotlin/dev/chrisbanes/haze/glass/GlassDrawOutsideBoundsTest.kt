@@ -33,9 +33,11 @@ import assertk.assertThat
 import assertk.assertions.hasMessage
 import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
@@ -114,6 +116,113 @@ class GlassDrawOutsideBoundsTest {
   }
 
   @Test
+  fun edgeOutline_drawsOutsideShape_runtime() {
+    assertOutlineDrawsOutsideShape(fallback = false, expandLayerBounds = false)
+    assertOutlineDrawsOutsideShape(fallback = false, expandLayerBounds = true)
+  }
+
+  @Test
+  fun edgeOutline_drawsOutsideShape_fallback() {
+    assertOutlineDrawsOutsideShape(fallback = true, expandLayerBounds = false)
+    assertOutlineDrawsOutsideShape(fallback = true, expandLayerBounds = true)
+  }
+
+  @Test
+  fun edgeOutline_disabled_matchesNoOutline_runtime() = assertDisabledOutlineMatchesNoOutline(fallback = false)
+
+  @Test
+  fun edgeOutline_disabled_matchesNoOutline_fallback() = assertDisabledOutlineMatchesNoOutline(fallback = true)
+
+  @Test
+  fun edgeOutline_outlineOnly_drawsWithoutRimLighting() {
+    val unlit = GlassStyle {
+      specularIntensity(0f)
+      edgeShadow(Color.Transparent)
+    }
+    runComposeUiTest {
+      val fixture = surface(unlit, fallback = false)
+      fixture.capture()
+      assertThat((fixture.effect.lastDrawDelegateForTest as RuntimeShaderGlassDelegate).rimRecordCount).isEqualTo(0)
+    }
+    runComposeUiTest {
+      val capture = surface(unlit.then { edgeOutline(Color.Green, 4.dp) }, fallback = false).capture()
+      assertGreen(capture, 98, 120)
+    }
+  }
+
+  @Test
+  fun edgeOutline_squareSurfaceOverMatchingSource_drawsOutsideShape_runtime() =
+    assertSquareSurfaceOutlineDrawsOutsideShape(fallback = false)
+
+  @Test
+  fun edgeOutline_squareSurfaceOverMatchingSource_drawsOutsideShape_fallback() =
+    assertSquareSurfaceOutlineDrawsOutsideShape(fallback = true)
+
+  private fun assertSquareSurfaceOutlineDrawsOutsideShape(fallback: Boolean) {
+    // A square, unsoftened surface does not clip to its node, so its layer prefers the source bounds.
+    val square = GlassStyle {
+      shape(RoundedCornerShape(0.dp))
+      edgeSoftness(0.dp)
+    }
+    runComposeUiTest {
+      val fixture = surface(square, fallback, sourceMatchesNode = true)
+      assertThat(fixture.effect.shouldPreferClipToInputBounds()).isTrue()
+    }
+    for (expandLayerBounds in listOf(false, true)) {
+      lateinit var baseline: PixelMap
+      runComposeUiTest { baseline = surface(square, fallback, expandLayerBounds, sourceMatchesNode = true).capture() }
+      runComposeUiTest {
+        val fixture = surface(
+          square.then { edgeOutline(Color.Green, 4.dp) },
+          fallback,
+          expandLayerBounds = expandLayerBounds,
+          sourceMatchesNode = true,
+        )
+        assertThat(fixture.effect.shouldClipToNodeBounds()).isFalse()
+        assertThat(fixture.effect.shouldPreferClipToInputBounds()).isFalse()
+        val capture = fixture.capture()
+        val variant = "fallback=$fallback expand=$expandLayerBounds"
+        for ((x, y) in listOf(98 to 120, 201 to 120, 150 to 78, 150 to 161)) {
+          assertGreen(capture, x, y, "$variant ($x, $y)")
+        }
+        // 7px outside, and 3px inside, the outline leaves the surface unchanged.
+        for ((x, y) in listOf(92 to 120, 207 to 120, 150 to 72, 150 to 167, 103 to 120, 196 to 120, 150 to 83, 150 to 156)) {
+          assertThat(pixelDifference(capture, baseline, x, y), "$variant ($x, $y)").isLessThan(1f / 255f)
+        }
+      }
+    }
+  }
+
+  private fun assertOutlineDrawsOutsideShape(fallback: Boolean, expandLayerBounds: Boolean) {
+    lateinit var baseline: PixelMap
+    runComposeUiTest { baseline = surface(GlassStyle, fallback, expandLayerBounds).capture() }
+    runComposeUiTest {
+      val capture = surface(GlassStyle { edgeOutline(Color.Green, 4.dp) }, fallback, expandLayerBounds).capture()
+      val variant = "fallback=$fallback expand=$expandLayerBounds"
+      // The node is (100, 80)-(200, 160); each probe is 1.5px outside an edge midpoint.
+      for ((x, y) in listOf(98 to 120, 201 to 120, 150 to 78, 150 to 161)) {
+        assertGreen(capture, x, y, "$variant ($x, $y)")
+      }
+      // 7px outside, and 3px inside, the outline leaves the surface unchanged.
+      for ((x, y) in listOf(92 to 120, 207 to 120, 150 to 72, 150 to 167, 103 to 120, 196 to 120, 150 to 83, 150 to 156)) {
+        assertThat(pixelDifference(capture, baseline, x, y), "$variant ($x, $y)").isLessThan(1f / 255f)
+      }
+    }
+  }
+
+  private fun assertDisabledOutlineMatchesNoOutline(fallback: Boolean) {
+    lateinit var baseline: PixelMap
+    runComposeUiTest { baseline = surface(GlassStyle, fallback).capture() }
+    for (style in listOf(GlassStyle { edgeOutline(Color.Green, 0.dp) }, GlassStyle { edgeOutline(Color.Transparent, 4.dp) })) {
+      runComposeUiTest {
+        val fixture = surface(style, fallback)
+        assertThat(fixture.effect.nodeClipOutsetPx()).isEqualTo(0f)
+        assertThat(regionDifference(fixture.capture(), baseline, 0, 0, 300, 240)).isEqualTo(0f)
+      }
+    }
+  }
+
+  @Test
   fun zeroExtent_clipAndCompositeMatchToday() {
     runComposeUiTest {
       val runtime = surface(GlassStyle { alpha(0.5f) }, fallback = false)
@@ -175,7 +284,12 @@ class GlassDrawOutsideBoundsTest {
   }
 
   internal companion object {
-    fun ComposeUiTest.surface(style: GlassStyle, fallback: Boolean): SurfaceFixture {
+    fun ComposeUiTest.surface(
+      style: GlassStyle,
+      fallback: Boolean,
+      expandLayerBounds: Boolean = false,
+      sourceMatchesNode: Boolean = false,
+    ): SurfaceFixture {
       val effect = GlassRuntimeEffect()
       if (fallback) {
         effect.runtimeEffectFactory = GlassRuntimeEffectFactory {
@@ -186,7 +300,12 @@ class GlassDrawOutsideBoundsTest {
       val state = HazeState()
       setContent {
         Box(Modifier.size(300.dp, 240.dp).testTag("root").background(Color.White)) {
-          Box(Modifier.size(300.dp, 240.dp).hazeSource(state).background(Color.White)) {
+          val sourceModifier = if (sourceMatchesNode) {
+            Modifier.offset(100.dp, 80.dp).size(100.dp, 80.dp)
+          } else {
+            Modifier.size(300.dp, 240.dp)
+          }
+          Box(sourceModifier.hazeSource(state).background(Color.White)) {
             repeat(30) { index ->
               Box(
                 Modifier.offset((index * 10).dp, 0.dp).size(10.dp, 240.dp)
@@ -199,7 +318,7 @@ class GlassDrawOutsideBoundsTest {
               HazeEffectFactory { effect }, HazeInput.Sources(state),
               // A rounded shape makes Glass clip to its node bounds.
               containerTestStyle(Color.Red).then(GlassStyle { shape(RoundedCornerShape(8.dp)) }).then(style),
-              HazePerformanceMode.Quality, false, source, GlassTransformTarget.MaterialOnly,
+              HazePerformanceMode.Quality, expandLayerBounds, source, GlassTransformTarget.MaterialOnly,
               GlassTransformPivot.Center, GlassReducedMotionPolicy.Full,
             ),
           )
@@ -207,6 +326,13 @@ class GlassDrawOutsideBoundsTest {
       }
       waitForIdle()
       return SurfaceFixture(this, effect, source)
+    }
+
+    fun assertGreen(pixels: PixelMap, x: Int, y: Int, name: String = "($x, $y)") {
+      val color = pixels[x, y]
+      assertThat(color.green, name).isGreaterThan(0.7f)
+      assertThat(color.red, name).isLessThan(0.3f)
+      assertThat(color.blue, name).isLessThan(0.3f)
     }
 
     fun regionDifference(first: PixelMap, second: PixelMap, left: Int, top: Int, right: Int, bottom: Int): Float {

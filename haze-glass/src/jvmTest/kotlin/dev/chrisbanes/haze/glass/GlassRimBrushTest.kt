@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotSameInstanceAs
@@ -43,6 +44,47 @@ class GlassRimBrushTest {
   }
 
   @Test
+  fun directRim_edgeOutline_drawsHardBandOutsideShape() {
+    val provider = checkNotNull(createGlassRimBrushProvider())
+    val pixels = drawBrush(checkNotNull(provider(outlineKey()))).toPixelMap()
+
+    // The material's left edge is at x = 8; pixel 6 is about 1.5px outside it.
+    val band = pixels[6, 48]
+    assertThat(band.alpha).isGreaterThanOrEqualTo(0.9f)
+    assertThat(band.green).isGreaterThan(maxOf(band.red, band.blue))
+    assertThat(pixels[3, 48].alpha).isEqualTo(0f)
+    assertThat(pixels[14, 48].alpha).isEqualTo(0f)
+  }
+
+  @Test
+  fun directRim_continuousCorners_edgeOutlineFollowsSmoothedShape() {
+    val key = outlineKey().copy(cornerRadii = CornerRadii(18f, 18f, 18f, 18f, 1f, 1f, 1f, 1f))
+    val provider = checkNotNull(createGlassRimBrushProvider(merged = false, continuous = true))
+    val pixels = drawBrush(checkNotNull(provider(key))).toPixelMap()
+    val circular = drawBrush(checkNotNull(createGlassRimBrushProvider()?.invoke(outlineKey()))).toPixelMap()
+
+    // The straight edges keep the same band; the corners follow the smoothed shape instead.
+    assertThat(pixels[6, 48].alpha).isGreaterThanOrEqualTo(0.9f)
+    assertThat(pixels[3, 48].alpha).isEqualTo(0f)
+    assertThat(pixels[14, 48].alpha).isEqualTo(0f)
+    var cornerDifference = 0f
+    for (y in 0 until 30) for (x in 0 until 30) {
+      cornerDifference = maxOf(cornerDifference, abs(pixels[x, y].alpha - circular[x, y].alpha))
+    }
+    assertThat(cornerDifference).isGreaterThan(0.1f)
+  }
+
+  @Test
+  fun directRim_disabledOutline_matchesNoOutline() {
+    val provider = checkNotNull(createGlassRimBrushProvider())
+    val expected = drawBrush(checkNotNull(provider(rimKey())))
+    for (outline in listOf(GlassEdgeOutline(Color.Green, 0f), GlassEdgeOutline(Color.Transparent, 3f))) {
+      val actual = drawBrush(checkNotNull(provider(rimKey().copy(edgeOutline = outline))))
+      assertThat(maxChannelDifference(expected, actual), "$outline").isEqualTo(0f)
+    }
+  }
+
+  @Test
   fun directRim_matchesImageFilterAcrossUniformChanges() {
     val provider = checkNotNull(createGlassRimBrushProvider())
     val key = rimKey()
@@ -56,6 +98,8 @@ class GlassRimBrushTest {
         sampleStepPx = 2f,
         specularExponent = 8f,
       ),
+      outlineKey(),
+      key.copy(edgeOutline = GlassEdgeOutline(Color(0.1f, 0.2f, 0.9f, 0.7f), 4f)),
     )
     for (current in keys) {
       val direct = drawBrush(checkNotNull(provider(current)))
@@ -164,6 +208,12 @@ class GlassRimBrushTest {
     }
     return difference
   }
+
+  private fun outlineKey() = rimKey().copy(
+    specularIntensity = 0f,
+    edgeShadow = Color.Transparent,
+    edgeOutline = GlassEdgeOutline(Color.Green, 3f),
+  )
 
   private fun rimKey() = GlassRimEffectKey(
     coordinates = GlassCoordinates(Size(128f, 96f), Offset(8f, 6f), Size(112f, 84f), 1f),

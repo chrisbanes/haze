@@ -181,9 +181,9 @@ public interface HazeEffectRendererDrawHooks<Style> {
   public fun shouldClipToNodeBounds(): Boolean = false
 
   /**
-   * Pixels by which the modifier-bounds clip, and a clipped [HazeInput.Content] layer, are
-   * inflated on every side when [shouldClipToNodeBounds] is true. Non-finite or negative values
-   * are treated as zero.
+   * Pixels by which the modifier-bounds clip is inflated on every side when [shouldClipToNodeBounds]
+   * is true. A layer that clips to the node or does not expand its bounds grows by the same amount,
+   * so output drawn within the outset is kept. Non-finite or negative values are treated as zero.
    */
   public fun nodeClipOutsetPx(): Float = 0f
 

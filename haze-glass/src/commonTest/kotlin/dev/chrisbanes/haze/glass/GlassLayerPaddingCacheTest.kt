@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.runtime.CompositionLocal
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
@@ -143,6 +144,36 @@ class GlassLayerPaddingCacheTest {
 
       assertThat(effect.calculateLayerBounds(rect, density))
         .isEqualTo(uncachedBounds { style = GlassStyle.then { drawOutset(outset.dp) } })
+      assertThat(effect.layerPaddingResolveCountForTest).isEqualTo(index + 1)
+    }
+  }
+
+  @Test
+  fun calculateLayerBounds_edgeOutline_inflatesLikeDrawOutset() {
+    assertThat(uncachedBounds { style = GlassStyle.then { edgeOutline(Color.Black, 12.dp) } })
+      .isEqualTo(uncachedBounds { style = GlassStyle.then { drawOutset(12.dp) } })
+  }
+
+  @Test
+  fun calculateLayerBounds_outlineColourOnlyChange_keepsPadding() {
+    val effect = effect { style = GlassStyle.then { edgeOutline(Color.Black, 12.dp) } }
+    val bounds = effect.calculateLayerBounds(rect, density)
+
+    effect.style = GlassStyle.then { edgeOutline(Color.Red, 12.dp) }
+
+    assertThat(effect.calculateLayerBounds(rect, density)).isEqualTo(bounds)
+    assertThat(effect.layerPaddingResolveCountForTest).isEqualTo(1)
+  }
+
+  @Test
+  fun calculateLayerBounds_outlineWidthChange_recomputes() {
+    val effect = effect()
+
+    listOf(4, 16).forEachIndexed { index, width ->
+      effect.style = GlassStyle.then { edgeOutline(Color.Black, width.dp) }
+
+      assertThat(effect.calculateLayerBounds(rect, density))
+        .isEqualTo(uncachedBounds { style = GlassStyle.then { edgeOutline(Color.Black, width.dp) } })
       assertThat(effect.layerPaddingResolveCountForTest).isEqualTo(index + 1)
     }
   }
