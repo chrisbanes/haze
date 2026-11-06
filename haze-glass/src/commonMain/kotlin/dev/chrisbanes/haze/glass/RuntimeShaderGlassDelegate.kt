@@ -2554,7 +2554,7 @@ private fun RuntimeShaderUniformProvider.setCommonUniforms(
 }
 
 /**
- * Uploads `cornerRadii`: radii for the circular variant, as on main, and corner extents for the
+ * Uploads `cornerRadii`: radii for the circular variant, exactly as before continuous corners, and corner extents for the
  * continuous one. Only the continuous variant declares `cornerExponents`, and Android rejects
  * undeclared uniforms.
  */

@@ -71,6 +71,8 @@ internal val GlassMergedField.isContinuous: Boolean
 internal fun continuousCorners(cornerRadii: CornerRadii, mergedField: GlassMergedField?): Boolean =
   mergedField?.isContinuous ?: cornerRadii.isContinuous
 
+private const val EXTENT_ROUNDING_SLACK_PX = 0.01f
+
 /**
  * Removes every member's smoothing when the field has a smoothed member and any member whose corner
  * boxes can overlap, in either frame the shader evaluates. The continuous shaders evaluate one
@@ -80,10 +82,12 @@ internal fun continuousCorners(cornerRadii: CornerRadii, mergedField: GlassMerge
 internal fun List<GlassMergedMember>.withExactCorners(): List<GlassMergedMember> {
   if (none { it.cornerRadii.isContinuous }) return this
   val disjoint = all { member ->
-    // The shader evaluates corner extents, which equal the radii for circular corners.
+    // The shader evaluates corner extents, which equal the radii for circular corners. Fitted
+    // extents can fill an edge exactly, so allow float rounding.
     val extents = member.cornerRadii.extents()
     val scale = minOf(member.rect.width / member.layoutRect.width, member.rect.height / member.layoutRect.height)
-    extents.isRadiusDisjoint(member.rect.size) && (extents * (1f / scale)).isRadiusDisjoint(member.layoutRect.size)
+    extents.isRadiusDisjoint(member.rect.size, EXTENT_ROUNDING_SLACK_PX) &&
+      (extents * (1f / scale)).isRadiusDisjoint(member.layoutRect.size, EXTENT_ROUNDING_SLACK_PX)
   }
   return if (disjoint) this else map { it.copy(cornerRadii = it.cornerRadii.withoutSmoothing()) }
 }

@@ -581,14 +581,18 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       return onNodeWithTag("glass").captureToImage().toPixelMap()
     }
     val first = capture(expectContinuous = false)
+    val firstRecords = delegate.stageRecordCounts.optical
 
     style.value = continuous
     waitForIdle()
     val smoothed = capture(expectContinuous = true)
+    val smoothedRecords = delegate.stageRecordCounts.optical
+    assertThat(smoothedRecords).isGreaterThan(firstRecords)
 
     style.value = circular
     waitForIdle()
     val restored = capture(expectContinuous = false)
+    assertThat(delegate.stageRecordCounts.optical).isGreaterThan(smoothedRecords)
 
     // The continuous corners draw differently, and switching back reproduces the circular frame.
     assertThat(maximumChannelDifference(first, smoothed)).isGreaterThan(0.1f)

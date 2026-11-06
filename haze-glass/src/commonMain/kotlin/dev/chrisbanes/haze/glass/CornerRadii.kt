@@ -309,11 +309,16 @@ internal fun CornerRadii.extents(): CornerRadii = CornerRadii(
   continuousCornerExtent(bottomLeft, bottomLeftSmoothing),
 )
 
-/** Whether no two corner boxes can overlap in [size], judging by the radii alone. */
-internal fun CornerRadii.isRadiusDisjoint(size: Size): Boolean {
-  val longest = size.maxDimension
-  return topLeft + topRight <= size.width && bottomLeft + bottomRight <= size.width &&
-    topLeft + bottomLeft <= size.height && topRight + bottomRight <= size.height &&
+/**
+ * Whether no two corner boxes can overlap in [size], judging by the radii alone, allowing [slack]
+ * pixels of overlap.
+ */
+internal fun CornerRadii.isRadiusDisjoint(size: Size, slack: Float = 0f): Boolean {
+  val width = size.width + slack
+  val height = size.height + slack
+  val longest = size.maxDimension + slack
+  return topLeft + topRight <= width && bottomLeft + bottomRight <= width &&
+    topLeft + bottomLeft <= height && topRight + bottomRight <= height &&
     topLeft + bottomRight <= longest && topRight + bottomLeft <= longest
 }
 

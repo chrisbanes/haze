@@ -88,6 +88,22 @@ class GlassMergedFieldTest {
   }
 
   @Test
+  fun withExactCorners_fittedMembersKeepSmoothing() {
+    // Fitted extents fill their edges exactly, so float rounding must not make them overlap.
+    for (height in 150..250) {
+      val size = Size(400f, height.toFloat())
+      val radius = height * 0.4883f
+      val fitted = CornerRadii(radius, 10f, 10f, radius, 1f, 1f, 1f, 1f).fitSmoothingTo(size)
+      val members = listOf(
+        member(Rect(Offset.Zero, size), fitted),
+        member(Rect(Offset(420f, 0f), size * 0.5f), fitted * 0.5f).copy(layoutRect = Rect(Offset(420f, 0f), size)),
+      )
+
+      assertThat(members.withExactCorners(), "height $height").isEqualTo(members)
+    }
+  }
+
+  @Test
   fun withExactCorners_disjointMembersKeepSmoothing() {
     val members = listOf(
       member(Rect(0f, 0f, 100f, 60f), CornerRadii(16f, 16f, 16f, 16f, 1f, 1f, 1f, 1f)),
