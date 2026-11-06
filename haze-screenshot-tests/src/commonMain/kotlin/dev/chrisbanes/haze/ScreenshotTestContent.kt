@@ -173,6 +173,7 @@ internal fun CreditCardGlassSample(
   performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
   input: (HazeState) -> HazeInput = { HazeInput.Sources(it) },
   numberCards: Int = 1,
+  clip: Boolean = true,
 ) {
   require(styles.size == numberCards)
   val hazeState = remember { HazeState() }
@@ -194,7 +195,7 @@ internal fun CreditCardGlassSample(
           .aspectRatio(16 / 9f)
           .offset { IntOffset(x = 0, y = reverseIndex * -100) }
           .hazeSource(hazeState, zIndex = 1f + index)
-          .clip(shape)
+          .then(if (clip) Modifier.clip(shape) else Modifier)
           .then(
             if (enabled) {
               Modifier.hazeGlass(

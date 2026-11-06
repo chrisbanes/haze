@@ -138,6 +138,62 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun resolveGlassStyle_edgeOutline_resolvesPxAndExtent() {
+    fun resolve(style: GlassStyle) = resolveGlassStyle(
+      effect = GlassRuntimeEffect().apply { this.style = style },
+      materialSizePx = Size(100f, 100f),
+      density = Density(2f),
+      layoutDirection = LayoutDirection.Ltr,
+    )
+
+    val outlined = resolve(GlassStyle { edgeOutline(Color.Black, 3.dp) })
+    assertThat(outlined.edgeOutline.widthPx).isEqualTo(6f)
+    assertThat(outlined.drawOutsetPx).isEqualTo(6f)
+    assertThat(
+      resolve(
+        GlassStyle {
+          edgeOutline(Color.Black, 3.dp)
+          drawOutset(10.dp)
+        },
+      ).drawOutsetPx,
+    ).isEqualTo(20f)
+    listOf(Color.Transparent to 3.dp, Color.Black to 0.dp).forEach { (color, width) ->
+      val hidden = resolve(GlassStyle { edgeOutline(color, width) })
+      assertThat(hidden.drawOutsetPx, "$color $width").isEqualTo(0f)
+      assertThat(hidden.edgeOutline, "$color $width").isEqualTo(GlassEdgeOutline.None)
+    }
+  }
+
+  @Test
+  fun buildGlassRenderParams_edgeOutline_scalesWidthAndKeepsRimForOutlineOnly() {
+    val style = resolveGlassStyle(
+      effect = GlassRuntimeEffect().apply {
+        style = GlassStyle {
+          specularIntensity(0f)
+          edgeShadow(Color.Transparent)
+          edgeOutline(Color.Black, 3.dp)
+        }
+      },
+      materialSizePx = Size(100f, 100f),
+      density = Density(1f),
+      layoutDirection = LayoutDirection.Ltr,
+    )
+    val params = buildGlassRenderParams(
+      style,
+      GlassCoordinates(
+        sampleSize = Size(50f, 50f),
+        materialOrigin = Offset.Zero,
+        materialSize = Size(50f, 50f),
+        scaleFactor = 0.5f,
+      ),
+    )
+
+    assertThat(params.edgeOutline).isEqualTo(GlassEdgeOutline(Color.Black, 1.5f))
+    assertThat(hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight, params.edgeOutline)).isTrue()
+    assertThat(hasGlassRim(0f, Color.Transparent, GlassRimHighlight.None, GlassEdgeOutline.None)).isFalse()
+  }
+
+  @Test
   fun reduceTransparency_raisesShallowBlurToMinimum() {
     val effect = GlassRuntimeEffect().apply {
       style = GlassStyle { optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(1.dp))) }
@@ -1658,25 +1714,25 @@ class GlassRenderParamsTest {
 
   @Test
   fun hasGlassRim_isFalseWithoutSpecularOrShadow() {
-    assertThat(hasGlassRim(0f, Color.Transparent, GlassRimHighlight.None)).isFalse()
-    assertThat(hasGlassRim(0f, Color.Black.copy(alpha = 0f), GlassRimHighlight.None)).isFalse()
+    assertThat(hasGlassRim(0f, Color.Transparent, GlassRimHighlight.None, GlassEdgeOutline.None)).isFalse()
+    assertThat(hasGlassRim(0f, Color.Black.copy(alpha = 0f), GlassRimHighlight.None, GlassEdgeOutline.None)).isFalse()
   }
 
   @Test
   fun hasGlassRim_isTrueForSpecularOnly() {
-    assertThat(hasGlassRim(0.5f, Color.Transparent, GlassRimHighlight.None)).isTrue()
+    assertThat(hasGlassRim(0.5f, Color.Transparent, GlassRimHighlight.None, GlassEdgeOutline.None)).isTrue()
   }
 
   @Test
   fun hasGlassRim_isTrueForShadowOnly() {
-    assertThat(hasGlassRim(0f, Color.Black.copy(alpha = 0.14f), GlassRimHighlight.None)).isTrue()
+    assertThat(hasGlassRim(0f, Color.Black.copy(alpha = 0.14f), GlassRimHighlight.None, GlassEdgeOutline.None)).isTrue()
   }
 
   @Test
   fun hasGlassRim_isTrueForRimHighlightOnly() {
-    assertThat(hasGlassRim(0f, Color.Transparent, GlassRimHighlight(0.8f, 3f, 0f))).isTrue()
-    assertThat(hasGlassRim(0f, Color.Transparent, GlassRimHighlight(0.8f, 0f, 1f))).isFalse()
-    assertThat(hasGlassRim(0f, Color.Transparent, GlassRimHighlight(0f, 3f, 1f))).isFalse()
+    assertThat(hasGlassRim(0f, Color.Transparent, GlassRimHighlight(0.8f, 3f, 0f), GlassEdgeOutline.None)).isTrue()
+    assertThat(hasGlassRim(0f, Color.Transparent, GlassRimHighlight(0.8f, 0f, 1f), GlassEdgeOutline.None)).isFalse()
+    assertThat(hasGlassRim(0f, Color.Transparent, GlassRimHighlight(0f, 3f, 1f), GlassEdgeOutline.None)).isFalse()
   }
 
   @Test

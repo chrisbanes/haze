@@ -11,11 +11,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -135,6 +137,22 @@ internal class FallbackGlassDelegate(
         else -> SolidColor(style.edgeShadow.copy(alpha = edgeShadowAlpha))
       }
 
+      val edgeOutline = style.edgeOutline
+      val edgeOutlineStroke = when {
+        !edgeOutline.isVisible -> null
+        previous?.edgeOutlineStroke != null &&
+          previous.style.edgeOutline.widthPx == edgeOutline.widthPx -> previous.edgeOutlineStroke
+        // Half the stroke lies outside the shape; the round join matches the SDF's outer corners.
+        else -> Stroke(width = 2f * edgeOutline.widthPx, join = StrokeJoin.Round)
+      }
+      val edgeOutlinePath = when {
+        edgeOutlineStroke == null -> null
+        shapePath != null -> shapePath
+        previous?.edgeOutlinePath != null && previous.shapePath == null && previous.size == size ->
+          previous.edgeOutlinePath
+        else -> Path().apply { addRect(Rect(Offset.Zero, size)) }
+      }
+
       val interactionAlpha = 0.32f * interaction.lightingIntensity * style.alpha
       val interactionBrush = when {
         !interaction.hasLighting || interactionAlpha <= 0f -> null
@@ -198,6 +216,8 @@ internal class FallbackGlassDelegate(
         interactionBrush = interactionBrush,
         memberLightBrushes = memberLightBrushes,
         rimHighlightBands = rimHighlightBands,
+        edgeOutlineStroke = edgeOutlineStroke,
+        edgeOutlinePath = edgeOutlinePath,
       )
     }
 
@@ -319,6 +339,16 @@ internal class FallbackGlassDelegate(
           stroke = checkNotNull(prepared.edgeStroke),
           shapePath = shapePath,
         )
+      }
+
+      prepared.edgeOutlinePath?.let { path ->
+        clipPath(path, ClipOp.Difference) {
+          drawPath(
+            path = path,
+            color = style.edgeOutline.color.copy(alpha = style.edgeOutline.color.alpha * style.alpha),
+            style = checkNotNull(prepared.edgeOutlineStroke),
+          )
+        }
       }
 
       // Draw the fallback rim approximation above child content, matching the runtime path.
@@ -586,4 +616,7 @@ private data class FallbackGlassPreparedDraw(
   val interactionBrush: Brush?,
   val memberLightBrushes: List<Brush?>?,
   val rimHighlightBands: FallbackRimHighlightBands?,
+  val edgeOutlineStroke: Stroke?,
+  /** The shape the outline strokes, or null when there is no outline. */
+  val edgeOutlinePath: Path?,
 )

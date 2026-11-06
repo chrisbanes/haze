@@ -6,10 +6,12 @@ package dev.chrisbanes.haze
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
@@ -103,8 +105,56 @@ class HazeBackdropFallbackTest {
       .isEqualTo(androidx.compose.ui.geometry.Rect(0f, 0f, 100f, 100f))
   }
 
-  private fun captureBackdropClip(outsetPx: Float): androidx.compose.ui.geometry.Rect? {
-    val nativeRenderer = TestBackdropRenderer()
+  @Test
+  fun backdropLayer_expansionDisabled_positiveOutset_inflatesByOutset() {
+    val renderer = TestBackdropRenderer()
+    captureBackdropClip(outsetPx = 6f, expandLayerBounds = false, nativeRenderer = renderer)
+    assertThat(renderer.lastBounds).isEqualTo(androidx.compose.ui.geometry.Rect(-6f, -6f, 106f, 106f))
+  }
+
+  @Test
+  fun backdropLayer_expansionDisabled_zeroOutset_isNodeRect() {
+    val renderer = TestBackdropRenderer()
+    captureBackdropClip(outsetPx = 0f, expandLayerBounds = false, nativeRenderer = renderer)
+    assertThat(renderer.lastBounds).isEqualTo(androidx.compose.ui.geometry.Rect(0f, 0f, 100f, 100f))
+  }
+
+  @Test
+  fun contentLayer_noClipNoExpansion_positiveOutset_inflatesByOutset() {
+    assertThat(captureContentLayerSize(outsetPx = 6f)).isEqualTo(Size(112f, 112f))
+    assertThat(captureContentLayerSize(outsetPx = 0f)).isEqualTo(Size(100f, 100f))
+  }
+
+  private fun captureContentLayerSize(outsetPx: Float): Size? {
+    val renderer = ContentLayerSizeRenderer(outsetPx)
+    runComposeUiTest {
+      setContent {
+        val lifecycle = LocalLifecycleOwner.current.lifecycle
+        Box(
+          Modifier
+            .padding(20.dp)
+            .size(100.dp)
+            .then(
+              FaultInjectedEffectElement(
+                input = HazeInput.Content,
+                lifecycle = lifecycle,
+                createRenderer = { null },
+                renderer = renderer,
+                expandLayerBounds = false,
+              ),
+            ),
+        )
+      }
+      waitForIdle()
+    }
+    return renderer.layerSize
+  }
+
+  private fun captureBackdropClip(
+    outsetPx: Float,
+    expandLayerBounds: Boolean = true,
+    nativeRenderer: TestBackdropRenderer = TestBackdropRenderer(),
+  ): androidx.compose.ui.geometry.Rect? {
     val previousFlag = HazeFeatureFlags.isPlatformBackdropEnabled
     HazeFeatureFlags.isPlatformBackdropEnabled = true
     try {
@@ -112,7 +162,8 @@ class HazeBackdropFallbackTest {
         val state = HazeState()
         setContent {
           val lifecycle = LocalLifecycleOwner.current.lifecycle
-          Box(Modifier.size(100.dp)) {
+          // The padding leaves room around the node for an inflated layer.
+          Box(Modifier.padding(20.dp).size(100.dp)) {
             Box(
               Modifier
                 .fillMaxSize()
@@ -128,6 +179,7 @@ class HazeBackdropFallbackTest {
                     lifecycle = lifecycle,
                     createRenderer = { nativeRenderer },
                     renderer = ClippingBackdropRenderer(outsetPx),
+                    expandLayerBounds = expandLayerBounds,
                   ),
                 ),
             )
@@ -405,15 +457,18 @@ private class FaultInjectedEffectElement(
   private val lifecycle: Lifecycle,
   private val createRenderer: () -> HazeBackdropRenderer?,
   private val renderer: HazeEffectRenderer<Unit>,
+  private val expandLayerBounds: Boolean = true,
 ) : ModifierNodeElement<HazeEffectNode>() {
   override fun create(): HazeEffectNode = HazeEffectNode(createRenderer).also {
     it.explicitInput = input
+    it.expandLayerBounds = expandLayerBounds
     it.updateTypedEffect(StaticRendererFactory(renderer), Unit, HazeSampling.Default)
     it.updateLifecycle(lifecycle)
   }
 
   override fun update(node: HazeEffectNode) {
     node.explicitInput = input
+    node.expandLayerBounds = expandLayerBounds
     node.updateLifecycle(lifecycle)
     node.update()
   }
@@ -469,6 +524,20 @@ private class ClippingBackdropRenderer(
   override fun nodeClipOutsetPx(): Float = outsetPx
 }
 
+private class ContentLayerSizeRenderer(
+  private val outsetPx: Float,
+) : HazeEffectRenderer<Unit>,
+  HazeEffectRendererDrawHooks<Unit> {
+  var layerSize: Size? = null
+
+  override fun HazeEffectDrawScope.draw(style: Unit) {
+    layerSize = (this as HazeEffectRuntimeDrawScope).layerSize
+    drawInput()
+  }
+
+  override fun nodeClipOutsetPx(): Float = outsetPx
+}
+
 private class DecliningBackdropRenderer :
   HazeEffectRenderer<Unit>,
   HazeEffectRendererBackdrop<Unit> {
@@ -486,6 +555,7 @@ private class TestBackdropRenderer : HazeBackdropRenderer {
   var drawCalls = 0
   var releaseCalls = 0
   var lastClip: androidx.compose.ui.geometry.Rect? = null
+  var lastBounds: androidx.compose.ui.geometry.Rect? = null
 
   override fun isSupported(canvas: Canvas): Boolean = true
 
@@ -496,6 +566,7 @@ private class TestBackdropRenderer : HazeBackdropRenderer {
     alpha: Float,
   ): Boolean {
     lastClip = clip
+    lastBounds = bounds
     if (rejectEmptyBounds && (bounds.width <= 0f || bounds.height <= 0f)) {
       emptyConfigureCalls++
       return false

@@ -550,6 +550,24 @@ class GlassStyleTest {
   }
 
   @Test
+  fun edgeOutline_rejectsUnspecifiedColourAndInvalidWidth() {
+    assertEvaluationFailure("edgeOutline.color must be specified") { edgeOutline(Color.Unspecified, 1.dp) }
+    listOf(Dp.Unspecified, Float.NaN.dp, (-1).dp, Float.POSITIVE_INFINITY.dp).forEach { invalid ->
+      assertEvaluationFailure("edgeOutline.width must be specified, finite, and non-negative") {
+        edgeOutline(Color.Black, invalid)
+      }
+    }
+  }
+
+  @Test
+  fun edgeOutline_defaultIsNone() {
+    val values = resolveGlassStyleValues(GlassStyle, GlassStyle)
+
+    assertThat(values.edgeOutlineColor).isEqualTo(Color.Transparent)
+    assertThat(values.edgeOutlineWidth).isEqualTo(0.dp)
+  }
+
+  @Test
   fun edgeSoftness_rejectsInvalidValuesWhenEvaluated() {
     listOf(Dp.Unspecified, Float.NaN.dp, Float.NEGATIVE_INFINITY.dp, (-1).dp, Float.POSITIVE_INFINITY.dp)
       .forEach { invalid ->

@@ -106,7 +106,8 @@ private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): B
     fresnelExponent == other.fresnelExponent &&
     cornerRadii == other.cornerRadii &&
     mergedField == other.mergedField &&
-    rimHighlight == other.rimHighlight
+    rimHighlight == other.rimHighlight &&
+    edgeOutline == other.edgeOutline
 
 private fun ResolvedGlassStyle.hasSameBudgetParams(other: ResolvedGlassStyle): Boolean =
   requiresGlassGroupAlpha(alpha) == requiresGlassGroupAlpha(other.alpha) &&
@@ -121,8 +122,8 @@ private fun ResolvedGlassStyle.hasSameBudgetParams(other: ResolvedGlassStyle): B
     chromaticAberrationStrength == other.chromaticAberrationStrength &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
     drawOutsetPx == other.drawOutsetPx &&
-    hasGlassRim(specularIntensity, edgeShadow, rimHighlight) ==
-    hasGlassRim(other.specularIntensity, other.edgeShadow, other.rimHighlight)
+    hasGlassRim(specularIntensity, edgeShadow, rimHighlight, edgeOutline) ==
+    hasGlassRim(other.specularIntensity, other.edgeShadow, other.rimHighlight, other.edgeOutline)
 
 private val IdleInteractionState = GlassInteractionRenderState(Offset.Zero)
 private val IdleInteractionSignals = GlassInteractionSignals()
@@ -977,7 +978,7 @@ internal class GlassRuntimeEffect() :
       if (backdrop) {
         buildGlassBackdropLayerPlan(
           sampleSize = coordinates.sampleSize.roundToIntSize(),
-          rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight),
+          rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight, params.edgeOutline),
           interactionPatchSize = interactionPatchSize,
           interactionLightingActive = interactionTopology.hasLighting,
         )
@@ -995,7 +996,7 @@ internal class GlassRuntimeEffect() :
           allowNativeWideBlur = allowNativeWideBlur,
           refractionDetailActive =
           params.activeRefractionDetailEffectKey(params.refractionDetailIntensity) != null,
-          rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight),
+          rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight, params.edgeOutline),
           interactionPatchSize = interactionPatchSize,
           interactionOpticsActive = interactionTopology.hasOptics,
           interactionLightingActive = interactionTopology.hasLighting,
@@ -1257,13 +1258,13 @@ internal class GlassRuntimeEffect() :
   }
 
   /**
-   * A single surface draws [drawOutset] beyond its node on every side. A container surface's
+   * A single surface draws [drawExtent] beyond its node on every side. A container surface's
    * bounds already include every member's outset, so it adds none.
    */
   override fun nodeClipOutsetPx(): Float {
     if (surfaceSnapshot != null) return 0f
     val density = attachedContext?.requireDensity() ?: return 0f
-    return with(density) { drawOutset.toPx() }
+    return with(density) { drawExtent.toPx() }
   }
 
   override fun shouldPreferClipToInputBounds(): Boolean = !shouldClipToNodeBounds()

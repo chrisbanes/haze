@@ -46,6 +46,8 @@ internal data class GlassMergeKey(
   val layoutDirection: LayoutDirection,
   val alpha: Float,
   val rimHighlight: GlassRimHighlight,
+  /** A cluster draws one outline from its first member's material. */
+  val edgeOutline: GlassEdgeOutline,
 )
 
 internal fun glassMergeKey(
@@ -63,6 +65,7 @@ internal fun glassMergeKey(
   material.contrast, material.whitePoint, material.chromaMultiplier,
   material.contentNormalBlend, material.fresnelExponent, effect.lightPosition, layoutDirection, material.alpha,
   material.rimHighlight,
+  material.edgeOutline,
 )
 
 /**

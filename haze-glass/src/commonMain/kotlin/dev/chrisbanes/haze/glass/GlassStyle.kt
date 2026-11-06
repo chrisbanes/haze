@@ -370,6 +370,24 @@ public class GlassStyleScope internal constructor(
     values.rimHighlightSides = validatedSides
   }
 
+  /**
+   * Sets a hard line of [width] drawn just outside the shape's boundary, composited with [color]'s
+   * alpha over whatever lies behind the Glass.
+   *
+   * The line follows a container's merged shape, and limited renderers draw an equivalent stroke.
+   * It is drawn whether or not the effect expands its layer bounds. [Color.Transparent] or a `0.dp`
+   * [width] draws nothing, which is the default.
+   *
+   * @param color the specified line color; its alpha controls the line's strength.
+   * @param width specified, finite, non-negative line width measured outward from the boundary.
+   */
+  public fun edgeOutline(color: Color, width: Dp) {
+    require(color.isSpecified) { "edgeOutline.color must be specified" }
+    val validatedWidth = requireSpecifiedFiniteNonNegative("edgeOutline.width", width)
+    values.edgeOutlineColor = color
+    values.edgeOutlineWidth = validatedWidth
+  }
+
   /** Sets finite ambient-light response in the inclusive range `0f..1f`. */
   public fun ambientResponse(response: Float) {
     val validated = requireFiniteInRange("ambientResponse", response, 0f..1f, UNIT_INTERVAL_DOMAIN)
@@ -398,8 +416,8 @@ public class GlassStyleScope internal constructor(
   }
 
   /**
-   * Sets a specified, finite, non-negative distance Glass draws beyond its shape on every side.
-   * Internal until a public feature, such as an edge outline, writes it.
+   * Sets a specified, finite, non-negative floor on the distance Glass draws beyond its shape on
+   * every side. [edgeOutline] adds its own extent; the larger of the two applies.
    */
   internal fun drawOutset(outset: Dp) {
     val validated = requireSpecifiedFiniteNonNegative("drawOutset", outset)
@@ -551,7 +569,13 @@ internal class GlassStyleValues(
   var rimHighlightIntensity: Float = 0f,
   var rimHighlightWidth: Dp = 0.dp,
   var rimHighlightSides: Float = 0f,
+  var edgeOutlineColor: Color = Color.Transparent,
+  var edgeOutlineWidth: Dp = 0.dp,
 )
+
+/** How far Glass draws beyond its shape: the [GlassStyleValues.drawOutset] floor or a visible outline. */
+internal val GlassStyleValues.drawExtent: Dp
+  get() = maxOf(drawOutset, if (edgeOutlineColor.alpha > 0f) edgeOutlineWidth else 0.dp)
 
 internal fun resolveGlassStyleValues(
   localStyle: GlassStyle,

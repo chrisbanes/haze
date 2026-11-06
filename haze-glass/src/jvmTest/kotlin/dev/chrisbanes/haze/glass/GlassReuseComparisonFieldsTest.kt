@@ -20,7 +20,7 @@ class GlassReuseComparisonFieldsTest {
     assertThat(fieldCount<GlassBlurEffectKey>()).isEqualTo(6)
     assertThat(fieldCount<GlassOpticalEffectKey>()).isEqualTo(20)
     assertThat(fieldCount<GlassRefractionDetailEffectKey>()).isEqualTo(16)
-    assertThat(fieldCount<GlassRimEffectKey>()).isEqualTo(10)
+    assertThat(fieldCount<GlassRimEffectKey>()).isEqualTo(11)
   }
 
   @Test
@@ -28,7 +28,8 @@ class GlassReuseComparisonFieldsTest {
     // Audit ResolvedGlassStyle.hasSameRenderParams in GlassRuntimeEffect.kt before changing this.
     // fallbackBaseColor is deliberately excluded: fallback-only, never a GlassRenderParams input.
     // drawOutsetPx is compared in hasSameBudgetParams: it sizes the layer, clip and group composite.
-    assertThat(fieldCount<ResolvedGlassStyle>()).isEqualTo(23)
+    // edgeOutline is compared in hasSameRenderParams; its visibility also in hasSameBudgetParams.
+    assertThat(fieldCount<ResolvedGlassStyle>()).isEqualTo(24)
   }
 
   private inline fun <reified T> fieldCount(): Int =

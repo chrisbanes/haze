@@ -242,6 +242,32 @@ class GlassScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun creditCard_edgeOutline() = runScreenshotTest {
+    var density = 1f
+    setContent {
+      density = LocalDensity.current.density
+      ScreenshotTheme {
+        // Unclipped, so the outline can draw outside the card's Glass shape.
+        CreditCardGlassSample(
+          style = GlassStyle {
+            tint(DefaultTint)
+            edgeOutline(Color.Black, 2.dp)
+          },
+          clip = false,
+        )
+      }
+    }
+
+    val pixels = captureRootPixels()
+    captureRoot()
+    // The card is centred, 70% of the root's width, at 16:9.
+    val cardLeft = (pixels.width - pixels.width * 0.7f) / 2f
+    val y = pixels.height / 2
+    fun luminanceOutside(dp: Float) = pixels[(cardLeft - dp * density).toInt(), y].luminance()
+    assertThat(luminanceOutside(1f)).isLessThan(luminanceOutside(6f) - 0.1f)
+  }
+
+  @Test
   fun creditCard_accessibilitySettings() = runScreenshotTest {
     var settings by mutableStateOf(GlassAccessibilitySettings())
     val style = GlassStyle {
