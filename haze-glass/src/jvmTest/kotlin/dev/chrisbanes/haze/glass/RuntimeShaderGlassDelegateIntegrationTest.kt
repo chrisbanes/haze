@@ -595,8 +595,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     assertThat(delegate.stageRecordCounts.optical).isGreaterThan(smoothedRecords)
 
     // The continuous corners draw differently, and switching back reproduces the circular frame.
-    // The corner gap is sub-pixel, so its antialiased difference varies by rasterizer (0.08 on
-    // Linux CI, 0.18 on macOS); require four times the restore tolerance.
+    // The difference is small and varies by rasterizer, so require four times the restore tolerance.
     assertThat(maximumChannelDifference(first, smoothed)).isGreaterThan(8f / 255f)
     assertThat(maximumChannelDifference(first, restored)).isLessThan(2f / 255f)
   }
