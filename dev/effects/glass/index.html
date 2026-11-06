@@ -1685,6 +1685,10 @@ slider or adapt to the content beneath them, so check foreground contrast with y
 <li><strong>specularIntensity</strong>: Highlight strength <code>0..1</code> (default 0.48).</li>
 <li><strong>edgeShadow</strong>: Shape-following dark rim beneath the specular highlight (defaults to black at 14%
   opacity). Its alpha controls strength; set <code>Color.Transparent</code> to disable it.</li>
+<li><strong>rimHighlight</strong>(intensity, width, sides): Thin light band just inside the top and bottom edges,
+  drawn above content. <code>sides</code> scales the left and right edges: <code>0</code> lights only the top and bottom,
+  <code>1</code> lights every edge equally. It ignores <code>lightPosition</code>, follows merged container shapes, and is
+  off by default. Limited renderers approximate it.</li>
 <li><strong>ambientResponse</strong>: Fresnel/edge lift <code>0..1</code> (default 0.15).</li>
 <li><strong>edgeSoftness</strong>: Soft fade at the edges (default 1.dp). Set to 0.dp for hard edges.</li>
 <li><strong>shape</strong> (<code>RoundedCornerShape</code> or <code>ContinuousRoundedCornerShape</code>): Boundary for refraction and

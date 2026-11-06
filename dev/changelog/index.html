@@ -7636,6 +7636,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   to <code>GlassStyle</code>'s <code>shape</code>. Masking, refraction, lighting, and the rim all follow the smoothed
   corners, and the same shape works with <code>Modifier.clip</code> and <code>Modifier.border</code>
   (<a href="https://github.com/chrisbanes/haze/issues/1734">#1734</a>).</li>
+<li>Glass styles can draw a thin light band inside a surface's top and bottom edges with
+  <code>rimHighlight(intensity, width, sides)</code>, where <code>sides</code> sets how strongly the left and right edges
+  are lit. It is off by default and follows merged container shapes
+  (<a href="https://github.com/chrisbanes/haze/issues/1742">#1742</a>).</li>
 </ul>
 <h2 id="2.1.0">2.1.0 <small>2026-11-02</small><a class="headerlink" href="#2.1.0" title="Permanent link">¶</a></h2>
 <h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">¶</a></h3>
