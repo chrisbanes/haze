@@ -27,6 +27,8 @@ class GlassContainerDesktopScreenshotTest : ScreenshotTest() {
 
   @Test fun groupedMembersDrawOneShape() = runScreenshotTest(Size(360f, 240f)) { assertGlassContainerScene(GlassContainerScene.Grouped) }
 
+  @Test fun mergedRimHighlight() = runScreenshotTest(Size(360f, 240f)) { assertGlassContainerScene(GlassContainerScene.RimHighlight) }
+
   @Test fun removalRestoresOutsideContainerPixels() = runScreenshotTest(Size(360f, 240f)) { assertGlassContainerRemovalRestoresOutsidePixels() }
 
   @Test fun memberGrowsOutOfNeighbour() = runScreenshotTest(Size(360f, 240f)) { assertGlassContainerTransitionSequence(grow = true) }

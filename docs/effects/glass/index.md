@@ -108,6 +108,10 @@ Modifier.hazeGlass(
 - **specularIntensity**: Highlight strength `0..1` (default 0.48).
 - **edgeShadow**: Shape-following dark rim beneath the specular highlight (defaults to black at 14%
   opacity). Its alpha controls strength; set `Color.Transparent` to disable it.
+- **rimHighlight**(intensity, width, sides): Thin light band just inside the top and bottom edges,
+  drawn above content. `sides` scales the left and right edges: `0` lights only the top and bottom,
+  `1` lights every edge equally. It ignores `lightPosition`, follows merged container shapes, and is
+  off by default. Limited renderers approximate it.
 - **ambientResponse**: Fresnel/edge lift `0..1` (default 0.15).
 - **edgeSoftness**: Soft fade at the edges (default 1.dp). Set to 0.dp for hard edges.
 - **shape** (`RoundedCornerShape` or `ContinuousRoundedCornerShape`): Boundary for refraction and
