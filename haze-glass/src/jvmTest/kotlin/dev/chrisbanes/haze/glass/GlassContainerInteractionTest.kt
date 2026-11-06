@@ -470,6 +470,89 @@ class GlassContainerInteractionTest : ContextTest() {
   }
 
   @Test
+  fun grownPress_joinsNeighbourBeyondMergeDistanceWithoutSnap_runtime() = runComposeUiTest {
+    // The first member spans 40..140 and the second starts at 182; the press grows each side by 10.
+    val fixture = cluster(gap = 42, pressed = GlassStyle { pressed { animate(linear300, linear300) { scale(1.2f) } } })
+    assertThat(fixture.owner().model.surfaces).hasSize(2)
+    val idle = fixture.capture()
+    mainClock.autoAdvance = false
+    val press = PressInteraction.Press(Offset(50f, 40f))
+    runBlocking { fixture.firstSource.emit(press) }
+    val (before, join, after) = fixture.frameDifferencesAcrossJoin()
+    assertThat(join, "join-frame difference").isLessThanOrEqualTo(2f * maxOf(before, after) + 1f / 255f)
+    assertThat(fixture.field().members).hasSize(2)
+
+    runBlocking { fixture.firstSource.emit(PressInteraction.Release(press)) }
+    var releaseFrames = 0
+    while (fixture.owner().model.surfaces.size != 2) {
+      assertThat(releaseFrames, "frames to leave the cluster").isLessThan(30)
+      mainClock.advanceTimeByFrame()
+      fixture.capture()
+      releaseFrames++
+    }
+    mainClock.autoAdvance = true
+    waitForIdle()
+    assertThat(regionDifference(fixture.capture(), idle, 120, 60, 200, 140)).isLessThanOrEqualTo(1f / 255f)
+  }
+
+  @Test
+  fun grownPress_joinsNeighbourBeyondMergeDistance_fallback() = runComposeUiTest {
+    val fixture = cluster(
+      gap = 42,
+      pressed = GlassStyle { pressed { animate(linear300, linear300) { scale(1.2f) } } },
+      unavailable = true,
+    )
+    assertThat(fixture.owner().model.surfaces).hasSize(2)
+    val press = fixture.press(fixture.firstSource)
+    assertThat(fixture.owner().model.surfaces).hasSize(1)
+    fixture.assertFallback()
+    fixture.release(fixture.firstSource, press)
+    assertThat(fixture.owner().model.surfaces).hasSize(2)
+  }
+
+  @Test
+  fun shrinkPressRelease_rejoinsWithoutSnap() = runComposeUiTest {
+    val fixture = cluster(gap = 35, pressed = GlassStyle { pressed { animate(snap(), linear300) { scale(0.8f) } } })
+    val press = fixture.press(fixture.firstSource)
+    assertThat(fixture.owner().model.surfaces).hasSize(2)
+    mainClock.autoAdvance = false
+    runBlocking { fixture.firstSource.emit(PressInteraction.Release(press)) }
+    val (before, join, after) = fixture.frameDifferencesAcrossJoin()
+    assertThat(join, "join-frame difference").isLessThanOrEqualTo(2f * maxOf(before, after) + 1f / 255f)
+    mainClock.autoAdvance = true
+    waitForIdle()
+  }
+
+  /**
+   * Steps frames through an animated join, asserting the surface count changes 2 -> 1 exactly
+   * once. Returns the facing-edge region's frame-to-frame differences before, at and after the
+   * join frame.
+   */
+  private fun ClusterFixture.frameDifferencesAcrossJoin(frames: Int = 24): Triple<Float, Float, Float> {
+    var previous = capture()
+    var count = owner().model.surfaces.size
+    assertThat(count).isEqualTo(2)
+    val differences = mutableListOf<Float>()
+    var joinFrame = -1
+    repeat(frames) { frame ->
+      test.mainClock.advanceTimeByFrame()
+      val current = capture()
+      val surfaces = owner().model.surfaces.size
+      differences += regionDifference(current, previous, 120, 60, 200, 140)
+      if (surfaces != count) {
+        assertThat(joinFrame, "surface count changed more than once").isEqualTo(-1)
+        assertThat(surfaces).isEqualTo(1)
+        joinFrame = frame
+      }
+      count = surfaces
+      previous = current
+    }
+    assertThat(joinFrame, "join frame").isGreaterThan(0)
+    assertThat(joinFrame, "join frame").isLessThan(frames - 1)
+    return Triple(differences[joinFrame - 1], differences[joinFrame], differences[joinFrame + 1])
+  }
+
+  @Test
   fun shrinkOnlyCluster_boundsUnchanged() = runComposeUiTest {
     val linear = tween<Float>(300, easing = LinearEasing)
     val fixture = cluster(pressed = GlassStyle { pressed { animate(linear, linear) { scale(0.9f) } } })
@@ -560,6 +643,7 @@ class GlassContainerInteractionTest : ContextTest() {
     assertThat(creations).isGreaterThan(0)
   }
 
+  private val linear300 = tween<Float>(300, easing = LinearEasing)
   private val lit = GlassStyle { pressed { lightingIntensity(1f) } }
   private val instantLit = GlassStyle { pressed { animate(snap(), snap()) { lightingIntensity(1f) } } }
 

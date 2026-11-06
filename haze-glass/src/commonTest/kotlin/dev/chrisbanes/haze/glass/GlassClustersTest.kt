@@ -346,6 +346,18 @@ class GlassClustersTest {
         .containsExactly(listOf(0), listOf(1), listOf(2))
     }
   }
+
+  @Test
+  fun clusterGlassMembers_grownPressedRect_joinsNeighbourBeyondRestGap() {
+    val layout = Rect(0f, 0f, 100f, 40f)
+    // A 1.2x press about the centre; the rest gap to the neighbour is 42.
+    val pressed = member(0, layout).copy(rect = Rect(-10f, -4f, 110f, 44f))
+    val neighbour = member(1, Rect(142f, 0f, 242f, 40f))
+
+    val grown = clusterGlassMembers(listOf(pressed, neighbour), 40f)
+    assertThat(grown.surfaces.single().members.map { it.identity }).containsExactly(0, 1)
+    assertThat(clusterGlassMembers(listOf(member(0, layout), neighbour), 40f).surfaces.size).isEqualTo(2)
+  }
 }
 
 private fun Rect.edges() = listOf(left, top, right, bottom)
