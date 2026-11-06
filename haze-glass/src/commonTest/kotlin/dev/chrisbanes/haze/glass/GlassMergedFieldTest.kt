@@ -96,7 +96,8 @@ class GlassMergedFieldTest {
       val fitted = CornerRadii(radius, 10f, 10f, radius, 1f, 1f, 1f, 1f).fitSmoothingTo(size)
       val members = listOf(
         member(Rect(Offset.Zero, size), fitted),
-        member(Rect(Offset(420f, 0f), size * 0.5f), fitted * 0.5f).copy(layoutRect = Rect(Offset(420f, 0f), size)),
+        // A pressed member: a scale that does not round-trip exactly through 1 / scale.
+        member(Rect(Offset(420f, 0f), size * 0.37f), fitted * 0.37f).copy(layoutRect = Rect(Offset(420f, 0f), size)),
       )
 
       assertThat(members.withExactCorners(), "height $height").isEqualTo(members)
