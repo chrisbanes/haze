@@ -512,6 +512,31 @@ class GlassRenderEffectKeysTest {
         base.copy(specularIntensity = 0f, edgeShadow = Color.Black.copy(alpha = 0.14f)),
       ).rimKey,
     ).isNotNull()
+    assertThat(
+      preparedRender(
+        base.copy(
+          specularIntensity = 0f,
+          edgeShadow = Color.Transparent,
+          rimHighlight = GlassRimHighlight(0.8f, 3f, 0f),
+        ),
+      ).rimKey,
+    ).isNotNull()
+  }
+
+  @Test
+  fun rimHighlightChange_invalidatesRimKeyOnly() {
+    val base = params()
+    val first = preparedRender(base)
+    val updated = preparedRender(
+      base.copy(rimHighlight = GlassRimHighlight(0.8f, 3f, 0f)),
+      previous = first,
+    )
+
+    assertThat(updated.opticalKey).isSameInstanceAs(first.opticalKey)
+    assertThat(updated.refractionDetailKey).isSameInstanceAs(first.refractionDetailKey)
+    assertThat(updated.blurKey).isSameInstanceAs(first.blurKey)
+    assertThat(updated.rimKey).isNotEqualTo(first.rimKey)
+    assertThat(updated.rimKey?.rimHighlight).isEqualTo(GlassRimHighlight(0.8f, 3f, 0f))
   }
 
   private fun preparedRender(params: GlassRenderParams, previous: GlassPreparedRender? = null) =

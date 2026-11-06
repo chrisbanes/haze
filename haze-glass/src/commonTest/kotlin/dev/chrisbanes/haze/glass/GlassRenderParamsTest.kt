@@ -1658,18 +1658,52 @@ class GlassRenderParamsTest {
 
   @Test
   fun hasGlassRim_isFalseWithoutSpecularOrShadow() {
-    assertThat(hasGlassRim(0f, Color.Transparent)).isFalse()
-    assertThat(hasGlassRim(0f, Color.Black.copy(alpha = 0f))).isFalse()
+    assertThat(hasGlassRim(0f, Color.Transparent, GlassRimHighlight.None)).isFalse()
+    assertThat(hasGlassRim(0f, Color.Black.copy(alpha = 0f), GlassRimHighlight.None)).isFalse()
   }
 
   @Test
   fun hasGlassRim_isTrueForSpecularOnly() {
-    assertThat(hasGlassRim(0.5f, Color.Transparent)).isTrue()
+    assertThat(hasGlassRim(0.5f, Color.Transparent, GlassRimHighlight.None)).isTrue()
   }
 
   @Test
   fun hasGlassRim_isTrueForShadowOnly() {
-    assertThat(hasGlassRim(0f, Color.Black.copy(alpha = 0.14f))).isTrue()
+    assertThat(hasGlassRim(0f, Color.Black.copy(alpha = 0.14f), GlassRimHighlight.None)).isTrue()
+  }
+
+  @Test
+  fun hasGlassRim_isTrueForRimHighlightOnly() {
+    assertThat(hasGlassRim(0f, Color.Transparent, GlassRimHighlight(0.8f, 3f, 0f))).isTrue()
+    assertThat(hasGlassRim(0f, Color.Transparent, GlassRimHighlight(0.8f, 0f, 1f))).isFalse()
+    assertThat(hasGlassRim(0f, Color.Transparent, GlassRimHighlight(0f, 3f, 1f))).isFalse()
+  }
+
+  @Test
+  fun buildGlassRenderParams_scalesRimHighlightWidthWithInput() {
+    val effect = GlassRuntimeEffect().apply {
+      style = style.then { rimHighlight(0.8f, 3.dp, 0.25f) }
+    }
+    val style = resolveGlassStyle(
+      effect = effect,
+      materialSizePx = Size(200f, 100f),
+      density = Density(2f),
+      layoutDirection = LayoutDirection.Ltr,
+    )
+
+    val params = buildGlassRenderParams(
+      style = style,
+      coordinates = resolveGlassCoordinates(
+        layerSize = Size(200f, 100f),
+        layerOffset = Offset.Zero,
+        materialSize = Size(200f, 100f),
+        scaleFactor = 0.5f,
+      ),
+    )
+
+    assertThat(style.rimHighlight).isEqualTo(GlassRimHighlight(0.8f, 6f, 0.25f))
+    assertThat(params.rimHighlight).isEqualTo(GlassRimHighlight(0.8f, 3f, 0.25f))
+    assertThat(params.rimEffectKey().rimHighlight).isEqualTo(GlassRimHighlight(0.8f, 3f, 0.25f))
   }
 
   private fun testRenderParams(

@@ -25,6 +25,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -32,6 +34,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape
@@ -45,6 +48,7 @@ import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
+import kotlin.math.abs
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -191,6 +195,50 @@ class GlassScreenshotTest : ScreenshotTest() {
     style = style.then { edgeShadow(Color.Transparent) }
     waitForIdle()
     captureRoot("disabled")
+  }
+
+  @Test
+  fun creditCard_rimHighlight() = runScreenshotTest {
+    var style by mutableStateOf(
+      GlassStyle {
+        tint(DefaultTint)
+        specularIntensity(0f)
+        edgeShadow(Color.Transparent)
+        rimHighlight(0.9f, 3.dp, 0f)
+      },
+    )
+    var density = 1f
+
+    setContent {
+      density = LocalDensity.current.density
+      ScreenshotTheme {
+        CreditCardGlassSample(style = style)
+      }
+    }
+
+    val sides0 = captureRootPixels()
+    captureRoot("sides0")
+    assertThat(sides0.cardEdgeLuminance(top = true, density) - sides0.cardEdgeLuminance(top = false, density))
+      .isGreaterThan(0.08f)
+
+    style = style.then { rimHighlight(0.9f, 3.dp, 1f) }
+    waitForIdle()
+    val sides1 = captureRootPixels()
+    captureRoot("sides1")
+    assertThat(abs(sides1.cardEdgeLuminance(top = true, density) - sides1.cardEdgeLuminance(top = false, density)))
+      .isLessThan(0.05f)
+  }
+
+  /** Luminance 1dp inside the top-centre or left-centre edge of [CreditCardGlassSample]'s card. */
+  private fun PixelMap.cardEdgeLuminance(top: Boolean, density: Float): Float {
+    val cardWidth = width * 0.7f
+    val cardHeight = cardWidth * 9f / 16f
+    val left = (width - cardWidth) / 2f
+    val cardTop = (height - cardHeight) / 2f
+    val inset = 1.5f * density
+    val x = if (top) width / 2f else left + inset
+    val y = if (top) cardTop + inset else height / 2f
+    return this[x.toInt(), y.toInt()].luminance()
   }
 
   @Test

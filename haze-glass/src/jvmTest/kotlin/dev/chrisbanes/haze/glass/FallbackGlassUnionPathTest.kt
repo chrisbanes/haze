@@ -29,6 +29,7 @@ import assertk.assertions.isLessThan
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import assertk.assertions.prop
+import kotlin.math.abs
 import kotlin.test.Test
 
 class FallbackGlassUnionPathTest {
@@ -221,6 +222,64 @@ class FallbackGlassUnionPathTest {
     assertThat(layers).isEmpty()
     assertThat(paths.exclusiveBuilt()).isTrue()
     assertThat(pixels[105, 30]).isEqualTo(pixels[75, 60])
+  }
+
+  @Test
+  fun rimHighlightBands_roundRect_verticalCoversTopAndBottomOnly() {
+    val shape = Path().apply { addRoundRect(CornerRadii(12f, 12f, 12f, 12f).toRoundRect(Size(100f, 60f))) }
+    val bands = fallbackRimHighlightBands(shape, widthPx = 3f)
+    val vertical = rasterize(bands.vertical)
+    val horizontal = rasterize(bands.horizontal)
+
+    assertThat(vertical, 50, 1).isFilled()
+    assertThat(vertical, 50, 58).isFilled()
+    assertThat(vertical, 1, 30).isEmpty()
+    assertThat(vertical, 50, 6).isEmpty()
+    assertThat(horizontal, 1, 30).isFilled()
+    assertThat(horizontal, 98, 30).isFilled()
+    assertThat(horizontal, 50, 1).isEmpty()
+  }
+
+  @Test
+  fun rimHighlightBands_mergedUnion_followsEachMemberTop() {
+    val union = FallbackMergedPaths(
+      field(member(Rect(20f, 20f, 120f, 100f)), member(Rect(110f, 50f, 210f, 130f))),
+    ).union
+    val vertical = rasterize(fallbackRimHighlightBands(union, widthPx = 3f).vertical)
+
+    assertThat(vertical, 70, 21).isFilled()
+    assertThat(vertical, 160, 51).isFilled()
+    assertThat(vertical, 70, 60).isEmpty()
+  }
+
+  @Test
+  fun rimHighlightBands_continuousCorners_followSmoothedEdge() {
+    val radii = CornerRadii(24f, 24f, 24f, 24f, 1f, 1f, 1f, 1f)
+    val shape = radii.toPath(Size(100f, 60f))
+    val bands = fallbackRimHighlightBands(shape, widthPx = 3f)
+    val vertical = rasterize(bands.vertical)
+    val outline = rasterize(shape)
+
+    assertThat(vertical, 50, 1).isFilled()
+    assertThat(vertical, 1, 30).isEmpty()
+    // The band follows the smoothed corners rather than the circular ones.
+    val circular = rasterize(fallbackRimHighlightBands(radii.withoutSmoothing().toPath(Size(100f, 60f)), widthPx = 3f).vertical)
+    assertThat((0 until 100).any { x -> (0 until 60).any { y -> abs(vertical[x, y].alpha - circular[x, y].alpha) > 0.5f } }).isTrue()
+    // The band covers no pixel outside the smoothed shape, including at its corners.
+    for (x in 0 until 100) {
+      for (y in 0 until 60) {
+        if (outline[x, y].alpha < 0.01f) assertThat(vertical, x, y).isEmpty()
+      }
+    }
+  }
+
+  @Test
+  fun rimHighlightBands_zeroWidth_isEmpty() {
+    val shape = Path().apply { addRoundRect(CornerRadii(12f, 12f, 12f, 12f).toRoundRect(Size(100f, 60f))) }
+    val bands = fallbackRimHighlightBands(shape, widthPx = 0f)
+
+    assertThat(bands.vertical.isEmpty).isTrue()
+    assertThat(bands.horizontal.isEmpty).isTrue()
   }
 
   private fun drawColours(paths: FallbackMergedPaths, layers: MutableList<Rect>, visible: Rect? = null): PixelMap =

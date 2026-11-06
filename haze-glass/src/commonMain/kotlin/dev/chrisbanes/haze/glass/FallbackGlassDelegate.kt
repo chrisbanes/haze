@@ -8,6 +8,7 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -150,6 +151,19 @@ internal class FallbackGlassDelegate(
         )
       }
 
+      val rimHighlightWidthPx = style.rimHighlight.widthPx
+      val rimHighlightBands = when {
+        !style.rimHighlight.isVisible || style.alpha <= 0f -> null
+        previous?.rimHighlightBands != null &&
+          previous.size == size &&
+          previous.shapePath === shapePath &&
+          previous.style.rimHighlight.widthPx == rimHighlightWidthPx -> previous.rimHighlightBands
+        else -> fallbackRimHighlightBands(
+          shape = shapePath ?: Path().apply { addRect(size.toRect()) },
+          widthPx = rimHighlightWidthPx,
+        )
+      }
+
       // The cluster runtime has no interaction source; each member carries its own light instead.
       val memberLightBrushes = style.mergedField?.takeIf { it.hasInteractionLighting }?.members?.map { member ->
         val alpha = 0.32f * member.lightIntensity * style.alpha
@@ -183,6 +197,7 @@ internal class FallbackGlassDelegate(
         interactionAlpha = interactionAlpha,
         interactionBrush = interactionBrush,
         memberLightBrushes = memberLightBrushes,
+        rimHighlightBands = rimHighlightBands,
       )
     }
 
@@ -322,6 +337,14 @@ internal class FallbackGlassDelegate(
             radius = prepared.highlightRadius,
             center = style.lightPosition,
           )
+        }
+      }
+
+      prepared.rimHighlightBands?.let { bands ->
+        val alpha = style.rimHighlight.intensity * style.alpha
+        drawPath(bands.vertical, Color.White, alpha = alpha)
+        if (style.rimHighlight.sides > 0f) {
+          drawPath(bands.horizontal, Color.White, alpha = alpha * style.rimHighlight.sides)
         }
       }
     }
@@ -520,6 +543,25 @@ private fun unionOf(paths: List<Path>): Path = paths.reduceOrNull { union, path 
   Path().apply { op(union, path, PathOperation.Union) }
 } ?: Path()
 
+internal class FallbackRimHighlightBands(
+  /** Bands along the top- and bottom-facing edges, thinning to nothing on vertical edges. */
+  val vertical: Path,
+  /** Bands along the left- and right-facing edges, excluding [vertical]. */
+  val horizontal: Path,
+)
+
+/** Approximates the runtime rim highlight with differences of [shape] and its translated copies. */
+internal fun fallbackRimHighlightBands(shape: Path, widthPx: Float): FallbackRimHighlightBands {
+  fun edge(dx: Float, dy: Float): Path = Path().apply {
+    op(shape, Path().apply { addPath(shape, Offset(dx, dy)) }, PathOperation.Difference)
+  }
+  val vertical = unionOf(listOf(edge(0f, widthPx), edge(0f, -widthPx)))
+  val horizontal = Path().apply {
+    op(unionOf(listOf(edge(widthPx, 0f), edge(-widthPx, 0f))), vertical, PathOperation.Difference)
+  }
+  return FallbackRimHighlightBands(vertical = vertical, horizontal = horizontal)
+}
+
 internal fun fallbackEdgeAlpha(ambientResponse: Float): Float = 0.18f * ambientResponse
 
 private const val FALLBACK_HARD_EDGE_SOFTNESS_PX = 2f
@@ -543,4 +585,5 @@ private data class FallbackGlassPreparedDraw(
   val interactionAlpha: Float,
   val interactionBrush: Brush?,
   val memberLightBrushes: List<Brush?>?,
+  val rimHighlightBands: FallbackRimHighlightBands?,
 )

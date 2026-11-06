@@ -176,6 +176,7 @@ package dev.chrisbanes.haze.glass {
     method public void optics(dev.chrisbanes.haze.glass.GlassOptics optics);
     method public void optics(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassOptics,dev.chrisbanes.haze.glass.GlassOptics> transform);
     method public void pressed(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> response);
+    method @KotlinOnly public void rimHighlight(float intensity, androidx.compose.ui.unit.Dp width, float sides);
     method public void shape(androidx.compose.foundation.shape.RoundedCornerShape shape);
     method public void shape(dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape shape);
     method public void specularExponent(float exponent);

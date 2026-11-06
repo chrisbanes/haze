@@ -590,6 +590,9 @@ internal object GlassShaders {
     uniform float specularExponent;
     uniform float edgeSoftness;
     uniform float2 lightPosition;
+    uniform float rimHighlightIntensity;
+    uniform float rimHighlightWidth;
+    uniform float rimHighlightSides;
 
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
@@ -619,7 +622,11 @@ internal object GlassShaders {
 
       float edgeWidth = max(edgeSoftness, sampleStep);
       float edge = 1.0 - smootherstep(clamp(-sd / max(edgeWidth, 0.0001), 0.0, 1.0));
-      if (edge <= 0.0) return vec4(0.0);
+      float highlightBand = 0.0;
+      if (rimHighlightIntensity > 0.0 && rimHighlightWidth > 0.0) {
+        highlightBand = 1.0 - smoothstep(max(rimHighlightWidth - sampleStep, 0.0), rimHighlightWidth, -sd);
+      }
+      if (edge <= 0.0 && highlightBand <= 0.0) return vec4(0.0);
       vec2 gradient = sdfGradient(localCoord);
       vec3 normal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
       vec2 lightDirection2D = safeNormalize(lightPosition - localCoord, vec2(0.0, -1.0));
@@ -630,6 +637,14 @@ internal object GlassShaders {
       float shadowAlpha = edgeShadow.a * edge;
       float alpha = specularAlpha + shadowAlpha * (1.0 - specularAlpha);
       vec3 color = vec3(specularAlpha) + edgeShadow.rgb * shadowAlpha * (1.0 - specularAlpha);
+      if (highlightBand > 0.0) {
+        // Top and bottom edges get full strength; left and right are scaled by rimHighlightSides.
+        vec2 edgeNormal = safeNormalize(-gradient, vec2(0.0, -1.0));
+        float weight = edgeNormal.y * edgeNormal.y + rimHighlightSides * edgeNormal.x * edgeNormal.x;
+        float highlight = clamp(rimHighlightIntensity * highlightBand * weight, 0.0, 1.0);
+        color = vec3(highlight) + color * (1.0 - highlight);
+        alpha = highlight + alpha * (1.0 - highlight);
+      }
       return alpha > 0.0 ? vec4(color, alpha) * coverage : vec4(0.0);
     }
   """

@@ -169,6 +169,9 @@ internal abstract class GlassRuntimeState {
   internal val contentNormalBlend: Float get() = inheritedStyleValues.contentNormalBlend
   internal val specularExponent: Float get() = inheritedStyleValues.specularExponent
   internal val fresnelExponent: Float get() = inheritedStyleValues.fresnelExponent
+  internal val rimHighlightIntensity: Float get() = inheritedStyleValues.rimHighlightIntensity
+  internal val rimHighlightWidth: Dp get() = inheritedStyleValues.rimHighlightWidth
+  internal val rimHighlightSides: Float get() = inheritedStyleValues.rimHighlightSides
 
   internal var style: GlassStyle = GlassStyle
     set(value) {
@@ -347,6 +350,13 @@ internal abstract class GlassRuntimeState {
     }
     if (old.chromaticAberrationMode != new.chromaticAberrationMode) {
       markDirty(GlassDirtyFields.ChromaticAberrationMode)
+    }
+    if (
+      old.rimHighlightIntensity != new.rimHighlightIntensity ||
+      old.rimHighlightWidth != new.rimHighlightWidth ||
+      old.rimHighlightSides != new.rimHighlightSides
+    ) {
+      markDirty(GlassDirtyFields.RimHighlight)
     }
   }
 

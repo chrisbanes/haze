@@ -50,7 +50,7 @@ import dev.chrisbanes.haze.glass.hazeGlassContainer
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import kotlin.math.abs
 
-internal enum class GlassContainerScene { Merged, Separate, MixedColours, MixedKeys, Overflow, Nested, InteractiveRest, InteractivePressed, Overlap, Grouped, InsetLazyRow }
+internal enum class GlassContainerScene { Merged, Separate, MixedColours, MixedKeys, Overflow, Nested, InteractiveRest, InteractivePressed, Overlap, Grouped, InsetLazyRow, RimHighlight }
 
 /** [fallback] asserts the fallback renderer's hard union, which draws no bridge. */
 internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerScene, fallback: Boolean = false) {
@@ -86,6 +86,13 @@ internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerSce
       }
     }
     GlassContainerScene.MixedKeys -> assertThat(pixels[149, 110]).isEqualTo(sceneBackground(149, 110))
+    GlassContainerScene.RimHighlight -> {
+      // Each member's top edge is lit, while its outer left side matches the interior.
+      for (x in listOf(90, 209)) {
+        assertThat(pixels[x, 61].luminance(), "top edge at x=$x").isGreaterThan(pixels[x, 100].luminance() + 0.1f)
+      }
+      assertThat(abs(pixels[41, 100].luminance() - pixels[90, 100].luminance())).isLessThan(0.03f)
+    }
     GlassContainerScene.Grouped -> {
       // The members are 120px apart, far beyond the merge distance, so only the group fills the gap.
       // The first member's red tint covers the whole group, including the second member's bounds.
@@ -294,6 +301,11 @@ private fun GlassContainerScreenshotScene(
           GlassContainerScene.Overlap -> {
             GlassContainerSceneMember(state, 40, 60, 100, 80, sceneStyle(Color.Red.copy(alpha = 0.5f)))
             GlassContainerSceneMember(state, 110, 80, 100, 80, sceneStyle(Color.Blue.copy(alpha = 0.5f)))
+          }
+          GlassContainerScene.RimHighlight -> {
+            val highlight = GlassStyle { rimHighlight(1f, 3.dp, 0f) }
+            GlassContainerSceneMember(state, 40, 60, 100, 80, sceneStyle(Color.Red).then(highlight))
+            GlassContainerSceneMember(state, 159, 60, 100, 80, sceneStyle(Color.Blue).then(highlight))
           }
           else -> {
             val mixed = scene == GlassContainerScene.MixedColours

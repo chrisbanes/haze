@@ -2474,6 +2474,9 @@ internal fun RuntimeShaderUniformProvider.setRimUniforms(
     key.lightPosition.x,
     key.lightPosition.y,
   )
+  setFloatUniform("rimHighlightIntensity", key.rimHighlight.intensity)
+  setFloatUniform("rimHighlightWidth", key.rimHighlight.widthPx)
+  setFloatUniform("rimHighlightSides", key.rimHighlight.sides)
   key.mergedField?.let { setMergedFieldUniforms(it, scratch = scratch) }
 }
 
