@@ -43,6 +43,7 @@ internal data class GlassMergeKey(
   /** Start/End light alignments resolve to opposite sides under different directions. */
   val layoutDirection: LayoutDirection,
   val alpha: Float,
+  val rimHighlight: GlassRimHighlight,
 )
 
 internal fun glassMergeKey(
@@ -59,6 +60,7 @@ internal fun glassMergeKey(
   material.chromaticAberrationStrength, material.chromaticAberrationMode,
   material.contrast, material.whitePoint, material.chromaMultiplier,
   material.contentNormalBlend, material.fresnelExponent, effect.lightPosition, layoutDirection, material.alpha,
+  material.rimHighlight,
 )
 
 /**

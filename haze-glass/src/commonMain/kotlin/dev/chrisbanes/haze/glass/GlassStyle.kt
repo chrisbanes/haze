@@ -346,6 +346,30 @@ public class GlassStyleScope internal constructor(
     values.edgeShadow = color
   }
 
+  /**
+   * Sets a thin, fixed-intensity light band drawn just inside the shape's edge, above content.
+   *
+   * The band is brightest on the top and bottom edges. [sides] scales the left and right edges
+   * relative to the top and bottom: `0f` lights only the top and bottom, `1f` lights every edge
+   * equally. Its distribution is independent of [lightPosition] and of the specular highlight.
+   * The band follows merged container shapes. Limited renderers approximate it.
+   *
+   * The default [intensity] is `0f`, which draws no band.
+   *
+   * @param intensity finite band opacity in the inclusive range `0f..1f`.
+   * @param width specified, finite, non-negative band width measured inward from the edge.
+   * @param sides finite left and right edge strength in the inclusive range `0f..1f`.
+   */
+  public fun rimHighlight(intensity: Float, width: Dp, sides: Float) {
+    val validatedIntensity =
+      requireFiniteInRange("rimHighlight.intensity", intensity, 0f..1f, UNIT_INTERVAL_DOMAIN)
+    val validatedWidth = requireSpecifiedFiniteNonNegative("rimHighlight.width", width)
+    val validatedSides = requireFiniteInRange("rimHighlight.sides", sides, 0f..1f, UNIT_INTERVAL_DOMAIN)
+    values.rimHighlightIntensity = validatedIntensity
+    values.rimHighlightWidth = validatedWidth
+    values.rimHighlightSides = validatedSides
+  }
+
   /** Sets finite ambient-light response in the inclusive range `0f..1f`. */
   public fun ambientResponse(response: Float) {
     val validated = requireFiniteInRange("ambientResponse", response, 0f..1f, UNIT_INTERVAL_DOMAIN)
@@ -524,6 +548,9 @@ internal class GlassStyleValues(
   var interactionPositionAnimationSpec: FiniteAnimationSpec<Offset> =
     GlassDefaults.interactionPositionAnimationSpec,
   var drawOutset: Dp = 0.dp,
+  var rimHighlightIntensity: Float = 0f,
+  var rimHighlightWidth: Dp = 0.dp,
+  var rimHighlightSides: Float = 0f,
 )
 
 internal fun resolveGlassStyleValues(

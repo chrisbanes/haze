@@ -233,6 +233,7 @@ internal data class GlassRenderParams(
   val edgeRefractionWidthPx: Float = -1f,
   /** Merged members in material-local working pixels, which replace the single rounded rect. */
   val mergedField: GlassMergedField? = null,
+  val rimHighlight: GlassRimHighlight = GlassRimHighlight.None,
 )
 
 internal data class GlassBlurEffectKey(
@@ -392,10 +393,29 @@ internal data class GlassRimEffectKey(
   val lightPosition: Offset,
   val sampleStepPx: Float,
   val mergedField: GlassMergedField? = null,
+  val rimHighlight: GlassRimHighlight = GlassRimHighlight.None,
 )
 
-internal fun hasGlassRim(specularIntensity: Float, edgeShadow: Color): Boolean =
-  specularIntensity > 0f || edgeShadow.alpha > 0f
+/** The `rimHighlight` band; [widthPx] is in the same pixel space as its owner's other sizes. */
+internal data class GlassRimHighlight(
+  val intensity: Float,
+  val widthPx: Float,
+  val sides: Float,
+) {
+  val isVisible: Boolean get() = intensity > 0f && widthPx > 0f
+
+  fun scaled(factor: Float): GlassRimHighlight = copy(widthPx = widthPx * factor)
+
+  companion object {
+    val None: GlassRimHighlight = GlassRimHighlight(intensity = 0f, widthPx = 0f, sides = 0f)
+  }
+}
+
+internal fun hasGlassRim(
+  specularIntensity: Float,
+  edgeShadow: Color,
+  rimHighlight: GlassRimHighlight,
+): Boolean = specularIntensity > 0f || edgeShadow.alpha > 0f || rimHighlight.isVisible
 
 internal fun GlassRenderParams.rimEffectKey() = GlassRimEffectKey(
   coordinates = coordinates,
@@ -407,6 +427,7 @@ internal fun GlassRenderParams.rimEffectKey() = GlassRimEffectKey(
   lightPosition = lightPosition,
   sampleStepPx = sampleStepPx,
   mergedField = mergedField?.withoutInteractions,
+  rimHighlight = rimHighlight,
 )
 
 internal data class GlassInteractionLightingKey(
@@ -493,6 +514,7 @@ internal data class ResolvedGlassStyle(
   val mergedField: GlassMergedField? = null,
   val fallbackBaseColor: Color? = null,
   val drawOutsetPx: Float = 0f,
+  val rimHighlight: GlassRimHighlight = GlassRimHighlight.None,
 )
 
 internal fun resolveGlassStyle(
@@ -544,6 +566,11 @@ internal fun resolveGlassStyle(
       null
     },
     drawOutsetPx = with(density) { effect.drawOutset.toPx() }.finiteOrZero().coerceAtLeast(0f),
+    rimHighlight = GlassRimHighlight(
+      intensity = effect.rimHighlightIntensity,
+      widthPx = with(density) { effect.rimHighlightWidth.toPx() }.finiteOrZero().coerceAtLeast(0f),
+      sides = effect.rimHighlightSides,
+    ),
   ).withAccessibility(
     settings = effect.accessibilitySettings,
     minimumBorderSoftnessPx = defaultEdgeSoftnessPx,
@@ -669,6 +696,7 @@ internal fun buildGlassRenderParams(
     } else {
       -1f
     },
+    rimHighlight = style.rimHighlight.scaled(scaleFactor),
   )
 }
 
@@ -696,7 +724,7 @@ internal fun buildGlassRetainedLayerPlan(
     nativeBlurActive = blurPlan?.usesNativeWideBlur == true,
     depthMixActive = blurActive && params.depth < 1f,
     refractionDetailActive = params.activeRefractionDetailEffectKey(params.refractionDetailIntensity) != null,
-    rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow),
+    rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight),
     interactionPatchSize = interactionPatchSize,
     interactionOpticsActive = interactionLayersActive && interactionTopology.hasOptics,
     interactionLightingActive = interactionLayersActive && interactionTopology.hasLighting,
@@ -929,7 +957,7 @@ internal fun buildGlassPreparedRender(
   val rimKey = if (previous != null && previous.params.hasSameRimEffectInputs(params)) {
     previous.rimKey
   } else {
-    params.rimEffectKey().takeIf { hasGlassRim(params.specularIntensity, params.edgeShadow) }
+    params.rimEffectKey().takeIf { hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight) }
   }
   val plan = if (
     previous != null && previous.hasSameRetainedLayerPlanInputs(
@@ -1062,7 +1090,8 @@ private fun GlassRenderParams.hasSameRimEffectInputs(other: GlassRenderParams): 
     cornerRadii == other.cornerRadii &&
     mergedField?.withoutInteractions == other.mergedField?.withoutInteractions &&
     lightPosition == other.lightPosition &&
-    sampleStepPx == other.sampleStepPx
+    sampleStepPx == other.sampleStepPx &&
+    rimHighlight == other.rimHighlight
 
 private fun GlassPreparedRender.hasSameRetainedLayerPlanInputs(
   params: GlassRenderParams,

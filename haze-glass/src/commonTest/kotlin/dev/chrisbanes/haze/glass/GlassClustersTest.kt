@@ -15,6 +15,7 @@ import assertk.assertions.containsExactly
 import assertk.assertions.isCloseTo
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import dev.chrisbanes.haze.HazeInput
@@ -180,6 +181,21 @@ class GlassClustersTest {
     val clearKey = glassMergeKey(HazeInput.Content, true, 0.5f, clear, clearMaterial, LayoutDirection.Ltr)
     assertThat(clusterGlassMembers(listOf(member(0), member(1).copy(key = clearKey)), 40f).surfaces.size)
       .isEqualTo(2)
+  }
+
+  @Test
+  fun mergeKey_differsByRimHighlight() {
+    val highlighted = material.copy(rimHighlight = GlassRimHighlight(0.8f, 3f, 0f))
+    val highlightedKey =
+      glassMergeKey(HazeInput.Content, true, 0.5f, effect, highlighted, LayoutDirection.Ltr)
+
+    assertThat(highlightedKey).isNotEqualTo(key)
+    assertThat(
+      clusterGlassMembers(
+        listOf(member(0), member(1).copy(key = highlightedKey, material = highlighted)),
+        40f,
+      ).surfaces.size,
+    ).isEqualTo(2)
   }
 
   @Test

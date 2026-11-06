@@ -105,7 +105,8 @@ private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): B
     specularExponent == other.specularExponent &&
     fresnelExponent == other.fresnelExponent &&
     cornerRadii == other.cornerRadii &&
-    mergedField == other.mergedField
+    mergedField == other.mergedField &&
+    rimHighlight == other.rimHighlight
 
 private fun ResolvedGlassStyle.hasSameBudgetParams(other: ResolvedGlassStyle): Boolean =
   requiresGlassGroupAlpha(alpha) == requiresGlassGroupAlpha(other.alpha) &&
@@ -120,8 +121,8 @@ private fun ResolvedGlassStyle.hasSameBudgetParams(other: ResolvedGlassStyle): B
     chromaticAberrationStrength == other.chromaticAberrationStrength &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
     drawOutsetPx == other.drawOutsetPx &&
-    hasGlassRim(specularIntensity, edgeShadow) ==
-    hasGlassRim(other.specularIntensity, other.edgeShadow)
+    hasGlassRim(specularIntensity, edgeShadow, rimHighlight) ==
+    hasGlassRim(other.specularIntensity, other.edgeShadow, other.rimHighlight)
 
 private val IdleInteractionState = GlassInteractionRenderState(Offset.Zero)
 private val IdleInteractionSignals = GlassInteractionSignals()
@@ -976,7 +977,7 @@ internal class GlassRuntimeEffect() :
       if (backdrop) {
         buildGlassBackdropLayerPlan(
           sampleSize = coordinates.sampleSize.roundToIntSize(),
-          rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow),
+          rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight),
           interactionPatchSize = interactionPatchSize,
           interactionLightingActive = interactionTopology.hasLighting,
         )
@@ -994,7 +995,7 @@ internal class GlassRuntimeEffect() :
           allowNativeWideBlur = allowNativeWideBlur,
           refractionDetailActive =
           params.activeRefractionDetailEffectKey(params.refractionDetailIntensity) != null,
-          rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow),
+          rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight),
           interactionPatchSize = interactionPatchSize,
           interactionOpticsActive = interactionTopology.hasOptics,
           interactionLightingActive = interactionTopology.hasLighting,

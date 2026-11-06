@@ -560,6 +560,52 @@ class GlassStyleTest {
   }
 
   @Test
+  fun rimHighlight_defaultsToNone() {
+    val styles = listOf(GlassStyle, GlassStyle.regular, GlassStyle.clear)
+    for (appearance in GlassSystemAppearance.entries) {
+      for (style in styles) {
+        val values = resolveGlassStyleValues(GlassStyle, style, appearance)
+        assertThat(values.rimHighlightIntensity).isEqualTo(0f)
+        assertThat(values.rimHighlightWidth).isEqualTo(0.dp)
+        assertThat(values.rimHighlightSides).isEqualTo(0f)
+      }
+    }
+  }
+
+  @Test
+  fun rimHighlight_rejectsInvalidValuesWhenEvaluated() {
+    val invalidUnit = listOf(Float.NaN, Float.NEGATIVE_INFINITY, -0.1f, 1.1f, Float.POSITIVE_INFINITY)
+    invalidUnit.forEach { invalid ->
+      assertEvaluationFailure("rimHighlight.intensity must be finite and in 0f..1f") {
+        rimHighlight(invalid, 3.dp, 0f)
+      }
+      assertEvaluationFailure("rimHighlight.sides must be finite and in 0f..1f") {
+        rimHighlight(0.5f, 3.dp, invalid)
+      }
+    }
+    listOf(Dp.Unspecified, Float.NaN.dp, Float.POSITIVE_INFINITY.dp, (-1).dp).forEach { invalid ->
+      assertEvaluationFailure("rimHighlight.width must be specified, finite, and non-negative") {
+        rimHighlight(0.5f, invalid, 0f)
+      }
+    }
+  }
+
+  @Test
+  fun rimHighlight_lastWriteWins() {
+    val values = resolveGlassStyleValues(
+      GlassStyle,
+      GlassStyle {
+        rimHighlight(0.2f, 1.dp, 1f)
+        rimHighlight(0.9f, 3.dp, 0.25f)
+      },
+    )
+
+    assertThat(values.rimHighlightIntensity).isEqualTo(0.9f)
+    assertThat(values.rimHighlightWidth).isEqualTo(3.dp)
+    assertThat(values.rimHighlightSides).isEqualTo(0.25f)
+  }
+
+  @Test
   fun tint_rejectsUnspecifiedWhenEvaluated() {
     assertEvaluationFailure("tint must be specified") { tint(Color.Unspecified) }
   }
