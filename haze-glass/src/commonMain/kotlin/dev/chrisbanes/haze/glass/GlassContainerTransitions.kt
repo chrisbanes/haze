@@ -1,6 +1,8 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(dev.chrisbanes.haze.InternalHazeApi::class)
+
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.animation.core.Animatable
@@ -93,7 +95,18 @@ internal fun resolveGlassNeighbour(
     .sortedWith(compareBy({ !it.isGroupedWith(member) }, { it.gap() }))
     .firstOrNull { candidate ->
       val probe = ordered.map {
-        if (it.identity === member.identity) it.copy(rect = candidate.rect, layoutRect = candidate.layoutRect, key = candidate.key, link = candidate.identity) else it
+        if (it.identity === member.identity) {
+          it.copy(
+            rect = candidate.rect,
+            layoutRect = candidate.layoutRect,
+            key = candidate.key,
+            link = candidate.identity,
+            interactionTransform = candidate.interactionTransform,
+            transformPivot = candidate.transformPivot,
+          )
+        } else {
+          it
+        }
       }
       clusterGlassMembers(probe, mergeDistancePx).surfaces.any { cluster ->
         cluster.members.any { it.identity === member.identity } && cluster.members.any { it.identity === candidate.identity } &&

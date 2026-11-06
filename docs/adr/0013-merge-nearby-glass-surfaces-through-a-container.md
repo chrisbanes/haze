@@ -219,7 +219,11 @@ shrinks.
 
 - **Bounds.** A grown surface draws beyond its layout bounds automatically, without
   `expandLayerBounds`. At rest, a cluster's bounds already reserve each member's largest grown rect
-  ([#1739](https://github.com/chrisbanes/haze/issues/1739)).
+  ([#1739](https://github.com/chrisbanes/haze/issues/1739)). A group's bounds also reserve its
+  layout union grown by its members' largest scale about the group pivot, so a pressed group's
+  surface stays put.
 - **Merging.** Clustering measures gaps on each member's pressed rect, so a grown member merges
-  with neighbours within `mergeDistance` of its grown rect, and leaves the cluster on release.
+  with neighbours within `mergeDistance` of its grown rect, and leaves the cluster on release. A
+  group merges by its drawn group rect: its layout union scaled about the pressed member's pivot,
+  mapped into the group.
 - **Transitions.** Transition-neighbour checks keep using rest (layout) geometry.

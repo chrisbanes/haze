@@ -7,10 +7,12 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.LayoutDirection
+import dev.chrisbanes.haze.HazeEffectContentTransform
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.Poko
@@ -76,6 +78,8 @@ internal fun glassMergeKey(
  * member's, as its [layoutRect] is its drawn rect.
  * [groupKey] is the member's declared Glass group, and [shape] its rounded-corner shape; a group
  * draws with its first member's.
+ * [interactionTransform] is the member-local transform [rect] was computed from, null at identity,
+ * and [transformPivot] its pivot; a group scales with them (see [glassGroupTransform]).
  */
 internal data class GlassMemberSnapshot(
   val identity: Any,
@@ -90,6 +94,8 @@ internal data class GlassMemberSnapshot(
   val sampleLayoutRect: Rect = layoutRect,
   val groupKey: Any? = null,
   val shape: CornerBasedShape? = null,
+  val interactionTransform: HazeEffectContentTransform? = null,
+  val transformPivot: GlassTransformPivot = GlassTransformPivot.Pointer,
 )
 
 /** Whether two members declare the same Glass group. */
@@ -128,6 +134,33 @@ internal fun glassOpticalSize(sizes: List<Size>): Size? = sizes
 /** Bounding box of a non-empty collection of rects. */
 internal fun Iterable<Rect>.union(): Rect = reduce { a, b ->
   Rect(minOf(a.left, b.left), minOf(a.top, b.top), maxOf(a.right, b.right), maxOf(a.bottom, b.bottom))
+}
+
+/** The member a Glass group scales with, and that member's transform in the group's frame. */
+internal class GlassGroupTransform(val member: GlassMemberSnapshot, val transform: HazeEffectContentTransform)
+
+/**
+ * A Glass group scales with the member whose transform deviates most from identity, so a member
+ * still settling after a release never hides a newer press. It scales about that member's pivot,
+ * mapped into the frame of the group's layout union.
+ */
+internal fun List<GlassMemberSnapshot>.glassGroupTransform(): GlassGroupTransform? {
+  val (member, transform) = mapNotNull { member -> member.interactionTransform?.let { member to it } }
+    .maxByOrNull { (_, transform) -> maxOf(abs(1f - transform.scaleX), abs(1f - transform.scaleY)) }
+    ?: return null
+  val union = map { it.layoutRect }.union()
+  val pivot = if (member.transformPivot == GlassTransformPivot.Center) {
+    Offset(union.width / 2f, union.height / 2f)
+  } else {
+    member.layoutRect.topLeft - union.topLeft + transform.pivot
+  }
+  return GlassGroupTransform(member, HazeEffectContentTransform(transform.scaleX, transform.scaleY, pivot))
+}
+
+/** The rect a Glass group draws over: its layout union, scaled by [glassGroupTransform]. */
+internal fun List<GlassMemberSnapshot>.glassGroupRect(): Rect {
+  val union = map { it.layoutRect }.union()
+  return glassGroupTransform()?.let { union.transformedBy(it.transform) } ?: union
 }
 
 /** Euclidean distance between closest rectangle points, including diagonal gaps. */
@@ -182,7 +215,11 @@ internal fun clusterGlassMembers(
   // Clustering works on units: gaps use a unit's bounds, a member's link counts for its whole unit,
   // and the cap and the consecutive-run split count units.
   val units = formGlassGroupUnits(valid)
-  val unitRects = units.map { unit -> unit.map { it.rect }.union() }
+  // A group draws scaled about its pressed member's pivot, so a grown group reaches past its
+  // members' own rects; a shrunk one stays inside them, keeping their union.
+  val unitRects = units.map { unit ->
+    if (unit.size == 1) unit.single().rect else (unit.map { it.rect } + unit.glassGroupRect()).union()
+  }
   val remaining = units.indices.toMutableList()
   val surfaces = mutableListOf<GlassCluster>()
   val overflow = mutableListOf<GlassClusterOverflow>()

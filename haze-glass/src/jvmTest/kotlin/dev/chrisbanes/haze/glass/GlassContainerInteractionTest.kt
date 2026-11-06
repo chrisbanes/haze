@@ -553,6 +553,64 @@ class GlassContainerInteractionTest : ContextTest() {
   }
 
   @Test
+  fun pressedGroup_clusterSurfaceStableThroughPress_runtime() = assertPressedGroupSurfaceStable(unavailable = false)
+
+  @Test
+  fun pressedGroup_clusterSurfaceStableThroughPress_fallback() = assertPressedGroupSurfaceStable(unavailable = true)
+
+  private fun assertPressedGroupSurfaceStable(unavailable: Boolean) = runComposeUiTest {
+    val fixture = groupedCluster(neighbourLeft = null, unavailable = unavailable)
+    val runtime = fixture.owner().renderer.runtimeSurfaces.single()
+    // The group union 80..380 x 60..140 reserves its 1.2x Center growth, 50..410 x 52..148, inside a
+    // 40px merge distance.
+    val origin = Offset(10f, 12f)
+    val surface = Rect(10f, 12f, 450f, 188f)
+    assertThat(runtime.surfaceOrigin).isCloseTo(origin)
+    val sampleSize = runtime.preparedRender?.params?.coordinates?.sampleSize
+    mainClock.autoAdvance = false
+    runBlocking { fixture.firstSource.emit(PressInteraction.Press(Offset(25f, 40f))) }
+    mainClock.advanceTimeByFrame()
+    val width = fixture.field().members.single().rect.width
+    repeat(10) {
+      mainClock.advanceTimeByFrame()
+      fixture.capture()
+      val current = fixture.owner().renderer.runtimeSurfaces.single()
+      assertThat(current.surfaceOrigin).isCloseTo(origin)
+      assertThat(current.preparedRender?.params?.coordinates?.sampleSize).isEqualTo(sampleSize)
+      val rect = fixture.field().members.single().rect
+      assertThat(rect.left).isGreaterThanOrEqualTo(-0.01f)
+      assertThat(rect.top).isGreaterThanOrEqualTo(-0.01f)
+      assertThat(rect.right).isLessThanOrEqualTo(surface.width + 0.01f)
+      assertThat(rect.bottom).isLessThanOrEqualTo(surface.height + 0.01f)
+    }
+    assertThat(fixture.field().members.single().rect.width).isGreaterThan(width)
+    mainClock.autoAdvance = true
+    waitForIdle()
+  }
+
+  @Test
+  fun pressedGroup_joinsNeighbourAtDrawnGap_runtime() = assertPressedGroupJoinsNeighbour(unavailable = false)
+
+  @Test
+  fun pressedGroup_joinsNeighbourAtDrawnGap_fallback() = assertPressedGroupJoinsNeighbour(unavailable = true)
+
+  private fun assertPressedGroupJoinsNeighbour(unavailable: Boolean) = runComposeUiTest {
+    // The neighbour at 435 is 55 from the group's rest union (380), and from the pressed member's own
+    // grown rect (75..135); the grown group draws to 410, a gap of 25.
+    val fixture = groupedCluster(neighbourLeft = 435, unavailable = unavailable)
+    assertThat(fixture.owner().model.surfaces).hasSize(2)
+    val press = fixture.press(fixture.firstSource, Offset(25f, 40f))
+    assertThat(fixture.owner().model.surfaces.single().members).hasSize(3)
+    if (unavailable) {
+      fixture.assertFallback()
+    } else {
+      assertThat(fixture.field().members).hasSize(2)
+    }
+    fixture.release(fixture.firstSource, press)
+    assertThat(fixture.owner().model.surfaces).hasSize(2)
+  }
+
+  @Test
   fun shrinkOnlyCluster_boundsUnchanged() = runComposeUiTest {
     val linear = tween<Float>(300, easing = LinearEasing)
     val fixture = cluster(pressed = GlassStyle { pressed { animate(linear, linear) { scale(0.9f) } } })
@@ -782,6 +840,58 @@ class GlassContainerInteractionTest : ContextTest() {
     }
     waitForIdle()
     return ClusterFixture(this, first, second, firstSource, secondSource, gapState)
+  }
+
+  /**
+   * A 50-wide member at 80 and a 100-wide member at 280 in one Glass group, both pressing to 1.2x
+   * about the Center, and an optional ungrouped neighbour at [neighbourLeft].
+   */
+  private fun ComposeUiTest.groupedCluster(neighbourLeft: Int?, unavailable: Boolean = false): ClusterFixture {
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    val neighbour = GlassRuntimeEffect()
+    if (unavailable) {
+      listOf(first, second, neighbour).forEach { effect ->
+        effect.runtimeEffectFactory = GlassRuntimeEffectFactory { throw RuntimeShaderRenderEffectException(IllegalStateException("test unavailable runtime")) }
+      }
+    }
+    val firstSource = MutableInteractionSource()
+    val secondSource = MutableInteractionSource()
+    val neighbourSource = MutableInteractionSource()
+    val pressed = GlassStyle { pressed { animate(linear300, linear300) { scale(1.2f) } } }
+    val state = HazeState()
+    setContent {
+      Box(Modifier.size(560.dp, 240.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(560.dp, 240.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(560.dp, 240.dp).hazeGlassContainer(40.dp)) {
+          Box(
+            Modifier.offset(80.dp, 60.dp).size(50.dp, 80.dp).hazeGlass(
+              HazeEffectFactory { first }, HazeInput.Sources(state), containerTestStyle(Color.Red).then(pressed),
+              HazePerformanceMode.Quality, true, firstSource, GlassTransformTarget.MaterialOnly, GlassTransformPivot.Center,
+              GlassReducedMotionPolicy.Full, groupKey = "group",
+            ),
+          )
+          Box(
+            Modifier.offset(280.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(
+              HazeEffectFactory { second }, HazeInput.Sources(state), containerTestStyle(Color.Red).then(pressed),
+              HazePerformanceMode.Quality, true, secondSource, GlassTransformTarget.MaterialOnly, GlassTransformPivot.Center,
+              GlassReducedMotionPolicy.Full, groupKey = "group",
+            ),
+          )
+          if (neighbourLeft != null) {
+            Box(
+              Modifier.offset(neighbourLeft.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(
+                HazeEffectFactory { neighbour }, HazeInput.Sources(state), containerTestStyle(Color.Blue).then(pressed),
+                HazePerformanceMode.Quality, true, neighbourSource, GlassTransformTarget.MaterialOnly,
+                GlassTransformPivot.Center, GlassReducedMotionPolicy.Full,
+              ),
+            )
+          }
+        }
+      }
+    }
+    waitForIdle()
+    return ClusterFixture(this, first, second, firstSource, secondSource, mutableIntStateOf(0))
   }
 }
 
