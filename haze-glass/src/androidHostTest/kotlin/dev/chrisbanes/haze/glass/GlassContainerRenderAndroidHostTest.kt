@@ -100,10 +100,7 @@ class GlassContainerRenderAndroidHostTest : ScreenshotTest() {
   private fun assertClusterRimHighlight(continuous: Boolean) = runScreenshotTest(size = Size(360f, 240f)) {
     val state = HazeState()
     val effects = List(2) { GlassRuntimeEffect() }
-    val highlighted = style(Color.Blue).then {
-      if (continuous) shape(ContinuousRoundedCornerShape(16.dp))
-      rimHighlight(1f, 3.dp, 0f)
-    }
+    val highlighted = style(Color.Blue, continuous).then { rimHighlight(1f, 3.dp, 0f) }
     setContent {
       Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
         Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))

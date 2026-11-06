@@ -29,6 +29,7 @@ import assertk.assertions.isLessThan
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import assertk.assertions.prop
+import kotlin.math.abs
 import kotlin.test.Test
 
 class FallbackGlassUnionPathTest {
@@ -261,6 +262,9 @@ class FallbackGlassUnionPathTest {
 
     assertThat(vertical, 50, 1).isFilled()
     assertThat(vertical, 1, 30).isEmpty()
+    // The band follows the smoothed corners rather than the circular ones.
+    val circular = rasterize(fallbackRimHighlightBands(radii.withoutSmoothing().toPath(Size(100f, 60f)), widthPx = 3f).vertical)
+    assertThat((0 until 100).any { x -> (0 until 60).any { y -> abs(vertical[x, y].alpha - circular[x, y].alpha) > 0.5f } }).isTrue()
     // The band covers no pixel outside the smoothed shape, including at its corners.
     for (x in 0 until 100) {
       for (y in 0 until 60) {

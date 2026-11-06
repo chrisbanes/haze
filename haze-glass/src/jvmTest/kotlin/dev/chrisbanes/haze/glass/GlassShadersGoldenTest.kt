@@ -9,7 +9,8 @@ import java.security.MessageDigest
 import kotlin.test.Test
 
 /**
- * Pins the circular shader sources, which must stay identical to those before continuous corners.
+ * Pins the circular shader sources, which must stay identical to those before continuous corners,
+ * apart from the rim sources, which gained the rim highlight afterwards.
  * Pixel and profile regressions cover their rendering behavior.
  */
 class GlassShadersGoldenTest {

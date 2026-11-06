@@ -40,6 +40,9 @@ class GlassRimHighlightShaderTest {
     val key = highlightKey(sides = 0f).copy(cornerRadii = CornerRadii(18f, 18f, 18f, 18f, 1f, 1f, 1f, 1f))
     val pixels = draw(key)
 
+    // The band follows the smoothed corners rather than the circular ones.
+    assertThat(maxChannelDifference(pixels, draw(highlightKey(sides = 0f)))).isGreaterThan(0.1f)
+
     assertThat(pixels[64, 7].alpha).isGreaterThan(0.6f)
     assertThat(pixels[64, 88].alpha).isGreaterThan(0.6f)
     assertThat(pixels[9, 48].alpha).isLessThan(0.02f)
