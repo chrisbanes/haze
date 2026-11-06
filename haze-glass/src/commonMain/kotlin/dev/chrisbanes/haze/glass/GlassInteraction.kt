@@ -88,7 +88,8 @@ public sealed interface GlassInteractionScope {
   /**
    * Sets finite horizontal and vertical scales in `0f < value <= 1.2f`. Values above `1` grow the
    * surface, which then draws beyond its layout bounds with no `expandLayerBounds` opt-in. In a
-   * [hazeGlassContainer], the grown rect counts toward merging with nearby members.
+   * [hazeGlassContainer], a member with equal scales counts its grown rect toward merging with
+   * nearby members; unequal scales draw it on its own.
    */
   public fun scale(scaleX: Float, scaleY: Float)
 

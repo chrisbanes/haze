@@ -432,11 +432,10 @@ class GlassContainerInteractionTest : ContextTest() {
   fun grownPressedMember_clusterSurfaceStableAndUnclipped_fallback() = assertGrownPressedMemberStable(unavailable = true)
 
   private fun assertGrownPressedMemberStable(unavailable: Boolean) = runComposeUiTest {
-    val linear = tween<Float>(300, easing = LinearEasing)
     val fixture = cluster(
       gap = 0,
       mergeDistance = 2,
-      pressed = GlassStyle { pressed { animate(linear, linear) { scale(1.2f) } } },
+      pressed = GlassStyle { pressed { animate(linear300, linear300) { scale(1.2f) } } },
       unavailable = unavailable,
     )
     val idle = fixture.capture()
@@ -528,7 +527,8 @@ class GlassContainerInteractionTest : ContextTest() {
    * once. Returns the facing-edge region's frame-to-frame differences before, at and after the
    * join frame.
    */
-  private fun ClusterFixture.frameDifferencesAcrossJoin(frames: Int = 24): Triple<Float, Float, Float> {
+  private fun ClusterFixture.frameDifferencesAcrossJoin(): Triple<Float, Float, Float> {
+    val frames = 24
     var previous = capture()
     var count = owner().model.surfaces.size
     assertThat(count).isEqualTo(2)

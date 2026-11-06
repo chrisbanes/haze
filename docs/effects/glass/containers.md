@@ -167,8 +167,8 @@ never changes a member's z-order.
 Interaction responses work as described in [Glass interaction](index.md#interaction), applied to
 the member's own part of the merged shape: pressing a member scales and lights only that part. In a
 [group](#groups), pressing any member scales and lights the whole group. A uniform pressed `scale`
-does not split the cluster. A member pressed to a `scale` above `1` merges with neighbours within the merge
-distance of its grown shape, and leaves the cluster again on release.
+does not split the cluster. A member pressed to a uniform `scale` above `1` merges with neighbours
+within the merge distance of its grown shape, and leaves the cluster again on release.
 
 ## Transitions
 
