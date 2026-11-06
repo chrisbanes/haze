@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.toPixelMap
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.hasMessage
+import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
@@ -65,26 +67,47 @@ class GlassDrawOutsideBoundsTest {
   fun drawOutset_inflatesClipAndGroupComposite_fallback() = assertDrawOutsetInflatesComposite(fallback = true)
 
   private fun assertDrawOutsetInflatesComposite(fallback: Boolean) {
-    lateinit var baseline: PixelMap
-    runComposeUiTest { baseline = surface(GlassStyle { alpha(0.5f) }, fallback).capture() }
-    runComposeUiTest {
-      val fixture = surface(
-        GlassStyle {
-          drawOutset(6.dp)
-          alpha(0.5f)
-        },
-        fallback,
-      )
+    // A green bar 4px wide just left of the node, inside a 6px outset but outside the node.
+    val previousDraw = glassOutsetDrawForTest
+    glassOutsetDrawForTest = { drawRect(Color.Green, topLeft = Offset(-4f, 30f), size = Size(4f, 20f)) }
+    try {
+      lateinit var baseline: PixelMap
+      runComposeUiTest { baseline = surface(GlassStyle { alpha(0.5f) }, fallback).capture() }
+      runComposeUiTest {
+        val fixture = surface(
+          GlassStyle {
+            drawOutset(6.dp)
+            alpha(0.5f)
+          },
+          fallback,
+        )
 
-      assertThat(fixture.effect.nodeClipOutsetPx()).isEqualTo(6f)
-      if (fallback) {
-        val delegate = fixture.effect.lastDrawDelegateForTest as FallbackGlassDelegate
-        assertThat(delegate.groupAlphaSizeForTest).isEqualTo(IntSize(112, 92))
-      } else {
-        assertThat(checkNotNull(fixture.effect.preparedRender).groupCompositeSize).isEqualTo(IntSize(112, 92))
+        assertThat(fixture.effect.nodeClipOutsetPx()).isEqualTo(6f)
+        if (fallback) {
+          val delegate = fixture.effect.lastDrawDelegateForTest as FallbackGlassDelegate
+          assertThat(delegate.groupAlphaSizeForTest).isEqualTo(IntSize(112, 92))
+        } else {
+          assertThat(checkNotNull(fixture.effect.preparedRender).groupCompositeSize).isEqualTo(IntSize(112, 92))
+        }
+        val capture = fixture.capture()
+        // Without an outset the bar is clipped away, leaving the white stripe behind it.
+        assertThat(baseline[98, 120]).isEqualTo(Color.White)
+        // With one, it survives the clip and the composite at the group alpha: green over white.
+        val outset = capture[98, 120]
+        assertThat(outset.red).isCloseTo(0.5f, 0.05f)
+        assertThat(outset.green).isCloseTo(1f, 0.05f)
+        assertThat(outset.blue).isCloseTo(0.5f, 0.05f)
+        // A misplaced composite would shift the material within the node, and nothing else may
+        // leak into the outset ring around it.
+        assertThat(regionDifference(capture, baseline, 100, 80, 200, 160)).isLessThan(1f / 255f)
+        assertThat(regionDifference(capture, baseline, 94, 74, 206, 80)).isLessThan(1f / 255f)
+        assertThat(regionDifference(capture, baseline, 94, 160, 206, 166)).isLessThan(1f / 255f)
+        assertThat(regionDifference(capture, baseline, 94, 80, 100, 108)).isLessThan(1f / 255f)
+        assertThat(regionDifference(capture, baseline, 94, 132, 100, 160)).isLessThan(1f / 255f)
+        assertThat(regionDifference(capture, baseline, 200, 80, 206, 160)).isLessThan(1f / 255f)
       }
-      // Nothing draws in the outset yet, so a misplaced composite would shift the material.
-      assertThat(regionDifference(fixture.capture(), baseline, 90, 70, 210, 170)).isLessThan(1f / 255f)
+    } finally {
+      glassOutsetDrawForTest = previousDraw
     }
   }
 

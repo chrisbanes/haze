@@ -82,6 +82,13 @@ internal inline fun DrawScope.withLayerPaint(
 internal var glassLayerBoundsForTest: ((Rect) -> Unit)? = null
 
 /**
+ * Drawn in node space inside the node-bounds clip after each completed runtime layer (the material,
+ * within any group alpha, and the rim, outside it) and after the fallback material, so tests can
+ * draw into the draw outset before a public feature does.
+ */
+internal var glassOutsetDrawForTest: (DrawScope.() -> Unit)? = null
+
+/**
  * The part of this rect within [visible], rounded out to whole pixels, or [Rect.Zero] when they
  * do not overlap. A null [visible] returns this rect unchanged.
  */

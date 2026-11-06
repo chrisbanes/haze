@@ -1618,6 +1618,7 @@ internal class RuntimeShaderGlassDelegate(
       ) {
         drawLayer(layer)
       }
+      glassOutsetDrawForTest?.invoke(this)
     }
   }
 

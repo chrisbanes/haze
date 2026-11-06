@@ -257,6 +257,7 @@ internal class FallbackGlassDelegate(
             shapePath = shapePath,
           )
         }
+        glassOutsetDrawForTest?.invoke(this)
       }
 
       when {
