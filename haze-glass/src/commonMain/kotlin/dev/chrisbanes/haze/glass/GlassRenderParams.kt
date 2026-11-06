@@ -395,6 +395,7 @@ internal data class GlassRimEffectKey(
   val sampleStepPx: Float,
   val mergedField: GlassMergedField? = null,
   val rimHighlight: GlassRimHighlight = GlassRimHighlight.None,
+  val edgeOutline: GlassEdgeOutline = GlassEdgeOutline.None,
 )
 
 /** The `rimHighlight` band; [widthPx] is in the same pixel space as its owner's other sizes. */

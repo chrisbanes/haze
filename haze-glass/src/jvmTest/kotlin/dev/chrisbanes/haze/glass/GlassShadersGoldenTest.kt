@@ -10,7 +10,7 @@ import kotlin.test.Test
 
 /**
  * Pins the circular shader sources, which must stay identical to those before continuous corners,
- * apart from the rim sources, which gained the rim highlight afterwards.
+ * apart from the rim sources, which gained the rim highlight and edge outline afterwards.
  * Pixel and profile regressions cover their rendering behavior.
  */
 class GlassShadersGoldenTest {
@@ -54,14 +54,14 @@ class GlassShadersGoldenTest {
 
   private companion object {
     // Recorded from the circular sources of main, before continuous corners were added. The rim
-    // sources were re-recorded when the rim highlight was added.
+    // sources were re-recorded when the rim highlight and edge outline were added.
     val ADDITIONAL_RECORDED = mapOf(
       "fused-merged" to "242cdc692d980cff473a2e089370a302bd8575d3ae0e59de9aef725f8424e5ed",
       "fused-merged-no-detail" to "4fd26f10692853d21bc133453785ff04b6447bd3780b83d6f73aa2fc0a894dc6",
       "optical-merged" to "5f9e5024fc247622700378821355046d30a5da534a48261fcb5e382b945f836f",
       "detail-merged" to "21f315ab287af09897300a94ff5866e8a3a9c61fe45b1ac20ab623989f701d60",
       "detail-merged-coverage" to "dd5b0f4913bdded15398addd1b083026a3fb45e8afb15b24f759d17e9604143b",
-      "rim-merged" to "b5d1fac3f1f311c02b40291120fc9003a51265b56e0651b32a4b37d098407920",
+      "rim-merged" to "ea0eda097197102c35f7a84c1c33c511613adae5db6cc92b08b3b613c9b12e90",
       "lighting" to "d956b1c8f406d634b73f8d3db694422582afe99427ae71a354073dcb06e53e24",
       "lighting-merged" to "d1320d53329be3a08f838438c6d663bf0d0cfcb463ee76149bafbf8f723e750b",
       "merged-background" to "541da6d9a6b17f07e4b97cf3018d196acf23963184848a9eca213d2732325221",
@@ -78,7 +78,7 @@ class GlassShadersGoldenTest {
       "detail-coverage" to "4d835b4c6039dff868a024c3bccc9edb4ac28135830b757dac690e942b1fb950",
       "detail-interactive" to "16052b1e27e9494c1d7c3596074682e5f16cc4a1fc743151e804d8dedebd4972",
       "detail-interactive-coverage" to "03d2bde609e92cf53438759b90a99ecfa4597df91610be182e81c7a77d0b9d35",
-      "rim" to "78f5adb261ed6ccf79beba3bba0c3afab286db6342b1a0626a4ba6be6df8a1d2",
+      "rim" to "fbbbc7106f46b7cc5d00ad4e6ea679ac2a90c8dc7028037eae88b4fdf3ace395",
     )
   }
 }
