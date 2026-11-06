@@ -76,7 +76,7 @@ class GlassShadersGoldenTest {
       "detail-coverage" to "4d835b4c6039dff868a024c3bccc9edb4ac28135830b757dac690e942b1fb950",
       "detail-interactive" to "16052b1e27e9494c1d7c3596074682e5f16cc4a1fc743151e804d8dedebd4972",
       "detail-interactive-coverage" to "03d2bde609e92cf53438759b90a99ecfa4597df91610be182e81c7a77d0b9d35",
-      "rim" to "a9421e44d2b009b121cd7172715e3bbe1268b4d6ad381612043f03be7390021a",
+      "rim" to "78f5adb261ed6ccf79beba3bba0c3afab286db6342b1a0626a4ba6be6df8a1d2",
     )
   }
 }

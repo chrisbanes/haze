@@ -91,6 +91,35 @@ class GlassContainerRenderAndroidHostTest : ScreenshotTest() {
 
   @Test
   @Config(sdk = [35])
+  fun sdk35_clusterRimHighlightDrawsTopEdgeNotSides() = runScreenshotTest(size = Size(360f, 240f)) {
+    val state = HazeState()
+    val effects = List(2) { GlassRuntimeEffect() }
+    val highlighted = style(Color.Blue).then(GlassStyle { rimHighlight(1f, 3.dp, 0f) })
+    setContent {
+      Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
+        Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp)) {
+          effects.forEachIndexed { index, effect ->
+            Box(
+              Modifier.offset((40 + index * 110).dp, 60.dp).size(100.dp, 80.dp)
+                .hazeGlass(HazeEffectFactory { effect }, HazeInput.Sources(state), highlighted, HazePerformanceMode.Balanced, true, null),
+            )
+          }
+        }
+      }
+    }
+    val pixels = captureRootPixels()
+    val bounds = onNodeWithTag("root").fetchSemanticsNode().boundsInRoot
+    fun at(x: Float, y: Float) = pixels[(bounds.left + x * bounds.width / 360f).roundToInt(), (bounds.top + y * bounds.height / 240f).roundToInt()]
+    val owner = checkNotNull(effects.first().memberBindingForTest?.node?.container)
+    assertThat(owner.renderer.runtimeSurfaces.size).isEqualTo(1)
+    // A blank frame here means the merged rim exceeded the SDK 35 shader budget.
+    assertThat(at(90f, 100f).blue).isGreaterThan(0.9f)
+    assertThat(at(90f, 61f).luminance() - at(41f, 100f).luminance()).isGreaterThan(0.1f)
+  }
+
+  @Test
+  @Config(sdk = [35])
   fun sdk35_pressedMergedMembers_drawPerMemberLighting() = assertPressedLighting()
 
   @Test
