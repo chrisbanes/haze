@@ -169,6 +169,8 @@ class GlassDrawOutsideBoundsTest {
       assertThat(fixture.effect.shouldPreferClipToInputBounds()).isTrue()
     }
     for (expandLayerBounds in listOf(false, true)) {
+      lateinit var baseline: PixelMap
+      runComposeUiTest { baseline = surface(square, fallback, expandLayerBounds, sourceMatchesNode = true).capture() }
       runComposeUiTest {
         val fixture = surface(
           square.then { edgeOutline(Color.Green, 4.dp) },
@@ -177,9 +179,15 @@ class GlassDrawOutsideBoundsTest {
           sourceMatchesNode = true,
         )
         assertThat(fixture.effect.shouldClipToNodeBounds()).isFalse()
+        assertThat(fixture.effect.shouldPreferClipToInputBounds()).isFalse()
         val capture = fixture.capture()
+        val variant = "fallback=$fallback expand=$expandLayerBounds"
         for ((x, y) in listOf(98 to 120, 201 to 120, 150 to 78, 150 to 161)) {
-          assertGreen(capture, x, y, "fallback=$fallback expand=$expandLayerBounds ($x, $y)")
+          assertGreen(capture, x, y, "$variant ($x, $y)")
+        }
+        // 7px outside, and 3px inside, the outline leaves the surface unchanged.
+        for ((x, y) in listOf(92 to 120, 207 to 120, 150 to 72, 150 to 167, 103 to 120, 196 to 120, 150 to 83, 150 to 156)) {
+          assertThat(pixelDifference(capture, baseline, x, y), "$variant ($x, $y)").isLessThan(1f / 255f)
         }
       }
     }
