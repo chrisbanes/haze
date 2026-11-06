@@ -555,11 +555,9 @@ internal fun fallbackRimHighlightBands(shape: Path, widthPx: Float): FallbackRim
   fun edge(dx: Float, dy: Float): Path = Path().apply {
     op(shape, Path().apply { addPath(shape, Offset(dx, dy)) }, PathOperation.Difference)
   }
-  fun union(first: Path, second: Path): Path = Path().apply { op(first, second, PathOperation.Union) }
-
-  val vertical = union(edge(0f, widthPx), edge(0f, -widthPx))
+  val vertical = unionOf(listOf(edge(0f, widthPx), edge(0f, -widthPx)))
   val horizontal = Path().apply {
-    op(union(edge(widthPx, 0f), edge(-widthPx, 0f)), vertical, PathOperation.Difference)
+    op(unionOf(listOf(edge(widthPx, 0f), edge(-widthPx, 0f))), vertical, PathOperation.Difference)
   }
   return FallbackRimHighlightBands(vertical = vertical, horizontal = horizontal)
 }

@@ -113,8 +113,9 @@ class GlassContainerRenderAndroidHostTest : ScreenshotTest() {
     fun at(x: Float, y: Float) = pixels[(bounds.left + x * bounds.width / 360f).roundToInt(), (bounds.top + y * bounds.height / 240f).roundToInt()]
     val owner = checkNotNull(effects.first().memberBindingForTest?.node?.container)
     assertThat(owner.renderer.runtimeSurfaces.size).isEqualTo(1)
-    // A blank frame here means the merged rim exceeded the SDK 35 shader budget.
-    assertThat(at(90f, 100f).blue).isGreaterThan(0.9f)
+    // The interior shows the blue tint rather than the white background, so the cluster drew.
+    assertThat(at(90f, 100f).red).isLessThan(0.1f)
+    // A missing top edge here means the merged rim exceeded the SDK 35 shader budget.
     assertThat(at(90f, 61f).luminance() - at(41f, 100f).luminance()).isGreaterThan(0.1f)
   }
 
