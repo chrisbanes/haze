@@ -786,6 +786,18 @@ internal class GlassContainerNode(
   }
 }
 
+/**
+ * Grows this rect to contain every rect it can scale to at [maxScale]. A [GlassTransformPivot.Pointer]
+ * pivot can sit at either edge, so it grows each side by the full growth; a center pivot by half.
+ */
+internal fun Rect.inflatedForInteractionScale(maxScale: Float, pivot: GlassTransformPivot): Rect {
+  if (maxScale <= 1f) return this
+  val fraction = if (pivot == GlassTransformPivot.Center) (maxScale - 1f) / 2f else maxScale - 1f
+  val dx = width * fraction
+  val dy = height * fraction
+  return Rect(left - dx, top - dy, right + dx, bottom + dy)
+}
+
 /** Scales this rect about the transform's pivot, which is relative to the rect's top-left. */
 internal fun Rect.transformedBy(transform: HazeEffectContentTransform): Rect {
   val pivot = topLeft + transform.pivot

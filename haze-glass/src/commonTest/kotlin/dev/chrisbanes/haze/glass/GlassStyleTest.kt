@@ -539,6 +539,17 @@ class GlassStyleTest {
   }
 
   @Test
+  fun drawOutset_defaultsToZeroAndRejectsInvalidValuesWhenEvaluated() {
+    assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle).drawOutset).isEqualTo(0.dp)
+    listOf(Dp.Unspecified, Float.NaN.dp, Float.NEGATIVE_INFINITY.dp, (-1).dp, Float.POSITIVE_INFINITY.dp)
+      .forEach { invalid ->
+        assertEvaluationFailure("drawOutset must be specified, finite, and non-negative") {
+          drawOutset(invalid)
+        }
+      }
+  }
+
+  @Test
   fun edgeSoftness_rejectsInvalidValuesWhenEvaluated() {
     listOf(Dp.Unspecified, Float.NaN.dp, Float.NEGATIVE_INFINITY.dp, (-1).dp, Float.POSITIVE_INFINITY.dp)
       .forEach { invalid ->

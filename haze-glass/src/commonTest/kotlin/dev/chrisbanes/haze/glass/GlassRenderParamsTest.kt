@@ -125,6 +125,19 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun resolveGlassStyle_drawOutset_resolvesPx() {
+    fun resolve(style: GlassStyle) = resolveGlassStyle(
+      effect = GlassRuntimeEffect().apply { this.style = style },
+      materialSizePx = Size(100f, 100f),
+      density = Density(2f),
+      layoutDirection = LayoutDirection.Ltr,
+    )
+
+    assertThat(resolve(GlassStyle { drawOutset(4.dp) }).drawOutsetPx).isEqualTo(8f)
+    assertThat(resolve(GlassStyle).drawOutsetPx).isEqualTo(0f)
+  }
+
+  @Test
   fun reduceTransparency_raisesShallowBlurToMinimum() {
     val effect = GlassRuntimeEffect().apply {
       style = GlassStyle { optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(1.dp))) }

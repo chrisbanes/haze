@@ -119,6 +119,7 @@ private fun ResolvedGlassStyle.hasSameBudgetParams(other: ResolvedGlassStyle): B
     resolvedOptics.refractionDetailIntensity == other.resolvedOptics.refractionDetailIntensity &&
     chromaticAberrationStrength == other.chromaticAberrationStrength &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
+    drawOutsetPx == other.drawOutsetPx &&
     hasGlassRim(specularIntensity, edgeShadow) ==
     hasGlassRim(other.specularIntensity, other.edgeShadow)
 
@@ -355,6 +356,10 @@ internal class GlassRuntimeEffect() :
 
   private val interactionTopologySnapshot: GlassInteractionTopology
     get() = interactionController?.renderTopology ?: resolvedInteractionTopology
+
+  /** The largest interaction scale this surface can draw at, latched while a scale animates. */
+  internal val maxInteractionScale: Float
+    get() = interactionTopologySnapshot.maxScale
 
   override val observesPointerEvents: Boolean
     get() = super.observesPointerEvents
@@ -785,7 +790,10 @@ internal class GlassRuntimeEffect() :
     val previous = reconciledInteractionTopology
     val topologyChanged = topology !== previous
     reconciledInteractionTopology = topology
-    if (topology.maxRefractionMultiplier != (previous?.maxRefractionMultiplier ?: 1f)) {
+    if (
+      topology.maxRefractionMultiplier != (previous?.maxRefractionMultiplier ?: 1f) ||
+      topology.maxScale != (previous?.maxScale ?: 1f)
+    ) {
       context.invalidateLayerBounds()
       memberBinding?.node?.changed()
     }
@@ -952,7 +960,7 @@ internal class GlassRuntimeEffect() :
       if (!coordinates.materialSize.isDrawable() || !coordinates.sampleSize.isDrawable()) {
         return@buildPlan GlassRetainedLayerPlan(emptyList())
       }
-      val outputSize = context.modifierSize.roundToIntSize()
+      val outputSize = context.modifierSize.outsetToIntSize(nodeClipOutsetPx())
       val params = buildGlassRenderParams(style, coordinates)
       val interactionPatchSize = calculateGlassInteractionPatchSize(
         params,
@@ -1100,7 +1108,7 @@ internal class GlassRuntimeEffect() :
       interactionTopology = interactionTopology,
       interactionRadiusFraction = interaction.radiusFraction,
       alpha = style.alpha,
-      outputSize = context.modifierSize.roundToIntSize(),
+      outputSize = context.modifierSize.outsetToIntSize(nodeClipOutsetPx()),
       previous = previousPrepared,
     )
     val exactPrepared = if (backdrop) {
@@ -1202,7 +1210,8 @@ internal class GlassRuntimeEffect() :
 
   internal fun calculateLayerBounds(rect: Rect, density: Density): Rect {
     // Containers draw the snapshot material, so there is nothing of ours to cache.
-    surfaceSnapshot?.let { return rect.inflate(samplePaddingPx(it.material, it.maxRefractionMultiplier)) }
+    // Cluster bounds already include every member's draw outset, so the surface pads none.
+    surfaceSnapshot?.let { return rect.inflate(samplePaddingPx(it.material, it.maxRefractionMultiplier, drawOutsetPx = 0f)) }
     val multiplier = maximumInteractionRefractionMultiplier()
     if (
       !layerPaddingCacheValid ||
@@ -1230,7 +1239,11 @@ internal class GlassRuntimeEffect() :
     return rect.inflate(layerPaddingCache)
   }
 
-  private fun samplePaddingPx(style: ResolvedGlassStyle, refractionMultiplier: Float): Float {
+  private fun samplePaddingPx(
+    style: ResolvedGlassStyle,
+    refractionMultiplier: Float,
+    drawOutsetPx: Float = style.drawOutsetPx,
+  ): Float {
     val resolved = style.resolvedOptics
     return calculateGlassSamplePaddingPx(
       blurRadiusPx = if (resolved.depth <= 0f) 0f else resolved.blurRadiusPx,
@@ -1238,8 +1251,18 @@ internal class GlassRuntimeEffect() :
       refractionStrength = (resolved.refractionStrength * refractionMultiplier).coerceIn(0f, 1f),
       chromaticAberrationStrength = style.chromaticAberrationStrength,
       edgeSoftnessPx = style.edgeSoftnessPx,
-      foregroundOutsetPx = 0f,
+      foregroundOutsetPx = drawOutsetPx,
     )
+  }
+
+  /**
+   * A single surface draws [drawOutset] beyond its node on every side. A container surface's
+   * bounds already include every member's outset, so it adds none.
+   */
+  override fun nodeClipOutsetPx(): Float {
+    if (surfaceSnapshot != null) return 0f
+    val density = attachedContext?.requireDensity() ?: return 0f
+    return with(density) { drawOutset.toPx() }
   }
 
   override fun shouldPreferClipToInputBounds(): Boolean = !shouldClipToNodeBounds()

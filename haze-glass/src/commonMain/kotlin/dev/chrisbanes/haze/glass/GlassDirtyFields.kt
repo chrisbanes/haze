@@ -35,6 +35,7 @@ internal object GlassDirtyFields {
   const val Accessibility: Int = PerformanceMode shl 1
   const val MergedField: Int = Accessibility shl 1
   const val OpticalSize: Int = MergedField shl 1
+  const val DrawOutset: Int = OpticalSize shl 1
 
   const val InvalidateFlags: Int =
     Optics or
@@ -61,11 +62,11 @@ internal object GlassDirtyFields {
       RuntimeEffectFactory or
       PerformanceMode or
       Accessibility or
-      MergedField or OpticalSize
+      MergedField or OpticalSize or DrawOutset
 
   const val LayerBoundsFlags: Int =
     Optics or ChromaticAberration or EdgeSoftness or Shape or InteractionLayerBounds or Accessibility or
-      MergedField or OpticalSize
+      MergedField or OpticalSize or DrawOutset
 
   const val All: Int = InvalidateFlags or LayerBoundsFlags
 

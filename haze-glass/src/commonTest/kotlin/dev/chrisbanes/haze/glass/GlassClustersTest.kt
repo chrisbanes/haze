@@ -9,8 +9,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import assertk.Assert
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.isCloseTo
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
@@ -29,6 +31,18 @@ class GlassClustersTest {
   private fun member(index: Int, left: Float = index * 110f, top: Float = 0f) = member(index, Rect(left, top, left + 100f, top + 40f))
 
   private fun member(index: Int, rect: Rect) = GlassMemberSnapshot(index, rect, key, material, translationOnly = true, layoutRect = rect)
+
+  @Test
+  fun inflatedForInteractionScale_growsByPivotWorstCase() {
+    val rect = Rect(10f, 20f, 110f, 100f)
+
+    assertThat(rect.inflatedForInteractionScale(1.2f, GlassTransformPivot.Center).edges())
+      .isCloseTo(listOf(0f, 12f, 120f, 108f))
+    assertThat(rect.inflatedForInteractionScale(1.2f, GlassTransformPivot.Pointer).edges())
+      .isCloseTo(listOf(-10f, 4f, 130f, 116f))
+    assertThat(rect.inflatedForInteractionScale(1f, GlassTransformPivot.Pointer)).isEqualTo(rect)
+    assertThat(rect.inflatedForInteractionScale(0.9f, GlassTransformPivot.Center)).isEqualTo(rect)
+  }
 
   @Test
   fun cluster_strictThresholdAndDiagonalGap() {
@@ -316,4 +330,11 @@ class GlassClustersTest {
         .containsExactly(listOf(0), listOf(1), listOf(2))
     }
   }
+}
+
+private fun Rect.edges() = listOf(left, top, right, bottom)
+
+private fun Assert<List<Float>>.isCloseTo(expected: List<Float>) = given { actual ->
+  assertThat(actual.size).isEqualTo(expected.size)
+  actual.zip(expected).forEach { (a, e) -> assertThat(a).isCloseTo(e, 0.001f) }
 }

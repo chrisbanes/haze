@@ -227,11 +227,18 @@ internal class GlassInteractionController(
       } else {
         declared.maxRefractionMultiplier
       }
+      // Likewise a moving scale keeps its largest scale, so bounds hold until the scale settles.
+      val maxScale = if (scaleX.isAnimating || scaleY.isAnimating) {
+        maxOf(snapshot.maxScale, declared.maxScale)
+      } else {
+        declared.maxScale
+      }
       val hasOptics = declared.hasOptics || refractionMultiplier.isPending || whitePointDelta.isPending
       val hasLighting = declared.hasLighting || lightingIntensity.isPending
       if (snapshot.hasOptics == hasOptics &&
         snapshot.hasLighting == hasLighting &&
-        snapshot.maxRefractionMultiplier == maxRefractionMultiplier
+        snapshot.maxRefractionMultiplier == maxRefractionMultiplier &&
+        snapshot.maxScale == maxScale
       ) {
         return snapshot
       }
@@ -239,6 +246,7 @@ internal class GlassInteractionController(
         hasOptics = hasOptics,
         hasLighting = hasLighting,
         maxRefractionMultiplier = maxRefractionMultiplier,
+        maxScale = maxScale,
       ).also { renderTopologySnapshot = it }
     }
 

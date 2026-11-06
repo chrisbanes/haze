@@ -5,14 +5,17 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
@@ -79,6 +82,13 @@ internal inline fun DrawScope.withLayerPaint(
 internal var glassLayerBoundsForTest: ((Rect) -> Unit)? = null
 
 /**
+ * Drawn in node space inside the node-bounds clip after each completed runtime layer (the material,
+ * within any group alpha, and the rim, outside it) and after the fallback material, so tests can
+ * draw into the draw outset before a public feature does.
+ */
+internal var glassOutsetDrawForTest: (DrawScope.() -> Unit)? = null
+
+/**
  * The part of this rect within [visible], rounded out to whole pixels, or [Rect.Zero] when they
  * do not overlap. A null [visible] returns this rect unchanged.
  */
@@ -125,18 +135,32 @@ internal fun DrawScope.drawInputWithAlpha(
   }
 }
 
+/**
+ * Records [block] into a group-alpha [layer] of [size], which includes [outsetPx] (rounded up to
+ * whole pixels, as [outsetToIntSize] does) on every side so output drawn beyond the node keeps its
+ * group alpha. [block] still sees the node's size.
+ */
 internal inline fun DrawScope.recordAndDrawGlassGroupAlpha(
   layer: GraphicsLayer,
   alpha: Float,
   size: IntSize,
+  outsetPx: Float = 0f,
   crossinline block: DrawScope.() -> Unit,
 ) {
   layer.alpha = alpha
   layer.blendMode = BlendMode.SrcOver
   layer.compositingStrategy = CompositingStrategy.Offscreen
   layer.renderEffect = null
-  recordGlassLayer(layer, size) { block() }
-  drawLayer(layer)
+  val outset = ceil(outsetPx)
+  recordGlassLayer(layer, size) { inset(outset) { block() } }
+  translate(-outset, -outset) { drawLayer(layer) }
+}
+
+/** This size rounded to whole pixels, then grown by [outsetPx], rounded up, on every side. */
+internal fun Size.outsetToIntSize(outsetPx: Float): IntSize {
+  val outset = 2 * ceil(outsetPx).toInt()
+  val rounded = roundToIntSize()
+  return IntSize(rounded.width + outset, rounded.height + outset)
 }
 
 // GraphicsLayer caches its outline independently of its recording size. Refresh it for retained

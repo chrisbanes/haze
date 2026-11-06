@@ -16,6 +16,8 @@ internal data class GlassInteractionTopology(
   val hasOptics: Boolean,
   val hasLighting: Boolean,
   val maxRefractionMultiplier: Float,
+  /** The largest authored interaction scale on either axis, at least 1. */
+  val maxScale: Float = 1f,
 ) {
   val hasAnyLayer: Boolean get() = hasOptics || hasLighting
 }
@@ -33,6 +35,10 @@ internal fun GlassInteractionSlots.resolveInteractionTopology(): GlassInteractio
     maxRefractionMultiplier = maxOf(
       1f,
       responses.maxOfOrNull { it.refractionMultiplier?.value ?: 1f } ?: 1f,
+    ),
+    maxScale = maxOf(
+      1f,
+      responses.maxOfOrNull { maxOf(it.scaleX?.value ?: 1f, it.scaleY?.value ?: 1f) } ?: 1f,
     ),
   )
 }

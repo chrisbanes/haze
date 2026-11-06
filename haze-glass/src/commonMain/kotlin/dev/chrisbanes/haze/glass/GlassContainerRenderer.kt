@@ -82,13 +82,16 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
         nodes.single().binding.runtime?.let { runtimes += members.single().layoutRect to it }
         continue
       }
-      // Pressed members shrink within their layout rects, keeping the surface stable; a spring
-      // overshoot past scale 1 briefly grows the bounds instead of clipping the member.
-      // A Glass group draws as one member over its own bounds, which a press can grow past its members'.
+      // Each member reserves its largest authored scale and draw outset at rest, keeping the surface
+      // stable through a press; a spring overshoot past that briefly grows the bounds instead of
+      // clipping the member. A Glass group draws as one member over its own bounds, which a press
+      // can grow past its members'.
       val draws = cluster.groups.map { unit ->
         if (unit.size > 1) GlassGroupDraw(unit, owner.requireDensity()) else GlassMemberDraw(unit.single())
       }
-      val bounds = (members.flatMap { listOf(it.sampleLayoutRect, it.rect) } + draws.map { it.rect }).union().inflate(mergeDistance)
+      val bounds = (
+        members.flatMap { listOf(it.restDrawRect(), it.rect) } + draws.map { it.rect }
+        ).union().inflate(mergeDistance)
       val opticalSize = model.opticalSize ?: continue
       val field = GlassMergedField(draws.map { it.toMergedMember(bounds.topLeft) }, mergeDistance, opticalSize)
       val maxRefractionMultiplier = maxOf(
@@ -170,6 +173,16 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
     reconciledModel = null
     slots.keys.filter { member in it }.forEach { slots.remove(it)?.handle?.dispose() }
   }
+}
+
+/**
+ * The rect this member can draw over without moving the surface: its sample layout rect grown by
+ * its largest interaction scale, which a ghost no longer has, and by its draw outset.
+ */
+private fun GlassMemberSnapshot.restDrawRect(): Rect {
+  val runtime = (identity as? GlassMemberNode)?.binding?.runtime
+  val grown = runtime?.let { sampleLayoutRect.inflatedForInteractionScale(it.maxInteractionScale, it.interactionTransformPivot) }
+  return (grown ?: sampleLayoutRect).inflate(material.drawOutsetPx)
 }
 
 /** A lone live member draws through its own surface unless it is transitioning with another. */

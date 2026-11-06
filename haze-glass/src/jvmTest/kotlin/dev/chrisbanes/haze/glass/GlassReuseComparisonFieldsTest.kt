@@ -27,7 +27,8 @@ class GlassReuseComparisonFieldsTest {
   fun resolvedStyleFields_matchGlassRuntimeEffectReuseComparison() {
     // Audit ResolvedGlassStyle.hasSameRenderParams in GlassRuntimeEffect.kt before changing this.
     // fallbackBaseColor is deliberately excluded: fallback-only, never a GlassRenderParams input.
-    assertThat(fieldCount<ResolvedGlassStyle>()).isEqualTo(21)
+    // drawOutsetPx is compared in hasSameBudgetParams: it sizes the layer, clip and group composite.
+    assertThat(fieldCount<ResolvedGlassStyle>()).isEqualTo(22)
   }
 
   private inline fun <reified T> fieldCount(): Int =

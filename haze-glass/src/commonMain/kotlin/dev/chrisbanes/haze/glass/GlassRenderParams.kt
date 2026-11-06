@@ -492,6 +492,7 @@ internal data class ResolvedGlassStyle(
   val cornerRadii: CornerRadii,
   val mergedField: GlassMergedField? = null,
   val fallbackBaseColor: Color? = null,
+  val drawOutsetPx: Float = 0f,
 )
 
 internal fun resolveGlassStyle(
@@ -542,6 +543,7 @@ internal fun resolveGlassStyle(
     } else {
       null
     },
+    drawOutsetPx = with(density) { effect.drawOutset.toPx() }.finiteOrZero().coerceAtLeast(0f),
   ).withAccessibility(
     settings = effect.accessibilitySettings,
     minimumBorderSoftnessPx = defaultEdgeSoftnessPx,
