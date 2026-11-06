@@ -64,6 +64,14 @@ internal val GlassMergedField.isContinuous: Boolean
   get() = members.any { it.cornerRadii.isContinuous }
 
 /**
+ * Whether shaders for these corners use the continuous variant. A merged field decides alone, since
+ * merged shaders draw its members, so a field whose smoothing [withExactCorners] removed keeps the
+ * exact circular variant.
+ */
+internal fun continuousCorners(cornerRadii: CornerRadii, mergedField: GlassMergedField?): Boolean =
+  mergedField?.isContinuous ?: cornerRadii.isContinuous
+
+/**
  * Removes every member's smoothing when the field has a smoothed member and any member whose corner
  * boxes can overlap, in either frame the shader evaluates. The continuous shaders evaluate one
  * corner per point, which is exact only for disjoint corner boxes; the circular shaders are exact
@@ -289,7 +297,8 @@ internal class MergedFieldUniformScratch {
     const val MULTIPLIERS = 9
     const val WHITE_POINT_DELTAS = 10
     const val STANDALONE_WEIGHTS = 11
-    private const val SLOT_COUNT = 12
+    const val CORNER_EXPONENTS = 12
+    private const val SLOT_COUNT = 13
   }
 }
 
@@ -319,14 +328,30 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
     layoutRects[offset + 1] = member.layoutRect.top
     layoutRects[offset + 2] = member.layoutRect.width
     layoutRects[offset + 3] = member.layoutRect.height
-    radii[offset] = member.cornerRadii.topLeft
-    radii[offset + 1] = member.cornerRadii.topRight
-    radii[offset + 2] = member.cornerRadii.bottomRight
-    radii[offset + 3] = member.cornerRadii.bottomLeft
+    // Extents equal radii for circular corners.
+    val corners = member.cornerRadii
+    radii[offset] = continuousCornerExtent(corners.topLeft, corners.topLeftSmoothing)
+    radii[offset + 1] = continuousCornerExtent(corners.topRight, corners.topRightSmoothing)
+    radii[offset + 2] = continuousCornerExtent(corners.bottomRight, corners.bottomRightSmoothing)
+    radii[offset + 3] = continuousCornerExtent(corners.bottomLeft, corners.bottomLeftSmoothing)
   }
   setFloatUniform("memberRects", rects)
   setFloatUniform("memberLayoutRects", layoutRects)
   setFloatUniform("memberRadii", radii)
+  // Only the continuous variant declares the exponents, and Android rejects undeclared uniforms.
+  if (field.isContinuous) {
+    // Unused slots keep circular exponents.
+    val exponents = scratch.floats(MergedFieldUniformScratch.CORNER_EXPONENTS, MAX_GLASS_MERGED_MEMBERS * 4, initial = 2f)
+    field.members.forEachIndexed { index, member ->
+      val offset = index * 4
+      val corners = member.cornerRadii
+      exponents[offset] = continuousCornerExponent(corners.topLeftSmoothing)
+      exponents[offset + 1] = continuousCornerExponent(corners.topRightSmoothing)
+      exponents[offset + 2] = continuousCornerExponent(corners.bottomRightSmoothing)
+      exponents[offset + 3] = continuousCornerExponent(corners.bottomLeftSmoothing)
+    }
+    setFloatUniform("memberCornerExponents", exponents)
+  }
   setFloatUniform(
     "memberSmoothing",
     scratch.padded(MergedFieldUniformScratch.SMOOTHING, field.memberSmoothingPx(), MAX_GLASS_MERGED_MEMBERS),

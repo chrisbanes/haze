@@ -17,8 +17,11 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runAndroidComposeUiTest
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotNull
@@ -62,17 +65,35 @@ class MergedGlassFusedAndroidHostTest : ContextTest() {
     assertThat(restored.red, "restored red: $restored").isGreaterThan(0.5f)
   }
 
-  private fun assertBridgeCoverage() {
+  @Test
+  @Config(sdk = [35])
+  fun sdk35_continuousMembersBridgeCoverMidpoint() = assertBridgeCoverage(continuous = true)
+
+  @Test
+  @Config(sdk = [37])
+  fun sdk37_continuousMembersBridgeCoverMidpoint() = assertBridgeCoverage(continuous = true)
+
+  @Test
+  @Config(sdk = [35])
+  fun sdk35_circularMembersUseBaseVariant() {
+    midpointColor(gapDp = 6f, continuous = false)
+  }
+
+  private fun assertBridgeCoverage(continuous: Boolean = false) {
     // A bridged midpoint shows the members' opaque green tint, darkened slightly by refraction
     // detail. A separate midpoint is outside the glass, so no tint reaches it.
-    val bridged = midpointColor(gapDp = 6f)
+    val bridged = midpointColor(gapDp = 6f, continuous = continuous)
     assertThat(bridged.green, "bridged green: $bridged").isGreaterThan(0.85f)
     assertThat(bridged.red, "bridged red: $bridged").isLessThan(0.05f)
-    val separate = midpointColor(gapDp = 10f)
+    val separate = midpointColor(gapDp = 10f, continuous = continuous)
     assertThat(separate.red, "separate red: $separate").isGreaterThan(0.5f)
   }
 
-  private fun midpointColor(gapDp: Float, unsetAfterwards: Boolean = false): Color {
+  /**
+   * [continuous] members use `ContinuousRoundedCornerShape(6.dp)` corners, which stay smoothed at
+   * this size; otherwise they are capsules. Either way the fused shader must use that variant.
+   */
+  private fun midpointColor(gapDp: Float, unsetAfterwards: Boolean = false, continuous: Boolean = false): Color {
     var color = Color.Unspecified
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = GlassRuntimeEffect().apply {
@@ -104,17 +125,26 @@ class MergedGlassFusedAndroidHostTest : ContextTest() {
       val height = 20f * density
       val top = 10f * density
       val left = (120f * density - width * 2f - gap) / 2f
+      val cornerRadii = if (continuous) {
+        ContinuousRoundedCornerShape(6.dp).resolveCornerRadiiPx(Size(width, height), Density(density), LayoutDirection.Ltr)
+      } else {
+        CornerRadii(height / 2f, height / 2f, height / 2f, height / 2f)
+      }
+      assertThat(cornerRadii.isContinuous).isEqualTo(continuous)
+      fun member(left: Float) = mergedMember(left, top, width, height, tint = Color.Green).copy(cornerRadii = cornerRadii)
       runOnIdle {
         effect.mergedField = mergedField(
-          mergedMember(left, top, width, height, radius = height / 2f, tint = Color.Green),
-          mergedMember(left + width + gap, top, width, height, radius = height / 2f, tint = Color.Green),
+          member(left),
+          member(left + width + gap),
           mergeDistancePx = 16f * density,
           opticalSize = Size(width, height),
         )
       }
       waitForIdle()
       onNodeWithTag(TAG).captureToImage()
-      assertThat((effect.delegate as? RuntimeShaderGlassDelegate)?.fusedShader).isNotNull()
+      val delegate = effect.delegate as? RuntimeShaderGlassDelegate
+      assertThat(delegate?.fusedShader).isNotNull()
+      assertThat(delegate?.fusedInputKey?.continuous).isEqualTo(continuous)
       assertThat(effect.preparedRender?.opticalKey?.mergedField).isNotNull()
       if (unsetAfterwards) {
         runOnIdle { effect.mergedField = null }

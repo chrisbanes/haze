@@ -11,6 +11,7 @@ import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.doesNotContain
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
@@ -687,6 +688,86 @@ class GlassShadersTest {
         "detailVisibility" to listOf(0.5f),
       ),
     )
+  }
+
+  @Test
+  fun refractionDetailUniforms_continuousCornersBindExtentsAndExponents() {
+    val uniforms = RecordingUniformProvider()
+    uniforms.setRefractionDetailUniforms(
+      key = GlassRefractionDetailEffectKey(
+        sampleSize = Size(640f, 480f),
+        materialOrigin = Offset(8f, 4f),
+        materialSize = Size(320f, 240f),
+        sampleStepPx = 2f,
+        refractionStrength = 0.5f,
+        refractionFoldStrength = 0f,
+        refractionHeightPx = 20f,
+        refractionScalePx = 18f,
+        surfaceProfile = 2f,
+        edgeSoftnessPx = 4f,
+        cornerRadii = CornerRadii(10f, 10f, 10f, 10f, 1f, 1f, 0f, 0f),
+        detailWidthPx = 8f,
+        detailIntensity = 0.08f,
+        detailVisibility = 0.5f,
+      ),
+    )
+
+    val extent = continuousCornerExtent(10f, 1f)
+    val exponent = continuousCornerExponent(1f)
+    assertThat(exponent).isGreaterThan(2f)
+    assertThat(uniforms.values["cornerRadii"]).isEqualTo(listOf(extent, extent, 10f, 10f))
+    assertThat(uniforms.values["cornerExponents"]).isEqualTo(listOf(exponent, exponent, 2f, 2f))
+  }
+
+  @Test
+  fun continuousSources_declareExponentsAndEvaluateOneCorner() {
+    val single = listOf(
+      GlassShaders.buildFused(continuous = true),
+      GlassShaders.buildFused(interactionOptics = true, sharpDetail = false, continuous = true),
+      GlassShaders.buildOptical(continuous = true),
+      GlassShaders.buildOptical(interactive = true, continuous = true),
+      GlassShaders.buildRefractionDetail(continuous = true),
+      GlassShaders.buildRefractionDetail(interactive = true, coverageOnly = true, continuous = true),
+      GlassShaders.buildRim(continuous = true),
+      GlassShaders.buildInteractionLighting(continuous = true),
+    )
+    val merged = listOf(
+      GlassShaders.buildFused(merged = true, continuous = true),
+      GlassShaders.buildFused(sharpDetail = false, merged = true, continuous = true),
+      GlassShaders.buildOptical(merged = true, continuous = true),
+      GlassShaders.buildRefractionDetail(merged = true, continuous = true),
+      GlassShaders.buildRefractionDetail(coverageOnly = true, merged = true, continuous = true),
+      GlassShaders.buildRim(merged = true, continuous = true),
+      GlassShaders.buildInteractionLighting(merged = true, continuous = true),
+      GlassShaders.buildMergedBackground(continuous = true),
+    )
+    (single + merged).forEach { shader ->
+      assertThat(shader).contains("float sdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents)")
+      val sdf = shader.substringAfter("float sdRoundedRect(").substringBefore("\n    }\n")
+      assertThat(Regex("roundedCornerSd\\(").findAll(sdf).count()).isEqualTo(1)
+      if ("uniform vec4 cornerRadii;" in shader) assertThat(shader).contains("uniform vec4 cornerExponents;")
+    }
+    merged.forEach { shader -> assertThat(shader).contains("uniform float4 memberCornerExponents[4];") }
+  }
+
+  @Test
+  fun circularSources_haveNoExponents() {
+    listOf(
+      GlassShaders.buildFused(),
+      GlassShaders.buildFused(merged = true),
+      GlassShaders.buildOptical(interactive = true),
+      GlassShaders.buildOptical(merged = true),
+      GlassShaders.buildRefractionDetail(),
+      GlassShaders.buildRefractionDetail(merged = true),
+      GlassShaders.buildRim(),
+      GlassShaders.buildRim(merged = true),
+      GlassShaders.buildInteractionLighting(),
+      GlassShaders.buildInteractionLighting(merged = true),
+      GlassShaders.buildMergedBackground(),
+    ).forEach { shader ->
+      assertThat(shader).doesNotContain("Exponents")
+      assertThat(shader).doesNotContain("roundedCornerSd")
+    }
   }
 
   @Test

@@ -9,26 +9,42 @@ import java.security.MessageDigest
 import kotlin.test.Test
 
 /**
- * Pins the standalone shader sources after sharing the rectangle evaluators with merged optics.
+ * Pins the circular shader sources, which must stay identical to those before continuous corners.
  * Pixel and profile regressions cover their rendering behavior.
  */
 class GlassShadersGoldenTest {
   @Test
   fun singleSurfaceSources_matchRecordedDigests() {
     val sources = mapOf(
-      "fused" to GlassShaders.buildFused(),
-      "fused-no-detail" to GlassShaders.buildFused(sharpDetail = false),
-      "fused-interaction" to GlassShaders.buildFused(interactionOptics = true),
-      "fused-interaction-no-detail" to GlassShaders.buildFused(interactionOptics = true, sharpDetail = false),
-      "optical" to GlassShaders.buildOptical(),
-      "optical-interactive" to GlassShaders.buildOptical(interactive = true),
-      "detail" to GlassShaders.buildRefractionDetail(),
-      "detail-coverage" to GlassShaders.buildRefractionDetail(coverageOnly = true),
-      "detail-interactive" to GlassShaders.buildRefractionDetail(interactive = true),
-      "detail-interactive-coverage" to GlassShaders.buildRefractionDetail(interactive = true, coverageOnly = true),
-      "rim" to GlassShaders.buildRim(),
+      "fused" to GlassShaders.buildFused(continuous = false),
+      "fused-no-detail" to GlassShaders.buildFused(sharpDetail = false, continuous = false),
+      "fused-interaction" to GlassShaders.buildFused(interactionOptics = true, continuous = false),
+      "fused-interaction-no-detail" to GlassShaders.buildFused(interactionOptics = true, sharpDetail = false, continuous = false),
+      "optical" to GlassShaders.buildOptical(continuous = false),
+      "optical-interactive" to GlassShaders.buildOptical(interactive = true, continuous = false),
+      "detail" to GlassShaders.buildRefractionDetail(continuous = false),
+      "detail-coverage" to GlassShaders.buildRefractionDetail(coverageOnly = true, continuous = false),
+      "detail-interactive" to GlassShaders.buildRefractionDetail(interactive = true, continuous = false),
+      "detail-interactive-coverage" to GlassShaders.buildRefractionDetail(interactive = true, coverageOnly = true, continuous = false),
+      "rim" to GlassShaders.buildRim(continuous = false),
     )
     assertThat(sources.mapValues { (_, source) -> source.sha256() }).isEqualTo(RECORDED)
+  }
+
+  @Test
+  fun additionalSources_matchRecordedDigests() {
+    val sources = mapOf(
+      "fused-merged" to GlassShaders.buildFused(merged = true, continuous = false),
+      "fused-merged-no-detail" to GlassShaders.buildFused(sharpDetail = false, merged = true, continuous = false),
+      "optical-merged" to GlassShaders.buildOptical(merged = true, continuous = false),
+      "detail-merged" to GlassShaders.buildRefractionDetail(merged = true, continuous = false),
+      "detail-merged-coverage" to GlassShaders.buildRefractionDetail(coverageOnly = true, merged = true, continuous = false),
+      "rim-merged" to GlassShaders.buildRim(merged = true, continuous = false),
+      "lighting" to GlassShaders.buildInteractionLighting(continuous = false),
+      "lighting-merged" to GlassShaders.buildInteractionLighting(merged = true, continuous = false),
+      "merged-background" to GlassShaders.buildMergedBackground(continuous = false),
+    )
+    assertThat(sources.mapValues { (_, source) -> source.sha256() }).isEqualTo(ADDITIONAL_RECORDED)
   }
 
   private fun String.sha256(): String = MessageDigest.getInstance("SHA-256")
@@ -36,6 +52,19 @@ class GlassShadersGoldenTest {
     .joinToString("") { "%02x".format(it) }
 
   private companion object {
+    // Recorded from the circular sources of main, before continuous corners were added.
+    val ADDITIONAL_RECORDED = mapOf(
+      "fused-merged" to "242cdc692d980cff473a2e089370a302bd8575d3ae0e59de9aef725f8424e5ed",
+      "fused-merged-no-detail" to "4fd26f10692853d21bc133453785ff04b6447bd3780b83d6f73aa2fc0a894dc6",
+      "optical-merged" to "5f9e5024fc247622700378821355046d30a5da534a48261fcb5e382b945f836f",
+      "detail-merged" to "21f315ab287af09897300a94ff5866e8a3a9c61fe45b1ac20ab623989f701d60",
+      "detail-merged-coverage" to "dd5b0f4913bdded15398addd1b083026a3fb45e8afb15b24f759d17e9604143b",
+      "rim-merged" to "009b398bb50403e57139c34bde72de68e6b4c8c713906d246dd7acaafb47024a",
+      "lighting" to "d956b1c8f406d634b73f8d3db694422582afe99427ae71a354073dcb06e53e24",
+      "lighting-merged" to "d1320d53329be3a08f838438c6d663bf0d0cfcb463ee76149bafbf8f723e750b",
+      "merged-background" to "541da6d9a6b17f07e4b97cf3018d196acf23963184848a9eca213d2732325221",
+    )
+
     val RECORDED = mapOf(
       "fused" to "daa2760f4d9da8695e2bc0f6b2adb0ca0470af4c76bb3edd903e915e6648a359",
       "fused-no-detail" to "a2caa552cc269dbbe54d1f9822cbd639d64dae4fdfa12007a84625b7ed2e3643",

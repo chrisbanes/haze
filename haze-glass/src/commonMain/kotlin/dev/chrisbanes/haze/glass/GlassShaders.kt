@@ -14,6 +14,7 @@ internal object GlassShaders {
     interactionOptics: Boolean = false,
     sharpDetail: Boolean = true,
     merged: Boolean = false,
+    continuous: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -27,7 +28,7 @@ internal object GlassShaders {
     uniform float refractionHeight;
     uniform float edgeRefractionWidth;
     uniform float chromaticAberrationStrength;
-    uniform vec4 cornerRadii;
+    uniform vec4 cornerRadii;${ifContinuous(continuous, "\n    uniform vec4 cornerExponents;")}
     layout(color) uniform vec4 tintColor;
     // Declared as float because AGSL does not support int uniforms.
     uniform float surfaceProfile;
@@ -68,9 +69,9 @@ internal object GlassShaders {
       return clamp(coord, vec2(0.0), materialSize);
     }
 
-    ${sdfHelpers()}${mergedShapeHelpers(merged, tint = true)}${if (merged) MERGED_OPTICAL_HELPERS else ""}
+    ${sdfHelpers(continuous)}${mergedShapeHelpers(merged, continuous, tint = true)}${if (merged) MERGED_OPTICAL_HELPERS else ""}
 
-    ${surfaceAndDisplacementHelpers(merged)}
+    ${surfaceAndDisplacementHelpers(merged, continuous)}
 
     ${if (interactionOptics) interactionFalloffHelper() else ""}
 
@@ -78,7 +79,7 @@ internal object GlassShaders {
       return content.eval(clampSample(coord));
     }
 
-    ${opticalHelpers(merged)}
+    ${opticalHelpers(merged, continuous)}
 
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
@@ -90,7 +91,7 @@ internal object GlassShaders {
       float outputSd = shapeSdFromDistances(memberDistancesAtCoord);
       """
   } else {
-    "float outputSd = ${shapeSd(merged, "localCoord")};"
+    "float outputSd = ${shapeSd(merged, "localCoord", continuous)};"
   }}
       float coverage = shapeCoverage(outputSd, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
@@ -189,7 +190,7 @@ internal object GlassShaders {
       );
       if (outputDistToEdge <= detailWidth + maxPossibleDisplacement) {
         vec2 refractedLocalCoord = localCoord + displacement;
-        float refractedSd = ${shapeSd(merged, "refractedLocalCoord")};
+        float refractedSd = ${shapeSd(merged, "refractedLocalCoord", continuous)};
         float sourceDistToEdge = max(-refractedSd, 0.0);
         float sourceShapeMask = edgeSoftness <= 0.0
           ? 1.0
@@ -268,6 +269,7 @@ internal object GlassShaders {
   fun buildOptical(
     interactive: Boolean = false,
     merged: Boolean = false,
+    continuous: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -281,7 +283,7 @@ internal object GlassShaders {
     uniform float refractionHeight;
     uniform float edgeRefractionWidth;
     uniform float chromaticAberrationStrength;
-    uniform vec4 cornerRadii;
+    uniform vec4 cornerRadii;${ifContinuous(continuous, "\n    uniform vec4 cornerExponents;")}
     layout(color) uniform vec4 tintColor;
     // Declared as float because AGSL does not support int uniforms.
     uniform float surfaceProfile;
@@ -305,9 +307,9 @@ internal object GlassShaders {
       return clamp(coord, vec2(0.0), materialSize);
     }
 
-    ${sdfHelpers()}${mergedShapeHelpers(merged, tint = true)}${if (merged) MERGED_OPTICAL_HELPERS else ""}
+    ${sdfHelpers(continuous)}${mergedShapeHelpers(merged, continuous, tint = true)}${if (merged) MERGED_OPTICAL_HELPERS else ""}
 
-    ${surfaceAndDisplacementHelpers(merged)}
+    ${surfaceAndDisplacementHelpers(merged, continuous)}
 
     ${if (interactive) interactionFalloffHelper() else ""}
 
@@ -315,7 +317,7 @@ internal object GlassShaders {
       return content.eval(clampSample(coord));
     }
 
-    ${opticalHelpers(merged)}
+    ${opticalHelpers(merged, continuous)}
 
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
@@ -327,7 +329,7 @@ internal object GlassShaders {
       float sd = shapeSdFromDistances(memberDistancesAtCoord);
       """
   } else {
-    "float sd = ${shapeSd(merged, "localCoord")};"
+    "float sd = ${shapeSd(merged, "localCoord", continuous)};"
   }}
       float coverage = shapeCoverage(sd, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
@@ -425,6 +427,7 @@ internal object GlassShaders {
     interactive: Boolean = false,
     coverageOnly: Boolean = false,
     merged: Boolean = false,
+    continuous: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -436,7 +439,7 @@ internal object GlassShaders {
     uniform float edgeSoftness;
     uniform float refractionHeight;
     uniform float edgeRefractionWidth;
-    uniform vec4 cornerRadii;
+    uniform vec4 cornerRadii;${ifContinuous(continuous, "\n    uniform vec4 cornerExponents;")}
     // Declared as float because AGSL does not support int uniforms.
     uniform float surfaceProfile;
     uniform float refractionScale;
@@ -457,15 +460,15 @@ internal object GlassShaders {
     """
   }}
 
-    ${sdfHelpers()}${mergedShapeHelpers(merged)}${if (merged) MERGED_OPTICAL_HELPERS else ""}
+    ${sdfHelpers(continuous)}${mergedShapeHelpers(merged, continuous)}${if (merged) MERGED_OPTICAL_HELPERS else ""}
 
-    ${surfaceAndDisplacementHelpers(merged)}
+    ${surfaceAndDisplacementHelpers(merged, continuous)}
 
     ${if (interactive) interactionFalloffHelper() else ""}
 
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
-      float outputSd = ${shapeSd(merged, "localCoord")};
+      float outputSd = ${shapeSd(merged, "localCoord", continuous)};
       float coverage = shapeCoverage(outputSd, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
 
@@ -504,7 +507,7 @@ internal object GlassShaders {
       );
       ${if (coverageOnly) "" else "vec2 refractCoord = clampSample(${refractedSample(merged)});"}
       vec2 refractedLocalCoord = localCoord + displacement;
-      float refractedSd = ${shapeSd(merged, "refractedLocalCoord")};
+      float refractedSd = ${shapeSd(merged, "refractedLocalCoord", continuous)};
       float sourceDistToEdge = max(-refractedSd, 0.0);
       float sourceShapeMask = edgeSoftness <= 0.0
         ? 1.0
@@ -533,21 +536,21 @@ internal object GlassShaders {
     }
   """
 
-  fun buildInteractionLighting(merged: Boolean = false): String = """
+  fun buildInteractionLighting(merged: Boolean = false, continuous: Boolean = false): String = """
     uniform shader content;
     uniform float2 materialOrigin;
     uniform float2 materialSize;
-    uniform vec4 cornerRadii;
+    uniform vec4 cornerRadii;${ifContinuous(continuous, "\n    uniform vec4 cornerExponents;")}
     uniform float edgeSoftness;
     ${if (merged) "" else interactionUniforms(includeRefraction = false, includeWhitePoint = false, includeLighting = true)}
 
-    ${sdfHelpers()}${if (merged) MERGED_FIELD_HELPERS + MERGED_LIGHTING_HELPERS else ""}
+    ${sdfHelpers(continuous)}${if (merged) mergedFieldHelpers(continuous) + MERGED_LIGHTING_HELPERS else ""}
 
     ${if (merged) "" else interactionFalloffHelper()}
 
     vec4 main(vec2 coord) {
       vec2 localCoord = coord - materialOrigin;
-      float sd = ${shapeSd(merged, "localCoord")};
+      float sd = ${shapeSd(merged, "localCoord", continuous)};
       if (sd > 0.0) return vec4(0.0);
       float shapeMask = edgeSoftness <= 0.0
         ? 1.0
@@ -575,13 +578,13 @@ internal object GlassShaders {
     }
   """
 
-  fun buildRim(merged: Boolean = false): String = """
+  fun buildRim(merged: Boolean = false, continuous: Boolean = false): String = """
     uniform shader content;
     uniform float2 sampleSize;
     uniform float2 materialOrigin;
     uniform float2 materialSize;
     uniform float sampleStep;
-    uniform vec4 cornerRadii;
+    uniform vec4 cornerRadii;${ifContinuous(continuous, "\n    uniform vec4 cornerExponents;")}
     uniform float specularIntensity;
     layout(color) uniform vec4 edgeShadow;
     uniform float specularExponent;
@@ -594,10 +597,10 @@ internal object GlassShaders {
       return clamp(coord, vec2(0.0), materialSize);
     }
 
-    ${sdfShapeHelpers()}${mergedShapeHelpers(merged)}
+    ${sdfShapeHelpers(continuous)}${mergedShapeHelpers(merged, continuous)}
 
     float materialSdf(vec2 localCoord) {
-      return ${shapeSd(merged, "localCoord")};
+      return ${shapeSd(merged, "localCoord", continuous)};
     }
 
     vec2 sdfGradient(vec2 localCoord) {
@@ -632,15 +635,15 @@ internal object GlassShaders {
   """
 
   /** Fills the source with each merged member's background colour, blended across bridges. */
-  fun buildMergedBackground(): String = """
+  fun buildMergedBackground(continuous: Boolean = false): String = """
     uniform float2 materialOrigin;
     layout(color) uniform vec4 memberBackground0;
     layout(color) uniform vec4 memberBackground1;
     layout(color) uniform vec4 memberBackground2;
     layout(color) uniform vec4 memberBackground3;
 
-    ${sdfShapeHelpers()}
-    $MERGED_FIELD_HELPERS
+    ${sdfShapeHelpers(continuous)}
+    ${mergedFieldHelpers(continuous)}
 
     vec4 main(vec2 coord) {
       vec4 color = blendMemberColors(
@@ -654,13 +657,13 @@ internal object GlassShaders {
     }
   """
 
-  private fun sdfHelpers(): String = """
-    ${sdfShapeHelpers()}
+  private fun sdfHelpers(continuous: Boolean): String = """
+    ${sdfShapeHelpers(continuous)}
 
-    ${sdfGradientHelpers()}
+    ${sdfGradientHelpers(continuous)}
   """
 
-  private fun sdfShapeHelpers(): String = """
+  private fun sdfShapeHelpers(continuous: Boolean): String = """
     float shapeCoverage(float sd, float pixelWidth) {
       // Pixel coverage is independent of the authored optical edge softness and density.
       // sampleStep is two physical pixels expressed in the current working coordinates.
@@ -681,25 +684,7 @@ internal object GlassShaders {
       return outside + inside;
     }
 
-    float sdRoundedRect(vec2 localCoord, vec2 size, vec4 radii) {
-      float sd = sdRectangle(localCoord, size);
-      if (localCoord.x < radii.x && localCoord.y < radii.x) {
-        sd = max(sd, length(localCoord - vec2(radii.x)) - radii.x);
-      }
-      if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
-        sd = max(sd, length(localCoord - vec2(size.x - radii.y, radii.y)) - radii.y);
-      }
-      if (localCoord.x > size.x - radii.z && localCoord.y > size.y - radii.z) {
-        sd = max(
-          sd,
-          length(localCoord - vec2(size.x - radii.z, size.y - radii.z)) - radii.z
-        );
-      }
-      if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
-        sd = max(sd, length(localCoord - vec2(radii.w, size.y - radii.w)) - radii.w);
-      }
-      return sd;
-    }
+    ${sdRoundedRectSource(continuous)}
 
     vec2 safeNormalize(vec2 value, vec2 fallback) {
       float len = length(value);
@@ -707,7 +692,7 @@ internal object GlassShaders {
     }
   """
 
-  private fun sdfGradientHelpers(): String = """
+  private fun sdfGradientHelpers(continuous: Boolean): String = """
     vec4 reversedSmootherstep(vec4 t) {
       t = clamp(t, 0.0, 1.0);
       return vec4(1.0) - t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
@@ -732,44 +717,11 @@ internal object GlassShaders {
         max(totalWeight, 0.0001);
     }
 
-    vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, float blendWidth) {
-      vec2 rectangleGradient = gradSdRectangle(localCoord, size, blendWidth);
-      vec2 topLeftDelta = min(localCoord - vec2(radii.x), vec2(0.0));
-      vec2 topRightDelta = vec2(
-        max(localCoord.x - (size.x - radii.y), 0.0),
-        min(localCoord.y - radii.y, 0.0)
-      );
-      vec2 bottomRightDelta = max(
-        localCoord - vec2(size.x - radii.z, size.y - radii.z),
-        vec2(0.0)
-      );
-      vec2 bottomLeftDelta = vec2(
-        min(localCoord.x - radii.w, 0.0),
-        max(localCoord.y - (size.y - radii.w), 0.0)
-      );
-      vec4 cornerWeights = vec4(
-        smootherstep(clamp(length(topLeftDelta) / max(radii.x, 0.0001), 0.0, 1.0)),
-        smootherstep(clamp(length(topRightDelta) / max(radii.y, 0.0001), 0.0, 1.0)),
-        smootherstep(clamp(length(bottomRightDelta) / max(radii.z, 0.0001), 0.0, 1.0)),
-        smootherstep(clamp(length(bottomLeftDelta) / max(radii.w, 0.0001), 0.0, 1.0))
-      );
-      vec2 cornerGradient = safeNormalize(
-        safeNormalize(topLeftDelta, rectangleGradient) * cornerWeights.x +
-          safeNormalize(topRightDelta, rectangleGradient) * cornerWeights.y +
-          safeNormalize(bottomRightDelta, rectangleGradient) * cornerWeights.z +
-          safeNormalize(bottomLeftDelta, rectangleGradient) * cornerWeights.w,
-        rectangleGradient
-      );
-      float cornerWeight = max(
-        max(cornerWeights.x, cornerWeights.y),
-        max(cornerWeights.z, cornerWeights.w)
-      );
-      return mix(rectangleGradient, cornerGradient, cornerWeight);
-    }
+    ${gradSdRoundedRectSource(continuous)}
 
   """
 
-  private fun surfaceAndDisplacementHelpers(merged: Boolean = false): String = """
+  private fun surfaceAndDisplacementHelpers(merged: Boolean, continuous: Boolean): String = """
     float circleMap(float x) {
       return 1.0 - sqrt(max(0.0, 1.0 - x * x));
     }
@@ -834,15 +786,15 @@ internal object GlassShaders {
       return surfaceHeightFromDistance(distance, refractionHeight);
     }
 
-    float rectSurfaceHeight(vec2 p, vec2 size, vec4 radii, float height, float weight) {
+    float rectSurfaceHeight(vec2 p, vec2 size, vec4 radii, ${ifContinuous(continuous, "vec4 exponents, ")}float height, float weight) {
       if (weight >= 1.0) return surfaceHeightFromDistance(domeDistance(p, size, height), height);
-      float sd = sdRoundedRect(p, size, radii);
+      float sd = sdRoundedRect(p, size, radii${ifContinuous(continuous, ", exponents")});
       return surfaceHeightFromDistance(opticalDistance(p, sd, weight, size, height), height);
     }
 
     float surfaceHeight(vec2 p, float weight) {
       if (weight >= 1.0) return surfaceHeightFromOpticalDistance(domeDistance(p, materialSize, refractionHeight));
-      float sd = ${if (merged) "shapeSd(p)" else "sdRoundedRect(p, materialSize, cornerRadii)"};
+      float sd = ${if (merged) "shapeSd(p)" else "sdRoundedRect(p, materialSize, cornerRadii${ifContinuous(continuous, ", cornerExponents")})"};
       return surfaceHeightFromOpticalDistance(opticalDistanceFromSignedDistance(p, sd, weight));
     }
 
@@ -850,17 +802,17 @@ internal object GlassShaders {
       return clamp(surfaceHeightFromOpticalDistance(distance) / max(refractionHeight, 0.0001), -1.0, 1.0);
     }
 
-    vec2 rectOpticalGradient(vec2 p, vec2 size, vec4 radii, float height, float weight) {
+    vec2 rectOpticalGradient(vec2 p, vec2 size, vec4 radii, ${ifContinuous(continuous, "vec4 exponents, ")}float height, float weight) {
       vec2 normalized = normalizedMaterialCoord(p, size);
       vec2 squared = normalized * normalized;
       vec2 dome = vec2(normalized.x * (1.0 - squared.y), normalized.y * (1.0 - squared.x));
       if (weight >= 1.0) return dome;
-      vec2 boundary = gradSdRoundedRect(p, size, radii, max(height, 1.0));
+      vec2 boundary = gradSdRoundedRect(p, size, radii, ${ifContinuous(continuous, "exponents, ")}max(height, 1.0));
       return mix(boundary, dome, weight);
     }
 
     vec2 opticalSurfaceGradient(vec2 p, float weight) {
-      return ${if (merged) "shapeGradient(p)" else "rectOpticalGradient(p, materialSize, cornerRadii, refractionHeight, weight)"};
+      return ${if (merged) "shapeGradient(p)" else "rectOpticalGradient(p, materialSize, cornerRadii, ${ifContinuous(continuous, "cornerExponents, ")}refractionHeight, weight)"};
     }
 
     float refractionFoldEnvelope(float opticalDistance, float height) {
@@ -883,39 +835,7 @@ internal object GlassShaders {
       return mix(heightNorm, foldTarget, foldWeight);
     }
 
-    vec2 edgeRefractionGradient(vec2 localCoord, vec2 size, vec4 customRadii) {
-      // The cap keeps the optical corner regions disjoint, allowing one analytic arc normal.
-      vec4 radii = min(customRadii * 1.5, vec4(min(size.x, size.y) * 0.5));
-      vec2 delta = vec2(0.0);
-      bool corner = false;
-      if (localCoord.x < radii.x && localCoord.y < radii.x) {
-        delta = localCoord - vec2(radii.x);
-        corner = true;
-      } else if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
-        delta = localCoord - vec2(size.x - radii.y, radii.y);
-        corner = true;
-      } else if (localCoord.x > size.x - radii.z &&
-          localCoord.y > size.y - radii.z) {
-        delta = localCoord - vec2(size.x - radii.z, size.y - radii.z);
-        corner = true;
-      } else if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
-        delta = localCoord - vec2(radii.w, size.y - radii.w);
-        corner = true;
-      }
-      float blendWidth = max(sampleStep * 0.5, 0.01);
-      if (!corner) return gradSdRectangle(localCoord, size, blendWidth);
-      float cornerDistance = length(delta);
-      float axisDistance = min(abs(delta.x), abs(delta.y));
-      if (axisDistance >= blendWidth) return delta / cornerDistance;
-      // Join the straight-edge field at both corner axes, including their undefined arc centre.
-      // Away from this one-sample transition the normal is the exact analytic radial direction.
-      float cornerWeight = smootherstep(clamp(axisDistance / blendWidth, 0.0, 1.0));
-      return mix(
-        gradSdRectangle(localCoord, size, blendWidth),
-        delta / max(cornerDistance, 0.0001),
-        cornerWeight
-      );
-    }
+    ${edgeRefractionGradientSource(continuous)}
 
     ${if (merged) MERGED_REFRACTION_GRADIENT else ""}vec2 evaluateRefraction(
       vec2 localCoord,
@@ -925,7 +845,7 @@ internal object GlassShaders {
       float fieldWeight,
       vec2 size,
       vec4 radii,
-      float height,
+      ${ifContinuous(continuous, "vec4 exponents,\n      ")}float height,
       bool mergedField${if (merged) ",\n      vec4 w" else ""}
     ) {
       float effectiveRefractionStrength =
@@ -946,11 +866,11 @@ internal object GlassShaders {
           gradient = shapeRefractionGradient(localCoord);
           magnitude *= shapeThicknessWeight(localCoord, gradient);
         } else {
-          gradient = edgeRefractionGradient(localCoord, size, radii);
+          gradient = edgeRefractionGradient(localCoord, size, radii${ifContinuous(continuous, ", exponents")});
         }
         """
   } else {
-    "vec2 gradient = edgeRefractionGradient(localCoord, size, radii);\n        "
+    "vec2 gradient = edgeRefractionGradient(localCoord, size, radii${ifContinuous(continuous, ", exponents")});\n        "
   }}
         float gradientLength = length(gradient);
         float centerFade = smootherstep(clamp(gradientLength / 0.5, 0.0, 1.0));
@@ -961,7 +881,7 @@ internal object GlassShaders {
       float displacementMagnitude =
         effectiveHeightNorm * effectiveRefractionStrength * refractionScale;
       vec2 opticalGradient = ${if (merged) "mergedField ? shapeGradient(localCoord) :" else ""}
-        rectOpticalGradient(localCoord, size, radii, height, fieldWeight);
+        rectOpticalGradient(localCoord, size, radii, ${ifContinuous(continuous, "exponents, ")}height, fieldWeight);
       vec2 displacementGradient = opticalGradient;
       if (fieldWeight < 1.0) {
         float gradientLength = length(opticalGradient);
@@ -974,7 +894,7 @@ internal object GlassShaders {
     }
     vec2 refractionDisplacement(vec2 p, float heightNorm, float distance, float multiplier, float weight${sampleDisplacementArgument(merged, declaration = true)}) {
       vec2 mergedResult = evaluateRefraction(
-        p, heightNorm, distance, multiplier, weight, materialSize, cornerRadii, refractionHeight, $merged${if (merged) ", w" else ""}
+        p, heightNorm, distance, multiplier, weight, materialSize, cornerRadii, ${ifContinuous(continuous, "cornerExponents, ")}refractionHeight, $merged${if (merged) ", w" else ""}
       );
       ${if (merged) {
     """
@@ -991,13 +911,13 @@ internal object GlassShaders {
         // Continue each standalone profile from its boundary into the emerging bridge.
         vec2 local = clamp((p - rect.xy) / scale, vec2(0.0), size);
         vec4 radii = memberRadii[i] / min(scale.x, scale.y);
-        float field = opticalFieldWeight(size, refractionHeight);
-        float sd = sdRoundedRect(local, size, radii);
+${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n")}        float field = opticalFieldWeight(size, refractionHeight);
+        float sd = sdRoundedRect(local, size, radii${ifContinuous(continuous, ", exponents")});
         float optical = opticalDistance(local, sd, field, size, refractionHeight);
         float height = surfaceHeightNormFromOpticalDistance(optical);
         vec2 standalone = evaluateRefraction(
           local, height, edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : optical,
-          multiplier, field, size, radii, refractionHeight, false, w
+          multiplier, field, size, radii, ${ifContinuous(continuous, "exponents, ")}refractionHeight, false, w
         );
         // Sampling reads through the press transform, so it keeps the unpressed displacement.
         sampleDisplacement += shares[i] * (standalone - mergedResult);
@@ -1012,7 +932,7 @@ internal object GlassShaders {
     }
   """
 
-  private fun opticalHelpers(merged: Boolean): String = """
+  private fun opticalHelpers(merged: Boolean, continuous: Boolean): String = """
     vec2 surfaceGradient(vec2 localCoord, float fieldWeight) {
       float left = surfaceHeight(
         clampMaterial(localCoord - vec2(sampleStep, 0.0)),
@@ -1059,22 +979,22 @@ internal object GlassShaders {
         vec2 scale = rect.zw / size;
         vec2 local = clamp((p - rect.xy) / scale, vec2(0.0), size);
         vec4 radii = memberRadii[i] / min(scale.x, scale.y);
-        float height = refractionHeight;
+${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n")}        float height = refractionHeight;
         float field = opticalFieldWeight(size, height);
         vec2 standalone;
         if (surfaceProfile == 1) {
-          float sd = sdRoundedRect(local, size, radii);
+          float sd = sdRoundedRect(local, size, radii${ifContinuous(continuous, ", exponents")});
           float distance = opticalDistance(local, sd, field, size, height);
           float slope = 2.0 * (1.0 - smootherstep(clamp(distance / max(height, 0.0001), 0.0, 1.0)));
-          standalone = rectOpticalGradient(local, size, radii, height, field) * slope;
+          standalone = rectOpticalGradient(local, size, radii, ${ifContinuous(continuous, "exponents, ")}height, field) * slope;
         } else {
           vec2 dx = vec2(sampleStep, 0.0);
           vec2 dy = vec2(0.0, sampleStep);
           standalone = vec2(
-            rectSurfaceHeight(clamp(local + dx, vec2(0.0), size), size, radii, height, field) -
-              rectSurfaceHeight(clamp(local - dx, vec2(0.0), size), size, radii, height, field),
-            rectSurfaceHeight(clamp(local + dy, vec2(0.0), size), size, radii, height, field) -
-              rectSurfaceHeight(clamp(local - dy, vec2(0.0), size), size, radii, height, field)
+            rectSurfaceHeight(clamp(local + dx, vec2(0.0), size), size, radii, ${ifContinuous(continuous, "exponents, ")}height, field) -
+              rectSurfaceHeight(clamp(local - dx, vec2(0.0), size), size, radii, ${ifContinuous(continuous, "exponents, ")}height, field),
+            rectSurfaceHeight(clamp(local + dy, vec2(0.0), size), size, radii, ${ifContinuous(continuous, "exponents, ")}height, field) -
+              rectSurfaceHeight(clamp(local - dy, vec2(0.0), size), size, radii, ${ifContinuous(continuous, "exponents, ")}height, field)
           ) * (0.5 / max(sampleStep, 0.0001));
         }
         blended += shares[i] * (standalone - result);
@@ -1223,8 +1143,8 @@ internal object GlassShaders {
 
   private fun unrefractedSample(merged: Boolean): String = if (merged) "coord + sampleOffset" else "coord"
 
-  private fun shapeSd(merged: Boolean, coord: String): String =
-    if (merged) "shapeSd($coord)" else "sdRoundedRect($coord, materialSize, cornerRadii)"
+  private fun shapeSd(merged: Boolean, coord: String, continuous: Boolean): String =
+    if (merged) "shapeSd($coord)" else "sdRoundedRect($coord, materialSize, cornerRadii${ifContinuous(continuous, ", cornerExponents")})"
 
   // Chroma is strongest at a member's corners, so merged fields weight by the nearest member.
   private fun cornerWeight(merged: Boolean): String = if (merged) {
@@ -1265,10 +1185,251 @@ internal object GlassShaders {
     "vec3 tintedColor = mix(gradedColor, tintColor.rgb, tintColor.a);"
   }
 
-  private fun mergedShapeHelpers(merged: Boolean, tint: Boolean = false): String = when {
+  private fun sdRoundedRectSource(continuous: Boolean): String =
+    if (continuous) CONTINUOUS_SD_ROUNDED_RECT else CIRCULAR_SD_ROUNDED_RECT
+
+  private fun gradSdRoundedRectSource(continuous: Boolean): String =
+    if (continuous) CONTINUOUS_GRAD_SD_ROUNDED_RECT else CIRCULAR_GRAD_SD_ROUNDED_RECT
+
+  private fun edgeRefractionGradientSource(continuous: Boolean): String =
+    if (continuous) CONTINUOUS_EDGE_REFRACTION_GRADIENT else CIRCULAR_EDGE_REFRACTION_GRADIENT
+
+  /** Returns [text] in continuous-corner sources and nothing in circular ones. */
+  private fun ifContinuous(continuous: Boolean, text: String): String = if (continuous) text else ""
+
+  private const val CIRCULAR_SD_ROUNDED_RECT = """float sdRoundedRect(vec2 localCoord, vec2 size, vec4 radii) {
+      float sd = sdRectangle(localCoord, size);
+      if (localCoord.x < radii.x && localCoord.y < radii.x) {
+        sd = max(sd, length(localCoord - vec2(radii.x)) - radii.x);
+      }
+      if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
+        sd = max(sd, length(localCoord - vec2(size.x - radii.y, radii.y)) - radii.y);
+      }
+      if (localCoord.x > size.x - radii.z && localCoord.y > size.y - radii.z) {
+        sd = max(
+          sd,
+          length(localCoord - vec2(size.x - radii.z, size.y - radii.z)) - radii.z
+        );
+      }
+      if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
+        sd = max(sd, length(localCoord - vec2(radii.w, size.y - radii.w)) - radii.w);
+      }
+      return sd;
+    }"""
+
+  /**
+   * Corner radii carry corner extents and `exponents` their superellipse exponents. A single
+   * selected corner is evaluated: the fit keeps continuous corner boxes disjoint, and a larger
+   * program draws nothing on Android 15's software pipeline.
+   */
+  private const val CONTINUOUS_SD_ROUNDED_RECT = """// Corner radii are corner extents. An exponent above 2 makes a continuous (superellipse)
+    // corner; 2 keeps the exact circular arc. delta is measured from the corner box's centre.
+    float cornerNorm(vec2 delta, float extent, float exponent) {
+      if (exponent <= 2.0) return length(delta) / max(extent, 0.0001);
+      vec2 a = abs(delta) / max(extent, 0.0001);
+      return pow(pow(a.x, exponent) + pow(a.y, exponent), 1.0 / exponent);
+    }
+
+    // The unnormalized outward normal direction at delta.
+    vec2 cornerNormal(vec2 delta, float exponent) {
+      if (exponent <= 2.0) return delta;
+      vec2 a = abs(delta) / max(max(abs(delta.x), abs(delta.y)), 0.0001);
+      return sign(delta) * pow(a, vec2(exponent - 1.0));
+    }
+
+    float roundedCornerSd(vec2 delta, float extent, float exponent) {
+      if (exponent <= 2.0) return length(delta) - extent;
+      vec2 a = abs(delta) / extent;
+      float norm = pow(pow(a.x, exponent) + pow(a.y, exponent), 1.0 / exponent);
+      vec2 g = pow(a / max(norm, 0.0001), vec2(exponent - 1.0));
+      return (norm - 1.0) * extent / max(length(g), 0.0001);
+    }
+
+    float sdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents) {
+      float sd = sdRectangle(localCoord, size);
+      // Normalized corner boxes are disjoint, so at most one corner applies.
+      vec2 delta;
+      float extent = 0.0;
+      float exponent = 2.0;
+      if (localCoord.x < radii.x && localCoord.y < radii.x) {
+        delta = localCoord - vec2(radii.x);
+        extent = radii.x;
+        exponent = exponents.x;
+      } else if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
+        delta = localCoord - vec2(size.x - radii.y, radii.y);
+        extent = radii.y;
+        exponent = exponents.y;
+      } else if (localCoord.x > size.x - radii.z && localCoord.y > size.y - radii.z) {
+        delta = localCoord - vec2(size.x - radii.z, size.y - radii.z);
+        extent = radii.z;
+        exponent = exponents.z;
+      } else if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
+        delta = localCoord - vec2(radii.w, size.y - radii.w);
+        extent = radii.w;
+        exponent = exponents.w;
+      } else {
+        return sd;
+      }
+      return max(sd, roundedCornerSd(delta, extent, exponent));
+    }"""
+
+  private const val CIRCULAR_GRAD_SD_ROUNDED_RECT = """vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, float blendWidth) {
+      vec2 rectangleGradient = gradSdRectangle(localCoord, size, blendWidth);
+      vec2 topLeftDelta = min(localCoord - vec2(radii.x), vec2(0.0));
+      vec2 topRightDelta = vec2(
+        max(localCoord.x - (size.x - radii.y), 0.0),
+        min(localCoord.y - radii.y, 0.0)
+      );
+      vec2 bottomRightDelta = max(
+        localCoord - vec2(size.x - radii.z, size.y - radii.z),
+        vec2(0.0)
+      );
+      vec2 bottomLeftDelta = vec2(
+        min(localCoord.x - radii.w, 0.0),
+        max(localCoord.y - (size.y - radii.w), 0.0)
+      );
+      vec4 cornerWeights = vec4(
+        smootherstep(clamp(length(topLeftDelta) / max(radii.x, 0.0001), 0.0, 1.0)),
+        smootherstep(clamp(length(topRightDelta) / max(radii.y, 0.0001), 0.0, 1.0)),
+        smootherstep(clamp(length(bottomRightDelta) / max(radii.z, 0.0001), 0.0, 1.0)),
+        smootherstep(clamp(length(bottomLeftDelta) / max(radii.w, 0.0001), 0.0, 1.0))
+      );
+      vec2 cornerGradient = safeNormalize(
+        safeNormalize(topLeftDelta, rectangleGradient) * cornerWeights.x +
+          safeNormalize(topRightDelta, rectangleGradient) * cornerWeights.y +
+          safeNormalize(bottomRightDelta, rectangleGradient) * cornerWeights.z +
+          safeNormalize(bottomLeftDelta, rectangleGradient) * cornerWeights.w,
+        rectangleGradient
+      );
+      float cornerWeight = max(
+        max(cornerWeights.x, cornerWeights.y),
+        max(cornerWeights.z, cornerWeights.w)
+      );
+      return mix(rectangleGradient, cornerGradient, cornerWeight);
+    }"""
+
+  private const val CONTINUOUS_GRAD_SD_ROUNDED_RECT = """vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents, float blendWidth) {
+      vec2 rectangleGradient = gradSdRectangle(localCoord, size, blendWidth);
+      vec2 topLeftDelta = min(localCoord - vec2(radii.x), vec2(0.0));
+      vec2 topRightDelta = vec2(
+        max(localCoord.x - (size.x - radii.y), 0.0),
+        min(localCoord.y - radii.y, 0.0)
+      );
+      vec2 bottomRightDelta = max(
+        localCoord - vec2(size.x - radii.z, size.y - radii.z),
+        vec2(0.0)
+      );
+      vec2 bottomLeftDelta = vec2(
+        min(localCoord.x - radii.w, 0.0),
+        max(localCoord.y - (size.y - radii.w), 0.0)
+      );
+      vec4 cornerWeights = vec4(
+        smootherstep(clamp(cornerNorm(topLeftDelta, radii.x, exponents.x), 0.0, 1.0)),
+        smootherstep(clamp(cornerNorm(topRightDelta, radii.y, exponents.y), 0.0, 1.0)),
+        smootherstep(clamp(cornerNorm(bottomRightDelta, radii.z, exponents.z), 0.0, 1.0)),
+        smootherstep(clamp(cornerNorm(bottomLeftDelta, radii.w, exponents.w), 0.0, 1.0))
+      );
+      vec2 cornerGradient = safeNormalize(
+        safeNormalize(cornerNormal(topLeftDelta, exponents.x), rectangleGradient) * cornerWeights.x +
+          safeNormalize(cornerNormal(topRightDelta, exponents.y), rectangleGradient) * cornerWeights.y +
+          safeNormalize(cornerNormal(bottomRightDelta, exponents.z), rectangleGradient) * cornerWeights.z +
+          safeNormalize(cornerNormal(bottomLeftDelta, exponents.w), rectangleGradient) * cornerWeights.w,
+        rectangleGradient
+      );
+      float cornerWeight = max(
+        max(cornerWeights.x, cornerWeights.y),
+        max(cornerWeights.z, cornerWeights.w)
+      );
+      return mix(rectangleGradient, cornerGradient, cornerWeight);
+    }"""
+
+  private const val CIRCULAR_EDGE_REFRACTION_GRADIENT = """vec2 edgeRefractionGradient(vec2 localCoord, vec2 size, vec4 customRadii) {
+      // The cap keeps the optical corner regions disjoint, allowing one analytic arc normal.
+      vec4 radii = min(customRadii * 1.5, vec4(min(size.x, size.y) * 0.5));
+      vec2 delta = vec2(0.0);
+      bool corner = false;
+      if (localCoord.x < radii.x && localCoord.y < radii.x) {
+        delta = localCoord - vec2(radii.x);
+        corner = true;
+      } else if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
+        delta = localCoord - vec2(size.x - radii.y, radii.y);
+        corner = true;
+      } else if (localCoord.x > size.x - radii.z &&
+          localCoord.y > size.y - radii.z) {
+        delta = localCoord - vec2(size.x - radii.z, size.y - radii.z);
+        corner = true;
+      } else if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
+        delta = localCoord - vec2(radii.w, size.y - radii.w);
+        corner = true;
+      }
+      float blendWidth = max(sampleStep * 0.5, 0.01);
+      if (!corner) return gradSdRectangle(localCoord, size, blendWidth);
+      float cornerDistance = length(delta);
+      float axisDistance = min(abs(delta.x), abs(delta.y));
+      if (axisDistance >= blendWidth) return delta / cornerDistance;
+      // Join the straight-edge field at both corner axes, including their undefined arc centre.
+      // Away from this one-sample transition the normal is the exact analytic radial direction.
+      float cornerWeight = smootherstep(clamp(axisDistance / blendWidth, 0.0, 1.0));
+      return mix(
+        gradSdRectangle(localCoord, size, blendWidth),
+        delta / max(cornerDistance, 0.0001),
+        cornerWeight
+      );
+    }"""
+
+  private const val CONTINUOUS_EDGE_REFRACTION_GRADIENT = """vec2 edgeRefractionGradient(vec2 localCoord, vec2 size, vec4 customRadii, vec4 exponents) {
+      // The cap keeps the optical corner regions disjoint, allowing one analytic arc normal.
+      vec4 widened = min(customRadii * 1.5, vec4(min(size.x, size.y) * 0.5));
+      // Continuous corners already ease into their edges, so they use their own corner boxes.
+      vec4 radii = vec4(
+        exponents.x > 2.0 ? customRadii.x : widened.x,
+        exponents.y > 2.0 ? customRadii.y : widened.y,
+        exponents.z > 2.0 ? customRadii.z : widened.z,
+        exponents.w > 2.0 ? customRadii.w : widened.w
+      );
+      vec2 delta = vec2(0.0);
+      float exponent = 2.0;
+      bool corner = false;
+      if (localCoord.x < radii.x && localCoord.y < radii.x) {
+        delta = localCoord - vec2(radii.x);
+        exponent = exponents.x;
+        corner = true;
+      } else if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
+        delta = localCoord - vec2(size.x - radii.y, radii.y);
+        exponent = exponents.y;
+        corner = true;
+      } else if (localCoord.x > size.x - radii.z &&
+          localCoord.y > size.y - radii.z) {
+        delta = localCoord - vec2(size.x - radii.z, size.y - radii.z);
+        exponent = exponents.z;
+        corner = true;
+      } else if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
+        delta = localCoord - vec2(radii.w, size.y - radii.w);
+        exponent = exponents.w;
+        corner = true;
+      }
+      float blendWidth = max(sampleStep * 0.5, 0.01);
+      if (!corner) return gradSdRectangle(localCoord, size, blendWidth);
+      float cornerDistance = length(delta);
+      float axisDistance = min(abs(delta.x), abs(delta.y));
+      vec2 normal = exponent > 2.0
+        ? safeNormalize(cornerNormal(delta, exponent), vec2(0.0))
+        : delta / max(cornerDistance, 0.0001);
+      if (axisDistance >= blendWidth) return normal;
+      // Join the straight-edge field at both corner axes, including their undefined arc centre.
+      // Away from this one-sample transition the normal is the exact analytic corner normal.
+      float cornerWeight = smootherstep(clamp(axisDistance / blendWidth, 0.0, 1.0));
+      return mix(
+        gradSdRectangle(localCoord, size, blendWidth),
+        normal,
+        cornerWeight
+      );
+    }"""
+
+  private fun mergedShapeHelpers(merged: Boolean, continuous: Boolean, tint: Boolean = false): String = when {
     !merged -> ""
-    tint -> MERGED_MEMBER_TINTS + MERGED_FIELD_HELPERS + MERGED_OPTICS_HELPERS
-    else -> MERGED_FIELD_HELPERS + MERGED_OPTICS_HELPERS
+    tint -> MERGED_MEMBER_TINTS + mergedFieldHelpers(continuous) + MERGED_OPTICS_HELPERS
+    else -> mergedFieldHelpers(continuous) + MERGED_OPTICS_HELPERS
   }
 
   private const val MERGED_MEMBER_TINTS = """
@@ -1284,11 +1445,11 @@ internal object GlassShaders {
    * half the merge distance. `memberSmoothing[i]` already fades to zero as member i overlaps an
    * earlier member.
    */
-  private const val MERGED_FIELD_HELPERS = """
+  private fun mergedFieldHelpers(continuous: Boolean): String = """
     uniform float4 memberRects[4];
     uniform float4 memberLayoutRects[4];
     uniform float4 memberRadii[4];
-    uniform float memberSmoothing[4];
+${ifContinuous(continuous, "    uniform float4 memberCornerExponents[4];\n")}    uniform float memberSmoothing[4];
     // Declared as float because AGSL does not support int uniforms.
     uniform float memberCount;
 
@@ -1298,25 +1459,25 @@ internal object GlassShaders {
       return min(a, b) - h * h * k * 0.25;
     }
 
-    float memberSd(vec2 localCoord, float4 rect, float4 radii) {
-      return sdRoundedRect(localCoord - rect.xy, rect.zw, radii);
+    float memberSd(vec2 localCoord, float4 rect, float4 radii${ifContinuous(continuous, ", float4 exponents")}) {
+      return sdRoundedRect(localCoord - rect.xy, rect.zw, radii${ifContinuous(continuous, ", exponents")});
     }
 
     float shapeSd(vec2 localCoord) {
-      float d = memberSd(localCoord, memberRects[0], memberRadii[0]);
+      float d = memberSd(localCoord, memberRects[0], memberRadii[0]${ifContinuous(continuous, ", memberCornerExponents[0]")});
       for (int i = 1; i < 4; i++) {
         if (float(i) >= memberCount) break;
-        d = smoothMin(d, memberSd(localCoord, memberRects[i], memberRadii[i]), memberSmoothing[i]);
+        d = smoothMin(d, memberSd(localCoord, memberRects[i], memberRadii[i]${ifContinuous(continuous, ", memberCornerExponents[i]")}), memberSmoothing[i]);
       }
       return d;
     }
 
     vec4 memberDistances(vec2 localCoord) {
       vec4 d = vec4(0.0);
-      d[0] = memberSd(localCoord, memberRects[0], memberRadii[0]);
+      d[0] = memberSd(localCoord, memberRects[0], memberRadii[0]${ifContinuous(continuous, ", memberCornerExponents[0]")});
       for (int i = 1; i < 4; i++) {
         if (float(i) >= memberCount) break;
-        d[i] = memberSd(localCoord, memberRects[i], memberRadii[i]);
+        d[i] = memberSd(localCoord, memberRects[i], memberRadii[i]${ifContinuous(continuous, ", memberCornerExponents[i]")});
       }
       return d;
     }
