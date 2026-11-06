@@ -6,6 +6,25 @@ package dev.chrisbanes.haze.glass {
     enum_constant public static final dev.chrisbanes.haze.glass.ChromaticAberrationMode Simple;
   }
 
+  public final class ContinuousRoundedCornerShape extends androidx.compose.foundation.shape.CornerBasedShape {
+    ctor public ContinuousRoundedCornerShape(androidx.compose.foundation.shape.CornerSize topStart, androidx.compose.foundation.shape.CornerSize topEnd, androidx.compose.foundation.shape.CornerSize bottomEnd, androidx.compose.foundation.shape.CornerSize bottomStart, optional float smoothing);
+    method public dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape copy(androidx.compose.foundation.shape.CornerSize topStart, androidx.compose.foundation.shape.CornerSize topEnd, androidx.compose.foundation.shape.CornerSize bottomEnd, androidx.compose.foundation.shape.CornerSize bottomStart);
+    method public dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape copy(float smoothing);
+    method @KotlinOnly public androidx.compose.ui.graphics.Outline createOutline(androidx.compose.ui.geometry.Size size, float topStart, float topEnd, float bottomEnd, float bottomStart, androidx.compose.ui.unit.LayoutDirection layoutDirection);
+    method @InaccessibleFromKotlin public float getSmoothing();
+    property public float smoothing;
+  }
+
+  public final class ContinuousRoundedCornerShapeKt {
+    method public static dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape ContinuousRoundedCornerShape(androidx.compose.foundation.shape.CornerSize corner, optional float smoothing);
+    method @KotlinOnly public static dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape ContinuousRoundedCornerShape(optional androidx.compose.ui.unit.Dp topStart, optional androidx.compose.ui.unit.Dp topEnd, optional androidx.compose.ui.unit.Dp bottomEnd, optional androidx.compose.ui.unit.Dp bottomStart, optional float smoothing);
+    method @KotlinOnly public static dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape ContinuousRoundedCornerShape(androidx.compose.ui.unit.Dp size, optional float smoothing);
+    method public static dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape ContinuousRoundedCornerShape(float size, optional float smoothing);
+    method public static dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape ContinuousRoundedCornerShape(optional float topStart, optional float topEnd, optional float bottomEnd, optional float bottomStart, optional float smoothing);
+    method public static dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape ContinuousRoundedCornerShape(int percent, optional float smoothing);
+    method public static dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape ContinuousRoundedCornerShape(optional int topStartPercent, optional int topEndPercent, optional int bottomEndPercent, optional int bottomStartPercent, optional float smoothing);
+  }
+
   public final class GlassAccessibilityKt {
     method @InaccessibleFromKotlin public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.glass.GlassAccessibilitySettings> getLocalGlassAccessibilitySettings();
     property public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.glass.GlassAccessibilitySettings> LocalGlassAccessibilitySettings;
@@ -158,6 +177,7 @@ package dev.chrisbanes.haze.glass {
     method public void optics(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassOptics,dev.chrisbanes.haze.glass.GlassOptics> transform);
     method public void pressed(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> response);
     method public void shape(androidx.compose.foundation.shape.RoundedCornerShape shape);
+    method public void shape(dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape shape);
     method public void specularExponent(float exponent);
     method public void specularIntensity(float intensity);
     method public void surfaceProfile(dev.chrisbanes.haze.glass.SurfaceProfile profile);

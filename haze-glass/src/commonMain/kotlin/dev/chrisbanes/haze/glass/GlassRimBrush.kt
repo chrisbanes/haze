@@ -15,7 +15,10 @@ internal fun interface GlassRimBrushProvider {
   operator fun invoke(key: GlassRimEffectKey): Brush?
 }
 
-internal expect fun createGlassRimBrushProvider(merged: Boolean = false): GlassRimBrushProvider?
+internal expect fun createGlassRimBrushProvider(
+  merged: Boolean = false,
+  continuous: Boolean = false,
+): GlassRimBrushProvider?
 
 internal expect fun DrawScope.supportsGlassRimBrush(): Boolean
 
@@ -24,7 +27,9 @@ internal fun interface GlassMergedBackgroundShaderProvider {
   operator fun invoke(materialOrigin: Offset, field: GlassMergedField): Shader?
 }
 
-internal expect fun createGlassMergedBackgroundShaderProvider(): GlassMergedBackgroundShaderProvider?
+internal expect fun createGlassMergedBackgroundShaderProvider(
+  continuous: Boolean = false,
+): GlassMergedBackgroundShaderProvider?
 
 internal fun DrawScope.drawGlassRimWithBrush(brush: Brush): Boolean {
   if (!supportsGlassRimBrush()) return false

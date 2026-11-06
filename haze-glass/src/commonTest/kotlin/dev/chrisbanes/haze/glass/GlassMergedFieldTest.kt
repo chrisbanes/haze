@@ -65,6 +65,68 @@ internal fun mergedField(
 ) = GlassMergedField(members.toList(), mergeDistancePx, opticalSize)
 
 class GlassMergedFieldTest {
+
+  @Test
+  fun withExactCorners_overlappingCircularMemberMakesFieldCircular() {
+    val continuous = member(Rect(0f, 0f, 100f, 60f), CornerRadii(16f, 16f, 16f, 16f, 1f, 1f, 1f, 1f))
+    val leaf = member(Rect(120f, 0f, 160f, 40f), CornerRadii(40f, 0f, 40f, 0f))
+
+    val exact = listOf(continuous, leaf).withExactCorners()
+
+    assertThat(exact.map { it.cornerRadii }).containsExactly(
+      CornerRadii(16f, 16f, 16f, 16f),
+      CornerRadii(40f, 0f, 40f, 0f),
+    )
+  }
+
+  @Test
+  fun withExactCorners_overlappingExtentsMakeFieldCircular() {
+    // The radii fit (80 <= 100), but the smoothed extents (2 x 61) do not.
+    val member = member(Rect(0f, 0f, 100f, 60f), CornerRadii(40f, 40f, 0f, 0f, 1f, 1f, 0f, 0f))
+
+    assertThat(listOf(member).withExactCorners().single().cornerRadii).isEqualTo(CornerRadii(40f, 40f, 0f, 0f))
+  }
+
+  @Test
+  fun withExactCorners_fittedMembersKeepSmoothing() {
+    // Fitted extents fill their edges exactly, so float rounding must not make them overlap.
+    for (height in 150..250) {
+      val size = Size(400f, height.toFloat())
+      val radius = height * 0.4883f
+      val fitted = CornerRadii(radius, 10f, 10f, radius, 1f, 1f, 1f, 1f).fitSmoothingTo(size)
+      val members = listOf(
+        member(Rect(Offset.Zero, size), fitted),
+        // A pressed member: a scale that does not round-trip exactly through 1 / scale.
+        member(Rect(Offset(420f, 0f), size * 0.37f), fitted * 0.37f).copy(layoutRect = Rect(Offset(420f, 0f), size)),
+      )
+
+      assertThat(members.withExactCorners(), "height $height").isEqualTo(members)
+    }
+  }
+
+  @Test
+  fun withExactCorners_disjointMembersKeepSmoothing() {
+    val members = listOf(
+      member(Rect(0f, 0f, 100f, 60f), CornerRadii(16f, 16f, 16f, 16f, 1f, 1f, 1f, 1f)),
+      member(Rect(120f, 0f, 160f, 40f), CornerRadii(20f, 20f, 20f, 20f)),
+    )
+
+    assertThat(members.withExactCorners()).isEqualTo(members)
+  }
+
+  @Test
+  fun withExactCorners_circularFieldIsUnchanged() {
+    val members = listOf(
+      member(Rect(0f, 0f, 100f, 60f), CornerRadii(16f, 16f, 16f, 16f)),
+      member(Rect(120f, 0f, 160f, 40f), CornerRadii(40f, 0f, 40f, 0f)),
+    )
+
+    assertThat(members.withExactCorners()).isSameInstanceAs(members)
+  }
+
+  private fun member(rect: Rect, radii: CornerRadii) =
+    GlassMergedMember(rect, radii, Color.Transparent, Color.Transparent)
+
   @Test
   fun fallbackBase_survivesMaterialProjectionsButIsAbsentFromFullRenderer() {
     val member = GlassMergedMember(

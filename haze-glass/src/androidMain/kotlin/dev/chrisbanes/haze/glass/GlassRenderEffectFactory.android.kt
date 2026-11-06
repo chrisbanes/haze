@@ -60,9 +60,13 @@ internal actual fun DrawScope.supportsGlassRimBrush(): Boolean =
   drawContext.canvas.nativeCanvas.isHardwareAccelerated
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createGlassRimBrushProvider(merged: Boolean): GlassRimBrushProvider? =
-  (if (merged) GlassDirectDrawPrograms.mergedRim else GlassDirectDrawPrograms.rim)
-    ?.let { AndroidGlassRimBrushProvider(it.shader, it.brush) }
+internal actual fun createGlassRimBrushProvider(merged: Boolean, continuous: Boolean): GlassRimBrushProvider? =
+  when {
+    merged && continuous -> GlassDirectDrawPrograms.continuousMergedRim
+    merged -> GlassDirectDrawPrograms.mergedRim
+    continuous -> GlassDirectDrawPrograms.continuousRim
+    else -> GlassDirectDrawPrograms.rim
+  }?.let { AndroidGlassRimBrushProvider(it.shader, it.brush) }
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal class AndroidGlassRimBrushProvider(
@@ -78,8 +82,11 @@ internal class AndroidGlassRimBrushProvider(
 }
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createGlassMergedBackgroundShaderProvider(): GlassMergedBackgroundShaderProvider? =
-  GlassDirectDrawPrograms.mergedBackground?.let(::AndroidGlassMergedBackgroundShaderProvider)
+internal actual fun createGlassMergedBackgroundShaderProvider(
+  continuous: Boolean,
+): GlassMergedBackgroundShaderProvider? =
+  (if (continuous) GlassDirectDrawPrograms.continuousMergedBackground else GlassDirectDrawPrograms.mergedBackground)
+    ?.let(::AndroidGlassMergedBackgroundShaderProvider)
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal class AndroidGlassMergedBackgroundShaderProvider(
@@ -107,6 +114,15 @@ private object GlassDirectDrawPrograms {
   val rim by lazyGlassProgram { GlassRimProgram(RuntimeShader(GlassShaders.buildRim(false))) }
   val mergedRim by lazyGlassProgram { GlassRimProgram(RuntimeShader(GlassShaders.buildRim(true))) }
   val mergedBackground by lazyGlassProgram { RuntimeShader(GlassShaders.buildMergedBackground()) }
+  val continuousRim by lazyGlassProgram {
+    GlassRimProgram(RuntimeShader(GlassShaders.buildRim(merged = false, continuous = true)))
+  }
+  val continuousMergedRim by lazyGlassProgram {
+    GlassRimProgram(RuntimeShader(GlassShaders.buildRim(merged = true, continuous = true)))
+  }
+  val continuousMergedBackground by lazyGlassProgram {
+    RuntimeShader(GlassShaders.buildMergedBackground(continuous = true))
+  }
 }
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)

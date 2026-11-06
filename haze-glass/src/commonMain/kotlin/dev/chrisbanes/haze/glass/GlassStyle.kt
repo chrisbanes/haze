@@ -9,6 +9,7 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ProvidableCompositionLocal
@@ -290,6 +291,17 @@ public class GlassStyleScope internal constructor(
   }
 
   /**
+   * Sets the rounded boundary used for refraction and masking, with continuous (iOS-style) corners.
+   *
+   * Masking, refraction, lighting, and the rim all follow the shape's
+   * [smoothing][ContinuousRoundedCornerShape.smoothing]. Pass the same shape to `Modifier.clip` or
+   * `Modifier.border` to match the Glass silhouette.
+   */
+  public fun shape(shape: ContinuousRoundedCornerShape) {
+    values.shape = shape
+  }
+
+  /**
    * Sets the optical model used to refract and blur captured content.
    *
    * Replaces the whole model. To change part of the built-in model, copy it, for example
@@ -486,7 +498,7 @@ private fun validateLightPositionBiases(horizontalBias: Float, verticalBias: Flo
 
 @Poko
 internal class GlassStyleValues(
-  var shape: RoundedCornerShape = GlassDefaults.shape,
+  var shape: CornerBasedShape = GlassDefaults.shape,
   var optics: GlassOptics = GlassOptics.regular,
   var specularIntensity: Float = GlassDefaults.specularIntensity,
   var edgeShadow: Color = GlassDefaults.edgeShadow,

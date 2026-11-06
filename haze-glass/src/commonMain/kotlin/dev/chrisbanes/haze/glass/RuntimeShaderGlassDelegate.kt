@@ -82,28 +82,32 @@ internal class RuntimeShaderGlassDelegate(
     private set
   private var rimBrushProviderInitialized = false
   private var rimBrushProviderMerged = false
+  private var rimBrushProviderContinuous = false
   private var mergedBackgroundShaderProvider: GlassMergedBackgroundShaderProvider? = null
   private var mergedBackgroundShaderProviderInitialized = false
+  private var mergedBackgroundShaderProviderContinuous = false
   private var stageShadersMerged = false
+  private var stageShadersContinuous = false
   internal var rimEffect: PlatformRenderEffect? = null
     private set
   private var fusedEffectKey: GlassFusedEffectKey? = null
   internal var fusedShader: MutableRuntimeShaderRenderEffect? = null
     private set
-  private var fusedInputKey: GlassDepthInputKey? = null
+  internal var fusedInputKey: GlassDepthInputKey? = null
+    private set
   private var fusedDepthInputShaders: FusedDepthInputShaders? = null
   private var fusedEffect: PlatformRenderEffect? = null
   internal val interactionOptical = interactionSlot<GlassOpticalEffectKey> {
-    GLASS_INTERACTION_OPTICAL_EFFECT
+    GLASS_INTERACTION_OPTICAL_EFFECT[stageShadersContinuous]
   }
   internal val interactionDetail = interactionSlot<GlassRefractionDetailEffectKey> {
-    GLASS_INTERACTION_REFRACTION_DETAIL_EFFECT
+    GLASS_INTERACTION_REFRACTION_DETAIL_EFFECT[stageShadersContinuous]
   }
   internal val interactionDetailCoverage = interactionSlot<GlassRefractionDetailEffectKey> {
-    GLASS_INTERACTION_REFRACTION_DETAIL_COVERAGE_EFFECT
+    GLASS_INTERACTION_REFRACTION_DETAIL_COVERAGE_EFFECT[stageShadersContinuous]
   }
   internal val interactionLighting = interactionSlot<GlassInteractionLightingKey> {
-    if (stageShadersMerged) GLASS_MERGED_INTERACTION_LIGHTING_EFFECT else GLASS_INTERACTION_LIGHTING_EFFECT
+    (if (stageShadersMerged) GLASS_MERGED_INTERACTION_LIGHTING_EFFECT else GLASS_INTERACTION_LIGHTING_EFFECT)[stageShadersContinuous]
   }
   internal var interactionOutputEffect: MutableRuntimeShaderRenderEffect? = null
     private set
@@ -1157,9 +1161,11 @@ internal class RuntimeShaderGlassDelegate(
   }
 
   private fun mergedBackgroundShader(materialOrigin: Offset, field: GlassMergedField): Shader? {
-    if (!mergedBackgroundShaderProviderInitialized) {
-      mergedBackgroundShaderProvider = createGlassMergedBackgroundShaderProvider()
+    val continuous = field.isContinuous
+    if (!mergedBackgroundShaderProviderInitialized || mergedBackgroundShaderProviderContinuous != continuous) {
+      mergedBackgroundShaderProvider = createGlassMergedBackgroundShaderProvider(continuous)
       mergedBackgroundShaderProviderInitialized = true
+      mergedBackgroundShaderProviderContinuous = continuous
     }
     return mergedBackgroundShaderProvider?.invoke(materialOrigin, field)
   }
@@ -1333,10 +1339,16 @@ internal class RuntimeShaderGlassDelegate(
       supportsDirectDrawing != recordedRimSupportsDirectDrawing
     ) {
       val merged = key.mergedField != null
-      if (!rimBrushProviderInitialized || rimBrushProviderMerged != merged) {
-        rimBrushProvider = createGlassRimBrushProvider(merged)
+      val continuous = continuousCorners(key.cornerRadii, key.mergedField)
+      if (
+        !rimBrushProviderInitialized ||
+        rimBrushProviderMerged != merged ||
+        rimBrushProviderContinuous != continuous
+      ) {
+        rimBrushProvider = createGlassRimBrushProvider(merged, continuous)
         rimBrushProviderInitialized = true
         rimBrushProviderMerged = merged
+        rimBrushProviderContinuous = continuous
       }
       // Capture the provider: a replay must not read a field that release has since cleared.
       val drawnDirectly = recordGlassRimLayer(
@@ -1703,7 +1715,7 @@ internal class RuntimeShaderGlassDelegate(
     if (supportsFusedGlassRenderEffect) {
       return getFusedRenderEffects(render)
     }
-    invalidateStageShadersOnMergeChange(render)
+    invalidateStageShadersOnVariantChange(render)
     val nextBlurKey = render.blurKey
     if (nextBlurKey != blurKey) {
       blurEffects = nextBlurKey?.let(::updateBlurRenderEffects)
@@ -1712,7 +1724,10 @@ internal class RuntimeShaderGlassDelegate(
     val nextOpticalKey = render.opticalKey
     if (nextOpticalKey != opticalKey || opticalEffect == null) {
       val shader = opticalShader ?: traceCreateRenderEffect {
-        createRetainedGlassOpticalRenderEffect(merged = nextOpticalKey.mergedField != null)
+        createRetainedGlassOpticalRenderEffect(
+          merged = nextOpticalKey.mergedField != null,
+          continuous = continuousCorners(nextOpticalKey.cornerRadii, nextOpticalKey.mergedField),
+        )
       }.also {
         opticalShader = it
       }
@@ -1731,6 +1746,7 @@ internal class RuntimeShaderGlassDelegate(
             interactive = false,
             coverageOnly = false,
             merged = key.mergedField != null,
+            continuous = continuousCorners(key.cornerRadii, key.mergedField),
           )
         }.also {
           refractionDetailShader = it
@@ -1744,6 +1760,7 @@ internal class RuntimeShaderGlassDelegate(
               interactive = false,
               coverageOnly = true,
               merged = key.mergedField != null,
+              continuous = continuousCorners(key.cornerRadii, key.mergedField),
             )
           }.also {
             refractionDetailCoverageShader = it
@@ -1769,24 +1786,34 @@ internal class RuntimeShaderGlassDelegate(
     )
   }
 
-  /** Merged variants declare extra uniforms, so changing variant recreates the stage shaders. */
-  private fun invalidateStageShadersOnMergeChange(render: GlassPreparedRender) {
+  /**
+   * Merged and continuous-corner variants declare extra uniforms, so changing either recreates the
+   * stage shaders.
+   */
+  private fun invalidateStageShadersOnVariantChange(render: GlassPreparedRender) {
     val merged = render.params.mergedField != null
-    if (merged == stageShadersMerged) return
+    val continuous = continuousCorners(render.params.cornerRadii, render.params.mergedField)
+    if (merged == stageShadersMerged && continuous == stageShadersContinuous) return
     opticalShader = null
     refractionDetailShader = null
     refractionDetailCoverageShader = null
     rimShader = null
     interactionLighting.releaseShader()
     clearInteractionLightingEffectCache()
+    if (continuous != stageShadersContinuous) {
+      interactionOptical.releaseShader()
+      interactionDetail.releaseShader()
+      interactionDetailCoverage.releaseShader()
+    }
     stageShadersMerged = merged
+    stageShadersContinuous = continuous
   }
 
   private fun getFusedRenderEffects(
     render: GlassPreparedRender,
     backdrop: Boolean = false,
   ): GlassRenderEffects {
-    invalidateStageShadersOnMergeChange(render)
+    invalidateStageShadersOnVariantChange(render)
     updateRimEffect(render.rimKey)
     val backdropBackground = render.params.sourceBackgroundColor.takeIf {
       backdrop && it.alpha > 0f
@@ -1821,7 +1848,8 @@ internal class RuntimeShaderGlassDelegate(
         val topologyChanged = previousInputKey == null ||
           previousInputKey.interactionOptics != nextInputKey.interactionOptics ||
           previousInputKey.sharpDetail != nextInputKey.sharpDetail ||
-          previousInputKey.merged != nextInputKey.merged
+          previousInputKey.merged != nextInputKey.merged ||
+          previousInputKey.continuous != nextInputKey.continuous
         // The sharp, background-composited window pixels. The optical chain consumes it through the
         // depth input and the detail shader directly, so both see the same pixels.
         val backdropInput = if (inputChanged) {
@@ -1853,6 +1881,7 @@ internal class RuntimeShaderGlassDelegate(
               interactionOptics = nextInputKey.interactionOptics,
               sharpDetail = nextInputKey.sharpDetail,
               merged = nextInputKey.merged,
+              continuous = nextInputKey.continuous,
             )
           }
           refractionDetailShader = null
@@ -1883,6 +1912,7 @@ internal class RuntimeShaderGlassDelegate(
             interactive = nextInputKey.interactionOptics,
             coverageOnly = false,
             merged = nextInputKey.merged,
+            continuous = nextInputKey.continuous,
             input = backdropInput,
           )
         }.also {
@@ -1921,7 +1951,10 @@ internal class RuntimeShaderGlassDelegate(
       // buildGlassPreparedRender only creates a rim key while the rim is visible.
       rimEffect = nextRimKey?.let { key ->
         val shader = rimShader ?: traceCreateRenderEffect {
-          createRetainedGlassRimRenderEffect(merged = key.mergedField != null)
+          createRetainedGlassRimRenderEffect(
+            merged = key.mergedField != null,
+            continuous = continuousCorners(key.cornerRadii, key.mergedField),
+          )
         }.also { rimShader = it }
         shader.updateUniforms { setRimUniforms(key, mergedFieldScratch) }
       }
@@ -2169,6 +2202,7 @@ internal class GlassDepthInputKey(
   /** The merged backdrop background samples the field relative to this origin. */
   val backdropMergedOrigin: Offset? = null,
   val merged: Boolean = false,
+  val continuous: Boolean = false,
 )
 
 internal fun GlassFusedEffectKey.depthInputKey(interactionOptics: Boolean) = GlassDepthInputKey(
@@ -2180,6 +2214,7 @@ internal fun GlassFusedEffectKey.depthInputKey(interactionOptics: Boolean) = Gla
   backdropMergedBackground = backdropMergedBackground,
   backdropMergedOrigin = backdropMergedBackground?.let { optical.coordinates.materialOrigin },
   merged = optical.mergedField != null,
+  continuous = continuousCorners(optical.cornerRadii, optical.mergedField),
 )
 
 private class FusedDepthInputShaders(
@@ -2214,8 +2249,9 @@ internal fun createFusedGlassRenderEffect(
   interactionOptics: Boolean = false,
   sharpDetail: Boolean = true,
   merged: Boolean = false,
+  continuous: Boolean = false,
 ): MutableRuntimeShaderRenderEffect = createMutableRuntimeShaderRenderEffect(
-  effect = fusedGlassRuntimeEffect(interactionOptics, sharpDetail, merged),
+  effect = fusedGlassRuntimeEffect(interactionOptics, sharpDetail, merged)[continuous],
   shaderNames = arrayOf("content"),
   inputs = arrayOf(input),
 )
@@ -2256,9 +2292,10 @@ internal expect val supportsFusedGlassRenderEffect: Boolean
 
 internal fun createRetainedGlassOpticalRenderEffect(
   merged: Boolean = false,
+  continuous: Boolean = false,
 ): MutableRuntimeShaderRenderEffect =
   createMutableRuntimeShaderRenderEffect(
-    effect = if (merged) GLASS_MERGED_OPTICAL_EFFECT else GLASS_OPTICAL_EFFECT,
+    effect = (if (merged) GLASS_MERGED_OPTICAL_EFFECT else GLASS_OPTICAL_EFFECT)[continuous],
     shaderNames = arrayOf("content"),
     inputs = arrayOf(null),
   )
@@ -2267,6 +2304,7 @@ private fun createRefractionDetailRenderEffect(
   interactive: Boolean,
   coverageOnly: Boolean,
   merged: Boolean = false,
+  continuous: Boolean = false,
   input: PlatformRenderEffect? = null,
 ): MutableRuntimeShaderRenderEffect =
   createMutableRuntimeShaderRenderEffect(
@@ -2278,16 +2316,17 @@ private fun createRefractionDetailRenderEffect(
       interactive -> GLASS_INTERACTION_REFRACTION_DETAIL_EFFECT
       coverageOnly -> GLASS_REFRACTION_DETAIL_COVERAGE_EFFECT
       else -> GLASS_REFRACTION_DETAIL_EFFECT
-    },
+    }[continuous],
     shaderNames = arrayOf("content"),
     inputs = arrayOf(input),
   )
 
 internal fun createRetainedGlassRimRenderEffect(
   merged: Boolean = false,
+  continuous: Boolean = false,
 ): MutableRuntimeShaderRenderEffect =
   createMutableRuntimeShaderRenderEffect(
-    effect = if (merged) GLASS_MERGED_RIM_EFFECT else GLASS_RIM_EFFECT,
+    effect = (if (merged) GLASS_MERGED_RIM_EFFECT else GLASS_RIM_EFFECT)[continuous],
     shaderNames = arrayOf("content"),
     inputs = arrayOf(null),
   )
@@ -2316,21 +2355,24 @@ internal fun RuntimeShaderUniformProvider.setGlassBlurUniforms(
   }
 }
 
+/**
+ * A program's circular and continuous-corner variants, each compiled on first use, so apps without
+ * continuous corners never compile them.
+ */
+private class GlassProgram(private val source: (continuous: Boolean) -> String) {
+  private val circular by lazy(LazyThreadSafetyMode.NONE) { createRuntimeEffect(source(false)) }
+  private val continuous by lazy(LazyThreadSafetyMode.NONE) { createRuntimeEffect(source(true)) }
+
+  operator fun get(continuous: Boolean): PlatformRuntimeEffect = if (continuous) this.continuous else circular
+}
+
 private val GLASS_HORIZONTAL_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildBlur(horizontal = true))
 }
-private val GLASS_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildFused())
-}
-private val GLASS_INTERACTION_OPTICS_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildFused(interactionOptics = true))
-}
-private val GLASS_NO_DETAIL_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildFused(sharpDetail = false))
-}
-private val GLASS_INTERACTION_OPTICS_NO_DETAIL_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildFused(interactionOptics = true, sharpDetail = false))
-}
+private val GLASS_FUSED_EFFECT = GlassProgram { GlassShaders.buildFused(continuous = it) }
+private val GLASS_INTERACTION_OPTICS_FUSED_EFFECT = GlassProgram { GlassShaders.buildFused(interactionOptics = true, continuous = it) }
+private val GLASS_NO_DETAIL_FUSED_EFFECT = GlassProgram { GlassShaders.buildFused(sharpDetail = false, continuous = it) }
+private val GLASS_INTERACTION_OPTICS_NO_DETAIL_FUSED_EFFECT = GlassProgram { GlassShaders.buildFused(interactionOptics = true, sharpDetail = false, continuous = it) }
 private val GLASS_VERTICAL_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildBlur(horizontal = false))
 }
@@ -2340,62 +2382,36 @@ private val GLASS_PROGRESSIVE_HORIZONTAL_BLUR_EFFECT by lazy(LazyThreadSafetyMod
 private val GLASS_PROGRESSIVE_VERTICAL_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildBlur(horizontal = false, progressive = true))
 }
-private val GLASS_OPTICAL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildOptical())
-}
-private val GLASS_INTERACTION_OPTICAL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildOptical(interactive = true))
-}
-private val GLASS_REFRACTION_DETAIL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildRefractionDetail())
-}
-private val GLASS_REFRACTION_DETAIL_COVERAGE_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildRefractionDetail(coverageOnly = true))
-}
-private val GLASS_INTERACTION_REFRACTION_DETAIL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildRefractionDetail(interactive = true))
-}
-private val GLASS_INTERACTION_REFRACTION_DETAIL_COVERAGE_EFFECT by lazy(
-  LazyThreadSafetyMode.NONE,
-) {
-  createRuntimeEffect(GlassShaders.buildRefractionDetail(interactive = true, coverageOnly = true))
-}
-private val GLASS_INTERACTION_LIGHTING_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildInteractionLighting())
-}
+private val GLASS_OPTICAL_EFFECT = GlassProgram { GlassShaders.buildOptical(continuous = it) }
+private val GLASS_INTERACTION_OPTICAL_EFFECT = GlassProgram { GlassShaders.buildOptical(interactive = true, continuous = it) }
+private val GLASS_REFRACTION_DETAIL_EFFECT = GlassProgram { GlassShaders.buildRefractionDetail(continuous = it) }
+private val GLASS_REFRACTION_DETAIL_COVERAGE_EFFECT = GlassProgram { GlassShaders.buildRefractionDetail(coverageOnly = true, continuous = it) }
+private val GLASS_INTERACTION_REFRACTION_DETAIL_EFFECT = GlassProgram { GlassShaders.buildRefractionDetail(interactive = true, continuous = it) }
+private val GLASS_INTERACTION_REFRACTION_DETAIL_COVERAGE_EFFECT = GlassProgram { GlassShaders.buildRefractionDetail(interactive = true, coverageOnly = true, continuous = it) }
+private val GLASS_INTERACTION_LIGHTING_EFFECT = GlassProgram { GlassShaders.buildInteractionLighting(continuous = it) }
 private val GLASS_INTERACTION_OUTPUT_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildInteractionOutputComposite())
 }
-private val GLASS_RIM_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildRim())
-}
-private val GLASS_MERGED_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildFused(merged = true))
-}
-private val GLASS_MERGED_NO_DETAIL_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildFused(sharpDetail = false, merged = true))
-}
-private val GLASS_MERGED_OPTICAL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildOptical(merged = true))
-}
-private val GLASS_MERGED_REFRACTION_DETAIL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildRefractionDetail(merged = true))
-}
-private val GLASS_MERGED_REFRACTION_DETAIL_COVERAGE_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildRefractionDetail(coverageOnly = true, merged = true))
-}
-private val GLASS_MERGED_RIM_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildRim(merged = true))
-}
-private val GLASS_MERGED_INTERACTION_LIGHTING_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildInteractionLighting(merged = true))
-}
+private val GLASS_RIM_EFFECT = GlassProgram { GlassShaders.buildRim(continuous = it) }
+private val GLASS_MERGED_FUSED_EFFECT = GlassProgram { GlassShaders.buildFused(merged = true, continuous = it) }
+private val GLASS_MERGED_NO_DETAIL_FUSED_EFFECT = GlassProgram { GlassShaders.buildFused(sharpDetail = false, merged = true, continuous = it) }
+private val GLASS_MERGED_OPTICAL_EFFECT = GlassProgram { GlassShaders.buildOptical(merged = true, continuous = it) }
+private val GLASS_MERGED_REFRACTION_DETAIL_EFFECT = GlassProgram { GlassShaders.buildRefractionDetail(merged = true, continuous = it) }
+private val GLASS_MERGED_REFRACTION_DETAIL_COVERAGE_EFFECT = GlassProgram { GlassShaders.buildRefractionDetail(coverageOnly = true, merged = true, continuous = it) }
+private val GLASS_MERGED_RIM_EFFECT = GlassProgram { GlassShaders.buildRim(merged = true, continuous = it) }
+private val GLASS_MERGED_INTERACTION_LIGHTING_EFFECT = GlassProgram { GlassShaders.buildInteractionLighting(merged = true, continuous = it) }
 
 internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
   key: GlassOpticalEffectKey,
   scratch: MergedFieldUniformScratch = MergedFieldUniformScratch(),
 ) {
-  setCommonUniforms(key.coordinates, key.sampleStepPx, key.edgeSoftnessPx, key.cornerRadii)
+  setCommonUniforms(
+    key.coordinates,
+    key.sampleStepPx,
+    key.edgeSoftnessPx,
+    key.cornerRadii,
+    continuousCorners(key.cornerRadii, key.mergedField),
+  )
   setFloatUniform("refractionStrength", key.refractionStrength)
   setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
   setFloatUniform("ambientResponse", key.ambientResponse)
@@ -2425,6 +2441,7 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
     key.sampleStepPx,
     key.edgeSoftnessPx,
     key.cornerRadii,
+    continuousCorners(key.cornerRadii, key.mergedField),
   )
   setFloatUniform("refractionStrength", key.refractionStrength)
   setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
@@ -2442,7 +2459,13 @@ internal fun RuntimeShaderUniformProvider.setRimUniforms(
   key: GlassRimEffectKey,
   scratch: MergedFieldUniformScratch = MergedFieldUniformScratch(),
 ) {
-  setCommonUniforms(key.coordinates, key.sampleStepPx, key.edgeSoftnessPx, key.cornerRadii)
+  setCommonUniforms(
+    key.coordinates,
+    key.sampleStepPx,
+    key.edgeSoftnessPx,
+    key.cornerRadii,
+    continuousCorners(key.cornerRadii, key.mergedField),
+  )
   setFloatUniform("specularIntensity", key.specularIntensity)
   setColorUniform("edgeShadow", key.edgeShadow)
   setFloatUniform("specularExponent", key.specularExponent)
@@ -2484,13 +2507,7 @@ internal fun RuntimeShaderUniformProvider.setInteractionLightingUniforms(
   setFloatUniform("materialOrigin", key.coordinates.materialOrigin.x, key.coordinates.materialOrigin.y)
   setFloatUniform("materialSize", key.coordinates.materialSize.width, key.coordinates.materialSize.height)
   setFloatUniform("edgeSoftness", key.edgeSoftnessPx)
-  setFloatUniform(
-    "cornerRadii",
-    key.cornerRadii.topLeft,
-    key.cornerRadii.topRight,
-    key.cornerRadii.bottomRight,
-    key.cornerRadii.bottomLeft,
-  )
+  setCornerUniforms(key.cornerRadii, continuousCorners(key.cornerRadii, key.mergedField))
   val field = key.mergedField
   if (field != null) {
     setMergedFieldUniforms(field, includeLighting = true, scratch = scratch)
@@ -2520,6 +2537,7 @@ private fun RuntimeShaderUniformProvider.setCommonUniforms(
   sampleStepPx: Float,
   edgeSoftnessPx: Float,
   cornerRadii: CornerRadii,
+  continuous: Boolean,
 ) {
   setCommonUniforms(
     coordinates.sampleSize,
@@ -2528,6 +2546,7 @@ private fun RuntimeShaderUniformProvider.setCommonUniforms(
     sampleStepPx,
     edgeSoftnessPx,
     cornerRadii,
+    continuous,
   )
 }
 
@@ -2538,18 +2557,31 @@ private fun RuntimeShaderUniformProvider.setCommonUniforms(
   sampleStepPx: Float,
   edgeSoftnessPx: Float,
   cornerRadii: CornerRadii,
+  continuous: Boolean,
 ) {
   setFloatUniform("sampleSize", sampleSize.width, sampleSize.height)
   setFloatUniform("materialOrigin", materialOrigin.x, materialOrigin.y)
   setFloatUniform("materialSize", materialSize.width, materialSize.height)
   setFloatUniform("sampleStep", sampleStepPx)
   setFloatUniform("edgeSoftness", edgeSoftnessPx)
+  setCornerUniforms(cornerRadii, continuous)
+}
+
+/**
+ * Uploads `cornerRadii`: radii for the circular variant, exactly as before continuous corners,
+ * and corner extents for the continuous one. Only the continuous variant declares
+ * `cornerExponents`, and Android rejects undeclared uniforms.
+ */
+private fun RuntimeShaderUniformProvider.setCornerUniforms(radii: CornerRadii, continuous: Boolean) {
+  val uploaded = if (continuous) radii.extents() else radii
+  setFloatUniform("cornerRadii", uploaded.topLeft, uploaded.topRight, uploaded.bottomRight, uploaded.bottomLeft)
+  if (!continuous) return
   setFloatUniform(
-    "cornerRadii",
-    cornerRadii.topLeft,
-    cornerRadii.topRight,
-    cornerRadii.bottomRight,
-    cornerRadii.bottomLeft,
+    "cornerExponents",
+    continuousCornerExponent(radii.topLeftSmoothing),
+    continuousCornerExponent(radii.topRightSmoothing),
+    continuousCornerExponent(radii.bottomRightSmoothing),
+    continuousCornerExponent(radii.bottomLeftSmoothing),
   )
 }
 

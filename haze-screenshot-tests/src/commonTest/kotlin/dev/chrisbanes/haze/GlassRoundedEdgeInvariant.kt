@@ -7,6 +7,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,7 +20,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThanOrEqualTo
+import dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.OpticalSizeValue
@@ -39,8 +42,33 @@ private enum class RoundedEdgeClipPlacement {
   AroundContent,
 }
 
-internal fun ScreenshotUiTest.assertGlassRoundedEdgePixelsAreContinuous() {
-  val shape = RoundedCornerShape(31.dp)
+/** Asserts that Glass's internal mask for [styleShape] matches `Modifier.clip(clipShape)`. */
+internal fun ScreenshotUiTest.assertGlassRoundedEdgePixelsAreContinuous(
+  styleShape: CornerBasedShape = RoundedCornerShape(31.dp),
+  clipShape: CornerBasedShape = styleShape,
+) {
+  val (internalMaskOnly, effectClip, contentClip) = captureRoundedEdgeClips(styleShape, clipShape)
+  assertRoundedEdgeContinuity(
+    internalMaskOnly = internalMaskOnly,
+    effectClip = effectClip,
+    contentClip = contentClip,
+  )
+}
+
+/** A circular mask under a continuous clip must exceed the tolerance, or the invariant is blind. */
+internal fun ScreenshotUiTest.assertGlassCircularMaskDiffersFromContinuousClip() {
+  val (internalMaskOnly, effectClip, _) = captureRoundedEdgeClips(
+    styleShape = RoundedCornerShape(31.dp),
+    clipShape = ContinuousRoundedCornerShape(31.dp),
+  )
+  assertThat(internalMaskOnly.maximumChannelDifference(effectClip), name = "circular mask vs continuous clip")
+    .isGreaterThan(EFFECT_CLIP_ANTIALIASING_TOLERANCE)
+}
+
+private fun ScreenshotUiTest.captureRoundedEdgeClips(
+  styleShape: CornerBasedShape,
+  clipShape: CornerBasedShape,
+): Triple<PixelSnapshot, PixelSnapshot, PixelSnapshot> {
   val style = GlassStyle {
     tint(Color.White.copy(alpha = 0.8f))
     optics(
@@ -57,7 +85,11 @@ internal fun ScreenshotUiTest.assertGlassRoundedEdgePixelsAreContinuous() {
     whitePoint(0f)
     chromaMultiplier(1f)
     contentNormalBlend(0f)
-    this.shape(shape)
+    when (styleShape) {
+      is ContinuousRoundedCornerShape -> shape(styleShape)
+      is RoundedCornerShape -> shape(styleShape)
+      else -> error("Glass does not support $styleShape")
+    }
   }
   var clipPlacement by mutableStateOf(RoundedEdgeClipPlacement.InternalMaskOnly)
 
@@ -93,7 +125,7 @@ internal fun ScreenshotUiTest.assertGlassRoundedEdgePixelsAreContinuous() {
             style = style,
             performanceMode = HazePerformanceMode.Quality,
           )
-          RoundedEdgeClipPlacement.AroundEffect -> effectModifier.clip(shape).hazeGlass(
+          RoundedEdgeClipPlacement.AroundEffect -> effectModifier.clip(clipShape).hazeGlass(
             input = HazeInput.Sources(hazeState),
             style = style,
             performanceMode = HazePerformanceMode.Quality,
@@ -102,7 +134,7 @@ internal fun ScreenshotUiTest.assertGlassRoundedEdgePixelsAreContinuous() {
             input = HazeInput.Sources(hazeState),
             style = style,
             performanceMode = HazePerformanceMode.Quality,
-          ).clip(shape)
+          ).clip(clipShape)
         },
       )
     }
@@ -115,12 +147,7 @@ internal fun ScreenshotUiTest.assertGlassRoundedEdgePixelsAreContinuous() {
   clipPlacement = RoundedEdgeClipPlacement.AroundContent
   waitForIdle()
   val contentClip = captureRootPixels().snapshot()
-
-  assertRoundedEdgeContinuity(
-    internalMaskOnly = internalMaskOnly,
-    effectClip = effectClip,
-    contentClip = contentClip,
-  )
+  return Triple(internalMaskOnly, effectClip, contentClip)
 }
 
 internal fun assertRoundedEdgeContinuity(

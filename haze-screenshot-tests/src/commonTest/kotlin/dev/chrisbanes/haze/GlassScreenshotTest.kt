@@ -34,6 +34,7 @@ import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
+import dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape
 import dev.chrisbanes.haze.glass.GlassAccessibilitySettings
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
@@ -61,6 +62,22 @@ class GlassScreenshotTest : ScreenshotTest() {
     setContent {
       ScreenshotTheme {
         CreditCardGlassSample(style = style)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun creditCard_continuousCorners() = runScreenshotTest {
+    val shape = ContinuousRoundedCornerShape(28.dp)
+    val style = GlassStyle {
+      tint(DefaultTint)
+      shape(shape)
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardGlassSample(style = style, shape = shape)
       }
     }
     captureRoot()

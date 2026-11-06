@@ -29,6 +29,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThanOrEqualTo
+import dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape
 import dev.chrisbanes.haze.glass.GlassAccessibilitySettings
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
@@ -210,6 +211,52 @@ class GlassFallbackAndroidTest : ScreenshotTest() {
   @Config(sdk = [32])
   fun fallback_roundedPressedLightingDrawsOverOpaqueContent_api32() {
     assertRoundedPressedLightingDrawsOverOpaqueContent()
+  }
+
+  @Test
+  fun fallback_continuousEdgePixelsAreContinuous_api28() = runScreenshotTest {
+    assertGlassRoundedEdgePixelsAreContinuous(ContinuousRoundedCornerShape(31.dp))
+  }
+
+  @Test
+  fun fallback_continuousCapsuleEdgePixelsAreContinuous_api28() = runScreenshotTest {
+    assertGlassRoundedEdgePixelsAreContinuous(ContinuousRoundedCornerShape(percent = 50))
+  }
+
+  @Test
+  fun fallback_continuousLeafEdgePixelsAreContinuous_api28() = runScreenshotTest {
+    // Overlapping corner boxes keep their radii and render circular.
+    assertGlassRoundedEdgePixelsAreContinuous(ContinuousRoundedCornerShape(topStartPercent = 100, bottomEndPercent = 100))
+  }
+
+  @Test
+  fun fallback_circularMaskDiffersFromContinuousClip_api28() = runScreenshotTest {
+    assertGlassCircularMaskDiffersFromContinuousClip()
+  }
+
+  @Test
+  @Config(sdk = [32])
+  fun fallback_continuousEdgePixelsAreContinuous_api32() = runScreenshotTest {
+    assertGlassRoundedEdgePixelsAreContinuous(ContinuousRoundedCornerShape(31.dp))
+  }
+
+  @Test
+  @Config(sdk = [32])
+  fun fallback_continuousCapsuleEdgePixelsAreContinuous_api32() = runScreenshotTest {
+    assertGlassRoundedEdgePixelsAreContinuous(ContinuousRoundedCornerShape(percent = 50))
+  }
+
+  @Test
+  @Config(sdk = [32])
+  fun fallback_continuousLeafEdgePixelsAreContinuous_api32() = runScreenshotTest {
+    // Overlapping corner boxes keep their radii and render circular.
+    assertGlassRoundedEdgePixelsAreContinuous(ContinuousRoundedCornerShape(topStartPercent = 100, bottomEndPercent = 100))
+  }
+
+  @Test
+  @Config(sdk = [32])
+  fun fallback_circularMaskDiffersFromContinuousClip_api32() = runScreenshotTest {
+    assertGlassCircularMaskDiffersFromContinuousClip()
   }
 
   private fun assertRoundedPressedLightingDrawsOverOpaqueContent() = runScreenshotTest {

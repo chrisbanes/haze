@@ -67,6 +67,7 @@ import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
+import kotlin.math.abs
 import kotlin.test.Test
 
 @OptIn(
@@ -562,6 +563,53 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
         }
       }
     }
+  }
+
+  @Test
+  fun cornerVariantSwitch_recreatesStageShadersAndRestoresCircularPixels() = runComposeUiTest {
+    val effect = activeDetailEffect()
+    val circular = effect.style.then { shape(RoundedCornerShape(40.dp)) }
+    val continuous = effect.style.then { shape(ContinuousRoundedCornerShape(40.dp)) }
+    val style = mutableStateOf(circular)
+    setContent { RuntimeGlassTestContent(effect, tag = "glass", style = style.value) }
+    waitForIdle()
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
+    fun capture(expectContinuous: Boolean): PixelMap {
+      val params = checkNotNull(runtime(effect).preparedRender).params
+      assertThat(continuousCorners(params.cornerRadii, params.mergedField)).isEqualTo(expectContinuous)
+      assertThat(runtime(effect).delegate).isSameInstanceAs(delegate)
+      return onNodeWithTag("glass").captureToImage().toPixelMap()
+    }
+    val first = capture(expectContinuous = false)
+    val firstRecords = delegate.stageRecordCounts.optical
+
+    style.value = continuous
+    waitForIdle()
+    val smoothed = capture(expectContinuous = true)
+    val smoothedRecords = delegate.stageRecordCounts.optical
+    assertThat(smoothedRecords).isGreaterThan(firstRecords)
+
+    style.value = circular
+    waitForIdle()
+    val restored = capture(expectContinuous = false)
+    assertThat(delegate.stageRecordCounts.optical).isGreaterThan(smoothedRecords)
+
+    // The continuous corners draw differently, and switching back reproduces the circular frame.
+    // The difference is small and varies by rasterizer, so require four times the restore tolerance.
+    assertThat(maximumChannelDifference(first, smoothed)).isGreaterThan(8f / 255f)
+    assertThat(maximumChannelDifference(first, restored)).isLessThan(2f / 255f)
+  }
+
+  private fun maximumChannelDifference(first: PixelMap, second: PixelMap): Float {
+    var maximum = 0f
+    for (y in 0 until first.height) {
+      for (x in 0 until first.width) {
+        val a = first[x, y]
+        val b = second[x, y]
+        maximum = maxOf(maximum, abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
+      }
+    }
+    return maximum
   }
 
   @Test

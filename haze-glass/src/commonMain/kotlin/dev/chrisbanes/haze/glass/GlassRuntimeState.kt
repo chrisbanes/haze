@@ -4,7 +4,7 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.foundation.interaction.InteractionSource
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Size
@@ -158,7 +158,7 @@ internal abstract class GlassRuntimeState {
   internal val chromaticAberrationStrength: Float get() = inheritedStyleValues.chromaticAberrationStrength
   internal val surfaceProfile: SurfaceProfile get() = inheritedStyleValues.surfaceProfile
   internal val chromaticAberrationMode: ChromaticAberrationMode get() = inheritedStyleValues.chromaticAberrationMode
-  internal val shape: RoundedCornerShape get() = inheritedStyleValues.shape
+  internal val shape: CornerBasedShape get() = inheritedStyleValues.shape
   internal open val alpha: Float get() = inheritedStyleValues.alpha * transitionAlpha
 
   /** The authored alpha, without [transitionAlpha]. */

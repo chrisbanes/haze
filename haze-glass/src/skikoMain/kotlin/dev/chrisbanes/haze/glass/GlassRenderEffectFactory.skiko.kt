@@ -32,9 +32,23 @@ private val GlassMergedRimEffect by lazyGlassProgram { RuntimeEffect.makeForShad
 private val GlassMergedBackgroundEffect by lazyGlassProgram {
   RuntimeEffect.makeForShader(GlassShaders.buildMergedBackground())
 }
+private val GlassContinuousRimEffect by lazyGlassProgram {
+  RuntimeEffect.makeForShader(GlassShaders.buildRim(merged = false, continuous = true))
+}
+private val GlassContinuousMergedRimEffect by lazyGlassProgram {
+  RuntimeEffect.makeForShader(GlassShaders.buildRim(merged = true, continuous = true))
+}
+private val GlassContinuousMergedBackgroundEffect by lazyGlassProgram {
+  RuntimeEffect.makeForShader(GlassShaders.buildMergedBackground(continuous = true))
+}
 
-internal actual fun createGlassRimBrushProvider(merged: Boolean): GlassRimBrushProvider? {
-  val effect = (if (merged) GlassMergedRimEffect else GlassRimEffect) ?: return null
+internal actual fun createGlassRimBrushProvider(merged: Boolean, continuous: Boolean): GlassRimBrushProvider? {
+  val effect = when {
+    merged && continuous -> GlassContinuousMergedRimEffect
+    merged -> GlassMergedRimEffect
+    continuous -> GlassContinuousRimEffect
+    else -> GlassRimEffect
+  } ?: return null
   return runCatchingGlassRim { SkiaGlassRimBrushProvider(effect) }.getOrNull()
 }
 
@@ -53,8 +67,10 @@ internal class SkiaGlassRimBrushProvider(internal val effect: RuntimeEffect) : G
 
 internal actual fun DrawScope.supportsGlassRimBrush(): Boolean = true
 
-internal actual fun createGlassMergedBackgroundShaderProvider(): GlassMergedBackgroundShaderProvider? {
-  val effect = GlassMergedBackgroundEffect ?: return null
+internal actual fun createGlassMergedBackgroundShaderProvider(
+  continuous: Boolean,
+): GlassMergedBackgroundShaderProvider? {
+  val effect = (if (continuous) GlassContinuousMergedBackgroundEffect else GlassMergedBackgroundEffect) ?: return null
   return runCatchingGlassRim { SkiaGlassMergedBackgroundShaderProvider(effect) }.getOrNull()
 }
 

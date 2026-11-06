@@ -59,6 +59,39 @@ internal data class GlassMergedMember(
   val hasLighting: Boolean get() = lightIntensity > 0f && lightRadius > 0f
 }
 
+/** Whether any member is smoothed, which selects the continuous shader variant. */
+internal val GlassMergedField.isContinuous: Boolean
+  get() = members.any { it.cornerRadii.isContinuous }
+
+/**
+ * Whether shaders for these corners use the continuous variant. A merged field decides alone, since
+ * merged shaders draw its members, so a field whose smoothing [withExactCorners] removed keeps the
+ * exact circular variant.
+ */
+internal fun continuousCorners(cornerRadii: CornerRadii, mergedField: GlassMergedField?): Boolean =
+  mergedField?.isContinuous ?: cornerRadii.isContinuous
+
+private const val EXTENT_ROUNDING_SLACK_PX = 0.01f
+
+/**
+ * Removes every member's smoothing when the field has a smoothed member and any member whose corner
+ * boxes can overlap, in either frame the shader evaluates. The continuous shaders evaluate one
+ * corner per point, which is exact only for disjoint corner boxes; the circular shaders are exact
+ * everywhere.
+ */
+internal fun List<GlassMergedMember>.withExactCorners(): List<GlassMergedMember> {
+  if (none { it.cornerRadii.isContinuous }) return this
+  val disjoint = all { member ->
+    // The shader evaluates corner extents, which equal the radii for circular corners. Fitted
+    // extents can fill an edge exactly, so allow float rounding.
+    val extents = member.cornerRadii.extents()
+    val scale = minOf(member.rect.width / member.layoutRect.width, member.rect.height / member.layoutRect.height)
+    extents.isRadiusDisjoint(member.rect.size, EXTENT_ROUNDING_SLACK_PX) &&
+      (extents * (1f / scale)).isRadiusDisjoint(member.layoutRect.size, EXTENT_ROUNDING_SLACK_PX)
+  }
+  return if (disjoint) this else map { it.copy(cornerRadii = it.cornerRadii.withoutSmoothing()) }
+}
+
 /**
  * Up to [MAX_GLASS_MERGED_MEMBERS] members drawn as one Glass surface (ADR-0013).
  *
@@ -269,7 +302,8 @@ internal class MergedFieldUniformScratch {
     const val MULTIPLIERS = 9
     const val WHITE_POINT_DELTAS = 10
     const val STANDALONE_WEIGHTS = 11
-    private const val SLOT_COUNT = 12
+    const val CORNER_EXPONENTS = 12
+    private const val SLOT_COUNT = 13
   }
 }
 
@@ -299,14 +333,30 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
     layoutRects[offset + 1] = member.layoutRect.top
     layoutRects[offset + 2] = member.layoutRect.width
     layoutRects[offset + 3] = member.layoutRect.height
-    radii[offset] = member.cornerRadii.topLeft
-    radii[offset + 1] = member.cornerRadii.topRight
-    radii[offset + 2] = member.cornerRadii.bottomRight
-    radii[offset + 3] = member.cornerRadii.bottomLeft
+    // A circular field has no smoothing, so its extents are its radii.
+    val corners = member.cornerRadii.extents()
+    radii[offset] = corners.topLeft
+    radii[offset + 1] = corners.topRight
+    radii[offset + 2] = corners.bottomRight
+    radii[offset + 3] = corners.bottomLeft
   }
   setFloatUniform("memberRects", rects)
   setFloatUniform("memberLayoutRects", layoutRects)
   setFloatUniform("memberRadii", radii)
+  // Only the continuous variant declares the exponents, and Android rejects undeclared uniforms.
+  if (field.isContinuous) {
+    // Unused slots keep circular exponents.
+    val exponents = scratch.floats(MergedFieldUniformScratch.CORNER_EXPONENTS, MAX_GLASS_MERGED_MEMBERS * 4, initial = 2f)
+    field.members.forEachIndexed { index, member ->
+      val offset = index * 4
+      val corners = member.cornerRadii
+      exponents[offset] = continuousCornerExponent(corners.topLeftSmoothing)
+      exponents[offset + 1] = continuousCornerExponent(corners.topRightSmoothing)
+      exponents[offset + 2] = continuousCornerExponent(corners.bottomRightSmoothing)
+      exponents[offset + 3] = continuousCornerExponent(corners.bottomLeftSmoothing)
+    }
+    setFloatUniform("memberCornerExponents", exponents)
+  }
   setFloatUniform(
     "memberSmoothing",
     scratch.padded(MergedFieldUniformScratch.SMOOTHING, field.memberSmoothingPx(), MAX_GLASS_MERGED_MEMBERS),

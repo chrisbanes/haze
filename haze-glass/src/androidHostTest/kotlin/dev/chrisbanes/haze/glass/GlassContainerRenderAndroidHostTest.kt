@@ -48,7 +48,15 @@ class GlassContainerRenderAndroidHostTest : ScreenshotTest() {
   @Config(sdk = [37])
   fun sdk37_clusterUsesOneRuntimeAndRetainsBridgeAtBalancedScale() = assertCluster()
 
-  private fun assertCluster() = runScreenshotTest(size = Size(360f, 240f)) {
+  @Test
+  @Config(sdk = [35])
+  fun sdk35_continuousClusterUsesOneRuntimeAndRetainsBridge() = assertCluster(continuous = true)
+
+  @Test
+  @Config(sdk = [37])
+  fun sdk37_continuousClusterUsesOneRuntimeAndRetainsBridge() = assertCluster(continuous = true)
+
+  private fun assertCluster(continuous: Boolean = false) = runScreenshotTest(size = Size(360f, 240f)) {
     val state = HazeState()
     val effects = List(2) { GlassRuntimeEffect() }
     setContent {
@@ -58,7 +66,7 @@ class GlassContainerRenderAndroidHostTest : ScreenshotTest() {
           effects.forEachIndexed { index, effect ->
             Box(
               Modifier.offset((40 + index * 110).dp, 60.dp).size(100.dp, 80.dp)
-                .hazeGlass(HazeEffectFactory { effect }, HazeInput.Sources(state), style(Color.Green), HazePerformanceMode.Balanced, true, null),
+                .hazeGlass(HazeEffectFactory { effect }, HazeInput.Sources(state), style(Color.Green, continuous), HazePerformanceMode.Balanced, true, null),
             )
           }
         }
@@ -75,6 +83,8 @@ class GlassContainerRenderAndroidHostTest : ScreenshotTest() {
     val runtime = owner.renderer.runtimeSurfaces.single()
     val params = checkNotNull(runtime.preparedRender).params
     assertThat(checkNotNull(params.mergedField).members.size).isEqualTo(2)
+    assertThat(continuousCorners(params.cornerRadii, params.mergedField)).isEqualTo(continuous)
+    assertThat((runtime.delegate as RuntimeShaderGlassDelegate).fusedInputKey?.continuous).isEqualTo(continuous)
     assertThat(params.coordinates.scaleFactor).isEqualTo(HazePerformanceMode.Balanced.resolveGlassInputScale())
     assertThat((runtime.delegate as RuntimeShaderGlassDelegate).layers.source?.isReleased).isEqualTo(false)
   }
@@ -161,10 +171,10 @@ class GlassContainerRenderAndroidHostTest : ScreenshotTest() {
     }
   }
 
-  private fun style(colour: Color) = GlassStyle {
+  private fun style(colour: Color, continuous: Boolean = false) = GlassStyle {
     optics(GlassOptics(refractionStrength = 0f, refractionDisplacement = 0.dp, refractionDetailIntensity = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp)))
     tint(colour)
-    shape(RoundedCornerShape(0.dp))
+    if (continuous) shape(ContinuousRoundedCornerShape(12.dp)) else shape(RoundedCornerShape(0.dp))
     edgeSoftness(0.dp)
     edgeShadow(Color.Transparent)
     specularIntensity(0f)

@@ -137,6 +137,32 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     }
 
   @Test
+  fun sdk35_variantSwitchRecreatesStageShaders() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = GlassRuntimeEffect()
+      val circular = GlassStyle.regular.then { shape(RoundedCornerShape(16.dp)) }
+      val continuous = GlassStyle.regular.then { shape(ContinuousRoundedCornerShape(16.dp)) }
+      val style = mutableStateOf(circular)
+      setContent {
+        Box(Modifier.testTag("variant")) {
+          RuntimeGlassTestContent(effect, style = style.value)
+        }
+      }
+      fun assertFrame(expectContinuous: Boolean) {
+        waitForIdle()
+        val pixels = onNodeWithTag("variant").captureToImage().toPixelMap()
+        val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+        assertThat(delegate.fusedInputKey?.continuous).isEqualTo(expectContinuous)
+        assertThat(pixels[pixels.width / 2, pixels.height / 2].alpha).isGreaterThan(0.5f)
+      }
+      assertFrame(expectContinuous = false)
+      style.value = continuous
+      assertFrame(expectContinuous = true)
+      style.value = circular
+      assertFrame(expectContinuous = false)
+    }
+
+  @Test
   fun hardwareToSoftwareCanvas_drawsFallbackAndKeepsRuntimeDelegate() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = retainedBlurEffect()
