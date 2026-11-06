@@ -42,6 +42,7 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
+import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
@@ -425,6 +426,81 @@ class GlassContainerInteractionTest : ContextTest() {
   }
 
   @Test
+  fun grownPressedMember_clusterSurfaceStableAndUnclipped_runtime() = assertGrownPressedMemberStable(unavailable = false)
+
+  @Test
+  fun grownPressedMember_clusterSurfaceStableAndUnclipped_fallback() = assertGrownPressedMemberStable(unavailable = true)
+
+  private fun assertGrownPressedMemberStable(unavailable: Boolean) = GlassDrawOutsideBoundsTest.withScaleLimit(1.2f) {
+    runComposeUiTest {
+      val linear = tween<Float>(300, easing = LinearEasing)
+      val fixture = cluster(
+        gap = 0,
+        mergeDistance = 2,
+        pressed = GlassStyle { pressed { animate(linear, linear) { scale(1.2f) } } },
+        unavailable = unavailable,
+      )
+      val idle = fixture.capture()
+      val runtime = fixture.owner().renderer.runtimeSurfaces.single()
+      // Both members reserve their 1.2x Center growth, (10, 8) per side, inside a 2px merge distance.
+      val surface = Rect(28f, 50f, 252f, 150f)
+      assertThat(runtime.surfaceOrigin).isCloseTo(surface.topLeft)
+      val sampleSize = runtime.preparedRender?.params?.coordinates?.sampleSize
+      mainClock.autoAdvance = false
+      runBlocking { fixture.firstSource.emit(PressInteraction.Press(Offset(50f, 40f))) }
+      mainClock.advanceTimeByFrame()
+      val width = fixture.field().members[0].rect.width
+      repeat(10) {
+        mainClock.advanceTimeByFrame()
+        fixture.capture()
+        val current = fixture.owner().renderer.runtimeSurfaces.single()
+        assertThat(current.surfaceOrigin).isCloseTo(surface.topLeft)
+        assertThat(current.preparedRender?.params?.coordinates?.sampleSize).isEqualTo(sampleSize)
+        fixture.field().members.forEach { member ->
+          assertThat(member.rect.left).isGreaterThanOrEqualTo(-0.01f)
+          assertThat(member.rect.top).isGreaterThanOrEqualTo(-0.01f)
+          assertThat(member.rect.right).isLessThanOrEqualTo(surface.width + 0.01f)
+          assertThat(member.rect.bottom).isLessThanOrEqualTo(surface.height + 0.01f)
+        }
+      }
+      assertThat(fixture.field().members[0].rect.width).isGreaterThan(width)
+      mainClock.autoAdvance = true
+      waitForIdle()
+      // 4px left of the first member's rest rect, at mid-height, is inside its grown rect.
+      assertThat(regionDifference(fixture.capture(), idle, 36, 100, 37, 101)).isGreaterThan(0.01f)
+    }
+  }
+
+  @Test
+  fun shrinkOnlyCluster_boundsUnchanged() = runComposeUiTest {
+    val linear = tween<Float>(300, easing = LinearEasing)
+    val fixture = cluster(pressed = GlassStyle { pressed { animate(linear, linear) { scale(0.9f) } } })
+    // The rest formula: the union of both layout rects, inflated by the 40px merge distance.
+    val expected = Offset(40f - 40f, 60f - 40f)
+    val runtime = fixture.owner().renderer.runtimeSurfaces.single()
+    assertThat(runtime.surfaceOrigin).isCloseTo(expected)
+    val sampleSize = checkNotNull(runtime.preparedRender).params.coordinates.sampleSize
+    mainClock.autoAdvance = false
+    runBlocking { fixture.firstSource.emit(PressInteraction.Press(Offset(50f, 40f))) }
+    repeat(10) {
+      mainClock.advanceTimeByFrame()
+      fixture.capture()
+      val current = fixture.owner().renderer.runtimeSurfaces.single()
+      assertThat(current.surfaceOrigin).isCloseTo(expected)
+      assertThat(checkNotNull(current.preparedRender).params.coordinates.sampleSize).isEqualTo(sampleSize)
+    }
+    mainClock.autoAdvance = true
+    waitForIdle()
+  }
+
+  @Test
+  fun drawOutsetMember_clusterBoundsIncludeOutset() = runComposeUiTest {
+    val fixture = cluster(pressed = GlassStyle { drawOutset(6.dp) })
+    // The default cluster's origin is (0, 20); a 6px outset moves it out by 6px.
+    assertThat(fixture.owner().renderer.runtimeSurfaces.single().surfaceOrigin).isCloseTo(Offset(-6f, 14f))
+  }
+
+  @Test
   fun mergedClusterPress_keepsRuntimeDelegateAcrossFrames() = runComposeUiTest {
     val linear = tween<Float>(300, easing = LinearEasing)
     val fixture = cluster(pressed = GlassStyle { pressed { animate(linear, linear) { scale(0.9f) } } })
@@ -656,4 +732,9 @@ private fun Assert<Rect>.isCloseTo(expected: Rect) = all {
   prop(Rect::top).isCloseTo(expected.top, 0.01f)
   prop(Rect::right).isCloseTo(expected.right, 0.01f)
   prop(Rect::bottom).isCloseTo(expected.bottom, 0.01f)
+}
+
+private fun Assert<Offset>.isCloseTo(expected: Offset) = all {
+  prop(Offset::x).isCloseTo(expected.x, 0.01f)
+  prop(Offset::y).isCloseTo(expected.y, 0.01f)
 }

@@ -68,7 +68,13 @@ class GlassDrawOutsideBoundsTest {
     lateinit var baseline: PixelMap
     runComposeUiTest { baseline = surface(GlassStyle { alpha(0.5f) }, fallback).capture() }
     runComposeUiTest {
-      val fixture = surface(GlassStyle { drawOutset(6.dp); alpha(0.5f) }, fallback)
+      val fixture = surface(
+        GlassStyle {
+          drawOutset(6.dp)
+          alpha(0.5f)
+        },
+        fallback,
+      )
 
       assertThat(fixture.effect.nodeClipOutsetPx()).isEqualTo(6f)
       if (fallback) {

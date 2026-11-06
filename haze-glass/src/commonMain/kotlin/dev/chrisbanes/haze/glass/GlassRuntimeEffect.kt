@@ -357,6 +357,10 @@ internal class GlassRuntimeEffect() :
   private val interactionTopologySnapshot: GlassInteractionTopology
     get() = interactionController?.renderTopology ?: resolvedInteractionTopology
 
+  /** The largest interaction scale this surface can draw at, latched while a scale animates. */
+  internal val maxInteractionScale: Float
+    get() = interactionTopologySnapshot.maxScale
+
   override val observesPointerEvents: Boolean
     get() = super.observesPointerEvents
 
@@ -786,7 +790,10 @@ internal class GlassRuntimeEffect() :
     val previous = reconciledInteractionTopology
     val topologyChanged = topology !== previous
     reconciledInteractionTopology = topology
-    if (topology.maxRefractionMultiplier != (previous?.maxRefractionMultiplier ?: 1f)) {
+    if (
+      topology.maxRefractionMultiplier != (previous?.maxRefractionMultiplier ?: 1f) ||
+      topology.maxScale != (previous?.maxScale ?: 1f)
+    ) {
       context.invalidateLayerBounds()
       memberBinding?.node?.changed()
     }

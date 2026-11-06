@@ -1460,6 +1460,57 @@ class GlassInteractionControllerTest : ContextTest() {
   }
 
   @Test
+  fun renderTopology_maxScale_isMaximumAuthoredScale() = withScaleLimit(1.2f) {
+    val grown = testSlots(
+      hovered = response { scale(0.9f) },
+      pressed = response { scale(1f, 1.15f) },
+    ).resolveInteractionTopology()
+    val shrinkOnly = testSlots(pressed = response { scale(0.9f) }).resolveInteractionTopology()
+
+    assertThat(grown.maxScale).isEqualTo(1.15f)
+    assertThat(shrinkOnly.maxScale).isEqualTo(1f)
+  }
+
+  @Test
+  fun renderTopology_maxScale_latchedWhileScaleAnimates() = withScaleLimit(1.2f) {
+    runComposeUiTest {
+      val effect = GlassRuntimeEffect().apply { style = GlassStyle.regular.then { pressed { lightingIntensity(0.5f) } } }
+      setContent { Box(Modifier.size(100.dp).testGlass(effect)) }
+      waitForIdle()
+      val controller = GlassInteractionController(context(effect))
+      val pressed = effect.runtimeConfiguration(1f).copy(
+        slots = testSlots(pressed = response { animate(tween(1), tween(500)) { scale(1.2f) } }),
+      )
+      runOnIdle {
+        controller.updateConfiguration(pressed)
+        controller.updateSignals(GlassInteractionSignals(sourcePressed = true))
+      }
+      waitForIdle()
+      assertThat(controller.renderTopology.maxScale).isEqualTo(1.2f)
+      mainClock.autoAdvance = false
+      runOnIdle { controller.updateConfiguration(pressed.copy(slots = GlassInteractionSlots())) }
+      mainClock.advanceTimeBy(100, ignoreFrameDuration = true)
+      waitForIdle()
+      // The exit animation still scales above 1, so its maximum holds.
+      assertThat(controller.renderTopology.maxScale).isEqualTo(1.2f)
+      mainClock.advanceTimeBy(600, ignoreFrameDuration = true)
+      waitForIdle()
+      assertThat(controller.renderTopology.maxScale).isEqualTo(1f)
+      controller.dispose()
+    }
+  }
+
+  private fun <T> withScaleLimit(limit: Float, block: () -> T): T {
+    val previous = glassInteractionScaleLimitForTest
+    glassInteractionScaleLimitForTest = limit
+    try {
+      return block()
+    } finally {
+      glassInteractionScaleLimitForTest = previous
+    }
+  }
+
+  @Test
   fun settledRefractionExit_releasesHistoricalMaximumWhileWhitePointRemains() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply { style = GlassStyle.regular.then { pressed { lightingIntensity(0.5f) } } }
     setContent { Box(Modifier.size(100.dp).testGlass(effect)) }
