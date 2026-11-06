@@ -7643,6 +7643,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Glass interaction responses accept a <code>scale</code> up to <code>1.2f</code>, so a pressed surface can grow instead of
   shrinking. A grown member of a <code>hazeGlassContainer</code> merges with nearby neighbours while pressed
   (<a href="https://github.com/chrisbanes/haze/issues/1735">#1735</a>).</li>
+<li>Glass styles can draw a thin line just outside a surface's shape with <code>edgeOutline(color, width)</code>,
+  separating the Glass from its backdrop. It is off by default, follows merged container shapes, and
+  has an equivalent stroke on limited renderers
+  (<a href="https://github.com/chrisbanes/haze/issues/1741">#1741</a>).</li>
 </ul>
 <h2 id="2.1.0">2.1.0 <small>2026-11-02</small><a class="headerlink" href="#2.1.0" title="Permanent link">¶</a></h2>
 <h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">¶</a></h3>

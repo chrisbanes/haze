@@ -1689,6 +1689,9 @@ slider or adapt to the content beneath them, so check foreground contrast with y
   drawn above content. <code>sides</code> scales the left and right edges: <code>0</code> lights only the top and bottom,
   <code>1</code> lights every edge equally. It ignores <code>lightPosition</code>, follows merged container shapes, and is
   off by default. Limited renderers approximate it.</li>
+<li><strong>edgeOutline</strong>(color, width): Hard line of <code>width</code> drawn just outside the shape, composited with
+  the color's alpha over what lies behind the Glass. It follows merged container shapes, limited
+  renderers draw an equivalent stroke, and it is off by default. An outer <code>Modifier.clip()</code> hides it.</li>
 <li><strong>ambientResponse</strong>: Fresnel/edge lift <code>0..1</code> (default 0.15).</li>
 <li><strong>edgeSoftness</strong>: Soft fade at the edges (default 1.dp). Set to 0.dp for hard edges.</li>
 <li><strong>shape</strong> (<code>RoundedCornerShape</code> or <code>ContinuousRoundedCornerShape</code>): Boundary for refraction and
