@@ -246,8 +246,11 @@ class GlassLayerPaddingCacheTest {
     val source = effect()
     val field = mergedField(mergedMember(0f, 0f, rect.width, rect.height))
 
-    fun snapshot(blur: Int): GlassSurfaceSnapshot {
-      source.style = GlassStyle.then { optics(fixedOptics(blur, 15)) }
+    fun snapshot(blur: Int, outset: Int = 0): GlassSurfaceSnapshot {
+      source.style = GlassStyle.then {
+        optics(fixedOptics(blur, 15))
+        drawOutset(outset.dp)
+      }
       val material = resolveGlassStyle(source, rect.size, density, LayoutDirection.Ltr)
       val key = glassMergeKey(HazeInput.Content, true, 1f, source, material, LayoutDirection.Ltr)
       return GlassSurfaceSnapshot(key, material, field, field.opticalSize)
@@ -284,6 +287,11 @@ class GlassLayerPaddingCacheTest {
     assertThat(largeBounds).isEqualTo(expectedBounds(large))
     assertThat(largeBounds).isNotEqualTo(smallBounds)
     assertThat(effect.layerPaddingResolveCountForTest).isEqualTo(0)
+
+    // The cluster bounds already hold each member's outset, so the surface does not pad it again.
+    val outset = snapshot(8, outset = 12)
+    update(outset)
+    assertThat(effect.calculateLayerBounds(rect, density)).isEqualTo(expectedBounds(outset))
 
     update(null)
 

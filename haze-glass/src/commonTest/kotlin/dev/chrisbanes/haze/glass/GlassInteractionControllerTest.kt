@@ -1460,7 +1460,7 @@ class GlassInteractionControllerTest : ContextTest() {
   }
 
   @Test
-  fun renderTopology_maxScale_isMaximumAuthoredScale() = withScaleLimit(1.2f) {
+  fun renderTopology_maxScale_isMaximumAuthoredScale() = withGlassScaleLimit(1.2f) {
     val grown = testSlots(
       hovered = response { scale(0.9f) },
       pressed = response { scale(1f, 1.15f) },
@@ -1472,7 +1472,7 @@ class GlassInteractionControllerTest : ContextTest() {
   }
 
   @Test
-  fun renderTopology_maxScale_latchedWhileScaleAnimates() = withScaleLimit(1.2f) {
+  fun renderTopology_maxScale_latchedWhileScaleAnimates() = withGlassScaleLimit(1.2f) {
     runComposeUiTest {
       val effect = GlassRuntimeEffect().apply { style = GlassStyle.regular.then { pressed { lightingIntensity(0.5f) } } }
       setContent { Box(Modifier.size(100.dp).testGlass(effect)) }
@@ -1497,16 +1497,6 @@ class GlassInteractionControllerTest : ContextTest() {
       waitForIdle()
       assertThat(controller.renderTopology.maxScale).isEqualTo(1f)
       controller.dispose()
-    }
-  }
-
-  private fun <T> withScaleLimit(limit: Float, block: () -> T): T {
-    val previous = glassInteractionScaleLimitForTest
-    glassInteractionScaleLimitForTest = limit
-    try {
-      return block()
-    } finally {
-      glassInteractionScaleLimitForTest = previous
     }
   }
 

@@ -129,8 +129,9 @@ internal fun DrawScope.drawInputWithAlpha(
 }
 
 /**
- * Records [block] into a group-alpha [layer] of [size], which includes [outsetPx] on every side
- * so output drawn beyond the node keeps its group alpha. [block] still sees the node's size.
+ * Records [block] into a group-alpha [layer] of [size], which includes [outsetPx] (rounded up to
+ * whole pixels, as [outsetToIntSize] does) on every side so output drawn beyond the node keeps its
+ * group alpha. [block] still sees the node's size.
  */
 internal inline fun DrawScope.recordAndDrawGlassGroupAlpha(
   layer: GraphicsLayer,
@@ -143,13 +144,17 @@ internal inline fun DrawScope.recordAndDrawGlassGroupAlpha(
   layer.blendMode = BlendMode.SrcOver
   layer.compositingStrategy = CompositingStrategy.Offscreen
   layer.renderEffect = null
-  recordGlassLayer(layer, size) { inset(outsetPx) { block() } }
-  translate(-outsetPx, -outsetPx) { drawLayer(layer) }
+  val outset = ceil(outsetPx)
+  recordGlassLayer(layer, size) { inset(outset) { block() } }
+  translate(-outset, -outset) { drawLayer(layer) }
 }
 
-/** This size grown by [outsetPx] on every side, rounded to whole pixels. */
-internal fun Size.outsetToIntSize(outsetPx: Float): IntSize =
-  Size(width + 2 * outsetPx, height + 2 * outsetPx).roundToIntSize()
+/** This size rounded to whole pixels, then grown by [outsetPx], rounded up, on every side. */
+internal fun Size.outsetToIntSize(outsetPx: Float): IntSize {
+  val outset = 2 * ceil(outsetPx).toInt()
+  val rounded = roundToIntSize()
+  return IntSize(rounded.width + outset, rounded.height + outset)
+}
 
 // GraphicsLayer caches its outline independently of its recording size. Refresh it for retained
 // stages in their own recording space, including local patches and output-space alpha groups.

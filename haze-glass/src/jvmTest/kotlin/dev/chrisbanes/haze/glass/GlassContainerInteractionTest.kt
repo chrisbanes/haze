@@ -431,7 +431,7 @@ class GlassContainerInteractionTest : ContextTest() {
   @Test
   fun grownPressedMember_clusterSurfaceStableAndUnclipped_fallback() = assertGrownPressedMemberStable(unavailable = true)
 
-  private fun assertGrownPressedMemberStable(unavailable: Boolean) = GlassDrawOutsideBoundsTest.withScaleLimit(1.2f) {
+  private fun assertGrownPressedMemberStable(unavailable: Boolean) = withGlassScaleLimit(1.2f) {
     runComposeUiTest {
       val linear = tween<Float>(300, easing = LinearEasing)
       val fixture = cluster(

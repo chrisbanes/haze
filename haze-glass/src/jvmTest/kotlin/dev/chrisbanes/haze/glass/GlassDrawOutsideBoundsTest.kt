@@ -104,7 +104,7 @@ class GlassDrawOutsideBoundsTest {
   }
 
   @Test
-  fun pressAnimation_singleSurfaceLayerBoundsStable() = withScaleLimit(1.2f) {
+  fun pressAnimation_singleSurfaceLayerBoundsStable() = withGlassScaleLimit(1.2f) {
     runComposeUiTest {
       val linear = tween<Float>(300, easing = LinearEasing)
       val fixture = surface(GlassStyle { pressed { animate(linear, linear) { scale(1.2f) } } }, fallback = false)
@@ -127,7 +127,7 @@ class GlassDrawOutsideBoundsTest {
     }
   }
 
-  private fun assertPressGrowsOutsideLayoutRect(fallback: Boolean) = withScaleLimit(1.2f) {
+  private fun assertPressGrowsOutsideLayoutRect(fallback: Boolean) = withGlassScaleLimit(1.2f) {
     runComposeUiTest {
       val fixture = surface(GlassStyle { pressed { animate(snap(), snap()) { scale(1.2f) } } }, fallback)
       val idle = fixture.capture()
@@ -154,16 +154,6 @@ class GlassDrawOutsideBoundsTest {
   }
 
   internal companion object {
-    fun <T> withScaleLimit(limit: Float, block: () -> T): T {
-      val previous = glassInteractionScaleLimitForTest
-      glassInteractionScaleLimitForTest = limit
-      try {
-        return block()
-      } finally {
-        glassInteractionScaleLimitForTest = previous
-      }
-    }
-
     fun ComposeUiTest.surface(style: GlassStyle, fallback: Boolean): SurfaceFixture {
       val effect = GlassRuntimeEffect()
       if (fallback) {

@@ -1210,7 +1210,8 @@ internal class GlassRuntimeEffect() :
 
   internal fun calculateLayerBounds(rect: Rect, density: Density): Rect {
     // Containers draw the snapshot material, so there is nothing of ours to cache.
-    surfaceSnapshot?.let { return rect.inflate(samplePaddingPx(it.material, it.maxRefractionMultiplier)) }
+    // Cluster bounds already include every member's draw outset, so the surface pads none.
+    surfaceSnapshot?.let { return rect.inflate(samplePaddingPx(it.material, it.maxRefractionMultiplier, drawOutsetPx = 0f)) }
     val multiplier = maximumInteractionRefractionMultiplier()
     if (
       !layerPaddingCacheValid ||
@@ -1238,7 +1239,11 @@ internal class GlassRuntimeEffect() :
     return rect.inflate(layerPaddingCache)
   }
 
-  private fun samplePaddingPx(style: ResolvedGlassStyle, refractionMultiplier: Float): Float {
+  private fun samplePaddingPx(
+    style: ResolvedGlassStyle,
+    refractionMultiplier: Float,
+    drawOutsetPx: Float = style.drawOutsetPx,
+  ): Float {
     val resolved = style.resolvedOptics
     return calculateGlassSamplePaddingPx(
       blurRadiusPx = if (resolved.depth <= 0f) 0f else resolved.blurRadiusPx,
@@ -1246,7 +1251,7 @@ internal class GlassRuntimeEffect() :
       refractionStrength = (resolved.refractionStrength * refractionMultiplier).coerceIn(0f, 1f),
       chromaticAberrationStrength = style.chromaticAberrationStrength,
       edgeSoftnessPx = style.edgeSoftnessPx,
-      foregroundOutsetPx = style.drawOutsetPx,
+      foregroundOutsetPx = drawOutsetPx,
     )
   }
 
