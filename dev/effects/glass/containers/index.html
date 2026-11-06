@@ -1560,7 +1560,9 @@ never changes a member's z-order.</p>
 <p>Interaction responses work as described in <a href="../#interaction">Glass interaction</a>, applied to
 the member's own part of the merged shape: pressing a member scales and lights only that part. In a
 <a href="#groups">group</a>, pressing any member scales and lights the whole group. A uniform pressed <code>scale</code>
-does not split the cluster.</p>
+does not split the cluster. A member pressed to a uniform <code>scale</code> above <code>1</code> merges with neighbours
+within the merge distance of its grown shape, and leaves the cluster again on release. In a group, a
+press above <code>1</code> grows the whole group, and the grown group shape counts for merging.</p>
 <h2 id="transitions">Transitions<a class="headerlink" href="#transitions" title="Permanent link">¶</a></h2>
 <p>A member that attaches or detaches after the container's first draw animates its glass. Choose
 the transition with <code>hazeGlass(memberTransition = ...)</code>:</p>

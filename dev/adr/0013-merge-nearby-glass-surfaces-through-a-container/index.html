@@ -1163,6 +1163,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-interaction-scales-may-exceed-1-2026-11-06" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment: interaction scales may exceed 1 (2026-11-06)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1226,8 +1237,9 @@ member's glass behind its own children. A member's own style still sets its shap
   changes because a member was added, removed or resized, it changes immediately and is not
   animated. A member that is leaving does not count.</li>
 <li>Each member's interaction transform and interaction lighting apply to that member's part of the
-  field. Pressing one member can shrink it within the merged shape (interaction scales are at most
-  1), and only that member brightens.</li>
+  field. Pressing one member can shrink it within the merged shape, and only that member brightens.
+  (Interaction scales were at most 1; they may now grow a member up to 1.2, see the
+  <a href="#amendment-interaction-scales-may-exceed-1-2026-11-06">amendment</a>.)</li>
 </ul>
 <h2 id="transitions">Transitions<a class="headerlink" href="#transitions" title="Permanent link">¶</a></h2>
 <p>Members have no identifiers, because a Compose modifier node already keeps one identity for as long
@@ -1375,7 +1387,24 @@ unchanged. Not checked: iOS 26 or an on-device build.</p>
 <p>The container's parameters are <code>memberTransitionSpec</code> and <code>memberReducedMotionPolicy</code>. They were
 renamed before release to match <code>hazeGlass</code>'s <code>memberTransition</code>, and to say that the policy
 covers member transitions only. Behavior is unchanged, and every earlier mention of <code>transitionSpec</code>
-or <code>reducedMotionPolicy</code> in this record refers to them.</p></div>
+or <code>reducedMotionPolicy</code> in this record refers to them.</p>
+<h2 id="amendment-interaction-scales-may-exceed-1-2026-11-06">Amendment: interaction scales may exceed 1 (2026-11-06)<a class="headerlink" href="#amendment-interaction-scales-may-exceed-1-2026-11-06" title="Permanent link">¶</a></h2>
+<p>Authored interaction scales are in <code>0f &lt; value &lt;= 1.2f</code>, so a pressed member can grow the way iOS
+interactive Liquid Glass does (<a href="https://github.com/chrisbanes/haze/issues/1735">#1735</a>). Writing a
+value above 1 is the opt-in; there is no separate flag, and the default pressed response still
+shrinks.</p>
+<ul>
+<li><strong>Bounds.</strong> A grown surface draws beyond its layout bounds automatically, without
+  <code>expandLayerBounds</code>. At rest, a cluster's bounds already reserve each member's largest grown rect
+  (<a href="https://github.com/chrisbanes/haze/issues/1739">#1739</a>). A group's bounds also reserve its
+  layout union grown by its members' largest scale, about the group's centre or, for a pointer
+  pivot, by the full growth, so a pressed group's surface stays put.</li>
+<li><strong>Merging.</strong> Clustering measures gaps on each member's pressed rect, so a grown member merges
+  with neighbours within <code>mergeDistance</code> of its grown rect, and leaves the cluster on release. A
+  group merges by its drawn group rect: its layout union scaled about the pressed member's pivot,
+  mapped into the group.</li>
+<li><strong>Transitions.</strong> Transition-neighbour checks keep using rest (layout) geometry.</li>
+</ul></div>
 
 
 

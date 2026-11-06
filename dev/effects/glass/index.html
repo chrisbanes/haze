@@ -1995,6 +1995,9 @@ semantics, or keyboard/D-pad activation.</p>
 <span class="w">  </span><span class="p">},</span>
 <span class="p">)</span>
 </code></pre></div>
+<p><code>scale</code> accepts values up to <code>1.2f</code>. Values above <code>1</code> grow the pressed surface instead of shrinking
+it, similar to iOS interactive Liquid Glass. A grown surface draws outside its layout bounds without
+<code>expandLayerBounds</code>, but a parent that clips its children still clips the growth.</p>
 <p>Declare only the states and responses you need. For focus and keyboard/D-pad activation, share one
 remembered <code>MutableInteractionSource</code> between the Glass modifier and your behavior modifiers:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">interactionStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
