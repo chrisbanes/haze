@@ -86,6 +86,63 @@ class HazeBackdropFallbackTest {
   }
 
   @Test
+  fun backdropClip_zeroOutset_isNodeRect() {
+    assertThat(captureBackdropClip(outsetPx = 0f))
+      .isEqualTo(androidx.compose.ui.geometry.Rect(0f, 0f, 100f, 100f))
+  }
+
+  @Test
+  fun backdropClip_positiveOutset_inflatesNodeRect() {
+    assertThat(captureBackdropClip(outsetPx = 6f))
+      .isEqualTo(androidx.compose.ui.geometry.Rect(-6f, -6f, 106f, 106f))
+  }
+
+  @Test
+  fun backdropClip_nonFiniteOutset_isNodeRect() {
+    assertThat(captureBackdropClip(outsetPx = Float.NaN))
+      .isEqualTo(androidx.compose.ui.geometry.Rect(0f, 0f, 100f, 100f))
+  }
+
+  private fun captureBackdropClip(outsetPx: Float): androidx.compose.ui.geometry.Rect? {
+    val nativeRenderer = TestBackdropRenderer()
+    val previousFlag = HazeFeatureFlags.isPlatformBackdropEnabled
+    HazeFeatureFlags.isPlatformBackdropEnabled = true
+    try {
+      runComposeUiTest {
+        val state = HazeState()
+        setContent {
+          val lifecycle = LocalLifecycleOwner.current.lifecycle
+          Box(Modifier.size(100.dp)) {
+            Box(
+              Modifier
+                .fillMaxSize()
+                .hazeSource(state)
+                .background(Color.Red),
+            )
+            Box(
+              Modifier
+                .fillMaxSize()
+                .then(
+                  FaultInjectedEffectElement(
+                    input = HazeInput.Backdrop(state),
+                    lifecycle = lifecycle,
+                    createRenderer = { nativeRenderer },
+                    renderer = ClippingBackdropRenderer(outsetPx),
+                  ),
+                ),
+            )
+          }
+        }
+        waitForIdle()
+      }
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousFlag
+    }
+    assertThat(nativeRenderer.drawCalls).isGreaterThan(0)
+    return nativeRenderer.lastClip
+  }
+
+  @Test
   fun rendererCreationFailure_activatesFallbackWithoutEscapingDraw() = runComposeUiTest {
     val state = HazeState()
     var creationAttempts = 0
@@ -397,6 +454,21 @@ private class HealthyBackdropRenderer :
     HazeEffectBackdrop(ImageFilter.makeBlur(0f, 0f, FilterTileMode.CLAMP))
 }
 
+private class ClippingBackdropRenderer(
+  private val outsetPx: Float,
+) : HazeEffectRenderer<Unit>,
+  HazeEffectRendererBackdrop<Unit>,
+  HazeEffectRendererDrawHooks<Unit> {
+  override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
+
+  override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit): HazeEffectBackdrop =
+    HazeEffectBackdrop(ImageFilter.makeBlur(0f, 0f, FilterTileMode.CLAMP))
+
+  override fun shouldClipToNodeBounds(): Boolean = true
+
+  override fun nodeClipOutsetPx(): Float = outsetPx
+}
+
 private class DecliningBackdropRenderer :
   HazeEffectRenderer<Unit>,
   HazeEffectRendererBackdrop<Unit> {
@@ -413,6 +485,7 @@ private class TestBackdropRenderer : HazeBackdropRenderer {
   var emptyConfigureCalls = 0
   var drawCalls = 0
   var releaseCalls = 0
+  var lastClip: androidx.compose.ui.geometry.Rect? = null
 
   override fun isSupported(canvas: Canvas): Boolean = true
 
@@ -422,6 +495,7 @@ private class TestBackdropRenderer : HazeBackdropRenderer {
     effect: PlatformRenderEffect,
     alpha: Float,
   ): Boolean {
+    lastClip = clip
     if (rejectEmptyBounds && (bounds.width <= 0f || bounds.height <= 0f)) {
       emptyConfigureCalls++
       return false

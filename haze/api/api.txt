@@ -97,6 +97,7 @@ package dev.chrisbanes.haze {
 
   @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectRendererDrawHooks<Style> {
     method public default void drawForeground(dev.chrisbanes.haze.HazeEffectRuntimeDrawScope, Style style);
+    method public default float nodeClipOutsetPx();
     method public default void prepareDraw(dev.chrisbanes.haze.HazeEffectRuntimeDrawScope, Style style);
     method public default boolean shouldClipToNodeBounds();
     method public default boolean shouldDrawContentBehind();

@@ -180,6 +180,13 @@ public interface HazeEffectRendererDrawHooks<Style> {
   /** Whether effect output is clipped to the modifier bounds. */
   public fun shouldClipToNodeBounds(): Boolean = false
 
+  /**
+   * Pixels by which the modifier-bounds clip, and a clipped [HazeInput.Content] layer, are
+   * inflated on every side when [shouldClipToNodeBounds] is true. Non-finite or negative values
+   * are treated as zero.
+   */
+  public fun nodeClipOutsetPx(): Float = 0f
+
   /** Whether source-backed input bounds are preferred as the clipping region. */
   public fun shouldPreferClipToInputBounds(): Boolean = false
 }

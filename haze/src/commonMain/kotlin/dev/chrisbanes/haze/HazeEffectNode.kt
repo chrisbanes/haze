@@ -947,7 +947,8 @@ internal class HazeEffectNode(
             offset = Offset.Zero - layerOffset,
             size = layerSize,
           )
-          val clip = Rect(Offset.Zero, size).takeIf { shouldClipEffectToNodeBounds() }
+          val clip = Rect(Offset.Zero, size).inflate(nodeClipOutsetPx())
+            .takeIf { shouldClipEffectToNodeBounds() }
           backdropDrawn = trace("HazeBackdrop.draw") {
             renderer.configure(
               bounds = bounds,
@@ -1276,6 +1277,15 @@ internal class HazeEffectNode(
         val expanded = calculateEffectLayerBounds(rect, requireDensity())
         _layerSize = expanded.size
         _layerOffset = rect.topLeft - expanded.topLeft
+      } else if (
+        explicitInput === HazeInput.Content &&
+        size.isSpecified &&
+        shouldClipEffectToNodeBounds() &&
+        nodeClipOutsetPx() > 0f
+      ) {
+        val expanded = size.toRect().inflate(nodeClipOutsetPx())
+        _layerSize = expanded.size
+        _layerOffset = -expanded.topLeft
       } else {
         _layerSize = size
         _layerOffset = Offset.Zero
@@ -1321,6 +1331,13 @@ internal class HazeEffectNode(
     val renderer = typedEffectRenderer ?: return false
     return (renderer as? HazeEffectRendererDrawHooks<Any?>)
       ?.shouldClipToNodeBounds() == true
+  }
+
+  @OptIn(InternalHazeApi::class)
+  private fun nodeClipOutsetPx(): Float {
+    val renderer = typedEffectRenderer ?: return 0f
+    val outset = (renderer as? HazeEffectRendererDrawHooks<Any?>)?.nodeClipOutsetPx() ?: return 0f
+    return if (outset.isFinite() && outset > 0f) outset else 0f
   }
 
   private fun rebindTrimMemoryCallback() {
