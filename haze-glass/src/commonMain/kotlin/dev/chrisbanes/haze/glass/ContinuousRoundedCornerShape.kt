@@ -53,7 +53,8 @@ public class ContinuousRoundedCornerShape(
   /** How far corners ease into their edges, in `0f..1f`: `0f` is circular. */
   public val smoothing: Float = run {
     require(smoothing.isFinite()) { "smoothing must be finite, was $smoothing" }
-    smoothing.coerceIn(0f, 1f)
+    // Adding 0f turns -0f into 0f, so equal shapes hash equally.
+    smoothing.coerceIn(0f, 1f) + 0f
   }
 
   override fun createOutline(

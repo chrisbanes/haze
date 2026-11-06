@@ -832,6 +832,33 @@ class GlassStyleTest {
     assertThat(effect.canDrawRetainedOutput()).isFalse()
     assertThat(effect.shouldDrawRetainedOutput()).isFalse()
   }
+
+  @Test
+  fun shape_continuousShapeIsStoredAsSet() {
+    val continuous = ContinuousRoundedCornerShape(20.dp, smoothing = 0.6f)
+    val resolved = resolveGlassStyleValues(
+      localStyle = GlassStyle,
+      explicitStyle = GlassStyle { shape(continuous) },
+    )
+
+    assertThat(resolved.shape).isSameInstanceAs(continuous)
+  }
+
+  @Test
+  fun shape_laterRoundedCornerShapeWins() {
+    val resolved = resolveGlassStyleValues(
+      localStyle = GlassStyle { shape(ContinuousRoundedCornerShape(20.dp)) },
+      explicitStyle = GlassStyle { shape(RoundedCornerShape(8.dp)) },
+    )
+
+    assertThat(resolved.shape).isEqualTo(RoundedCornerShape(8.dp))
+  }
+
+  @Test
+  fun shape_builtInStylesKeepCircularDefault() {
+    assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle.regular).shape).isEqualTo(GlassDefaults.shape)
+    assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle.clear).shape).isEqualTo(GlassDefaults.shape)
+  }
 }
 
 private class InvalidFloatWrite(
@@ -924,31 +951,4 @@ private class RetainedTrackingGlassDelegate : GlassRuntimeEffect.Delegate {
   }
 
   override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) = Unit
-
-  @Test
-  fun shape_continuousShapeIsStoredAsSet() {
-    val continuous = ContinuousRoundedCornerShape(20.dp, smoothing = 0.6f)
-    val resolved = resolveGlassStyleValues(
-      localStyle = GlassStyle,
-      explicitStyle = GlassStyle { shape(continuous) },
-    )
-
-    assertThat(resolved.shape).isSameInstanceAs(continuous)
-  }
-
-  @Test
-  fun shape_laterRoundedCornerShapeWins() {
-    val resolved = resolveGlassStyleValues(
-      localStyle = GlassStyle { shape(ContinuousRoundedCornerShape(20.dp)) },
-      explicitStyle = GlassStyle { shape(RoundedCornerShape(8.dp)) },
-    )
-
-    assertThat(resolved.shape).isEqualTo(RoundedCornerShape(8.dp))
-  }
-
-  @Test
-  fun shape_builtInStylesKeepCircularDefault() {
-    assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle.regular).shape).isEqualTo(GlassDefaults.shape)
-    assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle.clear).shape).isEqualTo(GlassDefaults.shape)
-  }
 }

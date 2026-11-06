@@ -118,7 +118,7 @@ layout order draw as one Glass shape over the bounding box of their rects. In th
 two circles become one capsule that spans the row, although they are far apart. Keys compare with
 `==`. A `null` key leaves the member ungrouped, and Haze ignores `groupKey` outside a container.
 
-- **Shape.** The group uses the first member's `RoundedCornerShape`, resolved at the group's size, so
+- **Shape.** The group uses the first member's shape, resolved at the group's size, so
   a capsule stays a capsule.
 - **Appearance.** The group uses the first member's tint, background color and light. The other
   members' values are not drawn. If the first member starts to fade out, the group takes the next

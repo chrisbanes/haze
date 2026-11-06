@@ -22,6 +22,7 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.math.withSign
 
 /**
  * Physical corner radii, with each corner's effective continuous-corner smoothing (`0` circular).
@@ -41,6 +42,12 @@ internal data class CornerRadii(
   val isCircular: Boolean
     get() = topLeftSmoothing == 0f && topRightSmoothing == 0f &&
       bottomRightSmoothing == 0f && bottomLeftSmoothing == 0f
+
+  /** Whether any corner is smoothed, which selects the continuous shader variant. */
+  val isContinuous: Boolean get() = !isCircular
+
+  fun withoutSmoothing(): CornerRadii =
+    copy(topLeftSmoothing = 0f, topRightSmoothing = 0f, bottomRightSmoothing = 0f, bottomLeftSmoothing = 0f)
 
   companion object {
     val zero: CornerRadii = CornerRadii(0f, 0f, 0f, 0f)
@@ -271,20 +278,35 @@ internal fun continuousCornerExponent(smoothing: Float): Float {
 
 /**
  * Reduces each corner's smoothing, never its radius, so that adjacent corner extents fit along each
- * edge of [size]. A capsule's corners become exactly circular.
+ * edge of [size] and diagonal corner boxes cannot overlap. A capsule's corners become exactly
+ * circular. When the radii alone overlap, as in a leaf shape or a lerp overshoot, every corner
+ * becomes circular so that the shape renders with the exact circular shaders.
  */
 internal fun CornerRadii.fitSmoothingTo(size: Size): CornerRadii {
   if (isCircular) return this
+  if (!isRadiusDisjoint(size)) return withoutSmoothing()
   val top = edgeSmoothingLimit(size.width, topLeft, topRight)
   val right = edgeSmoothingLimit(size.height, topRight, bottomRight)
   val bottom = edgeSmoothingLimit(size.width, bottomRight, bottomLeft)
   val left = edgeSmoothingLimit(size.height, bottomLeft, topLeft)
+  // Diagonal boxes overlap only when their extents exceed both sides.
+  val longest = size.maxDimension
+  val falling = edgeSmoothingLimit(longest, topLeft, bottomRight)
+  val rising = edgeSmoothingLimit(longest, topRight, bottomLeft)
   return copy(
-    topLeftSmoothing = fittedSmoothing(topLeft, topLeftSmoothing, left, top),
-    topRightSmoothing = fittedSmoothing(topRight, topRightSmoothing, top, right),
-    bottomRightSmoothing = fittedSmoothing(bottomRight, bottomRightSmoothing, right, bottom),
-    bottomLeftSmoothing = fittedSmoothing(bottomLeft, bottomLeftSmoothing, bottom, left),
+    topLeftSmoothing = fittedSmoothing(topLeft, topLeftSmoothing, left, top, falling),
+    topRightSmoothing = fittedSmoothing(topRight, topRightSmoothing, top, right, rising),
+    bottomRightSmoothing = fittedSmoothing(bottomRight, bottomRightSmoothing, right, bottom, falling),
+    bottomLeftSmoothing = fittedSmoothing(bottomLeft, bottomLeftSmoothing, bottom, left, rising),
   )
+}
+
+/** Whether no two corner boxes can overlap in [size], judging by the radii alone. */
+internal fun CornerRadii.isRadiusDisjoint(size: Size): Boolean {
+  val longest = size.maxDimension
+  return topLeft + topRight <= size.width && bottomLeft + bottomRight <= size.width &&
+    topLeft + bottomLeft <= size.height && topRight + bottomRight <= size.height &&
+    topLeft + bottomRight <= longest && topRight + bottomLeft <= longest
 }
 
 private fun edgeSmoothingLimit(length: Float, first: Float, second: Float): Float {
@@ -293,8 +315,13 @@ private fun edgeSmoothingLimit(length: Float, first: Float, second: Float): Floa
   return ((length - radii) / (CONTINUOUS_CORNER_EXTENT_FACTOR * radii)).coerceIn(0f, 1f)
 }
 
-private fun fittedSmoothing(radius: Float, smoothing: Float, firstEdge: Float, secondEdge: Float): Float =
-  if (radius <= 0f) 0f else minOf(smoothing, firstEdge, secondEdge)
+private fun fittedSmoothing(
+  radius: Float,
+  smoothing: Float,
+  firstEdge: Float,
+  secondEdge: Float,
+  diagonal: Float,
+): Float = if (radius <= 0f) 0f else minOf(smoothing, minOf(firstEdge, secondEdge, diagonal))
 
 /**
  * The point at [angle] (radians, y down) on a continuous corner's superellipse, relative to the
@@ -305,12 +332,10 @@ internal fun continuousCornerPoint(angle: Double, extent: Float, exponent: Float
   val c = cos(angle)
   val s = sin(angle)
   return Offset(
-    (extent * abs(c).pow(power) * sign(c)).toFloat(),
-    (extent * abs(s).pow(power) * sign(s)).toFloat(),
+    (extent * abs(c).pow(power).withSign(c)).toFloat(),
+    (extent * abs(s).pow(power).withSign(s)).toFloat(),
   )
 }
-
-private fun sign(value: Double): Double = if (value < 0.0) -1.0 else 1.0
 
 /** This shape as a path in [size], identical to [toRoundRect] when every corner is circular. */
 internal fun CornerRadii.toPath(size: Size): Path = Path().apply {

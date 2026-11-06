@@ -59,6 +59,26 @@ internal data class GlassMergedMember(
   val hasLighting: Boolean get() = lightIntensity > 0f && lightRadius > 0f
 }
 
+/** Whether any member is smoothed, which selects the continuous shader variant. */
+internal val GlassMergedField.isContinuous: Boolean
+  get() = members.any { it.cornerRadii.isContinuous }
+
+/**
+ * Removes every member's smoothing when the field has a smoothed member and any member whose corner
+ * boxes can overlap, in either frame the shader evaluates. The continuous shaders evaluate one
+ * corner per point, which is exact only for disjoint corner boxes; the circular shaders are exact
+ * everywhere.
+ */
+internal fun List<GlassMergedMember>.withExactCorners(): List<GlassMergedMember> {
+  if (none { it.cornerRadii.isContinuous }) return this
+  val disjoint = all { member ->
+    val scale = minOf(member.rect.width / member.layoutRect.width, member.rect.height / member.layoutRect.height)
+    member.cornerRadii.isRadiusDisjoint(member.rect.size) &&
+      (member.cornerRadii * (1f / scale)).isRadiusDisjoint(member.layoutRect.size)
+  }
+  return if (disjoint) this else map { it.copy(cornerRadii = it.cornerRadii.withoutSmoothing()) }
+}
+
 /**
  * Up to [MAX_GLASS_MERGED_MEMBERS] members drawn as one Glass surface (ADR-0013).
  *

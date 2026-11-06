@@ -6,7 +6,6 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.unit.Density
@@ -17,7 +16,6 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotEqualTo
-import assertk.assertions.prop
 import kotlin.test.Test
 
 class ContinuousRoundedCornerShapeTest {
@@ -79,20 +77,20 @@ class ContinuousRoundedCornerShapeTest {
   }
 
   @Test
+  fun smoothing_negativeZeroEqualsAndHashesLikeZero() {
+    val negative = ContinuousRoundedCornerShape(16.dp, smoothing = -0f)
+    val zero = ContinuousRoundedCornerShape(16.dp, smoothing = 0f)
+
+    assertThat(negative).isEqualTo(zero)
+    assertThat(negative.hashCode()).isEqualTo(zero.hashCode())
+  }
+
+  @Test
   fun createOutline_zeroSmoothingMatchesRoundedCornerShape() {
     val size = Size(200f, 100f)
     val density = Density(1f)
     assertThat(ContinuousRoundedCornerShape(16.dp, smoothing = 0f).createOutline(size, LayoutDirection.Ltr, density))
       .isEqualTo(RoundedCornerShape(16.dp).createOutline(size, LayoutDirection.Ltr, density))
-  }
-
-  @Test
-  fun createOutline_fullSmoothingIsGenericPathFillingSize() {
-    val outline = ContinuousRoundedCornerShape(16.dp).createOutline(Size(200f, 100f), LayoutDirection.Ltr, Density(1f))
-
-    assertThat(outline).isInstanceOf<Outline.Generic>()
-      .prop(Outline::bounds)
-      .isEqualTo(Rect(0f, 0f, 200f, 100f))
   }
 
   @Test

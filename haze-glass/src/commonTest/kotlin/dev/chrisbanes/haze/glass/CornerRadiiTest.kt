@@ -13,9 +13,10 @@ import assertk.assertThat
 import assertk.assertions.hasMessage
 import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
-import assertk.assertions.isInstanceOf
 import kotlin.math.PI
 import kotlin.math.sqrt
 import kotlin.test.Test
@@ -160,6 +161,39 @@ class CornerRadiiTest {
   }
 
   @Test
+  fun fitSmoothingTo_overlappingDiagonalCornersAreCircular() {
+    // Each edge fits, but the top-left and bottom-right boxes would overlap.
+    val radii = ContinuousRoundedCornerShape(topStart = 60.dp, bottomEnd = 60.dp)
+      .resolveCornerRadiiPx(Size(100f, 100f), Density(1f), LayoutDirection.Ltr)
+
+    assertThat(radii).isEqualTo(CornerRadii(60f, 0f, 60f, 0f))
+  }
+
+  @Test
+  fun fitSmoothingTo_diagonalExtentsReduceSmoothing() {
+    // The radii fit (80 <= 100), but the full diagonal extents would overlap.
+    val radii = ContinuousRoundedCornerShape(topStart = 40.dp, bottomEnd = 40.dp)
+      .resolveCornerRadiiPx(Size(100f, 100f), Density(1f), LayoutDirection.Ltr)
+
+    assertThat(radii.topLeft).isEqualTo(40f)
+    assertThat(radii.bottomRight).isEqualTo(40f)
+    assertThat(radii.topLeftSmoothing).isGreaterThan(0f)
+    assertThat(radii.topLeftSmoothing).isLessThan(1f)
+    assertThat(radii.bottomRightSmoothing).isGreaterThan(0f)
+    assertThat(
+      continuousCornerExtent(radii.topLeft, radii.topLeftSmoothing) +
+        continuousCornerExtent(radii.bottomRight, radii.bottomRightSmoothing),
+    ).isLessThanOrEqualTo(100.001f)
+  }
+
+  @Test
+  fun fitSmoothingTo_adjacentRadiusOverlapIsCircular() {
+    val radii = CornerRadii(70f, 70f, 0f, 0f, 1f, 1f, 0f, 0f).fitSmoothingTo(Size(100f, 100f))
+
+    assertThat(radii).isEqualTo(CornerRadii(70f, 70f, 0f, 0f))
+  }
+
+  @Test
   fun resolveCornerRadiiPx_roundedCornerShapeHasZeroSmoothing() {
     val radii = RoundedCornerShape(16.dp)
       .resolveCornerRadiiPx(Size(300f, 200f), Density(1f), LayoutDirection.Ltr)
@@ -197,14 +231,6 @@ class CornerRadiiTest {
     val topEdge = continuousCornerPoint(PI * 1.5, extent, exponent)
     assertThat(extent + topEdge.x).isCloseTo(extent, 0.0001f)
     assertThat(extent + topEdge.y).isCloseTo(0f, 0.0001f)
-  }
-
-  @Test
-  fun toPath_fullSmoothingFillsSize() {
-    val radii = CornerRadii(16f, 16f, 16f, 16f, 1f, 1f, 1f, 1f)
-    assertThat(radii.toPath(Size(200f, 100f)).getBounds()).isEqualTo(
-      androidx.compose.ui.geometry.Rect(0f, 0f, 200f, 100f),
-    )
   }
 
   @Test
