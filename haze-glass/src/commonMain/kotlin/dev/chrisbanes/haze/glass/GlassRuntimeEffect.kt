@@ -119,6 +119,7 @@ private fun ResolvedGlassStyle.hasSameBudgetParams(other: ResolvedGlassStyle): B
     resolvedOptics.refractionDetailIntensity == other.resolvedOptics.refractionDetailIntensity &&
     chromaticAberrationStrength == other.chromaticAberrationStrength &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
+    drawOutsetPx == other.drawOutsetPx &&
     hasGlassRim(specularIntensity, edgeShadow) ==
     hasGlassRim(other.specularIntensity, other.edgeShadow)
 
@@ -952,7 +953,7 @@ internal class GlassRuntimeEffect() :
       if (!coordinates.materialSize.isDrawable() || !coordinates.sampleSize.isDrawable()) {
         return@buildPlan GlassRetainedLayerPlan(emptyList())
       }
-      val outputSize = context.modifierSize.roundToIntSize()
+      val outputSize = context.modifierSize.outsetToIntSize(nodeClipOutsetPx())
       val params = buildGlassRenderParams(style, coordinates)
       val interactionPatchSize = calculateGlassInteractionPatchSize(
         params,
@@ -1100,7 +1101,7 @@ internal class GlassRuntimeEffect() :
       interactionTopology = interactionTopology,
       interactionRadiusFraction = interaction.radiusFraction,
       alpha = style.alpha,
-      outputSize = context.modifierSize.roundToIntSize(),
+      outputSize = context.modifierSize.outsetToIntSize(nodeClipOutsetPx()),
       previous = previousPrepared,
     )
     val exactPrepared = if (backdrop) {
@@ -1238,8 +1239,18 @@ internal class GlassRuntimeEffect() :
       refractionStrength = (resolved.refractionStrength * refractionMultiplier).coerceIn(0f, 1f),
       chromaticAberrationStrength = style.chromaticAberrationStrength,
       edgeSoftnessPx = style.edgeSoftnessPx,
-      foregroundOutsetPx = 0f,
+      foregroundOutsetPx = style.drawOutsetPx,
     )
+  }
+
+  /**
+   * A single surface draws [drawOutset] beyond its node on every side. A container surface's
+   * bounds already include every member's outset, so it adds none.
+   */
+  override fun nodeClipOutsetPx(): Float {
+    if (surfaceSnapshot != null) return 0f
+    val density = attachedContext?.requireDensity() ?: return 0f
+    return with(density) { drawOutset.toPx() }
   }
 
   override fun shouldPreferClipToInputBounds(): Boolean = !shouldClipToNodeBounds()

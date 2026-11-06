@@ -576,6 +576,7 @@ internal class RuntimeShaderGlassDelegate(
                 layer = groupAlpha,
                 alpha = render.alpha,
                 size = groupCompositeSize,
+                outsetPx = effect.nodeClipOutsetPx(),
               ) {
                 trace(GlassTraceSection.Compose) {
                   drawCompletedLayer(completedOptical, context, params, alpha = 1f)
@@ -811,6 +812,7 @@ internal class RuntimeShaderGlassDelegate(
               layer = groupAlpha,
               alpha = render.alpha,
               size = groupCompositeSize,
+              outsetPx = effect.nodeClipOutsetPx(),
             ) {
               trace(GlassTraceSection.Compose) {
                 drawCompletedOutput(
@@ -1608,13 +1610,22 @@ internal class RuntimeShaderGlassDelegate(
   ) {
     layer.clip = effect.shouldClipToNodeBounds()
     layer.alpha = alpha
-    drawScaledContent(
-      offset = -context.layerOffset,
-      scaledSize = params.coordinates.materialSize,
-      clip = effect.shouldClipToNodeBounds(),
-    ) {
-      drawLayer(layer)
+    clipToNodeBounds {
+      drawScaledContent(
+        offset = -context.layerOffset,
+        scaledSize = params.coordinates.materialSize,
+        clip = false,
+      ) {
+        drawLayer(layer)
+      }
     }
+  }
+
+  /** Clips [block] to the node bounds, inflated by the effect's draw outset, when Glass clips. */
+  private inline fun DrawScope.clipToNodeBounds(block: DrawScope.() -> Unit) {
+    if (!effect.shouldClipToNodeBounds()) return block()
+    val outset = effect.nodeClipOutsetPx()
+    clipRect(-outset, -outset, size.width + outset, size.height + outset) { block() }
   }
 
   private fun DrawScope.drawCompletedOutput(
@@ -1648,23 +1659,25 @@ internal class RuntimeShaderGlassDelegate(
     layer.clip = false
     layer.alpha = alpha
     layer.blendMode = blendMode
-    drawScaledContent(
-      offset = -context.layerOffset,
-      scaledSize = params.coordinates.materialSize,
-      clip = effect.shouldClipToNodeBounds(),
-    ) {
-      val compositeBounds = patch.compositeBounds.translate(
-        translateX = -patch.bounds.left,
-        translateY = -patch.bounds.top,
-      )
-      translate(Offset(patch.bounds.left.toFloat(), patch.bounds.top.toFloat())) {
-        clipRect(
-          left = compositeBounds.left.toFloat(),
-          top = compositeBounds.top.toFloat(),
-          right = compositeBounds.right.toFloat(),
-          bottom = compositeBounds.bottom.toFloat(),
-        ) {
-          drawLayer(layer)
+    clipToNodeBounds {
+      drawScaledContent(
+        offset = -context.layerOffset,
+        scaledSize = params.coordinates.materialSize,
+        clip = false,
+      ) {
+        val compositeBounds = patch.compositeBounds.translate(
+          translateX = -patch.bounds.left,
+          translateY = -patch.bounds.top,
+        )
+        translate(Offset(patch.bounds.left.toFloat(), patch.bounds.top.toFloat())) {
+          clipRect(
+            left = compositeBounds.left.toFloat(),
+            top = compositeBounds.top.toFloat(),
+            right = compositeBounds.right.toFloat(),
+            bottom = compositeBounds.bottom.toFloat(),
+          ) {
+            drawLayer(layer)
+          }
         }
       }
     }

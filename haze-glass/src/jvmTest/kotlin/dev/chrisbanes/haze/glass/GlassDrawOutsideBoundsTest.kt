@@ -5,7 +5,9 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -23,10 +25,12 @@ import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.hasMessage
+import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
@@ -52,6 +56,69 @@ class GlassDrawOutsideBoundsTest {
     assertFailure { GlassInteractionScopeImpl().scale(1.2f) }
       .isInstanceOf<IllegalArgumentException>()
       .hasMessage("scaleX must be $POSITIVE_AT_MOST_ONE_DOMAIN")
+  }
+
+  @Test
+  fun drawOutset_inflatesClipAndGroupComposite_runtime() = assertDrawOutsetInflatesComposite(fallback = false)
+
+  @Test
+  fun drawOutset_inflatesClipAndGroupComposite_fallback() = assertDrawOutsetInflatesComposite(fallback = true)
+
+  private fun assertDrawOutsetInflatesComposite(fallback: Boolean) {
+    lateinit var baseline: PixelMap
+    runComposeUiTest { baseline = surface(GlassStyle { alpha(0.5f) }, fallback).capture() }
+    runComposeUiTest {
+      val fixture = surface(GlassStyle { drawOutset(6.dp); alpha(0.5f) }, fallback)
+
+      assertThat(fixture.effect.nodeClipOutsetPx()).isEqualTo(6f)
+      if (fallback) {
+        val delegate = fixture.effect.lastDrawDelegateForTest as FallbackGlassDelegate
+        assertThat(delegate.groupAlphaSizeForTest).isEqualTo(IntSize(112, 92))
+      } else {
+        assertThat(checkNotNull(fixture.effect.preparedRender).groupCompositeSize).isEqualTo(IntSize(112, 92))
+      }
+      // Nothing draws in the outset yet, so a misplaced composite would shift the material.
+      assertThat(regionDifference(fixture.capture(), baseline, 90, 70, 210, 170)).isLessThan(1f / 255f)
+    }
+  }
+
+  @Test
+  fun zeroExtent_clipAndCompositeMatchToday() {
+    runComposeUiTest {
+      val runtime = surface(GlassStyle { alpha(0.5f) }, fallback = false)
+      assertThat(runtime.effect.nodeClipOutsetPx()).isEqualTo(0f)
+      assertThat(checkNotNull(runtime.effect.preparedRender).groupCompositeSize).isEqualTo(IntSize(100, 80))
+    }
+    runComposeUiTest {
+      val fallback = surface(GlassStyle { alpha(0.5f) }, fallback = true)
+      assertThat(fallback.effect.nodeClipOutsetPx()).isEqualTo(0f)
+      val delegate = fallback.effect.lastDrawDelegateForTest as FallbackGlassDelegate
+      assertThat(delegate.groupAlphaSizeForTest).isEqualTo(IntSize(100, 80))
+    }
+  }
+
+  @Test
+  fun pressAnimation_singleSurfaceLayerBoundsStable() = withScaleLimit(1.2f) {
+    runComposeUiTest {
+      val linear = tween<Float>(300, easing = LinearEasing)
+      val fixture = surface(GlassStyle { pressed { animate(linear, linear) { scale(1.2f) } } }, fallback = false)
+      mainClock.autoAdvance = false
+      runBlocking { fixture.source.emit(PressInteraction.Press(Offset(50f, 40f))) }
+      mainClock.advanceTimeByFrame()
+      val resolves = fixture.effect.layerPaddingResolveCountForTest
+      val sampleSize = checkNotNull(fixture.effect.preparedRender).params.coordinates.sampleSize
+      val scales = mutableSetOf<Float>()
+      repeat(10) {
+        mainClock.advanceTimeByFrame()
+        fixture.capture()
+        scales += fixture.effect.currentInteractionState.scaleX
+        assertThat(fixture.effect.layerPaddingResolveCountForTest).isEqualTo(resolves)
+        assertThat(checkNotNull(fixture.effect.preparedRender).params.coordinates.sampleSize).isEqualTo(sampleSize)
+      }
+      assertThat(scales.size, "press animated").isGreaterThan(1)
+      mainClock.autoAdvance = true
+      waitForIdle()
+    }
   }
 
   private fun assertPressGrowsOutsideLayoutRect(fallback: Boolean) = withScaleLimit(1.2f) {
@@ -123,6 +190,16 @@ class GlassDrawOutsideBoundsTest {
       }
       waitForIdle()
       return SurfaceFixture(this, effect, source)
+    }
+
+    fun regionDifference(first: PixelMap, second: PixelMap, left: Int, top: Int, right: Int, bottom: Int): Float {
+      var difference = 0f
+      var count = 0
+      for (y in top until bottom) for (x in left until right) {
+        difference += pixelDifference(first, second, x, y)
+        count++
+      }
+      return difference / count
     }
 
     fun pixelDifference(first: PixelMap, second: PixelMap, x: Int, y: Int): Float {

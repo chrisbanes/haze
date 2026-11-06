@@ -362,6 +362,15 @@ public class GlassStyleScope internal constructor(
   }
 
   /**
+   * Sets a specified, finite, non-negative distance Glass draws beyond its shape on every side.
+   * Internal until a public feature, such as an edge outline, writes it.
+   */
+  internal fun drawOutset(outset: Dp) {
+    val validated = requireSpecifiedFiniteNonNegative("drawOutset", outset)
+    values.drawOutset = validated
+  }
+
+  /**
    * Aligns the virtual light within each material's measured bounds.
    *
    * The default is [Alignment.Center]. Logical start and end alignments use the node's current
@@ -502,6 +511,7 @@ internal class GlassStyleValues(
   var interactionLightRadiusFraction: Float = GlassDefaults.interactionLightRadiusFraction,
   var interactionPositionAnimationSpec: FiniteAnimationSpec<Offset> =
     GlassDefaults.interactionPositionAnimationSpec,
+  var drawOutset: Dp = 0.dp,
 )
 
 internal fun resolveGlassStyleValues(

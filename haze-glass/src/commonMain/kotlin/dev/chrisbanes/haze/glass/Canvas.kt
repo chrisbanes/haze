@@ -5,14 +5,17 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
@@ -125,19 +128,28 @@ internal fun DrawScope.drawInputWithAlpha(
   }
 }
 
+/**
+ * Records [block] into a group-alpha [layer] of [size], which includes [outsetPx] on every side
+ * so output drawn beyond the node keeps its group alpha. [block] still sees the node's size.
+ */
 internal inline fun DrawScope.recordAndDrawGlassGroupAlpha(
   layer: GraphicsLayer,
   alpha: Float,
   size: IntSize,
+  outsetPx: Float = 0f,
   crossinline block: DrawScope.() -> Unit,
 ) {
   layer.alpha = alpha
   layer.blendMode = BlendMode.SrcOver
   layer.compositingStrategy = CompositingStrategy.Offscreen
   layer.renderEffect = null
-  recordGlassLayer(layer, size) { block() }
-  drawLayer(layer)
+  recordGlassLayer(layer, size) { inset(outsetPx) { block() } }
+  translate(-outsetPx, -outsetPx) { drawLayer(layer) }
 }
+
+/** This size grown by [outsetPx] on every side, rounded to whole pixels. */
+internal fun Size.outsetToIntSize(outsetPx: Float): IntSize =
+  Size(width + 2 * outsetPx, height + 2 * outsetPx).roundToIntSize()
 
 // GraphicsLayer caches its outline independently of its recording size. Refresh it for retained
 // stages in their own recording space, including local patches and output-space alpha groups.

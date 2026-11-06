@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
@@ -39,6 +38,10 @@ internal class FallbackGlassDelegate(
 
   private var preparedDraw: FallbackGlassPreparedDraw? = null
   private val groupAlpha = RetainedGlassGroupAlphaLayer()
+
+  /** The size of the last recorded group-alpha layer. */
+  internal var groupAlphaSizeForTest: IntSize? = null
+    private set
   private var graphicsContext: GraphicsContext? = null
 
   override val drawsContentBehind: Boolean get() = true
@@ -186,7 +189,7 @@ internal class FallbackGlassDelegate(
       )
     }
 
-    val groupSize = size.roundToIntSize()
+    val groupSize = size.outsetToIntSize(effect.nodeClipOutsetPx())
     val currentGraphicsContext = context.requireGraphicsContext()
     graphicsContext = currentGraphicsContext
     groupAlpha.prepare(
@@ -258,11 +261,17 @@ internal class FallbackGlassDelegate(
 
       when {
         style.alpha >= 1f -> drawFallback(alphaMultiplier = 1f)
-        groupAlpha.isAvailable -> recordAndDrawGlassGroupAlpha(
-          layer = checkNotNull(groupAlpha.layer),
-          alpha = style.alpha,
-          size = size.roundToIntSize(),
-        ) { drawFallback(alphaMultiplier = 1f) }
+        groupAlpha.isAvailable -> {
+          val outset = effect.nodeClipOutsetPx()
+          val groupSize = size.outsetToIntSize(outset)
+          groupAlphaSizeForTest = groupSize
+          recordAndDrawGlassGroupAlpha(
+            layer = checkNotNull(groupAlpha.layer),
+            alpha = style.alpha,
+            size = groupSize,
+            outsetPx = outset,
+          ) { drawFallback(alphaMultiplier = 1f) }
+        }
         else -> drawFallback(alphaMultiplier = style.alpha)
       }
     }

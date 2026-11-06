@@ -108,6 +108,58 @@ class GlassLayerPaddingCacheTest {
   }
 
   @Test
+  fun calculateLayerBounds_drawOutset_inflatesByOutsetBeyondSoftness() {
+    val bounds = uncachedBounds {
+      style = style.then {
+        edgeSoftness(2.dp)
+        drawOutset(12.dp)
+      }
+    }
+    val material = resolveGlassStyle(
+      effect { style = style.then { edgeSoftness(2.dp) } },
+      rect.size,
+      density,
+      LayoutDirection.Ltr,
+    )
+
+    assertThat(bounds).isEqualTo(rect.inflate(expectedPadding(material, edgeSoftnessPx = 2f, foregroundOutsetPx = 12f)))
+    assertThat(bounds.width).isGreaterThan(uncachedBounds { style = style.then { edgeSoftness(2.dp) } }.width)
+  }
+
+  @Test
+  fun calculateLayerBounds_zeroDrawOutset_matchesToday() {
+    val material = resolveGlassStyle(effect(), rect.size, density, LayoutDirection.Ltr)
+
+    assertThat(uncachedBounds())
+      .isEqualTo(rect.inflate(expectedPadding(material, material.edgeSoftnessPx, foregroundOutsetPx = 0f)))
+  }
+
+  @Test
+  fun calculateLayerBounds_drawOutsetChangedTwiceWithoutDraw_recomputesEachTime() {
+    val effect = effect()
+
+    listOf(4, 16).forEachIndexed { index, outset ->
+      effect.style = GlassStyle.then { drawOutset(outset.dp) }
+
+      assertThat(effect.calculateLayerBounds(rect, density))
+        .isEqualTo(uncachedBounds { style = GlassStyle.then { drawOutset(outset.dp) } })
+      assertThat(effect.layerPaddingResolveCountForTest).isEqualTo(index + 1)
+    }
+  }
+
+  private fun expectedPadding(material: ResolvedGlassStyle, edgeSoftnessPx: Float, foregroundOutsetPx: Float): Float {
+    val optics = material.resolvedOptics
+    return calculateGlassSamplePaddingPx(
+      blurRadiusPx = if (optics.depth <= 0f) 0f else optics.blurRadiusPx,
+      refractionScale = optics.refractionScalePx,
+      refractionStrength = optics.refractionStrength.coerceIn(0f, 1f),
+      chromaticAberrationStrength = material.chromaticAberrationStrength,
+      edgeSoftnessPx = edgeSoftnessPx,
+      foregroundOutsetPx = foregroundOutsetPx,
+    )
+  }
+
+  @Test
   fun calculateLayerBounds_sizeOrDensityChanged_recomputes() {
     val effect = effect()
     val large = Rect(0f, 0f, 900f, 500f)
