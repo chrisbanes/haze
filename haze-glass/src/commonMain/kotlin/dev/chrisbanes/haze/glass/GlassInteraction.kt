@@ -142,8 +142,8 @@ internal class GlassInteractionScopeImpl : GlassInteractionScope {
   }
 
   override fun scale(scaleX: Float, scaleY: Float) {
-    val validatedX = requirePositiveAtMostOne("scaleX", scaleX)
-    val validatedY = requirePositiveAtMostOne("scaleY", scaleY)
+    val validatedX = requireInteractionScale("scaleX", scaleX)
+    val validatedY = requireInteractionScale("scaleY", scaleY)
     xScale = value(validatedX)
     yScale = value(validatedY)
   }
@@ -181,3 +181,16 @@ internal class GlassInteractionScopeImpl : GlassInteractionScope {
 internal fun buildGlassInteractionResponse(
   block: GlassInteractionScope.() -> Unit,
 ): GlassInteractionResponse = GlassInteractionScopeImpl().apply(block).build()
+
+// shortcut: test-only widening of the authored scale domain; #1735 deletes it when it widens
+// the domain for real.
+internal var glassInteractionScaleLimitForTest: Float = 1f
+
+private fun requireInteractionScale(property: String, value: Float): Float {
+  val limit = glassInteractionScaleLimitForTest
+  if (limit == 1f) return requirePositiveAtMostOne(property, value)
+  require(value.isFinite() && value > 0f && value <= limit) {
+    "$property must be finite and in 0f < value <= ${limit}f"
+  }
+  return value
+}
