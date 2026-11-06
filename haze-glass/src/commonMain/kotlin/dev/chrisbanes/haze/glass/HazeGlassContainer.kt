@@ -682,6 +682,8 @@ internal class GlassContainerNode(
     return GlassMemberSnapshot(
       this, rect, key, material, uniformScale && hasTranslationOnlyTransform(owner), layoutRect, link,
       groupKey = groupKey, shape = binding.runtime?.shape,
+      interactionTransform = transform?.takeUnless { it == HazeEffectContentTransform.Identity },
+      transformPivot = binding.runtime?.interactionTransformPivot ?: GlassTransformPivot.Pointer,
     )
   }
 

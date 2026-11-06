@@ -12,13 +12,11 @@ import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import dev.chrisbanes.haze.HazeConfiguredEffectSurface
-import dev.chrisbanes.haze.HazeEffectContentTransform
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectSurface
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.trace
-import kotlin.math.abs
 import kotlin.math.ceil
 
 /** Evaluated values, never a Style block that could read the owner's context. */
@@ -90,7 +88,7 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
         if (unit.size > 1) GlassGroupDraw(unit, owner.requireDensity()) else GlassMemberDraw(unit.single())
       }
       val bounds = (
-        members.flatMap { listOf(it.restDrawRect(), it.rect) } + draws.map { it.rect }
+        members.flatMap { listOf(it.restDrawRect(), it.rect) } + draws.map { it.rect } + cluster.groupRestDrawRects()
         ).union().inflate(mergeDistance)
       val opticalSize = model.opticalSize ?: continue
       val field = GlassMergedField(draws.map { it.toMergedMember(bounds.topLeft) }.withExactCorners(), mergeDistance, opticalSize)
@@ -176,13 +174,25 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
 }
 
 /**
- * The rect this member can draw over without moving the surface: its sample layout rect grown by
- * its largest interaction scale, which a ghost no longer has, and by its draw outset.
+ * The rect this member can draw over without moving the surface: [base], by default its sample
+ * layout rect, grown by its largest interaction scale, which a ghost no longer has, and by its draw
+ * outset.
  */
-private fun GlassMemberSnapshot.restDrawRect(): Rect {
+private fun GlassMemberSnapshot.restDrawRect(base: Rect = sampleLayoutRect): Rect {
   val runtime = (identity as? GlassMemberNode)?.binding?.runtime
-  val grown = runtime?.let { sampleLayoutRect.inflatedForInteractionScale(it.maxInteractionScale, it.interactionTransformPivot) }
-  return (grown ?: sampleLayoutRect).inflate(material.drawOutsetPx)
+  val grown = runtime?.let { base.inflatedForInteractionScale(it.maxInteractionScale, it.interactionTransformPivot) }
+  return (grown ?: base).inflate(material.drawOutsetPx)
+}
+
+/**
+ * A pressed group member scales the whole group, so each member that can grow reserves the group's
+ * sample union grown by its scale. A center pivot grows about the group's centre; a pointer pivot by
+ * the full growth, which covers a pointer anywhere in the group.
+ */
+private fun GlassCluster.groupRestDrawRects(): List<Rect> = groups.filter { it.size > 1 }.flatMap { unit ->
+  val union = unit.map { it.sampleLayoutRect }.union()
+  unit.filter { ((it.identity as? GlassMemberNode)?.binding?.runtime?.maxInteractionScale ?: 1f) > 1f }
+    .map { it.restDrawRect(union) }
 }
 
 /** A lone live member draws through its own surface unless it is transitioning with another. */
@@ -262,15 +272,13 @@ private fun glassMergedMember(
 }
 
 /**
- * A Glass group drawn as one member. It takes the first member's shape and appearance. The group
- * scales with the member whose transform deviates most from identity, so a member still settling
- * after a release never hides a newer press, about that member's pivot mapped into the group's
- * frame. Its light and optics come from that member too, else from the first member that has any.
+ * A Glass group drawn as one member. It takes the first member's shape and appearance, and scales
+ * as [glassGroupTransform] selects, the same transform clustering measures the group with. Its light
+ * and optics come from the scaling member too, else from the first member that has any.
  */
 private class GlassGroupDraw(private val unit: List<GlassMemberSnapshot>, private val density: Density) : GlassFieldDraw {
-  /** A live member's interaction, with its transform pivot mapped into the group's frame. */
-  private class Response(val member: GlassMemberSnapshot, val interaction: ResolvedGlassInteraction, val transform: HazeEffectContentTransform?) {
-    val deviation = transform?.let { maxOf(abs(1f - it.scaleX), abs(1f - it.scaleY)) } ?: 0f
+  /** A live member's interaction. */
+  private class Response(val member: GlassMemberSnapshot, val interaction: ResolvedGlassInteraction) {
     val hasLight = interaction.lightingIntensity != 0f || interaction.refractionMultiplier != 1f || interaction.whitePointDelta != 0f
   }
 
@@ -278,22 +286,12 @@ private class GlassGroupDraw(private val unit: List<GlassMemberSnapshot>, privat
   private val sampleLayoutRect = unit.map { it.sampleLayoutRect }.union()
   private val responses = unit.mapNotNull { member ->
     val runtime = (member.identity as? GlassMemberNode)?.binding?.runtime ?: return@mapNotNull null
-    val transform = runtime.currentInteractionTransform(member.layoutRect.size).takeUnless { it == HazeEffectContentTransform.Identity }
-    val grouped = transform?.let {
-      val pivot = if (runtime.interactionTransformPivot == GlassTransformPivot.Center) {
-        Offset(layoutRect.width / 2f, layoutRect.height / 2f)
-      } else {
-        member.layoutRect.topLeft - layoutRect.topLeft + it.pivot
-      }
-      HazeEffectContentTransform(it.scaleX, it.scaleY, pivot)
-    }
-    Response(member, resolveGlassInteraction(runtime.currentInteractionState, runtime.interactionLightRadiusFraction), grouped)
+    Response(member, resolveGlassInteraction(runtime.currentInteractionState, runtime.interactionLightRadiusFraction))
   }
-  private val scaling = responses.filter { it.transform != null }.maxByOrNull { it.deviation }
+  private val scaling = unit.glassGroupTransform()?.let { grouped -> responses.firstOrNull { it.member.identity === grouped.member.identity } }
   private val lighting = scaling?.takeIf { it.hasLight } ?: responses.firstOrNull { it.hasLight }
 
-  // Without a transform every member draws at its layout rect, so the union of those is the group.
-  override val rect = scaling?.transform?.let { layoutRect.transformedBy(it) } ?: layoutRect
+  override val rect = unit.glassGroupRect()
 
   /**
    * The density [member] lays out at, which its own `dp` shape is measured in. A ghost uses its

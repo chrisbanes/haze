@@ -41,14 +41,3 @@ internal fun GlassRuntimeEffect.testPressResponse() {
     }
   }
 }
-
-/** Runs [block] with authored interaction scales allowed up to [limit], restoring the default after. */
-internal fun <T> withGlassScaleLimit(limit: Float, block: () -> T): T {
-  val previous = glassInteractionScaleLimitForTest
-  glassInteractionScaleLimitForTest = limit
-  try {
-    return block()
-  } finally {
-    glassInteractionScaleLimitForTest = previous
-  }
-}

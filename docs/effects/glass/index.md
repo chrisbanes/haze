@@ -458,6 +458,10 @@ Modifier.hazeGlass(
 )
 ```
 
+`scale` accepts values up to `1.2f`. Values above `1` grow the pressed surface instead of shrinking
+it, similar to iOS interactive Liquid Glass. A grown surface draws outside its layout bounds without
+`expandLayerBounds`, but a parent that clips its children still clips the growth.
+
 Declare only the states and responses you need. For focus and keyboard/D-pad activation, share one
 remembered `MutableInteractionSource` between the Glass modifier and your behavior modifiers:
 

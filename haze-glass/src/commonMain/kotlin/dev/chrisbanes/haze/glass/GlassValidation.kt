@@ -12,7 +12,8 @@ internal const val SIGNED_UNIT_INTERVAL_DOMAIN: String = "finite and in -1f..1f"
 internal const val DOUBLE_INTERVAL_DOMAIN: String = "finite and in 0f..2f"
 internal const val NON_NEGATIVE_DOMAIN: String = "finite and non-negative"
 internal const val NON_NEGATIVE_DP_DOMAIN: String = "specified, finite, and non-negative"
-internal const val POSITIVE_AT_MOST_ONE_DOMAIN: String = "finite and in 0f < value <= 1f"
+internal const val MAX_INTERACTION_SCALE: Float = 1.2f
+internal const val INTERACTION_SCALE_DOMAIN: String = "finite and in 0f < value <= 1.2f"
 
 internal fun requireFinite(property: String, value: Float): Float {
   require(value.isFinite()) { "$property must be finite" }
@@ -41,9 +42,9 @@ internal fun requireSpecifiedFiniteNonNegative(property: String, value: Dp): Dp 
   return value
 }
 
-internal fun requirePositiveAtMostOne(property: String, value: Float): Float {
-  require(value.isFinite() && value > 0f && value <= 1f) {
-    "$property must be $POSITIVE_AT_MOST_ONE_DOMAIN"
+internal fun requireInteractionScale(property: String, value: Float): Float {
+  require(value.isFinite() && value > 0f && value <= MAX_INTERACTION_SCALE) {
+    "$property must be $INTERACTION_SCALE_DOMAIN"
   }
   return value
 }

@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -18,10 +19,12 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
+import dev.chrisbanes.haze.HazeEffectContentTransform
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeSourceMetadata
 import dev.chrisbanes.haze.HazeSourceSelection
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.InternalHazeApi
 import kotlin.test.Test
 
 class GlassClustersTest {
@@ -345,6 +348,45 @@ class GlassClustersTest {
       assertThat(result.surfaces.flatMap { it.groups }.map { unit -> unit.map { it.identity } })
         .containsExactly(listOf(0), listOf(1), listOf(2))
     }
+  }
+
+  @Test
+  fun clusterGlassMembers_grownPressedRect_joinsNeighbourBeyondRestGap() {
+    val layout = Rect(0f, 0f, 100f, 40f)
+    // A 1.2x press about the centre; the rest gap to the neighbour is 42.
+    val pressed = member(0, layout).copy(rect = Rect(-10f, -4f, 110f, 44f))
+    val neighbour = member(1, Rect(142f, 0f, 242f, 40f))
+
+    val grown = clusterGlassMembers(listOf(pressed, neighbour), 40f)
+    assertThat(grown.surfaces.single().members.map { it.identity }).containsExactly(0, 1)
+    assertThat(clusterGlassMembers(listOf(member(0, layout), neighbour), 40f).surfaces.size).isEqualTo(2)
+  }
+
+  @OptIn(InternalHazeApi::class)
+  @Test
+  fun clusterGlassMembers_pressedGroupGrowth_measuresDrawnGroupRect() {
+    val first = grouped(0, 0f)
+    // The second member pressed to 1.2 about its centre; the group draws scaled about its own centre.
+    val pressed = grouped(1, 300f).copy(
+      rect = Rect(290f, -4f, 410f, 44f),
+      interactionTransform = HazeEffectContentTransform(1.2f, 1.2f, Offset(50f, 20f)),
+      transformPivot = GlassTransformPivot.Center,
+    )
+    val neighbour = member(2, 450f)
+
+    assertThat(listOf(first, pressed).glassGroupRect().edges()).isCloseTo(listOf(-40f, -4f, 440f, 44f))
+    // The drawn group ends at 440, a gap of 10.
+    assertThat(clusterGlassMembers(listOf(first, pressed, neighbour), 40f).surfaces.single().members.map { it.identity })
+      .containsExactly(0, 1, 2)
+    // Ungrouped, the pressed member's own rect ends at 410, a gap of 40.
+    val ungrouped = listOf(first.copy(groupKey = null), pressed.copy(groupKey = null), neighbour)
+    assertThat(clusterGlassMembers(ungrouped, 40f).surfaces.size).isEqualTo(3)
+    // A shrunk group draws inside its members' rects, so their union (ending at 395) still measures it.
+    val shrunk = pressed.copy(
+      rect = Rect(305f, 2f, 395f, 38f),
+      interactionTransform = HazeEffectContentTransform(0.9f, 0.9f, Offset(50f, 20f)),
+    )
+    assertThat(clusterGlassMembers(listOf(first, shrunk, member(2, 434f)), 40f).surfaces.size).isEqualTo(1)
   }
 }
 
