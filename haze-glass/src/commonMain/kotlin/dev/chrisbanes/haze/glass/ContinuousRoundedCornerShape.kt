@@ -58,6 +58,10 @@ public class ContinuousRoundedCornerShape(
     smoothing.coerceIn(0f, 1f) + 0f
   }
 
+  /**
+   * Creates the outline for already-resolved corner sizes: a rectangle when every corner is square,
+   * a rounded rectangle when every effective corner is circular, and otherwise a continuous path.
+   */
   override fun createOutline(
     size: Size,
     topStart: Float,
@@ -83,6 +87,7 @@ public class ContinuousRoundedCornerShape(
     }
   }
 
+  /** Returns a copy of this shape with new corner sizes, keeping its [smoothing]. */
   override fun copy(
     topStart: CornerSize,
     topEnd: CornerSize,
@@ -105,6 +110,7 @@ public class ContinuousRoundedCornerShape(
     smoothing = smoothing,
   )
 
+  /** Whether [other] is a [ContinuousRoundedCornerShape] with equal corner sizes and [smoothing]. */
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (other !is ContinuousRoundedCornerShape) return false
@@ -115,6 +121,7 @@ public class ContinuousRoundedCornerShape(
       smoothing == other.smoothing
   }
 
+  /** A hash code consistent with [equals]. */
   override fun hashCode(): Int {
     var result = topStart.hashCode()
     result = 31 * result + topEnd.hashCode()
@@ -124,6 +131,7 @@ public class ContinuousRoundedCornerShape(
     return result
   }
 
+  /** Describes the corner sizes and [smoothing]. */
   override fun toString(): String = "ContinuousRoundedCornerShape(topStart = $topStart, " +
     "topEnd = $topEnd, bottomEnd = $bottomEnd, bottomStart = $bottomStart, smoothing = $smoothing)"
 }
