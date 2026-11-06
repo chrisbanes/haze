@@ -1687,8 +1687,13 @@ slider or adapt to the content beneath them, so check foreground contrast with y
   opacity). Its alpha controls strength; set <code>Color.Transparent</code> to disable it.</li>
 <li><strong>ambientResponse</strong>: Fresnel/edge lift <code>0..1</code> (default 0.15).</li>
 <li><strong>edgeSoftness</strong>: Soft fade at the edges (default 1.dp). Set to 0.dp for hard edges.</li>
-<li><strong>shape</strong> (<code>RoundedCornerShape</code>): Boundary for refraction and masking (default 16.dp corners).
-  Add an outer <code>Modifier.clip()</code> with the same shape only when child content also needs clipping.</li>
+<li><strong>shape</strong> (<code>RoundedCornerShape</code> or <code>ContinuousRoundedCornerShape</code>): Boundary for refraction and
+  masking (default 16.dp circular corners). <code>ContinuousRoundedCornerShape</code> gives continuous,
+  iOS-style corners that ease into each edge; its <code>smoothing</code> runs from <code>0f</code> (circular) to <code>1f</code>
+  (the default, matching SwiftUI's <code>.continuous</code> style). When a corner cannot ease within its edges,
+  as in a capsule, its smoothing is reduced and its radius kept. When corners would overlap, as in a
+  leaf shape, smoothing is removed and the radii kept. Add an outer <code>Modifier.clip()</code> with
+  the same shape only when child content also needs clipping.</li>
 <li><strong>surfaceProfile</strong>: Cross-section for lighting and, with <a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-refraction-profile/-surface/"><code>RefractionProfile.Surface</code></a>, refraction. Options: <code>Circle</code> (default), <code>Squircle</code>, <code>Lip</code>, <code>Concave</code>.</li>
 <li><strong>lightPosition</strong>: <code>Alignment</code> of the light within the surface (default <code>Alignment.Center</code>).
   Start and end follow layout direction.</li>
@@ -1713,6 +1718,16 @@ Compose <code>ColorSpace</code>.</p>
 <span class="n">CompositionLocalProvider</span><span class="p">(</span><span class="n">LocalGlassStyle</span><span class="w"> </span><span class="n">provides</span><span class="w"> </span><span class="n">baseStyle</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="c1">// Use baseStyle as the default for Glass in this subtree.</span>
 <span class="p">}</span>
+</code></pre></div>
+<p>For continuous, iOS-style corners, pass a <code>ContinuousRoundedCornerShape</code>. It is a Compose shape, so
+the same instance can clip content or draw a border that matches the Glass silhouette:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">shape</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ContinuousRoundedCornerShape</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">)</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">shape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<span class="n">Box</span><span class="p">(</span>
+<span class="w">  </span><span class="n">Modifier</span>
+<span class="w">    </span><span class="p">.</span><span class="na">border</span><span class="p">(</span><span class="m">1.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.3f</span><span class="p">),</span><span class="w"> </span><span class="n">shape</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span><span class="w"> </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">),</span>
+<span class="p">)</span>
 </code></pre></div>
 <p>A Style's block runs whenever a Glass surface resolves its style, not when the Style is built. The
 block may read snapshot state, such as an animated value; changes apply on the next frame without
