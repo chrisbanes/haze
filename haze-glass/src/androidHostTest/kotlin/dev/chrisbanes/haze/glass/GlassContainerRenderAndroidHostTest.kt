@@ -91,10 +91,19 @@ class GlassContainerRenderAndroidHostTest : ScreenshotTest() {
 
   @Test
   @Config(sdk = [35])
-  fun sdk35_clusterRimHighlightDrawsTopEdgeNotSides() = runScreenshotTest(size = Size(360f, 240f)) {
+  fun sdk35_clusterRimHighlightDrawsTopEdgeNotSides() = assertClusterRimHighlight(continuous = false)
+
+  @Test
+  @Config(sdk = [35])
+  fun sdk35_continuousClusterRimHighlightDrawsTopEdgeNotSides() = assertClusterRimHighlight(continuous = true)
+
+  private fun assertClusterRimHighlight(continuous: Boolean) = runScreenshotTest(size = Size(360f, 240f)) {
     val state = HazeState()
     val effects = List(2) { GlassRuntimeEffect() }
-    val highlighted = style(Color.Blue).then(GlassStyle { rimHighlight(1f, 3.dp, 0f) })
+    val highlighted = style(Color.Blue).then {
+      if (continuous) shape(ContinuousRoundedCornerShape(16.dp))
+      rimHighlight(1f, 3.dp, 0f)
+    }
     setContent {
       Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
         Box(Modifier.size(360.dp, 240.dp).hazeSource(state).background(Color.White))
@@ -113,6 +122,8 @@ class GlassContainerRenderAndroidHostTest : ScreenshotTest() {
     fun at(x: Float, y: Float) = pixels[(bounds.left + x * bounds.width / 360f).roundToInt(), (bounds.top + y * bounds.height / 240f).roundToInt()]
     val owner = checkNotNull(effects.first().memberBindingForTest?.node?.container)
     assertThat(owner.renderer.runtimeSurfaces.size).isEqualTo(1)
+    val params = checkNotNull(owner.renderer.runtimeSurfaces.single().preparedRender).params
+    assertThat(continuousCorners(params.cornerRadii, params.mergedField)).isEqualTo(continuous)
     // The interior shows the blue tint rather than the white background, so the cluster drew.
     assertThat(at(90f, 100f).red).isLessThan(0.1f)
     // A missing top edge here means the merged rim exceeded the SDK 35 shader budget.

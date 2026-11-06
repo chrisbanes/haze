@@ -781,9 +781,13 @@ class GlassShadersTest {
     assertThat(shader).contains("uniform vec4 edgeShadow;")
   }
 
+  private fun rimVariants() = listOf(false, true).flatMap { merged ->
+    listOf(false, true).map { continuous -> GlassShaders.buildRim(merged = merged, continuous = continuous) }
+  }
+
   @Test
   fun rimSources_declareRimHighlightUniforms() {
-    listOf(GlassShaders.buildRim(), GlassShaders.buildRim(merged = true)).forEach { shader ->
+    rimVariants().forEach { shader ->
       assertThat(shader).contains("uniform float rimHighlightIntensity;")
       assertThat(shader).contains("uniform float rimHighlightWidth;")
       assertThat(shader).contains("uniform float rimHighlightSides;")
@@ -792,7 +796,7 @@ class GlassShadersTest {
 
   @Test
   fun rimSource_evaluatesSdfGradientOnce() {
-    listOf(GlassShaders.buildRim(), GlassShaders.buildRim(merged = true)).forEach { shader ->
+    rimVariants().forEach { shader ->
       val main = shader.substringAfter("vec4 main(vec2 coord)")
       assertThat("sdfGradient\\(".toRegex().findAll(main).count()).isEqualTo(1)
     }

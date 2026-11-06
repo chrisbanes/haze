@@ -36,6 +36,17 @@ class GlassRimHighlightShaderTest {
   }
 
   @Test
+  fun continuous_sidesZero_drawsTopAndBottomOnly() {
+    val key = highlightKey(sides = 0f).copy(cornerRadii = CornerRadii(18f, 18f, 18f, 18f, 1f, 1f, 1f, 1f))
+    val pixels = draw(key)
+
+    assertThat(pixels[64, 7].alpha).isGreaterThan(0.6f)
+    assertThat(pixels[64, 88].alpha).isGreaterThan(0.6f)
+    assertThat(pixels[9, 48].alpha).isLessThan(0.02f)
+    assertThat(pixels[64, 12].alpha).isLessThan(0.02f)
+  }
+
+  @Test
   fun sidesOne_isUniform() {
     val pixels = draw(highlightKey(sides = 1f))
 
@@ -79,7 +90,7 @@ class GlassRimHighlightShaderTest {
   }
 
   private fun draw(key: GlassRimEffectKey, merged: Boolean = false): PixelMap {
-    val provider = checkNotNull(createGlassRimBrushProvider(merged))
+    val provider = checkNotNull(createGlassRimBrushProvider(merged, continuousCorners(key.cornerRadii, key.mergedField)))
     return drawBrush(checkNotNull(provider(key))).toPixelMap()
   }
 

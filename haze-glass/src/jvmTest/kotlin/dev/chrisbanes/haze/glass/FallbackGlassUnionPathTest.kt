@@ -252,6 +252,24 @@ class FallbackGlassUnionPathTest {
   }
 
   @Test
+  fun rimHighlightBands_continuousCorners_followSmoothedEdge() {
+    val radii = CornerRadii(24f, 24f, 24f, 24f, 1f, 1f, 1f, 1f)
+    val shape = radii.toPath(Size(100f, 60f))
+    val bands = fallbackRimHighlightBands(shape, widthPx = 3f)
+    val vertical = rasterize(bands.vertical)
+    val outline = rasterize(shape)
+
+    assertThat(vertical, 50, 1).isFilled()
+    assertThat(vertical, 1, 30).isEmpty()
+    // The band covers no pixel outside the smoothed shape, including at its corners.
+    for (x in 0 until 100) {
+      for (y in 0 until 60) {
+        if (outline[x, y].alpha < 0.01f) assertThat(vertical, x, y).isEmpty()
+      }
+    }
+  }
+
+  @Test
   fun rimHighlightBands_zeroWidth_isEmpty() {
     val shape = Path().apply { addRoundRect(CornerRadii(12f, 12f, 12f, 12f).toRoundRect(Size(100f, 60f))) }
     val bands = fallbackRimHighlightBands(shape, widthPx = 0f)
