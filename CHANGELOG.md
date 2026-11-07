@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Progressive blur preserves edge opacity by keeping accepted samples inside the captured content
+  ([#1727](https://github.com/chrisbanes/haze/issues/1727)).
 - Progressive blur keeps its crop within the captured content when downscaling, including expanded
   bounds and fractional offsets ([#1728](https://github.com/chrisbanes/haze/issues/1728)).
 - Blur masks and brush tints keep their authored positions when captured content is scaled or
