@@ -17,12 +17,14 @@ import android.graphics.RuntimeShader
 import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.ScaleFactor
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
@@ -38,28 +40,28 @@ import kotlin.math.abs
 
 private var noiseTexture: Bitmap? = null
 
-internal actual fun ShaderBrush.createScaledShader(size: Size, scale: Float): Shader {
+internal actual fun ShaderBrush.createScaledShader(size: Size, scale: ScaleFactor, captureSize: Size, offset: Offset): Shader {
   val shader = createShader(size)
-  if (scale == 1f) return shader
+  if (scale.scaleX == 1f && scale.scaleY == 1f && offset == Offset.Zero) return shader
 
   if (!isCustomShaderBrush()) {
-    // Compose's built-in gradients create a fresh shader with no local matrix.
-    return shader.apply { setLocalMatrix(Matrix().apply { setScale(scale, scale) }) }
+    return shader.apply { setLocalMatrix(Matrix().apply { setValues(floatArrayOf(scale.scaleX, 0f, offset.x, 0f, scale.scaleY, offset.y, 0f, 0f, 1f)) }) }
   }
-
-  // Evaluate the complete caller shader in logical coordinates. A local-matrix wrapper
-  // composes in the wrong order on Android when the caller shader has a translation.
-  check(Build.VERSION.SDK_INT >= 33)
-  return RuntimeShader(
-    """
-      uniform shader source;
-      uniform float scale;
-      half4 main(float2 coord) { return source.eval(coord / scale); }
-    """.trimIndent(),
-  ).apply {
-    setInputShader("source", shader)
-    setFloatUniform("scale", scale)
+  if (Build.VERSION.SDK_INT >= 33) {
+    return RuntimeShader(
+      """
+        uniform shader source;
+        uniform float2 scale;
+        uniform float2 origin;
+        half4 main(float2 coord) { return source.eval((coord - origin) / scale); }
+      """.trimIndent(),
+    ).apply {
+      setInputShader("source", shader)
+      setFloatUniform("scale", scale.scaleX, scale.scaleY)
+      setFloatUniform("origin", offset.x, offset.y)
+    }
   }
+  error("API 31/32 custom shaders require logical output-stage styling")
 }
 
 internal actual fun BlurVisualEffect.constrainInputScaleForBrushes(scale: Float): Float {

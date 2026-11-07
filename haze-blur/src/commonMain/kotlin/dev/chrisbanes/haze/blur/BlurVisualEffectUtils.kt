@@ -9,7 +9,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -35,6 +37,7 @@ internal fun BlurVisualEffect.calculateBlurTileMode(): TileMode = when (blurredE
 internal fun BlurVisualEffect.getOrCreateRenderEffect(
   context: HazeEffectRuntimeDrawScope,
   inputScale: Float = resolveInputScaleFactor(),
+  captureScale: ScaleFactor = ScaleFactor(inputScale, inputScale),
   blurRadius: Dp = this.blurRadius.takeOrElse { 0.dp },
   noiseFactor: Float = this.noiseFactor,
   colorEffects: List<HazeColorEffect> = this.colorEffects.orEmpty(),
@@ -42,6 +45,7 @@ internal fun BlurVisualEffect.getOrCreateRenderEffect(
   backgroundColor: Color = Color.Transparent,
   contentSize: Size = context.size,
   contentOffset: Offset = context.layerOffset,
+  captureSize: Size = Size.Unspecified,
   mask: Brush? = this.mask,
   progressiveMask: Brush? = null,
   retainInputWhenMasked: Boolean = false,
@@ -56,6 +60,8 @@ internal fun BlurVisualEffect.getOrCreateRenderEffect(
     blurRadius = blurRadius,
     noiseFactor = noiseFactor,
     scale = inputScale,
+    captureScale = captureScale,
+    captureSize = captureSize,
     colorEffects = colorEffects,
     colorEffectsAlphaModulate = colorEffectsAlphaModulate,
     backgroundColor = backgroundColor,
@@ -73,6 +79,8 @@ internal fun BlurVisualEffect.getOrCreateRenderEffect(
       blurRadius = blurRadius,
       noiseFactor = noiseFactor,
       scale = inputScale,
+      captureScale = captureScale,
+      captureSize = captureSize,
       colorEffects = colorEffects,
       colorEffectsAlphaModulate = colorEffectsAlphaModulate,
       backgroundColor = backgroundColor,
@@ -104,6 +112,9 @@ internal class RenderEffectParams(
   val scale: Float,
   val contentSize: Size,
   val contentOffset: Offset,
+  val captureScale: ScaleFactor = ScaleFactor(scale, scale),
+  /** The retained allocation, or [Size.Unspecified] for direct/native inputs. */
+  val captureSize: Size = Size.Unspecified,
   val colorEffects: List<HazeColorEffect> = emptyList(),
   val colorEffectsAlphaModulate: Float = 1f,
   val backgroundColor: Color = Color.Transparent,
@@ -123,6 +134,8 @@ internal class RenderEffectCacheKey(
   val scale: Float,
   val contentSize: Size,
   val contentOffset: Offset,
+  val captureScale: ScaleFactor,
+  val captureSize: Size,
   val colorEffects: List<HazeColorEffect>,
   val colorEffectsAlphaModulate: Float,
   val backgroundColor: Color,
@@ -144,6 +157,8 @@ internal fun RenderEffectParams.renderEffectCacheKey(density: Density): RenderEf
   val hasMask = progressive != null || mask != null || progressiveMask != null
   val usesContentSize = hasMask || hasBrushTint
   val usesContentOffset = hasMask || hasOffsetColorEffect
+  val usesCaptureScale = progressive != null || mask is ShaderBrush || progressiveMask is ShaderBrush ||
+    colorEffects.any { it is TintBrushHazeColorEffect && it.brush is ShaderBrush }
 
   return RenderEffectCacheKey(
     blurRadiusPx = resolveBlurRadiusPx(density),
@@ -151,6 +166,8 @@ internal fun RenderEffectParams.renderEffectCacheKey(density: Density): RenderEf
     scale = scale,
     contentSize = if (usesContentSize) contentSize else Size.Zero,
     contentOffset = if (usesContentOffset) contentOffset else Offset.Zero,
+    captureScale = if (usesCaptureScale) captureScale else ScaleFactor(1f, 1f),
+    captureSize = if (progressive != null) captureSize else Size.Unspecified,
     colorEffects = colorEffects,
     colorEffectsAlphaModulate = colorEffectsAlphaModulate,
     backgroundColor = backgroundColor,

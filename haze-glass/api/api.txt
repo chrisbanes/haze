@@ -12,6 +12,7 @@ package dev.chrisbanes.haze.glass {
     method public dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape copy(float smoothing);
     method @KotlinOnly public androidx.compose.ui.graphics.Outline createOutline(androidx.compose.ui.geometry.Size size, float topStart, float topEnd, float bottomEnd, float bottomStart, androidx.compose.ui.unit.LayoutDirection layoutDirection);
     method @InaccessibleFromKotlin public float getSmoothing();
+    method public dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape? lerp(Object? other, float t);
     property public float smoothing;
   }
 

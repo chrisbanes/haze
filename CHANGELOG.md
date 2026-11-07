@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   automatic scrim on unblurred paths. Set `fallbackColor` to replace or disable that scrim. Clear
   uses its light response in both system appearances
   ([#1731](https://github.com/chrisbanes/haze/issues/1731)).
+- Continuous Glass corner shapes interpolate their corners and smoothing with Compose's
+  `Interpolatable.lerp` ([#1752](https://github.com/chrisbanes/haze/issues/1752)).
 
 - Glass supports continuous, iOS-style corners with the new `ContinuousRoundedCornerShape`, passed
   to `GlassStyle`'s `shape`. Masking, refraction, lighting, and the rim all follow the smoothed
@@ -29,6 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   separating the Glass from its backdrop. It is off by default, follows merged container shapes, and
   has an equivalent stroke on limited renderers
   ([#1741](https://github.com/chrisbanes/haze/issues/1741)).
+
+### Fixed
+
+- Progressive blur preserves edge opacity by keeping accepted samples inside the captured content
+  ([#1727](https://github.com/chrisbanes/haze/issues/1727)).
+- Progressive blur keeps its crop within the captured content when downscaling, including expanded
+  bounds and fractional offsets ([#1728](https://github.com/chrisbanes/haze/issues/1728)).
+- Blur masks and brush tints keep their authored positions when captured content is scaled or
+  resized ([#1730](https://github.com/chrisbanes/haze/issues/1730)).
 
 ## 2.1.0 <small>2026-11-02</small> { id="2.1.0" }
 

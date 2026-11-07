@@ -37,10 +37,29 @@ kotlin {
             systemImageSource = "aosp"
           }
 
+          create("pixel6Api31") {
+            device = "Pixel 6"
+            sdkVersion = 31
+            systemImageSource = "aosp"
+          }
+
+          create("pixel6Api32") {
+            device = "Pixel 6"
+            sdkVersion = 32
+            systemImageSource = "aosp"
+          }
+
+          create("pixel6Api33") {
+            device = "Pixel 6"
+            sdkVersion = 33
+            systemImageSource = "aosp"
+          }
+
           create("pixel6Api34") {
             device = "Pixel 6"
             sdkVersion = 34
-            systemImageSource = "aosp_atd"
+            // Window PixelCopy tests require rendering; ATD images disable it.
+            systemImageSource = "aosp"
           }
         }
       }

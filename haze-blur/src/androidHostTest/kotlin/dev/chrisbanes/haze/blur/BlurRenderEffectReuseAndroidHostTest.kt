@@ -22,6 +22,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
@@ -268,6 +270,43 @@ class BlurRenderEffectReuseAndroidHostTest : ScreenshotTest() {
   @Config(sdk = [35])
   fun clearRetainedOutput_releasesTheSlotsAndBuildsAFreshEffect() = assertCacheClear { probe, _ ->
     probe.effect.clearRetainedOutput()
+  }
+
+  @Test
+  @Config(sdk = [32])
+  fun customLogicalStage_reusesGraphAndReleasesLayerOnClear() = runScreenshotTest {
+    val shader = android.graphics.LinearGradient(0f, 0f, 0f, 80f, android.graphics.Color.BLACK, android.graphics.Color.TRANSPARENT, android.graphics.Shader.TileMode.CLAMP)
+    val brush = object : ShaderBrush() {
+      override fun createShader(size: Size): Shader = shader
+    }
+    val style = HazeBlurStyle {
+      blurRadius(8.dp)
+      noiseFactor(0f)
+      mask(brush)
+    }
+    val probe = Probe()
+    var content by mutableStateOf(Color.White)
+    setContent { BlurContent(probe, style, content) }
+    frame()
+    val retained = checkNotNull(probe.delegate.logicalLayer.layer)
+    val cold = probe.counts()
+    listOf(Color.Red, Color.Green, Color.Blue).forEach {
+      content = it
+      frame()
+    }
+    val delta = probe.counts() - cold
+    assertThat(probe.delegate.logicalLayer.layer).isSameInstanceAs(retained)
+    assertThat(retained.isReleased).isFalse()
+    assertThat(delta.wraps, "unchanged logical blur wrapper").isEqualTo(0)
+    assertThat(delta.assigns, "unchanged logical blur assignment").isEqualTo(0)
+    assertThat(delta.cache, "unchanged logical blur cache").isEqualTo(0)
+    probe.effect.clearRetainedOutput()
+    assertThat(retained.isReleased).isTrue()
+    content = Color.Red
+    frame()
+    content = Color.Green
+    frame()
+    assertThat(checkNotNull(probe.delegate.logicalLayer.layer).isReleased).isFalse()
   }
 
   @Test

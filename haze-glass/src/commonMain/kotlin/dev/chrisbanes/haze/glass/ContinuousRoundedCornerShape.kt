@@ -1,6 +1,8 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(InternalHazeApi::class)
+
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.foundation.shape.CornerBasedShape
@@ -9,9 +11,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.Poko
 
 /**
  * A rounded-rectangle shape with continuous corners, like SwiftUI's
@@ -23,6 +28,12 @@ import androidx.compose.ui.unit.dp
  * Pass it to [GlassStyleScope.shape] for Glass masking, refraction, lighting, and rim. Because it
  * is a Compose shape, the same instance can be passed to `Modifier.clip`, `Modifier.border`, or an
  * indication so that they match the Glass silhouette.
+ *
+ * Compose's `Interpolatable.lerp` interpolates corners and smoothing between two continuous shapes.
+ * Corner units resolve at the actual size and density, and start/end corners follow layout direction.
+ * Finite fractions can overshoot: negative interpolated radii become zero and smoothing stays in
+ * `0f..1f`. Other shape types follow Compose's normal interpolation dispatch. If neither shape
+ * supports the pair, Compose selects the first below `0.5f` and the second otherwise.
  *
  * Corner sizes resolve like [RoundedCornerShape]'s. When a corner's eased extent would not fit
  * along an edge, its smoothing is reduced, never its radius. A capsule, whose radius is half its
@@ -87,6 +98,20 @@ public class ContinuousRoundedCornerShape(
     }
   }
 
+  /** Interpolates with another continuous shape, or returns null for another type. */
+  override fun lerp(other: Any?, t: Float): ContinuousRoundedCornerShape? {
+    if (other !is ContinuousRoundedCornerShape) return null
+    if (t == 0f || this == other) return this
+    if (t == 1f) return other
+    return ContinuousRoundedCornerShape(
+      topStart = interpolatedCorner(topStart, other.topStart, t),
+      topEnd = interpolatedCorner(topEnd, other.topEnd, t),
+      bottomEnd = interpolatedCorner(bottomEnd, other.bottomEnd, t),
+      bottomStart = interpolatedCorner(bottomStart, other.bottomStart, t),
+      smoothing = (smoothing.toDouble() + (other.smoothing.toDouble() - smoothing) * t).coerceIn(0.0, 1.0).toFloat(),
+    )
+  }
+
   /** Returns a copy of this shape with new corner sizes, keeping its [smoothing]. */
   override fun copy(
     topStart: CornerSize,
@@ -135,6 +160,30 @@ public class ContinuousRoundedCornerShape(
   override fun toString(): String = "ContinuousRoundedCornerShape(topStart = $topStart, " +
     "topEnd = $topEnd, bottomEnd = $bottomEnd, bottomStart = $bottomStart, smoothing = $smoothing)"
 }
+
+@Poko
+private class InterpolatedCornerSize(
+  val start: CornerSize,
+  val end: CornerSize,
+  val fraction: Float,
+) : CornerSize {
+  override fun toPx(shapeSize: Size, density: Density): Float {
+    val equalEndpoints = start == end
+    val from = start.toPx(shapeSize, density)
+    if (equalEndpoints && !from.isFinite()) return from
+    val to = if (equalEndpoints) from else end.toPx(shapeSize, density)
+    val radius = from.toDouble() + (to.toDouble() - from) * fraction
+    return if (from.isFinite() && to.isFinite() && fraction.isFinite()) {
+      // Compose adds two corners before fitting them, so keep that sum finite too.
+      radius.coerceIn(0.0, Float.MAX_VALUE.toDouble() / 2.0).toFloat()
+    } else {
+      radius.toFloat()
+    }
+  }
+}
+
+private fun interpolatedCorner(start: CornerSize, end: CornerSize, fraction: Float): CornerSize =
+  InterpolatedCornerSize(start, end, if (start == end) 0f else fraction)
 
 /**
  * Creates a [ContinuousRoundedCornerShape] with the same size applied to all four corners.

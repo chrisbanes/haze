@@ -88,7 +88,7 @@ class BlurGradientCoordinatesTest {
         offset = offset,
       )
       val pixels = raster(createRenderEffect(PlatformContext.INSTANCE, Density(1f), params), params, Color.White)
-      val shift = (offset * scale).round()
+      val shift = offset * scale
       val y = shift.y.toInt() + (50f * scale).toInt()
       for (localX in listOf(50f, 70f, 85f)) {
         val x = shift.x.toInt() + (localX * scale).toInt()

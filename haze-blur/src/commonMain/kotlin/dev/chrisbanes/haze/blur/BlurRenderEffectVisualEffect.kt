@@ -15,6 +15,7 @@ import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
+import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.lerp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
@@ -36,6 +37,9 @@ internal class RenderEffectBlurVisualEffectDelegate(
   internal val effectSlot: BlurRenderEffectSlot = blurVisualEffect.renderEffectSlotFactory()
   private val bands = mutableListOf<Band>()
   internal val bandMasks = BandMasks()
+  internal val logicalLayer = RetainedGraphicsLayer()
+  internal val logicalSlot = blurVisualEffect.renderEffectSlotFactory()
+  internal var logicalPathActive = false
   internal var scaledContentLayer: GraphicsLayer? = null
     private set
   private var lastScaledLayerSize: Size? = null
@@ -50,6 +54,16 @@ internal class RenderEffectBlurVisualEffectDelegate(
     val scaleFactor = blurVisualEffect.resolveInputScaleFactor()
     val currentScaledSize = (context.layerSize * scaleFactor).roundToIntSize().let {
       Size(it.width.toFloat(), it.height.toFloat())
+    }
+    if (blurVisualEffect.progressive != null && currentScaledSize.minDimension > 0f && progressiveCaptureCrop(
+        context.size,
+        context.layerOffset,
+        scaledContentScale(context.layerSize, scaleFactor),
+        currentScaledSize,
+      ).isEmpty
+    ) {
+      clearRetainedOutput()
+      return
     }
     val hasDrawableSourceLayers = context.hasDrawableInput
 
@@ -132,6 +146,13 @@ internal class RenderEffectBlurVisualEffectDelegate(
   ) {
     val clip = blurVisualEffect.shouldClipToNodeBounds()
     layer.clip = clip
+    if (drawLogicalCustomStyle(this, layer, context, scaleFactor)) return
+    if (logicalPathActive) {
+      logicalPathActive = false
+      logicalLayer.release()
+      logicalSlot.reset()
+      effectSlot.reset()
+    }
     drawScaledContent(
       offset = -context.layerOffset,
       captureScale = scaledContentScale(context.layerSize, scaleFactor),
@@ -153,7 +174,13 @@ internal class RenderEffectBlurVisualEffectDelegate(
         // on local dirty flags. The slot makes the unchanged case cheap.
         effectSlot.apply(
           layer,
-          blurVisualEffect.getOrCreateRenderEffect(context, inputScale = scaleFactor, slot = effectSlot),
+          blurVisualEffect.getOrCreateRenderEffect(
+            context,
+            inputScale = scaleFactor,
+            captureScale = scaledContentScale(context.layerSize, scaleFactor),
+            captureSize = layer.size.toSize(),
+            slot = effectSlot,
+          ),
         )
         layer.alpha = blurVisualEffect.alpha
         drawLayer(layer)
@@ -196,6 +223,9 @@ internal class RenderEffectBlurVisualEffectDelegate(
     scaledContentLayer = null
     lastScaledLayerSize = null
     effectSlot.reset()
+    logicalSlot.reset()
+    logicalLayer.release()
+    logicalPathActive = false
     trimBandSlots(0)
     graphicsContext = null
     retainedOutputAvailable = false
@@ -298,3 +328,10 @@ internal fun DrawScope.drawProgressiveWithMultipleLayers(
     block(mask, intensity)
   }
 }
+
+internal expect fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
+  drawScope: DrawScope,
+  contentLayer: GraphicsLayer,
+  context: HazeEffectRuntimeDrawScope,
+  inputScale: Float,
+): Boolean
