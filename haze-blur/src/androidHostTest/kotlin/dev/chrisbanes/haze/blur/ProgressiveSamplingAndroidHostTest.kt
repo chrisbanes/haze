@@ -70,10 +70,11 @@ class ProgressiveSamplingAndroidHostTest : ScreenshotTest() {
   private fun checkContent(label: String, radius: Float, alpha: Float = 1f, gradient: Int = 0, fractional: Boolean = false) = runScreenshotTest {
     val width = if (fractional) 141 else 140
     val height = if (fractional) 137 else 140
+    val backdrop = if (gradient == 1 || gradient == 2) Color.Green else Color.Magenta
     var plain by mutableStateOf(false)
     setContent {
       CompositionLocalProvider(LocalDensity provides Density(1f)) {
-        Box(Modifier.size((width + 12).dp, (height + 12).dp).background(Color.Magenta).testTag("sampling")) {
+        Box(Modifier.size((width + 12).dp, (height + 12).dp).background(backdrop).testTag("sampling")) {
           Canvas(
             Modifier.size(width.dp, height.dp)
               .graphicsLayer {
@@ -165,7 +166,10 @@ class ProgressiveSamplingAndroidHostTest : ScreenshotTest() {
       println("$label high=$high low=$low")
       // Both probes are on authored stripes, separated by whole periods.
       assertThat(high.red - low.red, "$label stronger blur at authored start").isGreaterThan(0.03f)
-      for (y in 8 until height - 8) for (x in 8 until width - 8) assertThat(c(actual, x + shiftX, y + shiftY).alpha, "$label opaque interior").isGreaterThan(0.98f)
+      // Authored Red/Black/Blue have no green; the green backdrop exposes lost opacity.
+      val maxGreen = (8 until height - 8).maxOf { y -> (8 until width - 8).maxOf { x -> c(actual, x + shiftX, y + shiftY).green } }
+      println("$label interior maxGreen=$maxGreen")
+      assertThat(maxGreen, "$label opaque interior over green").isLessThan(0.02f)
     }
   }
 }
