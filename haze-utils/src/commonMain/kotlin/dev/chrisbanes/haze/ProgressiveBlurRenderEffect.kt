@@ -97,6 +97,13 @@ private fun makeBlurSksl(vertical: Boolean): String = """
       return exp(-(x * x) / (2.0 * sigma * sigma));
     }
 
+    vec4 sampleContent(vec2 coord) {
+      vec2 midpoint = (crop.xy + crop.zw) / 2.0;
+      vec2 lower = min(crop.xy + vec2(0.5), midpoint);
+      vec2 upper = max(crop.zw - vec2(0.5), midpoint);
+      return content.eval(clamp(coord, lower, upper));
+    }
+
     vec4 blur(vec2 coord, float radius) {
       // Truncate the radius
       half r = floor(radius + 0.5);
@@ -124,13 +131,13 @@ private fun makeBlurSksl(vertical: Boolean): String = """
 
         vec2 newCoord = coord - offset;
         if (newCoord.x >= crop[0] && newCoord.y >= crop[1]) {
-          result += weight * content.eval(newCoord);
+          result += weight * sampleContent(newCoord);
           weightSum += weight;
         }
 
         newCoord = coord + offset;
         if (newCoord.x <= crop[2] && newCoord.y <= crop[3]) {
-          result += weight * content.eval(newCoord);
+          result += weight * sampleContent(newCoord);
           weightSum += weight;
         }
       }
@@ -142,13 +149,13 @@ private fun makeBlurSksl(vertical: Boolean): String = """
 
         vec2 newCoord = coord - offset;
         if (newCoord.x >= crop[0] && newCoord.y >= crop[1]) {
-          result += weight * content.eval(newCoord);
+          result += weight * sampleContent(newCoord);
           weightSum += weight;
         }
 
         newCoord = coord + offset;
         if (newCoord.x <= crop[2] && newCoord.y <= crop[3]) {
-          result += weight * content.eval(newCoord);
+          result += weight * sampleContent(newCoord);
           weightSum += weight;
         }
       }
