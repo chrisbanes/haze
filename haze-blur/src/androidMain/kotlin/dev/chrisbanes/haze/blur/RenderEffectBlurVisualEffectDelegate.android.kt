@@ -11,8 +11,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.dp
@@ -23,7 +23,7 @@ import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.translate
+import dev.chrisbanes.haze.scaledContentScale
 
 internal actual fun BlurVisualEffect.invalidateRenderEffectOnInputChange() {
   if (Build.VERSION.SDK_INT == 31) {
@@ -50,6 +50,8 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
         blurVisualEffect.getOrCreateRenderEffect(
           context = context,
           inputScale = inputScale,
+          captureScale = scaledContentScale(context.layerSize, inputScale),
+          captureSize = contentLayer.size.toSize(),
           progressive = progressive,
           slot = effectSlot,
         ),
@@ -80,6 +82,8 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
         blurVisualEffect.getOrCreateRenderEffect(
           context = context,
           inputScale = inputScale,
+          captureScale = scaledContentScale(context.layerSize, inputScale),
+          captureSize = contentLayer.size.toSize(),
           progressiveMask = checkNotNull(blurVisualEffect.progressiveBrush),
           retainInputWhenMasked = progressive is RootHazeProgressive.LinearGradient,
           slot = effectSlot,
@@ -136,6 +140,8 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
       blurVisualEffect.getOrCreateRenderEffect(
         context = context,
         inputScale = inputScale,
+        captureScale = scaledContentScale(context.layerSize, inputScale),
+        captureSize = contentLayer.size.toSize(),
         blurRadius = blurRadius * intensity,
         noiseFactor = noiseFactor,
         colorEffects = colorEffects.orEmpty(),
@@ -154,15 +160,14 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
   trimBandSlots(band)
 
   if (userMask != null) {
-    // Cover the expanded layer so clamped mask values reach its outset, as in the shader path.
-    translate(context.layerOffset) {
-      drawRect(
-        brush = userMask,
-        topLeft = -context.layerOffset,
-        size = layerSize,
-        blendMode = BlendMode.DstIn,
-      )
+    val captureScale = scaledContentScale(context.layerSize, inputScale)
+    val offset = Offset(context.layerOffset.x * captureScale.scaleX, context.layerOffset.y * captureScale.scaleY)
+    val brush = if (userMask is ShaderBrush) {
+      ShaderBrush(userMask.createScaledShader(context.size, captureScale, layerSize, offset))
+    } else {
+      userMask
     }
+    drawRect(brush = brush, size = layerSize, blendMode = BlendMode.DstIn)
   }
   if (compositeLayer) {
     drawContext.canvas.restore()

@@ -1,22 +1,32 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(dev.chrisbanes.haze.InternalHazeApi::class)
+
 package dev.chrisbanes.haze.blur
 
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.graphics.skiaPaint
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.isCloseTo
 import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.createProgressiveBlurRenderEffect
 import kotlin.test.Test
 
 class ProgressiveBlurMaskTest {
@@ -97,6 +107,28 @@ class ProgressiveBlurMaskTest {
           .isGreaterThan(0.95f)
       }
     }
+  }
+
+  @Test
+  fun progressiveMaskOrigin_isIndependentOfCropOrigin() {
+    val brush = Brush.horizontalGradient(listOf(Color.Transparent, Color.Black), startX = 0f, endX = 80f) as ShaderBrush
+    val shader = brush.createShader(Size(100f, 80f))
+    fun pixel(crop: Offset, maskOrigin: Offset): Float {
+      val effect = createProgressiveBlurRenderEffect(8f, Size(95f, 80f), crop, shader, maskOrigin)
+      val bitmap = ImageBitmap(100, 80)
+      with(Canvas(bitmap)) {
+        saveLayer(Rect(0f, 0f, 100f, 80f), Paint().apply { skiaPaint.imageFilter = effect })
+        drawRect(Rect(0f, 0f, 100f, 80f), Paint().apply { color = Color.White })
+        drawRect(Rect(40f, 0f, 41f, 80f), Paint().apply { color = Color.Black })
+        restore()
+      }
+      return bitmap.toPixelMap()[40, 40].red
+    }
+    val original = pixel(Offset.Zero, Offset.Zero)
+    val shiftedCrop = pixel(Offset(5f, 0f), Offset.Zero)
+    val shiftedMask = pixel(Offset(5f, 0f), Offset(40f, 0f))
+    assertThat(shiftedCrop, "crop change away from the sample").isCloseTo(original, 0.01f)
+    assertThat(original - shiftedMask, "mask origin changes blur intensity").isGreaterThan(0.1f)
   }
 
   private fun rasterize(progressive: HazeProgressive.LinearGradient): RasterResult {

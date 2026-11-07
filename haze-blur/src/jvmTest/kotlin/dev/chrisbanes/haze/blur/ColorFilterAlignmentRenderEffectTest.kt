@@ -79,7 +79,7 @@ class ColorFilterAlignmentRenderEffectTest {
             effects = listOf(HazeColorEffect.tint(Brush.horizontalGradient(listOf(Color.Green, Color.Yellow)))),
           )
           for (x in listOf(shiftedX + width / 4, shiftedX + width * 3 / 4)) {
-            val red = ((x + 0.5f - shiftedX) / width).coerceIn(0f, 1f)
+            val red = ((x + 0.5f - offset.x * scale) / width).coerceIn(0f, 1f)
             assertColor(brush[x, width / 2], Color(red, 1f, 0f), "brush origin scale=$scale offset=$offset x=$x")
           }
         }
@@ -112,8 +112,8 @@ class ColorFilterAlignmentRenderEffectTest {
         mask = if (overallMask) Brush.verticalGradient(listOf(Color.Transparent, Color.Black)) else null,
       )
       for (y in yProbes) for (x in xProbes) {
-        val a = if (progressive) ((x + 0.5f - shiftedX) / width).coerceIn(0f, 1f) else 1f
-        val g = if (overallMask) ((y + 0.5f - shiftedY) / width).coerceIn(0f, 1f) else 1f
+        val a = if (progressive) ((x + 0.5f - offset.x * scale) / width).coerceIn(0f, 1f) else 1f
+        val g = if (overallMask) ((y + 0.5f - offset.y * scale) / width).coerceIn(0f, 1f) else 1f
         val original = if (x < width / 2) Color.Red else Color.Blue
         val swapped = if (x < width / 2) Color.Blue else Color.Red
         val expected = when (mode) {

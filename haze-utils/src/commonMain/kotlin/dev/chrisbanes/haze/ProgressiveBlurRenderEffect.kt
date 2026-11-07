@@ -28,6 +28,16 @@ public fun createProgressiveBlurRenderEffect(
   size: Size,
   offset: Offset,
   mask: Shader,
+): PlatformRenderEffect = createProgressiveBlurRenderEffect(blurRadiusPx, size, offset, mask, offset)
+
+/** Creates a progressive blur with a mask origin independent of its crop bounds. */
+@InternalHazeApi
+public fun createProgressiveBlurRenderEffect(
+  blurRadiusPx: Float,
+  size: Size,
+  offset: Offset,
+  mask: Shader,
+  maskOrigin: Offset,
 ): PlatformRenderEffect {
   val crop = floatArrayOf(
     offset.x,
@@ -43,6 +53,7 @@ public fun createProgressiveBlurRenderEffect(
   ) {
     setFloatUniform("blurRadius", blurRadiusPx)
     setFloatUniform("crop", crop[0], crop[1], crop[2], crop[3])
+    setFloatUniform("maskOrigin", maskOrigin.x, maskOrigin.y)
     setChildShader("mask", mask)
   }
 
@@ -53,6 +64,7 @@ public fun createProgressiveBlurRenderEffect(
   ) {
     setFloatUniform("blurRadius", blurRadiusPx)
     setFloatUniform("crop", crop[0], crop[1], crop[2], crop[3])
+    setFloatUniform("maskOrigin", maskOrigin.x, maskOrigin.y)
     setChildShader("mask", mask)
   }
 }
@@ -76,6 +88,7 @@ private fun makeBlurSksl(vertical: Boolean): String = """
     uniform shader content;
     uniform float blurRadius;
     uniform vec4 crop;
+    uniform float2 maskOrigin;
     uniform shader mask;
 
     const half maxRadius = 150.0;
@@ -145,7 +158,7 @@ private fun makeBlurSksl(vertical: Boolean): String = """
 
     vec4 main(vec2 coord) {
       // Offset the coord for the mask, but coerce it to be at least 0, 0
-      vec2 maskCoord = max(coord - crop.xy, vec2(0.0, 0.0));
+      vec2 maskCoord = max(coord - maskOrigin, vec2(0.0, 0.0));
       float intensity = mask.eval(maskCoord).a;
 
       return blur(coord, mix(0.0, blurRadius, intensity));

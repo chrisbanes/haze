@@ -37,6 +37,12 @@ kotlin {
             systemImageSource = "aosp"
           }
 
+          create("pixel6Api33") {
+            device = "Pixel 6"
+            sdkVersion = 33
+            systemImageSource = "aosp"
+          }
+
           create("pixel6Api34") {
             device = "Pixel 6"
             sdkVersion = 34
