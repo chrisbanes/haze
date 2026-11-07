@@ -178,6 +178,7 @@ class GlassLayerOnlyMoveInstrumentationTest {
     val style = GlassStyle {
       backgroundColor(Color.White)
       tint(Color.Blue.copy(alpha = 0.5f))
+      fallbackColor(Color.Transparent)
       specularIntensity(0f)
       edgeSoftness(0.dp)
       edgeShadow(Color.Transparent)
