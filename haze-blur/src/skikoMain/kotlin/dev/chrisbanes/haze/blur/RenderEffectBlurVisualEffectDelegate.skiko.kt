@@ -38,3 +38,11 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   // Finally draw the layer
   drawLayer(contentLayer)
 }
+
+@OptIn(InternalHazeApi::class)
+internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
+  drawScope: DrawScope,
+  contentLayer: GraphicsLayer,
+  context: HazeEffectRuntimeDrawScope,
+  inputScale: Float,
+): Boolean = false

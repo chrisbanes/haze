@@ -36,8 +36,6 @@ internal actual fun ShaderBrush.createScaledShader(size: Size, scale: ScaleFacto
   }
 }
 
-internal actual fun requiresCaptureSize(scale: ScaleFactor, offset: Offset): Boolean = false
-
 internal actual fun BlurVisualEffect.constrainInputScaleForBrushes(scale: Float): Float = scale
 
 private val NOISE_SHADER by lazy(LazyThreadSafetyMode.NONE) {

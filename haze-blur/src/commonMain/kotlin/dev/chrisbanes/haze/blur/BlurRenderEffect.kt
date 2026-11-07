@@ -387,6 +387,4 @@ internal fun Brush.isCustomShaderBrush(): Boolean = this is ShaderBrush &&
 /** Resolves brush geometry in content coordinates before scaling the generated shader. */
 internal expect fun ShaderBrush.createScaledShader(size: Size, scale: ScaleFactor, captureSize: Size, offset: Offset): Shader
 
-internal expect fun requiresCaptureSize(scale: ScaleFactor, offset: Offset): Boolean
-
 internal expect fun BlurVisualEffect.constrainInputScaleForBrushes(scale: Float): Float

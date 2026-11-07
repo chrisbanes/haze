@@ -339,7 +339,7 @@ class BlurCaptureCoordinatesAndroidHostTest : ScreenshotTest() {
   }
 
   @Test
-  @Config(sdk = [31, 32, 35])
+  @Config(sdk = [35])
   fun productionCustomMask_fractionalCapture_preservesTranslatedCoordinates() = runScreenshotTest {
     val source = LinearGradient(0f, 4f, 0f, 20f, android.graphics.Color.BLACK, android.graphics.Color.TRANSPARENT, Shader.TileMode.CLAMP)
     source.setLocalMatrix(Matrix().apply { setTranslate(0f, 2f) })
@@ -407,7 +407,7 @@ class BlurCaptureCoordinatesAndroidHostTest : ScreenshotTest() {
   }
 
   @Test
-  @Config(sdk = [31, 32, 35])
+  @Config(sdk = [35])
   fun horizontalSharedCustomMask_preservesGeometryAndEarlierEffect() = runScreenshotTest {
     val source = LinearGradient(6f, 0f, 12f, 0f, android.graphics.Color.BLACK, android.graphics.Color.TRANSPARENT, Shader.TileMode.CLAMP)
     source.setLocalMatrix(Matrix().apply { setTranslate(2f, 0f) })
@@ -548,8 +548,18 @@ class BlurCaptureCoordinatesAndroidHostTest : ScreenshotTest() {
     val changedScale = params(ScaleFactor(25f / 25.3f, 23f / 23.4f), Size(25f, 23f))
     val changedSize = params(original.captureScale, Size(26f, 23f))
     assertThat(original.renderEffectCacheKey(Density(1f))).isNotEqualTo(changedScale.renderEffectCacheKey(Density(1f)))
-    assertThat(original.renderEffectCacheKey(Density(1f))).isNotEqualTo(changedSize.renderEffectCacheKey(Density(1f)))
-    val effect = createRenderEffect(ApplicationProvider.getApplicationContext(), Density(1f), original)
+    assertThat(original.renderEffectCacheKey(Density(1f))).isEqualTo(changedSize.renderEffectCacheKey(Density(1f)))
+    val graphParams = RenderEffectParams(
+      blurRadius = 0.dp,
+      noiseFactor = 0f,
+      scale = 1f,
+      contentSize = original.contentSize,
+      contentOffset = original.contentOffset,
+      captureScale = original.captureScale,
+      captureSize = original.captureSize,
+      blurTileMode = TileMode.Clamp,
+    )
+    val effect = createRenderEffect(ApplicationProvider.getApplicationContext(), Density(1f), graphParams)
     val slot = BlurRenderEffectSlot()
     slot.store(0, 1f, original, effect)
     fun lookup(p: RenderEffectParams) = slot.lookup(
@@ -563,6 +573,71 @@ class BlurCaptureCoordinatesAndroidHostTest : ScreenshotTest() {
     assertThat(lookup(original)).isSameInstanceAs(effect)
     assertThat(lookup(changedScale)).isNull()
     assertThat(lookup(changedSize)).isNull()
+  }
+
+  @Test
+  @Config(sdk = [31, 32])
+  fun productionLogicalCustomMask_verticalRetainsCoordinatesAcrossGeometry() = logicalCustomMask(horizontal = false)
+
+  @Test
+  @Config(sdk = [31, 32])
+  fun productionLogicalCustomMask_horizontalRetainsCoordinatesAcrossGeometry() = logicalCustomMask(horizontal = true)
+
+  private fun logicalCustomMask(horizontal: Boolean) = runScreenshotTest {
+    val source = if (horizontal) {
+      LinearGradient(6f, 0f, 12f, 0f, android.graphics.Color.BLACK, android.graphics.Color.TRANSPARENT, Shader.TileMode.CLAMP)
+    } else {
+      LinearGradient(0f, 4f, 0f, 20f, android.graphics.Color.BLACK, android.graphics.Color.TRANSPARENT, Shader.TileMode.CLAMP)
+    }
+    source.setLocalMatrix(Matrix().apply { setTranslate(if (horizontal) 2f else 0f, if (horizontal) 0f else 2f) })
+    fun matrix() = FloatArray(9).also { Matrix().also(source::getLocalMatrix).getValues(it) }.toList()
+    val originalMatrix = matrix()
+    val brush = object : ShaderBrush() {
+      override fun createShader(size: Size): Shader = source
+    }
+    var dimensions by mutableStateOf(Size(21f, 19f))
+    setContent {
+      CompositionLocalProvider(LocalDensity provides Density(1f)) {
+        Box(Modifier.background(Color.Black)) {
+          Box(
+            Modifier.size(dimensions.width.dp, dimensions.height.dp).testTag("logicalCustom")
+              .hazeBlur(
+                input = HazeInput.Content,
+                performanceMode = HazePerformanceMode.Quality,
+                style = HazeBlurStyle {
+                  blurRadius(2.dp)
+                  noiseFactor(0f)
+                  backgroundColor(Color.Transparent)
+                  colorEffects(emptyList())
+                  mask(brush)
+                },
+              ).drawBehind { drawRect(Color.White) },
+          )
+        }
+      }
+    }
+    fun read(): List<Color> {
+      waitForIdle()
+      val pixels = captureRootPixels()
+      val bounds = onNodeWithTag("logicalCustom").fetchSemanticsNode().boundsInRoot
+      return (8..13).map { coordinate ->
+        val x = if (horizontal) coordinate else 10
+        val y = if (horizontal) 10 else coordinate
+        pixels[bounds.left.roundToInt() + x, bounds.top.roundToInt() + y]
+      }
+    }
+    val first = read()
+    for (geometry in listOf(Size(21.2f, 19.2f), Size(25.2f, 23.4f), Size(21f, 19f))) {
+      composeTestRule.runOnIdle { dimensions = geometry }
+      val actual = read()
+      actual.forEachIndexed { index, color ->
+        val coordinate = index + 8.5f
+        val expected = if (horizontal) (14f - coordinate) / 6f else (22f - coordinate) / 16f
+        assertThat(color.red, "logical mask horizontal=$horizontal geometry=$geometry coordinate=$coordinate").isCloseTo(expected, 0.025f)
+      }
+      assertThat(matrix(), "caller shader matrix").isEqualTo(originalMatrix)
+    }
+    assertThat(read(), "first geometry after alternatives").isEqualTo(first)
   }
 
   @Test

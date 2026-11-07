@@ -37,6 +37,9 @@ internal class RenderEffectBlurVisualEffectDelegate(
   internal val effectSlot: BlurRenderEffectSlot = blurVisualEffect.renderEffectSlotFactory()
   private val bands = mutableListOf<Band>()
   internal val bandMasks = BandMasks()
+  internal val logicalLayer = RetainedGraphicsLayer()
+  internal val logicalSlot = blurVisualEffect.renderEffectSlotFactory()
+  internal var logicalPathActive = false
   internal var scaledContentLayer: GraphicsLayer? = null
     private set
   private var lastScaledLayerSize: Size? = null
@@ -133,6 +136,13 @@ internal class RenderEffectBlurVisualEffectDelegate(
   ) {
     val clip = blurVisualEffect.shouldClipToNodeBounds()
     layer.clip = clip
+    if (drawLogicalCustomStyle(this, layer, context, scaleFactor)) return
+    if (logicalPathActive) {
+      logicalPathActive = false
+      logicalLayer.release()
+      logicalSlot.reset()
+      effectSlot.reset()
+    }
     drawScaledContent(
       offset = -context.layerOffset,
       captureScale = scaledContentScale(context.layerSize, scaleFactor),
@@ -203,6 +213,9 @@ internal class RenderEffectBlurVisualEffectDelegate(
     scaledContentLayer = null
     lastScaledLayerSize = null
     effectSlot.reset()
+    logicalSlot.reset()
+    logicalLayer.release()
+    logicalPathActive = false
     trimBandSlots(0)
     graphicsContext = null
     retainedOutputAvailable = false
@@ -305,3 +318,10 @@ internal fun DrawScope.drawProgressiveWithMultipleLayers(
     block(mask, intensity)
   }
 }
+
+internal expect fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
+  drawScope: DrawScope,
+  contentLayer: GraphicsLayer,
+  context: HazeEffectRuntimeDrawScope,
+  inputScale: Float,
+): Boolean

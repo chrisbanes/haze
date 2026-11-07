@@ -322,7 +322,7 @@ jobs:
       matrix:
         # API 30 runs the RenderScript Blur path: its assumeTrue(SDK_INT == 30) and
         # @SdkSuppress(maxSdkVersion = 30) device tests only run there.
-        api-level: [30, 31, 33, 34]
+        api-level: [30, 31, 32, 33, 34]
     runs-on: ubuntu-latest
     timeout-minutes: 45
 

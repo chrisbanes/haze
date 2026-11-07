@@ -134,7 +134,6 @@ internal class RenderEffectCacheKey(
   val contentSize: Size,
   val contentOffset: Offset,
   val captureScale: ScaleFactor,
-  val captureSize: Size,
   val colorEffects: List<HazeColorEffect>,
   val colorEffectsAlphaModulate: Float,
   val backgroundColor: Color,
@@ -158,12 +157,6 @@ internal fun RenderEffectParams.renderEffectCacheKey(density: Density): RenderEf
   val usesContentOffset = hasMask || hasOffsetColorEffect
   val usesCaptureScale = progressive != null || mask is ShaderBrush || progressiveMask is ShaderBrush ||
     colorEffects.any { it is TintBrushHazeColorEffect && it.brush is ShaderBrush }
-  val origin = Offset(contentOffset.x * captureScale.scaleX, contentOffset.y * captureScale.scaleY)
-  val usesCaptureSize = requiresCaptureSize(captureScale, origin) && (
-    mask?.isCustomShaderBrush() == true || progressiveMask?.isCustomShaderBrush() == true ||
-      (progressive as? HazeProgressive.Brush)?.brush?.isCustomShaderBrush() == true ||
-      colorEffects.any { it is TintBrushHazeColorEffect && it.brush.isCustomShaderBrush() }
-    )
 
   return RenderEffectCacheKey(
     blurRadiusPx = resolveBlurRadiusPx(density),
@@ -172,7 +165,6 @@ internal fun RenderEffectParams.renderEffectCacheKey(density: Density): RenderEf
     contentSize = if (usesContentSize) contentSize else Size.Zero,
     contentOffset = if (usesContentOffset) contentOffset else Offset.Zero,
     captureScale = if (usesCaptureScale) captureScale else ScaleFactor(1f, 1f),
-    captureSize = if (usesCaptureSize) captureSize else Size.Zero,
     colorEffects = colorEffects,
     colorEffectsAlphaModulate = colorEffectsAlphaModulate,
     backgroundColor = backgroundColor,

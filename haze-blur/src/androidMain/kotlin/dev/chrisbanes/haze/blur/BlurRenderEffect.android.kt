@@ -10,11 +10,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
-import android.graphics.Canvas
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
-import android.graphics.Paint
 import android.graphics.RuntimeShader
 import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
@@ -63,18 +61,8 @@ internal actual fun ShaderBrush.createScaledShader(size: Size, scale: ScaleFacto
       setFloatUniform("origin", offset.x, offset.y)
     }
   }
-  val bitmap = Bitmap.createBitmap(captureSize.width.toInt(), captureSize.height.toInt(), Bitmap.Config.ARGB_8888)
-  Canvas(bitmap).apply {
-    translate(offset.x, offset.y)
-    scale(scale.scaleX, scale.scaleY)
-    drawPaint(Paint().apply { this.shader = shader })
-  }
-  val immutable = checkNotNull(bitmap.copy(Bitmap.Config.ARGB_8888, false))
-  return BitmapShader(immutable, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP)
+  error("API 31/32 custom shaders require logical output-stage styling")
 }
-
-internal actual fun requiresCaptureSize(scale: ScaleFactor, offset: Offset): Boolean =
-  Build.VERSION.SDK_INT in 31..32 && (scale.scaleX != 1f || scale.scaleY != 1f || offset != Offset.Zero)
 
 internal actual fun BlurVisualEffect.constrainInputScaleForBrushes(scale: Float): Float {
   if (Build.VERSION.SDK_INT !in 31..32 || scale == 1f) return scale
