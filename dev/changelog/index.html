@@ -7672,6 +7672,8 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
+<li>Progressive blur preserves edge opacity by keeping accepted samples inside the captured content
+  (<a href="https://github.com/chrisbanes/haze/issues/1727">#1727</a>).</li>
 <li>Progressive blur keeps its crop within the captured content when downscaling, including expanded
   bounds and fractional offsets (<a href="https://github.com/chrisbanes/haze/issues/1728">#1728</a>).</li>
 <li>Blur masks and brush tints keep their authored positions when captured content is scaled or
