@@ -177,7 +177,7 @@ private class InterpolatedCornerSize(
       // Compose adds two corners before fitting them, so keep that sum finite too.
       radius.coerceIn(0.0, Float.MAX_VALUE.toDouble() / 2.0).toFloat()
     } else {
-      radius.toFloat().coerceAtLeast(0f)
+      radius.toFloat()
     }
   }
 }

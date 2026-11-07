@@ -230,9 +230,11 @@ class ContinuousRoundedCornerShapeTest {
     assertThat(zero.smoothing.toBits()).isEqualTo(0f.toBits())
     for (invalidRadius in listOf(Float.NaN, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY)) {
       val invalid = ContinuousRoundedCornerShape(CornerSize(invalidRadius))
-      val invalidMidpoint = Interpolatable.lerp(invalid, start, 0.5f) as ContinuousRoundedCornerShape
-      assertThat(invalidMidpoint.resolveCornerRadiiPx(size, density, LayoutDirection.Ltr))
-        .isEqualTo(GlassDefaults.shape.resolveCornerRadiiPx(size, density, LayoutDirection.Ltr))
+      for ((from, to) in listOf(invalid to start, start to invalid)) {
+        val invalidMidpoint = Interpolatable.lerp(from, to, 0.5f) as ContinuousRoundedCornerShape
+        assertThat(invalidMidpoint.resolveCornerRadiiPx(size, density, LayoutDirection.Ltr))
+          .isEqualTo(GlassDefaults.shape.resolveCornerRadiiPx(size, density, LayoutDirection.Ltr))
+      }
       val invalidCorner = CornerSize(invalidRadius)
       val staticStart = ContinuousRoundedCornerShape(invalidCorner, CornerSize(0f), CornerSize(0f), CornerSize(0f), 0f)
       val staticEnd = staticStart.copy(bottomStart = CornerSize(10f))
