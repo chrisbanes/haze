@@ -66,6 +66,10 @@ class ReducedTransparencyFallbackAndroidHostTest : ScreenshotTest() {
               factory = HazeEffectFactory { effect },
               input = HazeInput.Sources(state),
               style = GlassStyle {
+                optics { copy(blurRadius = OpticalSizeValue.Fixed(0.dp)) }
+                contrast(0f)
+                whitePoint(0f)
+                chromaMultiplier(1f)
                 backgroundColor(if (authored.value) background else Color.Transparent)
                 tint(if (authored.value) tint else Color.Transparent)
                 alpha(alpha.value)

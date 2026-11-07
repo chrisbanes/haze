@@ -11,6 +11,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.isFinite
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
@@ -531,6 +532,7 @@ internal data class ResolvedGlassStyle(
   val cornerRadii: CornerRadii,
   val mergedField: GlassMergedField? = null,
   val fallbackBaseColor: Color? = null,
+  val fallbackColor: Color = Color.Transparent,
   val drawOutsetPx: Float = 0f,
   val rimHighlight: GlassRimHighlight = GlassRimHighlight.None,
   val edgeOutline: GlassEdgeOutline = GlassEdgeOutline.None,
@@ -550,13 +552,17 @@ internal fun resolveGlassStyle(
     materialSizePx = materialSizePx,
     layoutDirection = layoutDirection,
   )
+  // A merged field uses the supplied optical size.
+  val optics = resolveGlassOptics(
+    effect.optics,
+    effect.opticalSizeOverride ?: effect.mergedField?.opticalSize ?: materialSizePx,
+    density,
+  )
+  val automaticAlpha = (optics.depth * (optics.blurRadiusPx / with(density) { 25.dp.toPx() }).coerceIn(0f, 1f))
+    .coerceIn(0f, 1f)
+  val automaticColor = if (effect.isClear || effect.systemAppearance == GlassSystemAppearance.Light) Color.White else Color.Black
   return ResolvedGlassStyle(
-    // A merged field's layer covers several members, so optics use its supplied optical size.
-    resolvedOptics = resolveGlassOptics(
-      effect.optics,
-      effect.opticalSizeOverride ?: effect.mergedField?.opticalSize ?: materialSizePx,
-      density,
-    ),
+    resolvedOptics = optics,
     specularIntensity = effect.specularIntensity,
     edgeShadow = effect.edgeShadow,
     ambientResponse = effect.ambientResponse,
@@ -584,6 +590,7 @@ internal fun resolveGlassStyle(
     } else {
       null
     },
+    fallbackColor = if (effect.fallbackColor.isSpecified) effect.fallbackColor else automaticColor.copy(alpha = automaticAlpha),
     drawOutsetPx = with(density) { effect.drawExtent.toPx() }.finiteOrZero().coerceAtLeast(0f),
     // An invisible outline is None, so it neither separates members nor rebuilds the rim.
     edgeOutline = GlassEdgeOutline(

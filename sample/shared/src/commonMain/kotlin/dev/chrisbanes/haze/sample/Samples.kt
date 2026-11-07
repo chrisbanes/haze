@@ -105,6 +105,7 @@ val CommonSamples: List<Sample> = listOf(
   Sample.GlassShapeMorph,
   Sample.GlassContainer,
   Sample.GlassContainerShowcase,
+  Sample.GlassRefresh,
 )
 
 class Sample(
@@ -288,6 +289,14 @@ class Sample(
       effects = listOf(SampleEffect.Glass),
     ) { navController, _ ->
       GlassContainerShowcaseSample(navController = navController)
+    }
+
+    val GlassRefresh = Sample(
+      route = "glass-refresh",
+      title = "Glass — Refresh",
+      effects = listOf(SampleEffect.Glass),
+    ) { navController, _ ->
+      GlassRefreshSample(navController = navController)
     }
   }
 }

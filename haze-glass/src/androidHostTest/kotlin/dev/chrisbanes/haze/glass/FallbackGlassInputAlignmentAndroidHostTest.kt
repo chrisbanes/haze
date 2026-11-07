@@ -39,7 +39,13 @@ import org.robolectric.annotation.Config
 @Config(sdk = [31])
 class FallbackGlassInputAlignmentAndroidHostTest : ScreenshotTest() {
   // Opaque, so the source under the member is hidden and red only appears if the input is drawn.
-  private val style = GlassStyle { backgroundColor(Color.White) }
+  private val style = GlassStyle {
+    optics { copy(blurRadius = OpticalSizeValue.Fixed(0.dp)) }
+    contrast(0f)
+    whitePoint(0f)
+    chromaMultiplier(1f)
+    backgroundColor(Color.White)
+  }
 
   @Test
   fun fallbackMemberWithBackground_drawsBackdropAtTruePosition() = runScreenshotTest(size = Size(900f, 600f)) {

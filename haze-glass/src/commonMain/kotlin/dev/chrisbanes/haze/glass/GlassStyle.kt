@@ -49,7 +49,7 @@ public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
  * without recomposition. Styles created with [GlassStyle] compare by identity, so `remember` or
  * hoist a Style: constructing a new one in each composition replaces it on every node. Styles
  * joined with [then] compare by their parts. The built-in Regular and Clear
- * responses are selected from the attached node's current system appearance during resolution,
+ * responses are resolved for the attached node during resolution,
  * so a system appearance change does not require a replacement Style.
  *
  * A Style contains no renderer or mutable runtime state. [GlassStyleScope.hovered],
@@ -177,8 +177,9 @@ private enum class BuiltInGlassStyle : GlassStyle {
   fun replay(values: GlassStyleValues, appearance: GlassSystemAppearance) {
     val selected = when (this) {
       Regular -> if (appearance == GlassSystemAppearance.Dark) GlassStyle.regularDark else GlassStyle.regularLight
-      Clear -> if (appearance == GlassSystemAppearance.Dark) GlassStyle.clearDark else GlassStyle.clearLight
+      Clear -> GlassStyle.clearLight
     }
+    values.isClear = this == Clear
     selected.replay(values, appearance)
   }
 }
@@ -400,6 +401,15 @@ public class GlassStyleScope internal constructor(
     values.backgroundColor = color
   }
 
+  /**
+   * Sets the scrim used when fallback rendering cannot blur. [Color.Unspecified] selects the
+   * automatic colour, [Color.Transparent] disables the scrim, and any other colour replaces it.
+   * Reduced-transparency accessibility settings take precedence over this colour.
+   */
+  public fun fallbackColor(color: Color) {
+    values.fallbackColor = color
+  }
+
   /** Sets any specified tint, including transparent, applied to refracted content. */
   public fun tint(color: Color) {
     require(color.isSpecified) { "tint must be specified" }
@@ -547,6 +557,8 @@ internal class GlassStyleValues(
   var ambientResponse: Float = GlassDefaults.ambientResponse,
   var backgroundColor: Color = GlassDefaults.backgroundColor,
   var tint: Color = GlassDefaults.tint,
+  var fallbackColor: Color = Color.Unspecified,
+  var isClear: Boolean = false,
   var edgeSoftness: Dp = GlassDefaults.edgeSoftness,
   var lightPosition: Alignment = Alignment.Center,
   var chromaticAberrationStrength: Float = GlassDefaults.chromaticAberrationStrength,

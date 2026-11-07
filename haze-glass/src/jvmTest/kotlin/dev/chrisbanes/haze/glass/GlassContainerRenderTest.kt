@@ -94,6 +94,7 @@ class GlassContainerRenderTest : ContextTest() {
     }
     // Already fully diffused at the supported clamp: toggling reduction keeps merge optics equal.
     val compatibleOptics = GlassStyle {
+      fallbackColor(Color.Transparent)
       optics(GlassOptics(depth = OpticalSizeValue.Fixed(1f), blurRadius = OpticalSizeValue.Fixed(SemanticBlurKernel.MAX_SUPPORTED_RADIUS_PX.dp)))
     }
     val background = Color.Red.copy(alpha = 0.25f)
@@ -281,6 +282,29 @@ class GlassContainerRenderTest : ContextTest() {
     assertThat(runtime.preparedRenderBudget).isInstanceOf<GlassRenderBudgetDecision.Runtime>()
     assertThat(runtime.delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
     assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[145, 100].green).isLessThan(0.2f)
+  }
+
+  @Test
+  fun overBudgetCluster_updatesExplicitFallbackScrim() = runComposeUiTest {
+    val scrim = mutableStateOf(Color.Transparent)
+    val fixture = pair(
+      firstTint = Color.Transparent,
+      secondTint = Color.Transparent,
+      source = Color.Red,
+      extraStyle = GlassStyle {
+        fallbackColor(scrim.value)
+        optics(GlassOptics(refractionStrength = 1f, refractionDisplacement = 16_384.dp, refractionDetailIntensity = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp)))
+      },
+    )
+    val runtime = fixture.owner().renderer.runtimeSurfaces.single()
+    assertThat(runtime.preparedRenderBudget).isInstanceOf<GlassRenderBudgetDecision.Fallback>()
+    assertThat(runtime.delegate).isInstanceOf<FallbackGlassDelegate>()
+    val before = onNodeWithTag("root").captureToImage().toPixelMap()[80, 100]
+    runOnIdle { scrim.value = Color.Blue.copy(alpha = 0.5f) }
+    val after = onNodeWithTag("root").captureToImage().toPixelMap()[80, 100]
+    assertThat(before.red).isGreaterThan(after.red)
+    assertThat(after.blue).isGreaterThan(before.blue)
+    assertThat(fixture.owner().renderer.runtimeSurfaces.single()).isSameInstanceAs(runtime)
   }
 
   @Test

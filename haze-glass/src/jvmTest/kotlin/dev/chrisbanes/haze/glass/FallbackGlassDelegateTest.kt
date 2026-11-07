@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
@@ -109,6 +110,7 @@ class FallbackGlassDelegateTest {
     val appearance = mutableStateOf(GlassSystemAppearance.Light)
     val effect = GlassRuntimeEffect().apply {
       style = GlassStyle {
+        fallbackColor(Color.Transparent)
         backgroundColor(Color.Transparent)
         tint(Color.Transparent)
         specularIntensity(0f)
@@ -247,6 +249,7 @@ class FallbackGlassDelegateTest {
       sample: Offset,
       activateInteraction: Boolean = false,
     ) {
+      effect.style = effect.style.then { fallbackColor(Color.Transparent) }
       val fallback = FallbackGlassDelegate(effect)
       val visualEffect = FallbackOnlyVisualEffect(effect, fallback)
       setContent { FallbackTestContent(visualEffect) }
@@ -331,9 +334,138 @@ class FallbackGlassDelegateTest {
   }
 
   @Test
+  fun fallbackColor_automaticExplicitAndTransparentRenderInOrder() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle {
+        optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(25.dp), depth = OpticalSizeValue.Fixed(1f)))
+        shape(RoundedCornerShape(0.dp))
+        specularIntensity(0f)
+        ambientResponse(0f)
+        edgeSoftness(0.dp)
+        edgeShadow(Color.Transparent)
+      }
+    }
+    val visual = FallbackOnlyVisualEffect(effect, FallbackGlassDelegate(effect))
+    setContent { FallbackTestContent(visual) }
+    fun pixel() = onNodeWithTag(FALLBACK_TAG).captureToImage().toPixelMap()[60, 60]
+    assertThat(pixel()).isEqualTo(Color.White)
+    effect.style = effect.style.then { fallbackColor(Color.Transparent) }
+    assertThat(pixel().alpha).isEqualTo(0f)
+    effect.style = effect.style.then { fallbackColor(Color.Red.copy(alpha = 0.4f)) }
+    assertThat(pixel().alpha).isGreaterThan(0.39f)
+    assertThat(pixel().red).isGreaterThan(pixel().green)
+    effect.style = effect.style.then { alpha(0.5f) }
+    assertThat(pixel().alpha).isLessThan(0.21f)
+    assertThat(pixel().alpha).isGreaterThan(0.19f)
+  }
+
+  @Test
+  fun clearFallback_sameBackdropIsIdenticalAcrossAppearanceChanges() = runComposeUiTest {
+    val appearance = mutableStateOf(GlassSystemAppearance.Light)
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle.clear
+      appearanceReader = { appearance.value }
+    }
+    val visual = FallbackOnlyVisualEffect(effect, FallbackGlassDelegate(effect))
+    setContent { FallbackTestContent(visual) { Box(Modifier.size(120.dp).background(Color.Red)) } }
+    fun pixels() = onNodeWithTag(FALLBACK_TAG).captureToImage().toPixelMap()
+    val light = pixels()
+    runOnIdle { appearance.value = GlassSystemAppearance.Dark }
+    val dark = pixels()
+    for (y in 10 until 110 step 20) for (x in 10 until 110 step 20) {
+      assertThat(dark[x, y]).isEqualTo(light[x, y])
+    }
+  }
+
+  @Test
+  fun fallbackColor_appliesToReplayedInputWithoutHidingBackgroundContract() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle {
+        backgroundColor(Color.White)
+        fallbackColor(Color.Blue.copy(alpha = 0.5f))
+        shape(RoundedCornerShape(0.dp))
+        specularIntensity(0f)
+        ambientResponse(0f)
+        edgeSoftness(0.dp)
+        edgeShadow(Color.Transparent)
+      }
+    }
+    val visual = FallbackOnlyVisualEffect(effect, FallbackGlassDelegate(effect))
+    setContent {
+      FallbackTestContent(visual) { Box(Modifier.size(40.dp).background(Color.Red)) }
+    }
+    val pixel = onNodeWithTag(FALLBACK_TAG).captureToImage().toPixelMap()[60, 60]
+    assertThat(pixel.red).isCloseTo(0.5f, 2f / 255f)
+    assertThat(pixel.green).isCloseTo(0f, 2f / 255f)
+    assertThat(pixel.blue).isCloseTo(0.5f, 2f / 255f)
+  }
+
+  @Test
+  fun fallbackColor_mergedOverlapUsesFirstMemberOnce() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle {
+        fallbackColor(Color.Transparent)
+        specularIntensity(0f)
+        ambientResponse(0f)
+        edgeSoftness(0.dp)
+        edgeShadow(Color.Transparent)
+      }
+    }
+    val visual = FallbackOnlyVisualEffect(effect, FallbackGlassDelegate(effect))
+    setContent { FallbackTestContent(visual) }
+    effect.mergedField = GlassMergedField(
+      listOf(
+        GlassMergedMember(Rect(0f, 0f, 90f, 120f), CornerRadii.zero, Color.Transparent, Color.Transparent, fallbackColor = Color.Red.copy(alpha = 0.5f)),
+        GlassMergedMember(Rect(60f, 0f, 120f, 120f), CornerRadii.zero, Color.Transparent, Color.Transparent, fallbackColor = Color.Blue.copy(alpha = 0.5f)),
+      ),
+      40f, Size(120f, 120f),
+    )
+    val pixels = onNodeWithTag(FALLBACK_TAG).captureToImage().toPixelMap()
+    assertThat(pixels[75, 60]).isEqualTo(pixels[30, 60])
+    assertThat(pixels[75, 60].red).isGreaterThan(pixels[75, 60].blue)
+    assertThat(pixels[105, 60].blue).isGreaterThan(pixels[105, 60].red)
+  }
+
+  @Test
+  fun fallbackEdge_tracksCardinalLightAndKeepsOppositeWeaker() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle {
+        fallbackColor(Color.Transparent)
+        shape(RoundedCornerShape(0.dp))
+        specularIntensity(0f)
+        ambientResponse(1f)
+        edgeSoftness(8.dp)
+        edgeShadow(Color.Transparent)
+      }
+    }
+    val visual = FallbackOnlyVisualEffect(effect, FallbackGlassDelegate(effect))
+    setContent { FallbackTestContent(visual) }
+    val directions = listOf(
+      Offset(0f, 60f) to (Offset(2f, 60f) to Offset(117f, 60f)),
+      Offset(120f, 60f) to (Offset(117f, 60f) to Offset(2f, 60f)),
+      Offset(60f, 0f) to (Offset(60f, 2f) to Offset(60f, 117f)),
+      Offset(60f, 120f) to (Offset(60f, 117f) to Offset(60f, 2f)),
+    )
+    for (opacity in listOf(1f, 0.5f)) {
+      if (opacity < 1f) visual.disableGroupPreparation()
+      for ((light, points) in directions) {
+        effect.style = effect.style.then {
+          alpha(opacity)
+          lightPosition(exactLightAlignment(light))
+        }
+        val pixels = onNodeWithTag(FALLBACK_TAG).captureToImage().toPixelMap()
+        val (near, opposite) = points
+        assertThat(pixels[near.x.toInt(), near.y.toInt()].alpha)
+          .isGreaterThan(pixels[opposite.x.toInt(), opposite.y.toInt()].alpha)
+      }
+    }
+  }
+
+  @Test
   fun backgroundColor_compositesBehindCapturedContent() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
       style = style.then {
+        fallbackColor(Color.Transparent)
         backgroundColor(Color.White)
         tint(Color.Transparent)
         specularIntensity(0f)
@@ -453,7 +585,7 @@ class FallbackGlassDelegateTest {
     assertThat(movedLight.prepared).isNotSameInstanceAs(stable.prepared)
     assertThat(movedLight.highlightBrush).isNotSameInstanceAs(stable.highlightBrush)
     assertThat(movedLight.shapePath).isSameInstanceAs(stable.shapePath)
-    assertThat(movedLight.edgeBrush).isSameInstanceAs(stable.edgeBrush)
+    assertThat(movedLight.edgeBrush).isNotSameInstanceAs(stable.edgeBrush)
     assertThat(movedLight.edgeStroke).isSameInstanceAs(stable.edgeStroke)
     assertThat(movedLight.edgeShadowBrush).isSameInstanceAs(stable.edgeShadowBrush)
 

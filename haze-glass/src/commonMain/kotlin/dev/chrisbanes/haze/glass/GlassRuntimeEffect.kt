@@ -105,7 +105,7 @@ private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): B
     specularExponent == other.specularExponent &&
     fresnelExponent == other.fresnelExponent &&
     cornerRadii == other.cornerRadii &&
-    mergedField == other.mergedField &&
+    mergedField?.withoutFallbackBase == other.mergedField?.withoutFallbackBase &&
     rimHighlight == other.rimHighlight &&
     edgeOutline == other.edgeOutline
 

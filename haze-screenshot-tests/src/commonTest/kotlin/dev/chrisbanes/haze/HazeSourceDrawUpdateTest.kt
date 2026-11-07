@@ -54,6 +54,7 @@ class HazeSourceDrawUpdateTest : ScreenshotTest() {
               performanceMode = HazePerformanceMode.Quality,
               style = GlassStyle {
                 backgroundColor(Color.Transparent)
+                fallbackColor(Color.Transparent)
                 tint(Color.Transparent)
                 specularIntensity(0f)
                 // Compare source colors without the built-in material's tone adjustment.
@@ -78,9 +79,9 @@ class HazeSourceDrawUpdateTest : ScreenshotTest() {
         }
       }
     }
-    val samplesSource = if (glass) isRuntimeShaderRenderEffectSupported() else supportsRuntimeBlur
+    val samplesSource = supportsRuntimeBlur
     fun assertOutput(source: Color) {
-      // Transparent fallback styles leave the black occluder visible on older Android APIs.
+      // The transparent scrim leaves the black occluder visible where input cannot be blurred.
       val expected = if (samplesSource) source else Color.Black
       val actual = captureRootPixels().let { it[it.width / 2, it.height / 2] }
       assertThat(actual.red).isCloseTo(expected.red, 0.1f)

@@ -112,7 +112,7 @@ class HazeGlassModifierTest : ContextTest() {
     val dark = effects.map { it.whitePoint }
     assertThat(dark[0]).isEqualTo(dark[1])
     assertThat(dark[0]).isNotEqualTo(light[0])
-    assertThat(dark[2]).isNotEqualTo(light[2])
+    assertThat(dark[2]).isEqualTo(light[2])
 
     appearance.value = GlassSystemAppearance.Light
     waitForIdle()

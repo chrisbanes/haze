@@ -293,7 +293,9 @@ Without `RuntimeShader` support, or when a cluster is too large to render in ful
 draws as one surface clipped to the hard union of the member shapes, with no bridge. Members keep
 their own tint and background color, except that a [group](#groups) draws as its single shape with
 its first member's tint and background color. Where members overlap, the earlier member's colors
-apply.
+apply. On Android 12 and 12L, hardware fallback blurs captured input once across the visible union.
+On unblurred fallback paths, members keep their own automatic or authored fallback scrim; the earlier
+member owns overlapping pixels.
 Each member resolves [`GlassAccessibilitySettings`][GlassAccessibilitySettings] and appearance in its own context. With
 `reduceTransparency`, it draws an opaque white/light or black/dark base (or its opaque
 `reducedTransparencyFallbackColor` override), then its authored background colour and tint. Earlier
