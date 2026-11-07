@@ -55,6 +55,16 @@ internal class RenderEffectBlurVisualEffectDelegate(
     val currentScaledSize = (context.layerSize * scaleFactor).roundToIntSize().let {
       Size(it.width.toFloat(), it.height.toFloat())
     }
+    if (blurVisualEffect.progressive != null && currentScaledSize.minDimension > 0f && progressiveCaptureCrop(
+        context.size,
+        context.layerOffset,
+        scaledContentScale(context.layerSize, scaleFactor),
+        currentScaledSize,
+      ).isEmpty
+    ) {
+      clearRetainedOutput()
+      return
+    }
     val hasDrawableSourceLayers = context.hasDrawableInput
 
     if (!hasDrawableSourceLayers) {
