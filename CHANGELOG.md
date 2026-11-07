@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Continuous Glass corner shapes interpolate their corners and smoothing with Compose's
+  `Interpolatable.lerp` ([#1752](https://github.com/chrisbanes/haze/issues/1752)).
+
 - Glass supports continuous, iOS-style corners with the new `ContinuousRoundedCornerShape`, passed
   to `GlassStyle`'s `shape`. Masking, refraction, lighting, and the rim all follow the smoothed
   corners, and the same shape works with `Modifier.clip` and `Modifier.border`
