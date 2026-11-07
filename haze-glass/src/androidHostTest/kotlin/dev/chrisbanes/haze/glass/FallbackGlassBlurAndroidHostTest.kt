@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isCloseTo
@@ -30,6 +31,7 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotSameInstanceAs
+import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
@@ -288,9 +290,21 @@ class FallbackGlassBlurAndroidHostTest : ScreenshotTest() {
     }
     val oldLayer = checkNotNull(delegate.filteredInputLayerForTest)
     assertThat(oldLayer.isReleased).isFalse()
+    val retainedInput = delegate.javaClass.getDeclaredField("filteredInput").run {
+      isAccessible = true
+      get(delegate) as FallbackGlassInput
+    }
+    val records = delegate.filteredInputRecordCountForTest
+    assertThat(retainedInput.prepareForCapture(IntSize(3000, 3000), progressive = false, groupSize = null)).isFalse()
+    assertThat(oldLayer.isReleased).isTrue()
+    assertThat(delegate.filteredInputLayerForTest).isNull()
+    assertThat(delegate.filteredInputRecordCountForTest).isEqualTo(records)
+    color.value = Color.Red
+    captureRootPixels()
+    val restoredLayer = checkNotNull(delegate.filteredInputLayerForTest)
     radius.value = 0.dp
     captureRootPixels()
-    assertThat(oldLayer.isReleased).isTrue()
+    assertThat(restoredLayer.isReleased).isTrue()
     radius.value = 4.dp
     captureRootPixels()
     val nextLayer = checkNotNull(delegate.filteredInputLayerForTest)

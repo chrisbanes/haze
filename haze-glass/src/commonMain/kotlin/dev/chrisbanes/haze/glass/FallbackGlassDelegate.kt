@@ -247,6 +247,14 @@ internal class FallbackGlassDelegate(
       val mergedPaths = prepared.mergedPaths
       val visible = effect.windowBoundsInEffect()
       val inputBounds = Rect(Offset.Zero, size).visiblePart(visible)
+      val groupSize = if (groupAlpha.isAvailable) size.outsetToIntSize(effect.nodeClipOutsetPx()) else null
+      val inputStyle = if (mergedPaths != null) style.copy(fallbackBaseColor = null) else style
+      val captureBounds = mergedPaths?.unionBounds?.visiblePart(visible) ?: inputBounds
+      val willProcess = !forceInput && (mergedPaths == null || mergedPaths.forceInputMask != null) &&
+        with(filteredInput) {
+          canDraw(context, inputStyle, captureBounds) && prepareForCapture(context, inputStyle, captureBounds, groupSize)
+        }
+      if (!willProcess) filteredInput.release()
 
       if (forceInput && style.fallbackBaseColor == null && mergedPaths == null && backgroundColor.alpha <= 0f && !inputBounds.isEmpty) {
         drawInputWithAlpha(context, alpha = 1f, bounds = inputBounds)
@@ -254,9 +262,7 @@ internal class FallbackGlassDelegate(
 
       fun DrawScope.drawFallback(alphaMultiplier: Float) {
         fun DrawScope.drawBase() {
-          val willProcess = !forceInput && with(filteredInput) { canDraw(context, style, inputBounds) }
           val willBlur = willProcess && style.resolvedOptics.depth > 0f && style.resolvedOptics.blurRadiusPx > 0f
-          if (!willProcess) filteredInput.release()
           style.fallbackBaseColor?.let { drawRect(it.copy(alpha = it.alpha * alphaMultiplier)) }
           if (!willBlur && style.fallbackBaseColor == null) {
             drawRect(style.fallbackColor.copy(alpha = style.fallbackColor.alpha * alphaMultiplier))
@@ -267,8 +273,8 @@ internal class FallbackGlassDelegate(
           val scrim: DrawScope.() -> Unit = {
             drawRect(style.fallbackColor, blendMode = BlendMode.SrcAtop)
           }
-          val filtered = !forceInput && with(filteredInput) {
-            draw(context, style, alphaMultiplier, inputBounds, if (willBlur) null else scrim)
+          val filtered = willProcess && with(filteredInput) {
+            draw(context, style, alphaMultiplier, inputBounds, groupSize, if (willBlur) null else scrim)
           }
           filteredInputDrawnForTest = filtered
           if (!filtered && backgroundColor.alpha > 0f && style.fallbackBaseColor == null && !inputBounds.isEmpty) {
@@ -284,14 +290,10 @@ internal class FallbackGlassDelegate(
 
         when {
           mergedPaths != null -> {
-            val willProcess = !forceInput && mergedPaths.forceInputMask != null && with(filteredInput) {
-              canDraw(context, style.copy(fallbackBaseColor = null), mergedPaths.unionBounds.visiblePart(visible))
-            }
             val willBlur = willProcess && style.resolvedOptics.depth > 0f && style.resolvedOptics.blurRadiusPx > 0f
-            if (!willProcess) filteredInput.release()
             drawMergedBase(context, mergedPaths, alphaMultiplier, forceInput, visible, willBlur) { drawScrim ->
-              val filtered = with(filteredInput) {
-                draw(context, style.copy(fallbackBaseColor = null), alphaMultiplier, mergedPaths.unionBounds.visiblePart(visible), drawScrim)
+              val filtered = willProcess && with(filteredInput) {
+                draw(context, inputStyle, alphaMultiplier, captureBounds, groupSize, drawScrim)
               }
               filteredInputDrawnForTest = filtered
               filtered

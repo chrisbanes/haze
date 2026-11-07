@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
@@ -72,17 +73,29 @@ internal class FallbackGlassInput {
       (
         style.resolvedOptics.depth > 0f && style.resolvedOptics.blurRadiusPx > 0f ||
           style.contrast != 0f || style.whitePoint != 0f || style.chromaMultiplier != 1f
-        ) && !bounds.isEmpty &&
-      captureBounds(context, style, bounds).size.roundToIntSize().fitsGlassLayerBudget()
+        ) && !bounds.isEmpty
+
+  fun prepareForCapture(captureSize: IntSize, progressive: Boolean, groupSize: IntSize?): Boolean {
+    if (!fallbackGlassLayersFit(captureSize, progressive, groupSize)) {
+      release()
+      return false
+    }
+    if (source != null && (source?.size != captureSize || (sharp != null) != progressive)) release()
+    return true
+  }
+
+  fun prepareForCapture(context: HazeEffectRuntimeDrawScope, style: ResolvedGlassStyle, bounds: Rect, groupSize: IntSize?): Boolean =
+    prepareForCapture(captureBounds(context, style, bounds).size.roundToIntSize(), style.resolvedOptics.progressive != null, groupSize)
 
   fun DrawScope.draw(
     context: HazeEffectRuntimeDrawScope,
     style: ResolvedGlassStyle,
     alpha: Float,
     bounds: Rect,
+    groupSize: IntSize?,
     drawScrim: (DrawScope.() -> Unit)? = null,
   ): Boolean {
-    if (!canDraw(context, style, bounds)) {
+    if (!canDraw(context, style, bounds) || !prepareForCapture(context, style, bounds, groupSize)) {
       release()
       return false
     }
@@ -201,4 +214,11 @@ private fun fallbackToneFilter(style: ResolvedGlassStyle): ColorFilter? {
       ),
     ),
   )
+}
+
+internal fun fallbackGlassLayersFit(captureSize: IntSize, progressive: Boolean, groupSize: IntSize?): Boolean {
+  if (!captureSize.fitsGlassLayerBudget() || (groupSize != null && !groupSize.fitsGlassLayerBudget())) return false
+  val capturePixels = captureSize.width.toLong() * captureSize.height
+  val groupPixels = groupSize?.let { it.width.toLong() * it.height } ?: 0L
+  return capturePixels * (if (progressive) 3 else 2) + groupPixels <= MAX_GLASS_RETAINED_PIXELS
 }

@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntSize
 import assertk.assertThat
 import assertk.assertions.containsExactly
@@ -17,6 +18,25 @@ import kotlin.math.roundToInt
 import kotlin.test.Test
 
 class GlassRenderBudgetTest {
+
+  @Test
+  fun fallbackLayers_combinedCaptureAndProgressiveBudget() {
+    assertThat(fallbackGlassLayersFit(IntSize(2800, 2800), progressive = false, groupSize = null)).isTrue()
+    assertThat(fallbackGlassLayersFit(IntSize(3000, 3000), progressive = false, groupSize = null)).isFalse()
+    assertThat(fallbackGlassLayersFit(IntSize(2300, 2300), progressive = true, groupSize = null)).isTrue()
+    assertThat(fallbackGlassLayersFit(IntSize(2500, 2500), progressive = true, groupSize = null)).isFalse()
+  }
+
+  @Test
+  fun fallbackLayers_fractionalAlphaCountsOutsetGroup() {
+    val capture = IntSize(2000, 2000)
+    assertThat(fallbackGlassLayersFit(capture, progressive = false, groupSize = IntSize(2000, 2000))).isTrue()
+    val outsetGroup = Size(2000f, 2000f).outsetToIntSize(500f)
+    assertThat(outsetGroup).isEqualTo(IntSize(3000, 3000))
+    assertThat(fallbackGlassLayersFit(capture, progressive = false, groupSize = outsetGroup)).isFalse()
+    assertThat(fallbackGlassLayersFit(capture, progressive = true, groupSize = IntSize(2000, 2000))).isTrue()
+    assertThat(fallbackGlassLayersFit(capture, progressive = true, groupSize = IntSize(2400, 2400))).isFalse()
+  }
 
   @Test
   fun backdropWithoutForegroundLayers_hasAValidZeroRetentionPlan() {
