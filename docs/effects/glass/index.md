@@ -73,8 +73,8 @@ diffuse the backdrop. In dark appearance it uses a darker tone, edge, and lighti
 
 [`GlassStyle.clear`][GlassStyle.clear] keeps more of the background visible. It uses the same shallow blur at every
 size, with refraction concentrated in a band along the edge that forms loops around the corners.
-Fallback renderers keep Clear's background color, tint, and edges, but drop the refraction, blur,
-and tone adjustments that give it its look.
+Clear uses its light response in both system appearances. Fallback renderers simplify its optics;
+on Android 12 and 12L they keep an approximation of blur and tone.
 
 Prefer Regular when background content could interfere with labels or controls, especially for
 surfaces containing substantial text. Use Clear for controls over photos and video where the
@@ -224,8 +224,8 @@ whole material, so source detail is hidden at alpha 1 and can show through durin
 reduced-transparency fallback; full rendering keeps its stronger blur.
 
 `increaseContrast` raises tone contrast and enforces a visible
-edge. Tone contrast applies only to full rendering. Fallback rendering omits color adjustments, so
-it gets the stronger edge alone. `showBorders` enforces a visible edge without changing tone. The
+edge. Android 12 and 12L fallback approximates tone contrast as well; other fallback renderers
+use the stronger edge alone. `showBorders` enforces a visible edge without changing tone. The
 edge appears even when the Style has zero edge softness.
 
 ### Light alignment
@@ -428,10 +428,26 @@ Fallback rendering keeps the material recognizable but simplifies advanced optic
 | Ambient edge response and edge softness | Preserved | Approximated as a soft rim |
 | Specular intensity and resolved light `Alignment` | Preserved | Approximated as an aligned radial highlight |
 | Interaction lighting and transforms | Preserved | Preserved |
-| Fixed or responsive refraction, blur, and progressive optics | Preserved | Omitted |
-| Chromatic aberration, surface profile, and advanced color adjustments | Preserved | Omitted |
+| Blur and progressive optics | Preserved | Android 12 and 12L hardware: blur with a masked progressive approximation; other fallbacks: scrim |
+| Refraction | Preserved | Omitted |
+| Tone and saturation | Preserved | Android 12 and 12L hardware: approximated; other fallbacks: omitted |
+| Chromatic aberration and surface profile | Preserved | Omitted |
 | Interaction refraction and white-point deltas | Preserved | Omitted |
 | [Glass container](containers.md) clusters | Members merge into one shape with smooth bridges | One surface per cluster, clipped to the hard union of the member shapes, with no bridge |
+
+On Android 12 and 12L, hardware fallback blurs the captured input and approximates tone and
+progressive blur. Captured content updates when the source changes, even if the Glass stays in
+place. Other fallback paths leave input unblurred and add a scrim whose opacity follows
+the resolved blur and depth. Regular uses a light or dark scrim with system appearance; Clear uses
+the light response. Set `fallbackColor(Color.Transparent)` to disable the scrim, or provide a
+colour to replace it. `Color.Unspecified` restores the automatic choice. This setting does not
+affect the opaque base used by reduced transparency.
+
+```kotlin
+val style = GlassStyle.regular.then {
+  fallbackColor(Color.Black.copy(alpha = 0.2f))
+}
+```
 
 Don't make essential meaning depend on refraction or chromatic aberration alone, because fallback
 rendering omits them.

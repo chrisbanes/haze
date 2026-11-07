@@ -40,13 +40,14 @@ internal fun lerpGlassMergedMember(from: GlassMergedMember, to: GlassMergedMembe
     tint = lerp(from.tint, to.tint, colour),
     backgroundColor = lerp(from.backgroundColor, to.backgroundColor, colour),
     fallbackBaseColor = to.fallbackBaseColor,
+    fallbackColor = lerp(from.fallbackColor, to.fallbackColor, colour),
     layoutRect = lerp(from.layoutRect, to.layoutRect),
   )
 }
 
 /** This member's layout shape and colours, without interaction. */
 internal fun GlassMemberSnapshot.shape(): GlassMergedMember =
-  GlassMergedMember(layoutRect, material.cornerRadii, material.tint, material.backgroundColor, fallbackBaseColor = material.fallbackBaseColor)
+  GlassMergedMember(layoutRect, material.cornerRadii, material.tint, material.backgroundColor, fallbackBaseColor = material.fallbackBaseColor, fallbackColor = material.fallbackColor)
 
 /**
  * What this member draws: its interaction-transformed rect, with its corners scaled as the
@@ -54,7 +55,7 @@ internal fun GlassMemberSnapshot.shape(): GlassMergedMember =
  */
 internal fun GlassMemberSnapshot.drawnShape(): GlassMergedMember {
   val scale = minOf(rect.width / layoutRect.width, rect.height / layoutRect.height)
-  return GlassMergedMember(rect, material.cornerRadii * scale, material.tint, material.backgroundColor, fallbackBaseColor = material.fallbackBaseColor, layoutRect = sampleLayoutRect)
+  return GlassMergedMember(rect, material.cornerRadii * scale, material.tint, material.backgroundColor, fallbackBaseColor = material.fallbackBaseColor, fallbackColor = material.fallbackColor, layoutRect = sampleLayoutRect)
 }
 
 /**
@@ -63,7 +64,7 @@ internal fun GlassMemberSnapshot.drawnShape(): GlassMergedMember {
  */
 internal fun GlassMemberSnapshot.morphedFrom(from: GlassMemberSnapshot, fraction: Float): Pair<Rect, ResolvedGlassStyle> {
   val shape = lerpGlassMergedMember(from.drawnShape(), shape(), fraction)
-  return shape.rect to material.copy(cornerRadii = shape.cornerRadii, tint = shape.tint, backgroundColor = shape.backgroundColor, fallbackBaseColor = shape.fallbackBaseColor)
+  return shape.rect to material.copy(cornerRadii = shape.cornerRadii, tint = shape.tint, backgroundColor = shape.backgroundColor, fallbackBaseColor = shape.fallbackBaseColor, fallbackColor = shape.fallbackColor)
 }
 
 /**
@@ -166,7 +167,7 @@ internal class GlassMemberGhost(val last: GlassMemberSnapshot, val neighbour: Gl
     if (neighbourSnapshot != null) {
       // The neighbour's live key and material keep the link as the optical size changes.
       val shape = lerpGlassMergedMember(neighbourSnapshot.drawnShape(), drawn, progress.value)
-      val merged = neighbourSnapshot.material.copy(cornerRadii = shape.cornerRadii, tint = shape.tint, backgroundColor = shape.backgroundColor, fallbackBaseColor = shape.fallbackBaseColor)
+      val merged = neighbourSnapshot.material.copy(cornerRadii = shape.cornerRadii, tint = shape.tint, backgroundColor = shape.backgroundColor, fallbackBaseColor = shape.fallbackBaseColor, fallbackColor = shape.fallbackColor)
       return GlassMemberSnapshot(this, shape.rect, neighbourSnapshot.key, merged, true, shape.rect, link = neighbour, sampleLayoutRect = shape.layoutRect, groupKey = last.groupKey, shape = last.shape)
     }
     val alpha = last.material.alpha * progress.value.coerceIn(0f, 1f)

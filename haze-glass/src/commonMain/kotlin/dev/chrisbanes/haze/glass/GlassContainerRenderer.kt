@@ -261,6 +261,7 @@ private fun glassMergedMember(
     tint = material.tint,
     backgroundColor = material.backgroundColor,
     fallbackBaseColor = material.fallbackBaseColor,
+    fallbackColor = material.fallbackColor,
     lightPosition = position,
     lightRadius = radius,
     lightIntensity = interaction?.lightingIntensity ?: 0f,

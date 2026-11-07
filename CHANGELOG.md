@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Glass fallback rendering blurs captured content on Android 12 and 12L hardware and uses an
+  automatic scrim on unblurred paths. Set `fallbackColor` to replace or disable that scrim. Clear
+  uses its light response in both system appearances
+  ([#1731](https://github.com/chrisbanes/haze/issues/1731)).
+
 - Glass supports continuous, iOS-style corners with the new `ContinuousRoundedCornerShape`, passed
   to `GlassStyle`'s `shape`. Masking, refraction, lighting, and the rim all follow the smoothed
   corners, and the same shape works with `Modifier.clip` and `Modifier.border`

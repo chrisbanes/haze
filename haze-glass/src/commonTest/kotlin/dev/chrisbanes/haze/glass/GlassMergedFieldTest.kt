@@ -525,12 +525,13 @@ class GlassMergedFieldTest {
       refractionMultiplier = 1.5f,
       whitePointDelta = 0.25f,
       fallbackBaseColor = Color.Magenta,
+      fallbackColor = Color.Cyan,
       layoutRect = firstLayoutRect.translate(left, 0f),
     )
     val field = GlassMergedField(listOf(member(0f), member(60f)), mergeDistancePx = 24f, opticalSize = Size(100f, 50f))
     fun GlassMergedMember.fields() = listOf(
       rect, cornerRadii, tint, backgroundColor, lightPosition, lightRadius, lightIntensity,
-      opticalPosition, opticalRadius, refractionMultiplier, whitePointDelta, fallbackBaseColor, layoutRect,
+      opticalPosition, opticalRadius, refractionMultiplier, whitePointDelta, fallbackBaseColor, fallbackColor, layoutRect,
     )
     // Indices into fields(): each projection may change only these and must reset them to defaults.
     val lights = mapOf(4 to Offset.Zero, 5 to 0f, 6 to 0f)
@@ -548,7 +549,7 @@ class GlassMergedFieldTest {
     assertProjection("withoutLights", field.withoutLights, lights)
     assertProjection("withoutOptics", field.withoutOptics, optics)
     assertProjection("withoutInteractions", field.withoutInteractions, lights + optics)
-    assertProjection("withoutFallbackBase", field.withoutFallbackBase, mapOf(11 to null))
+    assertProjection("withoutFallbackBase", field.withoutFallbackBase, mapOf(11 to null, 12 to Color.Transparent))
 
     val scaled = field.scaled(2f)
     assertThat(scaled.mergeDistancePx).isEqualTo(48f)
@@ -560,7 +561,7 @@ class GlassMergedFieldTest {
           original.rect.doubled(), original.cornerRadii * 2f, original.tint, original.backgroundColor,
           original.lightPosition * 2f, original.lightRadius * 2f, original.lightIntensity,
           original.opticalPosition * 2f, original.opticalRadius * 2f, original.refractionMultiplier,
-          original.whitePointDelta, original.fallbackBaseColor, original.layoutRect.doubled(),
+          original.whitePointDelta, original.fallbackBaseColor, original.fallbackColor, original.layoutRect.doubled(),
         ),
       )
     }

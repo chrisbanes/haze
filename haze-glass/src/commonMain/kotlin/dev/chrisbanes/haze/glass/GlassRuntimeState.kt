@@ -152,6 +152,8 @@ internal abstract class GlassRuntimeState {
   internal val ambientResponse: Float get() = inheritedStyleValues.ambientResponse
   internal val backgroundColor: Color get() = inheritedStyleValues.backgroundColor
   internal val tint: Color get() = inheritedStyleValues.tint
+  internal val fallbackColor: Color get() = inheritedStyleValues.fallbackColor
+  internal val isClear: Boolean get() = inheritedStyleValues.isClear
   internal val edgeSoftness: Dp get() = inheritedStyleValues.edgeSoftness
   internal val edgeOutlineColor: Color get() = inheritedStyleValues.edgeOutlineColor
   internal val edgeOutlineWidth: Dp get() = inheritedStyleValues.edgeOutlineWidth
@@ -318,6 +320,9 @@ internal abstract class GlassRuntimeState {
     }
     if (old.backgroundColor != new.backgroundColor) {
       markDirty(GlassDirtyFields.BackgroundColor)
+    }
+    if (old.fallbackColor != new.fallbackColor || old.isClear != new.isClear) {
+      markDirty(GlassDirtyFields.Style)
     }
     if (old.tint != new.tint) {
       markDirty(GlassDirtyFields.Tint)

@@ -90,6 +90,13 @@ the light reference; subsequent system appearance support selects separate light
 at node resolution. The comparisons establish visual direction, not physical GPU performance or
 native content adaptation.
 
+## Amendment: Clear response across appearances, 2026-11-07
+
+Ordinary Clear now replays the light Clear response in both appearances; Regular still follows
+system appearance. The earlier dark Clear description and captures below document the previous
+choice. Reduced-transparency fallback continues to choose its opaque base from system appearance.
+See [#1731](https://github.com/chrisbanes/haze/issues/1731).
+
 ## System appearance response, 2026-09-23
 
 Regular and Clear remain shared, immutable Style values. A built-in records an appearance-dependent
