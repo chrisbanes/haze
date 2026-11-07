@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.unit.Dp
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.PlatformRenderEffect
@@ -31,6 +32,8 @@ internal class CountingBlurRenderEffectSlot : BlurRenderEffectSlot() {
     blurRadius: Dp,
     noiseFactor: Float,
     scale: Float,
+    captureScale: ScaleFactor,
+    captureSize: Size,
     colorEffects: List<HazeColorEffect>,
     colorEffectsAlphaModulate: Float,
     backgroundColor: Color,
@@ -44,7 +47,7 @@ internal class CountingBlurRenderEffectSlot : BlurRenderEffectSlot() {
   ): PlatformRenderEffect? {
     lookups++
     return super.lookup(
-      generation, densityScale, blurRadius, noiseFactor, scale, colorEffects,
+      generation, densityScale, blurRadius, noiseFactor, scale, captureScale, captureSize, colorEffects,
       colorEffectsAlphaModulate, backgroundColor, contentSize, contentOffset, mask,
       progressiveMask, retainInputWhenMasked, progressive, blurTileMode,
     )

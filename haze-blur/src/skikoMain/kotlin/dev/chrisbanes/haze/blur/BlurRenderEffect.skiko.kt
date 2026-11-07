@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -12,6 +13,7 @@ import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeShader
 import androidx.compose.ui.graphics.skiaShader
+import androidx.compose.ui.layout.ScaleFactor
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
@@ -23,13 +25,13 @@ import org.jetbrains.skia.ColorFilter
 import org.jetbrains.skia.ColorMatrix
 import org.jetbrains.skia.Matrix33
 
-internal actual fun ShaderBrush.createScaledShader(size: Size, scale: Float): Shader {
+internal actual fun ShaderBrush.createScaledShader(size: Size, scale: ScaleFactor, captureSize: Size, offset: Offset): Shader {
   val shader = createShader(size)
-  return if (scale == 1f) {
+  return if (scale.scaleX == 1f && scale.scaleY == 1f && offset == Offset.Zero) {
     shader
   } else {
     shader.skiaShader
-      .makeWithLocalMatrix(Matrix33.makeScale(scale, scale))
+      .makeWithLocalMatrix(Matrix33(scale.scaleX, 0f, offset.x, 0f, scale.scaleY, offset.y, 0f, 0f, 1f))
       .asComposeShader()
   }
 }

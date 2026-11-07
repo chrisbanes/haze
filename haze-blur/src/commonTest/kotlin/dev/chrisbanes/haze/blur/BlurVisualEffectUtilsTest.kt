@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
@@ -127,6 +128,17 @@ class BlurVisualEffectUtilsTest {
   }
 
   @Test
+  fun renderEffectCacheKey_actualCaptureScaleMattersOnlyForAuthoredShaders() {
+    val density = Density(1f)
+    val mask = Brush.verticalGradient(listOf(Color.Black, Color.Transparent))
+    val original = renderEffectParams(mask = mask, captureScale = ScaleFactor(0.5f, 0.5f))
+    val changed = renderEffectParams(mask = mask, captureScale = ScaleFactor(0.5f, 0.51f))
+    assertThat(original.renderEffectCacheKey(density)).isNotEqualTo(changed.renderEffectCacheKey(density))
+    assertThat(renderEffectParams(captureScale = ScaleFactor(0.5f, 0.5f)).renderEffectCacheKey(density))
+      .isEqualTo(renderEffectParams(captureScale = ScaleFactor(0.5f, 0.51f)).renderEffectCacheKey(density))
+  }
+
+  @Test
   fun renderEffectCacheKey_tracksDensity() {
     val params = renderEffectParams()
 
@@ -170,6 +182,7 @@ class BlurVisualEffectUtilsTest {
     noiseFactor: Float = 0.15f,
     contentSize: Size = Size(640f, 480f),
     contentOffset: Offset = Offset(8f, 4f),
+    captureScale: ScaleFactor = ScaleFactor(1f, 1f),
     backgroundColor: Color = Color.Transparent,
     mask: Brush? = null,
     progressiveMask: Brush? = null,
@@ -180,6 +193,7 @@ class BlurVisualEffectUtilsTest {
     scale = 1f,
     contentSize = contentSize,
     contentOffset = contentOffset,
+    captureScale = captureScale,
     colorEffects = colorEffects,
     backgroundColor = backgroundColor,
     mask = mask,

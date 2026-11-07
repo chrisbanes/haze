@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.unit.Dp
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
@@ -54,6 +55,8 @@ internal open class BlurRenderEffectSlot {
     blurRadius: Dp,
     noiseFactor: Float,
     scale: Float,
+    captureScale: ScaleFactor,
+    captureSize: Size,
     colorEffects: List<HazeColorEffect>,
     colorEffectsAlphaModulate: Float,
     backgroundColor: Color,
@@ -74,6 +77,8 @@ internal open class BlurRenderEffectSlot {
         blurRadius == p.blurRadius &&
         noiseFactor == p.noiseFactor &&
         scale == p.scale &&
+        captureScale == p.captureScale &&
+        captureSize == p.captureSize &&
         contentSize == p.contentSize &&
         contentOffset == p.contentOffset &&
         colorEffectsAlphaModulate == p.colorEffectsAlphaModulate &&
