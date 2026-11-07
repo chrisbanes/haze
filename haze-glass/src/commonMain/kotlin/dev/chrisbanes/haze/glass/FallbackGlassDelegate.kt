@@ -407,6 +407,8 @@ internal class FallbackGlassDelegate(
     }
   }
 
+  override fun onDrawSkipped() = clearRetainedOutput()
+
   override fun clearRetainedOutput() {
     filteredInput.release()
   }

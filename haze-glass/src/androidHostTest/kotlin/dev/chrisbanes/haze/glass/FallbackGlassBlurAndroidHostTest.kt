@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.hasSize
 import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -252,6 +254,8 @@ class FallbackGlassBlurAndroidHostTest : ScreenshotTest() {
     val state = HazeState()
     val color = mutableStateOf(Color.Red)
     val radius = mutableStateOf(4.dp)
+    val opacity = mutableStateOf(1f)
+    val progressive = mutableStateOf<HazeProgressive?>(null)
     val effect = GlassRuntimeEffect()
     setContent {
       Box(Modifier.pxSize(300, 200).testTag("root").background(Color.White)) {
@@ -262,7 +266,8 @@ class FallbackGlassBlurAndroidHostTest : ScreenshotTest() {
             input = HazeInput.Sources(state),
             style = GlassStyle {
               shape(RoundedCornerShape(0.dp))
-              optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(radius.value), depth = OpticalSizeValue.Fixed(1f)))
+              optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(radius.value), depth = OpticalSizeValue.Fixed(1f), progressive = progressive.value))
+              alpha(opacity.value)
               specularIntensity(0f)
               edgeSoftness(0.dp)
               edgeShadow(Color.Transparent)
@@ -310,6 +315,30 @@ class FallbackGlassBlurAndroidHostTest : ScreenshotTest() {
     val nextLayer = checkNotNull(delegate.filteredInputLayerForTest)
     effect.onTrimMemory(TrimMemoryLevel.MODERATE)
     assertThat(nextLayer.isReleased).isTrue()
+
+    progressive.value = HazeProgressive.verticalGradient(startIntensity = 0.5f, endIntensity = 0.5f)
+    captureRootPixels()
+    val retainedLayers = listOf("source", "filtered", "sharp").map { name ->
+      retainedInput.javaClass.getDeclaredField(name).run {
+        isAccessible = true
+        checkNotNull(get(retainedInput) as GraphicsLayer?)
+      }
+    }
+    assertThat(retainedLayers).hasSize(3)
+    retainedLayers.forEach { assertThat(it.isReleased).isFalse() }
+
+    opacity.value = 0f
+    captureRootPixels()
+    retainedLayers.forEach { assertThat(it.isReleased).isTrue() }
+    assertThat(delegate.filteredInputLayerForTest).isNull()
+    color.value = Color.Blue
+    captureRootPixels()
+    assertThat(delegate.filteredInputLayerForTest).isNull()
+
+    opacity.value = 1f
+    val visibleAgain = captureRootPixels()[150, 100]
+    assertThat(visibleAgain.blue).isGreaterThan(visibleAgain.red)
+    assertThat(checkNotNull(delegate.filteredInputLayerForTest)).isNotSameInstanceAs(retainedLayers[1])
   }
 
   @Test
