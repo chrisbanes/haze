@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.drawScaledContent
 import dev.chrisbanes.haze.scaledContentScale
 
@@ -182,7 +183,8 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
   return true
 }
 
-private data class LogicalStyle(
+@Poko
+private class LogicalStyle(
   val mask: Brush?,
   val progressive: HazeProgressive?,
   val progressiveBrush: Brush?,
