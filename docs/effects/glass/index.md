@@ -168,6 +168,13 @@ Box(
 )
 ```
 
+Use Compose's `Interpolatable.lerp` to interpolate between two continuous shapes. Each corner is
+resolved at the actual size and density, including mixed dp, pixel, and percentage sizes; start and
+end follow the layout direction. Finite overshoot is supported: negative radii become zero and
+smoothing stays between `0f` and `1f`. Other shape types follow Compose's normal interpolation
+dispatch. If neither shape supports the pair, Compose selects the first below `0.5f` and the second
+otherwise.
+
 A Style's block runs whenever a Glass surface resolves its style, not when the Style is built. The
 block may read snapshot state, such as an animated value; changes apply on the next frame without
 recomposing the [`hazeGlass`][hazeGlass] call site. Keep the block free of side effects. Styles compare by

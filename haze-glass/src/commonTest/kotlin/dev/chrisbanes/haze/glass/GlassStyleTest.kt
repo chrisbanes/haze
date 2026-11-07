@@ -920,6 +920,28 @@ class GlassStyleTest {
   }
 
   @Test
+  fun shape_interpolatedShapeFlowsThroughStyleResolution() {
+    val start = ContinuousRoundedCornerShape(10f, smoothing = 0.2f)
+    val end = ContinuousRoundedCornerShape(30f, smoothing = 0.8f)
+    val midpoint = androidx.compose.ui.graphics.Interpolatable.lerp(start, end, 0.5f) as ContinuousRoundedCornerShape
+    val resolved = resolveGlassStyleValues(GlassStyle, GlassStyle { shape(midpoint) })
+    assertThat(resolved.shape).isSameInstanceAs(midpoint)
+    assertThat(
+      resolved.shape.resolveCornerRadiiPx(
+        androidx.compose.ui.geometry.Size(200f, 100f),
+        androidx.compose.ui.unit.Density(1f),
+        androidx.compose.ui.unit.LayoutDirection.Ltr,
+      ),
+    ).isNotEqualTo(
+      start.resolveCornerRadiiPx(
+        androidx.compose.ui.geometry.Size(200f, 100f),
+        androidx.compose.ui.unit.Density(1f),
+        androidx.compose.ui.unit.LayoutDirection.Ltr,
+      ),
+    )
+  }
+
+  @Test
   fun shape_laterRoundedCornerShapeWins() {
     val resolved = resolveGlassStyleValues(
       localStyle = GlassStyle { shape(ContinuousRoundedCornerShape(20.dp)) },
