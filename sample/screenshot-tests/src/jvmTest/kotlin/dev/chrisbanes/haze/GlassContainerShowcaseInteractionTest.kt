@@ -59,7 +59,7 @@ class GlassContainerShowcaseInteractionTest {
       seek(4f / 14)
     }
     setContent {
-      SamplesTheme {
+      SamplesTheme(useDarkColors = false) {
         CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 2f)) {
           GlassContainerShowcaseSampleContent(state, onBack = {})
         }

@@ -7,7 +7,9 @@ package dev.chrisbanes.haze.blur
 
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -52,10 +54,11 @@ internal fun createRenderEffect(
   val offset = Offset(params.contentOffset.x * scale.scaleX, params.contentOffset.y * scale.scaleY)
 
   val blurRadiusPx = params.resolveBlurRadiusPx(density)
+  val captureSize = if (params.captureSize.isSpecified) params.captureSize else ceil(params.contentSize * params.scale)
   val progressiveBrush = params.progressive?.asBrush()
-  val progressiveShader = progressiveBrush?.toShader(params.contentSize, scale, params.captureSize)
+  val progressiveShader = progressiveBrush?.toShader(params.contentSize, scale, captureSize)
   val positionedProgressiveShader = if (params.noiseFactor.hasVisibleNoise() || params.colorEffects.isNotEmpty()) {
-    if (offset == Offset.Zero) progressiveShader else progressiveBrush?.toShader(params.contentSize, scale, params.captureSize, offset)
+    if (offset == Offset.Zero) progressiveShader else progressiveBrush?.toShader(params.contentSize, scale, captureSize, offset)
   } else {
     null
   }
@@ -80,10 +83,11 @@ internal fun createRenderEffect(
   val blur = if (progressiveShader != null && isRuntimeShaderRenderEffectSupported()) {
     // If we've been provided with a progressive/gradient blur shader, we need to use
     // our custom blur via a runtime shader (requires runtime shader support)
+    val crop = progressiveCaptureCrop(params.contentSize, params.contentOffset, scale, params.captureSize)
     val progressive = createProgressiveBlurRenderEffect(
       blurRadiusPx = blurRadiusPx,
-      size = size,
-      offset = offset,
+      size = crop.size,
+      offset = crop.topLeft,
       mask = progressiveShader,
       maskOrigin = offset,
     )
@@ -130,7 +134,7 @@ internal fun createRenderEffect(
       params.colorEffects,
       params.contentSize,
       scale,
-      params.captureSize,
+      captureSize,
       offset,
       params.colorEffectsAlphaModulate,
       positionedProgressiveShader,
@@ -138,7 +142,7 @@ internal fun createRenderEffect(
   }
 
   val progressiveMasked = styled
-    .withMask(params.progressiveMask, params.contentSize, scale, params.captureSize, offset)
+    .withMask(params.progressiveMask, params.contentSize, scale, captureSize, offset)
     .let { masked ->
       if (params.retainInputWhenMasked && params.progressiveMask != null) {
         createOffsetRenderEffect(0f, 0f).blendForeground(masked, BlendMode.SrcOver)
@@ -148,7 +152,7 @@ internal fun createRenderEffect(
     }
 
   // The user's mask fades the complete output, including any retained input.
-  return progressiveMasked.withMask(params.mask, params.contentSize, scale, params.captureSize, offset)
+  return progressiveMasked.withMask(params.mask, params.contentSize, scale, captureSize, offset)
 }
 
 internal fun Float.hasVisibleNoise(): Boolean = this > 0f
@@ -388,3 +392,16 @@ internal fun Brush.isCustomShaderBrush(): Boolean = this is ShaderBrush &&
 internal expect fun ShaderBrush.createScaledShader(size: Size, scale: ScaleFactor, captureSize: Size, offset: Offset): Shader
 
 internal expect fun BlurVisualEffect.constrainInputScaleForBrushes(scale: Float): Float
+
+/** Only retained inputs intersect logical bounds with a finite capture allocation. */
+internal fun progressiveCaptureCrop(contentSize: Size, contentOffset: Offset, scale: ScaleFactor, captureSize: Size): Rect {
+  val origin = Offset(contentOffset.x * scale.scaleX, contentOffset.y * scale.scaleY)
+  val size = Size(contentSize.width * scale.scaleX, contentSize.height * scale.scaleY)
+  if (!captureSize.isSpecified) return Rect(origin, ceil(size))
+  return Rect(
+    left = origin.x.coerceIn(0f, captureSize.width),
+    top = origin.y.coerceIn(0f, captureSize.height),
+    right = ((contentOffset.x + contentSize.width) * scale.scaleX).coerceIn(0f, captureSize.width),
+    bottom = ((contentOffset.y + contentSize.height) * scale.scaleY).coerceIn(0f, captureSize.height),
+  )
+}
