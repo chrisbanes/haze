@@ -15,6 +15,7 @@ import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
+import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.lerp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
@@ -153,7 +154,13 @@ internal class RenderEffectBlurVisualEffectDelegate(
         // on local dirty flags. The slot makes the unchanged case cheap.
         effectSlot.apply(
           layer,
-          blurVisualEffect.getOrCreateRenderEffect(context, inputScale = scaleFactor, slot = effectSlot),
+          blurVisualEffect.getOrCreateRenderEffect(
+            context,
+            inputScale = scaleFactor,
+            captureScale = scaledContentScale(context.layerSize, scaleFactor),
+            captureSize = layer.size.toSize(),
+            slot = effectSlot,
+          ),
         )
         layer.alpha = blurVisualEffect.alpha
         drawLayer(layer)

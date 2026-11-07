@@ -9,10 +9,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntSize
+import androidx.compose.ui.unit.toSize
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
@@ -25,6 +28,7 @@ import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
+import dev.chrisbanes.haze.scaledContentScale
 import kotlin.test.Test
 
 /**
@@ -72,6 +76,55 @@ class BlurRenderEffectReuseTest {
     style = maskedStyle(),
     expectNewEffect = true,
   ) { context.layerOffset = Offset(1f, 0f) }
+
+  @Test
+  fun sameAllocationScaleChange_withMaskInvalidatesAndWithoutMaskReuses() {
+    for (masked in listOf(false, true)) {
+      val h = Harness(if (masked) maskedStyle() else baseStyle())
+      h.update(mode = HazePerformanceMode.Performance)
+      h.draw()
+      val original = h.slot.platformEffect
+      h.context.layerSize = Size(10.2f, 10.2f)
+      val changed = h.draw()
+      if (masked) {
+        assertThat(changed.slotEffect).isNotSameInstanceAs(original)
+      } else {
+        assertThat(changed.slotEffect).isSameInstanceAs(original)
+      }
+      h.context.layerSize = Size(10f, 10f)
+      val restored = h.draw()
+      assertThat(restored.slotEffect).isSameInstanceAs(original)
+    }
+  }
+
+  @Test
+  fun sameAllocationScaleChange_constantBrushesReuseButGradientsInvalidate() {
+    val styles = listOf(
+      baseStyle(tints = listOf(HazeColorEffect.tint(SolidColor(Color.Red)))) to false,
+      baseStyle(mask = SolidColor(Color.Black.copy(alpha = 0.5f))) to false,
+      maskedStyle() to true,
+    )
+    for ((style, changesEffect) in styles) {
+      val h = Harness(style)
+      h.update(mode = HazePerformanceMode.Performance)
+      h.draw()
+      val original = h.slot.platformEffect
+      for (size in listOf(Size(10.2f, 10.2f), Size(10f, 10f))) {
+        h.context.layerSize = size
+        val before = h.counts()
+        val draw = h.draw()
+        assertThat(draw.slotEffect).isSameInstanceAs(draw.uncachedEffect)
+        assertThat(draw.counts - before).isEqualTo(
+          Counts(cache = 1, wraps = if (changesEffect) 1 else 0, assigns = if (changesEffect) 1 else 0),
+        )
+        if (!changesEffect || size == Size(10f, 10f)) {
+          assertThat(draw.slotEffect).isSameInstanceAs(original)
+        } else {
+          assertThat(draw.slotEffect).isNotSameInstanceAs(original)
+        }
+      }
+    }
+  }
 
   @Test
   fun inputScaleChange_givesTheEffectForTheNewScale() = assertChange(expectNewEffect = true) {
@@ -277,6 +330,8 @@ class BlurRenderEffectReuseTest {
         uncached = effect.getOrCreateRenderEffect(
           context,
           inputScale = effect.resolveInputScaleFactor(),
+          captureScale = scaledContentScale(context.layerSize, effect.resolveInputScaleFactor()),
+          captureSize = (context.layerSize * effect.resolveInputScaleFactor()).roundToIntSize().toSize(),
           progressive = effect.progressive,
         )
         uncachedLookups++

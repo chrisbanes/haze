@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   has an equivalent stroke on limited renderers
   ([#1741](https://github.com/chrisbanes/haze/issues/1741)).
 
+### Fixed
+
+- Blur masks and brush tints keep their authored positions when captured content is scaled or
+  resized ([#1730](https://github.com/chrisbanes/haze/issues/1730)).
+
 ## 2.1.0 <small>2026-11-02</small> { id="2.1.0" }
 
 ### Added
