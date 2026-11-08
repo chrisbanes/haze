@@ -1736,6 +1736,12 @@ the same instance can clip content or draw a border that matches the Glass silho
 <span class="w">    </span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Backdrop</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span><span class="w"> </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">),</span>
 <span class="p">)</span>
 </code></pre></div>
+<p>Use Compose's <code>Interpolatable.lerp</code> to interpolate between two continuous shapes. Each corner is
+resolved at the actual size and density, including mixed dp, pixel, and percentage sizes; start and
+end follow the layout direction. Finite overshoot is supported: negative radii become zero and
+smoothing stays between <code>0f</code> and <code>1f</code>. Other shape types follow Compose's normal interpolation
+dispatch. If neither shape supports the pair, Compose selects the first below <code>0.5f</code> and the second
+otherwise.</p>
 <p>A Style's block runs whenever a Glass surface resolves its style, not when the Style is built. The
 block may read snapshot state, such as an animated value; changes apply on the next frame without
 recomposing the <a href="../../api/haze-glass/dev.chrisbanes.haze.glass/haze-glass.html"><code>hazeGlass</code></a> call site. Keep the block free of side effects. Styles compare by

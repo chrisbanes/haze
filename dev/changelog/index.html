@@ -7654,10 +7654,16 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">¶</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">¶</a></h3>
 <ul>
-<li>Glass supports continuous, iOS-style corners with the new <code>ContinuousRoundedCornerShape</code>, passed
+<li>
+<p>Continuous Glass corner shapes interpolate their corners and smoothing with Compose's
+  <code>Interpolatable.lerp</code> (<a href="https://github.com/chrisbanes/haze/issues/1752">#1752</a>).</p>
+</li>
+<li>
+<p>Glass supports continuous, iOS-style corners with the new <code>ContinuousRoundedCornerShape</code>, passed
   to <code>GlassStyle</code>'s <code>shape</code>. Masking, refraction, lighting, and the rim all follow the smoothed
   corners, and the same shape works with <code>Modifier.clip</code> and <code>Modifier.border</code>
-  (<a href="https://github.com/chrisbanes/haze/issues/1734">#1734</a>).</li>
+  (<a href="https://github.com/chrisbanes/haze/issues/1734">#1734</a>).</p>
+</li>
 <li>Glass styles can draw a thin light band inside a surface's top and bottom edges with
   <code>rimHighlight(intensity, width, sides)</code>, where <code>sides</code> sets how strongly the left and right edges
   are lit. It is off by default and follows merged container shapes
