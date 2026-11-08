@@ -21,10 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ComposeUiTest
@@ -656,28 +654,15 @@ class GlassContainerInteractionTest : ContextTest() {
       }
       val settled = fixture.capture()
       assertRenderer()
-      for ((x, y) in listOf(47 to 100, 412 to 100, 230 to 49, 230 to 150)) {
+      val probes = listOf(47 to 100, 412 to 100, 230 to 49, 230 to 150)
+      for ((x, y) in probes) {
         GlassDrawOutsideBoundsTest.assertGreen(settled, x, y, "unavailable=$unavailable ($x, $y)")
       }
-      if (unavailable) {
-        // Fallback draws its outline directly, so project it onto the reserved surface as well.
-        val current = owner.renderer.runtimeSurfaces.single()
-        val coordinates = checkNotNull(current.preparedRender).params.coordinates
-        val surface = Rect(current.surfaceOrigin, coordinates.materialSize / coordinates.scaleFactor)
-        val projected = PixelMap(
-          IntArray(settled.width * settled.height) { index ->
-            val x = index % settled.width
-            val y = index / settled.width
-            if (surface.contains(Offset(x + 0.5f, y + 0.5f))) settled[x, y].toArgb() else Color.Transparent.toArgb()
-          },
-          settled.width,
-          settled.height,
-          0,
-          settled.width,
-        )
-        for ((x, y) in listOf(47 to 100, 412 to 100, 230 to 49, 230 to 150)) {
-          GlassDrawOutsideBoundsTest.assertGreen(projected, x, y, "reserved fallback ($x, $y)")
-        }
+      val current = owner.renderer.runtimeSurfaces.single()
+      val coordinates = checkNotNull(current.preparedRender).params.coordinates
+      val surface = Rect(current.surfaceOrigin, coordinates.materialSize / coordinates.scaleFactor)
+      for ((x, y) in probes) {
+        assertThat(surface.contains(Offset(x + 0.5f, y + 0.5f)), "reserved surface ($x, $y)").isTrue()
       }
       assertThat(observe()).isCloseTo(Rect(50f, 52f, 410f, 148f))
       runBlocking { fixture.firstSource.emit(PressInteraction.Release(press)) }
