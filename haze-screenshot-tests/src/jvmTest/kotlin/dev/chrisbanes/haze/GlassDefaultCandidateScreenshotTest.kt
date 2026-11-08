@@ -97,7 +97,9 @@ class GlassDefaultCandidateScreenshotTest : ScreenshotTest() {
       }
       val baseline = captures[1]
       val c1 = captures[2]
+      val c2 = captures[3]
       val noEdges = captures[4]
+      val c2NoEdges = captures[5]
       val left = (c1.width * 102f / 420f).toInt()
       val right = (c1.width * 318f / 420f).toInt()
       val top = (c1.height * 94f / 300f).toInt()
@@ -114,9 +116,14 @@ class GlassDefaultCandidateScreenshotTest : ScreenshotTest() {
       }
       val toneDifference = difference(c1, baseline, left, right, top, bottom)
       val edgeDifference = difference(c1, noEdges, left, right, (c1.height * 61f / 300f).toInt(), (c1.height * 70f / 300f).toInt())
+      val c2ToneDifference = difference(c2, c1, left, right, top, bottom)
+      val c2EdgeDifference = difference(c2, c2NoEdges, left, right, (c2.height * 61f / 300f).toInt(), (c2.height * 70f / 300f).toInt())
       println("calibration pixels=${c1.width}x${c1.height} interior mean/stddev B0=${statistics(baseline)} C1=${statistics(c1)} tone=$toneDifference edge=$edgeDifference")
+      println("calibration C2=${statistics(c2)} toneVsC1=$c2ToneDifference edge=$c2EdgeDifference")
       assertThat(toneDifference).isGreaterThan(0.001f)
       assertThat(edgeDifference).isGreaterThan(0.001f)
+      assertThat(c2ToneDifference).isGreaterThan(0.001f)
+      assertThat(c2EdgeDifference).isGreaterThan(0.001f)
     } finally {
       HazeLogger.enabled = previousLogging
     }
