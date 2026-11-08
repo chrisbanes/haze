@@ -534,6 +534,10 @@ class GlassContainerMembershipTest : ContextTest() {
     val second = GlassRuntimeEffect()
     val alpha = mutableStateOf(1f)
     val radius = mutableStateOf(4)
+    val firstTint = mutableStateOf(Color.Red)
+    val secondTint = mutableStateOf(Color.Blue)
+    val firstLocal = GlassStyle { tint(firstTint.value) }
+    val secondLocal = GlassStyle { tint(secondTint.value) }
     val style = GlassStyle {
       alpha(alpha.value)
       shape(RoundedCornerShape(radius.value.dp))
@@ -542,8 +546,8 @@ class GlassContainerMembershipTest : ContextTest() {
     setContent {
       SideEffect { compositions++ }
       Row(Modifier.hazeGlassContainer(40.dp)) {
-        CompositionLocalProvider(LocalGlassStyle provides GlassStyle { tint(Color.Red) }) { Member(first, style = style) }
-        CompositionLocalProvider(LocalGlassStyle provides GlassStyle { tint(Color.Blue) }) { Member(second) }
+        CompositionLocalProvider(LocalGlassStyle provides firstLocal) { Member(first, style = style) }
+        CompositionLocalProvider(LocalGlassStyle provides secondLocal) { Member(second) }
       }
     }
     waitForIdle()
@@ -551,6 +555,14 @@ class GlassContainerMembershipTest : ContextTest() {
     assertThat(container(first).model.surfaces.size).isEqualTo(1)
     assertThat(first.memberBindingForTest?.material?.tint).isEqualTo(Color.Red)
     assertThat(second.memberBindingForTest?.material?.tint).isEqualTo(Color.Blue)
+    runOnIdle { firstTint.value = Color.Green }
+    waitForIdle()
+    assertThat(first.memberBindingForTest?.material?.tint).isEqualTo(Color.Green)
+    assertThat(second.memberBindingForTest?.material?.tint).isEqualTo(Color.Blue)
+    runOnIdle { secondTint.value = Color.Yellow }
+    waitForIdle()
+    assertThat(first.memberBindingForTest?.material?.tint).isEqualTo(Color.Green)
+    assertThat(second.memberBindingForTest?.material?.tint).isEqualTo(Color.Yellow)
     runOnIdle {
       alpha.value = 0.5f
       radius.value = 12

@@ -5,6 +5,7 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -12,7 +13,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -66,6 +69,46 @@ import sun.misc.Unsafe
 
 @OptIn(ExperimentalTestApi::class, InternalHazeApi::class)
 class FallbackGlassDelegateTest {
+
+  @OptIn(androidx.compose.ui.InternalComposeUiApi::class)
+  @Suppress("DEPRECATION")
+  @Test
+  fun reducedTransparency_stableClearObservesActualAppearanceOnBothFallbacks() = runComposeUiTest {
+    val appearance = mutableStateOf(SystemTheme.Light)
+    val shared = GlassStyle.clear.then {
+      fallbackColor(Color.Transparent)
+      tint(Color.Transparent)
+      backgroundColor(Color.Transparent)
+      specularIntensity(0f)
+      ambientResponse(0f)
+      edgeShadow(Color.Transparent)
+    }
+    val effects = List(2) { GlassRuntimeEffect().apply { style = shared } }
+    val factories = effects.map { effect ->
+      val visual = FallbackOnlyVisualEffect(effect, FallbackGlassDelegate(effect))
+      HazeEffectFactory<Unit> { visual }
+    }
+    setContent {
+      CompositionLocalProvider(
+        LocalSystemTheme provides appearance.value,
+        LocalGlassAccessibilitySettings provides GlassAccessibilitySettings(reduceTransparency = true),
+      ) {
+        Column {
+          factories.forEachIndexed { index, factory ->
+            Box(Modifier.size(120.dp).testTag("fallback$index").hazeEffect(factory, HazeInput.Content, Unit))
+          }
+        }
+      }
+    }
+    fun pixels() = (0..1).map { onNodeWithTag("fallback$it").captureToImage().toPixelMap()[55, 55] }
+    assertThat(pixels()).isEqualTo(listOf(Color.White, Color.White))
+    runOnIdle { appearance.value = SystemTheme.Dark }
+    waitForIdle()
+    assertThat(pixels()).isEqualTo(listOf(Color.Black, Color.Black))
+    runOnIdle { appearance.value = SystemTheme.Light }
+    waitForIdle()
+    assertThat(pixels()).isEqualTo(listOf(Color.White, Color.White))
+  }
 
   @Test
   fun reducedTransparency_downgradeInputDoesNotLeakThroughSingletonOrWinningMergedMember() = runComposeUiTest {

@@ -141,7 +141,9 @@ public sealed interface GlassStyle {
      *
      * Its shallow blur stays constant across material sizes while its authored refraction and
      * distinct edge and lighting response remain recognizable when a renderer simplifies advanced
-     * optical effects. It writes the complete material response while preserving separately composed
+     * optical effects. Its ordinary material response is the same in light and dark appearance;
+     * reduced transparency may use an appearance-dependent opaque fallback. It writes the complete
+     * material response while preserving separately composed
      * shape, background colour, tint, alpha, light position, and interaction presentation.
      */
     public val clear: GlassStyle = BuiltInGlassStyle.Clear

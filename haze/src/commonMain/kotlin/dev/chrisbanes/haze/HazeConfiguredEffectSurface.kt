@@ -6,6 +6,8 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.runtime.CompositionLocal
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -21,6 +23,8 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.requireDensity
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
 /** Independently owned, configured surface; member input selection/capture stays in core. */
 @InternalHazeApi
@@ -32,7 +36,7 @@ public class HazeConfiguredEffectSurface<Style> internal constructor(
   members: List<HazeEffectSurface>,
   drawsMembersOnDecline: Boolean,
 ) {
-  private val renderer = ConfiguredSurface(anchor, factory.createRenderer(), style, bounds, members, drawsMembersOnDecline)
+  private val renderer = ConfiguredSurface(anchor, factory.createRenderer(), style, bounds, members, drawsMembersOnDecline) { surface.changed() }
 
   /** Opaque handle submitted to the same owner draw boundary as ordinary surfaces. */
   public val surface: HazeEffectSurface = HazeEffectSurface(anchor.node, renderer).also {
@@ -60,6 +64,7 @@ internal interface HazeConfiguredSurfaceDraw {
   fun useNativeInput()
   fun completeDraw()
   fun onTrimMemory(level: TrimMemoryLevel)
+  fun onAnchorDetach()
 }
 
 internal class HazeSurfaceInputEntry(val area: HazeArea, val layer: GraphicsLayer, val transform: Matrix)
@@ -127,6 +132,7 @@ private class ConfiguredSurface<Style>(
   private var members: List<HazeEffectSurface>,
   // False when the members' own surfaces are already drawn by the owner, as a borrowed anchor's is.
   private val drawsMembersOnDecline: Boolean,
+  private val notifyChanged: () -> Unit,
 ) : HazeConfiguredSurfaceDraw {
   private val backend = HazeBackdropBackendState().also { it.attach(anchor.node.surfaceNativeEligible()) }
   private var nativeRenderer: HazeBackdropRenderer? = null
@@ -139,6 +145,18 @@ private class ConfiguredSurface<Style>(
   private var nativePrepared = false
   private var recovered = false
   private var disposed = false
+  private var observer: SnapshotStateObserver? = null
+  private var observerGeneration = 0
+  private var observationToken: Any? = null
+  private var configurationPending = true
+  private val onObservedChange: (Any) -> Unit = { token ->
+    if (!disposed && anchor.node.isAttached && token === observationToken && !configurationPending) {
+      configurationPending = true
+      retained?.invalidateRetainedOutput()
+      preparedBackdrop = null
+      notifyChanged()
+    }
+  }
   private var entries = emptyList<HazeSurfaceInputEntry>()
   private var snapshot: SurfaceInputSnapshot? = null
   private var layerBounds = Rect.Zero
@@ -150,7 +168,8 @@ private class ConfiguredSurface<Style>(
   private var input: HazeInput = checkNotNull(anchor.node.explicitInput)
   override val hasBackdropInput: Boolean
     get() = input is HazeInput.Backdrop || members.any { it.hasBackdropInput }
-  private val context = object : HazeEffectLifecycleScope by anchor.node.surfaceLifecycleScope() {
+  private val trackedScope = anchor.node.surfaceLifecycleScope()
+  private val context = object : HazeEffectLifecycleScope by trackedScope {
     // The delegate would hand out the anchor member's own surface, not this configured one.
     override val surface: HazeEffectSurface
       get() = error("A configured surface's renderer cannot relocate a surface of its own")
@@ -162,12 +181,28 @@ private class ConfiguredSurface<Style>(
 
   init {
     anchor.node.registerConfiguredSurface(this)
-    lifecycle?.attach(context)
-    lifecycle?.update(context, style, HazeSampling.FullResolution)
+    try {
+      lifecycle?.attach(context)
+      updateLifecycle()
+    } catch (failure: Throwable) {
+      stopObservation()
+      anchor.node.unregisterConfiguredSurface(this)
+      runCatching { lifecycle?.detach() }.exceptionOrNull()?.let(failure::addSuppressed)
+      runCatching { renderer.dispose() }.exceptionOrNull()?.let(failure::addSuppressed)
+      runCatching { nativeRenderer?.release() }.exceptionOrNull()?.let(failure::addSuppressed)
+      throw failure
+    }
   }
 
   fun update(style: Style, bounds: Rect, members: List<HazeEffectSurface>): Boolean {
     check(!disposed)
+    if (!anchor.node.isAttached) {
+      this.style = style
+      this.bounds = bounds
+      this.members = members
+      configurationPending = true
+      return false
+    }
     val nextInput = checkNotNull(anchor.node.explicitInput)
     if (input != nextInput) {
       retained?.clearRetainedOutput()
@@ -182,13 +217,75 @@ private class ConfiguredSurface<Style>(
       temporaryFallback = false
       input = nextInput
       backend.attach(anchor.node.surfaceNativeEligible())
-    } else if (this.style == style && this.bounds == bounds && this.members == members) return false
+    } else if (this.style == style && this.bounds == bounds && this.members == members && !configurationPending && !trackedScope.localsChanged()) return false
     if (this.bounds != bounds) retained?.invalidateRetainedOutput()
     this.style = style
     this.bounds = bounds
     this.members = members
-    lifecycle?.update(context, style, HazeSampling.FullResolution)
+    updateLifecycle()
     return true
+  }
+
+  private fun updateLifecycle() {
+    val lifecycle = lifecycle ?: run {
+      configurationPending = false
+      return
+    }
+    if (!anchor.node.isAttached) {
+      configurationPending = true
+      return
+    }
+    if (configurationPending) {
+      retained?.invalidateRetainedOutput()
+      preparedBackdrop = null
+    }
+    val observer = observer ?: run {
+      val generation = ++observerGeneration
+      val scope = anchor.node.coroutineScope
+      SnapshotStateObserver { command ->
+        scope.launch {
+          yield()
+          if (!disposed && anchor.node.isAttached && observerGeneration == generation) command()
+        }
+      }.also {
+        it.start()
+        this.observer = it
+      }
+    }
+    val next = Any()
+    try {
+      Snapshot.withoutReadObservation {
+        observer.observeReads(next, onObservedChange) {
+          trackedScope.recordUpdate { lifecycle.update(context, style, HazeSampling.FullResolution) }
+        }
+      }
+      val previous = observationToken
+      observationToken = next
+      configurationPending = false
+      if (previous != null) observer.clear(previous)
+    } catch (failure: Throwable) {
+      observer.clear(next)
+      configurationPending = true
+      throw failure
+    }
+  }
+
+  private fun refreshLocals() {
+    if (configurationPending || trackedScope.localsChanged()) updateLifecycle()
+  }
+
+  private fun stopObservation() {
+    observerGeneration++
+    observationToken = null
+    observer?.clear()
+    observer?.stop()
+    observer = null
+    configurationPending = true
+  }
+
+  override fun onAnchorDetach() {
+    stopObservation()
+    trackedScope.clearLocals()
   }
 
   private fun resolveEntries(owner: LayoutCoordinates?) {
@@ -250,7 +347,9 @@ private class ConfiguredSurface<Style>(
   }
 
   override fun footprint(scope: DrawScope, owner: HazeEffectSurfaceOwner?): HazeSurfaceFootprint? {
-    if (disposed || owner?.surfaceCoordinates?.isAttached != true || !bounds.size.isSpecified || bounds.size.minDimension <= 0f) return null
+    if (disposed || !anchor.node.isAttached || owner?.surfaceCoordinates?.isAttached != true) return null
+    refreshLocals()
+    if (!bounds.size.isSpecified || bounds.size.minDimension <= 0f) return null
     if (hooks?.shouldPrepareDraw(style) == false) return null
     val layoutScope = object : HazeEffectLayoutScope, androidx.compose.ui.unit.Density by context.requireDensity() {
       override val modifierBounds: Rect get() = Rect(Offset.Zero, bounds.size)
@@ -342,7 +441,8 @@ private class ConfiguredSurface<Style>(
   override fun draw(scope: DrawScope, owner: HazeEffectSurfaceOwner?) {
     val restoredNative = recovered
     recovered = false
-    if (disposed) return
+    if (disposed || !anchor.node.isAttached) return
+    refreshLocals()
     if (fallbackMembers) {
       if (mixedSelection || drawsMembersOnDecline) members.forEach { it.draw(scope) }
       return
@@ -439,13 +539,22 @@ private class ConfiguredSurface<Style>(
   fun dispose() {
     if (disposed) return
     disposed = true
+    stopObservation()
     anchor.node.unregisterConfiguredSurface(this)
-    lifecycle?.detach()
-    renderer.dispose()
-    nativeRenderer?.release()
+    var failure: Throwable? = null
+    fun cleanup(block: () -> Unit) {
+      runCatching(block).exceptionOrNull()?.let { error ->
+        if (failure == null) failure = error else failure.addSuppressed(error)
+      }
+    }
+    cleanup { lifecycle?.detach() }
+    trackedScope.clearLocals()
+    cleanup { renderer.dispose() }
+    cleanup { nativeRenderer?.release() }
     nativeRenderer = null
     entries = emptyList()
     snapshot = null
+    failure?.let { throw it }
   }
   override fun completeDraw() {
     members.forEach { it.node.completeSurfaceDraw() }

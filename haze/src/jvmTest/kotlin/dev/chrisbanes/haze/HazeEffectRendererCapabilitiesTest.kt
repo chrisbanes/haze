@@ -9,7 +9,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -33,6 +35,51 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class HazeEffectRendererCapabilitiesTest : ContextTest() {
+
+  @Test
+  fun retainedScope_pointerReadsDoNotBecomeConfigurationDependencies() = runComposeUiTest {
+    val local = staticCompositionLocalOf { 0 }
+    val localValue = mutableStateOf(1)
+    var updates = 0
+    var pointerReads = 0
+    var cancelReads = 0
+    val visible = mutableStateOf(true)
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit>, HazeEffectRendererInteraction {
+        override val observesPointerEvents: Boolean = true
+        override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+          updates++
+        }
+        override fun onPointerEvent(event: PointerEvent, scope: HazeEffectLifecycleScope) {
+          scope.currentValueOf(local)
+          pointerReads++
+        }
+        override fun onCancelPointerInput(scope: HazeEffectLifecycleScope) {
+          scope.currentValueOf(local)
+          cancelReads++
+        }
+        override fun HazeEffectDrawScope.draw(style: Unit) {
+          drawInput()
+        }
+      }
+    }
+    setContent {
+      CompositionLocalProvider(local provides localValue.value) {
+        if (visible.value) Box(Modifier.size(50.dp).testTag("pointer").hazeEffect(factory, HazeInput.Content, Unit))
+      }
+    }
+    waitForIdle()
+    onNodeWithTag("pointer").performTouchInput { click() }
+    waitForIdle()
+    assertThat(pointerReads).isGreaterThan(0)
+    val before = updates
+    runOnIdle { localValue.value = 2 }
+    waitForIdle()
+    assertThat(updates).isEqualTo(before)
+    runOnIdle { visible.value = false }
+    waitForIdle()
+    assertThat(cancelReads).isGreaterThan(0)
+  }
 
   @Test
   fun contentDraw_passesOneDrawScopeToEveryHook() = runComposeUiTest {

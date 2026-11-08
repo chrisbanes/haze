@@ -34,8 +34,9 @@ dependencies {
 `containerColor` to use a different color. It leaves the tint unset unless you pass one. It is
 composable, so the Style follows theme changes when the call site recomposes.
 
-Material 3 supplies only colors. Regular and Clear still pick their light or dark response from the
-system appearance, not from `MaterialTheme`, and you don't need Material 3 for that.
+Material 3 supplies only colors. Regular picks its light or dark response from the system
+appearance, not from `MaterialTheme`; Clear uses its light response in both appearances. Neither
+requires Material 3.
 
 `material3()` is named in lower case because it applies to an existing Style; `HazeBlurStyle.Material3()`
 creates one. A `Color.Unspecified` `tint` is not treated as null: the Style rejects it when it is
@@ -84,9 +85,26 @@ For Clear over bright content, add a dark dimming layer behind the controls when
 contrast. Haze does not add dimming automatically.
 
 Both styles are informed by iOS 27 Liquid Glass, but Haze does not promise pixel parity with iOS.
-They follow the system appearance supplied by the Compose host, which may reflect an app or window
-override; an unknown appearance uses the light response. They do not follow the iOS appearance
-slider or adapt to the content beneath them, so check foreground contrast with your own content.
+Regular follows the system appearance supplied by the Compose host, which may reflect an app or
+window override; an unknown appearance uses the light response. Clear uses the same ordinary
+material response in both appearances. Reduced transparency is an exception: its opaque fallback
+uses the actual appearance. Neither style follows the iOS appearance slider or adapts to the content
+beneath it, so check foreground contrast with your own content.
+
+To reproduce the former dark Clear response, apply these overrides after `GlassStyle.clear`:
+
+```kotlin
+val legacyDarkClear = GlassStyle.clear.then {
+  specularIntensity(0.42f)
+  edgeShadow(Color.Black.copy(alpha = 0.25f))
+  ambientResponse(0.22f)
+  contrast(0.12f)
+  whitePoint(-0.18f)
+  chromaMultiplier(1f)
+}
+```
+
+Later style writes take precedence over earlier ones.
 
 ```kotlin
 Modifier.hazeGlass(

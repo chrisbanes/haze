@@ -11,8 +11,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReusableContentHost
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.compositionLocalWithComputedDefaultOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.LocalAwtWindow
 import androidx.compose.ui.draw.clipToBounds
@@ -300,6 +305,638 @@ class HazeEffectSurfaceDrawTest {
       owner.resolveSurfaces = null
     }
     assertThat(disposed).isEqualTo(1)
+  }
+
+  @Test
+  fun configuredSurface_tracksItsOwnStaticAndDynamicLocals() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val anchor = SurfaceFactory(owner)
+    val staticLocal = staticCompositionLocalOf { 0 }
+    val dynamicLocal = compositionLocalOf { 0 }
+    val drawLocal = staticCompositionLocalOf { 0 }
+    val drawValue = mutableStateOf(0)
+    val staticValue = mutableStateOf(1)
+    val dynamicValue = mutableStateOf(2)
+    val redrawSignal = mutableStateOf(false)
+    var retainedScope: HazeEffectLifecycleScope? = null
+    owner.beforeRecord = {
+      if (redrawSignal.value) Unit
+      retainedScope?.currentValueOf(staticLocal)
+    }
+    var updates = 0
+    var result = 0
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+        override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+          updates++
+          retainedScope = scope
+          result = scope.currentValueOf(staticLocal) + scope.currentValueOf(dynamicLocal)
+        }
+        override fun HazeEffectDrawScope.draw(style: Unit) {
+          retainedScope?.currentValueOf(drawLocal)
+          drawInput()
+        }
+      }
+    }
+    owner.resolveSurfaces = {
+      configured = configured ?: anchor.surface.createConfiguredSurface(factory, Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+      configured.update(Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      CompositionLocalProvider(staticLocal provides staticValue.value, dynamicLocal provides dynamicValue.value, drawLocal provides drawValue.value) {
+        Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+          Box(Modifier.size(20.dp).hazeEffect(anchor, HazeInput.Content, Unit).background(Color.Red))
+        }
+      }
+    }
+    waitForIdle()
+    assertThat(result).isEqualTo(3)
+    val anchorUpdates = anchor.updates
+    val anchorLayouts = anchor.layouts
+    val initial = updates
+    runOnIdle { drawValue.value = 3 }
+    waitForIdle()
+    assertThat(updates).isEqualTo(initial)
+    runOnIdle { owner.redraw() }
+    waitForIdle()
+    assertThat(updates).isEqualTo(initial)
+    runOnIdle { redrawSignal.value = true }
+    waitForIdle()
+    assertThat(updates).isEqualTo(initial)
+    runOnIdle { dynamicValue.value = 3 }
+    waitForIdle()
+    assertThat(result).isEqualTo(4)
+    runOnIdle { dynamicValue.value = 2 }
+    waitForIdle()
+    assertThat(result).isEqualTo(3)
+    runOnIdle { staticValue.value = 4 }
+    waitForIdle()
+    assertThat(result).isEqualTo(6)
+    runOnIdle { dynamicValue.value = 8 }
+    waitForIdle()
+    assertThat(result).isEqualTo(12)
+    repeat(3) { mainClock.advanceTimeByFrame() }
+    waitForIdle()
+    assertThat(anchor.updates).isEqualTo(anchorUpdates)
+    assertThat(anchor.layouts).isEqualTo(anchorLayouts)
+  }
+
+  @Test
+  fun configuredSurface_independentScopesUpdateOnlyTheirOwnRenderer() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val anchor = SurfaceFactory(owner)
+    val anchorLocal = staticCompositionLocalOf { 0 }
+    val anchorValue = mutableStateOf(10)
+    var anchorResult = 0
+    anchor.onUpdate = { anchorResult = it.currentValueOf(anchorLocal) }
+    val firstLocal = staticCompositionLocalOf { 0 }
+    val secondSource = compositionLocalOf { 0 }
+    val secondLocal = compositionLocalWithComputedDefaultOf { secondSource.currentValue * 2 }
+    val first = mutableStateOf(1)
+    val second = mutableStateOf(2)
+    val updates = IntArray(2)
+    val values = IntArray(2)
+    val configured = arrayOfNulls<HazeConfiguredEffectSurface<Unit>>(2)
+    val factories = (0..1).map { index ->
+      HazeEffectFactory<Unit> {
+        object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+          override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+            updates[index]++
+            values[index] = if (index == 0) scope.currentValueOf(firstLocal) else scope.currentValueOf(secondLocal)
+          }
+          override fun HazeEffectDrawScope.draw(style: Unit) {
+            drawInput()
+          }
+        }
+      }
+    }
+    owner.resolveSurfaces = {
+      (0..1).map { index ->
+        configured[index] = configured[index] ?: anchor.surface.createConfiguredSurface(factories[index], Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+        checkNotNull(configured[index]).surface
+      }
+    }
+    setContent {
+      CompositionLocalProvider(anchorLocal provides anchorValue.value, firstLocal provides first.value, secondSource provides second.value) {
+        Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+          Box(Modifier.size(20.dp).hazeEffect(anchor, HazeInput.Content, Unit).background(Color.Red))
+        }
+      }
+    }
+    waitForIdle()
+    assertThat(values.toList()).isEqualTo(listOf(1, 4))
+    val initialAnchor = anchor.updates
+    val initialSecond = updates[1]
+    runOnIdle { first.value = 3 }
+    waitForIdle()
+    assertThat(values.toList()).isEqualTo(listOf(3, 4))
+    assertThat(updates[1]).isEqualTo(initialSecond)
+    runOnIdle { owner.redraw() }
+    waitForIdle()
+    val afterFirst = updates[0]
+    runOnIdle { second.value = 4 }
+    waitForIdle()
+    assertThat(values.toList()).isEqualTo(listOf(3, 8))
+    assertThat(updates[0]).isEqualTo(afterFirst)
+    assertThat(anchor.updates).isEqualTo(initialAnchor)
+    val firstBeforeAnchor = updates[0]
+    val secondBeforeAnchor = updates[1]
+    runOnIdle { anchorValue.value = 11 }
+    waitForIdle()
+    assertThat(anchorResult).isEqualTo(11)
+    assertThat(updates[0]).isEqualTo(firstBeforeAnchor)
+    assertThat(updates[1]).isEqualTo(secondBeforeAnchor)
+  }
+
+  @Test
+  fun configuredSurface_conditionalDependenciesDropAndReenter() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val anchor = SurfaceFactory(owner)
+    val localA = compositionLocalOf { 0 }
+    val sourceB = compositionLocalOf { 0 }
+    val localB = compositionLocalWithComputedDefaultOf { sourceB.currentValue }
+    val a = mutableStateOf(1)
+    val b = mutableStateOf(2)
+    val selection = mutableStateOf(0)
+    var updates = 0
+    var value = 0
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+        override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+          updates++
+          value = when (selection.value) {
+            0 -> scope.currentValueOf(localA)
+            1 -> scope.currentValueOf(localB)
+            else -> 0
+          }
+        }
+        override fun HazeEffectDrawScope.draw(style: Unit) {
+          drawInput()
+        }
+      }
+    }
+    owner.resolveSurfaces = {
+      configured = configured ?: anchor.surface.createConfiguredSurface(factory, Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      CompositionLocalProvider(localA provides a.value, sourceB provides b.value) {
+        Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+          Box(Modifier.size(20.dp).hazeEffect(anchor, HazeInput.Content, Unit).background(Color.Red))
+        }
+      }
+    }
+    waitForIdle()
+    assertThat(value).isEqualTo(1)
+    runOnIdle { selection.value = 1 }
+    waitForIdle()
+    assertThat(value).isEqualTo(2)
+    val beforeDropped = updates
+    runOnIdle { a.value = 4 }
+    waitForIdle()
+    assertThat(updates).isEqualTo(beforeDropped)
+    runOnIdle { b.value = 5 }
+    waitForIdle()
+    assertThat(value).isEqualTo(5)
+    runOnIdle { selection.value = 2 }
+    waitForIdle()
+    val beforeEmpty = updates
+    runOnIdle {
+      a.value = 6
+      b.value = 7
+    }
+    waitForIdle()
+    assertThat(updates).isEqualTo(beforeEmpty)
+    runOnIdle { selection.value = 0 }
+    waitForIdle()
+    assertThat(value).isEqualTo(6)
+  }
+
+  @Test
+  fun configuredSurface_conditionalStaticLocalsDropAndReenter() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val anchor = SurfaceFactory(owner)
+    val localA = staticCompositionLocalOf { 0 }
+    val localB = staticCompositionLocalOf { 0 }
+    val a = mutableStateOf(1)
+    val b = mutableStateOf(2)
+    val select = mutableStateOf(0)
+    var result = 0
+    var updates = 0
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+        override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+          updates++
+          result = when (select.value) {
+            0 -> scope.currentValueOf(localA)
+            1 -> scope.currentValueOf(localB)
+            else -> 0
+          }
+        }
+        override fun HazeEffectDrawScope.draw(style: Unit) {
+          drawInput()
+        }
+      }
+    }
+    owner.resolveSurfaces = {
+      configured = configured ?: anchor.surface.createConfiguredSurface(factory, Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      CompositionLocalProvider(localA provides a.value, localB provides b.value) {
+        Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+          Box(Modifier.size(20.dp).hazeEffect(anchor, HazeInput.Content, Unit).background(Color.Red))
+        }
+      }
+    }
+    waitForIdle()
+    assertThat(result).isEqualTo(1)
+    runOnIdle { select.value = 1 }
+    waitForIdle()
+    assertThat(result).isEqualTo(2)
+    val before = updates
+    runOnIdle { a.value = 4 }
+    waitForIdle()
+    assertThat(updates).isEqualTo(before)
+    runOnIdle { b.value = 5 }
+    waitForIdle()
+    assertThat(result).isEqualTo(5)
+    runOnIdle { select.value = 2 }
+    waitForIdle()
+    val empty = updates
+    runOnIdle {
+      a.value = 6
+      b.value = 7
+    }
+    waitForIdle()
+    assertThat(updates).isEqualTo(empty)
+    runOnIdle { select.value = 0 }
+    waitForIdle()
+    assertThat(result).isEqualTo(6)
+  }
+
+  @Test
+  fun configuredSurface_retainedHandleResubscribesAfterAnchorReattachment() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val anchor = SurfaceFactory(owner)
+    val active = mutableStateOf(true)
+    val source = mutableStateOf(1)
+    var updates = 0
+    var result = 0
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+        override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+          updates++
+          result = source.value
+        }
+        override fun HazeEffectDrawScope.draw(style: Unit) {
+          drawInput()
+        }
+      }
+    }
+    owner.resolveSurfaces = {
+      configured = configured ?: anchor.surface.createConfiguredSurface(factory, Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+        ReusableContentHost(active.value) {
+          Box(Modifier.size(20.dp).hazeEffect(anchor, HazeInput.Content, Unit).background(Color.Red))
+        }
+      }
+    }
+    waitForIdle()
+    val original = checkNotNull(configured)
+    assertThat(result).isEqualTo(1)
+    val configuredRenderer = original.javaClass.getDeclaredField("renderer").apply { isAccessible = true }.get(original)
+    val observer = configuredRenderer.javaClass.getDeclaredField("observer").apply { isAccessible = true }.get(configuredRenderer)
+    val executorField = observer.javaClass.getDeclaredField("onChangedExecutor").apply { isAccessible = true }
+
+    @Suppress("UNCHECKED_CAST")
+    val originalExecutor = executorField.get(observer) as ((() -> Unit) -> Unit)
+    val held = mutableListOf<() -> Unit>()
+    executorField.set(observer, { command: () -> Unit -> held += command })
+    mainClock.autoAdvance = false
+    val beforeDetachUpdates = updates
+    runOnIdle {
+      Thread {
+        Snapshot.withMutableSnapshot { source.value = 2 }
+        Snapshot.sendApplyNotifications()
+      }.apply {
+        start()
+        join()
+      }
+      assertThat(held.size).isEqualTo(1)
+      active.value = false
+    }
+    mainClock.advanceTimeByFrame()
+    waitForIdle()
+    assertThat(anchor.surface.node.isAttached).isFalse()
+    val detachedUpdates = updates
+    val detachedChanges = owner.changes
+    assertThat(detachedUpdates).isEqualTo(beforeDetachUpdates)
+    runOnIdle { originalExecutor(held.single()) }
+    repeat(3) { mainClock.advanceTimeByFrame() }
+    waitForIdle()
+    assertThat(updates).isEqualTo(detachedUpdates)
+    assertThat(owner.changes).isEqualTo(detachedChanges)
+    runOnIdle { active.value = true }
+    mainClock.advanceTimeByFrame()
+    waitForIdle()
+    assertThat(configured).isSameInstanceAs(original)
+    assertThat(result).isEqualTo(2)
+    runOnIdle { source.value = 3 }
+    mainClock.advanceTimeByFrame()
+    waitForIdle()
+    assertThat(result).isEqualTo(3)
+  }
+
+  @Test
+  fun configuredSurface_declinedOutputWakesOnObservedState() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val anchor = SurfaceFactory(owner)
+    val enabled = mutableStateOf(false)
+    var active = false
+    var prepares = 0
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit>, HazeEffectRendererDrawHooks<Unit> {
+        override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+          active = enabled.value
+        }
+        override fun shouldPrepareDraw(style: Unit): Boolean = active
+        override fun HazeEffectRuntimeDrawScope.prepareDraw(style: Unit) {
+          prepares++
+        }
+        override fun HazeEffectDrawScope.draw(style: Unit) {
+          drawInput()
+        }
+      }
+    }
+    owner.resolveSurfaces = {
+      configured = configured ?: anchor.surface.createConfiguredSurface(factory, Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+        Box(Modifier.size(20.dp).hazeEffect(anchor, HazeInput.Content, Unit).background(Color.Red))
+      }
+    }
+    waitForIdle()
+    assertThat(prepares).isEqualTo(0)
+    runOnIdle { enabled.value = true }
+    waitForIdle()
+    assertThat(prepares).isGreaterThan(0)
+  }
+
+  @Test
+  fun configuredSurface_queuedSnapshotNotificationsRespectReplacementAndDisposal() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val anchor = SurfaceFactory(owner)
+    val first = mutableStateOf(1)
+    val second = mutableStateOf(2)
+    var updates = 0
+    var resolved = 0
+    var ownerThread: Thread? = null
+    var wrongThread = false
+    var configured: HazeConfiguredEffectSurface<Int>? = null
+    val factory = HazeEffectFactory<Int> {
+      object : HazeEffectRenderer<Int>, HazeEffectRendererLifecycle<Int> {
+        override fun update(scope: HazeEffectLifecycleScope, style: Int, sampling: HazeSampling) {
+          updates++
+          if (ownerThread == null) ownerThread = Thread.currentThread()
+          if (ownerThread !== Thread.currentThread()) wrongThread = true
+          resolved = if (style == 0) first.value else second.value
+        }
+        override fun HazeEffectDrawScope.draw(style: Int) {
+          drawInput()
+        }
+      }
+    }
+    owner.resolveSurfaces = {
+      configured = configured ?: anchor.surface.createConfiguredSurface(factory, 0, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+        Box(Modifier.size(20.dp).hazeEffect(anchor, HazeInput.Content, Unit).background(Color.Red))
+      }
+    }
+    waitForIdle()
+    assertThat(resolved).isEqualTo(1)
+    mainClock.autoAdvance = false
+    var changesAfterReplacement = 0
+    var updatesAfterReplacement = 0
+    runOnIdle {
+      Thread {
+        Snapshot.withMutableSnapshot { first.value = 3 }
+        Snapshot.sendApplyNotifications()
+      }.apply {
+        start()
+        join()
+      }
+      checkNotNull(configured).update(1, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+      changesAfterReplacement = owner.changes
+      updatesAfterReplacement = updates
+    }
+    mainClock.advanceTimeByFrame()
+    waitForIdle()
+    assertThat(owner.changes).isEqualTo(changesAfterReplacement)
+    assertThat(updates).isEqualTo(updatesAfterReplacement)
+    assertThat(resolved).isEqualTo(2)
+    val replacedUpdates = updates
+    runOnIdle { first.value = 4 }
+    mainClock.advanceTimeByFrame()
+    waitForIdle()
+    assertThat(updates).isEqualTo(replacedUpdates)
+    runOnIdle { second.value = 5 }
+    mainClock.advanceTimeByFrame()
+    waitForIdle()
+    assertThat(resolved).isEqualTo(5)
+    runOnIdle {
+      Thread {
+        Snapshot.withMutableSnapshot { second.value = 6 }
+        Snapshot.sendApplyNotifications()
+      }.apply {
+        start()
+        join()
+      }
+      checkNotNull(configured).dispose()
+      owner.resolveSurfaces = { emptyList() }
+    }
+    val disposedUpdates = updates
+    val disposedChanges = owner.changes
+    mainClock.advanceTimeByFrame()
+    waitForIdle()
+    assertThat(updates).isEqualTo(disposedUpdates)
+    assertThat(owner.changes).isEqualTo(disposedChanges)
+    repeat(3) { mainClock.advanceTimeByFrame() }
+    waitForIdle()
+    assertThat(updates).isEqualTo(disposedUpdates)
+    assertThat(owner.changes).isEqualTo(disposedChanges)
+    assertThat(wrongThread).isFalse()
+  }
+
+  @Test
+  fun configuredSurface_failedUpdateRetriesWithoutPublishingPartialConfiguration() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val anchor = SurfaceFactory(owner)
+    val successful = mutableStateOf(1)
+    val attempted = mutableStateOf(2)
+    val successfulLocal = compositionLocalWithComputedDefaultOf { successful.value }
+    val attemptedLocal = compositionLocalWithComputedDefaultOf { attempted.value }
+    var shouldFail = false
+    var result = 0
+    var updates = 0
+    lateinit var configured: HazeConfiguredEffectSurface<Int>
+    val factory = HazeEffectFactory<Int> {
+      object : HazeEffectRenderer<Int>, HazeEffectRendererLifecycle<Int> {
+        override fun update(scope: HazeEffectLifecycleScope, style: Int, sampling: HazeSampling) {
+          updates++
+          val value = scope.currentValueOf(if (style == 1) successfulLocal else attemptedLocal)
+          if (shouldFail) error("update failed")
+          result = value
+        }
+        override fun HazeEffectDrawScope.draw(style: Int) {
+          drawInput()
+        }
+      }
+    }
+    setContent {
+      Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+        Box(Modifier.size(20.dp).hazeEffect(anchor, HazeInput.Content, Unit).background(Color.Red))
+      }
+    }
+    waitForIdle()
+    runOnIdle {
+      configured = anchor.surface.createConfiguredSurface(factory, 1, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+      shouldFail = true
+      assertFailure { configured.update(2, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface)) }.isInstanceOf<IllegalStateException>()
+      assertThat(result).isEqualTo(1)
+      val renderer = configured.javaClass.getDeclaredField("renderer").apply { isAccessible = true }.get(configured)
+      val tracked = renderer.javaClass.getDeclaredField("trackedScope").apply { isAccessible = true }.get(renderer) as HazeEffectLifecycleScopeImpl
+      attempted.value = 5
+      assertThat(tracked.localsChanged()).isFalse()
+      successful.value = 6
+      assertThat(tracked.localsChanged()).isTrue()
+      shouldFail = false
+      configured.update(1, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+    }
+    waitForIdle()
+    val baseline = updates
+    runOnIdle { attempted.value = 8 }
+    waitForIdle()
+    assertThat(updates).isEqualTo(baseline)
+    runOnIdle { successful.value = 7 }
+    waitForIdle()
+    assertThat(result).isEqualTo(7)
+    runOnIdle { configured.dispose() }
+  }
+
+  @Test
+  fun configuredSurface_failedInitialUpdateDisposesRendererAndAllowsFreshInstance() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val anchor = SurfaceFactory(owner)
+    setContent {
+      Box(Modifier.size(100.dp).then(OwnerElement(owner))) {
+        Box(Modifier.size(20.dp).hazeEffect(anchor, HazeInput.Content, Unit))
+      }
+    }
+    waitForIdle()
+    var detaches = 0
+    var disposals = 0
+    var attemptedUpdates = 0
+    val registered = anchor.surface.node.javaClass.getDeclaredField("configuredSurfaces").apply { isAccessible = true }
+    val registrationsBefore = (registered.get(anchor.surface.node) as Set<*>).size
+    val attempted = mutableStateOf(1)
+    val failing = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+        override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+          attemptedUpdates++
+          attempted.value
+          error("update failed")
+        }
+        override fun detach() {
+          detaches++
+        }
+        override fun dispose() {
+          disposals++
+        }
+        override fun HazeEffectDrawScope.draw(style: Unit) = Unit
+      }
+    }
+    runOnIdle {
+      val observers = Class.forName("androidx.compose.runtime.snapshots.SnapshotKt")
+        .getDeclaredField("applyObservers").apply { isAccessible = true }
+      val before = (observers.get(null) as List<*>).size
+      assertFailure {
+        anchor.surface.createConfiguredSurface(failing, Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+      }.isInstanceOf<IllegalStateException>()
+      assertThat((observers.get(null) as List<*>).size).isEqualTo(before)
+    }
+    assertThat(detaches).isEqualTo(1)
+    assertThat(disposals).isEqualTo(1)
+    assertThat((registered.get(anchor.surface.node) as Set<*>).size).isEqualTo(registrationsBefore)
+    runOnIdle { attempted.value = 2 }
+    waitForIdle()
+    assertThat(attemptedUpdates).isEqualTo(1)
+    val freshState = mutableStateOf(1)
+    var freshResult = 0
+    val fresh = anchor.surface.createConfiguredSurface(
+      HazeEffectFactory {
+        object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+          override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+            freshResult = freshState.value
+          }
+          override fun HazeEffectDrawScope.draw(style: Unit) = Unit
+        }
+      },
+      Unit,
+      Rect(0f, 0f, 20f, 20f),
+      listOf(anchor.surface),
+    )
+    waitForIdle()
+    assertThat(freshResult).isEqualTo(1)
+    runOnIdle { freshState.value = 3 }
+    waitForIdle()
+    assertThat(freshResult).isEqualTo(3)
+    fresh.dispose()
+  }
+
+  @Test
+  fun configuredSurface_attachFailurePreservesSuppressedCleanupFailures() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val anchor = SurfaceFactory(owner)
+    setContent {
+      Box(Modifier.size(100.dp).then(OwnerElement(owner))) {
+        Box(Modifier.size(20.dp).hazeEffect(anchor, HazeInput.Content, Unit))
+      }
+    }
+    waitForIdle()
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+        override fun attach(scope: HazeEffectLifecycleScope) {
+          error("attach")
+        }
+        override fun detach() {
+          error("detach")
+        }
+        override fun dispose() {
+          error("dispose")
+        }
+        override fun HazeEffectDrawScope.draw(style: Unit) = Unit
+      }
+    }
+    val failure = runCatching {
+      anchor.surface.createConfiguredSurface(factory, Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+    }.exceptionOrNull()
+    assertThat(failure?.message).isEqualTo("attach")
+    assertThat(failure?.suppressed?.map { it.message }).isEqualTo(listOf("detach", "dispose"))
   }
 
   @Test
@@ -1105,7 +1742,10 @@ class HazeEffectSurfaceDrawTest {
     lateinit var scope: HazeEffectLifecycleScope
     var draws = 0
     var prepares = 0
+    var updates = 0
+    var layouts = 0
     var onPrepare: () -> Unit = {}
+    var onUpdate: (HazeEffectLifecycleScope) -> Unit = {}
     var onDraw: () -> Unit = {}
     var layerBounds: Rect? = null
     var preparedLayerSize = Size.Unspecified
@@ -1120,6 +1760,10 @@ class HazeEffectSurfaceDrawTest {
         surface = scope.surface
         if (relocate) surface.relocateTo(owner)
       }
+      override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+        updates++
+        onUpdate(scope)
+      }
       override fun HazeEffectRuntimeDrawScope.prepareDraw(style: Unit) {
         prepares++
         onPrepare()
@@ -1133,8 +1777,10 @@ class HazeEffectSurfaceDrawTest {
           drawRect(retainedColor)
         } else if (spill) translate(left = 40f) { this@draw.drawInput() } else drawInput()
       }
-      override fun HazeEffectLayoutScope.calculateLayerBounds(style: Unit): Rect =
-        layerBounds ?: if (spill) Rect(0f, 0f, modifierBounds.right + 40f, modifierBounds.bottom) else modifierBounds
+      override fun HazeEffectLayoutScope.calculateLayerBounds(style: Unit): Rect {
+        layouts++
+        return layerBounds ?: if (spill) Rect(0f, 0f, modifierBounds.right + 40f, modifierBounds.bottom) else modifierBounds
+      }
     }
   }
 
