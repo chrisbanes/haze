@@ -1655,8 +1655,8 @@ side: compact controls keep some refracted detail and a curved edge, while large
 diffuse the backdrop. In dark appearance it uses a darker tone, edge, and lighting response.</p>
 <p><a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/-companion/clear.html"><code>GlassStyle.clear</code></a> keeps more of the background visible. It uses the same shallow blur at every
 size, with refraction concentrated in a band along the edge that forms loops around the corners.
-Fallback renderers keep Clear's background color, tint, and edges, but drop the refraction, blur,
-and tone adjustments that give it its look.</p>
+Clear uses its light response in both system appearances. Fallback renderers simplify its optics;
+on Android 12 and 12L they keep an approximation of blur and tone.</p>
 <p>Prefer Regular when background content could interfere with labels or controls, especially for
 surfaces containing substantial text. Use Clear for controls over photos and video where the
 underlying content should remain visible. This follows Apple's
@@ -1787,8 +1787,8 @@ whole material, so source detail is hidden at alpha 1 and can show through durin
 <code>reduceTransparency</code> off restores ordinary fallback rendering. The colour override only affects
 reduced-transparency fallback; full rendering keeps its stronger blur.</p>
 <p><code>increaseContrast</code> raises tone contrast and enforces a visible
-edge. Tone contrast applies only to full rendering. Fallback rendering omits color adjustments, so
-it gets the stronger edge alone. <code>showBorders</code> enforces a visible edge without changing tone. The
+edge. Android 12 and 12L fallback approximates tone contrast as well; other fallback renderers
+use the stronger edge alone. <code>showBorders</code> enforces a visible edge without changing tone. The
 edge appears even when the Style has zero edge softness.</p>
 <h3 id="light-alignment">Light alignment<a class="headerlink" href="#light-alignment" title="Permanent link">¶</a></h3>
 <p>Use Compose <code>Alignment</code> values so lighting adapts to each surface. Logical alignments such as
@@ -1962,12 +1962,22 @@ don't need capability checks or a second Style.</p>
 <td>Preserved</td>
 </tr>
 <tr>
-<td>Fixed or responsive refraction, blur, and progressive optics</td>
+<td>Blur and progressive optics</td>
+<td>Preserved</td>
+<td>Android 12 and 12L hardware: blur with a masked progressive approximation; other fallbacks: scrim</td>
+</tr>
+<tr>
+<td>Refraction</td>
 <td>Preserved</td>
 <td>Omitted</td>
 </tr>
 <tr>
-<td>Chromatic aberration, surface profile, and advanced color adjustments</td>
+<td>Tone and saturation</td>
+<td>Preserved</td>
+<td>Android 12 and 12L hardware: approximated; other fallbacks: omitted</td>
+</tr>
+<tr>
+<td>Chromatic aberration and surface profile</td>
 <td>Preserved</td>
 <td>Omitted</td>
 </tr>
@@ -1983,6 +1993,17 @@ don't need capability checks or a second Style.</p>
 </tr>
 </tbody>
 </table>
+<p>On Android 12 and 12L, hardware fallback blurs the captured input and approximates tone and
+progressive blur. Captured content updates when the source changes, even if the Glass stays in
+place. Other fallback paths leave input unblurred and add a scrim whose opacity follows
+the resolved blur and depth. Regular uses a light or dark scrim with system appearance; Clear uses
+the light response. Set <code>fallbackColor(Color.Transparent)</code> to disable the scrim, or provide a
+colour to replace it. <code>Color.Unspecified</code> restores the automatic choice. This setting does not
+affect the opaque base used by reduced transparency.</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">fallbackColor</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span><span class="p">))</span>
+<span class="p">}</span>
+</code></pre></div>
 <p>Don't make essential meaning depend on refraction or chromatic aberration alone, because fallback
 rendering omits them.</p>
 <h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">¶</a></h2>

@@ -7654,6 +7654,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">¶</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">¶</a></h3>
 <ul>
+<li>Glass fallback rendering blurs captured content on Android 12 and 12L hardware and uses an
+  automatic scrim on unblurred paths. Set <code>fallbackColor</code> to replace or disable that scrim. Clear
+  uses its light response in both system appearances
+  (<a href="https://github.com/chrisbanes/haze/issues/1731">#1731</a>).</li>
 <li>
 <p>Continuous Glass corner shapes interpolate their corners and smoothing with Compose's
   <code>Interpolatable.lerp</code> (<a href="https://github.com/chrisbanes/haze/issues/1752">#1752</a>).</p>
