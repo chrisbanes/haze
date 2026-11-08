@@ -70,12 +70,14 @@ public fun createProgressiveBlurRenderEffect(
 }
 
 private val VERTICAL_PROGRESSIVE_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(makeBlurSksl(vertical = true))
+  createRuntimeEffect(makeProgressiveBlurSksl(vertical = true))
 }
 
 private val HORIZONTAL_PROGRESSIVE_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(makeBlurSksl(vertical = false))
+  createRuntimeEffect(makeProgressiveBlurSksl(vertical = false))
 }
+
+internal expect val avoidProgressiveBlurLoopBreak: Boolean
 
 /**
  * Creates the SKSL blur shader code for either vertical or horizontal pass.
@@ -84,7 +86,10 @@ private val HORIZONTAL_PROGRESSIVE_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE
  * Uses GPU-friendly optimizations, see
  * https://www.rastergrid.com/blog/2010/09/efficient-gaussian-blur-with-linear-sampling
  */
-private fun makeBlurSksl(vertical: Boolean): String = """
+internal fun makeProgressiveBlurSksl(
+  vertical: Boolean,
+  avoidLoopBreak: Boolean = avoidProgressiveBlurLoopBreak,
+): String = """
     uniform shader content;
     uniform float blurRadius;
     uniform vec4 crop;
@@ -115,10 +120,9 @@ private fun makeBlurSksl(vertical: Boolean): String = """
       float weightSum = 1.0;
       vec4 result = content.eval(coord);
 
-      // An early break causes pathological first-draw compilation on Windows Direct3D.
-      // Guard each pair independently while keeping the full static sampling bound.
+      // Windows Direct3D stalls on first draw with an early break (issue #1260).
       for (half i = 1.0; i < maxRadius; i += 2.0) {
-        if (i < r) {
+        ${if (avoidLoopBreak) "if (i < r) {" else "if (i >= r) { break; }"}
           float weightL = gaussian(i, sigma);
           float weightH = gaussian(i + 1.0, sigma);
           float weight = weightL + weightH;
@@ -135,7 +139,7 @@ private fun makeBlurSksl(vertical: Boolean): String = """
             result += weight * sampleContent(newCoord);
             weightSum += weight;
           }
-        }
+        ${if (avoidLoopBreak) "}" else ""}
       }
 
       // Check if radius is odd
