@@ -52,6 +52,7 @@ kotlin {
       dependencies {
         implementation(kotlin("test"))
         implementation(libs.assertk)
+        implementation(libs.roborazzi.core)
 
         implementation(libs.compose.ui.test)
         implementation(libs.compose.navigation3.ui)
