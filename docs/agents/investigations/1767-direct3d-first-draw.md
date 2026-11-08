@@ -138,7 +138,7 @@ still fail first draw at the five-second gate. Each remaining tested feature bou
 bypassed in that final context: complete refraction, member weights, standalone evaluation, merged
 evaluation and merged gradient. Raster parity is exact and rejects a refraction-free image.
 
-This completes feature-level minimisation for the first native capture. It does not establish a
+This completed feature-level minimisation on that runner; the cross-runner check below later reopened it. It does not establish a
 mathematically smallest shader; further lexical/helper minimisation can follow attribution for an
 upstream report. Capturing now avoids treating a seconds-long threshold-passing cut as a fix.
 
@@ -165,3 +165,27 @@ Commands follow Microsoft's [WPR reference](https://learn.microsoft.com/en-us/wi
 [xperf profile action](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/xperf/profile),
 [stack action](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/xperf/the-stack-action), and
 [symbol decoding](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/xperf/symbols).
+
+## Cross-runner diagnostic correction
+
+The [first profiling attempt](https://github.com/chrisbanes/haze/actions/runs/42531647588) at
+`a7717b38f86d68ac9799ffd1dc0b8847580f506c` stopped before recording, as required: its unprofiled
+compact draw completed just below the five-second gate. Source hash
+`e90d69b97bc577f25aa578d0634321d20240726f77a0520efccea91774a7d6d8` and the fixture-uniform hash match
+the previously failing compact trials exactly. The cold draw still took seconds while the six warm
+draws took milliseconds. No WPR recording or native layer attribution was obtained.
+
+The five-second gate was too coarse for minimising this still-slow case across shared runners.
+Retain it in `Baseline` mode as the original qualification check. Add a separate `Diagnose` signal:
+a completed first draw must exceed one second AND twenty times the warm median to count as a cold
+stall. A first-draw timeout still records a censored stall; missing/invalid output remains INVALID.
+`verdict` continues to describe the original latency gate; `mode`, `coldStall`, `firstDrawMs` and
+`warmMedianMs` make the diagnostic decision explicit. Passing the five-second gate alone never proves
+that the original seconds-long cold-start problem is fixed.
+
+Self-check the new predicate against this observed cold/warm pair, the healthy control, a
+steady-state-heavy case and a subsecond case before any native experiment. Re-run three trials of
+the compact seed and continue feature cuts using this signal. Re-test every remaining feature
+against the final retained source; stop on mixed results or a still-reducible boundary. Only then
+capture the final case and refraction-free control, using the same separate diagnostic signal.
+The five-second acceptance gate and all rendering-fidelity requirements remain in place.

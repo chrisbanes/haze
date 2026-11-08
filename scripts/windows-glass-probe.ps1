@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 param(
-  [ValidateSet('Baseline', 'Profile')][string]$Mode = 'Baseline',
+  [ValidateSet('Baseline', 'Diagnose', 'Profile', 'SelfTest')][string]$Mode = 'Baseline',
   [ValidateSet('baseline', 'control', 'original', 'guarded')][string]$Variant = 'baseline',
   [ValidateSet('false', 'true')][string]$Continuous = 'false',
   [ValidateRange(1, 3)][int]$Trials = 3,
@@ -13,6 +13,18 @@ param(
 $ErrorActionPreference = 'Stop'
 trap { [Console]::Error.WriteLine('GLASS_PROBE INVALID: ' + $_.Exception.Message); exit 2 }
 Set-StrictMode -Version Latest
+function Test-ColdStall([double]$ColdMs, [double]$WarmMedianMs) {
+  return $ColdMs -gt 1000 -and $ColdMs -gt (20 * [Math]::Max(1, $WarmMedianMs))
+}
+if ($Mode -eq 'SelfTest') {
+  if (-not (Test-ColdStall 4590.5181 15.08435)) { throw 'Observed cold stall must be detected' }
+  if (Test-ColdStall 99.2655 15) { throw 'Healthy control must pass' }
+  if (Test-ColdStall 2000 500) { throw 'Warm execution cost must not masquerade as a cold stall' }
+  if (Test-ColdStall 999 1) { throw 'Subsecond cold draws are outside this diagnostic' }
+  if (-not (Test-ColdStall 1500 15)) { throw 'Reduced seconds-long cold stalls must stay detectable' }
+  Write-Output 'Cold/warm diagnostic self-checks passed'
+  exit 0
+}
 if ($Mode -eq 'Profile' -and ($Trials -ne 1 -or $Variant -eq 'baseline')) {
   throw 'Profile mode requires one explicit case and -Trials 1'
 }
@@ -55,6 +67,9 @@ try {
       $verdict = 'INVALID'
       $threshold = if ($case.variant -eq 'control') { 1000 } else { 5000 }
       $reason = 'Missing successful render'
+      $coldStall = $false
+      $firstDrawMs = $null
+      $warmMedianMs = $null
       $drawLimit = if ($Mode -eq 'Profile') { 30000 } else { $threshold }
       $started = $false
       $recording = $false
@@ -82,6 +97,7 @@ try {
               if ($elapsed -gt $drawLimit) {
                 $verdict = if ($case.variant -eq 'control') { 'INVALID' } else { 'LATENCY_FAIL' }
                 $reason = "first-draw exceeded ${drawLimit}ms"
+                $coldStall = $case.variant -ne 'control'
                 break
               }
             }
@@ -92,11 +108,19 @@ try {
         [IO.File]::WriteAllText((Join-Path $caseDir 'stdout.txt'), $stdout.GetAwaiter().GetResult())
         [IO.File]::WriteAllText((Join-Path $caseDir 'stderr.txt'), $stderr.GetAwaiter().GetResult())
         if ($process.ExitCode -eq 0 -and (Test-Path (Join-Path $caseDir 'verdict.txt'))) {
-          $timing = Import-Csv (Join-Path $caseDir 'timings.csv') | Where-Object phase -eq 'first-draw'
+          $timings = @(Import-Csv (Join-Path $caseDir 'timings.csv'))
+          $timing = $timings | Where-Object phase -eq 'first-draw'
           if ($null -ne $timing) {
             $ms = [double]::Parse($timing.ms, [Globalization.CultureInfo]::InvariantCulture)
             $verdict = if ($ms -le $threshold) { 'PASS' } elseif ($case.variant -eq 'control') { 'INVALID' } else { 'LATENCY_FAIL' }
             $reason = "first-draw=${ms}ms"
+            $firstDrawMs = $ms
+            $warm = @($timings | Where-Object { $_.phase -like 'warm-*' } | ForEach-Object {
+              [double]::Parse($_.ms, [Globalization.CultureInfo]::InvariantCulture)
+            } | Sort-Object)
+            if ($warm.Count -ne 6) { throw 'Completed draw is missing six warm observations' }
+            $warmMedianMs = ($warm[2] + $warm[3]) / 2
+            $coldStall = Test-ColdStall $firstDrawMs $warmMedianMs
           }
         }
       } finally {
@@ -107,7 +131,7 @@ try {
           if ($LASTEXITCODE -ne 0 -or -not (Test-Path $trace)) { throw 'Owned WPR capture could not be saved; inspect partial artifacts' }
         }
       }
-      $result = [ordered]@{ variant = $case.variant; continuous = $case.continuous; trial = $trial; width = $Width; height = $Height; cuts = $Cuts; profiled = ($Mode -eq 'Profile'); verdict = $verdict; reason = $reason; directory = $caseDir }
+      $result = [ordered]@{ variant = $case.variant; continuous = $case.continuous; trial = $trial; width = $Width; height = $Height; cuts = $Cuts; mode = $Mode; profiled = ($Mode -eq 'Profile'); coldStall = $coldStall; firstDrawMs = $firstDrawMs; warmMedianMs = $warmMedianMs; verdict = $verdict; reason = $reason; directory = $caseDir }
       $results += $result
       $result | ConvertTo-Json -Compress | Write-Output
       [IO.File]::WriteAllText((Join-Path $caseDir 'result.json'), ($result | ConvertTo-Json))
@@ -139,5 +163,9 @@ try {
 }
 if ($executionFailed) { exit 2 }
 if (@($results | Where-Object verdict -eq 'INVALID').Count -gt 0) { exit 2 }
+if ($Mode -in @('Diagnose', 'Profile')) {
+  if (@($results | Where-Object coldStall -eq $true).Count -gt 0) { exit 1 }
+  exit 0
+}
 if (@($results | Where-Object verdict -eq 'LATENCY_FAIL').Count -gt 0) { exit 1 }
 exit 0
