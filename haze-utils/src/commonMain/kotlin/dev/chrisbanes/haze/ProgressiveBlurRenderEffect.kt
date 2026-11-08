@@ -115,30 +115,26 @@ private fun makeBlurSksl(vertical: Boolean): String = """
       float weightSum = 1.0;
       vec4 result = content.eval(coord);
 
-      // We need to use a constant max size Skia to know the size of the program. We use a large
-      // number, along with a break
+      // An early break causes pathological first-draw compilation on Windows Direct3D.
+      // Guard each pair independently while keeping the full static sampling bound.
       for (half i = 1.0; i < maxRadius; i += 2.0) {
-        // i is always odd.
-        // The algorithm needs pixels exist at the offset of [i] (odd) and [i + 1] (even).
-        // If radius r is even (i > r), we can break safely here, as all the pixels have been calculated;
-        // otherwise (i == r) we need to calculate the pixel at the offset of [r], so break in advance.
-        if (i >= r) { break; }
+        if (!(i >= r)) {
+          float weightL = gaussian(i, sigma);
+          float weightH = gaussian(i + 1.0, sigma);
+          float weight = weightL + weightH;
+          vec2 offset = ${if (vertical) "vec2(0.0, i + weightH / weight)" else "vec2(i + weightH / weight, 0.0)"};
 
-        float weightL = gaussian(i, sigma);
-        float weightH = gaussian(i + 1.0, sigma);
-        float weight = weightL + weightH;
-        vec2 offset = ${if (vertical) "vec2(0.0, i + weightH / weight)" else "vec2(i + weightH / weight, 0.0)"};
+          vec2 newCoord = coord - offset;
+          if (newCoord.x >= crop[0] && newCoord.y >= crop[1]) {
+            result += weight * sampleContent(newCoord);
+            weightSum += weight;
+          }
 
-        vec2 newCoord = coord - offset;
-        if (newCoord.x >= crop[0] && newCoord.y >= crop[1]) {
-          result += weight * sampleContent(newCoord);
-          weightSum += weight;
-        }
-
-        newCoord = coord + offset;
-        if (newCoord.x <= crop[2] && newCoord.y <= crop[3]) {
-          result += weight * sampleContent(newCoord);
-          weightSum += weight;
+          newCoord = coord + offset;
+          if (newCoord.x <= crop[2] && newCoord.y <= crop[3]) {
+            result += weight * sampleContent(newCoord);
+            weightSum += weight;
+          }
         }
       }
 
