@@ -23,8 +23,6 @@ jobs:
       HAZE_PROBE_WIDTH: ${{ matrix.width }}
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
       - uses: actions/setup-java@v6
         with:
           distribution: zulu
@@ -34,12 +32,9 @@ jobs:
           cache-read-only: false
       - name: Restore temporary probe only inside the runner
         shell: pwsh
-        run: >-
-          git restore --source=e759dd8e2 --
-          sample/desktop/build.gradle.kts
-          sample/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/sample/desktop/Main.kt
-          sample/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/sample/desktop/WindowsBlurProbe.kt
-          scripts/check_windows_blur_probe.py
+        run: |
+          git fetch --depth=1 origin e759dd8e2bab946607793d37e56c7e448ec07027
+          git restore --source=e759dd8e2bab946607793d37e56c7e448ec07027 -- sample/desktop/build.gradle.kts sample/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/sample/desktop/Main.kt sample/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/sample/desktop/WindowsBlurProbe.kt scripts/check_windows_blur_probe.py
       - name: Graphics environment
         shell: pwsh
         run: |

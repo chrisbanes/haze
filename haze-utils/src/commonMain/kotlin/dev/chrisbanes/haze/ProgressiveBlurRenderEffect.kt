@@ -122,7 +122,7 @@ internal fun makeProgressiveBlurSksl(
 
       // Windows Direct3D stalls on first draw with an early break (issue #1260).
       for (half i = 1.0; i < maxRadius; i += 2.0) {
-        ${if (avoidLoopBreak) "if (i < r) {" else "if (i >= r) { break; }"}
+        if (i < r) {
           float weightL = gaussian(i, sigma);
           float weightH = gaussian(i + 1.0, sigma);
           float weight = weightL + weightH;
@@ -139,7 +139,7 @@ internal fun makeProgressiveBlurSksl(
             result += weight * sampleContent(newCoord);
             weightSum += weight;
           }
-        ${if (avoidLoopBreak) "}" else ""}
+        } ${if (avoidLoopBreak) "" else "else { break; }"}
       }
 
       // Check if radius is odd
