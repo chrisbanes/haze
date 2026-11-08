@@ -7683,6 +7683,8 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
+<li>Progressive blur avoids long first-render pauses on Windows Direct3D, including when opening a
+  new window (<a href="https://github.com/chrisbanes/haze/issues/1260">#1260</a>).</li>
 <li>Progressive blur preserves edge opacity by keeping accepted samples inside the captured content
   (<a href="https://github.com/chrisbanes/haze/issues/1727">#1727</a>).</li>
 <li>Progressive blur keeps its crop within the captured content when downscaling, including expanded
