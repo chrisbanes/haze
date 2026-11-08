@@ -7,7 +7,11 @@ permissions:
 jobs:
   probe:
     runs-on: windows-2025
-    timeout-minutes: 30
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        continuous: ['false', 'true']
     env:
       SKIKO_RENDER_API: DIRECT3D
       SKIKO_HARDWARE_INFO_ENABLED: 'true'
@@ -26,15 +30,15 @@ jobs:
       - name: Fresh-process ABBA comparison on the same runner
         shell: pwsh
         run: |
-          $variants = @('original', 'guarded', 'guarded', 'original')
+          $variants = if ('${{ matrix.continuous }}' -eq 'true') { @('guarded') } else { @('original', 'guarded', 'guarded', 'original') }
           for ($trial = 0; $trial -lt $variants.Length; $trial++) {
-            ./gradlew.bat :haze-glass:jvmTest --tests '*WindowsGlassProbeTest' "-PglassProbeVariant=$($variants[$trial])" "-PglassProbeTrial=$trial" '-Phaze.disableAppleTargets' '-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8' '-Pkotlin.daemon.jvmargs=-Xmx2g' --max-workers=2 --no-scan --console=plain
+            ./gradlew.bat :haze-glass:jvmTest --tests '*WindowsGlassProbeTest' "-PglassProbeVariant=$($variants[$trial])" "-PglassProbeTrial=$trial" '-PglassProbeContinuous=${{ matrix.continuous }}' '-Phaze.disableAppleTargets' '-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8' '-Pkotlin.daemon.jvmargs=-Xmx2g' --max-workers=2 --no-scan --console=plain
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: windows-glass-probe
+          name: windows-glass-probe-${{ matrix.continuous }}
           path: |
             haze-glass/build/outputs/glass-probe
             haze-glass/build/test-results/jvmTest

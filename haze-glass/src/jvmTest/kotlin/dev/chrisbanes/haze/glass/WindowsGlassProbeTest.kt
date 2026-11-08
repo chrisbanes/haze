@@ -10,6 +10,7 @@ import java.awt.Robot
 import java.io.File
 import javax.imageio.ImageIO
 import javax.swing.JFrame
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import org.jetbrains.skia.Canvas
 import org.jetbrains.skia.Paint
@@ -32,12 +33,26 @@ class WindowsGlassProbeTest {
     fun measure(case: String, members: Int, phase: String, block: () -> Unit) {
       println("GLASS_PROBE_START $case $members $phase")
       val start = System.nanoTime()
-      block()
+      val timeout = thread(isDaemon = true) {
+        try {
+          Thread.sleep(60_000)
+          File(output, "timeout.txt").writeText("$case,$members,$phase exceeded 60 seconds")
+          Runtime.getRuntime().halt(2)
+        } catch (_: InterruptedException) {
+          // Measurement finished.
+        }
+      }
+      try {
+        block()
+      } finally {
+        timeout.interrupt()
+      }
       val ms = (System.nanoTime() - start) / 1e6
       timings.appendText("$case,$members,$phase,$ms\n")
       println("GLASS_PROBE_END $case $members $phase $ms")
     }
-    for (continuous in listOf(false, true)) {
+    val shapes = System.getProperty("glassProbeContinuous", "both")
+    for (continuous in listOf(false, true).filter { shapes == "both" || it.toString() == shapes }) {
       val sources = linkedMapOf(
         "optical" to GlassShaders.buildOptical(merged = true, continuous = continuous),
         "detail" to GlassShaders.buildRefractionDetail(merged = true, continuous = continuous),
