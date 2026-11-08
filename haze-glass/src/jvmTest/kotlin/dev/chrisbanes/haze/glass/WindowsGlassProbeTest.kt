@@ -18,6 +18,7 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotEqualTo
 import java.io.File
+import java.security.MessageDigest
 import kotlin.test.Test
 import org.jetbrains.skia.RuntimeEffect
 
@@ -99,17 +100,23 @@ class WindowsGlassProbeTest {
   }
 
   @Test
-  fun sourceFor_noinlineShapePreservesOriginalFixturePixels() {
-    for (continuous in listOf(false, true)) {
-      val original = WindowsGlassProbe.sourceFor("original", continuous)
-      val hinted = WindowsGlassProbe.sourceFor("original", continuous, "noinline-shape")
-      assertThat(fixturePixels(hinted, "hint-$continuous"))
-        .isEqualTo(fixturePixels(original, "original-$continuous"))
-    }
+  fun frozenReproducer_matchesMeasuredSourceAndUniforms() {
     val retained = "ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance,optical-height,rect-gradient,compact-main,member-weights,standalone-refraction"
-    val reference = WindowsGlassProbe.sourceFor("original", true, retained)
-    val hinted = WindowsGlassProbe.sourceFor("original", true, "$retained,noinline-shape")
-    assertThat(fixturePixels(hinted, "hint-retained")).isEqualTo(fixturePixels(reference, "retained"))
+    val source = WindowsGlassProbe.sourceFor("original", true, retained)
+    val fixture = File("../docs/agents/investigations/1767-repro/src/main/resources")
+    val frozen = File(fixture, "retained.sksl")
+    val hash = MessageDigest.getInstance("SHA-256").digest(frozen.readBytes())
+      .joinToString("") { "%02x".format(it) }
+    assertThat(hash).isEqualTo("3bdf411bbbd5b324be57b374d141590b1f78c72a4cf9ce0fc74bba71fd320ebc")
+    assertThat(frozen.readText().replace("\r\n", "\n")).isEqualTo(source.replace("\r\n", "\n"))
+    assertThat(File(fixture, "control.sksl").readText().replace("\r\n", "\n"))
+      .isEqualTo(WindowsGlassProbe.sourceFor("original", true, "$retained,refraction").replace("\r\n", "\n"))
+    val output = File("build/outputs/glass-probe-parity/frozen").apply { mkdirs() }
+    RuntimeEffect.makeForShader(source).use { effect ->
+      WindowsGlassProbe.makeShader(effect, source, 2, output).close()
+    }
+    assertThat(File(output, "uniforms.txt").readText()).isEqualTo(File(fixture, "uniforms.txt").readText())
+    assertThat(File(fixture, "content.sksl").readText()).isEqualTo(WindowsGlassProbe.CONTROL_SOURCE)
   }
 
   @Test

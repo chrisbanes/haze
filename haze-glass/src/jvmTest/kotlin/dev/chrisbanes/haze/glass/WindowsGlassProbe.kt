@@ -112,7 +112,6 @@ internal object WindowsGlassProbe {
             "float heightNorm = 0.5;"
         "merged-gradient" -> Regex.escape("shapeRefractionGradient(localCoord)") to "vec2(0.0)"
         "rect-gradient" -> Regex.escape("edgeRefractionGradient(localCoord, size, radii, exponents)") to "vec2(0.0)"
-        "noinline-shape" -> Regex.escape("float shapeSd(vec2 localCoord)") to "noinline float shapeSd(vec2 localCoord)"
         "compact-main" ->
           """vec4 main\(vec2 coord\) \{[\s\S]+$""" to
             checkNotNull(javaClass.getResource("/windows-glass-probe/compact-main.sksl")).readText()
@@ -238,6 +237,7 @@ internal object WindowsGlassProbe {
       "edgeOutlineWidth" to 1f,
     )
     val declarations = Regex("uniform\\s+(?:float[24]?|vec[24])\\s+(\\w+)(?:\\[\\d+])?;")
+    File(output, "uniforms.txt").writeText("")
     for (match in declarations.findAll(source)) {
       val name = match.groupValues[1]
       val value = explicit[name] ?: scalars[name]?.let { floatArrayOf(it) }

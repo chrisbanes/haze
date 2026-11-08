@@ -1,7 +1,7 @@
 # Glass Direct3D first-draw investigation
 
-Tracks [#1767](https://github.com/chrisbanes/haze/issues/1767). No production shader change or
-compiler attribution is established yet.
+Tracks [#1767](https://github.com/chrisbanes/haze/issues/1767). First-draw stacks identify backend shader compilation,
+including WARP JIT work. No production workaround has been selected.
 
 ## Feedback command
 
@@ -223,3 +223,39 @@ describe this modifier; the installed RuntimeEffect compiler and native experime
 This is a test-only hint, not an established workaround. Compare exact raster output for both original
 corner types and the retained fixture before native trials. Expand to the original native cases only
 if the retained cold signal disappears; a negative experimental result is valid evidence, not a fix.
+
+
+## First-draw attribution and negative hint result
+
+The [scoped capture](https://github.com/chrisbanes/haze/actions/runs/42534101240) at
+`1bf6fdce790c1de76e34864cfbe04c196d59a861` confirms the same layer for the original continuous shader
+and the reduced case. All three ETLs report zero lost events/buffers. The exports select the
+first-draw epoch interval, not the JVM lifetime; `first-draw-range-us.json` preserves each range.
+
+| Case | First-draw interval | Target exclusive CPU samples | Compiler attribution |
+| --- | --- | --- | --- |
+| Original continuous, unmodified | 30-second censored interval | 29,943 | WARP 23,469; D3DCompiler 5,434 |
+| Retained fourteen-cut case | 2,717.47 ms | 2,701 | WARP 1,735; D3DCompiler 777 |
+| Same retained source, refraction bypassed | 64.40 ms | 54 | WARP 1; D3DCompiler 25 |
+
+These are sampled CPU counts, not wall-time shares. The control has too few samples for a useful
+percentage comparison. Both failing cases resolve `D3D10Warp!Task_CompileShader` →
+`PixelJITProcessor::InitializeJIT` → `CProgram::Compile`. WARP analysis/optimization frames dominate:
+`ComputeUsage`, `Optimize`, `BuildDependencies`, and, in the original case, `SeparateVariables`.
+D3DCompiler includes `CProgram::ReadWriteInfo`. This attributes the first-draw cost to backend
+compilation; it does not identify the exact compiler algorithm defect or prove which upstream
+component should change. The original did not finish within 30 seconds, so its compilation duration
+remains unknown. JVM/Skiko private-symbol gaps and software-adapter coverage remain limits.
+
+Three unprofiled retained trials complete in 2,450–2,552 ms with warm medians 2.09–15.18 ms.
+The test-only `noinline shapeSd` trials still take 2,499–2,598 ms with the same cold-stall diagnosis.
+The hint preserves raster pixels but does not remove the native signal; its code and workflow probe
+have been removed. Guarding member-loop bodies also did not fix the original symptom. No production
+shader change is justified by these experiments.
+
+The [standalone reproducer](1767-repro/README.md) freezes the measured reduced source, its paired
+refraction-free control and exact uniforms. It depends only on Kotlin/Skiko and draws through a
+native SkiaLayer, with no Haze or Compose runtime. Fixture-fidelity tests bind it to the measured
+fourteen-cut case. Its exported ZIP is compiled and run outside the checkout by the investigation
+workflow before it can be called upstream-ready. The [upstream report draft](1767-upstream-report.md)
+is for review; it has not been filed externally.

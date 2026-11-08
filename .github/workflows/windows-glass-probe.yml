@@ -7,6 +7,7 @@ on:
       - .github/workflows/windows-glass-probe.yml
       - scripts/windows-glass-probe.ps1
       - haze-glass/**
+      - docs/agents/investigations/1767-repro/**
 permissions:
   contents: read
 jobs:
@@ -70,17 +71,23 @@ jobs:
           pwsh -File scripts/windows-glass-probe.ps1 -Mode Profile -Variant original -Continuous true -Trials 1
           if ($LASTEXITCODE -ne 1) { throw 'Original continuous source did not preserve the cold stall' }
           exit 0
-      - name: Test one noinline modifier without changing shader math
+      - name: Package and validate standalone upstream reproducer outside checkout
         shell: pwsh
         run: |
-          $cuts = 'ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance,optical-height,rect-gradient,compact-main,member-weights,standalone-refraction'
-          pwsh -File scripts/windows-glass-probe.ps1 -Mode Diagnose -Variant original -Continuous true -Width 64 -Height 48 -Cuts ($cuts + ',noinline-shape')
-          if ($LASTEXITCODE -eq 2) { throw 'Invalid noinline experiment' }
-          if ($LASTEXITCODE -ne 0) { Write-Output 'Noinline did not remove the retained cold signal; do not expand it'; exit 0 }
-          pwsh -File scripts/windows-glass-probe.ps1 -Mode Diagnose -Variant original -Continuous false -Cuts noinline-shape
-          if ($LASTEXITCODE -eq 2) { throw 'Invalid original rounded noinline case' }
-          pwsh -File scripts/windows-glass-probe.ps1 -Mode Diagnose -Variant original -Continuous true -Cuts noinline-shape
-          if ($LASTEXITCODE -eq 2) { throw 'Invalid original continuous noinline case' }
+          ./gradlew.bat :haze-glass:packageWindowsGlassRepro '-Phaze.disableAppleTargets' --no-scan --console=plain --max-workers=2
+          if ($LASTEXITCODE -ne 0) { throw 'Could not package standalone reproducer' }
+          $repro = Join-Path $env:RUNNER_TEMP 'windows-glass-repro'
+          Expand-Archive haze-glass/build/outputs/windows-glass-repro.zip $repro
+          Push-Location $repro
+          try {
+            ./gradlew.bat installDist --no-scan --console=plain --max-workers=2
+            if ($LASTEXITCODE -ne 0) { throw 'Standalone compilation failed' }
+            pwsh -File run.ps1
+            if ($LASTEXITCODE -ne 1) { throw 'Standalone reduced cold stall did not reproduce' }
+          } finally {
+            Pop-Location
+            Copy-Item "$repro/build/results" haze-glass/build/outputs/glass-probe/standalone -Recurse -ErrorAction Continue
+          }
           exit 0
       - uses: actions/upload-artifact@v7
         if: always()
@@ -91,3 +98,4 @@ jobs:
             haze-glass/build/outputs/glass-probe-profiler-tools.json
             haze-glass/build/outputs/glass-probe-wpr-profiles.txt
             haze-glass/build/test-results/jvmTest
+            haze-glass/build/outputs/windows-glass-repro.zip

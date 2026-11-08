@@ -129,3 +129,15 @@ tasks.register("prepareWindowsGlassProbe") {
     classpathFile.get().asFile.writeText(runtimeClasspath.asPath)
   }
 }
+
+tasks.register<Zip>("packageWindowsGlassRepro") {
+  group = "verification"
+  archiveFileName.set("windows-glass-repro.zip")
+  destinationDirectory.set(layout.buildDirectory.dir("outputs"))
+  from(rootProject.file("docs/agents/investigations/1767-repro")) {
+    exclude("build/**", ".gradle/**", ".kotlin/**")
+  }
+  from(rootProject.projectDir) {
+    include("gradlew", "gradlew.bat", "gradle/wrapper/**", "LICENSE")
+  }
+}

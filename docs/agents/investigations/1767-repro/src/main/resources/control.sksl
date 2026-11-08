@@ -1,0 +1,823 @@
+
+    uniform shader content;
+    uniform float2 sampleSize;
+    uniform float2 materialOrigin;
+    uniform float2 materialSize;
+    uniform float sampleStep;
+    uniform float refractionStrength;
+    uniform float refractionFoldStrength;
+    uniform float ambientResponse;
+    uniform float edgeSoftness;
+    uniform float refractionHeight;
+    uniform float edgeRefractionWidth;
+    uniform float chromaticAberrationStrength;
+    uniform vec4 cornerRadii;
+    uniform vec4 cornerExponents;
+    layout(color) uniform vec4 tintColor;
+    // Declared as float because AGSL does not support int uniforms.
+    uniform float surfaceProfile;
+    // Declared as float because AGSL does not support int uniforms.
+    uniform float chromaticAberrationMode;
+    uniform float contrast;
+    uniform float whitePoint;
+    uniform float chromaMultiplier;
+    uniform float refractionScale;
+    uniform float contentNormalBlend;
+    uniform float fresnelExponent;
+    
+
+    vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
+
+    vec2 clampSample(vec2 coord) {
+      return clamp(coord, vec2(0.5), sampleSize - vec2(0.5));
+    }
+
+    vec2 clampMaterial(vec2 coord) {
+      return clamp(coord, vec2(0.0), materialSize);
+    }
+
+    
+    
+    float shapeCoverage(float sd, float pixelWidth) {
+      // Pixel coverage is independent of the authored optical edge softness and density.
+      // sampleStep is two physical pixels expressed in the current working coordinates.
+      // Keep the transition inside the existing silhouette, including caller-applied clips.
+      return clamp(-sd / max(pixelWidth, 0.0001), 0.0, 1.0);
+    }
+
+    float smootherstep(float x) {
+      float t = clamp(x, 0.0, 1.0);
+      return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+    }
+
+    float sdRectangle(vec2 localCoord, vec2 size) {
+      vec2 halfSize = size * 0.5;
+      vec2 edgeDistance = abs(localCoord - halfSize) - halfSize;
+      float outside = length(max(edgeDistance, 0.0));
+      float inside = min(max(edgeDistance.x, edgeDistance.y), 0.0);
+      return outside + inside;
+    }
+
+    // Corner radii are corner extents. An exponent above 2 makes a continuous (superellipse)
+    // corner; 2 keeps the exact circular arc. delta is measured from the corner box's centre.
+    float cornerNorm(vec2 delta, float extent, float exponent) {
+      if (exponent <= 2.0) return length(delta) / max(extent, 0.0001);
+      vec2 a = abs(delta) / max(extent, 0.0001);
+      return pow(pow(a.x, exponent) + pow(a.y, exponent), 1.0 / exponent);
+    }
+
+    // The unnormalized outward normal direction at delta.
+    vec2 cornerNormal(vec2 delta, float exponent) {
+      if (exponent <= 2.0) return delta;
+      vec2 a = abs(delta) / max(max(abs(delta.x), abs(delta.y)), 0.0001);
+      return sign(delta) * pow(a, vec2(exponent - 1.0));
+    }
+
+    float roundedCornerSd(vec2 delta, float extent, float exponent) {
+      if (exponent <= 2.0) return length(delta) - extent;
+      vec2 a = abs(delta) / extent;
+      float norm = pow(pow(a.x, exponent) + pow(a.y, exponent), 1.0 / exponent);
+      vec2 g = pow(a / max(norm, 0.0001), vec2(exponent - 1.0));
+      return (norm - 1.0) * extent / max(length(g), 0.0001);
+    }
+
+    float sdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents) {
+      float sd = sdRectangle(localCoord, size);
+      // Normalized corner boxes are disjoint, so at most one corner applies.
+      vec2 delta;
+      float extent = 0.0;
+      float exponent = 2.0;
+      if (localCoord.x < radii.x && localCoord.y < radii.x) {
+        delta = localCoord - vec2(radii.x);
+        extent = radii.x;
+        exponent = exponents.x;
+      } else if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
+        delta = localCoord - vec2(size.x - radii.y, radii.y);
+        extent = radii.y;
+        exponent = exponents.y;
+      } else if (localCoord.x > size.x - radii.z && localCoord.y > size.y - radii.z) {
+        delta = localCoord - vec2(size.x - radii.z, size.y - radii.z);
+        extent = radii.z;
+        exponent = exponents.z;
+      } else if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
+        delta = localCoord - vec2(radii.w, size.y - radii.w);
+        extent = radii.w;
+        exponent = exponents.w;
+      } else {
+        return sd;
+      }
+      return max(sd, roundedCornerSd(delta, extent, exponent));
+    }
+
+    vec2 safeNormalize(vec2 value, vec2 fallback) {
+      float len = length(value);
+      return len > 0.0001 ? value / len : fallback;
+    }
+  
+
+    
+    vec4 reversedSmootherstep(vec4 t) {
+      t = clamp(t, 0.0, 1.0);
+      return vec4(1.0) - t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+    }
+
+    vec2 gradSdRectangle(vec2 localCoord, vec2 size, float blendWidth) {
+      vec4 edgeDistance = vec4(
+        -localCoord.x,
+        localCoord.x - size.x,
+        -localCoord.y,
+        localCoord.y - size.y
+      );
+      float maxDistance = max(
+        max(edgeDistance.x, edgeDistance.y),
+        max(edgeDistance.z, edgeDistance.w)
+      );
+      vec4 weights = reversedSmootherstep(
+        (vec4(maxDistance) - edgeDistance) / blendWidth
+      );
+      float totalWeight = dot(weights, vec4(1.0));
+      return vec2(weights.y - weights.x, weights.w - weights.z) /
+        max(totalWeight, 0.0001);
+    }
+
+    vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents, float blendWidth) {
+      vec2 rectangleGradient = gradSdRectangle(localCoord, size, blendWidth);
+      vec2 topLeftDelta = min(localCoord - vec2(radii.x), vec2(0.0));
+      vec2 topRightDelta = vec2(
+        max(localCoord.x - (size.x - radii.y), 0.0),
+        min(localCoord.y - radii.y, 0.0)
+      );
+      vec2 bottomRightDelta = max(
+        localCoord - vec2(size.x - radii.z, size.y - radii.z),
+        vec2(0.0)
+      );
+      vec2 bottomLeftDelta = vec2(
+        min(localCoord.x - radii.w, 0.0),
+        max(localCoord.y - (size.y - radii.w), 0.0)
+      );
+      vec4 cornerWeights = vec4(
+        smootherstep(clamp(cornerNorm(topLeftDelta, radii.x, exponents.x), 0.0, 1.0)),
+        smootherstep(clamp(cornerNorm(topRightDelta, radii.y, exponents.y), 0.0, 1.0)),
+        smootherstep(clamp(cornerNorm(bottomRightDelta, radii.z, exponents.z), 0.0, 1.0)),
+        smootherstep(clamp(cornerNorm(bottomLeftDelta, radii.w, exponents.w), 0.0, 1.0))
+      );
+      vec2 cornerGradient = safeNormalize(
+        safeNormalize(cornerNormal(topLeftDelta, exponents.x), rectangleGradient) * cornerWeights.x +
+          safeNormalize(cornerNormal(topRightDelta, exponents.y), rectangleGradient) * cornerWeights.y +
+          safeNormalize(cornerNormal(bottomRightDelta, exponents.z), rectangleGradient) * cornerWeights.z +
+          safeNormalize(cornerNormal(bottomLeftDelta, exponents.w), rectangleGradient) * cornerWeights.w,
+        rectangleGradient
+      );
+      float cornerWeight = max(
+        max(cornerWeights.x, cornerWeights.y),
+        max(cornerWeights.z, cornerWeights.w)
+      );
+      return mix(rectangleGradient, cornerGradient, cornerWeight);
+    }
+
+  
+  
+    layout(color) uniform vec4 memberTint0;
+    layout(color) uniform vec4 memberTint1;
+    layout(color) uniform vec4 memberTint2;
+    layout(color) uniform vec4 memberTint3;
+    
+    uniform float4 memberRects[4];
+    uniform float4 memberLayoutRects[4];
+    uniform float4 memberRadii[4];
+    uniform float4 memberCornerExponents[4];
+    uniform float memberSmoothing[4];
+    // Declared as float because AGSL does not support int uniforms.
+    uniform float memberCount;
+
+    float smoothMin(float a, float b, float k) {
+      if (k <= 0.0) return min(a, b);
+      float h = max(k - abs(a - b), 0.0) / k;
+      return min(a, b) - h * h * k * 0.25;
+    }
+
+    float memberSd(vec2 localCoord, float4 rect, float4 radii, float4 exponents) {
+      return sdRoundedRect(localCoord - rect.xy, rect.zw, radii, exponents);
+    }
+
+    float shapeSd(vec2 localCoord) {
+      float d = memberSd(localCoord, memberRects[0], memberRadii[0], memberCornerExponents[0]);
+      for (int i = 1; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        d = smoothMin(d, memberSd(localCoord, memberRects[i], memberRadii[i], memberCornerExponents[i]), memberSmoothing[i]);
+      }
+      return d;
+    }
+
+    vec4 memberDistances(vec2 localCoord) {
+      vec4 d = vec4(0.0);
+      d[0] = memberSd(localCoord, memberRects[0], memberRadii[0], memberCornerExponents[0]);
+      for (int i = 1; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        d[i] = memberSd(localCoord, memberRects[i], memberRadii[i], memberCornerExponents[i]);
+      }
+      return d;
+    }
+
+    float shapeSdFromDistances(vec4 memberDistances) {
+      float d = memberDistances[0];
+      for (int i = 1; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        d = smoothMin(d, memberDistances[i], memberSmoothing[i]);
+      }
+      return d;
+    }
+
+    // Each member's share of the smooth minimum, independent of member order: members within the
+    // largest smoothing radius of the nearest one share it, and otherwise the nearest one wins.
+    vec4 memberWeightsFromDistances(vec4 d) {
+      float nearest = d[0];
+      float k = 0.001;
+      for (int i = 1; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        nearest = min(nearest, d[i]);
+        k = max(k, memberSmoothing[i]);
+      }
+      vec4 w = vec4(0.0);
+      float total = 0.0;
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        float share = max(k - (d[i] - nearest), 0.0);
+        w[i] = share * share;
+        total += w[i];
+      }
+      return w / max(total, 0.000001);
+    }
+
+    vec4 memberWeights(vec2 localCoord) {
+      return memberWeightsFromDistances(memberDistances(localCoord));
+    }
+
+    // Blends unpremultiplied colours in premultiplied space, so a transparent member fades out.
+    vec4 blendMemberColors(vec4 w, vec4 c0, vec4 c1, vec4 c2, vec4 c3) {
+      vec4 p = w.x * vec4(c0.rgb * c0.a, c0.a) + w.y * vec4(c1.rgb * c1.a, c1.a) +
+        w.z * vec4(c2.rgb * c2.a, c2.a) + w.w * vec4(c3.rgb * c3.a, c3.a);
+      return p.a > 0.0001 ? vec4(p.rgb / p.a, p.a) : vec4(0.0);
+    }
+
+    // The member with the largest share is the nearest one, as the shares fall with distance.
+    float4 nearestMemberRect(vec4 w) {
+      float4 rect = memberRects[0];
+      float largest = w[0];
+      for (int i = 1; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        if (w[i] > largest) {
+          largest = w[i];
+          rect = memberRects[i];
+        }
+      }
+      return rect;
+    }
+    
+    vec2 shapeGradientOver(vec2 localCoord, float step) {
+      float delta = max(step, 0.0001);
+      vec2 dx = vec2(delta, 0.0);
+      vec2 dy = vec2(0.0, delta);
+      return vec2(
+        shapeSd(localCoord + dx) - shapeSd(localCoord - dx),
+        shapeSd(localCoord + dy) - shapeSd(localCoord - dy)
+      ) * (0.5 / delta);
+    }
+
+    vec2 shapeGradient(vec2 localCoord) {
+      return shapeGradientOver(localCoord, sampleStep);
+    }
+
+    // Maps a field point back through each pressed member's press transform to its unpressed
+    // layout point, weighted by member ownership, so a pressed member samples the content it would
+    // sample drawn alone. An unpressed member maps every point to itself.
+    vec2 mergedSampleOffset(vec2 localCoord, vec4 w) {
+      vec2 offset = vec2(0.0);
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        vec4 rect = memberRects[i];
+        vec4 layoutRect = memberLayoutRects[i];
+        offset += w[i] * (layoutRect.xy + (localCoord - rect.xy) * (layoutRect.zw / rect.zw) - localCoord);
+      }
+      return offset;
+    }
+
+    // Normalized by the member's half size, so the press transform leaves it unchanged.
+    float memberCornerWeight(vec2 localCoord, vec4 w) {
+      float4 member = nearestMemberRect(w);
+      vec2 memberHalfSize = member.zw * 0.5;
+      vec2 memberCentered = localCoord - member.xy - memberHalfSize;
+      return abs(
+        (memberCentered.x * memberCentered.y) / max(memberHalfSize.x * memberHalfSize.y, 0.001)
+      );
+    }
+
+    // Each member caps displacement at half its own shortest side. Blending those caps by the
+    // members' field weights keeps a large member's cap away from a small one, and stays
+    // continuous across a bridge.
+    float mergeMaxDisplacement(vec4 w) {
+      float cap = 0.0;
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        cap += w[i] * min(memberRects[i].z, memberRects[i].w) * 0.5;
+      }
+      return cap;
+    }
+    
+    uniform float2 memberOpticalPositions[4];
+    uniform float memberOpticalRadii[4];
+    uniform float memberRefractionMultipliers[4];
+    uniform float memberWhitePointDeltas[4];
+
+    uniform float4 memberStandaloneWeights;
+
+    vec2 mergedOpticalValues(vec2 localCoord, vec4 w) {
+      float multiplierDelta = 0.0;
+      float whitePointDelta = 0.0;
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        float normalized = distance(localCoord, memberOpticalPositions[i]) /
+          max(memberOpticalRadii[i], 0.0001);
+        float interactionWeight = 1.0 - smootherstep(clamp(normalized, 0.0, 1.0));
+        float weight = w[i] * interactionWeight;
+        multiplierDelta += weight * (memberRefractionMultipliers[i] - 1.0);
+        whitePointDelta += weight * memberWhitePointDeltas[i];
+      }
+      return vec2(clamp(1.0 + multiplierDelta, 0.0, 2.0), whitePointDelta);
+    }
+    
+
+    
+    float circleMap(float x) {
+      return 1.0 - sqrt(max(0.0, 1.0 - x * x));
+    }
+
+    float squircleMap(float t) {
+      return 1.0 - smootherstep(t * sqrt(t));
+    }
+
+    float evaluateProfile(float t) {
+      float x = 1.0 - clamp(t, 0.0, 1.0);
+      if (surfaceProfile == 1) {
+        return squircleMap(t);
+      } else if (surfaceProfile == 2) {
+        return -circleMap(x);
+      } else if (surfaceProfile == 3) {
+        float convex = circleMap(x);
+        float concave = -circleMap(x);
+        float blend = smootherstep(clamp(t / 0.7, 0.0, 1.0));
+        return mix(convex, concave, blend);
+      }
+      return circleMap(x);
+    }
+
+    float opticalFieldWeight(vec2 size, float height) {
+      float shortestSide = max(min(size.x, size.y), 0.0001);
+      float aspectRatio = max(size.x, size.y) / shortestSide;
+      float elongation = smootherstep(clamp((aspectRatio - 1.5) / 1.5, 0.0, 1.0));
+      float overlap = smootherstep(clamp((height / (shortestSide * 0.5) - 0.75) / 0.25, 0.0, 1.0));
+      return elongation * overlap;
+    }
+
+    float opticalFieldWeight() { return opticalFieldWeight(materialSize, refractionHeight); }
+
+    vec2 normalizedMaterialCoord(vec2 localCoord, vec2 size) {
+      vec2 halfSize = max(size * 0.5, vec2(0.0001));
+      return (localCoord - halfSize) / halfSize;
+    }
+
+    float domeDistance(vec2 localCoord, vec2 size, float height) {
+      vec2 normalized = normalizedMaterialCoord(localCoord, size);
+      vec2 squared = normalized * normalized;
+      float radius = sqrt(clamp(squared.x + squared.y - squared.x * squared.y, 0.0, 1.0));
+      return max((1.0 - radius) * height, 0.0);
+    }
+
+    float opticalDistance(vec2 p, float sd, float weight, vec2 size, float height) {
+      float edge = max(-sd, 0.0);
+      if (weight <= 0.0) return edge;
+      return mix(edge, domeDistance(p, size, height), weight);
+    }
+
+    float opticalDistanceFromSignedDistance(vec2 p, float sd, float weight) {
+      return opticalDistance(p, sd, weight, materialSize, refractionHeight);
+    }
+
+    float surfaceHeightFromDistance(float distance, float height) {
+      float zone = max(height, 0.0001);
+      return evaluateProfile(clamp(distance / zone, 0.0, 1.0)) * zone;
+    }
+
+    float surfaceHeightFromOpticalDistance(float distance) {
+      return surfaceHeightFromDistance(distance, refractionHeight);
+    }
+
+    float rectSurfaceHeight(vec2 p, vec2 size, vec4 radii, vec4 exponents, float height, float weight) {
+      if (weight >= 1.0) return surfaceHeightFromDistance(domeDistance(p, size, height), height);
+      float sd = sdRoundedRect(p, size, radii, exponents);
+      return surfaceHeightFromDistance(opticalDistance(p, sd, weight, size, height), height);
+    }
+
+    float surfaceHeight(vec2 p, float weight) {
+      if (weight >= 1.0) return surfaceHeightFromOpticalDistance(domeDistance(p, materialSize, refractionHeight));
+      float sd = shapeSd(p);
+      return surfaceHeightFromOpticalDistance(opticalDistanceFromSignedDistance(p, sd, weight));
+    }
+
+    float surfaceHeightNormFromOpticalDistance(float distance) {
+      return clamp(surfaceHeightFromOpticalDistance(distance) / max(refractionHeight, 0.0001), -1.0, 1.0);
+    }
+
+    vec2 rectOpticalGradient(vec2 p, vec2 size, vec4 radii, vec4 exponents, float height, float weight) {
+      vec2 normalized = normalizedMaterialCoord(p, size);
+      vec2 squared = normalized * normalized;
+      vec2 dome = vec2(normalized.x * (1.0 - squared.y), normalized.y * (1.0 - squared.x));
+      if (weight >= 1.0) return dome;
+      vec2 boundary = gradSdRoundedRect(p, size, radii, exponents, max(height, 1.0));
+      return mix(boundary, dome, weight);
+    }
+
+    vec2 opticalSurfaceGradient(vec2 p, float weight) {
+      return shapeGradient(p);
+    }
+
+    float refractionFoldEnvelope(float opticalDistance, float height) {
+      float foldWidth = max(
+        edgeRefractionWidth >= 0.0 ? edgeRefractionWidth : height, sampleStep
+      );
+      float foldT = clamp(opticalDistance / foldWidth, 0.0, 1.0);
+      float foldRise = smootherstep(clamp(foldT / 0.2, 0.0, 1.0));
+      float foldFall = 1.0 - smootherstep(clamp((foldT - 0.25) / 0.35, 0.0, 1.0));
+      return foldRise * foldFall;
+    }
+
+    float foldedRefractionHeightNorm(float heightNorm, float opticalDistance, float height) {
+      if (refractionFoldStrength <= 0.0) return heightNorm;
+      float foldEnvelope = refractionFoldEnvelope(opticalDistance, height);
+      float foldWeight = clamp(refractionFoldStrength * foldEnvelope, 0.0, 1.0);
+      // Reverse the sampling derivative without reversing displacement through zero.
+      float foldDirection = edgeRefractionWidth < 0.0 && surfaceProfile == 2 ? -1.0 : 1.0;
+      float foldTarget = foldDirection * abs(heightNorm) * 0.02;
+      return mix(heightNorm, foldTarget, foldWeight);
+    }
+
+    vec2 edgeRefractionGradient(vec2 localCoord, vec2 size, vec4 customRadii, vec4 exponents) {
+      // The cap keeps the optical corner regions disjoint, allowing one analytic arc normal.
+      vec4 widened = min(customRadii * 1.5, vec4(min(size.x, size.y) * 0.5));
+      // Continuous corners already ease into their edges, so they use their own corner boxes.
+      vec4 radii = vec4(
+        exponents.x > 2.0 ? customRadii.x : widened.x,
+        exponents.y > 2.0 ? customRadii.y : widened.y,
+        exponents.z > 2.0 ? customRadii.z : widened.z,
+        exponents.w > 2.0 ? customRadii.w : widened.w
+      );
+      vec2 delta = vec2(0.0);
+      float exponent = 2.0;
+      bool corner = false;
+      if (localCoord.x < radii.x && localCoord.y < radii.x) {
+        delta = localCoord - vec2(radii.x);
+        exponent = exponents.x;
+        corner = true;
+      } else if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
+        delta = localCoord - vec2(size.x - radii.y, radii.y);
+        exponent = exponents.y;
+        corner = true;
+      } else if (localCoord.x > size.x - radii.z &&
+          localCoord.y > size.y - radii.z) {
+        delta = localCoord - vec2(size.x - radii.z, size.y - radii.z);
+        exponent = exponents.z;
+        corner = true;
+      } else if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
+        delta = localCoord - vec2(radii.w, size.y - radii.w);
+        exponent = exponents.w;
+        corner = true;
+      }
+      float blendWidth = max(sampleStep * 0.5, 0.01);
+      if (!corner) return gradSdRectangle(localCoord, size, blendWidth);
+      float cornerDistance = length(delta);
+      float axisDistance = min(abs(delta.x), abs(delta.y));
+      vec2 normal = exponent > 2.0
+        ? safeNormalize(cornerNormal(delta, exponent), vec2(0.0))
+        : delta / max(cornerDistance, 0.0001);
+      if (axisDistance >= blendWidth) return normal;
+      // Join the straight-edge field at both corner axes, including their undefined arc centre.
+      // Away from this one-sample transition the normal is the exact analytic corner normal.
+      float cornerWeight = smootherstep(clamp(axisDistance / blendWidth, 0.0, 1.0));
+      return mix(
+        gradSdRectangle(localCoord, size, blendWidth),
+        normal,
+        cornerWeight
+      );
+    }
+
+    vec2 shapeRefractionGradient(vec2 localCoord) {
+      return shapeGradientOver(localCoord, max(sampleStep, edgeRefractionWidth * 0.5));
+    }
+
+    // 1 where the glass is at least a refraction width deep along the inward normal, falling to 0
+    // where a thin bridge would carry the sample across to its opposite edge.
+    float shapeThicknessWeight(vec2 localCoord, vec2 gradient) {
+      float width = max(edgeRefractionWidth, 0.0001);
+      vec2 inward = -safeNormalize(gradient, vec2(0.0));
+      float depthAhead = -shapeSd(localCoord + inward * width);
+      return smootherstep(clamp(depthAhead / width, 0.0, 1.0));
+    }
+
+    vec2 evaluateRefraction(
+      vec2 localCoord,
+      float heightNorm,
+      float opticalDistance,
+      float refractionMultiplier,
+      float fieldWeight,
+      vec2 size,
+      vec4 radii,
+      vec4 exponents,
+      float height,
+      bool mergedField,
+      vec4 w
+    ) {
+      float effectiveRefractionStrength =
+        clamp(refractionStrength * refractionMultiplier, 0.0, 1.0);
+      if (edgeRefractionWidth >= 0.0) {
+        if (edgeRefractionWidth <= 0.0 || opticalDistance >= edgeRefractionWidth) return vec2(0.0);
+        float t = clamp(opticalDistance / edgeRefractionWidth, 0.0, 1.0);
+        float cutoff = max(1.0 - t * t, 0.0);
+        // Empirical Clear fit: rapid boundary decay with a smooth finite-width cutoff.
+        float profile = exp(-t / 0.225) * cutoff * cutoff;
+        float magnitude = foldedRefractionHeightNorm(profile, opticalDistance, height) * min(
+          effectiveRefractionStrength * refractionScale,
+          mergedField ? mergeMaxDisplacement(w) : min(size.x, size.y) * 0.5
+        );
+        vec2 gradient;
+        if (mergedField) {
+          gradient = shapeRefractionGradient(localCoord);
+          magnitude *= shapeThicknessWeight(localCoord, gradient);
+        } else {
+          gradient = vec2(0.0);
+        }
+        
+        float gradientLength = length(gradient);
+        float centerFade = smootherstep(clamp(gradientLength / 0.5, 0.0, 1.0));
+        return -gradient / max(gradientLength, 0.0001) * centerFade * magnitude;
+      }
+      float effectiveHeightNorm =
+        foldedRefractionHeightNorm(heightNorm, opticalDistance, height);
+      float displacementMagnitude =
+        effectiveHeightNorm * effectiveRefractionStrength * refractionScale;
+      vec2 opticalGradient = mergedField ? shapeGradient(localCoord) :
+        rectOpticalGradient(localCoord, size, radii, exponents, height, fieldWeight);
+      vec2 displacementGradient = opticalGradient;
+      if (fieldWeight < 1.0) {
+        float gradientLength = length(opticalGradient);
+        float centerFade = smootherstep(clamp(gradientLength / 0.5, 0.0, 1.0));
+        vec2 normalizedGradient =
+          opticalGradient / max(gradientLength, 0.0001) * centerFade;
+        displacementGradient = mix(normalizedGradient, opticalGradient, fieldWeight);
+      }
+      return -displacementGradient * displacementMagnitude;
+    }
+    vec2 refractionDisplacement(vec2 p, float heightNorm, float distance, float multiplier, float weight, vec4 w, out vec2 sampleDisplacement) {
+      vec2 mergedResult = evaluateRefraction(
+        p, heightNorm, distance, multiplier, weight, materialSize, cornerRadii, cornerExponents, refractionHeight, true, w
+      );
+      
+      sampleDisplacement = mergedResult;
+      return mergedResult;
+      vec4 shares = w * memberStandaloneWeights;
+      vec2 result = mergedResult;
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        if (shares[i] <= 0.0) continue;
+        vec4 rect = memberRects[i];
+        vec2 size = memberLayoutRects[i].zw;
+        vec2 scale = rect.zw / size;
+        // Continue each standalone profile from its boundary into the emerging bridge.
+        vec2 local = clamp((p - rect.xy) / scale, vec2(0.0), size);
+        vec4 radii = memberRadii[i] / min(scale.x, scale.y);
+        vec4 exponents = memberCornerExponents[i];
+        float field = opticalFieldWeight(size, refractionHeight);
+        float sd = sdRoundedRect(local, size, radii, exponents);
+        float optical = opticalDistance(local, sd, field, size, refractionHeight);
+        float height = surfaceHeightNormFromOpticalDistance(optical);
+        vec2 standalone = evaluateRefraction(
+          local, height, edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : optical,
+          multiplier, field, size, radii, exponents, refractionHeight, false, w
+        );
+        // Sampling reads through the press transform, so it keeps the unpressed displacement.
+        sampleDisplacement += shares[i] * (standalone - mergedResult);
+        // Coverage tests the pressed shape, where the press maps q + d(q) to p + scale * d(q).
+        result += shares[i] * (standalone * scale - mergedResult);
+      }
+      return result;
+      
+    }
+  
+
+    
+
+    vec4 sampleDepth(vec2 coord) {
+      return content.eval(clampSample(coord));
+    }
+
+    
+    vec2 surfaceGradient(vec2 localCoord, float fieldWeight) {
+      float left = surfaceHeight(
+        clampMaterial(localCoord - vec2(sampleStep, 0.0)),
+        fieldWeight
+      );
+      float right = surfaceHeight(
+        clampMaterial(localCoord + vec2(sampleStep, 0.0)),
+        fieldWeight
+      );
+      float up = surfaceHeight(
+        clampMaterial(localCoord - vec2(0.0, sampleStep)),
+        fieldWeight
+      );
+      float down = surfaceHeight(
+        clampMaterial(localCoord + vec2(0.0, sampleStep)),
+        fieldWeight
+      );
+      return vec2(right - left, down - up) * (0.5 / max(sampleStep, 0.0001));
+    }
+
+    vec2 mergedSurfaceLightingGradient(vec2 localCoord, float sd, float fieldWeight) {
+      if (surfaceProfile == 1) {
+        float refractionZone = max(refractionHeight, 0.0001);
+        float opticalDistance = opticalDistanceFromSignedDistance(localCoord, sd, fieldWeight);
+        float t = clamp(opticalDistance / refractionZone, 0.0, 1.0);
+        float lightingSlope = 2.0 * (1.0 - smootherstep(t));
+        return opticalSurfaceGradient(localCoord, fieldWeight) * lightingSlope;
+      }
+      return surfaceGradient(localCoord, fieldWeight);
+    }
+
+    vec2 surfaceLightingGradient(vec2 p, float sd, float weight, vec4 w) {
+      vec2 result = mergedSurfaceLightingGradient(p, sd, weight);
+      
+      if (dot(memberStandaloneWeights, vec4(1.0)) <= 0.0) return result;
+      vec4 shares = w * memberStandaloneWeights;
+      vec2 blended = result;
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        if (shares[i] <= 0.0) continue;
+        vec4 rect = memberRects[i];
+        vec2 size = memberLayoutRects[i].zw;
+        vec2 scale = rect.zw / size;
+        vec2 local = clamp((p - rect.xy) / scale, vec2(0.0), size);
+        vec4 radii = memberRadii[i] / min(scale.x, scale.y);
+        vec4 exponents = memberCornerExponents[i];
+        float height = refractionHeight;
+        float field = opticalFieldWeight(size, height);
+        vec2 standalone;
+        if (surfaceProfile == 1) {
+          float sd = sdRoundedRect(local, size, radii, exponents);
+          float distance = opticalDistance(local, sd, field, size, height);
+          float slope = 2.0 * (1.0 - smootherstep(clamp(distance / max(height, 0.0001), 0.0, 1.0)));
+          standalone = rectOpticalGradient(local, size, radii, exponents, height, field) * slope;
+        } else {
+          vec2 dx = vec2(sampleStep, 0.0);
+          vec2 dy = vec2(0.0, sampleStep);
+          standalone = vec2(
+            rectSurfaceHeight(clamp(local + dx, vec2(0.0), size), size, radii, exponents, height, field) -
+              rectSurfaceHeight(clamp(local - dx, vec2(0.0), size), size, radii, exponents, height, field),
+            rectSurfaceHeight(clamp(local + dy, vec2(0.0), size), size, radii, exponents, height, field) -
+              rectSurfaceHeight(clamp(local - dy, vec2(0.0), size), size, radii, exponents, height, field)
+          ) * (0.5 / max(sampleStep, 0.0001));
+        }
+        blended += shares[i] * (standalone - result);
+      }
+      return blended;
+      
+    }
+
+    vec3 unpremultiply(vec4 color) {
+      return color.a > 0.0001 ? color.rgb / color.a : vec3(0.0);
+    }
+
+    vec3 applyAmbient(vec3 color, float ambient) {
+      // Bound generated SDR highlights before coverage/alpha, while preserving the existing
+      // response of colour-managed tints with legitimate extended-range components.
+      bool inputIsSdr = min(color.r, min(color.g, color.b)) >= 0.0 &&
+        max(color.r, max(color.g, color.b)) <= 1.0;
+      vec3 litColor = color * ambient;
+      return inputIsSdr ? clamp(litColor, 0.0, 1.0) : litColor;
+    }
+
+    vec4 premultiply(vec3 color, float alpha) {
+      return vec4(color * alpha, alpha);
+    }
+
+    float luma(vec3 color) {
+      return dot(color, vec3(0.299, 0.587, 0.114));
+    }
+
+    vec3 sampleChromaSimple(
+      vec2 coord,
+      vec2 chromaOffset,
+      vec4 centerSample
+    ) {
+      if (length(chromaOffset) < 0.0001) return unpremultiply(centerSample);
+      vec3 forward = unpremultiply(sampleDepth(coord + chromaOffset));
+      vec3 backward = unpremultiply(sampleDepth(coord - chromaOffset));
+      vec3 centerStraight = unpremultiply(centerSample);
+      return vec3(forward.r, centerStraight.g, backward.b);
+    }
+
+    vec3 sampleChromaFull(
+      vec2 coord,
+      vec2 chromaOffset,
+      vec4 centerSample
+    ) {
+      if (length(chromaOffset) < 0.0001) return unpremultiply(centerSample);
+      vec3 red = unpremultiply(sampleDepth(coord + chromaOffset));
+      vec3 orange =
+        unpremultiply(sampleDepth(coord + chromaOffset * (2.0 / 3.0)));
+      vec3 yellow =
+        unpremultiply(sampleDepth(coord + chromaOffset * (1.0 / 3.0)));
+      vec3 green = unpremultiply(centerSample);
+      vec3 cyan =
+        unpremultiply(sampleDepth(coord - chromaOffset * (1.0 / 3.0)));
+      vec3 blue =
+        unpremultiply(sampleDepth(coord - chromaOffset * (2.0 / 3.0)));
+      vec3 purple = unpremultiply(sampleDepth(coord - chromaOffset));
+      return vec3(
+        red.r / 3.5 + orange.r / 3.5 + yellow.r / 3.5 + purple.r / 7.0,
+        orange.g / 7.0 + yellow.g / 3.5 + green.g / 3.5 + cyan.g / 3.5,
+        cyan.b / 3.0 + blue.b / 3.0 + purple.b / 3.0
+      );
+    }
+
+    vec3 sampleChroma(
+      vec2 coord,
+      vec2 chromaOffset,
+      vec4 centerSample
+    ) {
+      if (chromaticAberrationMode == 1) {
+        return sampleChromaFull(coord, chromaOffset, centerSample);
+      }
+      return sampleChromaSimple(coord, chromaOffset, centerSample);
+    }
+
+    vec3 computeContentNormal(vec2 coord, vec4 centerSample) {
+      float center = luma(unpremultiply(centerSample));
+      float right = luma(
+        unpremultiply(sampleDepth(coord + vec2(sampleStep, 0.0)))
+      );
+      float down = luma(
+        unpremultiply(sampleDepth(coord + vec2(0.0, sampleStep)))
+      );
+      vec2 gradient =
+        vec2(right - center, down - center) / max(sampleStep, 0.0001);
+      return normalize(vec3(gradient, 1.0));
+    }
+
+    vec3 applyColorGrading(vec3 color, float appliedWhitePoint) {
+      if (chromaMultiplier != 1.0) {
+        vec3 linearColor = toLinearSrgb(color);
+        float luminance = dot(linearColor, vec3(0.2126, 0.7152, 0.0722));
+        float chromaScale = chromaMultiplier;
+        if (chromaMultiplier > 1.0) {
+          bool sourceIsInSrgbGamut =
+            min(linearColor.r, min(linearColor.g, linearColor.b)) >= 0.0 &&
+              max(linearColor.r, max(linearColor.g, linearColor.b)) <= 1.0;
+          if (sourceIsInSrgbGamut) {
+            vec3 delta = linearColor - vec3(luminance);
+            if (delta.r > 0.0) chromaScale = min(chromaScale, (1.0 - luminance) / delta.r);
+            if (delta.r < 0.0) chromaScale = min(chromaScale, -luminance / delta.r);
+            if (delta.g > 0.0) chromaScale = min(chromaScale, (1.0 - luminance) / delta.g);
+            if (delta.g < 0.0) chromaScale = min(chromaScale, -luminance / delta.g);
+            if (delta.b > 0.0) chromaScale = min(chromaScale, (1.0 - luminance) / delta.b);
+            if (delta.b < 0.0) chromaScale = min(chromaScale, -luminance / delta.b);
+            chromaScale = max(1.0, chromaScale);
+          } else {
+            chromaScale = 1.0;
+          }
+        }
+        color = fromLinearSrgb(mix(vec3(luminance), linearColor, chromaScale));
+      }
+      if (appliedWhitePoint != 0.0) {
+        vec3 target = appliedWhitePoint > 0.0 ? vec3(1.0) : vec3(0.0);
+        color = mix(color, target, abs(appliedWhitePoint));
+      }
+      if (contrast != 0.0) {
+        color = clamp((color - 0.5) * (1.0 + contrast) + 0.5, 0.0, 1.0);
+      }
+      return color;
+    }
+  
+
+    vec4 main(vec2 coord) {
+  vec2 localCoord = materialCoord(coord);
+  vec4 memberDistancesAtCoord = memberDistances(localCoord);
+  vec4 w = vec4(1.0, 0.0, 0.0, 0.0);
+  float coverage = shapeCoverage(-1.0, sampleStep * 0.5);
+  if (coverage <= 0.0) return vec4(0.0);
+  float opticalDistance = opticalDistanceFromSignedDistance(localCoord, -1.0, 0.0);
+  float heightNorm = 0.5;
+  vec2 sampleDisplacement;
+  vec2 displacement = vec2(0.0); sampleDisplacement = vec2(0.0);
+  vec4 sampled = sampleDepth(clampSample(coord + sampleDisplacement));
+  vec3 straight = applyAmbient(clamp(unpremultiply(sampled), 0.0, 1.0), 1.0);
+  vec4 processed = premultiply(straight, sampled.a);
+  return processed.a > 0.0 ? processed * coverage : vec4(0.0);
+}
