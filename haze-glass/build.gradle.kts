@@ -116,3 +116,16 @@ tasks.withType<Test>().matching { it.name == "testAndroidHostTest" }.configureEa
 tasks.withType<Test>().matching { it.name == "jvmTest" }.configureEach {
   maxParallelForks = 4
 }
+
+// Compile once, then launch fresh probe JVMs without Gradle startup in the timing loop.
+tasks.register("prepareWindowsGlassProbe") {
+  group = "verification"
+  val runtimeClasspath = tasks.named<Test>("jvmTest").get().classpath
+  val classpathFile = layout.buildDirectory.file("windows-glass-probe-classpath.txt")
+  inputs.files(runtimeClasspath)
+  outputs.file(classpathFile)
+  dependsOn(runtimeClasspath)
+  doLast {
+    classpathFile.get().asFile.writeText(runtimeClasspath.asPath)
+  }
+}
