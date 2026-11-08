@@ -52,7 +52,7 @@ events/buffers. Exclusive target CPU samples:
 
 | Case | Total | D3D10Warp.dll | d3dcompiler_47.dll |
 | --- | ---: | ---: | ---: |
-| Original continuous | 29,943 | 23,469 | 5,434 |
+| Original continuous | 29,944 | 23,469 | 5,434 |
 | Reduced | 2,701 | 1,735 | 777 |
 | Refraction-free control | 54 | 1 | 25 |
 

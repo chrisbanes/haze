@@ -234,7 +234,7 @@ first-draw epoch interval, not the JVM lifetime; `first-draw-range-us.json` pres
 
 | Case | First-draw interval | Target exclusive CPU samples | Compiler attribution |
 | --- | --- | --- | --- |
-| Original continuous, unmodified | 30-second censored interval | 29,943 | WARP 23,469; D3DCompiler 5,434 |
+| Original continuous, unmodified | 30-second censored interval | 29,944 | WARP 23,469; D3DCompiler 5,434 |
 | Retained fourteen-cut case | 2,717.47 ms | 2,701 | WARP 1,735; D3DCompiler 777 |
 | Same retained source, refraction bypassed | 64.40 ms | 54 | WARP 1; D3DCompiler 25 |
 

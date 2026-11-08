@@ -82,6 +82,15 @@ jobs:
           try {
             ./gradlew.bat installDist --no-scan --console=plain --max-workers=2
             if ($LASTEXITCODE -ne 0) { throw 'Standalone compilation failed' }
+            $watchdogScript = Join-Path $repro 'watchdog-test.ps1'
+            (Get-Content run.ps1 -Raw).Replace('WaitForExit(60000)', 'WaitForExit(1)') | Set-Content $watchdogScript
+            pwsh -File $watchdogScript
+            if ($LASTEXITCODE -ne 2) { throw 'Forced watchdog must be INVALID' }
+            if (@(Get-ChildItem build/results -Filter stdout.txt -Recurse).Count -ne 1 -or
+                @(Get-ChildItem build/results -Filter stderr.txt -Recurse).Count -ne 1) {
+              throw 'Forced watchdog discarded captured process streams'
+            }
+            Remove-Item $watchdogScript
             pwsh -File run.ps1
             if ($LASTEXITCODE -ne 1) { throw 'Standalone reduced cold stall did not reproduce' }
           } finally {

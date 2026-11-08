@@ -22,17 +22,22 @@ foreach ($case in @('control', 'retained')) {
     }
     $process = [Diagnostics.Process]::new()
     $process.StartInfo = $info
+    $started = $false
     try {
       if (-not $process.Start()) { throw 'Could not start owned JVM' }
+      $started = $true
       $stdout = $process.StandardOutput.ReadToEndAsync()
       $stderr = $process.StandardError.ReadToEndAsync()
       if (-not $process.WaitForExit(60000)) { throw 'Owned JVM exceeded 60-second watchdog; no completed duration' }
-      $stdout.GetAwaiter().GetResult() | Set-Content (Join-Path $directory 'stdout.txt')
-      $stderr.GetAwaiter().GetResult() | Set-Content (Join-Path $directory 'stderr.txt')
       if ($process.ExitCode -ne 0) { throw "Invalid $case-$trial; inspect $directory" }
     } finally {
-      if ($process.Id -and -not $process.HasExited) { $process.Kill($true); $process.WaitForExit() }
-      $process.Dispose()
+      try {
+        if ($started) {
+          if (-not $process.HasExited) { $process.Kill($true); $process.WaitForExit() }
+          [IO.File]::WriteAllText((Join-Path $directory 'stdout.txt'), $stdout.GetAwaiter().GetResult())
+          [IO.File]::WriteAllText((Join-Path $directory 'stderr.txt'), $stderr.GetAwaiter().GetResult())
+        }
+      } finally { $process.Dispose() }
     }
     $times = @(Import-Csv (Join-Path $directory 'timings.csv'))
     $cold = @($times | Where-Object phase -eq 'first-draw')
