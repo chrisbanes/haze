@@ -241,7 +241,9 @@ class FallbackGlassRefreshInstrumentationTest {
                   interactionSource = null,
                   memberTransition = GlassMemberTransition.None,
                 ),
-              )
+              ) {
+                if (visual) Box(Modifier.offset(x = 120.dp, y = 40.dp).size(20.dp).background(Color.Green))
+              }
               Box(
                 Modifier.offset(x = 100.dp).size(140.dp, 110.dp).hazeGlass(
                   factory = HazeEffectFactory { secondEffect },
@@ -261,7 +263,6 @@ class FallbackGlassRefreshInstrumentationTest {
                   memberTransition = GlassMemberTransition.None,
                 ),
               )
-              if (visual) Box(Modifier.offset(x = 120.dp, y = 40.dp).size(20.dp).background(Color.Green))
             }
           } else {
             Box(
@@ -427,7 +428,13 @@ class FallbackGlassRefreshInstrumentationTest {
       val full = captures[2].at(84, alphaY)
       log.appendText("alpha sharp=$sharp half=$half full=$full\n")
       assertThat(kotlin.math.abs(full.blue - sharp.blue)).isGreaterThan(0.15f)
-      assertThat(kotlin.math.abs(half.blue - (sharp.blue + full.blue) / 2)).isLessThan(0.12f)
+      val separation = kotlin.math.abs(full.blue - sharp.blue)
+      val tolerance = minOf(0.02f, separation / 8f)
+      val expectedHalf = (sharp.blue + full.blue) / 2f
+      assertThat(kotlin.math.abs(half.blue - expectedHalf)).isLessThan(tolerance)
+      assertThat(kotlin.math.abs(sharp.blue + (full.blue - sharp.blue) * 0.25f - expectedHalf))
+        .isGreaterThan(tolerance)
+      assertThat(kotlin.math.abs(full.blue - expectedHalf)).isGreaterThan(tolerance)
       val corner = captures[2].at(1, 11)
       val outside = captures[2].at(1, 140)
       assertThat(kotlin.math.abs(corner.blue - outside.blue)).isLessThan(0.1f)
