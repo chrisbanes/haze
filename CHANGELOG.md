@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Glass fallback rendering blurs captured content on Android 12 and 12L hardware and uses an
   automatic scrim on unblurred paths. Set `fallbackColor` to replace or disable that scrim. Clear
   uses its light response in both system appearances
-  ([#1731](https://github.com/chrisbanes/haze/issues/1731)).
+  ([#1731](https://github.com/chrisbanes/haze/issues/1731),
+  [#1754](https://github.com/chrisbanes/haze/issues/1754)).
 - Continuous Glass corner shapes interpolate their corners and smoothing with Compose's
   `Interpolatable.lerp` ([#1752](https://github.com/chrisbanes/haze/issues/1752)).
 

@@ -150,7 +150,8 @@ private class ConfiguredSurface<Style>(
   private var input: HazeInput = checkNotNull(anchor.node.explicitInput)
   override val hasBackdropInput: Boolean
     get() = input is HazeInput.Backdrop || members.any { it.hasBackdropInput }
-  private val context = object : HazeEffectLifecycleScope by anchor.node.surfaceLifecycleScope() {
+  private val trackedScope = anchor.node.surfaceLifecycleScope()
+  private val context = object : HazeEffectLifecycleScope by trackedScope {
     // The delegate would hand out the anchor member's own surface, not this configured one.
     override val surface: HazeEffectSurface
       get() = error("A configured surface's renderer cannot relocate a surface of its own")
@@ -163,7 +164,7 @@ private class ConfiguredSurface<Style>(
   init {
     anchor.node.registerConfiguredSurface(this)
     lifecycle?.attach(context)
-    lifecycle?.update(context, style, HazeSampling.FullResolution)
+    updateLifecycle()
   }
 
   fun update(style: Style, bounds: Rect, members: List<HazeEffectSurface>): Boolean {
@@ -182,13 +183,21 @@ private class ConfiguredSurface<Style>(
       temporaryFallback = false
       input = nextInput
       backend.attach(anchor.node.surfaceNativeEligible())
-    } else if (this.style == style && this.bounds == bounds && this.members == members) return false
+    } else if (this.style == style && this.bounds == bounds && this.members == members && !trackedScope.localsChanged()) return false
     if (this.bounds != bounds) retained?.invalidateRetainedOutput()
     this.style = style
     this.bounds = bounds
     this.members = members
-    lifecycle?.update(context, style, HazeSampling.FullResolution)
+    updateLifecycle()
     return true
+  }
+
+  private fun updateLifecycle() {
+    trackedScope.recordUpdate { lifecycle?.update(context, style, HazeSampling.FullResolution) }
+  }
+
+  private fun refreshLocals() {
+    if (trackedScope.localsChanged()) updateLifecycle()
   }
 
   private fun resolveEntries(owner: LayoutCoordinates?) {
@@ -251,6 +260,7 @@ private class ConfiguredSurface<Style>(
 
   override fun footprint(scope: DrawScope, owner: HazeEffectSurfaceOwner?): HazeSurfaceFootprint? {
     if (disposed || owner?.surfaceCoordinates?.isAttached != true || !bounds.size.isSpecified || bounds.size.minDimension <= 0f) return null
+    refreshLocals()
     if (hooks?.shouldPrepareDraw(style) == false) return null
     val layoutScope = object : HazeEffectLayoutScope, androidx.compose.ui.unit.Density by context.requireDensity() {
       override val modifierBounds: Rect get() = Rect(Offset.Zero, bounds.size)
@@ -441,6 +451,7 @@ private class ConfiguredSurface<Style>(
     disposed = true
     anchor.node.unregisterConfiguredSurface(this)
     lifecycle?.detach()
+    trackedScope.clearLocals()
     renderer.dispose()
     nativeRenderer?.release()
     nativeRenderer = null

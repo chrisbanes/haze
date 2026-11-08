@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.compositionLocalWithComputedDefaultOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -35,6 +37,140 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class, InternalHazeApi::class)
 class HazeDrawInvalidationTest : ContextTest() {
+
+  @Test
+  fun lifecycleLocals_updateOnlyForReadValuesAndDropConditionalReads() = runComposeUiTest {
+    val primary = staticCompositionLocalOf { 0 }
+    val secondary = staticCompositionLocalOf { 0 }
+    val unread = staticCompositionLocalOf { 0 }
+    val first = mutableStateOf(1)
+    val second = mutableStateOf(2)
+    val ignored = mutableStateOf(0)
+    val readSecond = mutableStateOf(true)
+    val renderer = object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+      lateinit var scope: HazeEffectLifecycleScope
+      var updates = 0
+      var value = 0
+      override fun attach(scope: HazeEffectLifecycleScope) {
+        this.scope = scope
+      }
+      override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+        updates++
+        value = scope.currentValueOf(primary) + if (readSecond.value) scope.currentValueOf(secondary) else 0
+      }
+      override fun HazeEffectDrawScope.draw(style: Unit) {
+        drawInput()
+      }
+    }
+    val factory = HazeEffectFactory<Unit> { renderer }
+    setContent {
+      CompositionLocalProvider(primary provides first.value, secondary provides second.value, unread provides ignored.value) {
+        Box(Modifier.size(80.dp).hazeEffect(factory, HazeInput.Content, Unit))
+      }
+    }
+    waitForIdle()
+    assertThat(renderer.value).isEqualTo(3)
+    val baseline = renderer.updates
+    runOnIdle { renderer.scope.invalidateDraw() }
+    waitForIdle()
+    assertThat(renderer.updates).isEqualTo(baseline)
+    runOnIdle { ignored.value++ }
+    waitForIdle()
+    assertThat(renderer.updates).isEqualTo(baseline)
+    runOnIdle { first.value = 4 }
+    waitForIdle()
+    assertThat(renderer.value).isEqualTo(6)
+    runOnIdle { readSecond.value = false }
+    waitForIdle()
+    assertThat(renderer.value).isEqualTo(4)
+    val dropped = renderer.updates
+    runOnIdle { second.value = 8 }
+    waitForIdle()
+    assertThat(renderer.updates).isEqualTo(dropped)
+    runOnIdle { readSecond.value = true }
+    waitForIdle()
+    assertThat(renderer.value).isEqualTo(12)
+  }
+
+  @Test
+  fun lifecycleLocals_computedValuesUpdateWithoutLoops() = runComposeUiTest {
+    val source = compositionLocalOf { 0 }
+    val computed = compositionLocalWithComputedDefaultOf { source.currentValue + 1 }
+    val value = mutableStateOf(1)
+    var resolved = 0
+    var updates = 0
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+        override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+          updates++
+          resolved = scope.currentValueOf(computed)
+        }
+        override fun HazeEffectDrawScope.draw(style: Unit) {
+          drawInput()
+        }
+      }
+    }
+    setContent {
+      CompositionLocalProvider(source provides value.value) {
+        Box(Modifier.size(80.dp).hazeEffect(factory, HazeInput.Content, Unit))
+      }
+    }
+    waitForIdle()
+    assertThat(resolved).isEqualTo(2)
+    runOnIdle { value.value = 3 }
+    waitForIdle()
+    assertThat(resolved).isEqualTo(4)
+    val settled = updates
+    mainClock.advanceTimeByFrame()
+    waitForIdle()
+    assertThat(updates).isEqualTo(settled)
+  }
+
+  @Test
+  fun lifecycleLocals_reestablishAfterRendererReplacementAndReattachment() = runComposeUiTest {
+    val local = staticCompositionLocalOf { 0 }
+    val value = mutableStateOf(1)
+    val visible = mutableStateOf(true)
+    var firstValue = 0
+    var secondValue = 0
+    fun factory(assign: (Int) -> Unit) = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+        override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+          assign(scope.currentValueOf(local))
+        }
+        override fun HazeEffectDrawScope.draw(style: Unit) {
+          drawInput()
+        }
+      }
+    }
+    val first = factory { firstValue = it }
+    val second = factory { secondValue = it }
+    val selected = mutableStateOf(first)
+    setContent {
+      CompositionLocalProvider(local provides value.value) {
+        if (visible.value) Box(Modifier.size(80.dp).hazeEffect(selected.value, HazeInput.Content, Unit))
+      }
+    }
+    waitForIdle()
+    assertThat(firstValue).isEqualTo(1)
+    runOnIdle { selected.value = second }
+    waitForIdle()
+    runOnIdle { value.value = 2 }
+    waitForIdle()
+    assertThat(firstValue).isEqualTo(1)
+    assertThat(secondValue).isEqualTo(2)
+    runOnIdle { visible.value = false }
+    waitForIdle()
+    runOnIdle {
+      value.value = 3
+      visible.value = true
+    }
+    waitForIdle()
+    assertThat(secondValue).isEqualTo(3)
+    runOnIdle { value.value = 4 }
+    waitForIdle()
+    assertThat(secondValue).isEqualTo(4)
+  }
 
   @Test
   fun rendererRequestedBounds_beforeDrawRefreshesActualGeometry() = runComposeUiTest {

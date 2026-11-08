@@ -564,7 +564,30 @@ internal class HazeEffectLifecycleScopeImpl(
   override fun requirePlatformContext(): PlatformContext = node.requirePlatformContext()
   override fun requireGraphicsContext(): GraphicsContext = node.requireGraphicsContext()
   override fun requireDensity(): Density = node.requireDensity()
-  override fun <T> currentValueOf(local: CompositionLocal<T>): T = node.currentValueOf(local)
+  private var dependencies = mutableMapOf<CompositionLocal<*>, Any?>()
+  private var recording: MutableMap<CompositionLocal<*>, Any?>? = null
+
+  override fun <T> currentValueOf(local: CompositionLocal<T>): T = node.currentValueOf(local).also {
+    recording?.set(local, it)
+  }
+
+  fun recordUpdate(block: () -> Unit) {
+    val next = mutableMapOf<CompositionLocal<*>, Any?>()
+    recording = next
+    try {
+      block()
+      dependencies = next
+    } finally {
+      recording = null
+    }
+  }
+
+  fun localsChanged(): Boolean = node.isAttached && Snapshot.withoutReadObservation {
+    dependencies.any { (local, value) -> node.currentValueOf(local) != value }
+  }
+
+  fun clearLocals() = dependencies.clear()
+
   override fun invalidateDraw() = node.invalidateVisualEffectDraw()
   override fun invalidateLayerBounds() = node.invalidateVisualEffectLayerBounds()
 }

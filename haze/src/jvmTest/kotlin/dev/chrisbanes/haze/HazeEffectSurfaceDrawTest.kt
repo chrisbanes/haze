@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.LocalAwtWindow
 import androidx.compose.ui.draw.clipToBounds
@@ -300,6 +302,54 @@ class HazeEffectSurfaceDrawTest {
       owner.resolveSurfaces = null
     }
     assertThat(disposed).isEqualTo(1)
+  }
+
+  @Test
+  fun configuredSurface_tracksItsOwnStaticAndDynamicLocals() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val anchor = SurfaceFactory(owner)
+    val staticLocal = staticCompositionLocalOf { 0 }
+    val dynamicLocal = compositionLocalOf { 0 }
+    val staticValue = mutableStateOf(1)
+    val dynamicValue = mutableStateOf(2)
+    var updates = 0
+    var result = 0
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+        override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+          updates++
+          result = scope.currentValueOf(staticLocal) + scope.currentValueOf(dynamicLocal)
+        }
+        override fun HazeEffectDrawScope.draw(style: Unit) {
+          drawInput()
+        }
+      }
+    }
+    owner.resolveSurfaces = {
+      configured = configured ?: anchor.surface.createConfiguredSurface(factory, Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+      configured.update(Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      CompositionLocalProvider(staticLocal provides staticValue.value, dynamicLocal provides dynamicValue.value) {
+        Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+          Box(Modifier.size(20.dp).hazeEffect(anchor, HazeInput.Content, Unit).background(Color.Red))
+        }
+      }
+    }
+    waitForIdle()
+    assertThat(result).isEqualTo(3)
+    val initial = updates
+    runOnIdle { owner.redraw() }
+    waitForIdle()
+    assertThat(updates).isEqualTo(initial)
+    runOnIdle { staticValue.value = 4 }
+    waitForIdle()
+    assertThat(result).isEqualTo(6)
+    runOnIdle { dynamicValue.value = 8 }
+    waitForIdle()
+    assertThat(result).isEqualTo(12)
   }
 
   @Test

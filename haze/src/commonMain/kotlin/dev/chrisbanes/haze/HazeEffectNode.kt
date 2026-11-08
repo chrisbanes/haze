@@ -306,7 +306,7 @@ internal class HazeEffectNode(
       }
     }
 
-  private val typedLifecycleScope: HazeEffectLifecycleScope by lazy(LazyThreadSafetyMode.NONE) {
+  private val typedLifecycleScope: HazeEffectLifecycleScopeImpl by lazy(LazyThreadSafetyMode.NONE) {
     HazeEffectLifecycleScopeImpl(this)
   }
 
@@ -424,15 +424,18 @@ internal class HazeEffectNode(
   @OptIn(InternalHazeApi::class)
   private fun updateTypedRenderer() {
     val renderer = typedEffectRenderer ?: return
-    (renderer as? HazeEffectRendererLifecycle<Any?>)?.update(
-      scope = typedLifecycleScope,
-      style = typedEffectStyle,
-      sampling = typedEffectSampling,
-    )
+    typedLifecycleScope.recordUpdate {
+      (renderer as? HazeEffectRendererLifecycle<Any?>)?.update(
+        scope = typedLifecycleScope,
+        style = typedEffectStyle,
+        sampling = typedEffectSampling,
+      )
+    }
   }
 
   @OptIn(InternalHazeApi::class)
   private fun disposeTypedRenderer() {
+    typedLifecycleScope.clearLocals()
     val renderer = typedEffectRenderer ?: return
     val wasAttached = typedRendererAttached
     typedEffectRenderer = null
@@ -749,7 +752,7 @@ internal class HazeEffectNode(
     // Only a placed node draws, so a reactivated node that is not placed again is placed where it was.
     confirmCoordinates()
     if (surface.owner != null) {
-      if (layerBoundsRefreshPending) refreshObservedReads(notifySurface = false)
+      if (layerBoundsRefreshPending || (isAttached && typedLifecycleScope.localsChanged())) refreshObservedReads(notifySurface = false)
       isDrawing = true
       try {
         if (explicitInput === HazeInput.Content && size.minDimension > 0f) {
@@ -772,7 +775,7 @@ internal class HazeEffectNode(
         return
       }
 
-      if (layerBoundsRefreshPending) {
+      if (layerBoundsRefreshPending || typedLifecycleScope.localsChanged()) {
         refreshObservedReads(notifySurface = false)
       }
       // Bounds requested during the refresh are consumed by that update's calculation.
@@ -1673,7 +1676,7 @@ internal class HazeEffectNode(
     return member
   }
 
-  internal fun surfaceLifecycleScope(): HazeEffectLifecycleScope = HazeEffectLifecycleScopeImpl(this)
+  internal fun surfaceLifecycleScope(): HazeEffectLifecycleScopeImpl = HazeEffectLifecycleScopeImpl(this)
   internal fun registerConfiguredSurface(surface: HazeConfiguredSurfaceDraw) {
     configuredSurfaces += surface
   }
@@ -1731,7 +1734,7 @@ internal class HazeEffectNode(
   internal fun preparePortableSurface(scope: DrawScope, owner: LayoutCoordinates?): Boolean {
     surfaceDrawTransform = surfaceTransform(owner)
     val matrix = surfaceDrawTransform ?: return false
-    if (layerBoundsRefreshPending) refreshObservedReads(notifySurface = false)
+    if (layerBoundsRefreshPending || (isAttached && typedLifecycleScope.localsChanged())) refreshObservedReads(notifySurface = false)
     if (!layerSize.isSpecified || layerSize.minDimension <= 0f) return false
     if (shouldPrepareEffectDraw()) {
       withSurfaceScope(scope, matrix) { prepareEffectDraw(effectDrawScope()) }
@@ -1744,7 +1747,7 @@ internal class HazeEffectNode(
     // early return, so a draw never reuses a previous pass's transform.
     surfaceDrawTransform = surfaceTransform(owner)
     val matrix = surfaceDrawTransform ?: return null
-    if (layerBoundsRefreshPending) refreshObservedReads(notifySurface = false)
+    if (layerBoundsRefreshPending || (isAttached && typedLifecycleScope.localsChanged())) refreshObservedReads(notifySurface = false)
     if (!layerSize.isSpecified || layerSize.minDimension <= 0f) return null
     val interaction = (typedEffectRenderer as? HazeEffectRendererInteraction)?.currentContentTransform()
       ?: HazeEffectContentTransform.Identity
