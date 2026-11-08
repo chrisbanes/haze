@@ -35,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Progressive blur avoids long first-render pauses on Windows Direct3D, including when opening a
+  new window ([#1260](https://github.com/chrisbanes/haze/issues/1260)).
 - Progressive blur preserves edge opacity by keeping accepted samples inside the captured content
   ([#1727](https://github.com/chrisbanes/haze/issues/1727)).
 - Progressive blur keeps its crop within the captured content when downscaling, including expanded
