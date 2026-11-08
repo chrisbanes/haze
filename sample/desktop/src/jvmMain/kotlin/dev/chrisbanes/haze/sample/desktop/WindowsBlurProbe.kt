@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ShaderBrush
 import dev.chrisbanes.haze.createProgressiveBlurRenderEffect
+import java.awt.Dimension
 import java.awt.EventQueue
 import java.awt.Rectangle
 import java.awt.Robot
@@ -30,6 +31,8 @@ import org.jetbrains.skiko.SkikoRenderDelegate
 internal fun runWindowsBlurProbe() {
   check(System.getProperty("os.name").startsWith("Windows"))
   System.setProperty("skiko.hardwareInfo.enabled", "true")
+  val probeWidth = System.getenv("HAZE_PROBE_WIDTH")?.toInt() ?: 640
+  val probeHeight = probeWidth * 3 / 4
   val output = File("build/outputs/windows-blur-probe").apply { mkdirs() }
   val timings = File(output, "timings.csv").apply { writeText("window,phase,milliseconds\n") }
   thread(name = "probe-timeout", isDaemon = true) {
@@ -60,11 +63,11 @@ internal fun runWindowsBlurProbe() {
             canvas.clear(0xFFFFFFFF.toInt())
             Paint().use { paint ->
               paint.imageFilter = effect
-              canvas.saveLayer(Rect.makeWH(640f, 480f), paint)
+              canvas.saveLayer(Rect.makeWH(probeWidth.toFloat(), probeHeight.toFloat()), paint)
               paint.imageFilter = null
-              for (x in 0 until 640 step 8) {
+              for (x in 0 until probeWidth step 8) {
                 paint.color = if (x % 16 == 0) 0xFF000000.toInt() else 0xFFFFFFFF.toInt()
-                canvas.drawRect(Rect.makeXYWH(x.toFloat(), 0f, 8f, 480f), paint)
+                canvas.drawRect(Rect.makeXYWH(x.toFloat(), 0f, 8f, probeHeight.toFloat()), paint)
               }
               canvas.restore()
             }
@@ -73,7 +76,8 @@ internal fun runWindowsBlurProbe() {
         frame = JFrame("Haze progressive blur probe $window").apply {
           defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
           contentPane.add(layer)
-          setSize(660, 520)
+          contentPane.preferredSize = Dimension(probeWidth, probeHeight)
+          pack()
           setLocation(40, 40)
           isVisible = true
         }
@@ -92,9 +96,10 @@ internal fun runWindowsBlurProbe() {
         ImageIO.write(baseline, "png", File(output, "window-$window-baseline.png"))
         EventQueue.invokeAndWait {
           measure(window, "construct-progressive") {
-            val mask = (Brush.verticalGradient(listOf(Color.Black, Color.Transparent), endY = 480f) as ShaderBrush)
-              .createShader(Size(640f, 480f))
-            effect = createProgressiveBlurRenderEffect(24f, Size(640f, 480f), Offset.Zero, mask)
+            val size = Size(probeWidth.toFloat(), probeHeight.toFloat())
+            val mask = (Brush.verticalGradient(listOf(Color.Black, Color.Transparent), endY = size.height) as ShaderBrush)
+              .createShader(size)
+            effect = createProgressiveBlurRenderEffect(24f, size, Offset.Zero, mask)
           }
           repeat(4) { measure(window, "progressive-$it") { layer.renderImmediately() } }
         }
