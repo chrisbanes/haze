@@ -613,6 +613,14 @@ class HazeEffectSurfaceDrawTest {
     waitForIdle()
     val original = checkNotNull(configured)
     assertThat(result).isEqualTo(1)
+    val configuredRenderer = original.javaClass.getDeclaredField("renderer").apply { isAccessible = true }.get(original)
+    val observer = configuredRenderer.javaClass.getDeclaredField("observer").apply { isAccessible = true }.get(configuredRenderer)
+    val executorField = observer.javaClass.getDeclaredField("onChangedExecutor").apply { isAccessible = true }
+
+    @Suppress("UNCHECKED_CAST")
+    val originalExecutor = executorField.get(observer) as ((() -> Unit) -> Unit)
+    val held = mutableListOf<() -> Unit>()
+    executorField.set(observer, { command: () -> Unit -> held += command })
     mainClock.autoAdvance = false
     val beforeDetachUpdates = updates
     runOnIdle {
@@ -623,13 +631,16 @@ class HazeEffectSurfaceDrawTest {
         start()
         join()
       }
+      assertThat(held.size).isEqualTo(1)
       active.value = false
     }
     mainClock.advanceTimeByFrame()
     waitForIdle()
+    assertThat(anchor.surface.node.isAttached).isFalse()
     val detachedUpdates = updates
     val detachedChanges = owner.changes
     assertThat(detachedUpdates).isEqualTo(beforeDetachUpdates)
+    runOnIdle { originalExecutor(held.single()) }
     repeat(3) { mainClock.advanceTimeByFrame() }
     waitForIdle()
     assertThat(updates).isEqualTo(detachedUpdates)
@@ -777,6 +788,8 @@ class HazeEffectSurfaceDrawTest {
     val anchor = SurfaceFactory(owner)
     val successful = mutableStateOf(1)
     val attempted = mutableStateOf(2)
+    val successfulLocal = compositionLocalWithComputedDefaultOf { successful.value }
+    val attemptedLocal = compositionLocalWithComputedDefaultOf { attempted.value }
     var shouldFail = false
     var result = 0
     var updates = 0
@@ -785,7 +798,7 @@ class HazeEffectSurfaceDrawTest {
       object : HazeEffectRenderer<Int>, HazeEffectRendererLifecycle<Int> {
         override fun update(scope: HazeEffectLifecycleScope, style: Int, sampling: HazeSampling) {
           updates++
-          val value = if (style == 1) successful.value else attempted.value
+          val value = scope.currentValueOf(if (style == 1) successfulLocal else attemptedLocal)
           if (shouldFail) error("update failed")
           result = value
         }
@@ -805,17 +818,23 @@ class HazeEffectSurfaceDrawTest {
       shouldFail = true
       assertFailure { configured.update(2, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface)) }.isInstanceOf<IllegalStateException>()
       assertThat(result).isEqualTo(1)
+      val renderer = configured.javaClass.getDeclaredField("renderer").apply { isAccessible = true }.get(configured)
+      val tracked = renderer.javaClass.getDeclaredField("trackedScope").apply { isAccessible = true }.get(renderer) as HazeEffectLifecycleScopeImpl
+      attempted.value = 5
+      assertThat(tracked.localsChanged()).isFalse()
+      successful.value = 6
+      assertThat(tracked.localsChanged()).isTrue()
       shouldFail = false
       configured.update(1, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
     }
     waitForIdle()
     val baseline = updates
-    runOnIdle { attempted.value = 5 }
+    runOnIdle { attempted.value = 8 }
     waitForIdle()
     assertThat(updates).isEqualTo(baseline)
-    runOnIdle { successful.value = 6 }
+    runOnIdle { successful.value = 7 }
     waitForIdle()
-    assertThat(result).isEqualTo(6)
+    assertThat(result).isEqualTo(7)
     runOnIdle { configured.dispose() }
   }
 
@@ -831,10 +850,14 @@ class HazeEffectSurfaceDrawTest {
     waitForIdle()
     var detaches = 0
     var disposals = 0
+    var attemptedUpdates = 0
+    val registered = anchor.surface.node.javaClass.getDeclaredField("configuredSurfaces").apply { isAccessible = true }
+    val registrationsBefore = (registered.get(anchor.surface.node) as Set<*>).size
     val attempted = mutableStateOf(1)
     val failing = HazeEffectFactory<Unit> {
       object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
         override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+          attemptedUpdates++
           attempted.value
           error("update failed")
         }
@@ -847,11 +870,21 @@ class HazeEffectSurfaceDrawTest {
         override fun HazeEffectDrawScope.draw(style: Unit) = Unit
       }
     }
-    assertFailure {
-      anchor.surface.createConfiguredSurface(failing, Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
-    }.isInstanceOf<IllegalStateException>()
+    runOnIdle {
+      val observers = Class.forName("androidx.compose.runtime.snapshots.SnapshotKt")
+        .getDeclaredField("applyObservers").apply { isAccessible = true }
+      val before = (observers.get(null) as List<*>).size
+      assertFailure {
+        anchor.surface.createConfiguredSurface(failing, Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+      }.isInstanceOf<IllegalStateException>()
+      assertThat((observers.get(null) as List<*>).size).isEqualTo(before)
+    }
     assertThat(detaches).isEqualTo(1)
     assertThat(disposals).isEqualTo(1)
+    assertThat((registered.get(anchor.surface.node) as Set<*>).size).isEqualTo(registrationsBefore)
+    runOnIdle { attempted.value = 2 }
+    waitForIdle()
+    assertThat(attemptedUpdates).isEqualTo(1)
     val freshState = mutableStateOf(1)
     var freshResult = 0
     val fresh = anchor.surface.createConfiguredSurface(
