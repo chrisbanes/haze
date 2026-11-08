@@ -116,11 +116,3 @@ tasks.withType<Test>().matching { it.name == "testAndroidHostTest" }.configureEa
 tasks.withType<Test>().matching { it.name == "jvmTest" }.configureEach {
   maxParallelForks = 4
 }
-
-// Temporary Windows shader experiment; distinct properties force fresh test JVMs per trial.
-tasks.withType<Test>().matching { it.name == "jvmTest" }.configureEach {
-  systemProperty("glassProbeVariant", providers.gradleProperty("glassProbeVariant").getOrElse("original"))
-  systemProperty("glassProbeContinuous", providers.gradleProperty("glassProbeContinuous").getOrElse("both"))
-  systemProperty("glassProbeTrial", providers.gradleProperty("glassProbeTrial").getOrElse("local"))
-  systemProperty("skiko.hardwareInfo.enabled", "true")
-}
