@@ -14,7 +14,6 @@ kotlin {
     jvmMain {
       dependencies {
         implementation(projects.sample.shared)
-        implementation(projects.hazeUtils)
         implementation(compose.desktop.currentOs)
         implementation(libs.kotlinx.coroutines.swing)
       }
@@ -35,5 +34,4 @@ tasks.withType<JavaExec>().configureEach {
   listOf("embed", "sample", "effect", "theme").forEach { name ->
     providers.gradleProperty("haze.$name").orNull?.let { systemProperty("haze.$name", it) }
   }
-  providers.gradleProperty("haze.windowsBlurProbe").orNull?.let { systemProperty("haze.windowsBlurProbe", it) }
 }

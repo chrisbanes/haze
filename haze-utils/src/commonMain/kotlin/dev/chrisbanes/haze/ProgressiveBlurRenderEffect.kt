@@ -118,7 +118,7 @@ private fun makeBlurSksl(vertical: Boolean): String = """
       // An early break causes pathological first-draw compilation on Windows Direct3D.
       // Guard each pair independently while keeping the full static sampling bound.
       for (half i = 1.0; i < maxRadius; i += 2.0) {
-        if (!(i >= r)) {
+        if (i < r) {
           float weightL = gaussian(i, sigma);
           float weightH = gaussian(i + 1.0, sigma);
           float weight = weightL + weightH;
