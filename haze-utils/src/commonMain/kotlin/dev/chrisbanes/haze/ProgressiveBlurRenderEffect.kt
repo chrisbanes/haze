@@ -70,12 +70,14 @@ public fun createProgressiveBlurRenderEffect(
 }
 
 private val VERTICAL_PROGRESSIVE_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(makeBlurSksl(vertical = true))
+  createRuntimeEffect(makeProgressiveBlurSksl(vertical = true))
 }
 
 private val HORIZONTAL_PROGRESSIVE_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(makeBlurSksl(vertical = false))
+  createRuntimeEffect(makeProgressiveBlurSksl(vertical = false))
 }
+
+internal expect val avoidProgressiveBlurLoopBreak: Boolean
 
 /**
  * Creates the SKSL blur shader code for either vertical or horizontal pass.
@@ -84,7 +86,10 @@ private val HORIZONTAL_PROGRESSIVE_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE
  * Uses GPU-friendly optimizations, see
  * https://www.rastergrid.com/blog/2010/09/efficient-gaussian-blur-with-linear-sampling
  */
-private fun makeBlurSksl(vertical: Boolean): String = """
+internal fun makeProgressiveBlurSksl(
+  vertical: Boolean,
+  avoidLoopBreak: Boolean = avoidProgressiveBlurLoopBreak,
+): String = """
     uniform shader content;
     uniform float blurRadius;
     uniform vec4 crop;
@@ -115,31 +120,26 @@ private fun makeBlurSksl(vertical: Boolean): String = """
       float weightSum = 1.0;
       vec4 result = content.eval(coord);
 
-      // We need to use a constant max size Skia to know the size of the program. We use a large
-      // number, along with a break
+      // Windows Direct3D stalls on first draw with an early break (issue #1260).
       for (half i = 1.0; i < maxRadius; i += 2.0) {
-        // i is always odd.
-        // The algorithm needs pixels exist at the offset of [i] (odd) and [i + 1] (even).
-        // If radius r is even (i > r), we can break safely here, as all the pixels have been calculated;
-        // otherwise (i == r) we need to calculate the pixel at the offset of [r], so break in advance.
-        if (i >= r) { break; }
+        if (i < r) {
+          float weightL = gaussian(i, sigma);
+          float weightH = gaussian(i + 1.0, sigma);
+          float weight = weightL + weightH;
+          vec2 offset = ${if (vertical) "vec2(0.0, i + weightH / weight)" else "vec2(i + weightH / weight, 0.0)"};
 
-        float weightL = gaussian(i, sigma);
-        float weightH = gaussian(i + 1.0, sigma);
-        float weight = weightL + weightH;
-        vec2 offset = ${if (vertical) "vec2(0.0, i + weightH / weight)" else "vec2(i + weightH / weight, 0.0)"};
+          vec2 newCoord = coord - offset;
+          if (newCoord.x >= crop[0] && newCoord.y >= crop[1]) {
+            result += weight * sampleContent(newCoord);
+            weightSum += weight;
+          }
 
-        vec2 newCoord = coord - offset;
-        if (newCoord.x >= crop[0] && newCoord.y >= crop[1]) {
-          result += weight * sampleContent(newCoord);
-          weightSum += weight;
-        }
-
-        newCoord = coord + offset;
-        if (newCoord.x <= crop[2] && newCoord.y <= crop[3]) {
-          result += weight * sampleContent(newCoord);
-          weightSum += weight;
-        }
+          newCoord = coord + offset;
+          if (newCoord.x <= crop[2] && newCoord.y <= crop[3]) {
+            result += weight * sampleContent(newCoord);
+            weightSum += weight;
+          }
+        } ${if (avoidLoopBreak) "" else "else { break; }"}
       }
 
       // Check if radius is odd
