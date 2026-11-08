@@ -109,3 +109,23 @@ then repeats both final boundary checks. It splits refraction by bypassing stand
 merged evaluation, the optical-height input, merged gradients and per-rectangle gradients one at a
 time. Each newly retained cut becomes the next proposal's base. This is continued minimisation;
 responsible-layer hypotheses and native attribution remain pending.
+
+## Refraction subdivision and profiler readiness
+
+The [refraction subdivision run](https://github.com/chrisbanes/haze/actions/runs/42529244257) at
+`ab3f30650d74facd75823a41b6f1b3f137e99216` confirmed the seed and retained two more cuts:
+`optical-height` and `rect-gradient`. Every retained proposal still failed all three native trials.
+Bypassing complete refraction, replacing member weights, removing standalone evaluation, removing
+merged evaluation or bypassing the merged gradient passed the gate in their tested contexts.
+Several passing cases still take seconds, so the gate is an investigation signal rather than
+proof of an acceptable cold start.
+
+The runner provides `wpr.exe`, `wpaexporter.exe` and `xperf.exe`. WPR enumerates its `CPU` profile;
+no native capture or responsible-layer attribution has been made yet.
+
+Next, recheck the eleven-cut seed and replace its entry point with a compact equivalent. A raster
+unit check compares every 64×48 fixture pixel before/after that rewrite. Only a repeatable native
+failure can retain the compact entry point; raster parity alone cannot establish that it preserves
+the stall. Then repeat the remaining feature boundaries against the final retained case. This
+removes dead entry-point calculations before native profiling; the full original cases remain
+available for final verification.

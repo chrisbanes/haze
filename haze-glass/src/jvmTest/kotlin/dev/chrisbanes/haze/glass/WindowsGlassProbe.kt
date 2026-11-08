@@ -112,6 +112,9 @@ internal object WindowsGlassProbe {
             "float heightNorm = 0.5;"
         "merged-gradient" -> Regex.escape("shapeRefractionGradient(localCoord)") to "vec2(0.0)"
         "rect-gradient" -> Regex.escape("edgeRefractionGradient(localCoord, size, radii, exponents)") to "vec2(0.0)"
+        "compact-main" ->
+          """vec4 main\(vec2 coord\) \{[\s\S]+$""" to
+            checkNotNull(javaClass.getResource("/windows-glass-probe/compact-main.sksl")).readText()
         "grading" -> """applyColorGrading\(\s*opticalColor,\s*localizedWhitePoint\s*\)""" to "opticalColor"
         "tint" -> Regex.escape("mix(gradedColor, mergedTint.rgb, mergedTint.a)") to "gradedColor"
         "edge-fade" -> Regex.escape("if (shapeMask >= 1.0) {") to "if (true) {"
@@ -193,7 +196,7 @@ internal object WindowsGlassProbe {
     }
   }
 
-  private fun makeShader(effect: RuntimeEffect, source: String, members: Int, output: File): Shader {
+  internal fun makeShader(effect: RuntimeEffect, source: String, members: Int, output: File): Shader {
     val builder = RuntimeShaderBuilder(effect)
     val rects = floatArrayOf(15f, 25f, 95f, 50f, 118f, 25f, 95f, 50f, 15f, 83f, 95f, 50f, 118f, 83f, 95f, 50f)
     val explicit = mapOf(

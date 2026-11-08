@@ -72,10 +72,10 @@ jobs:
         shell: pwsh
         run: |
           # Seed only cuts retained by the previous native run, with exact source in its artifacts.
-          $kept = @('ambient', 'content-normal', 'chroma', 'member-optics', 'sample-offset', 'grading', 'tint', 'edge-fade', 'signed-distance')
+          $kept = @('ambient', 'content-normal', 'chroma', 'member-optics', 'sample-offset', 'grading', 'tint', 'edge-fade', 'signed-distance', 'optical-height', 'rect-gradient')
           ($kept -join ',') | Set-Content haze-glass/build/outputs/glass-probe/seed-cuts.txt
           $ledger = @()
-          foreach ($cut in @('seed', 'refraction', 'member-weights', 'standalone-refraction', 'merged-refraction', 'optical-height', 'merged-gradient', 'rect-gradient')) {
+          foreach ($cut in @('seed', 'compact-main', 'refraction', 'member-weights', 'standalone-refraction', 'merged-refraction', 'merged-gradient')) {
             $proposal = @($kept)
             if ($cut -ne 'seed') { $proposal += $cut }
             $before = @(Get-ChildItem haze-glass/build/outputs/glass-probe -Filter results.json -Recurse).FullName

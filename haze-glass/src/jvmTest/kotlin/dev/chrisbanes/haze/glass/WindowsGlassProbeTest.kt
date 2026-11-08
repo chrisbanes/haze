@@ -3,11 +3,21 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.skiaPaint
+import androidx.compose.ui.graphics.toPixelMap
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.doesNotContain
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotEqualTo
+import java.io.File
 import kotlin.test.Test
 import org.jetbrains.skia.RuntimeEffect
 
@@ -58,6 +68,34 @@ class WindowsGlassProbeTest {
     }
     val combined = WindowsGlassProbe.sourceFor("original", continuous = true, cuts = retained + "," + subcuts.joinToString(","))
     RuntimeEffect.makeForShader(combined).close()
+  }
+
+  @Test
+  fun sourceFor_compactMainPreservesRetainedFixturePixels() {
+    val retained = "ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance,optical-height,rect-gradient"
+    val reference = WindowsGlassProbe.sourceFor("original", continuous = true, cuts = retained)
+    val compact = WindowsGlassProbe.sourceFor("original", continuous = true, cuts = "$retained,compact-main")
+    val referencePixels = fixturePixels(reference, "reference")
+    assertThat(referencePixels.distinct().size).isGreaterThan(3)
+    assertThat(fixturePixels(compact, "compact")).isEqualTo(referencePixels)
+    val noRefraction = WindowsGlassProbe.sourceFor("original", continuous = true, cuts = "$retained,compact-main,refraction")
+    assertThat(fixturePixels(noRefraction, "no-refraction")).isNotEqualTo(referencePixels)
+    for (cut in listOf("refraction", "member-weights", "standalone-refraction", "merged-refraction", "merged-gradient")) {
+      RuntimeEffect.makeForShader(WindowsGlassProbe.sourceFor("original", continuous = true, cuts = "$retained,compact-main,$cut")).close()
+    }
+  }
+
+  private fun fixturePixels(source: String, name: String): List<Color> {
+    val image = ImageBitmap(64, 48)
+    val output = File("build/outputs/glass-probe-parity/$name").apply { mkdirs() }
+    RuntimeEffect.makeForShader(source).use { effect ->
+      WindowsGlassProbe.makeShader(effect, source, 2, output).use { shader ->
+        val paint = Paint().apply { skiaPaint.shader = shader }
+        Canvas(image).drawRect(Rect(0f, 0f, 64f, 48f), paint)
+      }
+    }
+    val pixels = image.toPixelMap()
+    return List(64 * 48) { index -> pixels[index % 64, index / 64] }
   }
 
   @Test
