@@ -57,16 +57,34 @@ The workflow check failed after those results because GitHub Actions propagated 
 command's expected exit code `1`; the workflow now exits `0` only after its result assertions pass.
 This repairs workflow classification, not the Glass stall.
 
-Next, reduce only the viewport width to 64 while keeping height 160 and all shader source/uniforms
-unchanged. Only if all three trials remain red, reduce height to 48 as a second change. Keep the
-240×160 material/input geometry so this tests drawn area separately from shader inputs:
+The [area-reduction run](https://github.com/chrisbanes/haze/actions/runs/42526677840) at
+`1ff8bc75a39984eb03efa568e5cc03ac92df1775` passed its investigation assertions. First width was reduced
+to 64 with height 160, then height to 48. Both reductions failed all three first draws at the same
+five-second gate. All nine original-continuous trials across full and reduced viewports have the
+same generated source and uniform hashes and reached actual Direct3D first draw. The material/input
+geometry stays 240×160, so this reduces drawn area without changing those inputs:
 
 ```powershell
 pwsh -File scripts/windows-glass-probe.ps1 -Variant original -Continuous true -Width 64 -Height 160
 pwsh -File scripts/windows-glass-probe.ps1 -Variant original -Continuous true -Width 64 -Height 48
 ```
 
-Area-reduction results are pending. No cause is ranked or production fix selected.
+The next experiment removes one source feature at a time from the 64×48 case. For each cut, run
+three fresh trials: retain the cut only if all three remain latency failures; restore the feature
+if all three render within the gate; stop on invalid or mixed results. Record every proposal,
+decision, retained cut list and case-result path in `cut-ledger.json`. Keep each generated source,
+identity and fixture alongside its results. These altered shaders are reproduction reductions,
+not production fixes or fidelity-equivalent alternatives.
+
+The ordered cuts bypass ambient response, content-normal sampling, chromatic sampling, per-member
+optics, sample offsets, refraction displacement, grading, tint, edge fading, signed distance and
+member weights. Each named cut must match exactly one source site; unknown or duplicate names fail.
+The runner passes `-Cuts ambient,chroma` as an explicit retained list, not a shell expression.
+Native decisions remain pending; local compilation alone cannot establish a reduced failure.
+No cause is ranked or production fix selected.
+
+Normal Build and Publish docs jobs are temporarily skipped on `cb/review-1767` at Chris's request.
+Remove both commented gates and restore full qualification before presenting a production fix.
 
 The earlier continuous timeout used original source despite its intended guarded selection: the
 historical `0-g` artifact retains `break`. The new guarded-continuous experiment is separately labelled and now has its own five-second failure evidence.

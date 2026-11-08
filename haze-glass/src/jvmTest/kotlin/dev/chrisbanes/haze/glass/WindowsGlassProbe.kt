@@ -28,7 +28,7 @@ internal object WindowsGlassProbe {
 
   @JvmStatic
   fun main(args: Array<String>) {
-    require(args.size == 6) { "Expected variant, continuous, members, output directory, width, height" }
+    require(args.size == 7) { "Expected variant, continuous, members, output directory, width, height, cuts" }
     val output = File(args[3]).apply { mkdirs() }
     try {
       val variant = args[0]
@@ -36,13 +36,13 @@ internal object WindowsGlassProbe {
       val members = args[2].toInt().also { require(it in 2..4) }
       val width = args[4].toInt().also { require(it in 1..240) }
       val height = args[5].toInt().also { require(it in 1..160) }
-      val source = sourceFor(variant, continuous)
+      val source = sourceFor(variant, continuous, args[6])
       File(output, "shader.sksl").writeText(source)
       val hash = MessageDigest.getInstance("SHA-256").digest(source.toByteArray())
         .joinToString("") { "%02x".format(it) }
       File(output, "identity.txt").writeText(
         "variant=$variant\ncontinuous=$continuous\nmembers=$members\nsha256=$hash\n" +
-          "viewport=${width}x$height\njava=${System.getProperty("java.runtime.version")}\nos=${System.getProperty("os.name")}\n",
+          "viewport=${width}x$height\ncuts=${args[6]}\njava=${System.getProperty("java.runtime.version")}\nos=${System.getProperty("os.name")}\n",
       )
       check(System.getProperty("os.name").startsWith("Windows")) { "Windows Direct3D required" }
       render(source, members, output, width, height)
@@ -55,11 +55,12 @@ internal object WindowsGlassProbe {
     }
   }
 
-  internal fun sourceFor(variant: String, continuous: Boolean): String {
+  internal fun sourceFor(variant: String, continuous: Boolean, cuts: String = "none"): String {
     require(variant in setOf("original", "guarded", "control")) { "Unknown variant: $variant" }
+    require(cuts == "none" || variant == "original") { "Cuts require the original variant" }
     if (variant == "control") return CONTROL_SOURCE
     val original = GlassShaders.buildOptical(merged = true, continuous = continuous)
-    if (variant == "original") return original
+    if (variant == "original") return cutSource(original, cuts)
     var source = original
     val needle = "if (float(i) >= memberCount) break;"
     val expected = source.windowed(needle.length).count { it == needle }
@@ -80,6 +81,38 @@ internal object WindowsGlassProbe {
         source.substring(start + needle.length, end) + "}\n" + source.substring(end)
     }
     check(needle !in source)
+    return source
+  }
+
+  internal fun cutSource(original: String, cuts: String): String {
+    if (cuts == "none") return original
+    val names = cuts.split(',')
+    require(names.distinct().size == names.size) { "Duplicate cuts: $cuts" }
+    var source = original
+    for (name in names) {
+      val (pattern, replacement) = when (name) {
+        "ambient" -> Regex.escape("if (ambientResponse > 0.0) {") to "if (false) {"
+        "content-normal" -> Regex.escape("computeContentNormal(refractCoord, refractedCenterSample)") to
+          "vec3(0.0, 0.0, 1.0)"
+        "chroma" -> Regex.escape("sampleChroma(refractCoord, chromaOffset, refractedCenterSample)") to
+          "unpremultiply(refractedCenterSample)"
+        "member-optics" -> Regex.escape("mergedOpticalValues(localCoord, w)") to "vec2(1.0, 0.0)"
+        "sample-offset" -> Regex.escape("mergedSampleOffset(localCoord, w)") to "vec2(0.0)"
+        "refraction" ->
+          """vec2 displacement = refractionDisplacement\([^;]+\);""" to
+            "vec2 displacement = vec2(0.0); sampleDisplacement = vec2(0.0);"
+        "grading" -> """applyColorGrading\(\s*opticalColor,\s*localizedWhitePoint\s*\)""" to "opticalColor"
+        "tint" -> Regex.escape("mix(gradedColor, mergedTint.rgb, mergedTint.a)") to "gradedColor"
+        "edge-fade" -> Regex.escape("if (shapeMask >= 1.0) {") to "if (true) {"
+        "signed-distance" -> Regex.escape("shapeSdFromDistances(memberDistancesAtCoord)") to "-1.0"
+        "member-weights" -> Regex.escape("memberWeightsFromDistances(memberDistancesAtCoord)") to
+          "vec4(1.0, 0.0, 0.0, 0.0)"
+        else -> error("Unknown cut: $name")
+      }
+      val regex = Regex(pattern)
+      check(regex.findAll(source).count() == 1) { "Cut $name must change exactly one site" }
+      source = regex.replace(source, replacement)
+    }
     return source
   }
 

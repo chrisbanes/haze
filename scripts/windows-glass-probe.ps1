@@ -7,7 +7,8 @@ param(
   [ValidateSet('false', 'true')][string]$Continuous = 'false',
   [ValidateRange(1, 3)][int]$Trials = 3,
   [ValidateRange(1, 240)][int]$Width = 240,
-  [ValidateRange(1, 160)][int]$Height = 160
+  [ValidateRange(1, 160)][int]$Height = 160,
+  [string]$Cuts = 'none'
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -41,7 +42,7 @@ try {
       $info.UseShellExecute = $false
       $info.RedirectStandardOutput = $true
       $info.RedirectStandardError = $true
-      foreach ($argument in @('-Xmx1g', '-cp', $classpath.Trim(), 'dev.chrisbanes.haze.glass.WindowsGlassProbe', $case.variant, $case.continuous, '2', $caseDir, [string]$Width, [string]$Height)) {
+      foreach ($argument in @('-Xmx1g', '-cp', $classpath.Trim(), 'dev.chrisbanes.haze.glass.WindowsGlassProbe', $case.variant, $case.continuous, '2', $caseDir, [string]$Width, [string]$Height, $Cuts)) {
         $info.ArgumentList.Add($argument)
       }
       $process = [System.Diagnostics.Process]::new()
@@ -84,7 +85,7 @@ try {
         if ($process.Id -and -not $process.HasExited) { $process.Kill($true); $process.WaitForExit() }
         $process.Dispose()
       }
-      $result = [ordered]@{ variant = $case.variant; continuous = $case.continuous; trial = $trial; width = $Width; height = $Height; verdict = $verdict; reason = $reason; directory = $caseDir }
+      $result = [ordered]@{ variant = $case.variant; continuous = $case.continuous; trial = $trial; width = $Width; height = $Height; cuts = $Cuts; verdict = $verdict; reason = $reason; directory = $caseDir }
       $results += $result
       $result | ConvertTo-Json -Compress | Write-Output
       [IO.File]::WriteAllText((Join-Path $caseDir 'result.json'), ($result | ConvertTo-Json))

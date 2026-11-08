@@ -19,6 +19,28 @@ class WindowsGlassProbeTest {
   }
 
   @Test
+  fun sourceFor_rejectsUnknownAndDuplicateCuts() {
+    assertFailure { WindowsGlassProbe.sourceFor("original", continuous = true, cuts = "missing") }
+      .isInstanceOf<IllegalStateException>()
+    assertFailure { WindowsGlassProbe.sourceFor("original", continuous = true, cuts = "ambient,ambient") }
+      .isInstanceOf<IllegalArgumentException>()
+    assertFailure { WindowsGlassProbe.sourceFor("guarded", continuous = true, cuts = "ambient") }
+      .isInstanceOf<IllegalArgumentException>()
+  }
+
+  @Test
+  fun sourceFor_everyCumulativeCutCompiles() {
+    val cuts = listOf(
+      "ambient", "content-normal", "chroma", "member-optics", "sample-offset", "refraction",
+      "grading", "tint", "edge-fade", "signed-distance", "member-weights",
+    )
+    for (count in 1..cuts.size) {
+      val source = WindowsGlassProbe.sourceFor("original", continuous = true, cuts = cuts.take(count).joinToString(","))
+      RuntimeEffect.makeForShader(source).close()
+    }
+  }
+
+  @Test
   fun sourceFor_originalIsProductionSource() {
     listOf(false, true).forEach { continuous ->
       assertThat(WindowsGlassProbe.sourceFor("original", continuous))
