@@ -613,17 +613,34 @@ class HazeEffectSurfaceDrawTest {
     waitForIdle()
     val original = checkNotNull(configured)
     assertThat(result).isEqualTo(1)
-    runOnIdle { active.value = false }
+    mainClock.autoAdvance = false
+    val beforeDetachUpdates = updates
+    runOnIdle {
+      Thread {
+        Snapshot.withMutableSnapshot { source.value = 2 }
+        Snapshot.sendApplyNotifications()
+      }.apply {
+        start()
+        join()
+      }
+      active.value = false
+    }
+    mainClock.advanceTimeByFrame()
     waitForIdle()
     val detachedUpdates = updates
-    runOnIdle { source.value = 2 }
+    val detachedChanges = owner.changes
+    assertThat(detachedUpdates).isEqualTo(beforeDetachUpdates)
+    repeat(3) { mainClock.advanceTimeByFrame() }
     waitForIdle()
     assertThat(updates).isEqualTo(detachedUpdates)
+    assertThat(owner.changes).isEqualTo(detachedChanges)
     runOnIdle { active.value = true }
+    mainClock.advanceTimeByFrame()
     waitForIdle()
     assertThat(configured).isSameInstanceAs(original)
     assertThat(result).isEqualTo(2)
     runOnIdle { source.value = 3 }
+    mainClock.advanceTimeByFrame()
     waitForIdle()
     assertThat(result).isEqualTo(3)
   }
@@ -758,13 +775,19 @@ class HazeEffectSurfaceDrawTest {
   fun configuredSurface_failedUpdateRetriesWithoutPublishingPartialConfiguration() = runComposeUiTest {
     val owner = SurfaceOwnerNode()
     val anchor = SurfaceFactory(owner)
+    val successful = mutableStateOf(1)
+    val attempted = mutableStateOf(2)
     var shouldFail = false
     var result = 0
+    var updates = 0
+    lateinit var configured: HazeConfiguredEffectSurface<Int>
     val factory = HazeEffectFactory<Int> {
       object : HazeEffectRenderer<Int>, HazeEffectRendererLifecycle<Int> {
         override fun update(scope: HazeEffectLifecycleScope, style: Int, sampling: HazeSampling) {
+          updates++
+          val value = if (style == 1) successful.value else attempted.value
           if (shouldFail) error("update failed")
-          result = style
+          result = value
         }
         override fun HazeEffectDrawScope.draw(style: Int) {
           drawInput()
@@ -778,15 +801,22 @@ class HazeEffectSurfaceDrawTest {
     }
     waitForIdle()
     runOnIdle {
-      val configured = anchor.surface.createConfiguredSurface(factory, 1, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+      configured = anchor.surface.createConfiguredSurface(factory, 1, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
       shouldFail = true
       assertFailure { configured.update(2, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface)) }.isInstanceOf<IllegalStateException>()
       assertThat(result).isEqualTo(1)
       shouldFail = false
-      configured.update(2, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
-      assertThat(result).isEqualTo(2)
-      configured.dispose()
+      configured.update(1, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
     }
+    waitForIdle()
+    val baseline = updates
+    runOnIdle { attempted.value = 5 }
+    waitForIdle()
+    assertThat(updates).isEqualTo(baseline)
+    runOnIdle { successful.value = 6 }
+    waitForIdle()
+    assertThat(result).isEqualTo(6)
+    runOnIdle { configured.dispose() }
   }
 
   @Test
@@ -801,9 +831,11 @@ class HazeEffectSurfaceDrawTest {
     waitForIdle()
     var detaches = 0
     var disposals = 0
+    val attempted = mutableStateOf(1)
     val failing = HazeEffectFactory<Unit> {
       object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
         override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+          attempted.value
           error("update failed")
         }
         override fun detach() {
@@ -820,9 +852,14 @@ class HazeEffectSurfaceDrawTest {
     }.isInstanceOf<IllegalStateException>()
     assertThat(detaches).isEqualTo(1)
     assertThat(disposals).isEqualTo(1)
+    val freshState = mutableStateOf(1)
+    var freshResult = 0
     val fresh = anchor.surface.createConfiguredSurface(
       HazeEffectFactory {
-        object : HazeEffectRenderer<Unit> {
+        object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+          override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+            freshResult = freshState.value
+          }
           override fun HazeEffectDrawScope.draw(style: Unit) = Unit
         }
       },
@@ -830,7 +867,43 @@ class HazeEffectSurfaceDrawTest {
       Rect(0f, 0f, 20f, 20f),
       listOf(anchor.surface),
     )
+    waitForIdle()
+    assertThat(freshResult).isEqualTo(1)
+    runOnIdle { freshState.value = 3 }
+    waitForIdle()
+    assertThat(freshResult).isEqualTo(3)
     fresh.dispose()
+  }
+
+  @Test
+  fun configuredSurface_attachFailurePreservesSuppressedCleanupFailures() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val anchor = SurfaceFactory(owner)
+    setContent {
+      Box(Modifier.size(100.dp).then(OwnerElement(owner))) {
+        Box(Modifier.size(20.dp).hazeEffect(anchor, HazeInput.Content, Unit))
+      }
+    }
+    waitForIdle()
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+        override fun attach(scope: HazeEffectLifecycleScope) {
+          error("attach")
+        }
+        override fun detach() {
+          error("detach")
+        }
+        override fun dispose() {
+          error("dispose")
+        }
+        override fun HazeEffectDrawScope.draw(style: Unit) = Unit
+      }
+    }
+    val failure = runCatching {
+      anchor.surface.createConfiguredSurface(factory, Unit, Rect(0f, 0f, 20f, 20f), listOf(anchor.surface))
+    }.exceptionOrNull()
+    assertThat(failure?.message).isEqualTo("attach")
+    assertThat(failure?.suppressed?.map { it.message }).isEqualTo(listOf("detach", "dispose"))
   }
 
   @Test
