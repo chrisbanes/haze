@@ -16,13 +16,22 @@ Set-StrictMode -Version Latest
 function Test-ColdStall([double]$ColdMs, [double]$WarmMedianMs) {
   return $ColdMs -gt 1000 -and $ColdMs -gt (20 * [Math]::Max(1, $WarmMedianMs))
 }
+function Get-FirstDrawRange([string]$TraceUtc, [long]$FirstEpochMs, [double]$DurationMs) {
+  $start = [DateTimeOffset]::ParseExact($TraceUtc, 'yyyy/MM/dd:HH:mm:ss.fffffff', [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AssumeUniversal)
+  $traceMs = ([decimal]$start.UtcTicks - [DateTimeOffset]::UnixEpoch.UtcTicks) / 10000
+  $relativeUs = ([decimal]$FirstEpochMs - $traceMs) * 1000
+  if ($relativeUs -lt 0 -or $DurationMs -le 0) { throw 'Invalid first-draw trace interval' }
+  return @{ start = [long]$relativeUs; end = [long]($relativeUs + [decimal]$DurationMs * 1000) }
+}
 if ($Mode -eq 'SelfTest') {
   if (-not (Test-ColdStall 4590.5181 15.08435)) { throw 'Observed cold stall must be detected' }
   if (Test-ColdStall 99.2655 15) { throw 'Healthy control must pass' }
   if (Test-ColdStall 2000 500) { throw 'Warm execution cost must not masquerade as a cold stall' }
   if (Test-ColdStall 999 1) { throw 'Subsecond cold draws are outside this diagnostic' }
   if (-not (Test-ColdStall 1500 15)) { throw 'Reduced seconds-long cold stalls must stay detectable' }
-  Write-Output 'Cold/warm diagnostic self-checks passed'
+  $range = Get-FirstDrawRange '2026/11/08:23:00:46.7148106' 1794178848400 2941
+  if ($range.start -ne 1685189 -or $range.end -ne 4626189) { throw 'Observed first-draw interval must map correctly to trace microseconds' }
+  Write-Output 'Cold/warm and first-draw trace-window self-checks passed'
   exit 0
 }
 if ($Mode -eq 'Profile' -and ($Trials -ne 1 -or $Variant -eq 'baseline')) {
@@ -69,6 +78,7 @@ try {
       $reason = 'Missing successful render'
       $coldStall = $false
       $firstDrawMs = $null
+      $firstDrawEpochMs = $null
       $warmMedianMs = $null
       $drawLimit = if ($Mode -eq 'Profile') { 30000 } else { $threshold }
       $started = $false
@@ -93,6 +103,7 @@ try {
           if (Test-Path $phaseFile) {
             $phase = Get-Content $phaseFile -Raw
             if ($phase -match '^first-draw,([0-9]{13})$') {
+              $firstDrawEpochMs = [long]$Matches[1]
               $elapsed = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() - [long]$Matches[1]
               if ($elapsed -gt $drawLimit) {
                 $verdict = if ($case.variant -eq 'control') { 'INVALID' } else { 'LATENCY_FAIL' }
@@ -115,6 +126,7 @@ try {
             $verdict = if ($ms -le $threshold) { 'PASS' } elseif ($case.variant -eq 'control') { 'INVALID' } else { 'LATENCY_FAIL' }
             $reason = "first-draw=${ms}ms"
             $firstDrawMs = $ms
+            $firstDrawEpochMs = [long]$timing.startEpochMs
             $warm = @($timings | Where-Object { $_.phase -like 'warm-*' } | ForEach-Object {
               [double]::Parse($_.ms, [Globalization.CultureInfo]::InvariantCulture)
             } | Sort-Object)
@@ -141,11 +153,17 @@ try {
         $env:_NT_SYMCACHE_PATH = Join-Path $root 'haze-glass/build/symcache'
         xperf -i $trace -o (Join-Path $caseDir 'trace-stats.txt') -a tracestats *> (Join-Path $caseDir 'xperf-stats-log.txt')
         if ($LASTEXITCODE -ne 0) { throw 'Could not inspect trace quality' }
-        xperf -i $trace -o (Join-Path $caseDir 'cpu-modules.txt') -a profile -detail *> (Join-Path $caseDir 'xperf-profile-log.txt')
+        $stats = Get-Content (Join-Path $caseDir 'trace-stats.txt') -Raw
+        $startMatch = [regex]::Match($stats, 'Start time \(UTC\)\s*:\s*(\S+)')
+        if (-not $startMatch.Success -or $null -eq $firstDrawEpochMs) { throw 'Missing trace/first-draw timestamp' }
+        $duration = if ($null -ne $firstDrawMs) { $firstDrawMs } else { $drawLimit }
+        $range = Get-FirstDrawRange $startMatch.Groups[1].Value $firstDrawEpochMs $duration
+        $range | ConvertTo-Json | Set-Content (Join-Path $caseDir 'first-draw-range-us.json')
+        xperf -i $trace -o (Join-Path $caseDir 'cpu-modules.txt') -a profile -detail -range $range.start $range.end *> (Join-Path $caseDir 'xperf-profile-log.txt')
         if ($LASTEXITCODE -ne 0) { throw 'Could not export CPU module samples' }
-        xperf -i $trace -symbols -o (Join-Path $caseDir 'cpu-stacks.txt') -a stack -butterfly 1 -pid $probePid -event '.*Profile.*' *> (Join-Path $caseDir 'xperf-stack-log.txt')
+        xperf -i $trace -symbols -o (Join-Path $caseDir 'cpu-stacks.txt') -a stack -butterfly 1 -pid $probePid -event '.*Profile.*' -range $range.start $range.end *> (Join-Path $caseDir 'xperf-stack-log.txt')
         if ($LASTEXITCODE -ne 0) { throw 'Could not export target CPU stacks' }
-        xperf -i $trace -symbols -o (Join-Path $caseDir 'wait-stacks.txt') -a stack -butterfly 1 -pid $probePid -event '.*CSwitch.*' *> (Join-Path $caseDir 'xperf-wait-log.txt')
+        xperf -i $trace -symbols -o (Join-Path $caseDir 'wait-stacks.txt') -a stack -butterfly 1 -pid $probePid -event '.*CSwitch.*' -range $range.start $range.end *> (Join-Path $caseDir 'xperf-wait-log.txt')
         if ($LASTEXITCODE -ne 0) { throw 'Could not export target wait stacks' }
         foreach ($report in @('cpu-stacks.txt', 'cpu-modules.txt', 'trace-stats.txt')) {
           if ((Get-Item (Join-Path $caseDir $report)).Length -eq 0) { throw "Empty profile report: $report" }

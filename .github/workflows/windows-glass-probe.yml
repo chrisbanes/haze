@@ -20,6 +20,8 @@ jobs:
           distribution: zulu
           java-version: 21
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: false
       - name: Record environment
         shell: pwsh
         run: |
@@ -46,53 +48,39 @@ jobs:
           pwsh -File scripts/windows-glass-probe.ps1 -Mode Profile -Variant baseline -Trials 1
           if ($LASTEXITCODE -ne 2) { throw 'Profiling argument errors must be INVALID, not a latency failure' }
           exit 0
-      - name: Calibrate cold/warm signal and re-minimize remaining features
+      - name: Recheck native control and retained cold stall
         shell: pwsh
         run: |
-          $kept = @('ambient', 'content-normal', 'chroma', 'member-optics', 'sample-offset', 'grading', 'tint', 'edge-fade', 'signed-distance', 'optical-height', 'rect-gradient', 'compact-main')
-          $candidates = @('refraction', 'member-weights', 'standalone-refraction', 'merged-refraction', 'merged-gradient')
+          $cuts = 'ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance,optical-height,rect-gradient,compact-main,member-weights,standalone-refraction'
           pwsh -File scripts/windows-glass-probe.ps1 -Mode Diagnose -Variant control -Width 64 -Height 48
-          if ($LASTEXITCODE -ne 0) { throw 'Cold/warm control failed' }
-          $ledger = @()
-          function Invoke-Diagnostic([string]$Cuts) {
-            $before = @(Get-ChildItem haze-glass/build/outputs/glass-probe -Filter results.json -Recurse).FullName
-            pwsh -File scripts/windows-glass-probe.ps1 -Mode Diagnose -Variant original -Continuous true -Width 64 -Height 48 -Cuts $Cuts | ForEach-Object { Write-Host $_ }
-            $probeExit = $LASTEXITCODE
-            if ($probeExit -notin @(0, 1)) { throw 'Invalid diagnostic case' }
-            $added = @(Get-ChildItem haze-glass/build/outputs/glass-probe -Filter results.json -Recurse | Where-Object { $_.FullName -notin $before })
-            if ($added.Count -ne 1) { throw 'Missing diagnostic result set' }
-            $rows = @(Get-Content $added[0].FullName -Raw | ConvertFrom-Json)
-            if ($rows.Count -ne 3) { throw 'Incomplete diagnostic trials' }
-            $stalls = @($rows | Where-Object coldStall -eq $true).Count
-            if ($stalls -notin @(0, 3)) { throw 'Diagnostic is unstable; stop before profiling' }
-            return @{ stalled = ($stalls -eq 3); results = $added[0].FullName }
-          }
-          # Child output goes to the host; the function returns only its structured verdict.
-          foreach ($cut in @('seed') + $candidates) {
-            $proposal = @($kept)
-            if ($cut -ne 'seed') { $proposal += $cut }
-            $outcome = Invoke-Diagnostic ($proposal -join ',')
-            if ($cut -eq 'seed' -and -not $outcome.stalled) { throw 'Cold stall was not recovered' }
-            if ($outcome.stalled) { $kept = $proposal; $decision = 'KEEP_CUT' } else { $decision = 'RESTORE_FEATURE' }
-            $ledger += @{ cut = $cut; proposed = $proposal; decision = $decision; kept = @($kept); results = $outcome.results }
-            ConvertTo-Json -InputObject @($ledger) -Depth 5 | Set-Content haze-glass/build/outputs/glass-probe/cold-cut-ledger.json
-          }
-          foreach ($cut in $candidates | Where-Object { $_ -notin $kept }) {
-            $outcome = Invoke-Diagnostic ((@($kept) + @($cut)) -join ',')
-            if ($outcome.stalled) { throw "Final boundary $cut still reducible; stop before profiling" }
-          }
-          ($kept -join ',') | Set-Content haze-glass/build/outputs/glass-probe/kept-cuts.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Native control failed' }
+          pwsh -File scripts/windows-glass-probe.ps1 -Mode Diagnose -Variant original -Continuous true -Width 64 -Height 48 -Cuts $cuts
+          if ($LASTEXITCODE -ne 1) { throw 'Retained cold stall no longer reproduces' }
+          $rows = @(Get-ChildItem haze-glass/build/outputs/glass-probe -Filter results.json -Recurse | ForEach-Object { Get-Content $_.FullName -Raw | ConvertFrom-Json })
+          if (@($rows | Where-Object coldStall -eq $true).Count -ne 3) { throw 'Retained cold signal is not repeatable' }
           exit 0
-      - name: Capture native CPU and wait stacks for minimized case and refraction-free control
+      - name: Capture first-draw stacks for retained, control and original continuous sources
         shell: pwsh
         run: |
-          $cuts = (Get-Content haze-glass/build/outputs/glass-probe/kept-cuts.txt -Raw).Trim()
+          $cuts = 'ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance,optical-height,rect-gradient,compact-main,member-weights,standalone-refraction'
           pwsh -File scripts/windows-glass-probe.ps1 -Mode Profile -Variant original -Continuous true -Width 64 -Height 48 -Trials 1 -Cuts $cuts
-          if ($LASTEXITCODE -ne 1) { throw 'Profiled minimized case did not preserve the latency failure' }
+          if ($LASTEXITCODE -ne 1) { throw 'Profiled retained case did not preserve the cold stall' }
           pwsh -File scripts/windows-glass-probe.ps1 -Mode Profile -Variant original -Continuous true -Width 64 -Height 48 -Trials 1 -Cuts ($cuts + ',refraction')
           if ($LASTEXITCODE -ne 0) { throw 'Profiled refraction-free control failed' }
-          $traces = @(Get-ChildItem haze-glass/build/outputs/glass-probe -Filter cpu.etl -Recurse)
-          if ($traces.Count -ne 2) { throw 'Expected two complete native captures' }
+          pwsh -File scripts/windows-glass-probe.ps1 -Mode Profile -Variant original -Continuous true -Trials 1
+          if ($LASTEXITCODE -ne 1) { throw 'Original continuous source did not preserve the cold stall' }
+          exit 0
+      - name: Test one noinline modifier without changing shader math
+        shell: pwsh
+        run: |
+          $cuts = 'ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance,optical-height,rect-gradient,compact-main,member-weights,standalone-refraction'
+          pwsh -File scripts/windows-glass-probe.ps1 -Mode Diagnose -Variant original -Continuous true -Width 64 -Height 48 -Cuts ($cuts + ',noinline-shape')
+          if ($LASTEXITCODE -eq 2) { throw 'Invalid noinline experiment' }
+          if ($LASTEXITCODE -ne 0) { Write-Output 'Noinline did not remove the retained cold signal; do not expand it'; exit 0 }
+          pwsh -File scripts/windows-glass-probe.ps1 -Mode Diagnose -Variant original -Continuous false -Cuts noinline-shape
+          if ($LASTEXITCODE -eq 2) { throw 'Invalid original rounded noinline case' }
+          pwsh -File scripts/windows-glass-probe.ps1 -Mode Diagnose -Variant original -Continuous true -Cuts noinline-shape
+          if ($LASTEXITCODE -eq 2) { throw 'Invalid original continuous noinline case' }
           exit 0
       - uses: actions/upload-artifact@v7
         if: always()

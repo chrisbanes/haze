@@ -99,6 +99,20 @@ class WindowsGlassProbeTest {
   }
 
   @Test
+  fun sourceFor_noinlineShapePreservesOriginalFixturePixels() {
+    for (continuous in listOf(false, true)) {
+      val original = WindowsGlassProbe.sourceFor("original", continuous)
+      val hinted = WindowsGlassProbe.sourceFor("original", continuous, "noinline-shape")
+      assertThat(fixturePixels(hinted, "hint-$continuous"))
+        .isEqualTo(fixturePixels(original, "original-$continuous"))
+    }
+    val retained = "ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance,optical-height,rect-gradient,compact-main,member-weights,standalone-refraction"
+    val reference = WindowsGlassProbe.sourceFor("original", true, retained)
+    val hinted = WindowsGlassProbe.sourceFor("original", true, "$retained,noinline-shape")
+    assertThat(fixturePixels(hinted, "hint-retained")).isEqualTo(fixturePixels(reference, "retained"))
+  }
+
+  @Test
   fun sourceFor_originalIsProductionSource() {
     listOf(false, true).forEach { continuous ->
       assertThat(WindowsGlassProbe.sourceFor("original", continuous))

@@ -189,3 +189,37 @@ the compact seed and continue feature cuts using this signal. Re-test every rema
 against the final retained source; stop on mixed results or a still-reducible boundary. Only then
 capture the final case and refraction-free control, using the same separate diagnostic signal.
 The five-second acceptance gate and all rendering-fidelity requirements remain in place.
+
+## Native capture result and next probe
+
+The [calibrated capture run](https://github.com/chrisbanes/haze/actions/runs/42532549849) at
+`7a1c1c3f37dc0e05e0fbaab1c2207d858a94a1f2` passed the predicate self-check, repeated cold/warm trials,
+final feature-boundary rechecks and both native recordings. The retained case additionally removes
+member weights and standalone refraction; the final cold signal is repeatable under the corrected
+diagnostic. Both ETLs report zero lost events and buffers.
+
+The decoded target-process CPU stack report identifies two backend compilation stages:
+
+- `d3dcompiler_47.dll`, including `CProgram::ReadWriteInfo`.
+- `D3D10Warp.dll!Task_CompileShader` → `PixelJITProcessor::InitializeJIT` → `CProgram::Compile`,
+  with exclusive samples in `CProgram::ComputeUsage`, `CProgram::Optimize` and related analysis.
+
+This supports backend compilation, including WARP's pixel-shader JIT. It does not support describing
+the WARP samples as steady-state shader execution. The initial exports cover the entire target JVM
+lifetime, including startup; do not present their percentages as a first-draw-only split. JVM/Skiko
+private symbols have gaps. The paired refraction-free control has little backend compiler activity.
+Physical-GPU behavior remains unmeasured.
+
+Next, export only the first-draw interval using the ETL UTC start plus retained phase epochs, with a
+self-check against this actual trace interval. Repeat a capture of the original unreduced continuous
+source to verify that the reduced and original cases point at the same layer. Keep captured timings
+separate from unprofiled acceptance. A timeout remains censored, not a completed compiler duration.
+
+Test one compiler-hint prediction: if repeated SkSL inlining expands the costly backend program,
+`noinline` on `shapeSd` will reduce cold cost with unchanged pixels. Skia's
+[function modifier validation](https://skia.googlesource.com/skia/+/d2b9e48baf1697760afc1dc8ea3ad40110b8cacc/src/sksl/ir/SkSLFunctionDeclaration.cpp)
+and [inliner](https://skia.googlesource.com/skia/+/ffeb6f23394c9391041e68200598debc2f8bd93b/src/sksl/SkSLInliner.cpp)
+describe this modifier; the installed RuntimeEffect compiler and native experiment must qualify it.
+This is a test-only hint, not an established workaround. Compare exact raster output for both original
+corner types and the retained fixture before native trials. Expand to the original native cases only
+if the retained cold signal disappears; a negative experimental result is valid evidence, not a fix.
