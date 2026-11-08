@@ -28,22 +28,24 @@ internal object WindowsGlassProbe {
 
   @JvmStatic
   fun main(args: Array<String>) {
-    require(args.size == 4) { "Expected variant, continuous, members, output directory" }
+    require(args.size == 6) { "Expected variant, continuous, members, output directory, width, height" }
     val output = File(args[3]).apply { mkdirs() }
     try {
       val variant = args[0]
       val continuous = args[1].toBooleanStrict()
       val members = args[2].toInt().also { require(it in 2..4) }
+      val width = args[4].toInt().also { require(it in 1..240) }
+      val height = args[5].toInt().also { require(it in 1..160) }
       val source = sourceFor(variant, continuous)
       File(output, "shader.sksl").writeText(source)
       val hash = MessageDigest.getInstance("SHA-256").digest(source.toByteArray())
         .joinToString("") { "%02x".format(it) }
       File(output, "identity.txt").writeText(
         "variant=$variant\ncontinuous=$continuous\nmembers=$members\nsha256=$hash\n" +
-          "java=${System.getProperty("java.runtime.version")}\nos=${System.getProperty("os.name")}\n",
+          "viewport=${width}x$height\njava=${System.getProperty("java.runtime.version")}\nos=${System.getProperty("os.name")}\n",
       )
       check(System.getProperty("os.name").startsWith("Windows")) { "Windows Direct3D required" }
-      render(source, members, output)
+      render(source, members, output, width, height)
       File(output, "verdict.txt").writeText("RENDER_PASS")
       exitProcess(0)
     } catch (failure: Throwable) {
@@ -81,7 +83,7 @@ internal object WindowsGlassProbe {
     return source
   }
 
-  private fun render(source: String, members: Int, output: File) {
+  private fun render(source: String, members: Int, output: File, drawWidth: Int, drawHeight: Int) {
     val timings = File(output, "timings.csv").apply { writeText("phase,ms\n") }
     fun measure(phase: String, block: () -> Unit) {
       File(output, "phase.txt").writeText("$phase,${System.currentTimeMillis()}")
@@ -106,13 +108,13 @@ internal object WindowsGlassProbe {
             canvas.clear(0xFF303030.toInt())
             Paint().use { paint ->
               paint.shader = shader
-              if (shader != null) canvas.drawRect(Rect.makeWH(240f, 160f), paint)
+              if (shader != null) canvas.drawRect(Rect.makeWH(drawWidth.toFloat(), drawHeight.toFloat()), paint)
             }
           }
         }
         frame = JFrame("Glass first-draw probe").apply {
           contentPane.add(layer)
-          contentPane.preferredSize = Dimension(240, 160)
+          contentPane.preferredSize = Dimension(drawWidth, drawHeight)
           pack()
           setLocation(30, 30)
           isVisible = true
