@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
@@ -32,6 +33,33 @@ import org.robolectric.annotation.Config
 
 @Config(sdk = [33])
 class FallbackGlassScrimAndroidHostTest : ScreenshotTest() {
+  @Test
+  fun overBudgetClear_autoScrimIsAppearanceIndependentAfterOpticsOverride() = runScreenshotTest {
+    val state = HazeState()
+    val appearance = mutableStateOf(GlassSystemAppearance.Light)
+    val effect = GlassRuntimeEffect().apply { appearanceReader = { appearance.value } }
+    val style = GlassStyle.clear.then { whitePoint(-0.1f) }
+    val factory = HazeEffectFactory { effect }
+    setContent {
+      Box(Modifier.size(300.dp, 180.dp).testTag("root").background(Color.White)) {
+        Box(Modifier.size(300.dp, 180.dp).hazeSource(state).background(Color.Red))
+        Box(
+          Modifier.wrapContentSize(Alignment.TopStart, unbounded = true).requiredSize(5000.dp, 120.dp)
+            .hazeGlass(factory, HazeInput.Sources(state), style, null, true, null),
+        )
+      }
+    }
+    val light = captureRootPixels()[100, 100]
+    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat((effect.delegate as FallbackGlassDelegate).filteredInputDrawnForTest).isFalse()
+    appearance.value = GlassSystemAppearance.Dark
+    waitForIdle()
+    assertThat(captureRootPixels()[100, 100]).isEqualTo(light)
+    appearance.value = GlassSystemAppearance.Light
+    waitForIdle()
+    assertThat(captureRootPixels()[100, 100]).isEqualTo(light)
+  }
+
   @Test
   fun overBudgetFallback_usesOverrideAndDoesNotBlur() = runScreenshotTest {
     val state = HazeState()

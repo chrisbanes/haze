@@ -32,6 +32,7 @@ import assertk.assertions.isLessThan
 import dev.chrisbanes.haze.glass.GlassAccessibilitySettings
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.LocalGlassAccessibilitySettings
+import dev.chrisbanes.haze.glass.LocalGlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -87,6 +88,62 @@ class GlassClearAppearanceReplayScreenshotTest : ScreenshotTest() {
     height = 176,
     colors = buildList { for (y in top until top + 176) for (x in 70 until 350) add(this@cropNode[x, y]) },
   )
+
+  @Test
+  fun sharedClear_independentLocalStylesDoNotContaminateOtherNode() = runScreenshotTest(size = Size(420f, 800f)) {
+    var appearance by mutableStateOf(GlassTestSystemAppearance.Light)
+    var tintA by mutableStateOf(Color.Transparent)
+    var tintB by mutableStateOf(Color.Transparent)
+    val localA = GlassStyle { tint(tintA) }
+    val localB = GlassStyle { tint(tintB) }
+    val shared = GlassStyle.clear
+    setContent {
+      WithGlassTestSystemAppearance(appearance) {
+        CompositionLocalProvider(LocalDensity provides Density(1f)) {
+          val state = remember { HazeState() }
+          Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.fillMaxSize().hazeSource(state)) {
+              drawRect(Color(0xFF07141A))
+              repeat(53) { i -> drawLine(Color.White, Offset(i * 8f, 0f), Offset(i * 8f, size.height), 1f) }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+              listOf(localA, localB).forEach { local ->
+                CompositionLocalProvider(LocalGlassStyle provides local) {
+                  Box(Modifier.size(280.dp, 176.dp).hazeGlass(input = HazeInput.Sources(state), style = shared, performanceMode = HazePerformanceMode.Quality))
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    waitForIdle()
+    val initial = captureRootPixels().snapshot()
+    tintA = Color.Red.copy(alpha = 0.5f)
+    waitForIdle()
+    val afterA = captureRootPixels().snapshot()
+    assertThat(afterA.cropNode(212).changedPixelRatio(initial.cropNode(212))).isGreaterThan(0.01f)
+    assertThat(afterA.cropNode(412).meanAbsoluteDifference(initial.cropNode(412))).isLessThan(1f / 255f)
+    appearance = GlassTestSystemAppearance.Dark
+    waitForIdle()
+    val darkA = captureRootPixels().snapshot()
+    for (top in listOf(212, 412)) assertThat(darkA.cropNode(top).meanAbsoluteDifference(afterA.cropNode(top))).isLessThan(1f / 255f)
+    appearance = GlassTestSystemAppearance.Light
+    waitForIdle()
+    tintB = Color.Blue.copy(alpha = 0.5f)
+    waitForIdle()
+    val afterB = captureRootPixels().snapshot()
+    assertThat(afterB.cropNode(212).meanAbsoluteDifference(afterA.cropNode(212))).isLessThan(1f / 255f)
+    assertThat(afterB.cropNode(412).changedPixelRatio(afterA.cropNode(412))).isGreaterThan(0.01f)
+    appearance = GlassTestSystemAppearance.Dark
+    waitForIdle()
+    val darkB = captureRootPixels().snapshot()
+    for (top in listOf(212, 412)) assertThat(darkB.cropNode(top).meanAbsoluteDifference(afterB.cropNode(top))).isLessThan(1f / 255f)
+    appearance = GlassTestSystemAppearance.Light
+    waitForIdle()
+    val restored = captureRootPixels().snapshot()
+    for (top in listOf(212, 412)) assertThat(restored.cropNode(top).meanAbsoluteDifference(afterB.cropNode(top))).isLessThan(1f / 255f)
+  }
 
   @Test
   fun sharedClear_repeatedAppearanceSwitchAndObservedWrite() = runScreenshotTest(size = Size(420f, 800f)) {

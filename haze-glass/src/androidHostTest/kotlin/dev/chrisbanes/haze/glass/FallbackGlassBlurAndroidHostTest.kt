@@ -49,6 +49,36 @@ import org.robolectric.annotation.Config
 @Config(sdk = [31, 32])
 class FallbackGlassBlurAndroidHostTest : ScreenshotTest() {
   @Test
+  fun hardwareFallback_clearKeepsResponseAcrossAppearance() = runScreenshotTest(size = Size(400f, 300f)) {
+    val state = HazeState()
+    val appearance = mutableStateOf(GlassSystemAppearance.Light)
+    val effect = GlassRuntimeEffect().apply { appearanceReader = { appearance.value } }
+    val factory = HazeEffectFactory { effect }
+    val style = GlassStyle.clear.then { whitePoint(-0.1f) }
+    var hardware = false
+    setContent {
+      Box(Modifier.pxSize(400, 300).testTag("root").background(Color.White)) {
+        Box(Modifier.pxSize(400, 300).hazeSource(state).background(Color.DarkGray))
+        Box(
+          Modifier.offset { IntOffset(100, 80) }.pxSize(200, 100)
+            .drawBehind { hardware = hardware || drawContext.canvas.nativeCanvas.isHardwareAccelerated }
+            .hazeGlass(factory, HazeInput.Sources(state), style, null, true, null),
+        )
+      }
+    }
+    val light = captureRootPixels()[150, 120]
+    assertThat(hardware).isTrue()
+    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat((effect.delegate as FallbackGlassDelegate).filteredInputDrawnForTest).isTrue()
+    appearance.value = GlassSystemAppearance.Dark
+    waitForIdle()
+    assertThat(captureRootPixels()[150, 120]).isEqualTo(light)
+    appearance.value = GlassSystemAppearance.Light
+    waitForIdle()
+    assertThat(captureRootPixels()[150, 120]).isEqualTo(light)
+  }
+
+  @Test
   fun hardwareFallback_blursStripesAtTheirTruePosition() = runScreenshotTest(size = Size(400f, 300f)) {
     val state = HazeState()
     val blurred = GlassRuntimeEffect()

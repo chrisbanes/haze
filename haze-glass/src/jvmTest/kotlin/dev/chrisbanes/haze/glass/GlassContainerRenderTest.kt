@@ -1,7 +1,7 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(androidx.compose.ui.test.ExperimentalTestApi::class, dev.chrisbanes.haze.ExperimentalHazeApi::class, dev.chrisbanes.haze.InternalHazeApi::class)
+@file:OptIn(androidx.compose.ui.InternalComposeUiApi::class, androidx.compose.ui.test.ExperimentalTestApi::class, dev.chrisbanes.haze.ExperimentalHazeApi::class, dev.chrisbanes.haze.InternalHazeApi::class)
 
 package dev.chrisbanes.haze.glass
 
@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -81,6 +83,77 @@ private class TestLifecycleOwner : LifecycleOwner {
 }
 
 class GlassContainerRenderTest : ContextTest() {
+  @Suppress("DEPRECATION")
+  @Test
+  fun clearMerged_runtimeRemainsStableAcrossAppearanceSwitches() = checkClearMergedAppearance(false)
+
+  @Suppress("DEPRECATION")
+  @Test
+  fun clearMerged_fallbackRemainsStableAcrossAppearanceSwitches() = checkClearMergedAppearance(true)
+
+  @Suppress("DEPRECATION")
+  private fun checkClearMergedAppearance(fallback: Boolean) = runComposeUiTest {
+    val appearance = mutableStateOf(SystemTheme.Light)
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    val firstFactory = HazeEffectFactory { first }
+    val secondFactory = HazeEffectFactory { second }
+    val style = if (fallback) {
+      GlassStyle.clear.then {
+        optics(GlassOptics(refractionStrength = 1f, refractionDisplacement = 16_384.dp, refractionDetailIntensity = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp)))
+      }
+    } else {
+      GlassStyle.clear
+    }
+    val state = HazeState()
+    setContent {
+      CompositionLocalProvider(LocalSystemTheme provides appearance.value) {
+        Box(Modifier.size(360.dp, 240.dp).testTag("root").background(Color.White)) {
+          Box(
+            Modifier.size(360.dp, 240.dp).hazeSource(state).drawBehind {
+              drawRect(Color(0xFF203050))
+              repeat(36) { x -> drawLine(Color.Cyan, Offset(x * 10f, 0f), Offset(x * 10f, size.height), 3f) }
+            },
+          )
+          Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp)) {
+            Box(Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(firstFactory, HazeInput.Sources(state), style, HazePerformanceMode.Quality, true, null))
+            Box(Modifier.offset(120.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(secondFactory, HazeInput.Sources(state), style, HazePerformanceMode.Quality, true, null))
+          }
+        }
+      }
+    }
+    waitForIdle()
+    val owner = checkNotNull(first.memberBindingForTest?.node?.container)
+    val runtime = owner.renderer.runtimeSurfaces.single()
+    if (fallback) {
+      assertThat(runtime.delegate).isInstanceOf<FallbackGlassDelegate>()
+    } else {
+      assertThat(runtime.delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
+    }
+    val light = onNodeWithTag("root").captureToImage().toPixelMap()
+    fun assertSame(actual: androidx.compose.ui.graphics.PixelMap) {
+      for (range in listOf(40 until 140, 120 until 220, 40 until 220)) {
+        var difference = 0f
+        for (y in 60 until 140) for (x in range) {
+          val a = light[x, y]
+          val b = actual[x, y]
+          difference += abs(a.red - b.red) + abs(a.green - b.green) + abs(a.blue - b.blue) + abs(a.alpha - b.alpha)
+        }
+        assertThat(difference / (range.count() * 80 * 4)).isLessThan(1f / 255f)
+      }
+    }
+    repeat(2) {
+      runOnIdle { appearance.value = SystemTheme.Dark }
+      waitForIdle()
+      val dark = onNodeWithTag("root").captureToImage().toPixelMap()
+      assertSame(dark)
+      assertThat(owner.renderer.runtimeSurfaces.single()).isSameInstanceAs(runtime)
+      runOnIdle { appearance.value = SystemTheme.Light }
+      waitForIdle()
+      assertSame(onNodeWithTag("root").captureToImage().toPixelMap())
+    }
+  }
+
   @Test
   fun reducedTransparency_memberContextColoursAndLivePolicyHideSource() = runComposeUiTest {
     val state = HazeState()

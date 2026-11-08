@@ -10,8 +10,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReusableContentHost
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.findRootCoordinates
@@ -26,6 +29,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotEmpty
 import assertk.assertions.isNotNull
+import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
@@ -65,6 +69,65 @@ class HazeEffectReactivationTest : ContextTest() {
 
     assertThat(factory.attachCount).isEqualTo(2)
     assertThat(effect.surfaceBounds(root)).isEqualTo(before)
+  }
+
+  @Test
+  fun reactivation_sameNodeResubscribesToCurrentLocals() = runComposeUiTest {
+    val static = staticCompositionLocalOf { 0 }
+    val dynamic = compositionLocalOf { 0 }
+    val first = mutableStateOf(1)
+    val second = mutableStateOf(2)
+    val active = mutableStateOf(true)
+    var node: HazeEffectNode? = null
+    var value = 0
+    var updates = 0
+    var detaches = 0
+    var disposals = 0
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+        override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+          updates++
+          value = scope.currentValueOf(static) + scope.currentValueOf(dynamic)
+        }
+        override fun detach() {
+          detaches++
+        }
+        override fun dispose() {
+          disposals++
+        }
+        override fun HazeEffectDrawScope.draw(style: Unit) {
+          drawInput()
+        }
+      }
+    }
+    setContent {
+      CompositionLocalProvider(static provides first.value, dynamic provides second.value) {
+        ReusableContentHost(active.value) {
+          Box(Modifier.size(50.dp).hazeEffect(factory, HazeInput.Content, Unit).captureEffectNode { node = it })
+        }
+      }
+    }
+    waitForIdle()
+    val original = checkNotNull(node)
+    assertThat(value).isEqualTo(3)
+    runOnIdle { active.value = false }
+    waitForIdle()
+    val detachedUpdates = updates
+    runOnIdle {
+      first.value = 4
+      second.value = 5
+    }
+    waitForIdle()
+    assertThat(updates).isEqualTo(detachedUpdates)
+    assertThat(detaches).isEqualTo(1)
+    assertThat(disposals).isEqualTo(1)
+    runOnIdle { active.value = true }
+    waitForIdle()
+    assertThat(node).isSameInstanceAs(original)
+    assertThat(value).isEqualTo(9)
+    runOnIdle { second.value = 7 }
+    waitForIdle()
+    assertThat(value).isEqualTo(11)
   }
 
   @Test

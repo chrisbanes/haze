@@ -515,6 +515,7 @@ internal class HazeEffectNode(
     // A reactivated node with an unchanged layout is not placed again, so it must start placed.
     isUnplaced = false
     coordinatesConfirmed = false
+    configuredSurfaces.toList().forEach { it.onAnchorDetach() }
     surface.release()
     unregisterSourceDemand()
     stopSourceSelectionSnapshotObserver()
