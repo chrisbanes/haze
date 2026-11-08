@@ -18,6 +18,10 @@ import dev.chrisbanes.haze.sample.Samples
 import dev.chrisbanes.haze.sample.resolveSampleLaunch
 
 fun main() {
+  if (java.lang.Boolean.getBoolean("haze.windowsBlurProbe")) {
+    runWindowsBlurProbe()
+    return
+  }
   // Optionally open one sample at a fixed 16:9 size, for consistent screen recordings. See
   // sample/desktop/build.gradle.kts for the Gradle properties that set these.
   val query = listOf("embed", "sample", "effect", "theme")
