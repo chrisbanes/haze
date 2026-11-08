@@ -336,6 +336,7 @@ class FallbackGlassDelegateTest {
   @Test
   fun fallbackColor_automaticExplicitAndTransparentRenderInOrder() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
+      appearanceReader = { GlassSystemAppearance.Light }
       style = GlassStyle {
         optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(25.dp), depth = OpticalSizeValue.Fixed(1f)))
         shape(RoundedCornerShape(0.dp))
