@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 param(
-  [ValidateSet('Baseline')][string]$Mode = 'Baseline',
+  [ValidateSet('Baseline', 'Profile')][string]$Mode = 'Baseline',
   [ValidateSet('baseline', 'control', 'original', 'guarded')][string]$Variant = 'baseline',
   [ValidateSet('false', 'true')][string]$Continuous = 'false',
   [ValidateRange(1, 3)][int]$Trials = 3,
@@ -11,7 +11,11 @@ param(
   [string]$Cuts = 'none'
 )
 $ErrorActionPreference = 'Stop'
+trap { [Console]::Error.WriteLine('GLASS_PROBE INVALID: ' + $_.Exception.Message); exit 2 }
 Set-StrictMode -Version Latest
+if ($Mode -eq 'Profile' -and ($Trials -ne 1 -or $Variant -eq 'baseline')) {
+  throw 'Profile mode requires one explicit case and -Trials 1'
+}
 $root = Split-Path $PSScriptRoot
 $classpath = Get-Content (Join-Path $root 'haze-glass/build/windows-glass-probe-classpath.txt') -Raw
 $output = Join-Path $root ('haze-glass/build/outputs/glass-probe/' + [guid]::NewGuid())
@@ -32,6 +36,7 @@ $cases = @(
   }
 )
 $results = @()
+$executionFailed = $false
 try {
   foreach ($case in $cases) {
     for ($trial = 0; $trial -lt $Trials; $trial++) {
@@ -50,9 +55,22 @@ try {
       $verdict = 'INVALID'
       $threshold = if ($case.variant -eq 'control') { 1000 } else { 5000 }
       $reason = 'Missing successful render'
+      $drawLimit = if ($Mode -eq 'Profile') { 30000 } else { $threshold }
+      $started = $false
+      $recording = $false
+      $instance = 'Glass1767-' + [guid]::NewGuid().ToString('N')
+      $trace = Join-Path $caseDir 'cpu.etl'
       $watch = [System.Diagnostics.Stopwatch]::StartNew()
       try {
+        if ($Mode -eq 'Profile') {
+          wpr -start CPU -filemode -instancename $instance *> (Join-Path $caseDir 'wpr-start.txt')
+          if ($LASTEXITCODE -ne 0) { throw 'Could not start owned WPR CPU session; do not cancel other sessions' }
+          $recording = $true
+          [IO.File]::WriteAllText((Join-Path $caseDir 'trace-start-epoch-ms.txt'), [string][DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())
+        }
         if (-not $process.Start()) { throw 'Could not start owned probe JVM' }
+        $started = $true
+        [IO.File]::WriteAllText((Join-Path $caseDir 'process-id.txt'), [string]$process.Id)
         $stdout = $process.StandardOutput.ReadToEndAsync()
         $stderr = $process.StandardError.ReadToEndAsync()
         while (-not $process.WaitForExit(50)) {
@@ -61,9 +79,9 @@ try {
             $phase = Get-Content $phaseFile -Raw
             if ($phase -match '^first-draw,([0-9]{13})$') {
               $elapsed = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() - [long]$Matches[1]
-              if ($elapsed -gt $threshold) {
+              if ($elapsed -gt $drawLimit) {
                 $verdict = if ($case.variant -eq 'control') { 'INVALID' } else { 'LATENCY_FAIL' }
-                $reason = "first-draw exceeded ${threshold}ms"
+                $reason = "first-draw exceeded ${drawLimit}ms"
                 break
               }
             }
@@ -82,19 +100,44 @@ try {
           }
         }
       } finally {
-        if ($process.Id -and -not $process.HasExited) { $process.Kill($true); $process.WaitForExit() }
+        if ($started -and -not $process.HasExited) { $process.Kill($true); $process.WaitForExit() }
         $process.Dispose()
+        if ($recording) {
+          wpr -stop $trace -skipPdbGen -instancename $instance *> (Join-Path $caseDir 'wpr-stop.txt')
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path $trace)) { throw 'Owned WPR capture could not be saved; inspect partial artifacts' }
+        }
       }
-      $result = [ordered]@{ variant = $case.variant; continuous = $case.continuous; trial = $trial; width = $Width; height = $Height; cuts = $Cuts; verdict = $verdict; reason = $reason; directory = $caseDir }
+      $result = [ordered]@{ variant = $case.variant; continuous = $case.continuous; trial = $trial; width = $Width; height = $Height; cuts = $Cuts; profiled = ($Mode -eq 'Profile'); verdict = $verdict; reason = $reason; directory = $caseDir }
       $results += $result
       $result | ConvertTo-Json -Compress | Write-Output
       [IO.File]::WriteAllText((Join-Path $caseDir 'result.json'), ($result | ConvertTo-Json))
+      if ($Mode -eq 'Profile') {
+        $probePid = [int](Get-Content (Join-Path $caseDir 'process-id.txt') -Raw)
+        $env:_NT_SYMBOL_PATH = 'srv*' + (Join-Path $root 'haze-glass/build/symbols') + '*https://msdl.microsoft.com/download/symbols'
+        $env:_NT_SYMCACHE_PATH = Join-Path $root 'haze-glass/build/symcache'
+        xperf -i $trace -o (Join-Path $caseDir 'trace-stats.txt') -a tracestats *> (Join-Path $caseDir 'xperf-stats-log.txt')
+        if ($LASTEXITCODE -ne 0) { throw 'Could not inspect trace quality' }
+        xperf -i $trace -o (Join-Path $caseDir 'cpu-modules.txt') -a profile -detail *> (Join-Path $caseDir 'xperf-profile-log.txt')
+        if ($LASTEXITCODE -ne 0) { throw 'Could not export CPU module samples' }
+        xperf -i $trace -symbols -o (Join-Path $caseDir 'cpu-stacks.txt') -a stack -butterfly 1 -pid $probePid -event '.*Profile.*' *> (Join-Path $caseDir 'xperf-stack-log.txt')
+        if ($LASTEXITCODE -ne 0) { throw 'Could not export target CPU stacks' }
+        xperf -i $trace -symbols -o (Join-Path $caseDir 'wait-stacks.txt') -a stack -butterfly 1 -pid $probePid -event '.*CSwitch.*' *> (Join-Path $caseDir 'xperf-wait-log.txt')
+        if ($LASTEXITCODE -ne 0) { throw 'Could not export target wait stacks' }
+        foreach ($report in @('cpu-stacks.txt', 'cpu-modules.txt', 'trace-stats.txt')) {
+          if ((Get-Item (Join-Path $caseDir $report)).Length -eq 0) { throw "Empty profile report: $report" }
+        }
+      }
     }
   }
+} catch {
+  $executionFailed = $true
+  [IO.File]::WriteAllText((Join-Path $output 'runner-error.txt'), $_.Exception.ToString())
+  [Console]::Error.WriteLine("GLASS_PROBE INVALID: " + $_.Exception.Message)
 } finally {
   ConvertTo-Json -InputObject @($results) -Depth 4 | Set-Content (Join-Path $output 'results.json')
   Write-Output "GLASS_PROBE_RESULTS $output"
 }
+if ($executionFailed) { exit 2 }
 if (@($results | Where-Object verdict -eq 'INVALID').Count -gt 0) { exit 2 }
 if (@($results | Where-Object verdict -eq 'LATENCY_FAIL').Count -gt 0) { exit 1 }
 exit 0

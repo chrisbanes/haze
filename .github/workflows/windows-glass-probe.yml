@@ -38,70 +38,31 @@ jobs:
       - name: Compile probe and check variant selection
         shell: pwsh
         run: ./gradlew.bat :haze-glass:prepareWindowsGlassProbe :haze-glass:jvmTest --tests '*WindowsGlassProbeTest' '-Phaze.disableAppleTargets' --no-scan --console=plain --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8'
-      - name: Run bounded fresh-process feedback loop
+      - name: Reject ambiguous profiling requests before native recording
         shell: pwsh
         run: |
-          pwsh -File scripts/windows-glass-probe.ps1 -Mode Baseline
-          $probeExit = $LASTEXITCODE
-          if ($probeExit -ne 1) { throw "Expected reproduced latency failure; received exit $probeExit" }
-          $files = @(Get-ChildItem haze-glass/build/outputs/glass-probe -Filter results.json -Recurse)
-          if ($files.Count -ne 1) { throw 'Expected one complete result set' }
-          $results = @(Get-Content $files[0].FullName -Raw | ConvertFrom-Json)
-          if ($results.Count -ne 12) { throw 'Incomplete trials' }
-          if (@($results | Where-Object { $_.variant -eq 'control' -and $_.verdict -eq 'PASS' }).Count -ne 3) { throw 'Control failed' }
-          if (@($results | Where-Object { $_.variant -eq 'original' -and $_.verdict -eq 'LATENCY_FAIL' }).Count -ne 6) { throw 'Original failure is not repeatable' }
-          if (@($results | Where-Object verdict -eq 'INVALID').Count -gt 0) { throw 'Invalid experiment' }
-          # The probe deliberately exits 1 for latency failures; the assertions above certify reproduction.
+          pwsh -File scripts/windows-glass-probe.ps1 -Mode Profile -Variant baseline -Trials 1
+          if ($LASTEXITCODE -ne 2) { throw 'Profiling argument errors must be INVALID, not a latency failure' }
           exit 0
-      - name: Reduce draw width, then height, keeping shader and uniforms fixed
+      - name: Recheck unprofiled control and minimized failure
         shell: pwsh
         run: |
-          function Assert-ReducedFailure([int]$Width, [int]$Height) {
-            $before = @(Get-ChildItem haze-glass/build/outputs/glass-probe -Filter results.json -Recurse).FullName
-            pwsh -File scripts/windows-glass-probe.ps1 -Variant original -Continuous true -Width $Width -Height $Height
-            if ($LASTEXITCODE -ne 1) { throw "Reduction ${Width}x${Height} did not preserve a valid latency failure" }
-            $added = @(Get-ChildItem haze-glass/build/outputs/glass-probe -Filter results.json -Recurse | Where-Object { $_.FullName -notin $before })
-            if ($added.Count -ne 1) { throw 'Expected one reduction result set' }
-            $results = @(Get-Content $added[0].FullName -Raw | ConvertFrom-Json)
-            if ($results.Count -ne 3 -or @($results | Where-Object verdict -ne 'LATENCY_FAIL').Count -ne 0) { throw 'Reduction is not repeatably red' }
-          }
-          Assert-ReducedFailure 64 160
-          Assert-ReducedFailure 64 48
+          $cuts = 'ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance,optical-height,rect-gradient,compact-main'
+          pwsh -File scripts/windows-glass-probe.ps1 -Variant control -Width 64 -Height 48 -Trials 1
+          if ($LASTEXITCODE -ne 0) { throw 'Unprofiled control failed' }
+          pwsh -File scripts/windows-glass-probe.ps1 -Variant original -Continuous true -Width 64 -Height 48 -Trials 1 -Cuts $cuts
+          if ($LASTEXITCODE -ne 1) { throw 'Unprofiled minimized case no longer reproduces' }
           exit 0
-      - name: Remove one source feature at a time, retaining only repeatable failures
+      - name: Capture native CPU and wait stacks for minimized case and refraction-free control
         shell: pwsh
         run: |
-          # Seed only cuts retained by the previous native run, with exact source in its artifacts.
-          $kept = @('ambient', 'content-normal', 'chroma', 'member-optics', 'sample-offset', 'grading', 'tint', 'edge-fade', 'signed-distance', 'optical-height', 'rect-gradient')
-          ($kept -join ',') | Set-Content haze-glass/build/outputs/glass-probe/seed-cuts.txt
-          $ledger = @()
-          foreach ($cut in @('seed', 'compact-main', 'refraction', 'member-weights', 'standalone-refraction', 'merged-refraction', 'merged-gradient')) {
-            $proposal = @($kept)
-            if ($cut -ne 'seed') { $proposal += $cut }
-            $before = @(Get-ChildItem haze-glass/build/outputs/glass-probe -Filter results.json -Recurse).FullName
-            pwsh -File scripts/windows-glass-probe.ps1 -Variant original -Continuous true -Width 64 -Height 48 -Cuts ($proposal -join ',')
-            $probeExit = $LASTEXITCODE
-            if ($probeExit -notin @(0, 1)) { throw "Invalid reduction at $cut" }
-            $added = @(Get-ChildItem haze-glass/build/outputs/glass-probe -Filter results.json -Recurse | Where-Object { $_.FullName -notin $before })
-            if ($added.Count -ne 1) { throw 'Expected one source reduction result set' }
-            $results = @(Get-Content $added[0].FullName -Raw | ConvertFrom-Json)
-            if ($results.Count -ne 3) { throw 'Incomplete reduction trials' }
-            $failed = @($results | Where-Object verdict -eq 'LATENCY_FAIL').Count
-            $passed = @($results | Where-Object verdict -eq 'PASS').Count
-            if ($cut -eq 'seed' -and $failed -ne 3) { throw 'Retained seed no longer reproduces; stop minimisation' }
-            if ($failed -eq 3 -and $probeExit -eq 1) {
-              $kept = $proposal
-              $decision = 'KEEP_CUT'
-            } elseif ($passed -eq 3 -and $probeExit -eq 0) {
-              $decision = 'RESTORE_FEATURE'
-            } else {
-              throw "Unstable or invalid reduction at $cut; retain original and inspect artifacts"
-            }
-            $ledger += @{ cut = $cut; proposed = $proposal; decision = $decision; kept = @($kept); results = $added[0].FullName }
-            ConvertTo-Json -InputObject @($ledger) -Depth 5 | Set-Content haze-glass/build/outputs/glass-probe/cut-ledger.json
-            ($kept -join ',') | Set-Content haze-glass/build/outputs/glass-probe/kept-cuts.txt
-            Write-Output "CUT_RESULT $cut $decision retained=$($kept -join ',')"
-          }
+          $cuts = 'ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance,optical-height,rect-gradient,compact-main'
+          pwsh -File scripts/windows-glass-probe.ps1 -Mode Profile -Variant original -Continuous true -Width 64 -Height 48 -Trials 1 -Cuts $cuts
+          if ($LASTEXITCODE -ne 1) { throw 'Profiled minimized case did not preserve the latency failure' }
+          pwsh -File scripts/windows-glass-probe.ps1 -Mode Profile -Variant original -Continuous true -Width 64 -Height 48 -Trials 1 -Cuts ($cuts + ',refraction')
+          if ($LASTEXITCODE -ne 0) { throw 'Profiled refraction-free control failed' }
+          $traces = @(Get-ChildItem haze-glass/build/outputs/glass-probe -Filter cpu.etl -Recurse)
+          if ($traces.Count -ne 2) { throw 'Expected two complete native captures' }
           exit 0
       - uses: actions/upload-artifact@v7
         if: always()

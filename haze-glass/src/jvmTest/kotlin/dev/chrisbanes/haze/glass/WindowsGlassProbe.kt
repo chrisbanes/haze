@@ -131,14 +131,15 @@ internal object WindowsGlassProbe {
   }
 
   private fun render(source: String, members: Int, output: File, drawWidth: Int, drawHeight: Int) {
-    val timings = File(output, "timings.csv").apply { writeText("phase,ms\n") }
+    val timings = File(output, "timings.csv").apply { writeText("phase,ms,startEpochMs\n") }
     fun measure(phase: String, block: () -> Unit) {
-      File(output, "phase.txt").writeText("$phase,${System.currentTimeMillis()}")
+      val epochMs = System.currentTimeMillis()
+      File(output, "phase.txt").writeText("$phase,$epochMs")
       println("GLASS_PROBE_START $phase")
       val start = System.nanoTime()
       block()
       val ms = (System.nanoTime() - start) / 1e6
-      timings.appendText("$phase,$ms\n")
+      timings.appendText("$phase,$ms,$epochMs\n")
       println("GLASS_PROBE_END $phase $ms")
     }
     lateinit var effect: RuntimeEffect

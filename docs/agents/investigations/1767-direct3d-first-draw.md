@@ -129,3 +129,39 @@ failure can retain the compact entry point; raster parity alone cannot establish
 the stall. Then repeat the remaining feature boundaries against the final retained case. This
 removes dead entry-point calculations before native profiling; the full original cases remain
 available for final verification.
+
+## Compact-case result and attribution hypotheses
+
+The [compact-case run](https://github.com/chrisbanes/haze/actions/runs/42530372885) at
+`236814d733556f3aab2fd90162aba251c46ddcf9` retained the compact entry point: all three native trials
+still fail first draw at the five-second gate. Each remaining tested feature boundary passes when
+bypassed in that final context: complete refraction, member weights, standalone evaluation, merged
+evaluation and merged gradient. Raster parity is exact and rejects a refraction-free image.
+
+This completes feature-level minimisation for the first native capture. It does not establish a
+mathematically smallest shader; further lexical/helper minimisation can follow attribution for an
+upstream report. Capturing now avoids treating a seconds-long threshold-passing cut as a fix.
+
+Ranked hypotheses, presented before profiling:
+
+1. Backend shader compilation: sampled CPU during first draw is concentrated in D3D compiler
+   functions, and the refraction-free control avoids that cost.
+2. Skia generation/lowering: Skia/Skiko work dominates before backend compilation.
+3. Software rendering: WARP execution dominates target-process CPU samples.
+4. Synchronization/presentation: first-draw wall time is mostly waiting, with little active probe CPU.
+
+Capture the retained twelve-cut case and a case differing only by the `refraction` cut. Keep profiles
+separate from the latency acceptance loop. `-Mode Profile -Trials 1` uses an owned, uniquely named WPR
+CPU session and allows first draw up to 30 seconds, while the five-second verdict stays unchanged.
+It saves in `finally`, never cancels another session, and preserves source, PID, epoch timestamps,
+ETL, trace-quality statistics, module samples and symbol-decoded target CPU/wait stack reports.
+All runner/tool exceptions return INVALID, not the expected latency-failure exit code.
+
+An unprofiled control and the retained case must pass their established gates first. Missing tools,
+recording permissions, events or symbols are explicit qualification gaps; merely producing an ETL
+or a nonempty report is not layer attribution. No shader/pipeline fix is selected yet.
+
+Commands follow Microsoft's [WPR reference](https://learn.microsoft.com/en-us/windows-hardware/test/wpt/wpr-command-line-options),
+[xperf profile action](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/xperf/profile),
+[stack action](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/xperf/the-stack-action), and
+[symbol decoding](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/xperf/symbols).
