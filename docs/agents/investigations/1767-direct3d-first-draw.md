@@ -3,6 +3,22 @@
 Tracks [#1767](https://github.com/chrisbanes/haze/issues/1767). First-draw stacks identify backend shader compilation,
 including WARP JIT work. No production workaround has been selected.
 
+## Current outcome
+
+The [standalone exported ZIP](https://github.com/chrisbanes/haze/actions/runs/42536087987), head
+`78ff8d6f399df500a0409784bc4cb0cb68b3bbb7`, compiles and reproduces outside the Haze checkout.
+All three retained trials have the cold signal; all three paired controls pass. The forced watchdog
+returns INVALID and preserves both captured streams. Its shader bytes match the profiled fixture.
+The [upstream report draft](1767-upstream-report.md) is ready for review and has not been filed.
+
+Independent review checked fixture/package identity, process/WPR ownership, verdict classification
+and scoped profile claims. Its two findings—timeout stream retention and a one-sample table error—
+are fixed and the native watchdog test covers the repaired path. Normal Build and Publish docs gates
+are restored for final CI; the dedicated investigation workflow is now manual-only. Full CI on this
+cleanup revision remains pending. No production shader/API changed; physical GPUs remain unmeasured.
+
+The sections below retain the experiments and corrections that led to this outcome.
+
 ## Feedback command
 
 On Windows, with Java 21 and a visible desktop, from the repository root:

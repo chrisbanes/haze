@@ -1,13 +1,6 @@
 name: Windows Glass first-draw investigation
 on:
   workflow_dispatch:
-  push:
-    branches: [cb/review-1767]
-    paths:
-      - .github/workflows/windows-glass-probe.yml
-      - scripts/windows-glass-probe.ps1
-      - haze-glass/**
-      - docs/agents/investigations/1767-repro/**
 permissions:
   contents: read
 jobs:

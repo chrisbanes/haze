@@ -57,3 +57,10 @@ This is a feature-reduced case, not a claim of the lexically smallest shader. Un
 helpers remain to preserve exact measured source. Haze's `WindowsGlassProbeTest` checks both frozen
 sources and the uniforms against that generator. The separate native ZIP run checks that removing
 the Haze/Compose dependencies preserves the stall.
+
+The [exported ZIP qualification](https://github.com/chrisbanes/haze/actions/runs/42536087987) at
+`78ff8d6f399df500a0409784bc4cb0cb68b3bbb7` built this project in runner temporary storage, outside
+the checkout. All three retained trials reproduce the cold stall and all three paired controls
+pass on Microsoft Basic Render Driver. A forced watchdog test returns INVALID and preserves both
+process streams. The run's `windows-glass-first-draw` artifact contains the qualified source ZIP,
+standalone timings, renderer identities, screenshots and partial watchdog outputs.
