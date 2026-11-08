@@ -41,6 +41,26 @@ class WindowsGlassProbeTest {
   }
 
   @Test
+  fun sourceFor_refractionSubcutsCompileFromRetainedSource() {
+    val retained = "ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance"
+    val subcuts = listOf(
+      "refraction",
+      "member-weights",
+      "standalone-refraction",
+      "merged-refraction",
+      "optical-height",
+      "merged-gradient",
+      "rect-gradient",
+    )
+    for (cut in subcuts) {
+      val source = WindowsGlassProbe.sourceFor("original", continuous = true, cuts = "$retained,$cut")
+      RuntimeEffect.makeForShader(source).close()
+    }
+    val combined = WindowsGlassProbe.sourceFor("original", continuous = true, cuts = retained + "," + subcuts.joinToString(","))
+    RuntimeEffect.makeForShader(combined).close()
+  }
+
+  @Test
   fun sourceFor_originalIsProductionSource() {
     listOf(false, true).forEach { continuous ->
       assertThat(WindowsGlassProbe.sourceFor("original", continuous))

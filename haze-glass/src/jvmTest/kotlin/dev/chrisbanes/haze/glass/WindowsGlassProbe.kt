@@ -101,6 +101,17 @@ internal object WindowsGlassProbe {
         "refraction" ->
           """vec2 displacement = refractionDisplacement\([^;]+\);""" to
             "vec2 displacement = vec2(0.0); sampleDisplacement = vec2(0.0);"
+        "standalone-refraction" ->
+          Regex.escape("if (dot(memberStandaloneWeights, vec4(1.0)) <= 0.0) return mergedResult;") to
+            "return mergedResult;"
+        "merged-refraction" ->
+          """vec2 mergedResult = evaluateRefraction\([^;]+\);""" to
+            "vec2 mergedResult = vec2(0.0);"
+        "optical-height" ->
+          """float heightNorm = surfaceHeightNormFromOpticalDistance\(opticalDistance\);""" to
+            "float heightNorm = 0.5;"
+        "merged-gradient" -> Regex.escape("shapeRefractionGradient(localCoord)") to "vec2(0.0)"
+        "rect-gradient" -> Regex.escape("edgeRefractionGradient(localCoord, size, radii, exponents)") to "vec2(0.0)"
         "grading" -> """applyColorGrading\(\s*opticalColor,\s*localizedWhitePoint\s*\)""" to "opticalColor"
         "tint" -> Regex.escape("mix(gradedColor, mergedTint.rgb, mergedTint.a)") to "gradedColor"
         "edge-fade" -> Regex.escape("if (shapeMask >= 1.0) {") to "if (true) {"

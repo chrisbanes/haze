@@ -88,3 +88,24 @@ Remove both commented gates and restore full qualification before presenting a p
 
 The earlier continuous timeout used original source despite its intended guarded selection: the
 historical `0-g` artifact retains `break`. The new guarded-continuous experiment is separately labelled and now has its own five-second failure evidence.
+
+## First source-cut pass
+
+The [first source-cut run](https://github.com/chrisbanes/haze/actions/runs/42527851193) at
+`bdf31f700567f7fd3f83dc6aeeed8162c62b48a7` completed all three trials of every proposal with no
+invalid or mixed verdicts. Its retained cut list is:
+
+```text
+ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance
+```
+
+With those other features removed, the last retained source still fails first draw at the diagnostic
+gate. Bypassing refraction made all trials pass earlier in the chain. Replacing member weights with
+a fixed weight also passed the gate, but those completed draws remain close to the five-second limit;
+that is not evidence of an acceptable cold start or a production fix.
+
+The next pass starts from the exact retained cut list, confirms it still fails on the current runner,
+then repeats both final boundary checks. It splits refraction by bypassing standalone evaluation,
+merged evaluation, the optical-height input, merged gradients and per-rectangle gradients one at a
+time. Each newly retained cut becomes the next proposal's base. This is continued minimisation;
+responsible-layer hypotheses and native attribution remain pending.

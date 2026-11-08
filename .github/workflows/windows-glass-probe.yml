@@ -26,6 +26,15 @@ jobs:
           git rev-parse HEAD
           java -version
           Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion | Format-List
+          New-Item -ItemType Directory -Force haze-glass/build/outputs | Out-Null
+          $tools = @(Get-Command wpr, wpaexporter, xperf, cdb -ErrorAction SilentlyContinue | Select-Object Name, Source)
+          $tools | ConvertTo-Json | Set-Content haze-glass/build/outputs/glass-probe-profiler-tools.json
+          $wpr = Get-Command wpr -ErrorAction SilentlyContinue
+          if ($null -ne $wpr) {
+            & $wpr.Source -profiles 2>&1 | Set-Content haze-glass/build/outputs/glass-probe-wpr-profiles.txt
+            if ($LASTEXITCODE -ne 0) { Write-Output 'WPR profile enumeration failed; inspect retained diagnostics' }
+          }
+          exit 0
       - name: Compile probe and check variant selection
         shell: pwsh
         run: ./gradlew.bat :haze-glass:prepareWindowsGlassProbe :haze-glass:jvmTest --tests '*WindowsGlassProbeTest' '-Phaze.disableAppleTargets' --no-scan --console=plain --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8'
@@ -62,10 +71,13 @@ jobs:
       - name: Remove one source feature at a time, retaining only repeatable failures
         shell: pwsh
         run: |
-          $kept = @()
+          # Seed only cuts retained by the previous native run, with exact source in its artifacts.
+          $kept = @('ambient', 'content-normal', 'chroma', 'member-optics', 'sample-offset', 'grading', 'tint', 'edge-fade', 'signed-distance')
+          ($kept -join ',') | Set-Content haze-glass/build/outputs/glass-probe/seed-cuts.txt
           $ledger = @()
-          foreach ($cut in @('ambient', 'content-normal', 'chroma', 'member-optics', 'sample-offset', 'refraction', 'grading', 'tint', 'edge-fade', 'signed-distance', 'member-weights')) {
-            $proposal = @($kept) + @($cut)
+          foreach ($cut in @('seed', 'refraction', 'member-weights', 'standalone-refraction', 'merged-refraction', 'optical-height', 'merged-gradient', 'rect-gradient')) {
+            $proposal = @($kept)
+            if ($cut -ne 'seed') { $proposal += $cut }
             $before = @(Get-ChildItem haze-glass/build/outputs/glass-probe -Filter results.json -Recurse).FullName
             pwsh -File scripts/windows-glass-probe.ps1 -Variant original -Continuous true -Width 64 -Height 48 -Cuts ($proposal -join ',')
             $probeExit = $LASTEXITCODE
@@ -76,6 +88,7 @@ jobs:
             if ($results.Count -ne 3) { throw 'Incomplete reduction trials' }
             $failed = @($results | Where-Object verdict -eq 'LATENCY_FAIL').Count
             $passed = @($results | Where-Object verdict -eq 'PASS').Count
+            if ($cut -eq 'seed' -and $failed -ne 3) { throw 'Retained seed no longer reproduces; stop minimisation' }
             if ($failed -eq 3 -and $probeExit -eq 1) {
               $kept = $proposal
               $decision = 'KEEP_CUT'
@@ -96,4 +109,6 @@ jobs:
           name: windows-glass-first-draw
           path: |
             haze-glass/build/outputs/glass-probe
+            haze-glass/build/outputs/glass-probe-profiler-tools.json
+            haze-glass/build/outputs/glass-probe-wpr-profiles.txt
             haze-glass/build/test-results/jvmTest
