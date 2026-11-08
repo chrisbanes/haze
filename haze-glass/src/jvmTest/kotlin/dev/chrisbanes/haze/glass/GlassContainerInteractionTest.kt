@@ -44,6 +44,7 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
@@ -589,6 +590,112 @@ class GlassContainerInteractionTest : ContextTest() {
   }
 
   @Test
+  fun outlinedPressedGroup_scale12_notClipped_runtime() = assertOutlinedPressedGroupNotClipped(unavailable = false)
+
+  @Test
+  fun outlinedPressedGroup_scale12_notClipped_fallback() = assertOutlinedPressedGroupNotClipped(unavailable = true)
+
+  private fun assertOutlinedPressedGroupNotClipped(unavailable: Boolean) = runComposeUiTest {
+    val fixture = groupedCluster(
+      neighbourLeft = null,
+      unavailable = unavailable,
+      mergeDistance = 2,
+      outline = GlassStyle { edgeOutline(Color.Green, 4.dp) },
+    )
+    val rest = fixture.capture()
+    assertThat(rest.width).isEqualTo(560)
+    assertThat(rest.height).isEqualTo(240)
+    val owner = fixture.owner()
+    val cluster = owner.model.surfaces.single()
+    assertThat(cluster.members).hasSize(2)
+    assertThat(cluster.groups.single()).hasSize(2)
+    assertThat(checkNotNull(checkNotNull(fixture.second.memberBindingForTest).node).container).isSameInstanceAs(owner)
+    val runtime = owner.renderer.runtimeSurfaces.single()
+    fun assertRenderer() {
+      val current = owner.renderer.runtimeSurfaces.single()
+      if (unavailable) {
+        assertThat(current.delegate).isInstanceOf<FallbackGlassDelegate>()
+        assertThat(current.lastDrawDelegateForTest).isNotNull().isInstanceOf<FallbackGlassDelegate>()
+      } else {
+        assertThat(current.delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
+        assertThat(current.lastDrawDelegateForTest).isNotNull().isInstanceOf<RuntimeShaderGlassDelegate>()
+      }
+    }
+    assertRenderer()
+    val restSize = checkNotNull(runtime.preparedRender).params.coordinates.sampleSize
+    val origins = mutableListOf<Offset>()
+    val rects = mutableListOf<Rect>()
+    val sizes = mutableListOf<androidx.compose.ui.geometry.Size>()
+    fun observe(): Rect {
+      fixture.capture()
+      assertRenderer()
+      val current = owner.renderer.runtimeSurfaces.single()
+      origins += current.surfaceOrigin
+      sizes += checkNotNull(current.preparedRender).params.coordinates.sampleSize
+      return fixture.field().members.single().rect.translate(current.surfaceOrigin).also { rects += it }
+    }
+    assertThat(observe()).isCloseTo(Rect(80f, 60f, 380f, 140f))
+    mainClock.autoAdvance = false
+    try {
+      val press = PressInteraction.Press(Offset(25f, 40f))
+      runBlocking { fixture.firstSource.emit(press) }
+      mainClock.advanceTimeByFrame()
+      observe()
+      repeat(10) {
+        mainClock.advanceTimeByFrame()
+        observe()
+      }
+      val halfway = observe()
+      assertThat(halfway.width).isGreaterThan(300f)
+      assertThat(halfway.width).isLessThan(360f)
+      repeat(12) {
+        mainClock.advanceTimeByFrame()
+        observe()
+      }
+      val settled = fixture.capture()
+      assertRenderer()
+      val probes = listOf(47 to 100, 412 to 100, 230 to 49, 230 to 150)
+      for ((x, y) in probes) {
+        GlassDrawOutsideBoundsTest.assertGreen(settled, x, y, "unavailable=$unavailable ($x, $y)")
+      }
+      val current = owner.renderer.runtimeSurfaces.single()
+      val coordinates = checkNotNull(current.preparedRender).params.coordinates
+      val surface = Rect(current.surfaceOrigin, coordinates.materialSize / coordinates.scaleFactor)
+      for ((x, y) in probes) {
+        assertThat(surface.contains(Offset(x + 0.5f, y + 0.5f)), "reserved surface ($x, $y)").isTrue()
+      }
+      assertThat(observe()).isCloseTo(Rect(50f, 52f, 410f, 148f))
+      runBlocking { fixture.firstSource.emit(PressInteraction.Release(press)) }
+      mainClock.advanceTimeByFrame()
+      observe()
+      repeat(10) {
+        mainClock.advanceTimeByFrame()
+        observe()
+      }
+      val releasing = observe()
+      assertThat(releasing.width).isGreaterThan(300f)
+      assertThat(releasing.width).isLessThan(360f)
+      repeat(12) {
+        mainClock.advanceTimeByFrame()
+        observe()
+      }
+      assertThat(observe()).isCloseTo(Rect(80f, 60f, 380f, 140f))
+      val restored = fixture.capture()
+      assertRenderer()
+      assertThat(regionDifference(restored, rest, 44, 46, 416, 154)).isLessThan(1f / 255f)
+      origins.forEach { assertThat(it).isCloseTo(Offset(44f, 46f)) }
+      sizes.forEach { assertThat(it).isEqualTo(restSize) }
+      rects.forEach {
+        assertThat(it.width / 300f).isGreaterThanOrEqualTo(0.999f)
+        assertThat(it.width / 300f).isLessThanOrEqualTo(1.201f)
+      }
+    } finally {
+      mainClock.autoAdvance = true
+      waitForIdle()
+    }
+  }
+
+  @Test
   fun pressedGroup_joinsNeighbourAtDrawnGap_runtime() = assertPressedGroupJoinsNeighbour(unavailable = false)
 
   @Test
@@ -908,7 +1015,12 @@ class GlassContainerInteractionTest : ContextTest() {
    * A 50-wide member at 80 and a 100-wide member at 280 in one Glass group, both pressing to 1.2x
    * about the Center, and an optional ungrouped neighbour at [neighbourLeft].
    */
-  private fun ComposeUiTest.groupedCluster(neighbourLeft: Int?, unavailable: Boolean = false): ClusterFixture {
+  private fun ComposeUiTest.groupedCluster(
+    neighbourLeft: Int?,
+    unavailable: Boolean = false,
+    mergeDistance: Int = 40,
+    outline: GlassStyle = GlassStyle,
+  ): ClusterFixture {
     val first = GlassRuntimeEffect()
     val second = GlassRuntimeEffect()
     val neighbour = GlassRuntimeEffect()
@@ -925,17 +1037,17 @@ class GlassContainerInteractionTest : ContextTest() {
     setContent {
       Box(Modifier.size(560.dp, 240.dp).testTag("root").background(Color.White)) {
         Box(Modifier.size(560.dp, 240.dp).hazeSource(state).background(Color.White))
-        Box(Modifier.size(560.dp, 240.dp).hazeGlassContainer(40.dp)) {
+        Box(Modifier.size(560.dp, 240.dp).hazeGlassContainer(mergeDistance.dp)) {
           Box(
             Modifier.offset(80.dp, 60.dp).size(50.dp, 80.dp).hazeGlass(
-              HazeEffectFactory { first }, HazeInput.Sources(state), containerTestStyle(Color.Red).then(pressed),
+              HazeEffectFactory { first }, HazeInput.Sources(state), containerTestStyle(Color.Red).then(outline).then(pressed),
               HazePerformanceMode.Quality, true, firstSource, GlassTransformTarget.MaterialOnly, GlassTransformPivot.Center,
               GlassReducedMotionPolicy.Full, groupKey = "group",
             ),
           )
           Box(
             Modifier.offset(280.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(
-              HazeEffectFactory { second }, HazeInput.Sources(state), containerTestStyle(Color.Red).then(pressed),
+              HazeEffectFactory { second }, HazeInput.Sources(state), containerTestStyle(Color.Red).then(outline).then(pressed),
               HazePerformanceMode.Quality, true, secondSource, GlassTransformTarget.MaterialOnly, GlassTransformPivot.Center,
               GlassReducedMotionPolicy.Full, groupKey = "group",
             ),
