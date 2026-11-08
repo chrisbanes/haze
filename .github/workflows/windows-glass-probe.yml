@@ -28,7 +28,7 @@ jobs:
           Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion | Format-List
       - name: Compile probe and check variant selection
         shell: pwsh
-        run: ./gradlew.bat :haze-glass:prepareWindowsGlassProbe :haze-glass:jvmTest --tests '*WindowsGlassProbeTest' -Phaze.disableAppleTargets --no-scan --console=plain --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8'
+        run: ./gradlew.bat :haze-glass:prepareWindowsGlassProbe :haze-glass:jvmTest --tests '*WindowsGlassProbeTest' '-Phaze.disableAppleTargets' --no-scan --console=plain --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8'
       - name: Run bounded fresh-process feedback loop
         shell: pwsh
         run: |
