@@ -2,9 +2,6 @@ name: Windows progressive blur probe
 
 on:
   workflow_dispatch:
-  # Branch-only bootstrap: a new workflow cannot be dispatched until it exists on main.
-  push:
-    branches: [cb/simplify-issue-1260-shader]
 
 permissions:
   contents: read
