@@ -36,7 +36,7 @@ jobs:
         shell: pwsh
         run: >-
           ./gradlew.bat :sample:desktop:spotlessCheck :sample:desktop:run
-          -Phaze.disableAppleTargets -Phaze.windowsBlurProbe=true
+          '-Phaze.disableAppleTargets' '-Phaze.windowsBlurProbe=true'
           '-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8'
           '-Pkotlin.daemon.jvmargs=-Xmx2g' --max-workers=2 --no-scan --console=plain
       - uses: actions/upload-artifact@v7
