@@ -13,6 +13,7 @@ plugins {
   id("com.vanniktech.maven.publish")
   id("dev.chrisbanes.metalava")
   id("dev.drewhamilton.poko")
+  id("io.github.takahirom.roborazzi")
 }
 
 kotlin {
@@ -97,6 +98,10 @@ kotlin {
 
 dependencies {
   add("androidHostTestImplementation", libs.androidx.activity)
+}
+
+roborazzi {
+  outputDir.set(project.layout.projectDirectory.dir("screenshots"))
 }
 
 poko {

@@ -36,6 +36,31 @@ import kotlin.test.Test
 class GlassStyleTest {
 
   @Test
+  fun fallbackColor_replaysLastWriteAndBuiltInIdentity() {
+    val explicit = Color.Red.copy(alpha = 0.4f)
+    assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle).fallbackColor).isEqualTo(Color.Unspecified)
+    val style = GlassStyle { fallbackColor(explicit) }.then(GlassStyle.clear).then { fallbackColor(Color.Transparent) }
+    val values = resolveGlassStyleValues(GlassStyle, style, GlassSystemAppearance.Dark)
+    assertThat(values.fallbackColor).isEqualTo(Color.Transparent)
+    assertThat(values.isClear).isTrue()
+    assertThat(resolveGlassStyleValues(GlassStyle, style.then(GlassStyle.regular)).isClear).isFalse()
+    assertThat(resolveGlassStyleValues(GlassStyle, style.then { fallbackColor(explicit) }).fallbackColor).isEqualTo(explicit)
+  }
+
+  @Test
+  fun fallbackColor_changedReplayInvalidatesStyle() {
+    var color = Color.Red
+    val style = GlassStyle { fallbackColor(color) }
+    val effect = GlassRuntimeEffect().apply { this.style = style }
+    var dirty = 0
+    effect.onConfigurationChanged = { dirty = dirty or it }
+    color = Color.Blue
+    effect.compositionLocalStyle = GlassStyle
+    assertThat(effect.fallbackColor).isEqualTo(Color.Blue)
+    assertThat(dirty and GlassDirtyFields.Style).isEqualTo(GlassDirtyFields.Style)
+  }
+
+  @Test
   fun opticsTransform_usesInheritedValuesAndReplaysWithoutAccumulating() {
     val custom = GlassOptics.clear.copy(refractionStrength = 0.4f)
     val local = GlassStyle { optics(custom) }
@@ -714,12 +739,10 @@ class GlassStyleTest {
       .isEqualTo(resolveGlassStyleValues(GlassStyle, GlassStyle.regularLight, GlassSystemAppearance.Light))
     assertThat(darkRegular)
       .isEqualTo(resolveGlassStyleValues(GlassStyle, GlassStyle.regularDark, GlassSystemAppearance.Dark))
-    assertThat(lightClear)
-      .isEqualTo(resolveGlassStyleValues(GlassStyle, GlassStyle.clearLight, GlassSystemAppearance.Light))
-    assertThat(darkClear)
-      .isEqualTo(resolveGlassStyleValues(GlassStyle, GlassStyle.clearDark, GlassSystemAppearance.Dark))
+    assertThat(lightClear).isEqualTo(darkClear)
+    assertThat(lightClear.isClear).isTrue()
     assertThat(darkRegular.whitePoint).isNotEqualTo(lightRegular.whitePoint)
-    assertThat(darkClear.whitePoint).isNotEqualTo(lightClear.whitePoint)
+    assertThat(darkClear.whitePoint).isEqualTo(lightClear.whitePoint)
     assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle, GlassSystemAppearance.Dark).whitePoint)
       .isEqualTo(darkRegular.whitePoint)
     assertThat(resolveGlassStyleValues(GlassStyle, regular, GlassSystemAppearance.Light).whitePoint)

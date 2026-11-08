@@ -132,6 +132,7 @@ private fun fallbackPortableStyle(
   includeInteractionOptics: Boolean,
 ): GlassStyle = GlassStyle {
   optics(optics)
+  fallbackColor(Color.Transparent)
   tint(Color.Red.copy(alpha = 0.6f))
   ambientResponse(0f)
   specularIntensity(1f)

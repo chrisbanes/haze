@@ -162,11 +162,11 @@ class GlassBuiltInStyleScreenshotTest : ScreenshotTest() {
 
   @Test
   fun regular_attachedAppearanceSwitchUpdatesAndRestoresPixels() =
-    checkAttachedAppearanceSwitch(GlassStyle.regular)
+    checkAttachedAppearanceSwitch(GlassStyle.regular, changesAppearance = true)
 
   @Test
-  fun clear_attachedAppearanceSwitchUpdatesAndRestoresPixels() =
-    checkAttachedAppearanceSwitch(GlassStyle.clear)
+  fun clear_attachedAppearanceSwitchKeepsPixels() =
+    checkAttachedAppearanceSwitch(GlassStyle.clear, changesAppearance = false)
 
   @Test
   fun material3_regularKeepsThemeWhileBuiltInResponseFollowsSystemAppearance() =
@@ -198,7 +198,7 @@ class GlassBuiltInStyleScreenshotTest : ScreenshotTest() {
       assertThat(captureRootPixels().snapshot().meanAbsoluteDifference(light)).isLessThan(1f / 255f)
     }
 
-  private fun checkAttachedAppearanceSwitch(style: GlassStyle) = runScreenshotTest(size = Size(420f, 800f)) {
+  private fun checkAttachedAppearanceSwitch(style: GlassStyle, changesAppearance: Boolean) = runScreenshotTest(size = Size(420f, 800f)) {
     var appearance by mutableStateOf(GlassTestSystemAppearance.Light)
     setContent {
       WithGlassTestSystemAppearance(appearance) {
@@ -212,7 +212,11 @@ class GlassBuiltInStyleScreenshotTest : ScreenshotTest() {
     appearance = GlassTestSystemAppearance.Dark
     waitForIdle()
     val dark = captureRootPixels().snapshot()
-    assertThat(dark.changedPixelRatio(light)).isGreaterThan(0.01f)
+    if (changesAppearance) {
+      assertThat(dark.changedPixelRatio(light)).isGreaterThan(0.01f)
+    } else {
+      assertThat(dark.meanAbsoluteDifference(light)).isLessThan(1f / 255f)
+    }
     appearance = GlassTestSystemAppearance.Light
     waitForIdle()
     val restored = captureRootPixels().snapshot()

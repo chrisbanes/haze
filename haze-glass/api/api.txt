@@ -169,6 +169,7 @@ package dev.chrisbanes.haze.glass {
     method @KotlinOnly public void edgeOutline(androidx.compose.ui.graphics.Color color, androidx.compose.ui.unit.Dp width);
     method @KotlinOnly public void edgeShadow(androidx.compose.ui.graphics.Color color);
     method @KotlinOnly public void edgeSoftness(androidx.compose.ui.unit.Dp softness);
+    method @KotlinOnly public void fallbackColor(androidx.compose.ui.graphics.Color color);
     method public void focused(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> response);
     method public void fresnelExponent(float exponent);
     method public void hovered(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> response);

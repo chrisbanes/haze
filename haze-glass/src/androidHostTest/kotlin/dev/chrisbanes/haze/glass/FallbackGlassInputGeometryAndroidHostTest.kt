@@ -212,6 +212,10 @@ class FallbackGlassInputGeometryAndroidHostTest : ScreenshotTest() {
   private fun Member(scene: Scene, index: Int, x: Int) {
     val overlay = scene.overlay.value
     val style = GlassStyle {
+      optics { copy(blurRadius = OpticalSizeValue.Fixed(0.dp)) }
+      contrast(0f)
+      whitePoint(0f)
+      chromaMultiplier(1f)
       backgroundColor(Color.White)
       tint(Color.Transparent)
       alpha(1f)

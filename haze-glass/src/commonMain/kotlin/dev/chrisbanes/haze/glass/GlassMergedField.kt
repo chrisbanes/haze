@@ -32,6 +32,7 @@ internal data class GlassMergedMember(
   val refractionMultiplier: Float = 1f,
   val whitePointDelta: Float = 0f,
   val fallbackBaseColor: Color? = null,
+  val fallbackColor: Color = Color.Transparent,
   /** The unpressed layout rect, in [rect]'s frame, that the member's press transform maps to [rect]. */
   val layoutRect: Rect = rect,
 ) {
@@ -194,12 +195,12 @@ internal class GlassMergedField(
 
   /** Fallback policy is material metadata, never an input to the full renderer or its keys. */
   val withoutFallbackBase: GlassMergedField by lazy(LazyThreadSafetyMode.NONE) {
-    if (members.all { it.fallbackBaseColor == null }) {
+    if (members.all { it.fallbackBaseColor == null && it.fallbackColor == Color.Transparent }) {
       this
     } else {
       GlassMergedField(
         members.map {
-          it.copy(fallbackBaseColor = null)
+          it.copy(fallbackBaseColor = null, fallbackColor = Color.Transparent)
         },
         mergeDistancePx,
         opticalSize,

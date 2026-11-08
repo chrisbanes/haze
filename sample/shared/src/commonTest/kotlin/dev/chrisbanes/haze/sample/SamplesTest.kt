@@ -42,6 +42,7 @@ class SamplesTest : ContextTest() {
         "Glass — Shape Morph",
         "Glass — Container",
         "Glass — Container Showcase",
+        "Glass — Refresh",
       ),
     )
   }
@@ -50,7 +51,7 @@ class SamplesTest : ContextTest() {
   fun commonSamples_catalogsIncludeCustomVisualEffectAndGlassShowcases() {
     assertThat(CommonSamples.forEffect(SampleEffect.Blur).map(Sample::title))
       .contains("Custom VisualEffect")
-    assertThat(CommonSamples.forEffect(SampleEffect.Glass).size).isEqualTo(19)
+    assertThat(CommonSamples.forEffect(SampleEffect.Glass).size).isEqualTo(20)
     val glassTitles = CommonSamples.forEffect(SampleEffect.Glass).map(Sample::title)
     assertThat(glassTitles).contains("Glass — Product")
     assertThat(glassTitles).contains("Glass — Playground")
@@ -58,6 +59,7 @@ class SamplesTest : ContextTest() {
     assertThat(glassTitles).contains("Glass — Shape Morph")
     assertThat(glassTitles).contains("Glass — Container")
     assertThat(glassTitles).contains("Glass — Container Showcase")
+    assertThat(glassTitles).contains("Glass — Refresh")
   }
 
   @Test

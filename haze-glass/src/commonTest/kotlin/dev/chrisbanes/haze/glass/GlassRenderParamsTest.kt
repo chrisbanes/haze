@@ -41,6 +41,29 @@ import kotlin.test.Test
 
 class GlassRenderParamsTest {
   @Test
+  fun fallbackColor_resolvesAutomaticOverrideAndAccessibilitySeparately() {
+    val effect = GlassRuntimeEffect()
+    fun resolve() = resolveGlassStyle(effect, Size(200f, 200f), Density(1f), LayoutDirection.Ltr)
+    effect.style = GlassStyle.regular
+    val regular = resolve().fallbackColor
+    effect.style = GlassStyle.clear
+    val clear = resolve().fallbackColor
+    assertThat(regular.alpha).isGreaterThan(clear.alpha)
+    effect.systemAppearance = GlassSystemAppearance.Dark
+    assertThat(resolve().fallbackColor).isEqualTo(clear)
+    effect.style = GlassStyle.regular
+    assertThat(resolve().fallbackColor.red).isEqualTo(0f)
+    effect.style = GlassStyle { fallbackColor(Color.Transparent) }
+    assertThat(resolve().fallbackColor).isEqualTo(Color.Transparent)
+    val authored = Color.Red.copy(alpha = 0.4f)
+    effect.style = GlassStyle { fallbackColor(authored) }
+    assertThat(resolve().fallbackColor).isEqualTo(authored)
+    effect.accessibilitySettings = GlassAccessibilitySettings(reduceTransparency = true)
+    assertThat(resolve().fallbackBaseColor).isEqualTo(Color.Black)
+    assertThat(resolve().fallbackColor).isEqualTo(authored)
+  }
+
+  @Test
   fun reducedTransparencyFallbackColor_requiresSpecifiedOpaqueOverride() {
     for (color in listOf(Color.Unspecified, Color.Transparent, Color.Red.copy(alpha = 0.5f))) {
       assertFailure { GlassAccessibilitySettings(reducedTransparencyFallbackColor = color) }

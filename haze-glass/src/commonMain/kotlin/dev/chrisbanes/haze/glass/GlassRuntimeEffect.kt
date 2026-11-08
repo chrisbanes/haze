@@ -105,7 +105,7 @@ private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): B
     specularExponent == other.specularExponent &&
     fresnelExponent == other.fresnelExponent &&
     cornerRadii == other.cornerRadii &&
-    mergedField == other.mergedField &&
+    mergedField?.withoutFallbackBase == other.mergedField?.withoutFallbackBase &&
     rimHighlight == other.rimHighlight &&
     edgeOutline == other.edgeOutline
 
@@ -593,6 +593,8 @@ internal class GlassRuntimeEffect() :
 
   override fun shouldPrepareDraw(style: GlassNodeConfiguration): Boolean {
     if (alpha != 0f) return true
+    delegate.onDrawSkipped()
+    softwareDrawDelegate?.onDrawSkipped()
     // No prepareDraw follows, so a previous software draw must not keep routing to the fallback.
     drawsSoftwareFallback = false
     resetDirtyTracker()
@@ -1276,6 +1278,7 @@ internal class GlassRuntimeEffect() :
   internal interface Delegate {
     fun attach() = Unit
     fun DrawScope.prepareDraw(context: HazeEffectRuntimeDrawScope) = Unit
+    fun onDrawSkipped() = Unit
     fun DrawScope.draw(context: HazeEffectRuntimeDrawScope)
     fun DrawScope.drawForeground(context: HazeEffectRuntimeDrawScope) = Unit
     fun detach() = Unit

@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.IntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -29,7 +30,10 @@ import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.trace
+import kotlin.math.PI
+import kotlin.math.atan2
 import kotlin.math.ceil
+import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.max
 
@@ -40,6 +44,12 @@ internal class FallbackGlassDelegate(
 
   private var preparedDraw: FallbackGlassPreparedDraw? = null
   private val groupAlpha = RetainedGlassGroupAlphaLayer()
+  private val filteredInput = FallbackGlassInput()
+  internal val filteredInputLayerForTest get() = filteredInput.filtered
+  internal val filteredInputEffectForTest get() = filteredInput.lastEffectForTest
+  internal val filteredInputRecordCountForTest: Int get() = filteredInput.filteredRecordCount
+  internal var filteredInputDrawnForTest = false
+    private set
 
   /** The size of the last recorded group-alpha layer. */
   internal var groupAlphaSizeForTest: IntSize? = null
@@ -90,32 +100,20 @@ internal class FallbackGlassDelegate(
         style.edgeSoftnessPx <= 0f || edgeAlpha <= 0f || style.alpha <= 0f -> null
         previous?.edgeBrush != null &&
           previous.edgeAlpha == edgeAlpha &&
-          previous.size == size -> previous.edgeBrush
-        else -> Brush.linearGradient(
-          colors = listOf(
-            Color.White.copy(alpha = edgeAlpha),
-            Color.Transparent,
-          ),
-          start = Offset.Zero,
-          end = Offset(size.width, size.height),
-        )
+          previous.size == size &&
+          previous.style.lightPosition == style.lightPosition -> previous.edgeBrush
+        else -> fallbackSweepBrush(size, style.lightPosition, edgeAlpha)
       }
       val edgeDirectAlpha = edgeAlpha * style.alpha
       val edgeDirectBrush = when {
         style.edgeSoftnessPx <= 0f || edgeDirectAlpha <= 0f -> null
         previous?.edgeDirectBrush != null &&
           previous.edgeDirectAlpha == edgeDirectAlpha &&
-          previous.size == size -> {
+          previous.size == size &&
+          previous.style.lightPosition == style.lightPosition -> {
           previous.edgeDirectBrush
         }
-        else -> Brush.linearGradient(
-          colors = listOf(
-            Color.White.copy(alpha = edgeDirectAlpha),
-            Color.Transparent,
-          ),
-          start = Offset.Zero,
-          end = Offset(size.width, size.height),
-        )
+        else -> fallbackSweepBrush(size, style.lightPosition, edgeDirectAlpha)
       }
 
       val edgeShadowAlpha = style.edgeShadow.alpha * style.alpha
@@ -249,6 +247,14 @@ internal class FallbackGlassDelegate(
       val mergedPaths = prepared.mergedPaths
       val visible = effect.windowBoundsInEffect()
       val inputBounds = Rect(Offset.Zero, size).visiblePart(visible)
+      val groupSize = if (groupAlpha.isAvailable) size.outsetToIntSize(effect.nodeClipOutsetPx()) else null
+      val inputStyle = if (mergedPaths != null) style.copy(fallbackBaseColor = null) else style
+      val captureBounds = mergedPaths?.unionBounds?.visiblePart(visible) ?: inputBounds
+      val willProcess = !forceInput && (mergedPaths == null || mergedPaths.forceInputMask != null) &&
+        with(filteredInput) {
+          canDraw(context, inputStyle, captureBounds) && prepareForCapture(context, inputStyle, captureBounds, groupSize)
+        }
+      if (!willProcess) filteredInput.release()
 
       if (forceInput && style.fallbackBaseColor == null && mergedPaths == null && backgroundColor.alpha <= 0f && !inputBounds.isEmpty) {
         drawInputWithAlpha(context, alpha = 1f, bounds = inputBounds)
@@ -256,13 +262,25 @@ internal class FallbackGlassDelegate(
 
       fun DrawScope.drawFallback(alphaMultiplier: Float) {
         fun DrawScope.drawBase() {
+          val willBlur = willProcess && style.resolvedOptics.depth > 0f && style.resolvedOptics.blurRadiusPx > 0f
           style.fallbackBaseColor?.let { drawRect(it.copy(alpha = it.alpha * alphaMultiplier)) }
+          if (!willBlur && style.fallbackBaseColor == null) {
+            drawRect(style.fallbackColor.copy(alpha = style.fallbackColor.alpha * alphaMultiplier))
+          }
           if (backgroundColor.alpha > 0f) {
-            drawRect(
-              color = backgroundColor.copy(alpha = backgroundColor.alpha * alphaMultiplier),
-            )
-            if (style.fallbackBaseColor == null && !inputBounds.isEmpty) {
-              this@drawBase.drawInputWithAlpha(context, alphaMultiplier, inputBounds)
+            drawRect(color = backgroundColor.copy(alpha = backgroundColor.alpha * alphaMultiplier))
+          }
+          val scrim: DrawScope.() -> Unit = {
+            drawRect(style.fallbackColor, blendMode = BlendMode.SrcAtop)
+          }
+          val filtered = willProcess && with(filteredInput) {
+            draw(context, style, alphaMultiplier, inputBounds, groupSize, if (willBlur) null else scrim)
+          }
+          filteredInputDrawnForTest = filtered
+          if (!filtered && backgroundColor.alpha > 0f && style.fallbackBaseColor == null && !inputBounds.isEmpty) {
+            withLayerPaint(alphaMultiplier, BlendMode.SrcOver, inputBounds) {
+              drawInputWithAlpha(context, 1f, inputBounds)
+              scrim()
             }
           }
           if (tint.alpha > 0f) {
@@ -271,9 +289,18 @@ internal class FallbackGlassDelegate(
         }
 
         when {
-          mergedPaths != null -> drawMergedBase(context, mergedPaths, alphaMultiplier, forceInput, visible)
+          mergedPaths != null -> {
+            val willBlur = willProcess && style.resolvedOptics.depth > 0f && style.resolvedOptics.blurRadiusPx > 0f
+            drawMergedBase(context, mergedPaths, alphaMultiplier, forceInput, visible, willBlur) { drawScrim ->
+              val filtered = willProcess && with(filteredInput) {
+                draw(context, inputStyle, alphaMultiplier, captureBounds, groupSize, drawScrim)
+              }
+              filteredInputDrawnForTest = filtered
+              filtered
+            }
+          }
           shapePath != null -> clipPath(shapePath) { drawBase() }
-          else -> drawBase()
+          else -> clipRect { drawBase() }
         }
 
         // The edge falloff is part of the base material and remains behind child content.
@@ -380,7 +407,14 @@ internal class FallbackGlassDelegate(
     }
   }
 
+  override fun onDrawSkipped() = clearRetainedOutput()
+
+  override fun clearRetainedOutput() {
+    filteredInput.release()
+  }
+
   override fun detach() {
+    filteredInput.release()
     groupAlpha.release(graphicsContext)
     graphicsContext = null
     preparedDraw = null
@@ -388,6 +422,7 @@ internal class FallbackGlassDelegate(
 
   override fun onTrimMemory(context: HazeEffectLifecycleScope, level: TrimMemoryLevel) {
     if (shouldReleaseRetainedGlass(level)) {
+      filteredInput.release()
       groupAlpha.release(graphicsContext ?: context.requireGraphicsContext())
       graphicsContext = null
       context.invalidateDraw()
@@ -451,6 +486,19 @@ internal fun DrawScope.drawMergedInteractionLighting(
   }
 }
 
+private fun fallbackSweepBrush(size: Size, light: Offset, alpha: Float): Brush {
+  val centre = Offset(size.width / 2f, size.height / 2f)
+  val delta = light - centre
+  val direction = if (delta == Offset.Zero) -PI.toFloat() / 2f else atan2(delta.y, delta.x)
+  val colors = List(33) { index ->
+    val angle = (2.0 * PI * index / 32).toFloat()
+    val alignment = cos(angle - direction)
+    val strength = if (alignment >= 0f) alignment else -alignment * 0.35f
+    Color.White.copy(alpha = alpha * strength * strength)
+  }
+  return Brush.sweepGradient(colors = colors, center = centre)
+}
+
 private fun DrawScope.drawFallbackEdge(
   brush: Brush,
   stroke: Stroke,
@@ -472,18 +520,43 @@ private fun DrawScope.drawMergedBase(
   alphaMultiplier: Float,
   forceInput: Boolean,
   visible: Rect?,
+  willBlur: Boolean,
+  drawFilteredInput: DrawScope.(drawScrim: (DrawScope.() -> Unit)?) -> Boolean,
 ) {
   val members = paths.field.members
   if (members.any { it.fallbackBaseColor != null }) {
     drawMergedColours(paths, alphaMultiplier, visible) { it.fallbackBaseColor ?: Color.Transparent }
   }
+  if (!willBlur) {
+    drawMergedColours(paths, alphaMultiplier, visible) {
+      if (it.fallbackBaseColor == null) it.fallbackColor else Color.Transparent
+    }
+  }
   if (paths.field.hasBackground) drawMergedColours(paths, alphaMultiplier, visible) { it.backgroundColor }
   // Reduced members never replay captured input, including on the downgrade frame.
-  val inputPath = if (forceInput) paths.forceInputMask else paths.inputMask
+  val scrim: DrawScope.() -> Unit = {
+    withLayerPaint(alpha = 1f, blendMode = BlendMode.SrcAtop, bounds = paths.unionBounds.visiblePart(visible)) {
+      drawMergedColours(paths, 1f, visible) {
+        if (it.fallbackBaseColor == null) it.fallbackColor else Color.Transparent
+      }
+    }
+  }
+  var filtered = false
+  if (!forceInput) {
+    paths.forceInputMask?.let { mask -> clipPath(mask) { filtered = drawFilteredInput(if (willBlur) null else scrim) } }
+  }
+  val inputPath = if (filtered) null else if (forceInput) paths.forceInputMask else paths.inputMask
   // Both masks lie within the union, so its visible bounds hold the input.
   val inputBounds = paths.unionBounds.visiblePart(visible)
   if (!inputBounds.isEmpty) {
-    inputPath?.let { clipPath(it) { drawInputWithAlpha(context, alphaMultiplier, inputBounds) } }
+    inputPath?.let { path ->
+      clipPath(path) {
+        withLayerPaint(alphaMultiplier, BlendMode.SrcOver, inputBounds) {
+          drawInputWithAlpha(context, 1f, inputBounds)
+          scrim()
+        }
+      }
+    }
   }
   if (members.any { it.tint.alpha > 0f }) drawMergedColours(paths, alphaMultiplier, visible) { it.tint }
 }
