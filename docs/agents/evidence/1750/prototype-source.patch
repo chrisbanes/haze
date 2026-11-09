@@ -1,0 +1,2961 @@
+diff --git a/haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/RuntimeShaderGlassDelegate.kt b/haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/RuntimeShaderGlassDelegate.kt
+index 8ad14f3f9..daca6ec3b 100644
+--- a/haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/RuntimeShaderGlassDelegate.kt
++++ b/haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/RuntimeShaderGlassDelegate.kt
+@@ -49,6 +49,15 @@ internal class RuntimeShaderGlassDelegate(
+   private val effect: GlassRuntimeEffect,
+   private val runtimeEffectFactory: GlassRuntimeEffectFactory = PlatformGlassRuntimeEffectFactory,
+ ) : GlassRuntimeEffect.Delegate {
++  internal var experimentalRim: (DrawScope.(GraphicsLayer, GraphicsLayer, GlassRimEffectKey) -> Unit)? = null
++    set(value) {
++      field = value
++      experimentalRimDirty = true
++      clearRimLayerMetadata()
++    }
++  private var experimentalRimDirty = false
++  internal var experimentalForegroundDrawCount = 0
++    private set
+   internal val runtimeEffectFactoryForTest: GlassRuntimeEffectFactory
+     get() = runtimeEffectFactory
+ 
+@@ -538,8 +547,8 @@ internal class RuntimeShaderGlassDelegate(
+             ::clearRetainedOutput,
+           ) ?: return
+           requireRetainedStage(
+-            if (invalidation.rim) {
+-              trace(GlassTraceSection.Rim) { recordRimIfNeeded(render, effects) }
++            if (invalidation.rim || experimentalRimDirty || experimentalRim != null && shouldRecordSource) {
++              trace(GlassTraceSection.Rim) { recordRimIfNeeded(render, effects, source, shouldRecordSource) }
+             } else {
+               retainedRim(effects)
+             },
+@@ -677,8 +686,8 @@ internal class RuntimeShaderGlassDelegate(
+           optical
+         }
+         requireRetainedStage(
+-          if (invalidation.rim) {
+-            trace(GlassTraceSection.Rim) { recordRimIfNeeded(render, effects) }
++          if (invalidation.rim || experimentalRimDirty || experimentalRim != null && shouldRecordSource) {
++            trace(GlassTraceSection.Rim) { recordRimIfNeeded(render, effects, source, shouldRecordSource) }
+           } else {
+             retainedRim(effects)
+           },
+@@ -846,6 +855,7 @@ internal class RuntimeShaderGlassDelegate(
+ 
+   override fun DrawScope.drawForeground(context: HazeEffectRuntimeDrawScope): Unit =
+     trace(GlassTraceSection.Compose) {
++      if (experimentalRim != null) experimentalForegroundDrawCount++
+       val render = preparedRender ?: return
+       val params = preparedParams ?: return
+       requireDrawableMaterialSize(params.coordinates.materialSize, ::clearRetainedOutput) ?: return
+@@ -869,7 +879,7 @@ internal class RuntimeShaderGlassDelegate(
+       layers.rim?.takeUnless { it.isReleased }?.let { rim ->
+         if (supportsGlassRimBrush() != recordedRimSupportsDirectDrawing) {
+           val effects = preparedRenderEffects ?: return
+-          recordRimIfNeeded(render, effects) ?: return
++          recordRimIfNeeded(render, effects, retainedSource(), experimentalRim != null) ?: return
+         }
+         drawCompletedLayer(rim, context, params, alpha = render.alpha)
+       }
+@@ -1014,10 +1024,12 @@ internal class RuntimeShaderGlassDelegate(
+   }
+ 
+   override fun detach() {
++    experimentalRim = null
+     releaseRetainedResources(releaseShaderHandles = false)
+   }
+ 
+   override fun release() {
++    experimentalRim = null
+     releaseRetainedResources(releaseShaderHandles = true)
+   }
+ 
+@@ -1324,6 +1336,8 @@ internal class RuntimeShaderGlassDelegate(
+   private fun DrawScope.recordRimIfNeeded(
+     render: GlassPreparedRender,
+     effects: GlassRenderEffects,
++    source: GraphicsLayer? = null,
++    sourceChanged: Boolean = false,
+   ): Unit? {
+     val params = render.params
+     val rimEffect = effects.rim ?: return Unit
+@@ -1334,10 +1348,27 @@ internal class RuntimeShaderGlassDelegate(
+     val supportsDirectDrawing = supportsGlassRimBrush()
+     layer.alpha = 1f
+     if (
++      sourceChanged && experimentalRim != null ||
+       layer !== recordedRimLayer ||
+       key != recordedRimKey ||
+       supportsDirectDrawing != recordedRimSupportsDirectDrawing
+     ) {
++      val experiment = experimentalRim
++      if (experiment != null && source != null) {
++        source.alpha = 1f
++        source.blendMode = BlendMode.SrcOver
++        layer.scaleX = 1f
++        layer.scaleY = 1f
++        layer.pivotOffset = Offset.Zero
++        layer.blendMode = BlendMode.SrcOver
++        experiment(source, layer, key)
++        recordedRimLayer = layer
++        recordedRimKey = key
++        recordedRimSupportsDirectDrawing = supportsDirectDrawing
++        experimentalRimDirty = false
++        rimRecordCount++
++        return Unit
++      }
+       val merged = key.mergedField != null
+       val continuous = continuousCorners(key.cornerRadii, key.mergedField)
+       if (
+@@ -1364,6 +1395,7 @@ internal class RuntimeShaderGlassDelegate(
+       recordedRimLayer = layer
+       recordedRimKey = key
+       recordedRimSupportsDirectDrawing = supportsDirectDrawing
++      experimentalRimDirty = false
+       rimRecordCount++
+     }
+     return Unit
+diff --git a/docs/agents/evidence/1750/manifest.json b/docs/agents/evidence/1750/manifest.json
+new file mode 100644
+index 000000000..6ebd10536
+--- /dev/null
++++ b/docs/agents/evidence/1750/manifest.json
+@@ -0,0 +1,116 @@
++{
++  "base": "8742b2688999a83c7d681d285b1465729e5b24ac",
++  "baseline": "fixed-only repeated captures and four fixed shader digests must be recorded separately before renewed candidate observation",
++  "early_observation": "D102 coarse pass observed before complete freeze; invalid and archived in 1750-prefreeze-d103; not qualification",
++  "expected_jvm_cases": [
++    "fixed_shim_identity",
++    "gain_zero_identity",
++    "local_opposite_edges",
++    "analytic_alpha",
++    "straight_rgb_hue",
++    "interior_unchanged",
++    "source_step_one_draw",
++    "transparent_finite",
++    "colour_space_calibration",
++    "coordinate_transform_controls",
++    "average_fault_rejected",
++    "frozen_source_fault_rejected",
++    "decode_fault_rejected",
++    "double_alpha_fault_rejected"
++  ],
++  "protocol": "D103 prospective correction; D102 observation archived and unqualified",
++  "reference": {
++    "alpha": "clamp(fixed_edge_alpha * mix(1, 0.5 + linear_Y, clamp(gain,0,1)),0,1); transparent source alpha <= 1e-4 uses multiplier 1; RGB remains fixed straight RGB, premultiply exactly once",
++    "gain1_multipliers_exact": [
++      0.510022825574869,
++      1.2874122893956175
++    ],
++    "gain1_multipliers_rgb8": [
++      0.5103298230296269,
++      1.2912979403326301
++    ],
++    "linear_y_0_1": 0.010022825574869039,
++    "linear_y_0_9": 0.7874122893956174,
++    "linear_y_rgb8_230": 0.7912979403326302,
++    "linear_y_rgb8_26": 0.010329823029626936,
++    "sampling": "one pre-optical sample per edge fragment in capture working coordinates, clamp to capture bounds; materialOrigin used only for SDF",
++    "srgb_decode": "v/12.92 if v<=0.04045 else ((v+0.055)/1.055)^2.4"
++  },
++  "required_backends": [
++    "Skiko actual",
++    "Android API33 hardware RuntimeShader"
++  ],
++  "roi": {
++    "coordinates": "half-open screen pixel rectangles; all pixel centers; no changed mask after observation",
++    "left_edge": {
++      "rect": [
++        16,
++        32,
++        20,
++        64
++      ]
++    },
++    "right_edge": {
++      "rect": [
++        108,
++        32,
++        112,
++        64
++      ]
++    },
++    "shifted_top": {
++      "rect": [
++        64,
++        16,
++        72,
++        20
++      ]
++    },
++    "stable_interior": {
++      "rect": [
++        32,
++        32,
++        96,
++        64
++      ]
++    }
++  },
++  "scene": {
++    "color_space": "tagged sRGB SDR",
++    "corner_radius": 8,
++    "density": 1,
++    "direction": "resolved built-in regular; no directional experiment",
++    "height": 96,
++    "source": "opaque split x<64: sRGB 0.1; x>=64: sRGB 0.9; alpha 1; unorm8 reference rounds to 26,230",
++    "source_rgb8_sha256": "ea56a03035c428dbe1492b442c94f218c0176e977d8bd48131031d823fea4433",
++    "style": "GlassStyle.regular with shape RoundedCornerShape(8dp), transparent background, Quality, light appearance; all unspecified controls remain resolved built-in regular",
++    "surface_rect": [
++      16,
++      16,
++      112,
++      80
++    ],
++    "timeline": [
++      {
++        "draw": 0,
++        "split_x": 64
++      },
++      {
++        "draw": 1,
++        "split_x": 72
++      }
++    ],
++    "width": 128
++  },
++  "tolerances": {
++    "alpha_abs": 0.00784313725490196,
++    "identity_max_rgba": 0.00392156862745098,
++    "interior_max_rgba": 0.00392156862745098,
++    "opposite_edge_min_difference": 0.011764705882352941,
++    "repeat_position_max_rgba": 0.00392156862745098,
++    "smooth_gray_ramp_adjacent_alpha_max": 0.00784313725490196,
++    "source_step_draws": 1,
++    "stationary_max_rgba": 0.00392156862745098,
++    "straight_rgb_abs_alpha_at_least_005": 0.00392156862745098
++  }
++}
+diff --git a/docs/agents/evidence/1750/t2-manifest.json b/docs/agents/evidence/1750/t2-manifest.json
+new file mode 100644
+index 000000000..41ea3affe
+--- /dev/null
++++ b/docs/agents/evidence/1750/t2-manifest.json
+@@ -0,0 +1,144 @@
++{
++  "freeze_utc": "2026-11-09T08:39:59.368342+00:00",
++  "base": "8742b2688999a83c7d681d285b1465729e5b24ac",
++  "basis": "T1 accepted D106; current regular B0 with explicit edge controls; no C1/C2 overlay",
++  "renderer": "Skiko source-backed Glass Quality; per-instance T1 collaborator; tagged sRGB SDR",
++  "canvas_px": [
++    128,
++    96
++  ],
++  "density": 1,
++  "surface_rect_px": [
++    16,
++    16,
++    112,
++    80
++  ],
++  "shape": "circular radius 8dp",
++  "appearance": "Light",
++  "material": "GlassStyle.regular actual built-in with transparent background; geometry and optical/tone settings unchanged across modes and backgrounds",
++  "edge_controls": {
++    "rimHighlight": [
++      0.4,
++      3,
++      1.0
++    ],
++    "outline": {
++      "rgba": [
++        1,
++        0,
++        0,
++        0.5
++      ],
++      "width_dp": 2
++    },
++    "lightPosition": "regular Center",
++    "other_edges": "regular defaults"
++  },
++  "gain_modes": {
++    "fixed": [
++      0,
++      0
++    ],
++    "rim": [
++      1,
++      0
++    ],
++    "outline": [
++      0,
++      1
++    ],
++    "combined": [
++      1,
++      1
++    ]
++  },
++  "backdrops": {
++    "light": "opaque sRGB gray 0.9",
++    "dark": "opaque sRGB gray 0.1",
++    "split": "gray 0.1 for x<64 and 0.9 for x>=64",
++    "checker": "8px cells, parity(x//8+y//8), gray 0.1/0.9",
++    "photo": "repository photo.jpg; scaled 256x170 and cropped; path and SHA below"
++  },
++  "photo": {
++    "path": "haze-screenshot-tests/src/commonMain/composeResources/drawable/photo.jpg",
++    "sha256": "1170e80909419d8c7181c4db2d7a251ec457433541d6a59a9612d3b22925137e",
++    "repository_provenance": "git d7c51af836477340f6e30a1911d80e9c142b28a9; original photo attribution/licence not located; repository LICENSE applies to repository generally, individual asset licence unverified"
++  },
++  "still_case_ids": [
++    "light-fixed",
++    "light-rim",
++    "light-outline",
++    "light-combined",
++    "dark-fixed",
++    "dark-rim",
++    "dark-outline",
++    "dark-combined",
++    "split-fixed",
++    "split-rim",
++    "split-outline",
++    "split-combined",
++    "checker-fixed",
++    "checker-rim",
++    "checker-outline",
++    "checker-combined",
++    "photo-fixed",
++    "photo-rim",
++    "photo-outline",
++    "photo-combined"
++  ],
++  "frame_mask": {
++    "interior": [
++      32,
++      32,
++      96,
++      64
++    ],
++    "edgeOuter": [
++      12,
++      12,
++      116,
++      84
++    ],
++    "edgeInner": [
++      24,
++      24,
++      104,
++      72
++    ]
++  },
++  "pairwise_controls": [
++    "red vs cyan rgba alpha .5",
++    "outline alpha 0",
++    "rim intensity 0",
++    "gain 0, .5, 1",
++    "circular vs continuous radius8 smoothing .6",
++    "light vs dark appearance",
++    "rim sides 0 vs 1"
++  ],
++  "motion": {
++    "families": [
++      "split",
++      "checker",
++      "photo"
++    ],
++    "frames": 120,
++    "fps_simulated": 60,
++    "source_translation_px": "frame n: min(n,89), moves 1px/frame for 0..89; stationary frames 90..119 at 89px",
++    "surface_only_move": "separate control uses stationary source and surface translation 8px",
++    "capture_format": "lossless PNG frame-%04d.png, presentation timestamps n/60 seconds",
++    "video": "H.264, yuv420p, 60 simulated fps, no audio"
++  },
++  "thresholds": {
++    "fixed_gain0_max_rgba": 0.00392156862745098,
++    "interior_max_rgba": 0.00392156862745098,
++    "stationary_repeat_max_rgba": 0.00392156862745098,
++    "same_position_max_rgba": 0.00392156862745098,
++    "smooth_gray_adjacent_alpha_max": 0.00784313725490196,
++    "gain_monotonic": "alpha monotonic before clipping",
++    "transparent_outline_alpha": 0
++  },
++  "artifact_root": "/private/tmp/haze-project-drain-20261108/1750-evidence/t2",
++  "output_gating": "HAZE_T2_ARTIFACT_DIR enables writes only; rendering and assertions always run",
++  "expected": "at least 20 separate still test cases and 3 independent motion sequences; no skips"
++}
+diff --git a/haze-glass/src/androidDeviceTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeInstrumentationTest.kt b/haze-glass/src/androidDeviceTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeInstrumentationTest.kt
+new file mode 100644
+index 000000000..49947a494
+--- /dev/null
++++ b/haze-glass/src/androidDeviceTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeInstrumentationTest.kt
+@@ -0,0 +1,329 @@
++// Copyright 2026, Christopher Banes and the Haze project contributors
++// SPDX-License-Identifier: Apache-2.0
++
++@file:OptIn(androidx.compose.ui.InternalComposeUiApi::class, dev.chrisbanes.haze.ExperimentalHazeApi::class, dev.chrisbanes.haze.InternalHazeApi::class)
++
++package dev.chrisbanes.haze.glass
++
++import android.graphics.Bitmap
++import android.graphics.BitmapShader
++import android.graphics.RuntimeShader
++import android.graphics.Shader
++import android.os.Build
++import androidx.activity.ComponentActivity
++import androidx.compose.foundation.background
++import androidx.compose.foundation.layout.Box
++import androidx.compose.foundation.layout.offset
++import androidx.compose.foundation.layout.size
++import androidx.compose.foundation.shape.RoundedCornerShape
++import androidx.compose.runtime.CompositionLocalProvider
++import androidx.compose.runtime.mutableStateOf
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.draw.drawBehind
++import androidx.compose.ui.geometry.Offset
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.graphics.ShaderBrush
++import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
++import androidx.compose.ui.graphics.layer.drawLayer
++import androidx.compose.ui.graphics.nativeCanvas
++import androidx.compose.ui.graphics.toArgb
++import androidx.compose.ui.graphics.toPixelMap
++import androidx.compose.ui.platform.LocalDensity
++import androidx.compose.ui.platform.testTag
++import androidx.compose.ui.test.captureToImage
++import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
++import androidx.compose.ui.test.onNodeWithTag
++import androidx.compose.ui.unit.Density
++import androidx.compose.ui.unit.dp
++import androidx.compose.ui.unit.roundToIntSize
++import androidx.test.filters.SdkSuppress
++import assertk.assertThat
++import assertk.assertions.isEqualTo
++import assertk.assertions.isGreaterThan
++import assertk.assertions.isLessThanOrEqualTo
++import assertk.assertions.isNull
++import assertk.assertions.isTrue
++import dev.chrisbanes.haze.HazeEffectFactory
++import dev.chrisbanes.haze.HazeInput
++import dev.chrisbanes.haze.HazePerformanceMode
++import dev.chrisbanes.haze.HazeState
++import dev.chrisbanes.haze.asComposeRenderEffect
++import dev.chrisbanes.haze.createRuntimeEffect
++import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
++import dev.chrisbanes.haze.hazeSource
++import kotlin.math.abs
++import kotlin.math.pow
++import kotlinx.coroutines.runBlocking
++import org.junit.Rule
++import org.junit.Test
++
++@SdkSuppress(minSdkVersion = 33)
++class AdaptiveEdgePrototypeInstrumentationTest {
++  @get:Rule
++  val rule = createAndroidComposeRule<ComponentActivity>()
++
++  @Test
++  fun runtimeShader_srgbSplit_reportsChildAndLinearValues() {
++    assertThat(Build.VERSION.SDK_INT).isEqualTo(33)
++    val source = Bitmap.createBitmap(128, 96, Bitmap.Config.ARGB_8888)
++    assertThat(checkNotNull(source.colorSpace).isSrgb).isTrue()
++    for (y in 0 until 96) for (x in 0 until 128) {
++      val value = if (x < 64) 26 else 230
++      source.setPixel(x, y, android.graphics.Color.rgb(value, value, value))
++    }
++    val child = BitmapShader(source, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
++    val shader = RuntimeShader(
++      """
++      uniform shader content;
++      half4 main(float2 p) {
++        half4 sample = content.eval(p);
++        half3 linear = toLinearSrgb(sample.rgb / sample.a);
++        return half4(sample.r / sample.a, linear.r, 0, 1);
++      }
++      """.trimIndent(),
++    ).apply { setInputShader("content", child) }
++    var hardware = false
++    rule.setContent {
++      CompositionLocalProvider(LocalDensity provides Density(1f)) {
++        Box(
++          Modifier.size(128.dp, 96.dp).testTag("probe").drawBehind {
++            drawIntoCanvas { hardware = it.nativeCanvas.isHardwareAccelerated }
++            drawRect(ShaderBrush(shader))
++          },
++        )
++      }
++    }
++    val pixels = rule.onNodeWithTag("probe").captureToImage().toPixelMap()
++    assertThat(hardware).isTrue()
++    for ((x, encoded) in listOf(32 to 26, 96 to 230)) {
++      val color = pixels[x, 48]
++      val e = encoded / 255.0
++      val expected = ((e + 0.055) / 1.055).pow(2.4).toFloat()
++      assertThat(abs(color.red - e.toFloat())).isLessThanOrEqualTo(2f / 255f)
++      assertThat(abs(color.green - expected)).isLessThanOrEqualTo(2f / 255f)
++    }
++  }
++
++  @Test
++  fun runtimeShader_translucentAndTransparentInputs_unpremultiplyOrUseFixedStrength() {
++    assertThat(Build.VERSION.SDK_INT).isEqualTo(33)
++    val source = Bitmap.createBitmap(128, 96, Bitmap.Config.ARGB_8888)
++    assertThat(checkNotNull(source.colorSpace).isSrgb).isTrue()
++    for (y in 0 until 96) for (x in 0 until 64) {
++      source.setPixel(x, y, android.graphics.Color.argb(128, 128, 128, 128))
++    }
++    val child = BitmapShader(source, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
++    val shader = RuntimeShader(
++      """
++      uniform shader content;
++      half4 main(float2 p) {
++        half4 sample = content.eval(p);
++        half3 linear = sample.a > 0.0001 ? toLinearSrgb(sample.rgb / sample.a) : half3(1);
++        return half4(sample.a > 0.0001 ? sample.r / sample.a : 1,
++                     linear.r, sample.a > 0.0001 ? sample.a : 1, 1);
++      }
++      """.trimIndent(),
++    ).apply { setInputShader("content", child) }
++    var hardware = false
++    rule.setContent {
++      CompositionLocalProvider(LocalDensity provides Density(1f)) {
++        Box(
++          Modifier.size(128.dp, 96.dp).testTag("alpha-probe").drawBehind {
++            drawIntoCanvas { hardware = it.nativeCanvas.isHardwareAccelerated }
++            drawRect(ShaderBrush(shader))
++          },
++        )
++      }
++    }
++    rule.waitForIdle()
++    val pixels = rule.onNodeWithTag("alpha-probe").captureToImage().toPixelMap()
++    assertThat(hardware).isTrue()
++    val translucent = pixels[32, 48]
++    val encoded = 128.0 / 255.0
++    val linear = ((encoded + 0.055) / 1.055).pow(2.4).toFloat()
++    assertThat(abs(translucent.red - encoded.toFloat())).isLessThanOrEqualTo(2f / 255f)
++    assertThat(abs(translucent.green - linear)).isLessThanOrEqualTo(2f / 255f)
++    assertThat(abs(translucent.blue - encoded.toFloat())).isLessThanOrEqualTo(1f / 255f)
++    val transparent = pixels[96, 48]
++    assertThat(transparent.red).isEqualTo(1f)
++    assertThat(transparent.green).isEqualTo(1f)
++    assertThat(transparent.blue).isEqualTo(1f)
++  }
++
++  @Suppress("DEPRECATION")
++  @Test
++  fun runtimeGlass_splitSource_modulatesActualForeground() {
++    assertThat(Build.VERSION.SDK_INT).isEqualTo(33)
++    val state = HazeState()
++    val sourceShift = mutableStateOf(0f)
++    val effect = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
++    val factory = HazeEffectFactory { effect }
++    val style = GlassStyle.regular.then {
++      shape(RoundedCornerShape(8.dp))
++      backgroundColor(Color.Transparent)
++    }
++    rule.setContent {
++      CompositionLocalProvider(LocalDensity provides Density(1f)) {
++        Box(Modifier.size(128.dp, 96.dp).testTag("glass-root").background(Color.Black)) {
++          Box(
++            Modifier.size(128.dp, 96.dp).hazeSource(state).drawBehind {
++              drawRect(Color(0.1f, 0.1f, 0.1f))
++              drawRect(Color(0.9f, 0.9f, 0.9f), topLeft = Offset(64f + sourceShift.value, 0f))
++            },
++          )
++          Box(Modifier.offset(16.dp, 16.dp).size(96.dp, 64.dp).hazeGlass(factory, HazeInput.Sources(state), style, HazePerformanceMode.Quality, true, null))
++        }
++      }
++    }
++    rule.waitForIdle()
++    val delegate = effect.delegate as RuntimeShaderGlassDelegate
++    val candidate = createRuntimeEffect(adaptiveEdgeShader())
++    var recordedKey: GlassRimEffectKey? = null
++    fun installAdaptive(gain: Float) {
++      delegate.experimentalRim = { source, layer, key ->
++        recordedKey = key
++        layer.alpha = 1f
++        layer.renderEffect = createRuntimeShaderRenderEffect(candidate, arrayOf("content"), arrayOf(null)) {
++          setRimUniforms(key)
++          setFloatUniform("rimGain", gain)
++          setFloatUniform("outlineGain", gain)
++        }.asComposeRenderEffect()
++        recordGlassLayer(layer, key.coordinates.sampleSize.roundToIntSize()) { drawLayer(source) }
++      }
++      checkNotNull(effect.attachedContextForTest).invalidateDraw()
++    }
++    fun install(gain: Float) {
++      if (gain.coerceIn(0f, 1f) == 0f) {
++        delegate.experimentalRim = null
++        checkNotNull(effect.attachedContextForTest).invalidateDraw()
++      } else {
++        installAdaptive(gain)
++      }
++    }
++    try {
++      val disabled = rule.onNodeWithTag("glass-root").captureToImage().toPixelMap()
++      for (adaptiveZeroControl in listOf(true, false)) {
++        rule.runOnIdle { if (adaptiveZeroControl) installAdaptive(0f) else install(0f) }
++        if (!adaptiveZeroControl) assertThat(delegate.experimentalRim).isNull()
++        val zero = rule.onNodeWithTag("glass-root").captureToImage().toPixelMap()
++        var identityError = 0
++        for (y in 0 until zero.height) for (x in 0 until zero.width) {
++          val a = disabled[x, y].toArgb()
++          val b = zero[x, y].toArgb()
++          for (shift in 0..3) {
++            identityError = maxOf(identityError, abs((a ushr (8 * shift) and 255) - (b ushr (8 * shift) and 255)))
++          }
++        }
++        assertThat(identityError).isLessThanOrEqualTo(1)
++      }
++      val fixed = rule.onNodeWithTag("glass-root").captureToImage().toPixelMap()
++      val fixedRim = runBlocking { checkNotNull(delegate.layers.rim).toImageBitmap() }.toPixelMap()
++      rule.runOnIdle { sourceShift.value = 8f }
++      val fixedShifted = rule.onNodeWithTag("glass-root").captureToImage().toPixelMap()
++      rule.runOnIdle { sourceShift.value = 0f }
++      rule.onNodeWithTag("glass-root").captureToImage()
++      rule.runOnIdle { install(1f) }
++      val adaptive = rule.onNodeWithTag("glass-root").captureToImage().toPixelMap()
++      val adaptiveRim = runBlocking { checkNotNull(delegate.layers.rim).toImageBitmap() }.toPixelMap()
++      var difference = 0f
++      for (y in 16 until 80) for (x in 16 until 112) {
++        difference = maxOf(difference, abs(fixed[x, y].red - adaptive[x, y].red))
++      }
++      assertThat(difference).isGreaterThan(3f / 255f)
++      val coordinates = checkNotNull(recordedKey).coordinates
++      var left = 0
++      var right = 0
++      var leftDelta = 0f
++      var rightDelta = 0f
++      var error = 0f
++      for (y in 0 until fixedRim.height) for (x in 0 until fixedRim.width) {
++        val sx = 16f + (x + 0.5f - coordinates.materialOrigin.x) / coordinates.scaleFactor
++        val sy = 16f + (y + 0.5f - coordinates.materialOrigin.y) / coordinates.scaleFactor
++        if (sy >= 32f && sy < 64f && (sx >= 16f && sx < 20f || sx >= 108f && sx < 112f)) {
++          val alpha = fixedRim[x, y].alpha
++          if (alpha >= 0.05f) {
++            val e = (if (sx < 64f) 26 else 230) / 255.0
++            val expected = (alpha * (0.5f + ((e + 0.055) / 1.055).pow(2.4).toFloat())).coerceIn(0f, 1f)
++            error = maxOf(error, abs(adaptiveRim[x, y].alpha - expected))
++            if (sx < 64f) {
++              left++
++              leftDelta += adaptiveRim[x, y].alpha - alpha
++            } else {
++              right++
++              rightDelta += adaptiveRim[x, y].alpha - alpha
++            }
++          }
++        }
++      }
++      assertThat(left).isGreaterThan(0)
++      assertThat(right).isGreaterThan(0)
++      assertThat(error).isLessThanOrEqualTo(2f / 255f)
++      assertThat(rightDelta / right - leftDelta / left).isGreaterThan(3f / 255f)
++      val beforeDraws = delegate.experimentalForegroundDrawCount
++      rule.runOnIdle { sourceShift.value = 8f }
++      val shiftedScreen = rule.onNodeWithTag("glass-root").captureToImage().toPixelMap()
++      assertThat(delegate.experimentalForegroundDrawCount - beforeDraws).isLessThanOrEqualTo(1)
++      var screenDifference = 0
++      var interiorDifference = 0
++      for (y in 0 until shiftedScreen.height) for (x in 0 until shiftedScreen.width) {
++        val a = fixedShifted[x, y].toArgb()
++        val b = shiftedScreen[x, y].toArgb()
++        for (shift in 0..3) {
++          val delta = abs((a ushr (8 * shift) and 255) - (b ushr (8 * shift) and 255))
++          if (x in 64 until 72 && y in 16 until 20) screenDifference = maxOf(screenDifference, delta)
++          if (x in 32 until 96 && y in 32 until 64) interiorDifference = maxOf(interiorDifference, delta)
++        }
++      }
++      assertThat(screenDifference).isGreaterThan(3)
++      assertThat(interiorDifference).isLessThanOrEqualTo(1)
++      val shifted = runBlocking { checkNotNull(delegate.layers.rim).toImageBitmap() }.toPixelMap()
++      var changed = 0f
++      var shiftError = 0f
++      var count = 0
++      for (y in 0 until fixedRim.height) for (x in 0 until fixedRim.width) {
++        val sx = 16f + (x + 0.5f - coordinates.materialOrigin.x) / coordinates.scaleFactor
++        val sy = 16f + (y + 0.5f - coordinates.materialOrigin.y) / coordinates.scaleFactor
++        val alpha = fixedRim[x, y].alpha
++        if (sx >= 64f && sx < 72f && sy >= 16f && sy < 20f && alpha >= 0.05f) {
++          val e = 26.0 / 255.0
++          val expected = alpha * (0.5f + ((e + 0.055) / 1.055).pow(2.4).toFloat())
++          shiftError = maxOf(shiftError, abs(shifted[x, y].alpha - expected))
++          changed = maxOf(changed, abs(shifted[x, y].alpha - adaptiveRim[x, y].alpha))
++          count++
++        }
++      }
++      assertThat(count).isGreaterThan(0)
++      assertThat(shiftError).isLessThanOrEqualTo(2f / 255f)
++      assertThat(changed).isGreaterThan(3f / 255f)
++    } finally {
++      rule.runOnIdle { delegate.experimentalRim = null }
++    }
++  }
++}
++
++private fun adaptiveEdgeShader(): String = GlassShaders.buildRim().replace(
++  "vec4 main(vec2 coord) {",
++  """
++      uniform float rimGain;
++      uniform float outlineGain;
++      vec4 adaptiveEdge(vec4 edge, float multiplier) {
++        float adaptiveAlpha = clamp(edge.a * multiplier, 0.0, 1.0);
++        return edge.a > 0.0 ? edge * (adaptiveAlpha / edge.a) : vec4(0.0);
++      }
++      vec4 main(vec2 coord) {
++      vec4 source = content.eval(clamp(coord, vec2(0.5), sampleSize - vec2(0.5)));
++      vec3 linear = source.a > 0.0001 ? toLinearSrgb(source.rgb / source.a) : vec3(0.5);
++      float y = dot(linear, vec3(0.2126, 0.7152, 0.0722));
++      float luminanceStrength = source.a > 0.0001 ? 0.5 + y : 1.0;
++  """.trimIndent(),
++).replace(
++  "return outline;",
++  "return adaptiveEdge(outline, mix(1.0, luminanceStrength, clamp(outlineGain, 0.0, 1.0)));",
++).replace(
++  "return rim + outline * (1.0 - rim.a);",
++  """
++      rim = adaptiveEdge(rim, mix(1.0, luminanceStrength, clamp(rimGain, 0.0, 1.0)));
++      outline = adaptiveEdge(outline, mix(1.0, luminanceStrength, clamp(outlineGain, 0.0, 1.0)));
++      return rim + outline * (1.0 - rim.a);
++  """.trimIndent(),
++)
+diff --git a/haze-glass/src/androidHostTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeAndroidHostTest.kt b/haze-glass/src/androidHostTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeAndroidHostTest.kt
+new file mode 100644
+index 000000000..5caeee6a5
+--- /dev/null
++++ b/haze-glass/src/androidHostTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeAndroidHostTest.kt
+@@ -0,0 +1,858 @@
++// Copyright 2026, Christopher Banes and the Haze project contributors
++// SPDX-License-Identifier: Apache-2.0
++
++@file:OptIn(androidx.compose.ui.InternalComposeUiApi::class, androidx.compose.ui.test.ExperimentalTestApi::class)
++
++package dev.chrisbanes.haze.glass
++
++import androidx.activity.ComponentActivity
++import androidx.compose.animation.core.tween
++import androidx.compose.foundation.background
++import androidx.compose.foundation.interaction.MutableInteractionSource
++import androidx.compose.foundation.interaction.PressInteraction
++import androidx.compose.foundation.layout.Box
++import androidx.compose.foundation.layout.fillMaxSize
++import androidx.compose.foundation.layout.offset
++import androidx.compose.foundation.layout.size
++import androidx.compose.foundation.shape.RoundedCornerShape
++import androidx.compose.runtime.CompositionLocalProvider
++import androidx.compose.runtime.SideEffect
++import androidx.compose.runtime.mutableStateOf
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.draw.drawBehind
++import androidx.compose.ui.geometry.Offset
++import androidx.compose.ui.geometry.Size
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.graphics.PixelMap
++import androidx.compose.ui.graphics.compositeOver
++import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
++import androidx.compose.ui.graphics.graphicsLayer
++import androidx.compose.ui.graphics.layer.drawLayer
++import androidx.compose.ui.graphics.nativeCanvas
++import androidx.compose.ui.graphics.toPixelMap
++import androidx.compose.ui.platform.LocalDensity
++import androidx.compose.ui.platform.testTag
++import androidx.compose.ui.test.captureToImage
++import androidx.compose.ui.test.onNodeWithTag
++import androidx.compose.ui.test.v2.runAndroidComposeUiTest
++import androidx.compose.ui.unit.Density
++import androidx.compose.ui.unit.dp
++import androidx.compose.ui.unit.roundToIntSize
++import assertk.assertThat
++import assertk.assertions.isCloseTo
++import assertk.assertions.isEqualTo
++import assertk.assertions.isGreaterThan
++import assertk.assertions.isInstanceOf
++import assertk.assertions.isLessThan
++import assertk.assertions.isLessThanOrEqualTo
++import assertk.assertions.isNotNull
++import assertk.assertions.isNotSameInstanceAs
++import assertk.assertions.isNull
++import assertk.assertions.isTrue
++import dev.chrisbanes.haze.HazeEffectFactory
++import dev.chrisbanes.haze.HazeInput
++import dev.chrisbanes.haze.HazePerformanceMode
++import dev.chrisbanes.haze.HazeState
++import dev.chrisbanes.haze.TrimMemoryLevel
++import dev.chrisbanes.haze.asComposeRenderEffect
++import dev.chrisbanes.haze.createRuntimeEffect
++import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
++import dev.chrisbanes.haze.hazeSource
++import dev.chrisbanes.haze.test.ContextTest
++import kotlin.math.abs
++import kotlin.test.Test
++import org.junit.runner.RunWith
++import org.robolectric.RobolectricTestRunner
++import org.robolectric.annotation.Config
++import org.robolectric.annotation.GraphicsMode
++
++@RunWith(RobolectricTestRunner::class)
++@GraphicsMode(GraphicsMode.Mode.NATIVE)
++class AdaptiveEdgePrototypeAndroidHostTest : ContextTest() {
++  @Test
++  @Config(sdk = [35])
++  fun sdk35_split_quality() = splitQuality()
++
++  @Test
++  @Config(sdk = [37])
++  fun sdk37_split_quality() = splitQuality()
++
++  @Test
++  @Config(sdk = [37])
++  fun sdk37_split_balanced() = splitQuality(mode = HazePerformanceMode.Balanced)
++
++  @Test
++  @Config(sdk = [37])
++  fun sdk37_split_performance() = splitQuality(mode = HazePerformanceMode.Performance)
++
++  @Test
++  @Config(sdk = [37])
++  fun sdk37_split_rim_only() = splitQuality(outlineGain = 0f)
++
++  @Test
++  @Config(sdk = [37])
++  fun sdk37_split_no_outline_fixed_identity() = splitQuality(rimGain = 0f, expectChange = false)
++
++  @Test
++  @Config(sdk = [37])
++  fun sdk37_split_authored_outline_only() = splitQuality(rimGain = 0f, outline = Color.Black.copy(alpha = 0.5f))
++
++  @Test
++  @Config(sdk = [37])
++  fun sdk37_split_red_outline() = splitQuality(outline = Color.Red.copy(alpha = 0.5f))
++
++  @Test
++  @Config(sdk = [37])
++  fun sdk37_split_cyan_outline() = splitQuality(outline = Color.Cyan.copy(alpha = 0.5f))
++
++  @Test
++  @Config(sdk = [37])
++  fun sdk37_merged_bridge() = mergedSplit(gap = 6f)
++
++  @Test
++  @Config(sdk = [37])
++  fun sdk37_merged_separate() = mergedSplit(gap = 10f)
++
++  @Test
++  @Config(sdk = [37])
++  fun sdk37_merged_separate_fixed_diagnostic() = mergedSplit(gap = 10f, diagnostic = true)
++
++  @Test
++  @Config(sdk = [37])
++  fun sdk37_split_source_update_retained_detach_reattach() = sourceUpdateLifecycle(pattern = false)
++
++  @Test
++  @Config(sdk = [37])
++  fun sdk37_pattern_source_update_retained_detach_reattach() = sourceUpdateLifecycle(pattern = true)
++
++  @Test
++  @Config(sdk = [37])
++  @Suppress("DEPRECATION")
++  fun sdk37_geometry_material_colour_layer_changes() = runAndroidComposeUiTest<ComponentActivity> {
++    val state = HazeState()
++    val stage = mutableStateOf(0)
++    val effect = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
++    setContent {
++      val style = GlassStyle.regular.then {
++        shape(RoundedCornerShape(if (stage.value == 0) 8.dp else 12.dp))
++        backgroundColor(Color.Transparent)
++        if (stage.value >= 2) tint(Color.Blue.copy(alpha = 0.2f))
++        if (stage.value >= 3) edgeOutline(Color.Cyan.copy(alpha = 0.5f), 2.dp)
++      }
++      CompositionLocalProvider(LocalDensity provides Density(1f)) {
++        Box(Modifier.size(128.dp, 96.dp).testTag("mutation-root").background(Color.Black)) {
++          Box(
++            Modifier.size(128.dp, 96.dp).hazeSource(state).drawBehind {
++              drawRect(Color(0.1f, 0.1f, 0.1f))
++              drawRect(Color(0.9f, 0.9f, 0.9f), topLeft = Offset(64f, 0f))
++            },
++          )
++          Box(
++            Modifier.offset(16.dp, 16.dp).graphicsLayer { translationX = if (stage.value >= 4) 4f else 0f }
++              .size(96.dp, 64.dp).hazeGlass(HazeEffectFactory { effect }, HazeInput.Sources(state), style, HazePerformanceMode.Quality, true, null),
++          )
++        }
++      }
++    }
++    onNodeWithTag("mutation-root").captureToImage()
++    val delegate = effect.delegate as RuntimeShaderGlassDelegate
++    assertThat(delegate.fusedShader).isNotNull()
++    val candidate = createRuntimeEffect(adaptiveEdgeShader())
++    try {
++      for (index in 0..4) {
++        runOnIdle {
++          delegate.experimentalRim = null
++          stage.value = index
++          checkNotNull(effect.attachedContextForTest).invalidateDraw()
++        }
++        val fixed = onNodeWithTag("mutation-root").captureToImage().toPixelMap()
++        runOnIdle {
++          delegate.experimentalRim = { source, layer, key ->
++            layer.alpha = 1f
++            layer.renderEffect = createRuntimeShaderRenderEffect(candidate, arrayOf("content"), arrayOf(null)) {
++              setRimUniforms(key)
++              setFloatUniform("rimGain", 1f)
++              setFloatUniform("outlineGain", 1f)
++            }.asComposeRenderEffect()
++            recordGlassLayer(layer, key.coordinates.sampleSize.roundToIntSize()) { drawLayer(source) }
++          }
++          checkNotNull(effect.attachedContextForTest).invalidateDraw()
++        }
++        val adaptive = onNodeWithTag("mutation-root").captureToImage().toPixelMap()
++        var edgeDifference = 0f
++        var interiorDifference = 0f
++        for (y in 14 until 82) for (x in 14 until 118) {
++          val a = fixed[x, y]
++          val b = adaptive[x, y]
++          val diff = maxOf(abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
++          edgeDifference = maxOf(edgeDifference, diff)
++          if (x in 36 until 92 && y in 32 until 64) interiorDifference = maxOf(interiorDifference, diff)
++        }
++        println("T3 mutation stage=$index edge=$edgeDifference interior=$interiorDifference")
++        assertThat(edgeDifference).isGreaterThan(3f / 255f)
++        assertThat(interiorDifference).isLessThanOrEqualTo(1f / 255f)
++      }
++    } finally {
++      runOnIdle { delegate.experimentalRim = null }
++    }
++  }
++
++  @Test
++  @Config(sdk = [31])
++  @Suppress("DEPRECATION")
++  fun sdk31_runtime_unsupported_authored_fallback() = runAndroidComposeUiTest<ComponentActivity> {
++    val state = HazeState()
++    val source = mutableStateOf(Color.Red)
++    val alpha = mutableStateOf(1f)
++    val effect = GlassRuntimeEffect()
++    setContent {
++      CompositionLocalProvider(LocalDensity provides Density(1f), LocalGlassAccessibilitySettings provides GlassAccessibilitySettings(reduceTransparency = true)) {
++        Box(Modifier.size(120.dp).testTag("fallback-root").background(Color.Green)) {
++          Box(Modifier.size(120.dp).hazeSource(state).background(source.value))
++          Box(Modifier.size(120.dp).background(Color.Green))
++          Box(
++            Modifier.size(120.dp).hazeGlass(
++              HazeEffectFactory { effect },
++              HazeInput.Sources(state),
++              GlassStyle {
++                optics { copy(blurRadius = OpticalSizeValue.Fixed(0.dp)) }
++                contrast(0f)
++                whitePoint(0f)
++                chromaMultiplier(1f)
++                backgroundColor(Color.Transparent)
++                tint(Color.Blue.copy(alpha = 0.5f))
++                alpha(alpha.value)
++                specularIntensity(0f)
++                edgeSoftness(0.dp)
++                edgeShadow(Color.Transparent)
++                ambientResponse(0f)
++              },
++              HazePerformanceMode.Quality,
++              true,
++              null,
++            ),
++          )
++        }
++      }
++    }
++    fun pixel() = onNodeWithTag("fallback-root").captureToImage().toPixelMap()[55, 55]
++    val first = pixel()
++    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
++    val expected = Color.Blue.copy(alpha = 0.5f).compositeOver(Color.White)
++    assertThat(first.red).isCloseTo(expected.red, 2f / 255f)
++    assertThat(first.green).isCloseTo(expected.green, 2f / 255f)
++    assertThat(first.blue).isCloseTo(expected.blue, 2f / 255f)
++    runOnIdle { source.value = Color.Blue }
++    assertThat(pixel()).isEqualTo(first)
++    runOnIdle { alpha.value = 0f }
++    assertThat(pixel()).isEqualTo(Color.Green)
++  }
++
++  @Test
++  @Config(sdk = [37])
++  @Suppress("DEPRECATION")
++  fun sdk37_foreground_over_content_and_pressed_lighting() = runAndroidComposeUiTest<ComponentActivity> {
++    val state = HazeState()
++    val interaction = MutableInteractionSource()
++    val effect = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
++    val style = GlassStyle.regular.then {
++      shape(RoundedCornerShape(8.dp))
++      backgroundColor(Color.Transparent)
++      pressed { animate(tween(1), tween(1)) { lightingIntensity(0.5f) } }
++    }
++    setContent {
++      CompositionLocalProvider(LocalDensity provides Density(1f)) {
++        Box(Modifier.size(128.dp, 96.dp).testTag("foreground-root").background(Color.Black)) {
++          Box(
++            Modifier.size(128.dp, 96.dp).hazeSource(state).drawBehind {
++              drawRect(Color(0.1f, 0.1f, 0.1f))
++              drawRect(Color(0.9f, 0.9f, 0.9f), topLeft = Offset(64f, 0f))
++            },
++          )
++          Box(
++            Modifier.offset(16.dp, 16.dp).size(96.dp, 64.dp).hazeGlass(
++              HazeEffectFactory { effect },
++              HazeInput.Sources(state),
++              style,
++              HazePerformanceMode.Quality,
++              true,
++              interaction,
++            ),
++          ) { Box(Modifier.fillMaxSize().background(Color.Blue)) }
++        }
++      }
++    }
++    onNodeWithTag("foreground-root").captureToImage()
++    runOnIdle { assertThat(interaction.tryEmit(PressInteraction.Press(Offset(48f, 32f)))).isTrue() }
++    mainClock.advanceTimeBy(50)
++    val fixed = onNodeWithTag("foreground-root").captureToImage().toPixelMap()
++    val delegate = effect.delegate as RuntimeShaderGlassDelegate
++    assertThat(delegate.fusedShader).isNotNull()
++    assertThat(checkNotNull(effect.preparedRender).interactionUniforms.hasLighting).isTrue()
++    assertThat(fixed[64, 48].blue).isGreaterThan(0.9f)
++    val candidate = createRuntimeEffect(adaptiveEdgeShader())
++    try {
++      runOnIdle {
++        delegate.experimentalRim = { source, layer, key ->
++          layer.alpha = 1f
++          layer.renderEffect = createRuntimeShaderRenderEffect(candidate, arrayOf("content"), arrayOf(null)) {
++            setRimUniforms(key)
++            setFloatUniform("rimGain", 1f)
++            setFloatUniform("outlineGain", 1f)
++          }.asComposeRenderEffect()
++          recordGlassLayer(layer, key.coordinates.sampleSize.roundToIntSize()) { drawLayer(source) }
++        }
++        checkNotNull(effect.attachedContextForTest).invalidateDraw()
++      }
++      val adaptive = onNodeWithTag("foreground-root").captureToImage().toPixelMap()
++      var difference = 0f
++      for (y in 16 until 80) for (x in 16 until 112) {
++        val a = fixed[x, y]
++        val b = adaptive[x, y]
++        difference = maxOf(difference, abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
++      }
++      assertThat(difference).isGreaterThan(3f / 255f)
++      assertThat(checkNotNull(effect.preparedRender).interactionUniforms.hasLighting).isTrue()
++    } finally {
++      runOnIdle { delegate.experimentalRim = null }
++    }
++  }
++
++  @Test
++  @Config(sdk = [37])
++  @Suppress("DEPRECATION")
++  fun sdk37_reduced_transparency_overrides_adaptive() = runAndroidComposeUiTest<ComponentActivity> {
++    val state = HazeState()
++    val settings = mutableStateOf(GlassAccessibilitySettings(reduceTransparency = true))
++    val effect = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
++    val style = GlassStyle.regular.then {
++      shape(RoundedCornerShape(8.dp))
++      backgroundColor(Color.Transparent)
++    }
++    setContent {
++      CompositionLocalProvider(LocalDensity provides Density(1f), LocalGlassAccessibilitySettings provides settings.value) {
++        SideEffect {
++          val runtime = effect.delegate as? RuntimeShaderGlassDelegate
++          if (settings.value.reduceTransparency && runtime?.experimentalRim != null) {
++            runtime.experimentalRim = null
++            effect.attachedContextForTest?.invalidateDraw()
++          }
++        }
++        Box(Modifier.size(128.dp, 96.dp).testTag("accessible-root").background(Color.Black)) {
++          Box(
++            Modifier.size(128.dp, 96.dp).hazeSource(state).drawBehind {
++              drawRect(Color(0.1f, 0.1f, 0.1f))
++              drawRect(Color(0.9f, 0.9f, 0.9f), topLeft = Offset(64f, 0f))
++            },
++          )
++          Box(
++            Modifier.offset(16.dp, 16.dp).size(96.dp, 64.dp).hazeGlass(
++              HazeEffectFactory { effect },
++              HazeInput.Sources(state),
++              style,
++              HazePerformanceMode.Quality,
++              true,
++              null,
++            ),
++          )
++        }
++      }
++    }
++    val fixedReduced = onNodeWithTag("accessible-root").captureToImage().toPixelMap()
++    runOnIdle { settings.value = GlassAccessibilitySettings() }
++    val fixed = onNodeWithTag("accessible-root").captureToImage().toPixelMap()
++    val delegate = effect.delegate as RuntimeShaderGlassDelegate
++    assertThat(delegate.fusedShader).isNotNull()
++    val candidate = createRuntimeEffect(adaptiveEdgeShader())
++    try {
++      runOnIdle {
++        delegate.experimentalRim = { source, layer, key ->
++          layer.alpha = 1f
++          layer.renderEffect = createRuntimeShaderRenderEffect(candidate, arrayOf("content"), arrayOf(null)) {
++            setRimUniforms(key)
++            setFloatUniform("rimGain", 1f)
++            setFloatUniform("outlineGain", 1f)
++          }.asComposeRenderEffect()
++          recordGlassLayer(layer, key.coordinates.sampleSize.roundToIntSize()) { drawLayer(source) }
++        }
++        checkNotNull(effect.attachedContextForTest).invalidateDraw()
++      }
++      val adaptive = onNodeWithTag("accessible-root").captureToImage().toPixelMap()
++      fun difference(a: PixelMap, b: PixelMap): Float {
++        var max = 0f
++        for (y in 0 until 96) for (x in 0 until 128) {
++          val p = a[x, y]
++          val q = b[x, y]
++          max = maxOf(max, abs(p.red - q.red), abs(p.green - q.green), abs(p.blue - q.blue), abs(p.alpha - q.alpha))
++        }
++        return max
++      }
++      assertThat(difference(fixed, adaptive)).isGreaterThan(3f / 255f)
++      runOnIdle { settings.value = GlassAccessibilitySettings(reduceTransparency = true) }
++      val adaptiveReduced = onNodeWithTag("accessible-root").captureToImage().toPixelMap()
++      assertThat(delegate.experimentalRim).isNull()
++      println("T3 reducedTransparency maxDifference=${difference(fixedReduced, adaptiveReduced)}")
++      assertThat(difference(fixedReduced, adaptiveReduced)).isLessThanOrEqualTo(1f / 255f)
++    } finally {
++      runOnIdle { delegate.experimentalRim = null }
++    }
++  }
++
++  @Suppress("DEPRECATION")
++  private fun sourceUpdateLifecycle(pattern: Boolean) = runAndroidComposeUiTest<ComponentActivity> {
++    val state = HazeState()
++    val shift = mutableStateOf(0f)
++    val attached = mutableStateOf(true)
++    val effect = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
++    val style = GlassStyle.regular.then {
++      shape(RoundedCornerShape(8.dp))
++      backgroundColor(Color.Transparent)
++    }
++    setContent {
++      CompositionLocalProvider(LocalDensity provides Density(1f)) {
++        Box(Modifier.size(128.dp, 96.dp).testTag("lifecycle-root").background(Color.Black)) {
++          Box(
++            Modifier.size(128.dp, 96.dp).hazeSource(state).drawBehind {
++              drawRect(Color(0.1f, 0.1f, 0.1f))
++              if (pattern) {
++                for (i in -1..4) drawRect(
++                  Color(0.9f, 0.9f, 0.9f),
++                  topLeft = Offset(16f + 32f * i + shift.value, 0f),
++                  size = Size(16f, 96f),
++                )
++              } else {
++                drawRect(Color(0.9f, 0.9f, 0.9f), topLeft = Offset(64f + shift.value, 0f))
++              }
++            },
++          )
++          if (attached.value) {
++            Box(
++              Modifier.offset(16.dp, 16.dp).size(96.dp, 64.dp).hazeGlass(
++                HazeEffectFactory { effect },
++                HazeInput.Sources(state),
++                style,
++                HazePerformanceMode.Quality,
++                true,
++                null,
++              ),
++            )
++          }
++        }
++      }
++    }
++    onNodeWithTag("lifecycle-root").captureToImage()
++    runOnIdle { shift.value = 8f }
++    val fixedShift = onNodeWithTag("lifecycle-root").captureToImage().toPixelMap()
++    runOnIdle { shift.value = 0f }
++    onNodeWithTag("lifecycle-root").captureToImage()
++    fun install(delegate: RuntimeShaderGlassDelegate) {
++      val candidate = createRuntimeEffect(adaptiveEdgeShader())
++      delegate.experimentalRim = { source, layer, key ->
++        layer.alpha = 1f
++        layer.renderEffect = createRuntimeShaderRenderEffect(candidate, arrayOf("content"), arrayOf(null)) {
++          setRimUniforms(key)
++          setFloatUniform("rimGain", 1f)
++          setFloatUniform("outlineGain", 1f)
++        }.asComposeRenderEffect()
++        recordGlassLayer(layer, key.coordinates.sampleSize.roundToIntSize()) { drawLayer(source) }
++      }
++      checkNotNull(effect.attachedContextForTest).invalidateDraw()
++    }
++    fun maxDifference(a: PixelMap, b: PixelMap, xRange: IntRange, yRange: IntRange): Float {
++      var difference = 0f
++      for (y in yRange) for (x in xRange) {
++        val p = a[x, y]
++        val q = b[x, y]
++        difference = maxOf(difference, abs(p.red - q.red), abs(p.green - q.green), abs(p.blue - q.blue), abs(p.alpha - q.alpha))
++      }
++      return difference
++    }
++    var delegate = effect.delegate as RuntimeShaderGlassDelegate
++    assertThat(delegate.fusedShader).isNotNull()
++    try {
++      runOnIdle { install(delegate) }
++      onNodeWithTag("lifecycle-root").captureToImage()
++      runOnIdle { shift.value = 8f }
++      val shifted = onNodeWithTag("lifecycle-root").captureToImage().toPixelMap()
++      assertThat(maxDifference(fixedShift, shifted, 64..71, 16..19)).isGreaterThan(3f / 255f)
++      val repeated = onNodeWithTag("lifecycle-root").captureToImage().toPixelMap()
++      assertThat(maxDifference(shifted, repeated, 0..127, 0..95)).isLessThanOrEqualTo(1f / 255f)
++      runOnIdle {
++        delegate.clearRetainedOutput()
++        checkNotNull(effect.attachedContextForTest).invalidateDraw()
++      }
++      val recreated = onNodeWithTag("lifecycle-root").captureToImage().toPixelMap()
++      assertThat(maxDifference(shifted, recreated, 0..127, 0..95)).isLessThanOrEqualTo(1f / 255f)
++      runOnIdle { effect.onTrimMemory(TrimMemoryLevel.MODERATE) }
++      assertThat(delegate.layers.isEmpty).isTrue()
++      val trimmed = onNodeWithTag("lifecycle-root").captureToImage().toPixelMap()
++      assertThat(maxDifference(shifted, trimmed, 0..127, 0..95)).isLessThanOrEqualTo(1f / 255f)
++      runOnIdle { attached.value = false }
++      waitForIdle()
++      assertThat(delegate.experimentalRim).isNull()
++      assertThat(delegate.layers.isEmpty).isTrue()
++      runOnIdle { attached.value = true }
++      onNodeWithTag("lifecycle-root").captureToImage()
++      delegate = effect.delegate as RuntimeShaderGlassDelegate
++      runOnIdle { install(delegate) }
++      val reattached = onNodeWithTag("lifecycle-root").captureToImage().toPixelMap()
++      assertThat(maxDifference(shifted, reattached, 0..127, 0..95)).isLessThanOrEqualTo(1f / 255f)
++    } finally {
++      runOnIdle { delegate.experimentalRim = null }
++    }
++  }
++
++  @Test
++  @Config(sdk = [37])
++  @Suppress("DEPRECATION")
++  fun sdk37_two_surfaces_program_isolation() = runAndroidComposeUiTest<ComponentActivity> {
++    val state = HazeState()
++    val effects = List(2) { GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } } }
++    var hardware = false
++    setContent {
++      CompositionLocalProvider(LocalDensity provides Density(1f)) {
++        Box(Modifier.size(256.dp, 96.dp).testTag("dual-root").background(Color.Black)) {
++          Box(
++            Modifier.size(256.dp, 96.dp).hazeSource(state).drawBehind {
++              drawIntoCanvas { hardware = it.nativeCanvas.isHardwareAccelerated }
++              for (i in 0..3) drawRect(
++                if (i % 2 == 0) Color(0.1f, 0.1f, 0.1f) else Color(0.9f, 0.9f, 0.9f),
++                topLeft = Offset(i * 64f, 0f),
++                size = Size(64f, 96f),
++              )
++            },
++          )
++          effects.forEachIndexed { i, effect ->
++            val style = GlassStyle.regular.then {
++              shape(RoundedCornerShape(8.dp))
++              backgroundColor(Color.Transparent)
++              if (i == 1) edgeOutline(Color.Red.copy(alpha = 0.5f), 2.dp)
++            }
++            Box(
++              Modifier.offset((16 + 128 * i).dp, 16.dp).size(96.dp, 64.dp).hazeGlass(
++                HazeEffectFactory { effect },
++                HazeInput.Sources(state),
++                style,
++                HazePerformanceMode.Quality,
++                true,
++                null,
++              ),
++            )
++          }
++        }
++      }
++    }
++    val fixed = onNodeWithTag("dual-root").captureToImage().toPixelMap()
++    val delegates = effects.map { it.delegate as RuntimeShaderGlassDelegate }
++    delegates.forEach { assertThat(it.fusedShader).isNotNull() }
++    assertThat(hardware).isTrue()
++    val programs = List(2) { createRuntimeEffect(adaptiveEdgeShader()) }
++    assertThat(programs[0]).isNotSameInstanceAs(programs[1])
++    try {
++      runOnIdle {
++        delegates.forEachIndexed { i, delegate ->
++          delegate.experimentalRim = { source, layer, key ->
++            layer.alpha = 1f
++            layer.renderEffect = createRuntimeShaderRenderEffect(programs[i], arrayOf("content"), arrayOf(null)) {
++              setRimUniforms(key)
++              setFloatUniform("rimGain", if (i == 0) 1f else 0f)
++              setFloatUniform("outlineGain", if (i == 1) 1f else 0f)
++            }.asComposeRenderEffect()
++            recordGlassLayer(layer, key.coordinates.sampleSize.roundToIntSize()) { drawLayer(source) }
++          }
++          checkNotNull(effects[i].attachedContextForTest).invalidateDraw()
++        }
++      }
++      val both = onNodeWithTag("dual-root").captureToImage().toPixelMap()
++      fun difference(a: PixelMap, b: PixelMap, left: Int): Float {
++        var max = 0f
++        for (y in 14 until 82) for (x in left until left + 100) {
++          val p = a[x, y]
++          val q = b[x, y]
++          max = maxOf(max, abs(p.red - q.red), abs(p.green - q.green), abs(p.blue - q.blue), abs(p.alpha - q.alpha))
++        }
++        return max
++      }
++      assertThat(difference(fixed, both, 14)).isGreaterThan(3f / 255f)
++      assertThat(difference(fixed, both, 142)).isGreaterThan(3f / 255f)
++      for (x in listOf(48, 176)) {
++        val a = fixed[x, 48]
++        val b = both[x, 48]
++        assertThat(maxOf(abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha)))
++          .isLessThanOrEqualTo(1f / 255f)
++      }
++      runOnIdle {
++        delegates[0].experimentalRim = null
++        checkNotNull(effects[0].attachedContextForTest).invalidateDraw()
++      }
++      val firstFixed = onNodeWithTag("dual-root").captureToImage().toPixelMap()
++      assertThat(difference(fixed, firstFixed, 14)).isLessThanOrEqualTo(1f / 255f)
++      assertThat(difference(both, firstFixed, 142)).isLessThanOrEqualTo(1f / 255f)
++    } finally {
++      runOnIdle { delegates.forEach { it.experimentalRim = null } }
++    }
++  }
++
++  @Suppress("DEPRECATION")
++  private fun mergedSplit(gap: Float, diagnostic: Boolean = false) = runAndroidComposeUiTest<ComponentActivity> {
++    val state = HazeState()
++    val effect = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
++    val style = GlassStyle.regular.then {
++      backgroundColor(Color.Transparent)
++      edgeOutline(Color.Black.copy(alpha = 0.5f), 2.dp)
++    }
++    var hardware = false
++    setContent {
++      CompositionLocalProvider(LocalDensity provides Density(1f)) {
++        Box(Modifier.size(128.dp, 96.dp).testTag("merged-root").background(Color.Black)) {
++          Box(
++            Modifier.size(128.dp, 96.dp).hazeSource(state).drawBehind {
++              drawIntoCanvas { hardware = it.nativeCanvas.isHardwareAccelerated }
++              drawRect(Color(0.1f, 0.1f, 0.1f))
++              drawRect(Color(0.9f, 0.9f, 0.9f), topLeft = Offset(64f, 0f))
++            },
++          )
++          Box(
++            Modifier.offset(4.dp, 28.dp).size(120.dp, 40.dp).hazeGlass(
++              HazeEffectFactory { effect },
++              HazeInput.Sources(state),
++              style,
++              HazePerformanceMode.Quality,
++              true,
++              null,
++            ),
++          )
++        }
++      }
++    }
++    val left = (120f - 100f - gap) / 2f
++    fun field(separation: Float): GlassMergedField {
++      val memberLeft = (120f - 100f - separation) / 2f
++      return mergedField(
++        mergedMember(memberLeft, 10f, 50f, 20f, radius = 10f, tint = Color.Green),
++        mergedMember(memberLeft + 50f + separation, 10f, 50f, 20f, radius = 10f, tint = Color.Green),
++        mergeDistancePx = 16f,
++        opticalSize = Size(50f, 20f),
++      )
++    }
++    runOnIdle { effect.mergedField = field(gap) }
++    val fixed = onNodeWithTag("merged-root").captureToImage().toPixelMap()
++    val fixedSeparate = if (gap == 6f) {
++      runOnIdle { effect.mergedField = field(10f) }
++      val result = onNodeWithTag("merged-root").captureToImage().toPixelMap()
++      runOnIdle { effect.mergedField = field(6f) }
++      onNodeWithTag("merged-root").captureToImage()
++      result
++    } else {
++      null
++    }
++    val delegate = effect.delegate as RuntimeShaderGlassDelegate
++    assertThat(hardware).isTrue()
++    assertThat(delegate.fusedShader).isNotNull()
++    assertThat(checkNotNull(effect.preparedRender).opticalKey.mergedField).isNotNull()
++    val midpoint = fixed[64, 48]
++    if (diagnostic) {
++      println("T3 fixed separate midpoint=$midpoint")
++      assertThat(abs(midpoint.red - midpoint.green)).isLessThanOrEqualTo(2f / 255f)
++      assertThat(abs(midpoint.red - midpoint.blue)).isLessThanOrEqualTo(2f / 255f)
++      return@runAndroidComposeUiTest
++    }
++    fun checkTopology(pixels: PixelMap) {
++      val middle = pixels[64, 48]
++      if (gap == 6f) {
++        assertThat(middle.green).isGreaterThan(0.85f)
++        assertThat(middle.red).isLessThan(0.05f)
++      } else {
++        assertThat(abs(middle.red - middle.green)).isLessThanOrEqualTo(1f / 255f)
++        assertThat(abs(middle.red - middle.blue)).isLessThanOrEqualTo(1f / 255f)
++      }
++      for (x in listOf((4f + left + 25f).toInt(), (4f + left + 50f + gap + 25f).toInt())) {
++        val member = pixels[x, 48]
++        assertThat(member.green).isGreaterThan(0.85f)
++        assertThat(member.red).isLessThan(0.05f)
++      }
++    }
++    checkTopology(fixed)
++    val candidate = createRuntimeEffect(adaptiveEdgeShader(merged = true))
++    try {
++      runOnIdle {
++        delegate.experimentalRim = { source, layer, key ->
++          layer.alpha = 1f
++          layer.renderEffect = createRuntimeShaderRenderEffect(candidate, arrayOf("content"), arrayOf(null)) {
++            setRimUniforms(key)
++            setFloatUniform("rimGain", 1f)
++            setFloatUniform("outlineGain", 1f)
++          }.asComposeRenderEffect()
++          recordGlassLayer(layer, key.coordinates.sampleSize.roundToIntSize()) { drawLayer(source) }
++        }
++        checkNotNull(effect.attachedContextForTest).invalidateDraw()
++      }
++      val adaptive = onNodeWithTag("merged-root").captureToImage().toPixelMap()
++      checkTopology(adaptive)
++      for (x in listOf((4f + left + 25f).toInt(), (4f + left + 50f + gap + 25f).toInt())) {
++        val a = fixed[x, 48]
++        val b = adaptive[x, 48]
++        assertThat(maxOf(abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha)))
++          .isLessThanOrEqualTo(1f / 255f)
++      }
++      var difference = 0f
++      for (y in 26 until 70) for (x in 2 until 126) {
++        val a = fixed[x, y]
++        val b = adaptive[x, y]
++        difference = maxOf(difference, abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
++      }
++      if (gap == 6f) {
++        fun bandDifference(xs: IntRange, ys: IntRange): Float {
++          var max = 0f
++          for (y in ys) for (x in xs) {
++            val a = fixed[x, y]
++            val b = adaptive[x, y]
++            max = maxOf(max, abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
++          }
++          return max
++        }
++        val bridgeDifference = bandDifference(61..66, 38..57)
++        val outsideDifference = bandDifference(9..10, 46..49)
++        println("T3 merged bridgeBand=$bridgeDifference outsideBand=$outsideDifference")
++        assertThat(bridgeDifference).isGreaterThan(3f / 255f)
++        assertThat(outsideDifference).isGreaterThan(3f / 255f)
++      }
++      if (fixedSeparate != null) {
++        runOnIdle { effect.mergedField = field(10f) }
++        val separated = onNodeWithTag("merged-root").captureToImage().toPixelMap()
++        for (pixels in listOf(fixedSeparate, separated)) {
++          val middle = pixels[64, 48]
++          assertThat(abs(middle.red - middle.green)).isLessThanOrEqualTo(1f / 255f)
++          assertThat(abs(middle.red - middle.blue)).isLessThanOrEqualTo(1f / 255f)
++          for (x in listOf(34, 94)) {
++            val member = pixels[x, 48]
++            assertThat(member.green).isGreaterThan(0.85f)
++            assertThat(member.red).isLessThan(0.05f)
++          }
++        }
++        var separatedDifference = 0f
++        for (y in 26 until 70) for (x in 2 until 126) {
++          val a = fixedSeparate[x, y]
++          val b = separated[x, y]
++          separatedDifference = maxOf(separatedDifference, abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
++        }
++        assertThat(separatedDifference).isGreaterThan(3f / 255f)
++        runOnIdle { effect.mergedField = field(6f) }
++        val restored = onNodeWithTag("merged-root").captureToImage().toPixelMap()
++        var restoredDifference = 0f
++        for (y in 0 until 96) for (x in 0 until 128) {
++          val a = adaptive[x, y]
++          val b = restored[x, y]
++          restoredDifference = maxOf(restoredDifference, abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
++        }
++        println("T3 merged transition separated=$separatedDifference restored=$restoredDifference")
++        assertThat(restoredDifference).isLessThanOrEqualTo(1f / 255f)
++      }
++      println("T3 merged gap=$gap midpoint=$midpoint difference=$difference")
++      assertThat(difference).isGreaterThan(3f / 255f)
++    } finally {
++      runOnIdle {
++        delegate.experimentalRim = null
++        effect.attachedContextForTest?.invalidateDraw()
++      }
++    }
++  }
++
++  @Suppress("DEPRECATION")
++  private fun splitQuality(
++    mode: HazePerformanceMode = HazePerformanceMode.Quality,
++    rimGain: Float = 1f,
++    outlineGain: Float = 1f,
++    outline: Color? = null,
++    expectChange: Boolean = true,
++  ) = runAndroidComposeUiTest<ComponentActivity> {
++    val state = HazeState()
++    val effect = GlassRuntimeEffect().apply { appearanceReader = { GlassSystemAppearance.Light } }
++    val style = GlassStyle.regular.then {
++      shape(RoundedCornerShape(8.dp))
++      backgroundColor(Color.Transparent)
++      if (outline != null) edgeOutline(outline, 2.dp)
++    }
++    var hardware = false
++    setContent {
++      CompositionLocalProvider(LocalDensity provides Density(1f)) {
++        Box(Modifier.size(128.dp, 96.dp).testTag("root").background(Color.Black)) {
++          Box(
++            Modifier.size(128.dp, 96.dp).hazeSource(state).drawBehind {
++              drawIntoCanvas { hardware = it.nativeCanvas.isHardwareAccelerated }
++              drawRect(Color(0.1f, 0.1f, 0.1f))
++              drawRect(Color(0.9f, 0.9f, 0.9f), topLeft = Offset(64f, 0f))
++            },
++          )
++          Box(
++            Modifier.offset(16.dp, 16.dp).size(96.dp, 64.dp).hazeGlass(
++              HazeEffectFactory { effect },
++              HazeInput.Sources(state),
++              style,
++              mode,
++              true,
++              null,
++            ),
++          )
++        }
++      }
++    }
++    waitForIdle()
++    val fixed = onNodeWithTag("root").captureToImage().toPixelMap()
++    val delegate = effect.delegate as RuntimeShaderGlassDelegate
++    assertThat(delegate.fusedShader).isNotNull()
++    assertThat(hardware).isTrue()
++    val actualOutline = checkNotNull(checkNotNull(effect.preparedRender).rimKey).edgeOutline
++    assertThat(actualOutline.isVisible).isEqualTo(outline != null)
++    if (outline != null) {
++      assertThat(actualOutline.color).isEqualTo(outline)
++      assertThat(actualOutline.widthPx).isEqualTo(2f)
++    }
++    val scale = (effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor
++    assertThat(scale).isEqualTo(mode.resolveGlassInputScale())
++    println("T3 actualInputScale=$scale")
++    println("T3 renderer=RuntimeShaderGlassDelegate fused=true canvasHardware=$hardware sdk=${android.os.Build.VERSION.SDK_INT}")
++    val candidate = createRuntimeEffect(adaptiveEdgeShader())
++    try {
++      runOnIdle {
++        delegate.experimentalRim = if (rimGain.coerceIn(0f, 1f) == 0f && outlineGain.coerceIn(0f, 1f) == 0f) {
++          null
++        } else {
++          { source, layer, key ->
++            layer.alpha = 1f
++            layer.renderEffect = createRuntimeShaderRenderEffect(candidate, arrayOf("content"), arrayOf(null)) {
++              setRimUniforms(key)
++              setFloatUniform("rimGain", rimGain)
++              setFloatUniform("outlineGain", outlineGain)
++            }.asComposeRenderEffect()
++            recordGlassLayer(layer, key.coordinates.sampleSize.roundToIntSize()) { drawLayer(source) }
++          }
++        }
++        checkNotNull(effect.attachedContextForTest).invalidateDraw()
++      }
++      val adaptive = onNodeWithTag("root").captureToImage().toPixelMap()
++      var edgeDifference = 0f
++      var interiorDifference = 0f
++      val outset = if (outline != null && rimGain == 0f) 2 else 0
++      for (y in 16 - outset until 80 + outset) for (x in 16 - outset until 112 + outset) {
++        val a = fixed[x, y]
++        val b = adaptive[x, y]
++        val difference = maxOf(abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
++        edgeDifference = maxOf(edgeDifference, difference)
++        if (x in 32 until 96 && y in 32 until 64) interiorDifference = maxOf(interiorDifference, difference)
++      }
++      if (expectChange) {
++        assertThat(edgeDifference).isGreaterThan(3f / 255f)
++      } else {
++        assertThat(edgeDifference).isLessThanOrEqualTo(1f / 255f)
++      }
++      assertThat(interiorDifference).isLessThanOrEqualTo(1f / 255f)
++      println("T3 mode=$mode rim=$rimGain outline=$outlineGain colour=$outline edgeDifference=$edgeDifference interiorDifference=$interiorDifference")
++    } finally {
++      runOnIdle {
++        delegate.experimentalRim = null
++        effect.attachedContextForTest?.invalidateDraw()
++      }
++    }
++  }
++}
+diff --git a/haze-glass/src/commonTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototype.kt b/haze-glass/src/commonTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototype.kt
+new file mode 100644
+index 000000000..b2c5da54e
+--- /dev/null
++++ b/haze-glass/src/commonTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototype.kt
+@@ -0,0 +1,31 @@
++// Copyright 2026, Christopher Banes and the Haze project contributors
++// SPDX-License-Identifier: Apache-2.0
++
++package dev.chrisbanes.haze.glass
++
++internal fun adaptiveEdgeShader(continuous: Boolean = false, merged: Boolean = false): String = GlassShaders.buildRim(merged = merged, continuous = continuous).replace(
++  "vec4 main(vec2 coord) {",
++  """
++      uniform float rimGain;
++      uniform float outlineGain;
++      vec4 adaptiveEdge(vec4 edge, float multiplier) {
++        float adaptiveAlpha = clamp(edge.a * multiplier, 0.0, 1.0);
++        return edge.a > 0.0 ? edge * (adaptiveAlpha / edge.a) : vec4(0.0);
++      }
++      vec4 main(vec2 coord) {
++      vec4 source = content.eval(clamp(coord, vec2(0.5), sampleSize - vec2(0.5)));
++      vec3 linear = source.a > 0.0001 ? toLinearSrgb(source.rgb / source.a) : vec3(0.5);
++      float y = dot(linear, vec3(0.2126, 0.7152, 0.0722));
++      float luminanceStrength = source.a > 0.0001 ? 0.5 + y : 1.0;
++  """.trimIndent(),
++).replace(
++  "return outline;",
++  "return adaptiveEdge(outline, mix(1.0, luminanceStrength, clamp(outlineGain, 0.0, 1.0)));",
++).replace(
++  "return rim + outline * (1.0 - rim.a);",
++  """
++      rim = adaptiveEdge(rim, mix(1.0, luminanceStrength, clamp(rimGain, 0.0, 1.0)));
++      outline = adaptiveEdge(outline, mix(1.0, luminanceStrength, clamp(outlineGain, 0.0, 1.0)));
++      return rim + outline * (1.0 - rim.a);
++  """.trimIndent(),
++)
+diff --git a/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgeColourCalibrationTest.kt b/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgeColourCalibrationTest.kt
+new file mode 100644
+index 000000000..f7d13bae5
+--- /dev/null
++++ b/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgeColourCalibrationTest.kt
+@@ -0,0 +1,60 @@
++// Copyright 2026, Christopher Banes and the Haze project contributors
++// SPDX-License-Identifier: Apache-2.0
++
++@file:OptIn(dev.chrisbanes.haze.InternalHazeApi::class)
++
++package dev.chrisbanes.haze.glass
++
++import androidx.compose.ui.geometry.Rect
++import androidx.compose.ui.graphics.Canvas
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.graphics.ImageBitmap
++import androidx.compose.ui.graphics.Paint
++import androidx.compose.ui.graphics.colorspace.ColorSpaces
++import androidx.compose.ui.graphics.skiaPaint
++import androidx.compose.ui.graphics.toPixelMap
++import assertk.assertThat
++import assertk.assertions.isEqualTo
++import assertk.assertions.isLessThanOrEqualTo
++import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
++import java.io.File
++import kotlin.math.abs
++import kotlin.test.Test
++import org.jetbrains.skia.RuntimeEffect
++
++class AdaptiveEdgeColourCalibrationTest {
++  @Test
++  fun taggedSrgbChild_reportsWorkingColourConvention() {
++    val shader = RuntimeEffect.makeForShader(
++      """
++      uniform shader content;
++      half4 main(float2 p) {
++        half4 sample = content.eval(p);
++        half3 decoded = toLinearSrgb(sample.rgb / sample.a);
++        return half4(sample.r / sample.a, decoded.r, 0, 1);
++      }
++      """.trimIndent(),
++    )
++    val filter = createRuntimeShaderRenderEffect(shader, arrayOf("content"), arrayOf(null)) {}
++    val image = ImageBitmap(8, 8)
++    assertThat(image.colorSpace).isEqualTo(ColorSpaces.Srgb)
++    val bounds = Rect(0f, 0f, 8f, 8f)
++    val paint = Paint().apply { skiaPaint.imageFilter = filter }
++    with(Canvas(image)) {
++      saveLayer(bounds, paint)
++      drawRect(bounds, Paint().apply { color = Color(0.5f, 0.5f, 0.5f) })
++      restore()
++    }
++    val pixel = image.toPixelMap()[4, 4]
++    System.getenv("HAZE_T2_ARTIFACT_DIR")?.let { output ->
++      File(output).mkdirs()
++      File(output, "t1-skiko-colour-probe.txt").writeText(
++        "sRGB input=0.5; raw=${pixel.red}; toLinearSrgb=${pixel.green}; output alpha=${pixel.alpha}\n",
++      )
++    }
++    assertThat(abs(pixel.red - 128f / 255f)).isLessThanOrEqualTo(1f / 255f)
++    val linear = Math.pow((128.0 / 255.0 + 0.055) / 1.055, 2.4).toFloat()
++    assertThat(abs(pixel.green - linear)).isLessThanOrEqualTo(2f / 255f)
++    assertThat(abs(pixel.alpha - 1f)).isLessThanOrEqualTo(1f / 255f)
++  }
++}
+diff --git a/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgeFixedBaselineTest.kt b/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgeFixedBaselineTest.kt
+new file mode 100644
+index 000000000..e28c03797
+--- /dev/null
++++ b/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgeFixedBaselineTest.kt
+@@ -0,0 +1,91 @@
++// Copyright 2026, Christopher Banes and the Haze project contributors
++// SPDX-License-Identifier: Apache-2.0
++
++@file:OptIn(androidx.compose.ui.InternalComposeUiApi::class, androidx.compose.ui.test.ExperimentalTestApi::class, dev.chrisbanes.haze.ExperimentalHazeApi::class, dev.chrisbanes.haze.InternalHazeApi::class)
++
++package dev.chrisbanes.haze.glass
++
++import androidx.compose.foundation.background
++import androidx.compose.foundation.layout.Box
++import androidx.compose.foundation.layout.offset
++import androidx.compose.foundation.layout.size
++import androidx.compose.foundation.shape.RoundedCornerShape
++import androidx.compose.runtime.CompositionLocalProvider
++import androidx.compose.ui.LocalSystemTheme
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.SystemTheme
++import androidx.compose.ui.draw.drawBehind
++import androidx.compose.ui.geometry.Offset
++import androidx.compose.ui.geometry.Size
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.graphics.toArgb
++import androidx.compose.ui.graphics.toPixelMap
++import androidx.compose.ui.platform.testTag
++import androidx.compose.ui.test.captureToImage
++import androidx.compose.ui.test.onNodeWithTag
++import androidx.compose.ui.test.v2.runSkikoComposeUiTest
++import androidx.compose.ui.unit.Density
++import androidx.compose.ui.unit.dp
++import assertk.assertThat
++import assertk.assertions.isTrue
++import dev.chrisbanes.haze.HazeEffectFactory
++import dev.chrisbanes.haze.HazeInput
++import dev.chrisbanes.haze.HazePerformanceMode
++import dev.chrisbanes.haze.HazeState
++import dev.chrisbanes.haze.hazeSource
++import dev.chrisbanes.haze.test.ContextTest
++import java.io.File
++import java.security.MessageDigest
++import kotlin.test.Test
++
++class AdaptiveEdgeFixedBaselineTest : ContextTest() {
++  @Suppress("DEPRECATION")
++  @Test
++  fun fixedSplit_repeatedCaptureAndShaderDigests() = runSkikoComposeUiTest(size = Size(128f, 96f), density = Density(1f)) {
++    val state = HazeState()
++    val effect = GlassRuntimeEffect()
++    val style = GlassStyle.regular.then {
++      shape(RoundedCornerShape(8.dp))
++      backgroundColor(Color.Transparent)
++    }
++    setContent {
++      CompositionLocalProvider(LocalSystemTheme provides SystemTheme.Light) {
++        Box(Modifier.size(128.dp, 96.dp).testTag("root").background(Color.Black)) {
++          Box(
++            Modifier.size(128.dp, 96.dp).hazeSource(state).drawBehind {
++              drawRect(Color(0.1f, 0.1f, 0.1f))
++              drawRect(Color(0.9f, 0.9f, 0.9f), topLeft = Offset(64f, 0f))
++            },
++          )
++          Box(Modifier.offset(16.dp, 16.dp).size(96.dp, 64.dp).hazeGlass(HazeEffectFactory { effect }, HazeInput.Sources(state), style, HazePerformanceMode.Quality, true, null))
++        }
++      }
++    }
++    waitForIdle()
++    fun capture(): ByteArray {
++      val p = onNodeWithTag("root").captureToImage().toPixelMap()
++      return ByteArray(p.width * p.height * 4).also { bytes ->
++        for (y in 0 until p.height) for (x in 0 until p.width) {
++          val argb = p[x, y].toArgb()
++          for (i in 0..3) bytes[(y * p.width + x) * 4 + i] = (argb ushr (i * 8)).toByte()
++        }
++      }
++    }
++    val first = capture()
++    val second = capture()
++    assertThat(first.contentEquals(second)).isTrue()
++    fun hash(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
++    val results = buildString {
++      appendLine("fixed_capture_sha256=${hash(first)}")
++      appendLine("repeat_capture_sha256=${hash(second)}")
++      appendLine("repeat_max_channel_difference=0/255")
++      for (merged in listOf(false, true)) for (continuous in listOf(false, true)) {
++        appendLine("rim_merged=${merged}_continuous=${continuous}_sha256=${hash(GlassShaders.buildRim(merged, continuous).encodeToByteArray())}")
++      }
++    }
++    System.getenv("HAZE_T2_ARTIFACT_DIR")?.let { output ->
++      File(output).mkdirs()
++      File(output, "t1-fixed-baseline.txt").writeText(results)
++    }
++  }
++}
+diff --git a/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeIntegrationTest.kt b/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeIntegrationTest.kt
+new file mode 100644
+index 000000000..99663a52c
+--- /dev/null
++++ b/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeIntegrationTest.kt
+@@ -0,0 +1,238 @@
++// Copyright 2026, Christopher Banes and the Haze project contributors
++// SPDX-License-Identifier: Apache-2.0
++
++@file:OptIn(androidx.compose.ui.InternalComposeUiApi::class, androidx.compose.ui.test.ExperimentalTestApi::class, dev.chrisbanes.haze.ExperimentalHazeApi::class, dev.chrisbanes.haze.InternalHazeApi::class)
++
++package dev.chrisbanes.haze.glass
++
++import androidx.compose.foundation.background
++import androidx.compose.foundation.layout.Box
++import androidx.compose.foundation.layout.offset
++import androidx.compose.foundation.layout.size
++import androidx.compose.foundation.shape.RoundedCornerShape
++import androidx.compose.runtime.CompositionLocalProvider
++import androidx.compose.runtime.mutableStateOf
++import androidx.compose.ui.LocalSystemTheme
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.SystemTheme
++import androidx.compose.ui.draw.drawBehind
++import androidx.compose.ui.geometry.Offset
++import androidx.compose.ui.geometry.Size
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.graphics.graphicsLayer
++import androidx.compose.ui.graphics.layer.drawLayer
++import androidx.compose.ui.graphics.toPixelMap
++import androidx.compose.ui.platform.testTag
++import androidx.compose.ui.test.captureToImage
++import androidx.compose.ui.test.onNodeWithTag
++import androidx.compose.ui.test.v2.runSkikoComposeUiTest
++import androidx.compose.ui.unit.Density
++import androidx.compose.ui.unit.dp
++import androidx.compose.ui.unit.roundToIntSize
++import assertk.assertThat
++import assertk.assertions.isGreaterThan
++import assertk.assertions.isLessThanOrEqualTo
++import assertk.assertions.isNull
++import assertk.assertions.isTrue
++import dev.chrisbanes.haze.HazeEffectFactory
++import dev.chrisbanes.haze.HazeInput
++import dev.chrisbanes.haze.HazePerformanceMode
++import dev.chrisbanes.haze.HazeState
++import dev.chrisbanes.haze.asComposeRenderEffect
++import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
++import dev.chrisbanes.haze.hazeSource
++import dev.chrisbanes.haze.test.ContextTest
++import java.io.File
++import kotlin.math.abs
++import kotlin.test.Test
++import org.jetbrains.skia.RuntimeEffect
++
++class AdaptiveEdgePrototypeIntegrationTest : ContextTest() {
++  @Suppress("DEPRECATION")
++  @Test
++  fun sourceChange_updatesExperimentalForeground() = checkSourceChange(HazePerformanceMode.Quality, 0f)
++
++  @Suppress("DEPRECATION")
++  @Test
++  fun scaledFractionalSourceChange_updatesExperimentalForeground() = checkSourceChange(HazePerformanceMode.Performance, 0.5f)
++
++  @Suppress("DEPRECATION")
++  private fun checkSourceChange(mode: HazePerformanceMode, translation: Float) = runSkikoComposeUiTest(
++    size = Size(128f, 96f),
++    density = Density(1f),
++  ) {
++    val state = HazeState()
++    val offset = mutableStateOf(0f)
++    val attached = mutableStateOf(true)
++    val effect = GlassRuntimeEffect()
++    val factory = HazeEffectFactory { effect }
++    val style = GlassStyle.regular.then {
++      shape(RoundedCornerShape(8.dp))
++      backgroundColor(Color.Transparent)
++    }
++    setContent {
++      CompositionLocalProvider(LocalSystemTheme provides SystemTheme.Light) {
++        Box(Modifier.size(128.dp, 96.dp).testTag("root").background(Color.Black)) {
++          Box(
++            Modifier.size(128.dp, 96.dp).hazeSource(state).drawBehind {
++              drawRect(Color(0.1f, 0.1f, 0.1f))
++              drawRect(Color(0.9f, 0.9f, 0.9f), topLeft = Offset(64f + offset.value, 0f))
++            },
++          )
++          if (attached.value) {
++            Box(
++              Modifier.offset(16.dp, 16.dp).graphicsLayer {
++                translationX = translation
++                translationY = translation
++              }.size(96.dp, 64.dp).hazeGlass(factory, HazeInput.Sources(state), style, mode, true, null),
++            )
++          }
++        }
++      }
++    }
++    waitForIdle()
++    val delegate = effect.delegate as RuntimeShaderGlassDelegate
++    val shader = adaptiveEdgeShader()
++    val program = RuntimeEffect.makeForShader(shader)
++    val fixed = checkNotNull(delegate.layers.rim).toImageBitmap().toPixelMap()
++    var recordedKey: GlassRimEffectKey? = null
++    fun installAdaptive(gain: Float) {
++      delegate.experimentalRim = { source, layer, key ->
++        recordedKey = key
++        layer.alpha = 1f
++        layer.renderEffect = createRuntimeShaderRenderEffect(program, arrayOf("content"), arrayOf(null)) {
++          setRimUniforms(key)
++          setFloatUniform("rimGain", gain)
++          setFloatUniform("outlineGain", gain)
++        }.asComposeRenderEffect()
++        recordGlassLayer(layer, key.coordinates.sampleSize.roundToIntSize()) { drawLayer(source) }
++      }
++      checkNotNull(effect.attachedContextForTest).invalidateDraw()
++    }
++    fun install(gain: Float) {
++      if (gain.coerceIn(0f, 1f) == 0f) {
++        delegate.experimentalRim = null
++        checkNotNull(effect.attachedContextForTest).invalidateDraw()
++      } else {
++        installAdaptive(gain)
++      }
++    }
++    try {
++      for (adaptiveZeroControl in listOf(true, false)) {
++        runOnIdle { if (adaptiveZeroControl) installAdaptive(0f) else install(0f) }
++        if (!adaptiveZeroControl) assertThat(delegate.experimentalRim).isNull()
++        onNodeWithTag("root").captureToImage().toPixelMap()
++        val zero = checkNotNull(delegate.layers.rim).toImageBitmap().toPixelMap()
++        var identityDifference = 0f
++        for (y in 0 until fixed.height) for (x in 0 until fixed.width) {
++          val a = fixed[x, y]
++          val b = zero[x, y]
++          identityDifference = maxOf(identityDifference, abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
++        }
++        assertThat(identityDifference).isLessThanOrEqualTo(1f / 255f)
++      }
++      runOnIdle { offset.value = 8f }
++      val fixedShiftedScreen = onNodeWithTag("root").captureToImage().toPixelMap()
++      runOnIdle { offset.value = 0f }
++      onNodeWithTag("root").captureToImage()
++      runOnIdle { install(1f) }
++      onNodeWithTag("root").captureToImage().toPixelMap()
++      val before = checkNotNull(delegate.layers.rim).toImageBitmap().toPixelMap()
++      val coordinates = checkNotNull(recordedKey).coordinates
++      var checkedLeft = 0
++      var checkedRight = 0
++      var leftMultiplier = 0f
++      var rightMultiplier = 0f
++      var leftDelta = 0f
++      var rightDelta = 0f
++      var error = 0f
++      for (y in 0 until before.height) for (x in 0 until before.width) {
++        val screenX = 16f + translation + (x + 0.5f - coordinates.materialOrigin.x) / coordinates.scaleFactor
++        val screenY = 16f + translation + (y + 0.5f - coordinates.materialOrigin.y) / coordinates.scaleFactor
++        val inEdge = if (translation == 0f) screenY >= 32f && screenY < 64f && (screenX >= 16f && screenX < 20f || screenX >= 108f && screenX < 112f) else screenY >= 33f && screenY < 63f && (screenX >= 17f && screenX < 20f || screenX >= 109f && screenX < 112f)
++        if (inEdge) {
++          val fixedAlpha = fixed[x, y].alpha
++          if (fixedAlpha >= 0.05f) {
++            val encoded = if (screenX < 64f) 26.0 / 255.0 else 230.0 / 255.0
++            val linear = Math.pow((encoded + 0.055) / 1.055, 2.4).toFloat()
++            error = maxOf(error, abs(before[x, y].alpha - (fixedAlpha * (0.5f + linear)).coerceIn(0f, 1f)))
++            if (screenX < 64f) {
++              checkedLeft++
++              leftMultiplier += before[x, y].alpha / fixedAlpha
++              leftDelta += before[x, y].alpha - fixedAlpha
++            } else {
++              checkedRight++
++              rightMultiplier += before[x, y].alpha / fixedAlpha
++              rightDelta += before[x, y].alpha - fixedAlpha
++            }
++          }
++        }
++      }
++      assertThat(checkedLeft).isGreaterThan(0)
++      assertThat(checkedRight).isGreaterThan(0)
++      assertThat(error).isLessThanOrEqualTo(2f / 255f)
++      assertThat(rightMultiplier / checkedRight - leftMultiplier / checkedLeft).isGreaterThan(3f / 255f)
++      assertThat(rightDelta / checkedRight - leftDelta / checkedLeft).isGreaterThan(3f / 255f)
++      val drawsBeforeStep = delegate.experimentalForegroundDrawCount
++      runOnIdle { offset.value = 8f }
++      val shiftedScreen = onNodeWithTag("root").captureToImage().toPixelMap()
++      val drawsAfterStep = delegate.experimentalForegroundDrawCount - drawsBeforeStep
++      assertThat(drawsAfterStep).isLessThanOrEqualTo(1)
++      var screenDifference = 0f
++      var interiorDifference = 0f
++      for (y in 0 until shiftedScreen.height) for (x in 0 until shiftedScreen.width) {
++        val a = shiftedScreen[x, y]
++        val b = fixedShiftedScreen[x, y]
++        val difference = maxOf(abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
++        if (x in 64 until 72 && y in 16 until 20) screenDifference = maxOf(screenDifference, difference)
++        if (x in 32 until 96 && y in 32 until 64) interiorDifference = maxOf(interiorDifference, difference)
++      }
++      assertThat(screenDifference).isGreaterThan(3f / 255f)
++      assertThat(interiorDifference).isLessThanOrEqualTo(1f / 255f)
++      val after = checkNotNull(delegate.layers.rim).toImageBitmap().toPixelMap()
++      var difference = 0f
++      var changedMaskPixels = 0
++      var stepError = 0f
++      for (y in 0 until before.height) for (x in 0 until before.width) {
++        val screenX = 16f + translation + (x + 0.5f - coordinates.materialOrigin.x) / coordinates.scaleFactor
++        val screenY = 16f + translation + (y + 0.5f - coordinates.materialOrigin.y) / coordinates.scaleFactor
++        val inStep = if (translation == 0f) screenX >= 64f && screenX < 72f && screenY >= 16f && screenY < 20f else screenX >= 66f && screenX < 70f && screenY >= 17f && screenY < 20f
++        if (inStep && fixed[x, y].alpha >= 0.05f) {
++          difference = maxOf(difference, abs(before[x, y].alpha - after[x, y].alpha))
++          val encoded = 26.0 / 255.0
++          val linear = Math.pow((encoded + 0.055) / 1.055, 2.4).toFloat()
++          stepError = maxOf(stepError, abs(after[x, y].alpha - fixed[x, y].alpha * (0.5f + linear)))
++          changedMaskPixels++
++        }
++      }
++      assertThat(changedMaskPixels).isGreaterThan(0)
++      assertThat(stepError).isLessThanOrEqualTo(2f / 255f)
++      assertThat(difference).isGreaterThan(3f / 255f)
++      runOnIdle {
++        delegate.clearRetainedOutput()
++        checkNotNull(effect.attachedContextForTest).invalidateDraw()
++      }
++      onNodeWithTag("root").captureToImage()
++      val recreated = checkNotNull(delegate.layers.rim).toImageBitmap().toPixelMap()
++      var restorationError = 0f
++      for (y in 0 until after.height) for (x in 0 until after.width) {
++        restorationError = maxOf(restorationError, abs(after[x, y].alpha - recreated[x, y].alpha))
++      }
++      assertThat(restorationError).isLessThanOrEqualTo(1f / 255f)
++      System.getenv("HAZE_T2_ARTIFACT_DIR")?.let { output ->
++        File(output).mkdirs()
++        File(output, "t1-metrics-${if (translation == 0f) "quality" else "half-scale"}.txt").writeText(
++          "left=$checkedLeft right=$checkedRight alphaMaxError=$error stepPixels=$changedMaskPixels stepMaxError=$stepError " +
++            "stepMaxDifference=$difference screenMaxDifference=$screenDifference interiorMaxDifference=$interiorDifference " +
++            "foregroundCalls=$drawsAfterStep restorationMaxError=$restorationError\n",
++        )
++      }
++      runOnIdle { attached.value = false }
++      waitForIdle()
++      assertThat(delegate.experimentalRim).isNull()
++      assertThat(delegate.layers.isEmpty).isTrue()
++    } finally {
++      runOnIdle { delegate.experimentalRim = null }
++    }
++  }
++}
+diff --git a/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeMatrixTest.kt b/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeMatrixTest.kt
+new file mode 100644
+index 000000000..1b15a7a32
+--- /dev/null
++++ b/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeMatrixTest.kt
+@@ -0,0 +1,451 @@
++// Copyright 2026, Christopher Banes and the Haze project contributors
++// SPDX-License-Identifier: Apache-2.0
++
++@file:OptIn(androidx.compose.ui.InternalComposeUiApi::class, androidx.compose.ui.test.ExperimentalTestApi::class, dev.chrisbanes.haze.ExperimentalHazeApi::class, dev.chrisbanes.haze.InternalHazeApi::class)
++
++package dev.chrisbanes.haze.glass
++
++import androidx.compose.foundation.background
++import androidx.compose.foundation.layout.Box
++import androidx.compose.foundation.layout.offset
++import androidx.compose.foundation.layout.size
++import androidx.compose.foundation.shape.RoundedCornerShape
++import androidx.compose.runtime.CompositionLocalProvider
++import androidx.compose.runtime.mutableStateOf
++import androidx.compose.ui.LocalSystemTheme
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.SystemTheme
++import androidx.compose.ui.draw.drawBehind
++import androidx.compose.ui.geometry.Offset
++import androidx.compose.ui.geometry.Size
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.graphics.ImageBitmap
++import androidx.compose.ui.graphics.PixelMap
++import androidx.compose.ui.graphics.layer.drawLayer
++import androidx.compose.ui.graphics.toArgb
++import androidx.compose.ui.graphics.toComposeImageBitmap
++import androidx.compose.ui.graphics.toPixelMap
++import androidx.compose.ui.platform.testTag
++import androidx.compose.ui.test.captureToImage
++import androidx.compose.ui.test.onNodeWithTag
++import androidx.compose.ui.test.v2.runSkikoComposeUiTest
++import androidx.compose.ui.unit.Density
++import androidx.compose.ui.unit.IntOffset
++import androidx.compose.ui.unit.IntSize
++import androidx.compose.ui.unit.dp
++import androidx.compose.ui.unit.roundToIntSize
++import assertk.assertThat
++import assertk.assertions.isEqualTo
++import assertk.assertions.isGreaterThan
++import assertk.assertions.isLessThanOrEqualTo
++import assertk.assertions.isNotNull
++import assertk.assertions.isNull
++import assertk.assertions.isTrue
++import dev.chrisbanes.haze.HazeEffectFactory
++import dev.chrisbanes.haze.HazeInput
++import dev.chrisbanes.haze.HazePerformanceMode
++import dev.chrisbanes.haze.HazeState
++import dev.chrisbanes.haze.asComposeRenderEffect
++import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
++import dev.chrisbanes.haze.hazeSource
++import dev.chrisbanes.haze.test.ContextTest
++import java.awt.image.BufferedImage
++import java.io.File
++import javax.imageio.ImageIO
++import kotlin.math.abs
++import kotlin.test.Test
++import org.jetbrains.skia.Image
++import org.jetbrains.skia.RuntimeEffect
++
++@Suppress("DEPRECATION")
++class AdaptiveEdgePrototypeMatrixTest : ContextTest() {
++  @Test fun stillLightFixed() = still("light", "fixed")
++
++  @Test fun stillLightRim() = still("light", "rim")
++
++  @Test fun stillLightOutline() = still("light", "outline")
++
++  @Test fun stillLightCombined() = still("light", "combined")
++
++  @Test fun stillDarkFixed() = still("dark", "fixed")
++
++  @Test fun stillDarkRim() = still("dark", "rim")
++
++  @Test fun stillDarkOutline() = still("dark", "outline")
++
++  @Test fun stillDarkCombined() = still("dark", "combined")
++
++  @Test fun stillSplitFixed() = still("split", "fixed")
++
++  @Test fun stillSplitRim() = still("split", "rim")
++
++  @Test fun stillSplitOutline() = still("split", "outline")
++
++  @Test fun stillSplitCombined() = still("split", "combined")
++
++  @Test fun stillCheckerFixed() = still("checker", "fixed")
++
++  @Test fun stillCheckerRim() = still("checker", "rim")
++
++  @Test fun stillCheckerOutline() = still("checker", "outline")
++
++  @Test fun stillCheckerCombined() = still("checker", "combined")
++
++  @Test fun stillPhotoFixed() = still("photo", "fixed")
++
++  @Test fun stillPhotoRim() = still("photo", "rim")
++
++  @Test fun stillPhotoOutline() = still("photo", "outline")
++
++  @Test fun stillPhotoCombined() = still("photo", "combined")
++
++  @Test fun motionSplit() = motion("split", "combined")
++
++  @Test fun motionChecker() = motion("checker", "combined")
++
++  @Test fun motionPhoto() = motion("photo", "combined")
++
++  @Test fun motionSplitFixed() = motion("split", "fixed")
++
++  @Test fun motionSplitRim() = motion("split", "rim")
++
++  @Test fun motionSplitOutline() = motion("split", "outline")
++
++  @Test fun motionCheckerFixed() = motion("checker", "fixed")
++
++  @Test fun motionCheckerRim() = motion("checker", "rim")
++
++  @Test fun motionCheckerOutline() = motion("checker", "outline")
++
++  @Test fun motionPhotoFixed() = motion("photo", "fixed")
++
++  @Test fun motionPhotoRim() = motion("photo", "rim")
++
++  @Test fun motionPhotoOutline() = motion("photo", "outline")
++
++  @Test fun materialOnlyLight() = materialOnly("light")
++
++  @Test fun materialOnlyDark() = materialOnly("dark")
++
++  @Test fun materialOnlySplit() = materialOnly("split")
++
++  @Test fun materialOnlyChecker() = materialOnly("checker")
++
++  @Test fun materialOnlyPhoto() = materialOnly("photo")
++
++  @Test fun surfaceMoveWithoutSourceMutation() = surfaceMove()
++
++  @Test fun pairedOutlineColours() = outlineColours()
++
++  @Test fun transparentOutlineControl() = transparentOutline()
++
++  @Test fun zeroRimHighlightControl() = zeroRim()
++
++  @Test fun monotonicGainControl() = gainControl()
++
++  @Test fun continuousCornerControl() = continuousCornersControl()
++
++  @Test fun directionalRimControl() = directionalControl()
++
++  @Test fun darkAppearanceControl() = appearanceControl()
++
++  @Test fun smoothGrayRampControl() = grayRamp()
++
++  private val output get() = System.getenv("HAZE_T2_ARTIFACT_DIR")?.let(::File)
++
++  private fun still(background: String, mode: String) = scene(background) { effect, delegate, sourceShift, surfaceShift, styleState ->
++    val original = capture()
++    val optical = checkNotNull(delegate.layers.optical).toImageBitmap().toPixelMap()
++    install(effect, delegate, mode)
++    if (mode != "fixed") assertThat(delegate.experimentalRim).isNotNull()
++    val actual = capture()
++    assertInterior(original, actual)
++    assertThat(maxDifference(optical, checkNotNull(delegate.layers.optical).toImageBitmap().toPixelMap())).isLessThanOrEqualTo(1f / 255f)
++    if (mode == "fixed") assertThat(maxDifference(original, actual)).isLessThanOrEqualTo(1f / 255f)
++    save(actual, "still/$background-$mode.png")
++  }
++
++  private fun motion(background: String, mode: String) = scene(background) { effect, delegate, sourceShift, surfaceShift, styleState ->
++    install(effect, delegate, mode)
++    val artifactDir = if (mode == "combined") "motion/$background" else "motion-modes/$background/$mode"
++    val times = StringBuilder("frame,seconds,source_shift_px\n")
++    var previous: PixelMap? = null
++    var stationary: PixelMap? = null
++    var changing = 0
++    for (frame in 0 until 120) {
++      val position = minOf(frame, 89)
++      runOnIdle { sourceShift.value = position.toFloat() }
++      val image = capture()
++      previous?.let { if (maxDifference(it, image) > 1f / 255f) changing++ }
++      if (frame == 89) stationary = image
++      if (frame >= 90) assertThat(maxDifference(checkNotNull(stationary), image)).isLessThanOrEqualTo(1f / 255f)
++      save(image, "$artifactDir/frame-${frame.toString().padStart(4, '0')}.png")
++      times.append("$frame,${frame / 60.0},$position\n")
++      previous = image
++    }
++    assertThat(changing).isGreaterThan(0)
++    output?.let { root -> File(root, "$artifactDir/timestamps.csv").writeText(times.toString()) }
++  }
++
++  private fun materialOnly(background: String) = scene(background) { effect, delegate, sourceShift, surfaceShift, styleState ->
++    val before = capture()
++    val optical = checkNotNull(delegate.layers.optical).toImageBitmap().toPixelMap()
++    runOnIdle {
++      styleState.value = baseStyle().then {
++        specularIntensity(0f)
++        edgeShadow(Color.Transparent)
++        rimHighlight(0f, 3.dp, 1f)
++        edgeOutline(Color.Transparent, 0.dp)
++      }
++    }
++    val after = capture()
++    assertInterior(before, after)
++    assertThat(maxDifference(optical, checkNotNull(delegate.layers.optical).toImageBitmap().toPixelMap())).isLessThanOrEqualTo(1f / 255f)
++    save(after, "material-only/$background.png")
++  }
++
++  private fun surfaceMove() = scene("split") { effect, delegate, sourceShift, surfaceShift, styleState ->
++    install(effect, delegate, "combined")
++    val before = capture()
++    runOnIdle { surfaceShift.value = 8f }
++    val after = capture()
++    assertThat(sourceShift.value).isEqualTo(0f)
++    assertThat(maxDifference(before, after)).isGreaterThan(1f / 255f)
++    save(before, "surface-move/before.png")
++    save(after, "surface-move/after.png")
++  }
++
++  private fun outlineColours() = scene("split") { effect, delegate, sourceShift, surfaceShift, styleState ->
++    install(effect, delegate, "outline")
++    val redScreen = capture()
++    val red = checkNotNull(delegate.layers.rim).toImageBitmap().toPixelMap()
++    runOnIdle { styleState.value = baseStyle().then { edgeOutline(Color.Cyan.copy(alpha = 0.5f), 2.dp) } }
++    val cyanScreen = capture()
++    val cyan = checkNotNull(delegate.layers.rim).toImageBitmap().toPixelMap()
++    assertInterior(redScreen, cyanScreen)
++    var redDominance = 0f
++    var cyanDominance = 0f
++    for (y in 0 until red.height) for (x in 0 until red.width) {
++      if (red[x, y].alpha >= 0.05f) redDominance = maxOf(redDominance, red[x, y].red - red[x, y].green)
++      if (cyan[x, y].alpha >= 0.05f) cyanDominance = maxOf(cyanDominance, cyan[x, y].green - cyan[x, y].red)
++    }
++    assertThat(redDominance).isGreaterThan(0.5f)
++    assertThat(cyanDominance).isGreaterThan(0.5f)
++    save(redScreen, "controls/outline-red.png")
++    save(cyanScreen, "controls/outline-cyan.png")
++  }
++
++  private fun transparentOutline() = scene("split") { effect, delegate, sourceShift, surfaceShift, styleState ->
++    install(effect, delegate, "outline")
++    val visible = capture()
++    runOnIdle { styleState.value = baseStyle().then { edgeOutline(Color.Red.copy(alpha = 0f), 2.dp) } }
++    val transparent = capture()
++    assertInterior(visible, transparent)
++    assertThat(maxDifference(visible, transparent)).isGreaterThan(1f / 255f)
++    install(effect, delegate, "fixed")
++    val fixed = capture()
++    assertThat(maxDifference(transparent, fixed)).isLessThanOrEqualTo(1f / 255f)
++    save(transparent, "controls/outline-alpha-zero.png")
++  }
++
++  private fun zeroRim() = scene("split") { effect, delegate, sourceShift, surfaceShift, styleState ->
++    install(effect, delegate, "rim")
++    val active = capture()
++    runOnIdle { styleState.value = baseStyle().then { rimHighlight(0f, 3.dp, 1f) } }
++    val zero = capture()
++    assertInterior(active, zero)
++    assertThat(maxDifference(active, zero)).isGreaterThan(1f / 255f)
++    save(zero, "controls/rim-intensity-zero.png")
++  }
++
++  private fun gainControl() = scene("split") { effect, delegate, sourceShift, surfaceShift, styleState ->
++    install(effect, delegate, "combined", 0f)
++    capture()
++    assertThat(delegate.experimentalRim).isNull()
++    val zero = checkNotNull(delegate.layers.rim).toImageBitmap().toPixelMap()
++    install(effect, delegate, "combined", 0.5f)
++    val middleScreen = capture()
++    val middle = checkNotNull(delegate.layers.rim).toImageBitmap().toPixelMap()
++    install(effect, delegate, "combined", 1f)
++    val fullScreen = capture()
++    val full = checkNotNull(delegate.layers.rim).toImageBitmap().toPixelMap()
++    var checked = 0
++    for (y in 0 until zero.height) for (x in 0 until zero.width) {
++      val a = zero[x, y].alpha
++      val b = middle[x, y].alpha
++      val c = full[x, y].alpha
++      if (a >= 0.05f && a < 0.7f) {
++        assertThat(b + 2f / 255f >= minOf(a, c) && b - 2f / 255f <= maxOf(a, c)).isTrue()
++        checked++
++      }
++    }
++    assertThat(checked).isGreaterThan(0)
++    assertInterior(middleScreen, fullScreen)
++    save(middleScreen, "controls/gain-half.png")
++    save(fullScreen, "controls/gain-one.png")
++  }
++
++  private fun continuousCornersControl() = scene("split") { effect, delegate, sourceShift, surfaceShift, styleState ->
++    install(effect, delegate, "combined")
++    val circular = capture()
++    runOnIdle { styleState.value = baseStyle().then { shape(ContinuousRoundedCornerShape(8.dp, 0.6f)) } }
++    val continuous = capture()
++    assertThat(maxDifference(circular, continuous)).isGreaterThan(1f / 255f)
++    save(continuous, "controls/continuous-corners.png")
++  }
++
++  private fun directionalControl() = scene("split") { effect, delegate, sourceShift, surfaceShift, styleState ->
++    install(effect, delegate, "rim")
++    val allSides = capture()
++    runOnIdle { styleState.value = baseStyle().then { rimHighlight(0.4f, 3.dp, 0f) } }
++    val topBottom = capture()
++    assertInterior(allSides, topBottom)
++    assertThat(maxDifference(allSides, topBottom)).isGreaterThan(1f / 255f)
++    save(topBottom, "controls/rim-sides-zero.png")
++  }
++
++  private fun appearanceControl() = scene("split", SystemTheme.Dark) { effect, delegate, sourceShift, surfaceShift, styleState ->
++    val fixed = capture()
++    install(effect, delegate, "combined")
++    val adaptive = capture()
++    assertInterior(fixed, adaptive)
++    assertThat(delegate.experimentalRim).isNotNull()
++    save(fixed, "controls/dark-fixed.png")
++    save(adaptive, "controls/dark-combined.png")
++  }
++
++  private fun grayRamp() = scene("ramp") { effect, delegate, sourceShift, surfaceShift, styleState ->
++    install(effect, delegate, "combined")
++    var previous: PixelMap? = null
++    var maximum = 0
++    for (frame in 0 until 120) {
++      runOnIdle { sourceShift.value = frame.toFloat() }
++      capture()
++      val rim = checkNotNull(delegate.layers.rim).toImageBitmap().toPixelMap()
++      previous?.let { old ->
++        for (y in 0 until rim.height) for (x in 0 until rim.width) {
++          maximum = maxOf(maximum, abs((rim[x, y].toArgb() ushr 24) - (old[x, y].toArgb() ushr 24)))
++        }
++      }
++      previous = rim
++    }
++    assertThat(maximum).isLessThanOrEqualTo(2)
++  }
++
++  private fun scene(
++    background: String,
++    appearance: SystemTheme = SystemTheme.Light,
++    block: suspend androidx.compose.ui.test.ComposeUiTest.(GlassRuntimeEffect, RuntimeShaderGlassDelegate, androidx.compose.runtime.MutableState<Float>, androidx.compose.runtime.MutableState<Float>, androidx.compose.runtime.MutableState<GlassStyle>) -> Unit,
++  ) = runSkikoComposeUiTest(size = Size(128f, 96f), density = Density(1f)) {
++    val state = HazeState()
++    val sourceShift = mutableStateOf(0f)
++    val surfaceShift = mutableStateOf(0f)
++    val effect = GlassRuntimeEffect()
++    val factory = HazeEffectFactory { effect }
++    val photo: ImageBitmap? = if (background == "photo") {
++      val bytes = checkNotNull(javaClass.getResourceAsStream("/adaptive-edge-photo.jpg")).use { it.readBytes() }
++      Image.makeFromEncoded(bytes).toComposeImageBitmap()
++    } else {
++      null
++    }
++    val style = mutableStateOf(baseStyle())
++    setContent {
++      CompositionLocalProvider(LocalSystemTheme provides appearance) {
++        Box(Modifier.size(128.dp, 96.dp).testTag("matrix-root").background(Color.Black)) {
++          Box(
++            Modifier.size(128.dp, 96.dp).hazeSource(state).drawBehind {
++              val shift = sourceShift.value
++              val dark = Color(0.1f, 0.1f, 0.1f)
++              val light = Color(0.9f, 0.9f, 0.9f)
++              when (background) {
++                "light" -> drawRect(light)
++                "dark" -> drawRect(dark)
++                "ramp" -> {
++                  val v = 0.1f + 0.8f * shift / 119f
++                  drawRect(Color(v, v, v))
++                }
++                "split" -> {
++                  drawRect(dark)
++                  drawRect(light, topLeft = Offset(64f + shift, 0f))
++                }
++                "checker" -> {
++                  drawRect(dark)
++                  for (y in 0 until 12) for (x in -16 until 32) {
++                    if ((x + y) % 2 == 0) drawRect(light, topLeft = Offset(x * 8f + shift, y * 8f), size = Size(8f, 8f))
++                  }
++                }
++                "photo" -> drawImage(checkNotNull(photo), dstOffset = IntOffset(-shift.toInt(), 0), dstSize = IntSize(256, 170))
++                else -> error("unknown backdrop: $background")
++              }
++            },
++          )
++          Box(Modifier.offset((16f + surfaceShift.value).dp, 16.dp).size(96.dp, 64.dp).hazeGlass(factory, HazeInput.Sources(state), style.value, HazePerformanceMode.Quality, true, null))
++        }
++      }
++    }
++    waitForIdle()
++    val delegate = effect.delegate as RuntimeShaderGlassDelegate
++    try {
++      block(effect, delegate, sourceShift, surfaceShift, style)
++    } finally {
++      runOnIdle { delegate.experimentalRim = null }
++    }
++  }
++
++  private fun baseStyle() = GlassStyle.regular.then {
++    shape(RoundedCornerShape(8.dp))
++    backgroundColor(Color.Transparent)
++    rimHighlight(0.4f, 3.dp, 1f)
++    edgeOutline(Color.Red.copy(alpha = 0.5f), 2.dp)
++  }
++
++  private fun androidx.compose.ui.test.ComposeUiTest.install(effect: GlassRuntimeEffect, delegate: RuntimeShaderGlassDelegate, mode: String, gain: Float = 1f) {
++    val rim = if (mode == "rim" || mode == "combined") gain else 0f
++    val outline = if (mode == "outline" || mode == "combined") gain else 0f
++    val circularProgram by lazy { RuntimeEffect.makeForShader(adaptiveEdgeShader()) }
++    val continuousProgram by lazy { RuntimeEffect.makeForShader(adaptiveEdgeShader(continuous = true)) }
++    runOnIdle {
++      delegate.experimentalRim = if (rim == 0f && outline == 0f) {
++        null
++      } else {
++        { source, layer, key ->
++          layer.alpha = 1f
++          val program = if (key.cornerRadii.isContinuous) continuousProgram else circularProgram
++          layer.renderEffect = createRuntimeShaderRenderEffect(program, arrayOf("content"), arrayOf(null)) {
++            setRimUniforms(key)
++            setFloatUniform("rimGain", rim)
++            setFloatUniform("outlineGain", outline)
++          }.asComposeRenderEffect()
++          recordGlassLayer(layer, key.coordinates.sampleSize.roundToIntSize()) { drawLayer(source) }
++        }
++      }
++      checkNotNull(effect.attachedContextForTest).invalidateDraw()
++    }
++  }
++
++  private fun androidx.compose.ui.test.ComposeUiTest.capture(): PixelMap = onNodeWithTag("matrix-root").captureToImage().toPixelMap()
++
++  private fun assertInterior(a: PixelMap, b: PixelMap) {
++    var difference = 0f
++    for (y in 32 until 64) for (x in 32 until 96) difference = maxOf(difference, channelDifference(a[x, y], b[x, y]))
++    assertThat(difference).isLessThanOrEqualTo(1f / 255f)
++  }
++
++  private fun maxDifference(a: PixelMap, b: PixelMap): Float {
++    assertThat(a.width).isEqualTo(b.width)
++    assertThat(a.height).isEqualTo(b.height)
++    var difference = 0f
++    for (y in 0 until a.height) for (x in 0 until a.width) difference = maxOf(difference, channelDifference(a[x, y], b[x, y]))
++    return difference
++  }
++
++  private fun channelDifference(a: Color, b: Color) = maxOf(abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
++
++  private fun save(pixels: PixelMap, path: String) {
++    val file = output?.resolve(path) ?: return
++    file.parentFile.mkdirs()
++    val image = BufferedImage(pixels.width, pixels.height, BufferedImage.TYPE_INT_ARGB)
++    for (y in 0 until pixels.height) for (x in 0 until pixels.width) image.setRGB(x, y, pixels[x, y].toArgb())
++    check(ImageIO.write(image, "png", file))
++  }
++}
+diff --git a/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeMergedIntegrationTest.kt b/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeMergedIntegrationTest.kt
+new file mode 100644
+index 000000000..313f7752d
+--- /dev/null
++++ b/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeMergedIntegrationTest.kt
+@@ -0,0 +1,290 @@
++// Copyright 2026, Christopher Banes and the Haze project contributors
++// SPDX-License-Identifier: Apache-2.0
++
++@file:OptIn(androidx.compose.ui.InternalComposeUiApi::class, androidx.compose.ui.test.ExperimentalTestApi::class)
++
++package dev.chrisbanes.haze.glass
++
++import androidx.compose.foundation.background
++import androidx.compose.foundation.layout.Box
++import androidx.compose.foundation.layout.offset
++import androidx.compose.foundation.layout.size
++import androidx.compose.foundation.shape.RoundedCornerShape
++import androidx.compose.runtime.CompositionLocalProvider
++import androidx.compose.ui.LocalSystemTheme
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.SystemTheme
++import androidx.compose.ui.draw.drawBehind
++import androidx.compose.ui.geometry.Offset
++import androidx.compose.ui.geometry.Size
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.graphics.PixelMap
++import androidx.compose.ui.graphics.layer.drawLayer
++import androidx.compose.ui.graphics.toPixelMap
++import androidx.compose.ui.platform.testTag
++import androidx.compose.ui.test.captureToImage
++import androidx.compose.ui.test.onNodeWithTag
++import androidx.compose.ui.test.v2.runSkikoComposeUiTest
++import androidx.compose.ui.unit.Density
++import androidx.compose.ui.unit.dp
++import androidx.compose.ui.unit.roundToIntSize
++import assertk.assertThat
++import assertk.assertions.isEqualTo
++import assertk.assertions.isFalse
++import assertk.assertions.isGreaterThan
++import assertk.assertions.isLessThan
++import assertk.assertions.isLessThanOrEqualTo
++import assertk.assertions.isNotNull
++import dev.chrisbanes.haze.HazeEffectFactory
++import dev.chrisbanes.haze.HazeInput
++import dev.chrisbanes.haze.HazePerformanceMode
++import dev.chrisbanes.haze.HazeState
++import dev.chrisbanes.haze.asComposeRenderEffect
++import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
++import dev.chrisbanes.haze.hazeSource
++import dev.chrisbanes.haze.test.ContextTest
++import kotlin.math.abs
++import kotlin.test.Test
++import org.jetbrains.skia.RuntimeEffect
++
++class AdaptiveEdgePrototypeMergedIntegrationTest : ContextTest() {
++  @Test fun mergedBridge() = mergedSplit(6f)
++
++  @Test fun mergedSeparate() = mergedSplit(10f)
++
++  @Test
++  @Suppress("DEPRECATION")
++  fun actualSharedSettingsContainerCluster() = runSkikoComposeUiTest(size = Size(128f, 96f), density = Density(1f)) {
++    val state = HazeState()
++    val members = List(2) { GlassRuntimeEffect() }
++    val style = GlassStyle.regular.then {
++      shape(RoundedCornerShape(10.dp))
++      backgroundColor(Color.Transparent)
++      tint(Color.Green)
++      edgeOutline(Color.Black.copy(alpha = 0.5f), 2.dp)
++    }
++    setContent {
++      CompositionLocalProvider(LocalSystemTheme provides SystemTheme.Light) {
++        Box(Modifier.size(128.dp, 96.dp).testTag("cluster-root").background(Color.Black)) {
++          Box(
++            Modifier.size(128.dp, 96.dp).hazeSource(state).drawBehind {
++              drawRect(Color(0.1f, 0.1f, 0.1f))
++              drawRect(Color(0.9f, 0.9f, 0.9f), topLeft = Offset(64f, 0f))
++            },
++          )
++          Box(Modifier.size(128.dp, 96.dp).hazeGlassContainer(16.dp)) {
++            members.forEachIndexed { i, effect ->
++              Box(
++                Modifier.offset((11 + i * 56).dp, 38.dp).size(50.dp, 20.dp).hazeGlass(
++                  HazeEffectFactory { effect },
++                  HazeInput.Sources(state),
++                  style,
++                  HazePerformanceMode.Quality,
++                  true,
++                  null,
++                ),
++              )
++            }
++          }
++        }
++      }
++    }
++    val fixed = onNodeWithTag("cluster-root").captureToImage().toPixelMap()
++    val owner = checkNotNull(members.first().memberBindingForTest?.node?.container)
++    assertThat(owner.renderer.runtimeSurfaces.size).isEqualTo(1)
++    val cluster = owner.renderer.runtimeSurfaces.single()
++    assertThat(checkNotNull(cluster.mergedField).members.size).isEqualTo(2)
++    val delegate = cluster.delegate as RuntimeShaderGlassDelegate
++    assertThat(supportsFusedGlassRenderEffect).isFalse()
++    val candidate = RuntimeEffect.makeForShader(adaptiveEdgeShader(merged = true))
++    try {
++      runOnIdle {
++        delegate.experimentalRim = { source, layer, key ->
++          layer.alpha = 1f
++          layer.renderEffect = createRuntimeShaderRenderEffect(candidate, arrayOf("content"), arrayOf(null)) {
++            setRimUniforms(key)
++            setFloatUniform("rimGain", 1f)
++            setFloatUniform("outlineGain", 1f)
++          }.asComposeRenderEffect()
++          recordGlassLayer(layer, key.coordinates.sampleSize.roundToIntSize()) { drawLayer(source) }
++        }
++        checkNotNull(cluster.attachedContextForTest).invalidateDraw()
++      }
++      val adaptive = onNodeWithTag("cluster-root").captureToImage().toPixelMap()
++      for (pixels in listOf(fixed, adaptive)) for (x in listOf(36, 64, 92)) {
++        val color = pixels[x, 48]
++        assertThat(color.green).isGreaterThan(0.85f)
++        assertThat(color.red).isLessThan(0.05f)
++      }
++      var difference = 0f
++      for (y in 26 until 70) for (x in 2 until 126) {
++        val a = fixed[x, y]
++        val b = adaptive[x, y]
++        difference = maxOf(difference, abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
++      }
++      for (x in listOf(36, 92)) {
++        val a = fixed[x, 48]
++        val b = adaptive[x, 48]
++        assertThat(maxOf(abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha)))
++          .isLessThanOrEqualTo(1f / 255f)
++      }
++      println("T3 actual shared cluster difference=$difference")
++      assertThat(difference).isGreaterThan(3f / 255f)
++    } finally {
++      runOnIdle { delegate.experimentalRim = null }
++    }
++  }
++
++  @Suppress("DEPRECATION")
++  private fun mergedSplit(gap: Float) = runSkikoComposeUiTest(size = Size(128f, 96f), density = Density(1f)) {
++    val state = HazeState()
++    val effect = GlassRuntimeEffect()
++    val style = GlassStyle.regular.then {
++      backgroundColor(Color.Transparent)
++      edgeOutline(Color.Black.copy(alpha = 0.5f), 2.dp)
++    }
++    setContent {
++      CompositionLocalProvider(LocalSystemTheme provides SystemTheme.Light) {
++        Box(Modifier.size(128.dp, 96.dp).testTag("root").background(Color.Black)) {
++          Box(
++            Modifier.size(128.dp, 96.dp).hazeSource(state).drawBehind {
++              drawRect(Color(0.1f, 0.1f, 0.1f))
++              drawRect(Color(0.9f, 0.9f, 0.9f), topLeft = Offset(64f, 0f))
++            },
++          )
++          Box(
++            Modifier.offset(4.dp, 28.dp).size(120.dp, 40.dp).hazeGlass(
++              HazeEffectFactory { effect },
++              HazeInput.Sources(state),
++              style,
++              HazePerformanceMode.Quality,
++              true,
++              null,
++            ),
++          )
++        }
++      }
++    }
++    val left = (120f - 100f - gap) / 2f
++    fun field(separation: Float): GlassMergedField {
++      val memberLeft = (120f - 100f - separation) / 2f
++      return mergedField(
++        mergedMember(memberLeft, 10f, 50f, 20f, radius = 10f, tint = Color.Green),
++        mergedMember(memberLeft + 50f + separation, 10f, 50f, 20f, radius = 10f, tint = Color.Green),
++        mergeDistancePx = 16f,
++        opticalSize = Size(50f, 20f),
++      )
++    }
++    runOnIdle { effect.mergedField = field(gap) }
++    val fixed = onNodeWithTag("root").captureToImage().toPixelMap()
++    val fixedSeparate = if (gap == 6f) {
++      runOnIdle { effect.mergedField = field(10f) }
++      val result = onNodeWithTag("root").captureToImage().toPixelMap()
++      runOnIdle { effect.mergedField = field(6f) }
++      onNodeWithTag("root").captureToImage()
++      result
++    } else {
++      null
++    }
++    val delegate = effect.delegate as RuntimeShaderGlassDelegate
++    assertThat(supportsFusedGlassRenderEffect).isFalse()
++    assertThat(checkNotNull(effect.preparedRender).opticalKey.mergedField).isNotNull()
++    val centers = listOf((4f + left + 25f).toInt(), (4f + left + 50f + gap + 25f).toInt())
++    fun topology(pixels: PixelMap) {
++      val middle = pixels[64, 48]
++      if (gap == 6f) {
++        assertThat(middle.green).isGreaterThan(0.85f)
++        assertThat(middle.red).isLessThan(0.05f)
++      } else {
++        assertThat(abs(middle.red - middle.green)).isLessThanOrEqualTo(1f / 255f)
++        assertThat(abs(middle.red - middle.blue)).isLessThanOrEqualTo(1f / 255f)
++      }
++      for (x in centers) {
++        val member = pixels[x, 48]
++        assertThat(member.green).isGreaterThan(0.85f)
++        assertThat(member.red).isLessThan(0.05f)
++      }
++    }
++    topology(fixed)
++    val candidate = RuntimeEffect.makeForShader(adaptiveEdgeShader(merged = true))
++    try {
++      runOnIdle {
++        delegate.experimentalRim = { source, layer, key ->
++          layer.alpha = 1f
++          layer.renderEffect = createRuntimeShaderRenderEffect(candidate, arrayOf("content"), arrayOf(null)) {
++            setRimUniforms(key)
++            setFloatUniform("rimGain", 1f)
++            setFloatUniform("outlineGain", 1f)
++          }.asComposeRenderEffect()
++          recordGlassLayer(layer, key.coordinates.sampleSize.roundToIntSize()) { drawLayer(source) }
++        }
++        checkNotNull(effect.attachedContextForTest).invalidateDraw()
++      }
++      val adaptive = onNodeWithTag("root").captureToImage().toPixelMap()
++      topology(adaptive)
++      var difference = 0f
++      for (y in 26 until 70) for (x in 2 until 126) {
++        val a = fixed[x, y]
++        val b = adaptive[x, y]
++        difference = maxOf(difference, abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
++      }
++      for (x in centers) {
++        val a = fixed[x, 48]
++        val b = adaptive[x, 48]
++        assertThat(maxOf(abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha)))
++          .isLessThanOrEqualTo(1f / 255f)
++      }
++      if (gap == 6f) {
++        fun bandDifference(xs: IntRange, ys: IntRange): Float {
++          var max = 0f
++          for (y in ys) for (x in xs) {
++            val a = fixed[x, y]
++            val b = adaptive[x, y]
++            max = maxOf(max, abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
++          }
++          return max
++        }
++        val bridgeDifference = bandDifference(61..66, 38..57)
++        val outsideDifference = bandDifference(9..10, 46..49)
++        println("T3 merged bridgeBand=$bridgeDifference outsideBand=$outsideDifference")
++        assertThat(bridgeDifference).isGreaterThan(3f / 255f)
++        assertThat(outsideDifference).isGreaterThan(3f / 255f)
++      }
++      if (fixedSeparate != null) {
++        runOnIdle { effect.mergedField = field(10f) }
++        val separated = onNodeWithTag("root").captureToImage().toPixelMap()
++        for (pixels in listOf(fixedSeparate, separated)) {
++          val middle = pixels[64, 48]
++          assertThat(abs(middle.red - middle.green)).isLessThanOrEqualTo(1f / 255f)
++          assertThat(abs(middle.red - middle.blue)).isLessThanOrEqualTo(1f / 255f)
++          for (x in listOf(34, 94)) {
++            val member = pixels[x, 48]
++            assertThat(member.green).isGreaterThan(0.85f)
++            assertThat(member.red).isLessThan(0.05f)
++          }
++        }
++        var separatedDifference = 0f
++        for (y in 26 until 70) for (x in 2 until 126) {
++          val a = fixedSeparate[x, y]
++          val b = separated[x, y]
++          separatedDifference = maxOf(separatedDifference, abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
++        }
++        assertThat(separatedDifference).isGreaterThan(3f / 255f)
++        runOnIdle { effect.mergedField = field(6f) }
++        val restored = onNodeWithTag("root").captureToImage().toPixelMap()
++        var restoredDifference = 0f
++        for (y in 0 until 96) for (x in 0 until 128) {
++          val a = adaptive[x, y]
++          val b = restored[x, y]
++          restoredDifference = maxOf(restoredDifference, abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
++        }
++        println("T3 merged transition separated=$separatedDifference restored=$restoredDifference")
++        assertThat(restoredDifference).isLessThanOrEqualTo(1f / 255f)
++      }
++      println("T3 Skiko merged gap=$gap difference=$difference")
++      assertThat(difference).isGreaterThan(3f / 255f)
++    } finally {
++      runOnIdle { delegate.experimentalRim = null }
++    }
++  }
++}
+diff --git a/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeTest.kt b/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeTest.kt
+new file mode 100644
+index 000000000..b7b0f3561
+--- /dev/null
++++ b/haze-glass/src/jvmTest/kotlin/dev/chrisbanes/haze/glass/AdaptiveEdgePrototypeTest.kt
+@@ -0,0 +1,170 @@
++// Copyright 2026, Christopher Banes and the Haze project contributors
++// SPDX-License-Identifier: Apache-2.0
++
++@file:OptIn(dev.chrisbanes.haze.InternalHazeApi::class)
++
++package dev.chrisbanes.haze.glass
++
++import androidx.compose.ui.geometry.Offset
++import androidx.compose.ui.geometry.Rect
++import androidx.compose.ui.geometry.Size
++import androidx.compose.ui.graphics.Canvas
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.graphics.ImageBitmap
++import androidx.compose.ui.graphics.Paint
++import androidx.compose.ui.graphics.PixelMap
++import androidx.compose.ui.graphics.skiaPaint
++import androidx.compose.ui.graphics.toPixelMap
++import assertk.assertThat
++import assertk.assertions.isEqualTo
++import assertk.assertions.isGreaterThan
++import assertk.assertions.isLessThanOrEqualTo
++import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
++import kotlin.math.abs
++import kotlin.test.Test
++import org.jetbrains.skia.RuntimeEffect
++
++class AdaptiveEdgePrototypeTest {
++  private val key = GlassRimEffectKey(
++    coordinates = GlassCoordinates(Size(128f, 96f), Offset(8f, 6f), Size(112f, 84f), 1f),
++    specularIntensity = 0.8f,
++    edgeShadow = Color(0.1f, 0.2f, 0.3f, 0.6f),
++    specularExponent = 3f,
++    edgeSoftnessPx = 2f,
++    cornerRadii = CornerRadii(18f, 18f, 18f, 18f),
++    lightPosition = Offset(12f, 10f),
++    sampleStepPx = 1f,
++  )
++  private val outline = key.copy(
++    specularIntensity = 0f,
++    edgeShadow = Color.Transparent,
++    edgeOutline = GlassEdgeOutline(Color.Red.copy(alpha = 0.5f), 3f),
++  )
++
++  @Test
++  fun zeroGain_preservesFixedRimPixels() {
++    assertThat(difference(render(key, Color.Gray, fixed = true), render(key, Color.Gray, rimGain = 0f))).isLessThanOrEqualTo(1f / 255f)
++  }
++
++  @Test
++  fun transparentSource_retainsFixedStrength() {
++    assertThat(difference(render(key, Color.Transparent, fixed = true), render(key, Color.Transparent))).isLessThanOrEqualTo(1f / 255f)
++  }
++
++  @Test
++  fun translucentSource_unpremultipliesBeforeLuminance() {
++    val source = Color(0.5f, 0.5f, 0.5f, 0.5f)
++    val fixed = render(key, source, fixed = true)[8, 48].alpha
++    val adaptive = render(key, source)[8, 48].alpha
++    assertThat(fixed).isGreaterThan(0.05f)
++    val linear = Math.pow((0.5 + 0.055) / 1.055, 2.4).toFloat()
++    assertThat(abs(adaptive - (fixed * (0.5f + linear)).coerceIn(0f, 1f))).isLessThanOrEqualTo(2f / 255f)
++  }
++
++  @Test
++  fun authoredRedOutline_preservesStraightHue() {
++    val color = render(outline, Color.Gray, outlineGain = 1f)[6, 48]
++    assertThat(color.alpha).isGreaterThan(0.05f)
++    assertThat(abs(color.red - 1f)).isLessThanOrEqualTo(1f / 255f)
++    assertThat(color.green).isLessThanOrEqualTo(1f / 255f)
++    assertThat(color.blue).isLessThanOrEqualTo(1f / 255f)
++  }
++
++  @Test
++  fun authoredOutlineAlpha_followsLocalLuminance() {
++    val source = Color(0.9f, 0.9f, 0.9f)
++    val fixed = render(outline, source, fixed = true)[6, 48].alpha
++    val adaptive = render(outline, source, outlineGain = 1f)[6, 48].alpha
++    assertThat(fixed).isGreaterThan(0.05f)
++    val encoded = 230.0 / 255.0
++    val linear = Math.pow((encoded + 0.055) / 1.055, 2.4).toFloat()
++    assertThat(abs(adaptive - (fixed * (0.5f + linear)).coerceIn(0f, 1f))).isLessThanOrEqualTo(2f / 255f)
++  }
++
++  @Test
++  fun rimGain_doesNotChangeOutlineWhenRimDisabled() {
++    assertThat(
++      difference(render(outline, Color.Gray, rimGain = 0f), render(outline, Color.Gray, rimGain = 1f)),
++    ).isLessThanOrEqualTo(1f / 255f)
++  }
++
++  @Test
++  fun outlineGain_doesNotChangeRimWhenOutlineDisabled() {
++    assertThat(difference(render(key, Color.Gray, rimGain = 0f, outlineGain = 0f), render(key, Color.Gray, rimGain = 0f, outlineGain = 1f))).isLessThanOrEqualTo(1f / 255f)
++  }
++
++  @Test
++  fun gainAboveOne_clampsToOne() {
++    assertThat(difference(render(key, Color.Gray), render(key, Color.Gray, rimGain = 2f, outlineGain = 2f))).isLessThanOrEqualTo(1f / 255f)
++  }
++
++  @Test
++  fun darkAndBrightSource_produceDifferentRimAlpha() {
++    val dark = render(key, Color(0.1f, 0.1f, 0.1f))
++    val bright = render(key, Color(0.9f, 0.9f, 0.9f))
++    var difference = 0f
++    for (y in 0 until 96) for (x in 0 until 128) difference = maxOf(difference, abs(dark[x, y].alpha - bright[x, y].alpha))
++    assertThat(difference).isGreaterThan(3f / 255f)
++  }
++
++  @Test
++  fun transparentOutline_hasZeroAlpha() {
++    val transparent = outline.copy(edgeOutline = GlassEdgeOutline(Color.Transparent, 3f))
++    assertThat(render(transparent, Color.Gray)[6, 48].alpha).isEqualTo(0f)
++  }
++
++  @Test
++  fun interior_hasNoEdgeOutput() {
++    assertThat(render(key, Color.Gray)[64, 48].alpha).isEqualTo(0f)
++  }
++
++  @Test
++  fun splitSource_samplesWorkingCoordinatesInsteadOfMaterialCoordinates() {
++    val fixed = render(key, Color(0.1f, 0.1f, 0.1f), fixed = true, split = true)
++    val adaptive = render(key, Color(0.1f, 0.1f, 0.1f), split = true)
++    for ((x, encoded) in listOf(60 to 26, 68 to 230)) {
++      val a = fixed[x, 7].alpha
++      assertThat(a).isGreaterThan(0.05f)
++      val e = encoded / 255.0
++      val linear = Math.pow((e + 0.055) / 1.055, 2.4).toFloat()
++      assertThat(abs(adaptive[x, 7].alpha - (a * (0.5f + linear)).coerceIn(0f, 1f))).isLessThanOrEqualTo(2f / 255f)
++    }
++  }
++
++  private fun render(
++    key: GlassRimEffectKey,
++    color: Color,
++    rimGain: Float = 1f,
++    outlineGain: Float = 1f,
++    fixed: Boolean = false,
++    split: Boolean = false,
++  ): PixelMap {
++    val source = if (fixed) GlassShaders.buildRim() else adaptiveEdgeShader()
++    val effect = createRuntimeShaderRenderEffect(RuntimeEffect.makeForShader(source), arrayOf("content"), arrayOf(null)) {
++      setRimUniforms(key)
++      if (!fixed) {
++        setFloatUniform("rimGain", rimGain)
++        setFloatUniform("outlineGain", outlineGain)
++      }
++    }
++    val image = ImageBitmap(128, 96)
++    val bounds = Rect(0f, 0f, 128f, 96f)
++    with(Canvas(image)) {
++      saveLayer(bounds, Paint().apply { skiaPaint.imageFilter = effect })
++      drawRect(bounds, Paint().apply { this.color = color })
++      if (split) drawRect(Rect(64f, 0f, 128f, 96f), Paint().apply { this.color = Color(0.9f, 0.9f, 0.9f) })
++      restore()
++    }
++    return image.toPixelMap()
++  }
++
++  private fun difference(a: PixelMap, b: PixelMap): Float {
++    var result = 0f
++    for (y in 0 until a.height) for (x in 0 until a.width) {
++      val first = a[x, y]
++      val second = b[x, y]
++      result = maxOf(result, abs(first.red - second.red), abs(first.green - second.green), abs(first.blue - second.blue), abs(first.alpha - second.alpha))
++    }
++    return result
++  }
++}

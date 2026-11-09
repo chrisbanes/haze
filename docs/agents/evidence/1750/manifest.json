@@ -1,0 +1,116 @@
+{
+  "base": "8742b2688999a83c7d681d285b1465729e5b24ac",
+  "baseline": "fixed-only repeated captures and four fixed shader digests must be recorded separately before renewed candidate observation",
+  "early_observation": "D102 coarse pass observed before complete freeze; invalid and archived in 1750-prefreeze-d103; not qualification",
+  "expected_jvm_cases": [
+    "fixed_shim_identity",
+    "gain_zero_identity",
+    "local_opposite_edges",
+    "analytic_alpha",
+    "straight_rgb_hue",
+    "interior_unchanged",
+    "source_step_one_draw",
+    "transparent_finite",
+    "colour_space_calibration",
+    "coordinate_transform_controls",
+    "average_fault_rejected",
+    "frozen_source_fault_rejected",
+    "decode_fault_rejected",
+    "double_alpha_fault_rejected"
+  ],
+  "protocol": "D103 prospective correction; D102 observation archived and unqualified",
+  "reference": {
+    "alpha": "clamp(fixed_edge_alpha * mix(1, 0.5 + linear_Y, clamp(gain,0,1)),0,1); transparent source alpha <= 1e-4 uses multiplier 1; RGB remains fixed straight RGB, premultiply exactly once",
+    "gain1_multipliers_exact": [
+      0.510022825574869,
+      1.2874122893956175
+    ],
+    "gain1_multipliers_rgb8": [
+      0.5103298230296269,
+      1.2912979403326301
+    ],
+    "linear_y_0_1": 0.010022825574869039,
+    "linear_y_0_9": 0.7874122893956174,
+    "linear_y_rgb8_230": 0.7912979403326302,
+    "linear_y_rgb8_26": 0.010329823029626936,
+    "sampling": "one pre-optical sample per edge fragment in capture working coordinates, clamp to capture bounds; materialOrigin used only for SDF",
+    "srgb_decode": "v/12.92 if v<=0.04045 else ((v+0.055)/1.055)^2.4"
+  },
+  "required_backends": [
+    "Skiko actual",
+    "Android API33 hardware RuntimeShader"
+  ],
+  "roi": {
+    "coordinates": "half-open screen pixel rectangles; all pixel centers; no changed mask after observation",
+    "left_edge": {
+      "rect": [
+        16,
+        32,
+        20,
+        64
+      ]
+    },
+    "right_edge": {
+      "rect": [
+        108,
+        32,
+        112,
+        64
+      ]
+    },
+    "shifted_top": {
+      "rect": [
+        64,
+        16,
+        72,
+        20
+      ]
+    },
+    "stable_interior": {
+      "rect": [
+        32,
+        32,
+        96,
+        64
+      ]
+    }
+  },
+  "scene": {
+    "color_space": "tagged sRGB SDR",
+    "corner_radius": 8,
+    "density": 1,
+    "direction": "resolved built-in regular; no directional experiment",
+    "height": 96,
+    "source": "opaque split x<64: sRGB 0.1; x>=64: sRGB 0.9; alpha 1; unorm8 reference rounds to 26,230",
+    "source_rgb8_sha256": "ea56a03035c428dbe1492b442c94f218c0176e977d8bd48131031d823fea4433",
+    "style": "GlassStyle.regular with shape RoundedCornerShape(8dp), transparent background, Quality, light appearance; all unspecified controls remain resolved built-in regular",
+    "surface_rect": [
+      16,
+      16,
+      112,
+      80
+    ],
+    "timeline": [
+      {
+        "draw": 0,
+        "split_x": 64
+      },
+      {
+        "draw": 1,
+        "split_x": 72
+      }
+    ],
+    "width": 128
+  },
+  "tolerances": {
+    "alpha_abs": 0.00784313725490196,
+    "identity_max_rgba": 0.00392156862745098,
+    "interior_max_rgba": 0.00392156862745098,
+    "opposite_edge_min_difference": 0.011764705882352941,
+    "repeat_position_max_rgba": 0.00392156862745098,
+    "smooth_gray_ramp_adjacent_alpha_max": 0.00784313725490196,
+    "source_step_draws": 1,
+    "stationary_max_rgba": 0.00392156862745098,
+    "straight_rgb_abs_alpha_at_least_005": 0.00392156862745098
+  }
+}
