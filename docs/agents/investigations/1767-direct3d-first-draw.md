@@ -3,7 +3,7 @@
 Tracks [#1767](https://github.com/chrisbanes/haze/issues/1767). First-draw stacks identify backend shader compilation,
 including WARP JIT work. No production workaround has been selected.
 
-## Current outcome
+## Outcome and qualification
 
 The [standalone exported ZIP](https://github.com/chrisbanes/haze/actions/runs/42536087987), head
 `78ff8d6f399df500a0409784bc4cb0cb68b3bbb7`, compiles and reproduces outside the Haze checkout.
@@ -14,8 +14,15 @@ The [upstream report draft](1767-upstream-report.md) is ready for review and has
 Independent review checked fixture/package identity, process/WPR ownership, verdict classification
 and scoped profile claims. Its two findings—timeout stream retention and a one-sample table error—
 are fixed and the native watchdog test covers the repaired path. Normal Build and Publish docs gates
-are restored for final CI; the dedicated investigation workflow is now manual-only. Full CI on this
-cleanup revision remains pending. No production shader/API changed; physical GPUs remain unmeasured.
+are restored; the dedicated investigation workflow is manual-only.
+
+The restored [Build](https://github.com/chrisbanes/haze/actions/runs/42536945901) and
+[Publish docs](https://github.com/chrisbanes/haze/actions/runs/42536945931) workflows pass on cleanup
+head `fa9d8ca607b212d773327b3fa8c3f053755ae320`. Coverage includes macOS compilation, library/sample
+checks, Glass desktop tests, desktop/Android screenshots and API 30–34 emulator tests. Deployment
+jobs are intentionally skipped on a pull request. This qualifies the investigation tooling alongside
+the existing suite; it does not establish a production fix. No production shader/API changed, and
+physical GPUs remain unmeasured.
 
 The sections below retain the experiments and corrections that led to this outcome.
 
