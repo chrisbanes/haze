@@ -177,12 +177,15 @@ class ProgressiveSamplingTest {
         val channel = if (vertical) "y" else "x"
         val origin = if (vertical) crop.top else crop.left
         val extent = if (vertical) crop.height else crop.width
-        append("uniform shader content; vec4 main(vec2 coord) { float radius = 25.0 * (1.0 - clamp((coord.$channel - $origin) / $extent, 0.0, 1.0)); float r = floor(radius + 0.5); float sigma = max(radius / 2.0, 1.0); bool inside = coord.x >= ${crop.left} && coord.y >= ${crop.top} && coord.x <= ${crop.right} && coord.y <= ${crop.bottom}; vec4 result = content.eval(inside ? clamp(coord, vec2(${crop.left + .5f}, ${crop.top + .5f}), vec2(${crop.right - .5f}, ${crop.bottom - .5f})) : coord); float sum = 1.0;\n")
+        val lower = "vec2(${crop.left + .5f}, ${crop.top + .5f})"
+        val upper = "vec2(${crop.right - .5f}, ${crop.bottom - .5f})"
+        append("uniform shader content; vec4 main(vec2 coord) { float radius = 25.0 * (1.0 - clamp((coord.$channel - $origin) / $extent, 0.0, 1.0)); float r = floor(radius + 0.5); float sigma = max(radius / 2.0, 1.0);\n")
+        append("bool inside = coord.x >= ${crop.left} && coord.y >= ${crop.top} && coord.x <= ${crop.right} && coord.y <= ${crop.bottom}; vec4 result = content.eval(inside ? clamp(coord, $lower, $upper) : coord); float sum = 1.0;\n")
         fun emit(distance: String, weight: String, condition: String) {
           for (sign in listOf("-", "+")) {
             val offset = if (axis == 0) "vec2($distance, 0.0)" else "vec2(0.0, $distance)"
             val admission = if (sign == "-") "p.x >= ${crop.left} && p.y >= ${crop.top}" else "p.x <= ${crop.right} && p.y <= ${crop.bottom}"
-            append("{ vec2 p = coord $sign $offset; if ($condition && $admission) { result += $weight * content.eval(clamp(p, vec2(${crop.left + .5f}, ${crop.top + .5f}), vec2(${crop.right - .5f}, ${crop.bottom - .5f}))); sum += $weight; } }\n")
+            append("{ vec2 p = coord $sign $offset; if ($condition && $admission) { result += $weight * content.eval(clamp(p, $lower, $upper)); sum += $weight; } }\n")
           }
         }
         for (i in 1..25 step 2) {
@@ -210,19 +213,14 @@ class ProgressiveSamplingTest {
     assertThat(residual(collapsed, graphPixels(reference(0f, subpixel), patterned = true))).isLessThan(0.02f)
 
     val band = Rect(10.25f, 12.5f, 50.75f, 48.25f)
-    val repeated = graphPixels(createProgressiveBlurRenderEffect(25f, band.size, band.topLeft, mask, band.topLeft, edgeRepeatPx = 1f), patterned = true)
+    val repeated = graphPixels(createProgressiveBlurRenderEffect(25f, band.size, band.topLeft, mask, band.topLeft, repeatEdge = true), patterned = true)
     assertThat(residual(repeated, graphPixels(reference(0f, band, edgeRepeat = 1f), patterned = true)), "one-pixel edge repeat").isLessThan(0.02f)
     assertThat(residual(repeated, graphPixels(reference(0f, band, edgeRepeat = 2f), patterned = true)), "edge repeat must stop after one pixel").isGreaterThan(0.1f)
     assertThat(residual(repeated, graphPixels(reference(0f, band), patterned = true)), "edge repeat must reach past the crop").isGreaterThan(0.1f)
 
     val crop = Rect(2f, 4f, 62f, 60f)
     val actual = graphPixels(createProgressiveBlurRenderEffect(25f, crop.size, crop.topLeft, mask, crop.topLeft), patterned = true)
-    val identity = graphPixels(createOffsetRenderEffect(0f, 0f), patterned = true)
-    for (y in 4 until 60) for (x in 2 until 62) {
-      val a = actual[x, y]
-      val e = identity[x, y]
-      assertThat(maxOf(abs(a.red - e.red), abs(a.green - e.green), abs(a.blue - e.blue), abs(a.alpha - e.alpha)), "($x,$y)").isLessThan(0.02f)
-    }
+    assertThat(residual(actual, graphPixels(createOffsetRenderEffect(0f, 0f), patterned = true))).isLessThan(0.02f)
   }
 
   private fun production(radius: Float, crop: Rect): PlatformRenderEffect = createProgressiveBlurRenderEffect(
@@ -387,8 +385,7 @@ class ProgressiveSamplingTest {
           minOf(layer.size.height.toFloat(), (origin.y + size.height) * scale.scaleY),
         )
         // Only a requested downscale repeats the edge; Quality's rounded fractional layers do not.
-        val edgeRepeat = if (nominal < 1f) 1f else 0f
-        layer.renderEffect = reference(radius * density * nominal, crop, edgeRepeat = edgeRepeat).asComposeRenderEffect()
+        layer.renderEffect = reference(radius * density * nominal, crop, edgeRepeat = if (nominal < 1f) 1f else 0f).asComposeRenderEffect()
         base.render {
           drawRect(background)
           drawScaledContent(-origin, scale, clip = layer.clip) { drawLayer(layer) }
