@@ -90,8 +90,9 @@ internal fun createRenderEffect(
       offset = crop.topLeft,
       mask = progressiveShader,
       maskOrigin = offset,
-      // Drawing a downscaled capture back up filters one capture pixel past its edge.
-      edgeRepeatPx = if (scale.scaleX < 1f || scale.scaleY < 1f) 1f else 0f,
+      // Drawing a downscaled capture back up filters one capture pixel past its edge. Gate on the
+      // requested scale: Quality's capture scale dips below 1 when a fractional layer rounds down.
+      edgeRepeatPx = if (params.scale < 1f) 1f else 0f,
     )
     input?.then(progressive) ?: progressive
   } else {

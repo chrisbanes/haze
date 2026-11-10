@@ -212,6 +212,7 @@ class ProgressiveSamplingTest {
     val band = Rect(10.25f, 12.5f, 50.75f, 48.25f)
     val repeated = graphPixels(createProgressiveBlurRenderEffect(25f, band.size, band.topLeft, mask, band.topLeft, edgeRepeatPx = 1f), patterned = true)
     assertThat(residual(repeated, graphPixels(reference(0f, band, edgeRepeat = 1f), patterned = true)), "one-pixel edge repeat").isLessThan(0.02f)
+    assertThat(residual(repeated, graphPixels(reference(0f, band, edgeRepeat = 2f), patterned = true)), "edge repeat must stop after one pixel").isGreaterThan(0.1f)
     assertThat(residual(repeated, graphPixels(reference(0f, band), patterned = true)), "edge repeat must reach past the crop").isGreaterThan(0.1f)
 
     val crop = Rect(2f, 4f, 62f, 60f)
@@ -385,7 +386,8 @@ class ProgressiveSamplingTest {
           minOf(layer.size.width.toFloat(), (origin.x + size.width) * scale.scaleX),
           minOf(layer.size.height.toFloat(), (origin.y + size.height) * scale.scaleY),
         )
-        val edgeRepeat = if (scale.scaleX < 1f || scale.scaleY < 1f) 1f else 0f
+        // Only a requested downscale repeats the edge; Quality's rounded fractional layers do not.
+        val edgeRepeat = if (nominal < 1f) 1f else 0f
         layer.renderEffect = reference(radius * density * nominal, crop, edgeRepeat = edgeRepeat).asComposeRenderEffect()
         base.render {
           drawRect(background)

@@ -124,7 +124,7 @@ class ProgressiveCaptureCropAndroidHostTest : ScreenshotTest() {
               } else {
                 val cropOrigin = if (variant == 2 && !patterned) Offset.Zero else start
                 val cropSize = if (variant == 2 && !patterned) Size(ceil(content.width * nominal), ceil(content.height * nominal)) else Size(end.x - start.x, end.y - start.y)
-                createProgressiveBlurRenderEffect(8f * nominal, cropSize, cropOrigin, mask, if (variant == 2 && patterned) start else origin, edgeRepeatPx = if (a.scaleX < 1f || a.scaleY < 1f) 1f else 0f).asComposeRenderEffect()
+                createProgressiveBlurRenderEffect(8f * nominal, cropSize, cropOrigin, mask, if (variant == 2 && patterned) start else origin, edgeRepeatPx = if (nominal < 1f) 1f else 0f).asComposeRenderEffect()
               }
               layer.clip = false
               drawScaledContent(-offset, a, clip = false) { drawLayer(layer) }

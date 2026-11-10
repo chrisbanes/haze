@@ -130,7 +130,7 @@ class ProgressiveCaptureCropTest {
       val start = Offset(maxOf(0f, authored.x), maxOf(0f, authored.y))
       val end = Offset(minOf(layer.size.width.toFloat(), (origin.x + content.width) * a.scaleX), minOf(layer.size.height.toFloat(), (origin.y + content.height) * a.scaleY))
       fun reference(maskOrigin: Offset): PixelMap {
-        layer.renderEffect = createProgressiveBlurRenderEffect(8f * nominal, Size(end.x - start.x, end.y - start.y), start, custom.createScaledShader(content, a, Size(layer.size.width.toFloat(), layer.size.height.toFloat()), Offset.Zero), maskOrigin, edgeRepeatPx = if (a.scaleX < 1f || a.scaleY < 1f) 1f else 0f).asComposeRenderEffect()
+        layer.renderEffect = createProgressiveBlurRenderEffect(8f * nominal, Size(end.x - start.x, end.y - start.y), start, custom.createScaledShader(content, a, Size(layer.size.width.toFloat(), layer.size.height.toFloat()), Offset.Zero), maskOrigin, edgeRepeatPx = if (nominal < 1f) 1f else 0f).asComposeRenderEffect()
         base.render {
           drawRect(Color.Magenta)
           drawScaledContent(-origin, a, clip = layer.clip) { drawLayer(layer) }

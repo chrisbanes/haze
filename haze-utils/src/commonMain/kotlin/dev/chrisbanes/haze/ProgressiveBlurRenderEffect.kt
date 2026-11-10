@@ -33,9 +33,9 @@ public fun createProgressiveBlurRenderEffect(
 /**
  * Creates a progressive blur with a mask origin independent of its crop bounds.
  *
- * Content is only sampled within the crop. Output within [edgeRepeatPx] beyond the crop repeats the
- * crop's edge, so that drawing a downscaled result back up does not blend its edge with the
- * transparency outside. Output further out samples its own position unchanged.
+ * Blur taps are clamped to the crop. Each pixel's own (centre) sample is also clamped when the pixel
+ * lies within [edgeRepeatPx] crop pixels of the crop, so a downscaled result drawn back up does not
+ * blend its edge with the transparency outside. Further out, the centre sample is unclamped.
  */
 @InternalHazeApi
 public fun createProgressiveBlurRenderEffect(
