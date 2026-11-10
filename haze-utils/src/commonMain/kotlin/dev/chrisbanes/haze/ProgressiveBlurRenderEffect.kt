@@ -118,7 +118,7 @@ internal fun makeProgressiveBlurSksl(
       // https://github.com/chrisbanes/haze/issues/520
       float sigma = max(radius / 2.0, 1.0);
       float weightSum = 1.0;
-      vec4 result = content.eval(coord);
+      vec4 result = sampleContent(coord);
 
       // Windows Direct3D stalls on first draw with an early break (issue #1260).
       for (half i = 1.0; i < maxRadius; i += 2.0) {
