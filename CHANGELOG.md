@@ -41,8 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ([#1727](https://github.com/chrisbanes/haze/issues/1727)).
 - Progressive blur keeps its crop within the captured content when downscaling, including expanded
   bounds and fractional offsets ([#1728](https://github.com/chrisbanes/haze/issues/1728)).
-- Progressive Content blur no longer lets the page show through the edges of its content in the
-  Default and Performance modes, where the mask leaves those edges unblurred
+- Progressive blur no longer lets the page show through the edges of its content in the Default and
+  Performance modes, where the mask leaves those edges unblurred
   ([#1772](https://github.com/chrisbanes/haze/issues/1772)).
 - Blur masks and brush tints keep their authored positions when captured content is scaled or
   resized ([#1730](https://github.com/chrisbanes/haze/issues/1730)).

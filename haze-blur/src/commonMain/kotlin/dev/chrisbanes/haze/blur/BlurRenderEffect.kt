@@ -90,6 +90,8 @@ internal fun createRenderEffect(
       offset = crop.topLeft,
       mask = progressiveShader,
       maskOrigin = offset,
+      // Drawing a downscaled capture back up filters one capture pixel past its edge.
+      edgeRepeatPx = if (scale.scaleX < 1f || scale.scaleY < 1f) 1f else 0f,
     )
     input?.then(progressive) ?: progressive
   } else {

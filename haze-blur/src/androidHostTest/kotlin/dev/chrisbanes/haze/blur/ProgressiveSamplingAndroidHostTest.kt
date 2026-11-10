@@ -133,8 +133,8 @@ class ProgressiveSamplingAndroidHostTest : ScreenshotTest() {
       region("bottomRight", w - 4 until w, h - 4 until h)
       val label = "$mode ${w}x$h alpha=$alpha"
       println("$label regions=$regions")
-      // At most 3/255 once 8-bit quantization is allowed for.
-      for ((region, error) in regions) assertThat(error, "$label $region").isLessThan(3.5f / 255f)
+      // At most 3/255: errors quantize to multiples of 0.5/255, so this rejects 3.5/255.
+      for ((region, error) in regions) assertThat(error, "$label $region").isLessThan(3.25f / 255f)
     }
   }
 

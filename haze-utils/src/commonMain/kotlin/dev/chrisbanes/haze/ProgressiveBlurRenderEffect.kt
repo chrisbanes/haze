@@ -30,7 +30,13 @@ public fun createProgressiveBlurRenderEffect(
   mask: Shader,
 ): PlatformRenderEffect = createProgressiveBlurRenderEffect(blurRadiusPx, size, offset, mask, offset)
 
-/** Creates a progressive blur with a mask origin independent of its crop bounds. */
+/**
+ * Creates a progressive blur with a mask origin independent of its crop bounds.
+ *
+ * Content is only sampled within the crop. Output within [edgeRepeatPx] beyond the crop repeats the
+ * crop's edge, so that drawing a downscaled result back up does not blend its edge with the
+ * transparency outside. Output further out samples its own position unchanged.
+ */
 @InternalHazeApi
 public fun createProgressiveBlurRenderEffect(
   blurRadiusPx: Float,
@@ -38,6 +44,7 @@ public fun createProgressiveBlurRenderEffect(
   offset: Offset,
   mask: Shader,
   maskOrigin: Offset,
+  edgeRepeatPx: Float = 0f,
 ): PlatformRenderEffect {
   val crop = floatArrayOf(
     offset.x,
@@ -54,6 +61,7 @@ public fun createProgressiveBlurRenderEffect(
     setFloatUniform("blurRadius", blurRadiusPx)
     setFloatUniform("crop", crop[0], crop[1], crop[2], crop[3])
     setFloatUniform("maskOrigin", maskOrigin.x, maskOrigin.y)
+    setFloatUniform("edgeRepeat", edgeRepeatPx)
     setChildShader("mask", mask)
   }
 
@@ -65,6 +73,7 @@ public fun createProgressiveBlurRenderEffect(
     setFloatUniform("blurRadius", blurRadiusPx)
     setFloatUniform("crop", crop[0], crop[1], crop[2], crop[3])
     setFloatUniform("maskOrigin", maskOrigin.x, maskOrigin.y)
+    setFloatUniform("edgeRepeat", edgeRepeatPx)
     setChildShader("mask", mask)
   }
 }
@@ -94,6 +103,7 @@ internal fun makeProgressiveBlurSksl(
     uniform float blurRadius;
     uniform vec4 crop;
     uniform float2 maskOrigin;
+    uniform float edgeRepeat;
     uniform shader mask;
 
     const half maxRadius = 150.0;
@@ -118,7 +128,10 @@ internal fun makeProgressiveBlurSksl(
       // https://github.com/chrisbanes/haze/issues/520
       float sigma = max(radius / 2.0, 1.0);
       float weightSum = 1.0;
-      vec4 result = sampleContent(coord);
+      // Unclipped expanded layers show the margin past edgeRepeat, so leave it unchanged there.
+      bool repeatsEdge = all(greaterThanEqual(coord, crop.xy - vec2(edgeRepeat))) &&
+        all(lessThanEqual(coord, crop.zw + vec2(edgeRepeat)));
+      vec4 result = repeatsEdge ? sampleContent(coord) : content.eval(coord);
 
       // Windows Direct3D stalls on first draw with an early break (issue #1260).
       for (half i = 1.0; i < maxRadius; i += 2.0) {
