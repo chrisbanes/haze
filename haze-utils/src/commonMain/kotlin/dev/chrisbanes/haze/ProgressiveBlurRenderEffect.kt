@@ -30,7 +30,13 @@ public fun createProgressiveBlurRenderEffect(
   mask: Shader,
 ): PlatformRenderEffect = createProgressiveBlurRenderEffect(blurRadiusPx, size, offset, mask, offset)
 
-/** Creates a progressive blur with a mask origin independent of its crop bounds. */
+/**
+ * Creates a progressive blur with a mask origin independent of its crop bounds.
+ *
+ * Blur taps are clamped to the crop. Each pixel's own (centre) sample is clamped inside the crop
+ * and, with [repeatEdge], for one more pixel beyond it, so a downscaled result drawn back up does not
+ * blend its edge with the transparency outside. Further out, the centre sample is unclamped.
+ */
 @InternalHazeApi
 public fun createProgressiveBlurRenderEffect(
   blurRadiusPx: Float,
@@ -38,7 +44,10 @@ public fun createProgressiveBlurRenderEffect(
   offset: Offset,
   mask: Shader,
   maskOrigin: Offset,
+  repeatEdge: Boolean = false,
 ): PlatformRenderEffect {
+  // Drawing a result back up filters at most one pixel past its edge.
+  val edgeRepeat = if (repeatEdge) 1f else 0f
   val crop = floatArrayOf(
     offset.x,
     offset.y,
@@ -54,6 +63,7 @@ public fun createProgressiveBlurRenderEffect(
     setFloatUniform("blurRadius", blurRadiusPx)
     setFloatUniform("crop", crop[0], crop[1], crop[2], crop[3])
     setFloatUniform("maskOrigin", maskOrigin.x, maskOrigin.y)
+    setFloatUniform("edgeRepeat", edgeRepeat)
     setChildShader("mask", mask)
   }
 
@@ -65,6 +75,7 @@ public fun createProgressiveBlurRenderEffect(
     setFloatUniform("blurRadius", blurRadiusPx)
     setFloatUniform("crop", crop[0], crop[1], crop[2], crop[3])
     setFloatUniform("maskOrigin", maskOrigin.x, maskOrigin.y)
+    setFloatUniform("edgeRepeat", edgeRepeat)
     setChildShader("mask", mask)
   }
 }
@@ -94,6 +105,7 @@ internal fun makeProgressiveBlurSksl(
     uniform float blurRadius;
     uniform vec4 crop;
     uniform float2 maskOrigin;
+    uniform float edgeRepeat;
     uniform shader mask;
 
     const half maxRadius = 150.0;
@@ -102,11 +114,15 @@ internal fun makeProgressiveBlurSksl(
       return exp(-(x * x) / (2.0 * sigma * sigma));
     }
 
-    vec4 sampleContent(vec2 coord) {
+    vec2 clampToCrop(vec2 coord) {
       vec2 midpoint = (crop.xy + crop.zw) / 2.0;
       vec2 lower = min(crop.xy + vec2(0.5), midpoint);
       vec2 upper = max(crop.zw - vec2(0.5), midpoint);
-      return content.eval(clamp(coord, lower, upper));
+      return clamp(coord, lower, upper);
+    }
+
+    vec4 sampleContent(vec2 coord) {
+      return content.eval(clampToCrop(coord));
     }
 
     vec4 blur(vec2 coord, float radius) {
@@ -118,7 +134,10 @@ internal fun makeProgressiveBlurSksl(
       // https://github.com/chrisbanes/haze/issues/520
       float sigma = max(radius / 2.0, 1.0);
       float weightSum = 1.0;
-      vec4 result = content.eval(coord);
+      // Unclipped expanded layers show the margin past edgeRepeat, so leave it unchanged there.
+      bool repeatsEdge = all(greaterThanEqual(coord, crop.xy - vec2(edgeRepeat))) &&
+        all(lessThanEqual(coord, crop.zw + vec2(edgeRepeat)));
+      vec4 result = content.eval(repeatsEdge ? clampToCrop(coord) : coord);
 
       // Windows Direct3D stalls on first draw with an early break (issue #1260).
       for (half i = 1.0; i < maxRadius; i += 2.0) {

@@ -130,7 +130,7 @@ class ProgressiveCaptureCropInstrumentationTest {
               } else {
                 val cropOrigin = if (variant == 2 && offset.x >= 0f) origin else start
                 val cropSize = if (variant == 2 && offset.x >= 0f) Size(ceil(content.width * nominal), ceil(content.height * nominal)) else Size(end.x - start.x, end.y - start.y)
-                createProgressiveBlurRenderEffect(8f * nominal, cropSize, cropOrigin, mask, if (variant == 2 && patterned && offset.x < 0f) start else origin).asComposeRenderEffect()
+                createProgressiveBlurRenderEffect(8f * nominal, cropSize, cropOrigin, mask, if (variant == 2 && patterned && offset.x < 0f) start else origin, repeatEdge = nominal < 1f).asComposeRenderEffect()
               }
               layer.clip = false
               drawScaledContent(-offset, a, clip = false) { drawLayer(layer) }

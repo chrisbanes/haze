@@ -177,12 +177,15 @@ class ProgressiveSamplingTest {
         val channel = if (vertical) "y" else "x"
         val origin = if (vertical) crop.top else crop.left
         val extent = if (vertical) crop.height else crop.width
-        append("uniform shader content; vec4 main(vec2 coord) { float radius = 25.0 * (1.0 - clamp((coord.$channel - $origin) / $extent, 0.0, 1.0)); float r = floor(radius + 0.5); float sigma = max(radius / 2.0, 1.0); vec4 result = content.eval(coord); float sum = 1.0;\n")
+        val lower = "vec2(${crop.left + .5f}, ${crop.top + .5f})"
+        val upper = "vec2(${crop.right - .5f}, ${crop.bottom - .5f})"
+        append("uniform shader content; vec4 main(vec2 coord) { float radius = 25.0 * (1.0 - clamp((coord.$channel - $origin) / $extent, 0.0, 1.0)); float r = floor(radius + 0.5); float sigma = max(radius / 2.0, 1.0);\n")
+        append("bool inside = coord.x >= ${crop.left} && coord.y >= ${crop.top} && coord.x <= ${crop.right} && coord.y <= ${crop.bottom}; vec4 result = content.eval(inside ? clamp(coord, $lower, $upper) : coord); float sum = 1.0;\n")
         fun emit(distance: String, weight: String, condition: String) {
           for (sign in listOf("-", "+")) {
             val offset = if (axis == 0) "vec2($distance, 0.0)" else "vec2(0.0, $distance)"
             val admission = if (sign == "-") "p.x >= ${crop.left} && p.y >= ${crop.top}" else "p.x <= ${crop.right} && p.y <= ${crop.bottom}"
-            append("{ vec2 p = coord $sign $offset; if ($condition && $admission) { result += $weight * content.eval(clamp(p, vec2(${crop.left + .5f}, ${crop.top + .5f}), vec2(${crop.right - .5f}, ${crop.bottom - .5f}))); sum += $weight; } }\n")
+            append("{ vec2 p = coord $sign $offset; if ($condition && $admission) { result += $weight * content.eval(clamp(p, $lower, $upper)); sum += $weight; } }\n")
           }
         }
         for (i in 1..25 step 2) {
@@ -198,13 +201,26 @@ class ProgressiveSamplingTest {
     return checkNotNull(input)
   }
 
+  // #1772: inside the crop the unweighted seed is clamped like every other tap, so a sub-pixel crop
+  // collapses to its midpoint sample. A downscaled capture repeats its edge for one more pixel.
+  // Beyond that, visible on unclipped expanded layers, and at interior pixel centres a zero mask
+  // leaves the input unchanged.
   @Test
-  fun production_zeroMaskAtFractionalSubpixelCrop_keepsUnweightedSeedIdentity() {
-    val crop = Rect(2.25f, 4.5f, 2.5f, 5.25f)
+  fun production_zeroMask_clampsSeedAndKeepsInteriorIdentity() {
     val mask = (Brush.linearGradient(listOf(Color.Transparent, Color.Transparent)) as ShaderBrush).createShader(Size(64f, 64f))
-    val actual = graphPixels(createProgressiveBlurRenderEffect(25f, crop.size, crop.topLeft, mask, Offset(1.75f, 3.25f)), patterned = true)
-    val expected = graphPixels(createOffsetRenderEffect(0f, 0f), patterned = true)
-    assertThat(residual(actual, expected)).isLessThan(0.02f)
+    val subpixel = Rect(2.25f, 4.5f, 2.5f, 5.25f)
+    val collapsed = graphPixels(createProgressiveBlurRenderEffect(25f, subpixel.size, subpixel.topLeft, mask, Offset(1.75f, 3.25f)), patterned = true)
+    assertThat(residual(collapsed, graphPixels(reference(0f, subpixel), patterned = true))).isLessThan(0.02f)
+
+    val band = Rect(10.25f, 12.5f, 50.75f, 48.25f)
+    val repeated = graphPixels(createProgressiveBlurRenderEffect(25f, band.size, band.topLeft, mask, band.topLeft, repeatEdge = true), patterned = true)
+    assertThat(residual(repeated, graphPixels(reference(0f, band, edgeRepeat = 1f), patterned = true)), "one-pixel edge repeat").isLessThan(0.02f)
+    assertThat(residual(repeated, graphPixels(reference(0f, band, edgeRepeat = 2f), patterned = true)), "edge repeat must stop after one pixel").isGreaterThan(0.1f)
+    assertThat(residual(repeated, graphPixels(reference(0f, band), patterned = true)), "edge repeat must reach past the crop").isGreaterThan(0.1f)
+
+    val crop = Rect(2f, 4f, 62f, 60f)
+    val actual = graphPixels(createProgressiveBlurRenderEffect(25f, crop.size, crop.topLeft, mask, crop.topLeft), patterned = true)
+    assertThat(residual(actual, graphPixels(createOffsetRenderEffect(0f, 0f), patterned = true))).isLessThan(0.02f)
   }
 
   private fun production(radius: Float, crop: Rect): PlatformRenderEffect = createProgressiveBlurRenderEffect(
@@ -216,7 +232,7 @@ class ProgressiveSamplingTest {
 
   // Independent tap table: weights/paired offsets are calculated in Double on the CPU,
   // then unrolled; no production shader source or candidate pixels supply the oracle.
-  private fun reference(radius: Float, crop: Rect, omitAxis: Int = -1, omitOdd: Boolean = false, shaderBounds: Boolean = false, foldRejected: Boolean = false): PlatformRenderEffect {
+  private fun reference(radius: Float, crop: Rect, omitAxis: Int = -1, omitOdd: Boolean = false, shaderBounds: Boolean = false, foldRejected: Boolean = false, edgeRepeat: Float = 0f): PlatformRenderEffect {
     val sigma = maxOf(radius.toDouble() / 2.0, 1.0)
     val r = floor(radius + 0.5f).toInt()
     fun weight(i: Int) = exp(-i.toDouble() * i / (2.0 * sigma * sigma))
@@ -235,7 +251,7 @@ class ProgressiveSamplingTest {
     var input: PlatformRenderEffect? = null
     for (axis in 0..1) {
       val source = buildString {
-        append("uniform shader content; vec4 main(vec2 coord) { vec4 result = content.eval(coord); float sum = 1.0;\n")
+        append("uniform shader content; vec4 main(vec2 coord) { bool inside = coord.x >= ${number(crop.left - edgeRepeat)} && coord.y >= ${number(crop.top - edgeRepeat)} && coord.x <= ${number(crop.right + edgeRepeat)} && coord.y <= ${number(crop.bottom + edgeRepeat)}; vec4 result = content.eval(inside ? clamp(coord, $lower, $upper) : coord); float sum = 1.0;\n")
         for ((distance, weight, odd) in taps) for (sign in listOf(-1, 1)) {
           val d = number(distance * sign)
           val offset = if (axis == 0) "vec2($d, 0.0)" else "vec2(0.0, $d)"
@@ -368,7 +384,8 @@ class ProgressiveSamplingTest {
           minOf(layer.size.width.toFloat(), (origin.x + size.width) * scale.scaleX),
           minOf(layer.size.height.toFloat(), (origin.y + size.height) * scale.scaleY),
         )
-        layer.renderEffect = reference(radius * density * nominal, crop).asComposeRenderEffect()
+        // Only a requested downscale repeats the edge; Quality's rounded fractional layers do not.
+        layer.renderEffect = reference(radius * density * nominal, crop, edgeRepeat = if (nominal < 1f) 1f else 0f).asComposeRenderEffect()
         base.render {
           drawRect(background)
           drawScaledContent(-origin, scale, clip = layer.clip) { drawLayer(layer) }

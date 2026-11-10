@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isGreaterThan
@@ -66,6 +67,65 @@ class ProgressiveSamplingAndroidHostTest : ScreenshotTest() {
 
   @Test
   fun fractionalOrigin_contentCapture_preservesInteriorAndGradient() = checkContent("fractional", 25f, gradient = 2, fractional = true)
+
+  @Test
+  fun defaultMode_opaque_preservesEdgeAlpha() = checkDownscaledEdges(HazePerformanceMode.Default, alpha = 1f)
+
+  @Test
+  fun defaultMode_halfAlpha_preservesEdgeAlpha() = checkDownscaledEdges(HazePerformanceMode.Default, alpha = 0.5f)
+
+  @Test
+  fun performanceMode_opaque_preservesEdgeAlpha() = checkDownscaledEdges(HazePerformanceMode.Performance, alpha = 1f)
+
+  @Test
+  fun performanceMode_halfAlpha_preservesEdgeAlpha() = checkDownscaledEdges(HazePerformanceMode.Performance, alpha = 0.5f)
+
+  // #1772: where the mask is transparent the unblurred centre sample is the whole output, so a
+  // downscaled capture must not blend its edge pixels with the transparency outside the crop.
+  private fun checkDownscaledEdges(mode: HazePerformanceMode, alpha: Float) = runScreenshotTest {
+    val sizes = listOf(IntSize(201, 185), IntSize(202, 186), IntSize(203, 187))
+    var size by mutableStateOf(sizes.first())
+    setContent {
+      CompositionLocalProvider(LocalDensity provides Density(1f)) {
+        Box(Modifier.size((size.width + 12).dp, (size.height + 12).dp).background(Color.Magenta).testTag("sampling")) {
+          Canvas(
+            Modifier.size(size.width.dp, size.height.dp).hazeBlur(
+              input = HazeInput.Content,
+              performanceMode = mode,
+              expandLayerBounds = false,
+              style = HazeBlurStyle {
+                blurRadius(24.dp)
+                noiseFactor(0f)
+                colorEffects(emptyList())
+                backgroundColor(Color.Transparent)
+                progressive(
+                  HazeProgressive.Brush(
+                    Brush.verticalGradient(0f to Color.Black, 0.35f to Color.Transparent, 1f to Color.Transparent),
+                  ),
+                )
+              },
+            ),
+          ) {
+            drawRect(Color.Red.copy(alpha = alpha))
+          }
+        }
+      }
+    }
+    for (candidate in sizes) {
+      composeTestRule.runOnIdle { size = candidate }
+      waitForIdle()
+      val pixels = captureRootPixels()
+      val bounds = onNodeWithTag("sampling").fetchSemanticsNode().boundsInRoot
+      val (w, h) = candidate
+
+      // Red has no blue, so blue above (1 - alpha) is magenta backdrop showing through lost alpha.
+      val regions = edgeRegions(w, h) { x, y -> abs(pixels[bounds.left.roundToInt() + x, bounds.top.roundToInt() + y].blue - (1f - alpha)) }
+      val label = "$mode ${w}x$h alpha=$alpha"
+      println("$label regions=$regions")
+      // At most 3/255: errors quantize to multiples of 0.5/255, so this rejects 3.5/255.
+      for ((region, error) in regions) assertThat(error, "$label $region").isLessThan(3.25f / 255f)
+    }
+  }
 
   private fun checkContent(label: String, radius: Float, alpha: Float = 1f, gradient: Int = 0, fractional: Boolean = false) = runScreenshotTest {
     val width = if (fractional) 141 else 140
@@ -132,18 +192,7 @@ class ProgressiveSamplingAndroidHostTest : ScreenshotTest() {
     val stride = width + 12
     fun c(p: List<Color>, x: Int, y: Int) = p[y * stride + x]
     if (gradient == 0) {
-      val regions = linkedMapOf<String, Float>()
-      fun region(name: String, xs: IntRange, ys: IntRange) {
-        regions[name] = ys.maxOf { y -> xs.maxOf { x -> abs(c(actual, x, y).blue - (1f - alpha)) } }
-      }
-      region("left", 0..3, 4 until height - 4)
-      region("right", width - 4 until width, 4 until height - 4)
-      region("top", 4 until width - 4, 0..3)
-      region("bottom", 4 until width - 4, height - 4 until height)
-      region("topLeft", 0..3, 0..3)
-      region("topRight", width - 4 until width, 0..3)
-      region("bottomLeft", 0..3, height - 4 until height)
-      region("bottomRight", width - 4 until width, height - 4 until height)
+      val regions = edgeRegions(width, height) { x, y -> abs(c(actual, x, y).blue - (1f - alpha)) }
       println("$label regions=$regions")
       for ((region, error) in regions) assertThat(error, "$label $region").isLessThan(0.02f)
       for (y in 0 until height) for (x in 0 until width) assertThat(abs(c(control, x, y).blue - (1f - alpha)), "$label plain($x,$y)").isLessThan(0.02f)
@@ -171,5 +220,20 @@ class ProgressiveSamplingAndroidHostTest : ScreenshotTest() {
       println("$label interior maxGreen=$maxGreen")
       assertThat(maxGreen, "$label opaque interior over green").isLessThan(0.02f)
     }
+  }
+
+  /** Maximum [error] in each 4 px edge band and corner of a [width] x [height] area. */
+  private fun edgeRegions(width: Int, height: Int, error: (x: Int, y: Int) -> Float): Map<String, Float> {
+    fun max(xs: IntRange, ys: IntRange) = ys.maxOf { y -> xs.maxOf { x -> error(x, y) } }
+    return linkedMapOf(
+      "left" to max(0..3, 4 until height - 4),
+      "right" to max(width - 4 until width, 4 until height - 4),
+      "top" to max(4 until width - 4, 0..3),
+      "bottom" to max(4 until width - 4, height - 4 until height),
+      "topLeft" to max(0..3, 0..3),
+      "topRight" to max(width - 4 until width, 0..3),
+      "bottomLeft" to max(0..3, height - 4 until height),
+      "bottomRight" to max(width - 4 until width, height - 4 until height),
+    )
   }
 }
