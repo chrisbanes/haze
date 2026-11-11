@@ -11,6 +11,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -76,14 +77,14 @@ private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiT
     artifactPath?.substringBeforeLast('/', missingDelimiterValue = "")?.takeIf(String::isNotEmpty)
       ?.let { provideRoborazziContext().setRuleOverrideOutputDirectory(it) }
     try {
-      this@createScreenshotUiTest.onRoot().captureRoboImage(output, options)
+      this@createScreenshotUiTest.captureRootImage().captureRoboImage(output, options)
     } finally {
       if (artifactPath != null) context.setRuleOverrideOutputDirectory(previousOutputDirectory)
     }
   }
 
   override fun captureRootPixels(): PixelMap =
-    this@createScreenshotUiTest.onRoot().captureToImage().toPixelMap()
+    this@createScreenshotUiTest.captureRootImage().toPixelMap()
 
   override fun onNodeWithTag(testTag: String) =
     this@createScreenshotUiTest.onNodeWithTag(testTag)
@@ -97,4 +98,20 @@ private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiT
       swipeUp()
     }
   }
+}
+
+/**
+ * Captures the root without rendering it again. [SkikoComposeUiTest.waitForIdle] already renders
+ * pending changes to the test surface, but `onRoot().captureToImage()` redraws the whole scene,
+ * which doubles the cost of every Desktop capture (#1778). Redraw only when the root does not
+ * cover the surface, because the surface snapshot is not cropped.
+ */
+@OptIn(ExperimentalTestApi::class)
+private fun SkikoComposeUiTest.captureRootImage(): ImageBitmap {
+  // Fetch bounds first: the fetch can wait for idle and draw, which must precede the snapshot.
+  val bounds = onRoot().fetchSemanticsNode().boundsInWindow
+  val image = captureToImage()
+  val coversSurface = bounds.left == 0f && bounds.top == 0f &&
+    bounds.width.toInt() == image.width && bounds.height.toInt() == image.height
+  return if (coversSurface) image else onRoot().captureToImage()
 }

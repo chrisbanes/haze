@@ -67,6 +67,12 @@ tasks.withType<Test> {
     maxHeapSize = "2g"
   }
 
+  // Even with single-render captures, one fork of this Desktop suite would outlast the library
+  // suite's four forks on CI (#1778).
+  if (name == "jvmTest") {
+    maxParallelForks = 2
+  }
+
   addTestOutputListener(
     object : TestOutputListener {
       override fun onOutput(
