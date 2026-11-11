@@ -64,7 +64,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
-          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/v1' }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
 
@@ -77,11 +77,23 @@ jobs:
           key: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-${{ github.sha }}
           restore-keys: gradle-configuration-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}-
 
-      - name: Cache Kotlin/Native
-        uses: actions/cache@v6
+      - name: Read Kotlin version
+        id: kotlin
+        run: |
+          version=$(sed -n 's/^kotlin = "\(.*\)"$/\1/p' gradle/libs.versions.toml)
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # Only main and v1 save ~/.konan: PR-scoped entries evicted main's from the shared 10 GB
+      # Actions cache (#1776). It holds per-dependency caches, so only the exact catalog key is
+      # saved; PRs may fall back to an entry for the same Kotlin version and never save it.
+      - name: Restore Kotlin/Native cache
+        id: konan
+        uses: actions/cache/restore@v6
         with:
           path: ~/.konan
-          key: konan-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('gradle/libs.versions.toml') }}-${{ github.job }}
+          key: konan-v2-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ steps.kotlin.outputs.version }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: ${{ (github.ref != 'refs/heads/main' && github.ref != 'refs/heads/v1') && format('konan-v2-{0}-{1}-{2}-{3}-', runner.os, runner.arch, github.job, steps.kotlin.outputs.version) || '' }}
 
       - name: Compile Apple targets, run iOS simulator and macOS host tests, link macOS sample
         run: >
@@ -94,6 +106,13 @@ jobs:
           ORG_GRADLE_PROJECT_remoteBuildCacheUsername: ${{ secrets.GRADLE_REMOTE_CACHE_USERNAME }}
           ORG_GRADLE_PROJECT_remoteBuildCachePassword: ${{ secrets.GRADLE_REMOTE_CACHE_PASSWORD }}
           ORG_GRADLE_PROJECT_remoteBuildCachePush: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1') }}
+
+      - name: Save Kotlin/Native cache
+        if: steps.konan.outputs.cache-hit != 'true' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1')
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.konan
+          key: ${{ steps.konan.outputs.cache-primary-key }}
 
       - name: Upload reports
         if: failure()
@@ -180,7 +199,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
-          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/v1' }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
 
@@ -278,7 +297,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
-          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/v1' }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
 
@@ -341,7 +360,7 @@ jobs:
         if: env.RUN_EMULATOR_TESTS == 'true'
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
-          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/v1' }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
 
@@ -424,7 +443,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
-          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/v1' }}
           gradle-home-cache-excludes: |
             caches/build-cache-1
 
