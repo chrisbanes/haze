@@ -11,9 +11,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,14 +26,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
+import assertk.assertions.prop
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
@@ -163,6 +173,43 @@ class GlassSquareEdgeCoverageTest {
       val difference = maxOf(abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue))
       assertThat(difference, "outside the node at ($x, $y): $a vs $b").isLessThan(1f / 255f)
     }
+  }
+
+  @Test
+  fun squareSurface_shapeChangeAtLayerLimit_reevaluatesBudget() = runComposeUiTest {
+    // A full-scale rounded surface exactly at the layer limit fits; its square capture gains margins
+    // and must lower its scale rather than reuse the rounded decision, and recover when rounded again.
+    val state = HazeState()
+    val effect = GlassRuntimeEffect()
+    var square by mutableStateOf(false)
+    setContent {
+      val size = with(LocalDensity.current) { DpSize(MAX_GLASS_LAYER_DIMENSION_PX.toDp(), 40.toDp()) }
+      Box(Modifier.wrapContentSize(unbounded = true).requiredSize(size)) {
+        Box(Modifier.fillMaxSize().hazeSource(state).background(Color.Green))
+        Box(
+          Modifier.fillMaxSize().hazeGlass(
+            factory = HazeEffectFactory { effect },
+            input = HazeInput.Sources(state),
+            style = GlassStyle.regular.then { shape(RoundedCornerShape(if (square) 0.dp else 1.dp)) },
+            performanceMode = HazePerformanceMode.Quality,
+            expandLayerBounds = false,
+            interactionSource = null,
+          ),
+        )
+      }
+    }
+    waitForIdle()
+    assertThat(effect.preparedRenderBudget).isInstanceOf<GlassRenderBudgetDecision.Runtime>()
+
+    square = true
+    waitForIdle()
+    assertThat(effect.preparedRenderBudget).isInstanceOf<GlassRenderBudgetDecision.Runtime>()
+      .prop(GlassRenderBudgetDecision.Runtime::scaleFactor).isLessThan(1f)
+
+    square = false
+    waitForIdle()
+    assertThat(effect.preparedRenderBudget).isInstanceOf<GlassRenderBudgetDecision.Runtime>()
+      .prop(GlassRenderBudgetDecision.Runtime::scaleFactor).isEqualTo(1f)
   }
 
   private fun PixelMap.rowMean(y: Int): FloatArray {

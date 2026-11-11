@@ -73,6 +73,9 @@ private class GlassRenderBudgetCacheKey(
   val interactionTopology: GlassInteractionTopology,
   val interactionRadiusFraction: Float,
   val backdrop: Boolean,
+  // Pixel-aligned placement sizes the capture from the layer offset too (#1775).
+  val alignToPixels: Boolean,
+  val layerOffset: Offset,
 )
 
 private class GlassPreparedDrawCacheKey(
@@ -1060,7 +1063,9 @@ internal class GlassRuntimeEffect() :
       budgetKey.materialSize == context.modifierSize &&
       budgetKey.interactionTopology === interactionTopology &&
       budgetKey.interactionRadiusFraction == interaction.radiusFraction &&
-      budgetKey.backdrop == backdrop
+      budgetKey.backdrop == backdrop &&
+      budgetKey.alignToPixels == alignToPixels &&
+      (!alignToPixels || budgetKey.layerOffset == context.layerOffset)
     ) {
       checkNotNull(budgetCacheDecision)
     } else {
@@ -1088,6 +1093,8 @@ internal class GlassRuntimeEffect() :
           interactionTopology = interactionTopology,
           interactionRadiusFraction = interaction.radiusFraction,
           backdrop = backdrop,
+          alignToPixels = alignToPixels,
+          layerOffset = context.layerOffset,
         )
         budgetCacheDecision = it
       }
