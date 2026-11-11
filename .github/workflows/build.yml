@@ -413,7 +413,8 @@ jobs:
             **/build/outputs/androidTest-results/**
 
   emulator_tests:
-    if: always() && needs.changes.result == 'success' && needs.changes.outputs.run_emulator_tests == 'true' && !contains(github.event.head_commit.message, 'skip ci')
+    # A failed change-detection job must fail this required check, not skip it.
+    if: always() && (needs.changes.result != 'success' || (needs.changes.outputs.run_emulator_tests == 'true' && !contains(github.event.head_commit.message, 'skip ci')))
     needs:
       - changes
       - emulator_tests_matrix

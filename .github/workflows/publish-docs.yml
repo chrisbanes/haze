@@ -29,7 +29,8 @@ on:
         type: boolean
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # Ignored nightly Build completions must not cancel an active docs publication.
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.workflow_run.event == 'schedule' && 'scheduled' || 'publish' }}
   cancel-in-progress: true
 
 permissions:
