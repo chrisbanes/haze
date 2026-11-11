@@ -62,7 +62,20 @@ class GlassSquareEdgeCoverageInstrumentationTest {
   @Test
   fun squareBar_edgePixelsHideUnderlay_qualityMode_expanded() = assertEdgesHideUnderlay(HazePerformanceMode.Quality, expandLayerBounds = true)
 
-  private fun assertEdgesHideUnderlay(performanceMode: HazePerformanceMode, expandLayerBounds: Boolean) {
+  @Test
+  fun squareBar_withRefractionDetailAtEdge_edgePixelsHideUnderlay() =
+    // A large displacement puts the refracted edge sample inside the separate detail shader's band.
+    assertEdgesHideUnderlay(
+      HazePerformanceMode.Default,
+      expandLayerBounds = false,
+      customOptics = GlassOptics(refractionDisplacement = 24.dp),
+    )
+
+  private fun assertEdgesHideUnderlay(
+    performanceMode: HazePerformanceMode,
+    expandLayerBounds: Boolean,
+    customOptics: GlassOptics? = null,
+  ) {
     composeTestRule.runOnUiThread { composeTestRule.activity.enableEdgeToEdge() }
     configuration.value = Configuration(0.dp, performanceMode, expandLayerBounds, Color.Magenta)
     composeTestRule.setContent {
@@ -83,6 +96,7 @@ class GlassSquareEdgeCoverageInstrumentationTest {
               style = GlassStyle.regular.then {
                 shape(RoundedCornerShape(0.dp))
                 edgeSoftness(current.softness)
+                customOptics?.let { optics(it) }
               },
               performanceMode = current.performanceMode,
               expandLayerBounds = current.expandLayerBounds,

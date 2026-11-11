@@ -2019,6 +2019,7 @@ internal class RuntimeShaderGlassDelegate(
             coverageOnly = false,
             merged = nextInputKey.merged,
             continuous = nextInputKey.continuous,
+            coverageOutset = nextInputKey.coverageOutset,
             input = backdropInput,
           )
         }.also {
