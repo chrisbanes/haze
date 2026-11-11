@@ -15,6 +15,7 @@ internal object GlassShaders {
     sharpDetail: Boolean = true,
     merged: Boolean = false,
     continuous: Boolean = false,
+    coverageOutset: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -93,7 +94,7 @@ internal object GlassShaders {
   } else {
     "float outputSd = ${shapeSd(merged, "localCoord", continuous)};"
   }}
-      float coverage = shapeCoverage(outputSd, sampleStep * 0.5);
+      float coverage = shapeCoverage(${outsetSd("outputSd", coverageOutset)}, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
@@ -270,6 +271,7 @@ internal object GlassShaders {
     interactive: Boolean = false,
     merged: Boolean = false,
     continuous: Boolean = false,
+    coverageOutset: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -331,7 +333,7 @@ internal object GlassShaders {
   } else {
     "float sd = ${shapeSd(merged, "localCoord", continuous)};"
   }}
-      float coverage = shapeCoverage(sd, sampleStep * 0.5);
+      float coverage = shapeCoverage(${outsetSd("sd", coverageOutset)}, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
 
       float distToEdge = max(-sd, 0.0);
@@ -428,6 +430,7 @@ internal object GlassShaders {
     coverageOnly: Boolean = false,
     merged: Boolean = false,
     continuous: Boolean = false,
+    coverageOutset: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -469,7 +472,7 @@ internal object GlassShaders {
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
       float outputSd = ${shapeSd(merged, "localCoord", continuous)};
-      float coverage = shapeCoverage(outputSd, sampleStep * 0.5);
+      float coverage = shapeCoverage(${outsetSd("outputSd", coverageOutset)}, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
@@ -687,6 +690,12 @@ internal object GlassShaders {
 
     ${sdfGradientHelpers(continuous)}
   """
+
+  // Square surfaces extend coverage past the material by a fixed outset (#1775). It is a constant,
+  // not a uniform: the uniform layout, and so the GPU state, matches the original programs, which
+  // every other surface still compiles.
+  private fun outsetSd(sd: String, enabled: Boolean): String =
+    if (enabled) "$sd - $GLASS_SQUARE_EDGE_COVERAGE_OUTSET_SKSL" else sd
 
   private fun sdfShapeHelpers(continuous: Boolean): String = """
     float shapeCoverage(float sd, float pixelWidth) {
@@ -1671,3 +1680,6 @@ ${ifContinuous(continuous, "    uniform float4 memberCornerExponents[4];\n")}   
     }
   """
 }
+
+/** [SQUARE_EDGE_COVERAGE_OUTSET] as an SkSL literal. */
+internal const val GLASS_SQUARE_EDGE_COVERAGE_OUTSET_SKSL = "2.0"

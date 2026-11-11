@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.isFinite
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
@@ -21,15 +22,26 @@ import androidx.compose.ui.unit.lerp as lerpDp
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.util.lerp
 import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.scaledContentScale
 import kotlin.math.abs
+import kotlin.math.ceil
 
 private const val MAX_REFRACTION_DISPLACEMENT_PX = 16_384f
 
+/**
+ * Working-space placement of a Glass surface. [scaleFactor] scales optics. A [pixelAligned] surface
+ * places its material on whole working pixels, capturing and presenting with the per-axis
+ * [captureScale], and extends its coverage [SQUARE_EDGE_COVERAGE_OUTSET] working pixels past the
+ * material; others use [scaleFactor] on both axes.
+ */
 internal data class GlassCoordinates(
   val sampleSize: Size,
   val materialOrigin: Offset,
   val materialSize: Size,
   val scaleFactor: Float,
+  val captureScale: ScaleFactor = ScaleFactor(scaleFactor, scaleFactor),
+  val pixelAligned: Boolean = false,
 )
 
 internal fun Size.isDrawable(): Boolean =
@@ -45,17 +57,71 @@ internal fun GlassCoordinates.withRoundedSampleSize(): GlassCoordinates {
   return copy(sampleSize = Size(rounded.width.toFloat(), rounded.height.toFloat()))
 }
 
+@OptIn(InternalHazeApi::class)
 internal fun resolveGlassCoordinates(
   layerSize: Size,
   layerOffset: Offset,
   materialSize: Size,
   scaleFactor: Float,
-): GlassCoordinates = GlassCoordinates(
-  sampleSize = layerSize * scaleFactor,
-  materialOrigin = layerOffset * scaleFactor,
-  materialSize = materialSize * scaleFactor,
-  scaleFactor = scaleFactor,
+  alignToPixels: Boolean = false,
+): GlassCoordinates {
+  val scaledMaterial = (materialSize * scaleFactor).roundToIntSize()
+  if (
+    !alignToPixels || scaledMaterial.width <= 0 || scaledMaterial.height <= 0 ||
+    !layerSize.isDrawable() || !layerOffset.isFinite
+  ) {
+    return GlassCoordinates(
+      sampleSize = layerSize * scaleFactor,
+      materialOrigin = layerOffset * scaleFactor,
+      materialSize = materialSize * scaleFactor,
+      scaleFactor = scaleFactor,
+    )
+  }
+  // Whole working pixels at both material edges keep its outermost pixels fully covered (#1775).
+  val captureScale = scaledContentScale(materialSize, scaleFactor)
+  // Coverage extends this far past the material. The captured layer already holds content there
+  // where its sample padding reaches that far; elsewhere, typically at a window edge or without
+  // expanded bounds, the sample gains a margin on that side for the capture to fill.
+  val outset = SQUARE_EDGE_COVERAGE_OUTSET
+  val beforeX = layerOffset.x * captureScale.scaleX
+  val beforeY = layerOffset.y * captureScale.scaleY
+  val afterX = (layerSize.width - layerOffset.x) * captureScale.scaleX - scaledMaterial.width
+  val afterY = (layerSize.height - layerOffset.y) * captureScale.scaleY - scaledMaterial.height
+  // Rounding the origin up only grows the sample, so sampling reach beyond the material holds.
+  val originX = ceil(beforeX - PIXEL_EPSILON) + (if (beforeX < outset) outset else 0f)
+  val originY = ceil(beforeY - PIXEL_EPSILON) + (if (beforeY < outset) outset else 0f)
+  return GlassCoordinates(
+    // The sample ends with the captured layer, plus any margin; a material clipped by the layer may
+    // extend past it.
+    sampleSize = Size(
+      ceil(originX + scaledMaterial.width + afterX - PIXEL_EPSILON) + (if (afterX < outset) outset else 0f),
+      ceil(originY + scaledMaterial.height + afterY - PIXEL_EPSILON) + (if (afterY < outset) outset else 0f),
+    ),
+    materialOrigin = Offset(originX, originY),
+    materialSize = Size(scaledMaterial.width.toFloat(), scaledMaterial.height.toFloat()),
+    scaleFactor = scaleFactor,
+    captureScale = captureScale,
+    pixelAligned = true,
+  )
+}
+
+/** Where [layerOffset] lands in working space for a pixel-aligned capture. */
+internal fun GlassCoordinates.captureShift(layerOffset: Offset): Offset = Offset(
+  materialOrigin.x - layerOffset.x * captureScale.scaleX,
+  materialOrigin.y - layerOffset.y * captureScale.scaleY,
 )
+
+/** The node-space offset that presents a pixel-aligned capture with its material origin at the node origin. */
+internal fun GlassCoordinates.presentationOffset(): Offset = Offset(
+  -materialOrigin.x / captureScale.scaleX,
+  -materialOrigin.y / captureScale.scaleY,
+)
+
+// Absorbs float error so an exact whole-pixel position does not round up by a pixel.
+private const val PIXEL_EPSILON = 0.001f
+
+// Working pixels of coverage past a square surface's edges: upscaling filters across one of them.
+internal const val SQUARE_EDGE_COVERAGE_OUTSET = 2f
 
 internal fun calculateGlassSamplePaddingPx(
   blurRadiusPx: Float,
@@ -342,6 +408,7 @@ internal data class GlassRefractionDetailEffectKey(
   /** Negative selects Surface; zero disables Edge refraction. */
   val edgeRefractionWidthPx: Float = -1f,
   val mergedField: GlassMergedField? = null,
+  val coverageOutset: Boolean = false,
 )
 
 internal fun GlassRenderParams.refractionDetailEffectKey(
@@ -350,6 +417,7 @@ internal fun GlassRenderParams.refractionDetailEffectKey(
   sampleSize = coordinates.sampleSize,
   materialOrigin = coordinates.materialOrigin,
   materialSize = coordinates.materialSize,
+  coverageOutset = coordinates.pixelAligned,
   sampleStepPx = sampleStepPx,
   refractionStrength = refractionStrength,
   refractionFoldStrength = refractionFoldStrength,

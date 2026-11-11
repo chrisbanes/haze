@@ -42,6 +42,7 @@ import dev.chrisbanes.haze.HazeEffectRendererInteraction
 import dev.chrisbanes.haze.HazeEffectRendererLifecycle
 import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
@@ -51,6 +52,7 @@ import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.trace
+import kotlin.math.ceil
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
@@ -336,6 +338,7 @@ internal class GlassRuntimeEffect() :
   private var coordinatesCacheLayerOffset: Offset = Offset.Unspecified
   private var coordinatesCacheMaterialSize: Size = Size.Unspecified
   private var coordinatesCacheScaleFactor: Float = Float.NaN
+  private var coordinatesCacheAlignToPixels: Boolean = false
 
   private var interactionRenderStateCache: GlassInteractionRenderState? = null
   private var interactionRadiusFractionCache: Float = Float.NaN
@@ -345,6 +348,7 @@ internal class GlassRuntimeEffect() :
 
   private var shouldClipToNodeBoundsCacheValid: Boolean = false
   private var shouldClipToNodeBoundsCache: Boolean = false
+  private var squareShapeCache: Boolean = false
 
   private val renderPreparation = GlassRenderPreparation(
     decision = GlassRenderBudgetDecision.Fallback(
@@ -841,16 +845,37 @@ internal class GlassRuntimeEffect() :
     if (!shouldClipToNodeBoundsCacheValid) {
       val observer = geometrySnapshotObserver
       if (observer != null) {
-        observer.observeReads(clipObservationScope, onObservedStyleChanged) {
-          shouldClipToNodeBoundsCache = edgeSoftness > 0.dp || !shape.hasZeroCornerRadii()
-        }
+        observer.observeReads(clipObservationScope, onObservedStyleChanged) { updateClipCache() }
       } else {
-        shouldClipToNodeBoundsCache = edgeSoftness > 0.dp || !shape.hasZeroCornerRadii()
+        updateClipCache()
       }
       shouldClipToNodeBoundsCacheValid = true
     }
     return shouldClipToNodeBoundsCache
   }
+
+  /** Reads the corner check [shouldClipToNodeBounds] caches, so it is invalidated with the shape. */
+  private fun hasSquareShape(): Boolean {
+    shouldClipToNodeBounds()
+    return squareShapeCache
+  }
+
+  private fun updateClipCache() {
+    squareShapeCache = shape.hasZeroCornerRadii()
+    shouldClipToNodeBoundsCache = edgeSoftness > 0.dp || !squareShapeCache
+  }
+
+  /**
+   * Whether this surface fully covers its edges, all of which meet its node bounds (#1775). Its
+   * outermost pixels would otherwise be only partly covered, by the shape's anti-aliasing, a
+   * fractional sample origin or an upscaled reduced-scale layer, showing whatever lies beneath. It
+   * places its material on whole pixels and extends coverage past it, clipped to the node. An
+   * outline is drawn beyond the edge, and containers draw merged shapes, so neither does.
+   */
+  internal fun coversSquareEdges(): Boolean =
+    surfaceSnapshot == null && hasSquareShape() && drawExtent <= 0.dp &&
+      // The platform captures a backdrop itself, so its placement and presentation stay as they are.
+      memberBinding?.input !is HazeInput.Backdrop
 
   internal fun resolvePreparedStyle(context: HazeEffectRuntimeDrawScope): ResolvedGlassStyle {
     val density = context.requireDensity()
@@ -907,12 +932,14 @@ internal class GlassRuntimeEffect() :
     layerOffset: Offset,
     materialSize: Size,
     scaleFactor: Float,
+    alignToPixels: Boolean,
   ): GlassCoordinates {
     coordinatesCache?.takeIf {
       coordinatesCacheLayerSize == layerSize &&
         coordinatesCacheLayerOffset == layerOffset &&
         coordinatesCacheMaterialSize == materialSize &&
-        coordinatesCacheScaleFactor == scaleFactor
+        coordinatesCacheScaleFactor == scaleFactor &&
+        coordinatesCacheAlignToPixels == alignToPixels
     }?.let { return it }
 
     return resolveGlassCoordinates(
@@ -920,12 +947,14 @@ internal class GlassRuntimeEffect() :
       layerOffset = layerOffset,
       materialSize = materialSize,
       scaleFactor = scaleFactor,
+      alignToPixels = alignToPixels,
     ).withRoundedSampleSize().also {
       coordinatesCache = it
       coordinatesCacheLayerSize = layerSize
       coordinatesCacheLayerOffset = layerOffset
       coordinatesCacheMaterialSize = materialSize
       coordinatesCacheScaleFactor = scaleFactor
+      coordinatesCacheAlignToPixels = alignToPixels
     }
   }
 
@@ -944,6 +973,8 @@ internal class GlassRuntimeEffect() :
         null,
       )
     }
+    // Evaluated once, so the budget plan and the prepared coordinates agree on the placement.
+    val alignToPixels = coversSquareEdges()
     val style = resolvePreparedStyle(context)
     val interaction = resolvePreparedInteraction(context)
     // Budget for the layers buildGlassPreparedRender keeps, which merges only interaction lighting.
@@ -956,6 +987,7 @@ internal class GlassRuntimeEffect() :
         layerOffset = context.layerOffset,
         materialSize = context.modifierSize,
         scaleFactor = scaleFactor,
+        alignToPixels = alignToPixels,
       )
       if (!rawCoordinates.materialSize.isDrawable() || !rawCoordinates.sampleSize.isDrawable()) {
         return@buildPlan GlassRetainedLayerPlan(emptyList())
@@ -1072,6 +1104,7 @@ internal class GlassRuntimeEffect() :
       layerOffset = context.layerOffset,
       materialSize = context.size,
       scaleFactor = decision.scaleFactor,
+      alignToPixels = alignToPixels,
     )
     val preparedCacheKey = preparedRenderCacheKey
     if (
@@ -1240,7 +1273,9 @@ internal class GlassRuntimeEffect() :
       layerPaddingCacheRefractionMultiplier = multiplier
       layerPaddingCacheValid = true
     }
-    return rect.inflate(layerPaddingCache)
+    // A square surface covering its edges keeps its material on whole layer pixels at full scale,
+    // so its capture needs no sub-pixel shift (#1775). Rounding up keeps the sampling reach.
+    return rect.inflate(if (coversSquareEdges()) ceil(layerPaddingCache) else layerPaddingCache)
   }
 
   private fun samplePaddingPx(

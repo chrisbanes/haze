@@ -33,9 +33,11 @@ import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeProgressive
+import kotlin.math.ceil
 import kotlin.math.sqrt
 import kotlin.test.Test
 
@@ -1580,6 +1582,82 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun coversSquareEdges_onlyForSquareUnoutlinedSurfaces() {
+    fun effect(block: GlassStyleScope.() -> Unit) = GlassRuntimeEffect().apply {
+      style = style.then {
+        shape(RoundedCornerShape(0.dp))
+        block()
+      }
+    }
+
+    assertThat(effect {}.coversSquareEdges(), "square").isTrue()
+    assertThat(effect { edgeSoftness(4.dp) }.coversSquareEdges(), "softened square").isTrue()
+    assertThat(effect { edgeOutline(Color.Transparent, 4.dp) }.coversSquareEdges(), "invisible outline").isTrue()
+    assertThat(effect { shape(RoundedCornerShape(1.dp)) }.coversSquareEdges(), "rounded").isFalse()
+    assertThat(effect { edgeOutline(Color.Green, 4.dp) }.coversSquareEdges(), "outlined").isFalse()
+    assertThat(effect { drawOutset(1.dp) }.coversSquareEdges(), "draw outset").isFalse()
+  }
+
+  @Test
+  fun calculateLayerBounds_padsWholePixelsOnlyWhileSquare() {
+    val effect = GlassRuntimeEffect().apply {
+      style = style.then { shape(RoundedCornerShape(0.dp)) }
+    }
+    val rect = Rect(0f, 0f, 440f, 220f)
+    val density = Density(1f)
+    val raw = expectedLayerPadding(effect, rect, density)
+    assertThat(raw).isNotEqualTo(ceil(raw))
+
+    assertThat(-effect.calculateLayerBounds(rect, density).left, "square").isEqualTo(ceil(raw))
+    effect.style = effect.style.then { shape(RoundedCornerShape(8.dp)) }
+    assertThat(-effect.calculateLayerBounds(rect, density).left, "rounded").isEqualTo(expectedLayerPadding(effect, rect, density))
+    effect.style = effect.style.then { shape(RoundedCornerShape(0.dp)) }
+    assertThat(-effect.calculateLayerBounds(rect, density).left, "square again").isEqualTo(ceil(raw))
+  }
+
+  @Test
+  fun coordinates_pixelAlignedCaptureAndPresentationInvertEachOther() {
+    val layerOffset = Offset(12.3f, 7.6f)
+    val coordinates = resolveGlassCoordinates(
+      layerSize = Size(424.6f, 95.2f),
+      layerOffset = layerOffset,
+      materialSize = Size(400f, 80f),
+      scaleFactor = 0.79f,
+      alignToPixels = true,
+    )
+    val scale = coordinates.captureScale
+
+    assertThat(coordinates.pixelAligned).isTrue()
+    // Capture maps the node origin, at layerOffset in the layer, onto the material origin...
+    val shift = coordinates.captureShift(layerOffset)
+    assertThat(shift.x + layerOffset.x * scale.scaleX).isCloseTo(coordinates.materialOrigin.x, 0.0001f)
+    assertThat(shift.y + layerOffset.y * scale.scaleY).isCloseTo(coordinates.materialOrigin.y, 0.0001f)
+    // ...and presentation maps the material origin and far edge back onto the node's edges.
+    val presentation = coordinates.presentationOffset()
+    assertThat(presentation.x + coordinates.materialOrigin.x / scale.scaleX).isCloseTo(0f, 0.0001f)
+    assertThat(presentation.y + coordinates.materialOrigin.y / scale.scaleY).isCloseTo(0f, 0.0001f)
+    val farX = presentation.x + (coordinates.materialOrigin.x + coordinates.materialSize.width) / scale.scaleX
+    val farY = presentation.y + (coordinates.materialOrigin.y + coordinates.materialSize.height) / scale.scaleY
+    assertThat(farX).isCloseTo(400f, 0.001f)
+    assertThat(farY).isCloseTo(80f, 0.001f)
+  }
+
+  @Test
+  fun coordinates_matchUniformScaleWhenNotPixelAligned() {
+    val coordinates = resolveGlassCoordinates(
+      layerSize = Size(424.6f, 95.2f),
+      layerOffset = Offset(12.3f, 7.6f),
+      materialSize = Size(400f, 80f),
+      scaleFactor = 0.79f,
+    )
+
+    assertThat(coordinates).isEqualTo(
+      GlassCoordinates(Size(424.6f, 95.2f) * 0.79f, Offset(12.3f, 7.6f) * 0.79f, Size(400f, 80f) * 0.79f, 0.79f),
+    )
+    assertThat(coordinates.pixelAligned).isFalse()
+  }
+
+  @Test
   fun calculateLayerBounds_largeSurfaceUsesResponsiveBlur() {
     val effect = GlassRuntimeEffect().apply {
       style = style.then {
@@ -1597,7 +1675,8 @@ class GlassRenderParamsTest {
     )
 
     assertThat(resolved.blurRadiusPx).isGreaterThan(14f)
-    assertThat(padding).isEqualTo(expectedLayerPadding(effect, rect, density))
+    // A square, unoutlined surface pads in whole pixels so its material sits on whole layer pixels (#1775).
+    assertThat(padding).isEqualTo(ceil(expectedLayerPadding(effect, rect, density)))
   }
 
   @Test
