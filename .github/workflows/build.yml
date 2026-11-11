@@ -2,6 +2,8 @@ name: Build
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * *'
   push:
     branches:
       - main
@@ -9,7 +11,7 @@ on:
   pull_request:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'schedule' && 'scheduled' || 'build' }}
   # Keep publishing builds queued when a later docs-only push skips deployment.
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/v1' }}
   queue: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1') && 'max' || 'single' }}
@@ -21,6 +23,7 @@ jobs:
       contents: read
     outputs:
       run_build: ${{ steps.changes.outputs.run_build }}
+      run_emulator_tests: ${{ github.event_name == 'schedule' || steps.changes.outputs.run_build == 'true' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -36,6 +39,10 @@ jobs:
           BEFORE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
           run_build=true
+          # Scheduled runs cover secondary Android versions without building or publishing everything.
+          if [ "$GITHUB_EVENT_NAME" = schedule ]; then
+            run_build=false
+          fi
           if [ "$GITHUB_EVENT_NAME" = push ] || [ "$GITHUB_EVENT_NAME" = pull_request ]; then
             # Fail closed: if the diff cannot be computed, run the full build.
             docs_only=$(sh scripts/is_docs_only_push.sh "$BEFORE_SHA" "$GITHUB_SHA") || docs_only=false
@@ -331,17 +338,16 @@ jobs:
 
   emulator_tests_matrix:
     needs: changes
-    # No job-level `if`: a skipped matrix job never expands, so the required
-    # `emulator_tests_matrix (31)` and `(34)` checks would stay pending. Gate each step instead.
+    # Keep matrix jobs reporting on docs-only PRs; emulator_tests aggregates their results.
     env:
-      RUN_EMULATOR_TESTS: ${{ needs.changes.outputs.run_build == 'true' && !contains(github.event.head_commit.message, 'skip ci') }}
+      RUN_EMULATOR_TESTS: ${{ needs.changes.outputs.run_emulator_tests == 'true' && !contains(github.event.head_commit.message, 'skip ci') }}
 
     strategy:
       fail-fast: false
       matrix:
-        # API 30 runs the RenderScript Blur path: its assumeTrue(SDK_INT == 30) and
-        # @SdkSuppress(maxSdkVersion = 30) device tests only run there.
-        api-level: [30, 31, 32, 33, 34]
+        # PRs cover RenderScript, API 31 workarounds, and RuntimeShader's API 33 boundary.
+        # Secondary versions run nightly; pushes and manual builds keep the full matrix.
+        api-level: ${{ fromJSON(github.event_name == 'pull_request' && '[30,31,33]' || github.event_name == 'schedule' && '[32,34]' || '[30,31,32,33,34]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -407,7 +413,7 @@ jobs:
             **/build/outputs/androidTest-results/**
 
   emulator_tests:
-    if: always() && needs.changes.result == 'success' && needs.changes.outputs.run_build == 'true' && !contains(github.event.head_commit.message, 'skip ci')
+    if: always() && needs.changes.result == 'success' && needs.changes.outputs.run_emulator_tests == 'true' && !contains(github.event.head_commit.message, 'skip ci')
     needs:
       - changes
       - emulator_tests_matrix
