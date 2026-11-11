@@ -63,7 +63,7 @@ internal object GlassShaders {
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
     vec2 clampSample(vec2 coord) {
-      return clamp(coord, vec2(0.5), sampleSize - vec2(0.5));
+      return ${clampSampleExpression(coverageOutset)};
     }
 
     vec2 clampMaterial(vec2 coord) {
@@ -215,7 +215,7 @@ internal object GlassShaders {
     }
   """
 
-  fun buildBlur(horizontal: Boolean, progressive: Boolean = false): String {
+  fun buildBlur(horizontal: Boolean, progressive: Boolean = false, clampToMaterial: Boolean = false): String {
     val samples = buildString {
       repeat(SemanticBlurKernel.MAX_TAP_PAIRS) { index ->
         val direction = if (horizontal) {
@@ -243,11 +243,11 @@ internal object GlassShaders {
       uniform float2 materialOrigin;
       ${if (progressive) "uniform float maskCoordinateScale;" else ""}
       uniform float centerWeight;
-      uniform float sourceIsOpaque;
+      uniform float sourceIsOpaque;${if (clampToMaterial) "\n      uniform float2 materialSize;" else ""}
       $tapUniforms
 
       vec2 clampSample(vec2 coord) {
-        return clamp(coord, vec2(0.5), sampleSize - vec2(0.5));
+        return ${clampSampleExpression(clampToMaterial)};
       }
 
       vec4 main(vec2 coord) {
@@ -302,7 +302,7 @@ internal object GlassShaders {
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
     vec2 clampSample(vec2 coord) {
-      return clamp(coord, vec2(0.5), sampleSize - vec2(0.5));
+      return ${clampSampleExpression(coverageOutset)};
     }
 
     vec2 clampMaterial(vec2 coord) {
@@ -458,7 +458,7 @@ internal object GlassShaders {
   } else {
     """
     vec2 clampSample(vec2 coord) {
-      return clamp(coord, vec2(0.5), sampleSize - vec2(0.5));
+      return ${clampSampleExpression(coverageOutset)};
     }
     """
   }}
@@ -696,6 +696,16 @@ internal object GlassShaders {
   // every other surface still compiles.
   private fun outsetSd(sd: String, enabled: Boolean): String =
     if (enabled) "$sd - $GLASS_SQUARE_EDGE_COVERAGE_OUTSET_SKSL" else sd
+
+  // A square surface is presented cropped to its material, and clips above it, such as a window
+  // edge, crop it too, so every stage's input ends at the material: a sample past it reads
+  // transparency. Clamping to the material repeats its edge, as the native blur's clamp does.
+  private fun clampSampleExpression(toMaterial: Boolean): String = if (toMaterial) {
+    "clamp(coord, max(vec2(0.5), materialOrigin + vec2(0.5)), " +
+      "min(sampleSize - vec2(0.5), materialOrigin + materialSize - vec2(0.5)))"
+  } else {
+    "clamp(coord, vec2(0.5), sampleSize - vec2(0.5))"
+  }
 
   private fun sdfShapeHelpers(continuous: Boolean): String = """
     float shapeCoverage(float sd, float pixelWidth) {

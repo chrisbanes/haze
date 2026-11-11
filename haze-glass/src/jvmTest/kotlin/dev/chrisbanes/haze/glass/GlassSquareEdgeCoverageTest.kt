@@ -42,6 +42,7 @@ import assertk.assertions.prop
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.hazeSource
@@ -65,12 +66,40 @@ class GlassSquareEdgeCoverageTest {
   @Test
   fun squareSurface_edgePixelsHideUnderlay_defaultMode_expanded() = assertRuntimeEdgesHideUnderlay(HazePerformanceMode.Default, expandLayerBounds = true)
 
-  private fun assertRuntimeEdgesHideUnderlay(performanceMode: HazePerformanceMode, expandLayerBounds: Boolean) {
+  @Test
+  fun squareSurface_edgePixelsHideUnderlay_smallBlur() {
+    // Clear's shallow blur runs the tap blur, whose taps past the clipped edge read transparency.
+    for (performanceMode in listOf(HazePerformanceMode.Default, HazePerformanceMode.Quality)) {
+      assertRuntimeEdgesHideUnderlay(performanceMode, expandLayerBounds = false, optics = GlassOptics.clear)
+      assertRuntimeEdgesHideUnderlay(
+        performanceMode,
+        expandLayerBounds = false,
+        optics = GlassOptics.clear.copy(refractionStrength = 0f),
+      )
+    }
+  }
+
+  @Test
+  fun squareSurface_edgePixelsHideUnderlay_progressiveBlur() {
+    // Progressive blur always runs the tap blur.
+    val progressive = GlassOptics.regular.copy(
+      progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 1f),
+    )
+    for (performanceMode in listOf(HazePerformanceMode.Default, HazePerformanceMode.Quality)) {
+      assertRuntimeEdgesHideUnderlay(performanceMode, expandLayerBounds = false, optics = progressive)
+    }
+  }
+
+  private fun assertRuntimeEdgesHideUnderlay(
+    performanceMode: HazePerformanceMode,
+    expandLayerBounds: Boolean,
+    optics: GlassOptics? = null,
+  ) {
     for (softness in listOf(0.dp, 1.dp, 4.dp)) {
       // A fully covered edge cannot depend on what lies beneath the bar.
-      val overMagenta = capture(softness, fallback = false, performanceMode, expandLayerBounds, Color.Magenta)
-      val overGreen = capture(softness, fallback = false, performanceMode, expandLayerBounds, Color.Green)
-      val variant = "mode=$performanceMode expand=$expandLayerBounds softness=$softness"
+      val overMagenta = capture(softness, fallback = false, performanceMode, expandLayerBounds, Color.Magenta, optics)
+      val overGreen = capture(softness, fallback = false, performanceMode, expandLayerBounds, Color.Green, optics)
+      val variant = "mode=$performanceMode expand=$expandLayerBounds softness=$softness optics=$optics"
       for ((x, y) in overMagenta.borderPixels()) {
         val difference = abs(overMagenta[x, y].red - overGreen[x, y].red) + abs(overMagenta[x, y].green - overGreen[x, y].green)
         assertThat(difference, "$variant underlay shows at ($x, $y): ${overMagenta[x, y]} vs ${overGreen[x, y]}")
@@ -85,10 +114,11 @@ class GlassSquareEdgeCoverageTest {
     performanceMode: HazePerformanceMode,
     expandLayerBounds: Boolean,
     underlay: Color,
+    optics: GlassOptics? = null,
   ): PixelMap {
     lateinit var pixels: PixelMap
     runComposeUiTest {
-      setContent { WindowEdgeBar(softness, fallback, performanceMode, expandLayerBounds, underlay) }
+      setContent { WindowEdgeBar(softness, fallback, performanceMode, expandLayerBounds, underlay, optics) }
       waitForIdle()
       pixels = onNodeWithTag("glass").captureToImage().toPixelMap()
     }
@@ -277,6 +307,7 @@ class GlassSquareEdgeCoverageTest {
     performanceMode: HazePerformanceMode,
     expandLayerBounds: Boolean,
     underlay: Color,
+    optics: GlassOptics? = null,
   ) {
     val state = HazeState()
     val effect = GlassRuntimeEffect()
@@ -301,6 +332,7 @@ class GlassSquareEdgeCoverageTest {
             style = GlassStyle.regular.then {
               shape(shape)
               edgeSoftness(softness)
+              optics?.let { optics(it) }
             },
             performanceMode = performanceMode,
             expandLayerBounds = expandLayerBounds,

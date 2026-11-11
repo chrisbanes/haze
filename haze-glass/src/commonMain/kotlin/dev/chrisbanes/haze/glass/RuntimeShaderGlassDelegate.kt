@@ -64,6 +64,9 @@ internal class RuntimeShaderGlassDelegate(
   internal var progressiveBlurHorizontalShader: MutableRuntimeShaderRenderEffect? = null
     private set
   internal var progressiveBlurVerticalShader: MutableRuntimeShaderRenderEffect? = null
+
+  /** Whether the cached blur shaders above clamp their taps to the material (#1775). */
+  private var blurShadersClampToMaterial = false
     private set
   private var opticalKey: GlassOpticalEffectKey? = null
   internal var opticalShader: MutableRuntimeShaderRenderEffect? = null
@@ -2092,15 +2095,18 @@ internal class RuntimeShaderGlassDelegate(
       )
     }
     val progressive = blur.progressive != null
+    val clampToMaterial = blur.tapBounds != null
     val shaders = fusedDepthInputShaders
-      ?.takeIf { it.progressive == progressive }
+      ?.takeIf { it.progressive == progressive && it.clampToMaterial == clampToMaterial }
       ?: FusedDepthInputShaders(
         progressive = progressive,
+        clampToMaterial = clampToMaterial,
         horizontal = traceCreateRenderEffect {
           createGlassBlurRenderEffectWithInput(
             horizontal = true,
             progressive = progressive,
             input = null,
+            clampToMaterial = clampToMaterial,
           )
         },
         vertical = traceCreateRenderEffect {
@@ -2108,6 +2114,7 @@ internal class RuntimeShaderGlassDelegate(
             horizontal = false,
             progressive = progressive,
             input = null,
+            clampToMaterial = clampToMaterial,
           )
         },
       ).also { fusedDepthInputShaders = it }
@@ -2157,12 +2164,21 @@ internal class RuntimeShaderGlassDelegate(
       )
     }
     val progressive = key.progressive != null
+    val clampToMaterial = key.tapBounds != null
+    if (clampToMaterial != blurShadersClampToMaterial) {
+      blurHorizontalShader = null
+      blurVerticalShader = null
+      progressiveBlurHorizontalShader = null
+      progressiveBlurVerticalShader = null
+      blurShadersClampToMaterial = clampToMaterial
+    }
     val horizontalShader = if (progressive) {
       progressiveBlurHorizontalShader ?: traceCreateRenderEffect {
         createGlassBlurRenderEffectWithInput(
           horizontal = true,
           progressive = true,
           input = null,
+          clampToMaterial = clampToMaterial,
         )
       }.also { progressiveBlurHorizontalShader = it }
     } else {
@@ -2171,6 +2187,7 @@ internal class RuntimeShaderGlassDelegate(
           horizontal = true,
           progressive = false,
           input = null,
+          clampToMaterial = clampToMaterial,
         )
       }.also { blurHorizontalShader = it }
     }
@@ -2180,6 +2197,7 @@ internal class RuntimeShaderGlassDelegate(
           horizontal = false,
           progressive = true,
           input = null,
+          clampToMaterial = clampToMaterial,
         )
       }.also { progressiveBlurVerticalShader = it }
     } else {
@@ -2188,6 +2206,7 @@ internal class RuntimeShaderGlassDelegate(
           horizontal = false,
           progressive = false,
           input = null,
+          clampToMaterial = clampToMaterial,
         )
       }.also { blurVerticalShader = it }
     }
@@ -2328,6 +2347,7 @@ internal fun GlassFusedEffectKey.depthInputKey(interactionOptics: Boolean) = Gla
 
 private class FusedDepthInputShaders(
   val progressive: Boolean,
+  val clampToMaterial: Boolean,
   val horizontal: MutableRuntimeShaderRenderEffect,
   val vertical: MutableRuntimeShaderRenderEffect,
 )
@@ -2384,16 +2404,9 @@ internal fun createGlassBlurRenderEffectWithInput(
   horizontal: Boolean,
   progressive: Boolean,
   input: PlatformRenderEffect?,
+  clampToMaterial: Boolean = false,
 ): MutableRuntimeShaderRenderEffect = createMutableRuntimeShaderRenderEffect(
-  effect = if (progressive) {
-    if (horizontal) {
-      GLASS_PROGRESSIVE_HORIZONTAL_BLUR_EFFECT
-    } else {
-      GLASS_PROGRESSIVE_VERTICAL_BLUR_EFFECT
-    }
-  } else {
-    if (horizontal) GLASS_HORIZONTAL_BLUR_EFFECT else GLASS_VERTICAL_BLUR_EFFECT
-  },
+  effect = (if (progressive) GLASS_PROGRESSIVE_BLUR_EFFECT else GLASS_BLUR_EFFECT)[horizontal, clampToMaterial],
   shaderNames = arrayOf("content"),
   inputs = arrayOf(input),
 )
@@ -2451,11 +2464,18 @@ internal fun RuntimeShaderUniformProvider.setGlassBlurUniforms(
 ) {
   setFloatUniform("sampleSize", sampleWidth, sampleHeight)
   setFloatUniform("sourceIsOpaque", if (key.sourceIsOpaque) 1f else 0f)
-  setFloatUniform(
-    "materialOrigin",
-    key.maskOrigin.x,
-    key.maskOrigin.y,
-  )
+  val tapBounds = key.tapBounds
+  if (tapBounds != null) {
+    // A progressive key's mask origin is this material origin too.
+    setFloatUniform("materialOrigin", tapBounds.left, tapBounds.top)
+    setFloatUniform("materialSize", tapBounds.width, tapBounds.height)
+  } else {
+    setFloatUniform(
+      "materialOrigin",
+      key.maskOrigin.x,
+      key.maskOrigin.y,
+    )
+  }
   if (key.progressive != null) {
     setFloatUniform("maskCoordinateScale", key.maskCoordinateScale)
   }
@@ -2484,22 +2504,24 @@ private class GlassProgram(private val source: (continuous: Boolean, coverageOut
   }
 }
 
-private val GLASS_HORIZONTAL_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildBlur(horizontal = true))
+/** A blur pass's variants, each compiled on first use; only square surfaces clamp taps to their material. */
+private class GlassBlurProgram(private val progressive: Boolean) {
+  private val effects = arrayOfNulls<PlatformRuntimeEffect>(4)
+
+  operator fun get(horizontal: Boolean, clampToMaterial: Boolean): PlatformRuntimeEffect {
+    val index = (if (horizontal) 1 else 0) + (if (clampToMaterial) 2 else 0)
+    return effects[index] ?: createRuntimeEffect(
+      GlassShaders.buildBlur(horizontal = horizontal, progressive = progressive, clampToMaterial = clampToMaterial),
+    ).also { effects[index] = it }
+  }
 }
+
+private val GLASS_BLUR_EFFECT = GlassBlurProgram(progressive = false)
+private val GLASS_PROGRESSIVE_BLUR_EFFECT = GlassBlurProgram(progressive = true)
 private val GLASS_FUSED_EFFECT = GlassProgram { continuous, outset -> GlassShaders.buildFused(continuous = continuous, coverageOutset = outset) }
 private val GLASS_INTERACTION_OPTICS_FUSED_EFFECT = GlassProgram { continuous, outset -> GlassShaders.buildFused(interactionOptics = true, continuous = continuous, coverageOutset = outset) }
 private val GLASS_NO_DETAIL_FUSED_EFFECT = GlassProgram { continuous, outset -> GlassShaders.buildFused(sharpDetail = false, continuous = continuous, coverageOutset = outset) }
 private val GLASS_INTERACTION_OPTICS_NO_DETAIL_FUSED_EFFECT = GlassProgram { continuous, outset -> GlassShaders.buildFused(interactionOptics = true, sharpDetail = false, continuous = continuous, coverageOutset = outset) }
-private val GLASS_VERTICAL_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildBlur(horizontal = false))
-}
-private val GLASS_PROGRESSIVE_HORIZONTAL_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildBlur(horizontal = true, progressive = true))
-}
-private val GLASS_PROGRESSIVE_VERTICAL_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildBlur(horizontal = false, progressive = true))
-}
 private val GLASS_OPTICAL_EFFECT = GlassProgram { continuous, outset -> GlassShaders.buildOptical(continuous = continuous, coverageOutset = outset) }
 private val GLASS_INTERACTION_OPTICAL_EFFECT = GlassProgram { continuous, outset -> GlassShaders.buildOptical(interactive = true, continuous = continuous, coverageOutset = outset) }
 private val GLASS_REFRACTION_DETAIL_EFFECT = GlassProgram { continuous, outset -> GlassShaders.buildRefractionDetail(continuous = continuous, coverageOutset = outset) }

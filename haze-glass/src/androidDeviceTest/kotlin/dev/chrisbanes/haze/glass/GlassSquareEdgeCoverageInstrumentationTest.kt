@@ -71,6 +71,11 @@ class GlassSquareEdgeCoverageInstrumentationTest {
       customOptics = GlassOptics(refractionDisplacement = 24.dp),
     )
 
+  @Test
+  fun squareBar_smallBlur_edgePixelsHideUnderlay() =
+    // Clear's shallow blur runs the tap blur, whose taps past the window edge read transparency.
+    assertEdgesHideUnderlay(HazePerformanceMode.Default, expandLayerBounds = false, customOptics = GlassOptics.clear)
+
   private fun assertEdgesHideUnderlay(
     performanceMode: HazePerformanceMode,
     expandLayerBounds: Boolean,

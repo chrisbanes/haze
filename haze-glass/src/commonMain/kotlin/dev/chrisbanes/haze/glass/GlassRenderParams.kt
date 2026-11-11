@@ -7,6 +7,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAbsoluteAlignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.isFinite
@@ -311,6 +312,8 @@ internal data class GlassBlurEffectKey(
   val maskSize: Size,
   val maskCoordinateScale: Float,
   val sourceIsOpaque: Boolean = false,
+  /** A pixel-aligned surface's material, which its taps clamp to (#1775); null otherwise. */
+  val tapBounds: Rect? = null,
 )
 
 internal fun GlassRenderParams.blurEffectKey(): GlassBlurEffectKey {
@@ -329,6 +332,7 @@ internal fun GlassRenderParams.blurEffectKey(): GlassBlurEffectKey {
     maskSize = if (progressive != null) coordinates.materialSize / coordinates.scaleFactor else Size.Zero,
     maskCoordinateScale = if (progressive != null) 1f / coordinates.scaleFactor else 1f,
     sourceIsOpaque = isSourceOpaque,
+    tapBounds = if (coordinates.pixelAligned) Rect(coordinates.materialOrigin, coordinates.materialSize) else null,
   )
 }
 
