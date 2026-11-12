@@ -225,7 +225,11 @@ class GlassSquareEdgeCoverageTest {
           Modifier.fillMaxSize().hazeGlass(
             factory = HazeEffectFactory { effect },
             input = HazeInput.Sources(state),
-            style = GlassStyle.regular.then { shape(RoundedCornerShape(if (square) 0.dp else 1.dp)) },
+            style = GlassStyle.regular.then {
+              shape(RoundedCornerShape(if (square) 0.dp else 1.dp))
+              // An outlined square keeps the unaligned capture, which this budget check does not cover.
+              noBuiltInEdges()
+            },
             performanceMode = HazePerformanceMode.Quality,
             expandLayerBounds = false,
             interactionSource = null,
@@ -282,6 +286,7 @@ class GlassSquareEdgeCoverageTest {
                   edgeShadow(Color.Transparent)
                   ambientResponse(0f)
                   tint(Color.Transparent)
+                  noBuiltInEdges()
                 },
                 performanceMode = performanceMode,
                 expandLayerBounds = false,

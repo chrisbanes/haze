@@ -46,8 +46,9 @@ package dev.chrisbanes.haze.glass {
 
   public final class GlassDefaults {
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.ChromaticAberrationMode getChromaticAberrationMode();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape getContinuousShape();
     method @InaccessibleFromKotlin public androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.geometry.Offset> getInteractionPositionAnimationSpec();
-    method @InaccessibleFromKotlin public androidx.compose.foundation.shape.RoundedCornerShape getShape();
+    method @InaccessibleFromKotlin @Deprecated public androidx.compose.foundation.shape.RoundedCornerShape getShape();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.SurfaceProfile getSurfaceProfile();
     property public static float alpha;
     property public static float ambientResponse;
@@ -56,6 +57,7 @@ package dev.chrisbanes.haze.glass {
     property public dev.chrisbanes.haze.glass.ChromaticAberrationMode chromaticAberrationMode;
     property public static float chromaticAberrationStrength;
     property public static float contentNormalBlend;
+    property public dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape continuousShape;
     property public static float contrast;
     property public androidx.compose.ui.graphics.Color edgeShadow;
     property public androidx.compose.ui.unit.Dp edgeSoftness;
@@ -63,7 +65,7 @@ package dev.chrisbanes.haze.glass {
     property public static float interactionLightRadiusFraction;
     property public androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.geometry.Offset> interactionPositionAnimationSpec;
     property public androidx.compose.ui.unit.Dp mergeDistance;
-    property public androidx.compose.foundation.shape.RoundedCornerShape shape;
+    property @Deprecated public androidx.compose.foundation.shape.RoundedCornerShape shape;
     property public static float specularExponent;
     property public static float specularIntensity;
     property public dev.chrisbanes.haze.glass.SurfaceProfile surfaceProfile;

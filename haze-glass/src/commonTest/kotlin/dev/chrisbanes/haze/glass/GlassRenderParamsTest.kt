@@ -159,7 +159,9 @@ class GlassRenderParamsTest {
     )
 
     assertThat(resolve(GlassStyle { drawOutset(4.dp) }).drawOutsetPx).isEqualTo(8f)
-    assertThat(resolve(GlassStyle).drawOutsetPx).isEqualTo(0f)
+    // The built-in 0.7.dp outline sets the extent unless it is disabled.
+    assertThat(resolve(GlassStyle).drawOutsetPx).isEqualTo(1.4f)
+    assertThat(resolve(GlassStyle { noBuiltInEdges() }).drawOutsetPx).isEqualTo(0f)
   }
 
   @Test
@@ -719,8 +721,39 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun builtInStyles_respectAccessibilityPrecedence() {
+    for (appearance in GlassSystemAppearance.entries) {
+      for (builtIn in listOf(GlassStyle.regular, GlassStyle.clear)) {
+        val effect = GlassRuntimeEffect().apply {
+          systemAppearance = appearance
+          style = builtIn.then { alpha(0.7f) }
+          accessibilitySettings = GlassAccessibilitySettings(
+            reduceTransparency = true,
+            increaseContrast = true,
+            showBorders = true,
+          )
+        }
+        fun resolve() = resolveGlassStyle(effect, Size(280f, 176f), Density(1f), LayoutDirection.Ltr)
+        val resolved = resolve()
+        assertThat(resolved.fallbackBaseColor)
+          .isEqualTo(if (appearance == GlassSystemAppearance.Dark) Color.Black else Color.White)
+        assertThat(resolved.alpha).isEqualTo(0.7f)
+        assertThat(resolved.resolvedOptics.depth).isEqualTo(1f)
+        assertThat(resolved.resolvedOptics.blurRadiusPx).isGreaterThanOrEqualTo(20f)
+        assertThat(resolved.contrast).isGreaterThanOrEqualTo(0.16f)
+        assertThat(resolved.specularIntensity).isGreaterThanOrEqualTo(0.58f)
+        effect.accessibilitySettings = GlassAccessibilitySettings(
+          reduceTransparency = true,
+          reducedTransparencyFallbackColor = Color.Blue,
+        )
+        assertThat(resolve().fallbackBaseColor).isEqualTo(Color.Blue)
+      }
+    }
+  }
+
+  @Test
   fun resolvedStyle_nonFiniteCornerRadiiUseSafeDefaultRadii() {
-    val defaultRadii = GlassDefaults.shape.toCornerRadiiPx(
+    val defaultRadii = GlassDefaults.continuousShape.toCornerRadiiPx(
       layerSize = Size(100f, 80f),
       density = Density(1f),
       layoutDirection = LayoutDirection.Ltr,
@@ -1586,6 +1619,7 @@ class GlassRenderParamsTest {
     fun effect(block: GlassStyleScope.() -> Unit) = GlassRuntimeEffect().apply {
       style = style.then {
         shape(RoundedCornerShape(0.dp))
+        noBuiltInEdges()
         block()
       }
     }
@@ -1601,7 +1635,11 @@ class GlassRenderParamsTest {
   @Test
   fun calculateLayerBounds_padsWholePixelsOnlyWhileSquare() {
     val effect = GlassRuntimeEffect().apply {
-      style = style.then { shape(RoundedCornerShape(0.dp)) }
+      style = style.then {
+        shape(RoundedCornerShape(0.dp))
+        // Layer-bound tests measure sample padding, not the built-in outline extent.
+        noBuiltInEdges()
+      }
     }
     val rect = Rect(0f, 0f, 440f, 220f)
     val density = Density(1f)
@@ -1662,6 +1700,7 @@ class GlassRenderParamsTest {
     val effect = GlassRuntimeEffect().apply {
       style = style.then {
         edgeSoftness(0.dp)
+        noBuiltInEdges()
         shape(RoundedCornerShape(0.dp))
       }
     }
@@ -1691,6 +1730,7 @@ class GlassRenderParamsTest {
           ),
         )
         edgeSoftness(0.dp)
+        noBuiltInEdges()
         shape(RoundedCornerShape(0.dp))
       }
     }
@@ -1707,6 +1747,7 @@ class GlassRenderParamsTest {
     val effect = GlassRuntimeEffect().apply {
       style = style.then {
         edgeSoftness(0.dp)
+        noBuiltInEdges()
         shape(RoundedCornerShape(40.dp))
       }
     }
@@ -1741,12 +1782,14 @@ class GlassRenderParamsTest {
     val firstEffect = GlassRuntimeEffect().apply {
       style = style.then {
         edgeSoftness(0.dp)
+        noBuiltInEdges()
         shape(firstShape)
       }
     }
     val secondEffect = GlassRuntimeEffect().apply {
       style = style.then {
         edgeSoftness(0.dp)
+        noBuiltInEdges()
         shape(secondShape)
       }
     }
@@ -1772,6 +1815,7 @@ class GlassRenderParamsTest {
           ),
         )
         edgeSoftness(0.dp)
+        noBuiltInEdges()
         shape(RoundedCornerShape(0.dp))
       }
     }
