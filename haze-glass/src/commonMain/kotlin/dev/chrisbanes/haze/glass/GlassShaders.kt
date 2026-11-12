@@ -1004,7 +1004,7 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
         float t = clamp(opticalDistance / refractionZone, 0.0, 1.0);
         float lightingSlope = 2.0 * (1.0 - smootherstep(t));
         return opticalSurfaceGradient(localCoord, fieldWeight) * lightingSlope;
-      }
+      }${if (continuous) "" else FLAT_INTERIOR_LIGHTING_GRADIENT}
       return surfaceGradient(localCoord, fieldWeight);
     }
 
@@ -1460,6 +1460,16 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
         cornerWeight
       );
     }"""
+
+  /**
+   * Past the refraction zone every surface profile is flat, so the four height samples of
+   * `surfaceGradient` are equal and its result is exactly zero. Circular fields, including their
+   * smooth union, are 1-Lipschitz, so each sample (at most `sampleStep` away) is still past the zone
+   * when the centre is a pixel beyond it; the pixel absorbs rounding. Continuous corners use an
+   * approximate distance without that bound, so they always sample (#1766).
+   */
+  private const val FLAT_INTERIOR_LIGHTING_GRADIENT = """
+      if (fieldWeight <= 0.0 && -sd >= max(refractionHeight, 0.0001) + sampleStep + 1.0) return vec2(0.0);"""
 
   private fun mergedShapeHelpers(merged: Boolean, continuous: Boolean, tint: Boolean = false): String = when {
     !merged -> ""
