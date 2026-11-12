@@ -166,10 +166,11 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     val source = checkNotNull(delegate.layers.source)
     val optical = checkNotNull(delegate.layers.optical)
     val groupAlpha = checkNotNull(delegate.layers.groupAlpha.layer)
-    // Known fixture dimensions: Balanced samples sqrt(0.625) of each axis. The capture
-    // allocations round to 160/164px while the independent outlines cover 161/165px.
-    val sourceAllocations = if (mode == HazePerformanceMode.Balanced) listOf(160, 164, 160, 164) else listOf(203, 208, 203, 208)
-    val sourceOutlines = if (mode == HazePerformanceMode.Balanced) listOf(161f, 165f, 161f, 165f) else listOf(203f, 208f, 203f, 208f)
+    // Known fixture dimensions: Balanced samples sqrt(0.625) of each axis, and the capture
+    // allocations round to 160/164px. This square surface captures per axis onto whole pixels with a
+    // two-pixel coverage margin on each side, so it adds 4px and its outlines match (#1775).
+    val sourceAllocations = if (mode == HazePerformanceMode.Balanced) listOf(164, 168, 164, 168) else listOf(207, 212, 207, 212)
+    val sourceOutlines = sourceAllocations.map { it.toFloat() }
     assertThat(source.size).isEqualTo(IntSize(sourceAllocations[0], sourceAllocations[0]))
     val initialSourceOutline = source.outline.bounds
     val initialGroupOutline = groupAlpha.outline.bounds

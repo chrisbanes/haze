@@ -15,6 +15,7 @@ internal object GlassShaders {
     sharpDetail: Boolean = true,
     merged: Boolean = false,
     continuous: Boolean = false,
+    coverageOutset: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -62,7 +63,7 @@ internal object GlassShaders {
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
     vec2 clampSample(vec2 coord) {
-      return clamp(coord, vec2(0.5), sampleSize - vec2(0.5));
+      return ${clampSampleExpression(coverageOutset)};
     }
 
     vec2 clampMaterial(vec2 coord) {
@@ -93,7 +94,7 @@ internal object GlassShaders {
   } else {
     "float outputSd = ${shapeSd(merged, "localCoord", continuous)};"
   }}
-      float coverage = shapeCoverage(outputSd, sampleStep * 0.5);
+      float coverage = shapeCoverage(${outsetSd("outputSd", coverageOutset)}, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
@@ -214,7 +215,7 @@ internal object GlassShaders {
     }
   """
 
-  fun buildBlur(horizontal: Boolean, progressive: Boolean = false): String {
+  fun buildBlur(horizontal: Boolean, progressive: Boolean = false, clampToMaterial: Boolean = false): String {
     val samples = buildString {
       repeat(SemanticBlurKernel.MAX_TAP_PAIRS) { index ->
         val direction = if (horizontal) {
@@ -242,11 +243,11 @@ internal object GlassShaders {
       uniform float2 materialOrigin;
       ${if (progressive) "uniform float maskCoordinateScale;" else ""}
       uniform float centerWeight;
-      uniform float sourceIsOpaque;
+      uniform float sourceIsOpaque;${if (clampToMaterial) "\n      uniform float2 materialSize;" else ""}
       $tapUniforms
 
       vec2 clampSample(vec2 coord) {
-        return clamp(coord, vec2(0.5), sampleSize - vec2(0.5));
+        return ${clampSampleExpression(clampToMaterial)};
       }
 
       vec4 main(vec2 coord) {
@@ -270,6 +271,7 @@ internal object GlassShaders {
     interactive: Boolean = false,
     merged: Boolean = false,
     continuous: Boolean = false,
+    coverageOutset: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -300,7 +302,7 @@ internal object GlassShaders {
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
     vec2 clampSample(vec2 coord) {
-      return clamp(coord, vec2(0.5), sampleSize - vec2(0.5));
+      return ${clampSampleExpression(coverageOutset)};
     }
 
     vec2 clampMaterial(vec2 coord) {
@@ -331,7 +333,7 @@ internal object GlassShaders {
   } else {
     "float sd = ${shapeSd(merged, "localCoord", continuous)};"
   }}
-      float coverage = shapeCoverage(sd, sampleStep * 0.5);
+      float coverage = shapeCoverage(${outsetSd("sd", coverageOutset)}, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
 
       float distToEdge = max(-sd, 0.0);
@@ -428,6 +430,7 @@ internal object GlassShaders {
     coverageOnly: Boolean = false,
     merged: Boolean = false,
     continuous: Boolean = false,
+    coverageOutset: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -455,7 +458,7 @@ internal object GlassShaders {
   } else {
     """
     vec2 clampSample(vec2 coord) {
-      return clamp(coord, vec2(0.5), sampleSize - vec2(0.5));
+      return ${clampSampleExpression(coverageOutset)};
     }
     """
   }}
@@ -469,7 +472,7 @@ internal object GlassShaders {
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
       float outputSd = ${shapeSd(merged, "localCoord", continuous)};
-      float coverage = shapeCoverage(outputSd, sampleStep * 0.5);
+      float coverage = shapeCoverage(${outsetSd("outputSd", coverageOutset)}, sampleStep * 0.5);
       if (coverage <= 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
@@ -687,6 +690,22 @@ internal object GlassShaders {
 
     ${sdfGradientHelpers(continuous)}
   """
+
+  // Square surfaces extend coverage past the material by a fixed outset (#1775). It is a constant,
+  // not a uniform: the uniform layout, and so the GPU state, matches the original programs, which
+  // every other surface still compiles.
+  private fun outsetSd(sd: String, enabled: Boolean): String =
+    if (enabled) "$sd - $GLASS_SQUARE_EDGE_COVERAGE_OUTSET_SKSL" else sd
+
+  // A square surface is presented cropped to its material, and clips above it, such as a window
+  // edge, crop it too, so every stage's input ends at the material: a sample past it reads
+  // transparency. Clamping to the material repeats its edge, as the native blur's clamp does.
+  private fun clampSampleExpression(toMaterial: Boolean): String = if (toMaterial) {
+    "clamp(coord, max(vec2(0.5), materialOrigin + vec2(0.5)), " +
+      "min(sampleSize - vec2(0.5), materialOrigin + materialSize - vec2(0.5)))"
+  } else {
+    "clamp(coord, vec2(0.5), sampleSize - vec2(0.5))"
+  }
 
   private fun sdfShapeHelpers(continuous: Boolean): String = """
     float shapeCoverage(float sd, float pixelWidth) {
@@ -1671,3 +1690,6 @@ ${ifContinuous(continuous, "    uniform float4 memberCornerExponents[4];\n")}   
     }
   """
 }
+
+/** [SQUARE_EDGE_COVERAGE_OUTSET] as an SkSL literal. */
+internal const val GLASS_SQUARE_EDGE_COVERAGE_OUTSET_SKSL = "2.0"

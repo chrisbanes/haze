@@ -20,6 +20,24 @@ import kotlin.test.Test
 class GlassShadersTest {
 
   @Test
+  fun coverageOutsetVariant_keepsUniformLayoutAndOnlySquareProgramsExtendCoverage() {
+    // The outset is a constant, so square programs declare exactly the uniforms the original ones do
+    // and other surfaces compile the original source unchanged (#1775).
+    fun uniforms(source: String) = source.lines().filter { "uniform " in it }
+    for (variant in listOf(
+      { outset: Boolean -> GlassShaders.buildFused(coverageOutset = outset) },
+      { outset: Boolean -> GlassShaders.buildOptical(coverageOutset = outset) },
+      { outset: Boolean -> GlassShaders.buildRefractionDetail(coverageOutset = outset) },
+    )) {
+      assertThat(uniforms(variant(true))).isEqualTo(uniforms(variant(false)))
+      assertThat(variant(false)).doesNotContain(" - 2.0, sampleStep * 0.5)")
+      assertThat(variant(true)).contains(" - 2.0, sampleStep * 0.5)")
+    }
+    // The SkSL literal is hard-coded so every platform compiles the same source; it must match.
+    assertThat(GLASS_SQUARE_EDGE_COVERAGE_OUTSET_SKSL.toFloat()).isEqualTo(SQUARE_EDGE_COVERAGE_OUTSET)
+  }
+
+  @Test
   fun mergedShaders_reuseMemberDistancesForCoverageAndWeights() {
     val shaders = mapOf(
       "fused" to GlassShaders.buildFused(merged = true),

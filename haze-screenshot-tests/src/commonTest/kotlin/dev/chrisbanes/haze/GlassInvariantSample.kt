@@ -1086,7 +1086,9 @@ internal fun ScreenshotUiTest.assertGlassProgressiveBlurInvariant() {
 }
 
 internal fun ScreenshotUiTest.assertGlassProgressiveMaskScaleInvariant() {
-  val shape = RoundedCornerShape(0.dp)
+  // A 1 dp corner keeps this surface off the square-edge path (#1775), whose edge rows its radial
+  // detector reads; the subject here is mask geometry, not edge coverage.
+  val shape = RoundedCornerShape(1.dp)
   val effect = invariantEffect(shape).apply {
     optics = GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(1f), blurRadius = OpticalSizeValue.Fixed(18.dp))
     tint = Color.Transparent
