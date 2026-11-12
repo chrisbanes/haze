@@ -190,7 +190,8 @@ digest, pixel test and tolerance unchanged. Because it did not land, `testAndroi
 screenshot matrix and the Pixel 6 device tests were not run on it.
 
 The [acceptance rule](t5-acceptance-rule.md) was written at 15:02 UTC, before the first
-candidate result (15:11 UTC). It is stricter than the plan, which names a primary metric per
+candidate result (15:11 UTC), per local file modification times; it was committed after the
+measurements. It is stricter than the plan, which names a primary metric per
 affected path. The primary values are
 per-iteration P50 `frameOverrunMs` on Android (frame deadline, not GPU time) and per-launch GPU
 busy ms per frame on Metal. A row improves when the candidate median beats the baseline median by
@@ -219,8 +220,8 @@ except one baseline iteration ([placement](android-t5-placement.json)).
 | `sourceUpdateContainer4Continuous` | two | -6.118 (IQR 0.600) | -6.036 (IQR 0.467) | -0.082 | 0.600 | no difference |
 
 **macOS, split path.** Frozen baseline and candidate `haze-glass` classes, otherwise identical
-classpaths. Three warm launches each, in the order B C, C B, B C. Every baseline launch drew
-297-300 frames in its 5 s window.
+classpaths. Three warm launches each, in the order B C, C B, B C. Baseline launches drew 286-300
+frames in their 5 s windows (297-299 for `s4m-circular` and `s2m-circular`).
 
 | Scene | Baseline | Candidate | Baseline - candidate | Margin | Result |
 | --- | --- | --- | --- | --- | --- |
@@ -234,8 +235,11 @@ The candidate's third-round launches of `s4m-circular` and `s2m-circular` drew o
 frames, so they are not valid measurements. Each was repeated once. The repeats drew 591 and 519
 frames, so the display was then running at about 120 Hz instead of 60 Hz. Their per-frame values
 (0.798 and 0.696) are therefore not comparable with the 60 Hz baseline launches. Both rows are
-inconclusive, and the remaining scenes are shown for context only. The committed summary includes
-the repeats; the invalid launches are kept in the local archive.
+inconclusive. The rule's "repeat once, then inconclusive" step is written for Android CPU
+placement; it was applied to Metal frame validity by analogy. The remaining scenes are context
+only. The committed summary keeps both launches out of its values, median and IQR and lists them
+under `excludedLaunches`; the manifest lists both traces by SHA-256. The T5 capture script also
+ran one unrequested round of cold launches per label; they are hashed in the manifest and unused.
 
 **Result: not landed.** The Android primary row improved by about 0.3 ms of frame-deadline P50
 in both passes, beyond its 0.09-0.11 ms IQR, and its continuous control did not move. The Metal
