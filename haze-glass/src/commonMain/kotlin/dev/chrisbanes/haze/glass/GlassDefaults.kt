@@ -51,8 +51,27 @@ public object GlassDefaults {
   /** Default chromatic aberration strength, where `0f` disables dispersion. */
   public const val chromaticAberrationStrength: Float = 0f
 
-  /** Default rounded-rectangle boundary used for refraction and masking. */
+  /**
+   * Former default boundary, with circular 16 dp corners.
+   *
+   * Glass no longer uses this value. A Glass surface without an authored shape uses
+   * [continuousShape].
+   */
+  @Deprecated(
+    message = "Glass now defaults to continuous corners. Use GlassDefaults.continuousShape, or " +
+      "RoundedCornerShape(16.dp) for the former circular corners.",
+    replaceWith = ReplaceWith("GlassDefaults.continuousShape"),
+  )
   public val shape: RoundedCornerShape = RoundedCornerShape(16.dp)
+
+  /**
+   * Default boundary used for refraction and masking when no shape is authored, with continuous
+   * 16 dp corners.
+   *
+   * It applies to every Glass style that does not write a shape, including custom styles. Pass it
+   * to `Modifier.clip`, `Modifier.border` or an indication to match the default Glass silhouette.
+   */
+  public val continuousShape: ContinuousRoundedCornerShape = ContinuousRoundedCornerShape(16.dp)
 
   /** Default cross-section profile used by the refraction bezel. */
   public val surfaceProfile: SurfaceProfile = SurfaceProfile.Circle

@@ -233,7 +233,7 @@ class ContinuousRoundedCornerShapeTest {
       for ((from, to) in listOf(invalid to start, start to invalid)) {
         val invalidMidpoint = Interpolatable.lerp(from, to, 0.5f) as ContinuousRoundedCornerShape
         assertThat(invalidMidpoint.resolveCornerRadiiPx(size, density, LayoutDirection.Ltr))
-          .isEqualTo(GlassDefaults.shape.resolveCornerRadiiPx(size, density, LayoutDirection.Ltr))
+          .isEqualTo(GlassDefaults.continuousShape.resolveCornerRadiiPx(size, density, LayoutDirection.Ltr))
       }
       val invalidCorner = CornerSize(invalidRadius)
       val staticStart = ContinuousRoundedCornerShape(invalidCorner, CornerSize(0f), CornerSize(0f), CornerSize(0f), 0f)
@@ -241,7 +241,7 @@ class ContinuousRoundedCornerShapeTest {
       val staticMidpoint = Interpolatable.lerp(staticStart, staticEnd, 0.5f) as ContinuousRoundedCornerShape
       assertThat(staticMidpoint.topStart.toPx(size, density).toBits()).isEqualTo(invalidRadius.toBits())
       assertThat(staticMidpoint.resolveCornerRadiiPx(size, density, LayoutDirection.Ltr))
-        .isEqualTo(GlassDefaults.shape.resolveCornerRadiiPx(size, density, LayoutDirection.Ltr))
+        .isEqualTo(GlassDefaults.continuousShape.resolveCornerRadiiPx(size, density, LayoutDirection.Ltr))
     }
     assertFailure { ContinuousRoundedCornerShape(1f, smoothing = Float.NEGATIVE_INFINITY) }
       .isInstanceOf<IllegalArgumentException>()

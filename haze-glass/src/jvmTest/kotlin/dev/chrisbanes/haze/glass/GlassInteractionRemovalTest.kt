@@ -105,6 +105,8 @@ class GlassInteractionRemovalTest : ContextTest() {
       chromaticAberrationStrength(0f)
       edgeSoftness(0.dp)
       tint(Color.Blue.copy(alpha = 0.5f))
+      // The expected capture covers sample padding only, not the outline's draw extent.
+      noBuiltInEdges()
     }
     fun response(maximum: Float) = base.then {
       pressed { animate(tween(1), tween(500)) { refractionMultiplier(maximum) } }

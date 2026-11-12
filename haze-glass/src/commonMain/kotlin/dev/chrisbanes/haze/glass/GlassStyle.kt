@@ -90,23 +90,30 @@ public sealed interface GlassStyle {
       contentNormalBlend(GlassDefaults.contentNormalBlend)
       specularExponent(GlassDefaults.specularExponent)
       fresnelExponent(GlassDefaults.fresnelExponent)
+      edgeOutline(Color.Black.copy(alpha = 0.4f), 0.7.dp)
+      rimHighlight(0.6f, 1.dp, 0f)
     }
 
     internal val regularDark: GlassStyle = regularLight.then {
       specularIntensity(0.38f)
       edgeShadow(Color.Black.copy(alpha = 0.32f))
       ambientResponse(0.08f)
-      contrast(0.08f)
-      whitePoint(-0.22f)
+      contrast(0.02f)
+      whitePoint(-0.10f)
       chromaMultiplier(1.1f)
     }
 
     /**
      * The default built-in Glass style.
      *
-     * Its blur and depth adapt to each material's shortest dimension. It writes the complete material
-     * response while preserving separately composed shape, background colour, tint, alpha, light
-     * position, and interaction presentation.
+     * Its blur and depth adapt to each material's shortest dimension. It draws a thin dark
+     * [edge outline][GlassStyleScope.edgeOutline] and a top and bottom
+     * [rim highlight][GlassStyleScope.rimHighlight]. It writes the complete material response while
+     * preserving separately composed shape, background colour, tint, alpha, light position, and
+     * interaction presentation. Write `edgeOutline(Color.Transparent, 0.dp)` and
+     * `rimHighlight(0f, 0.dp, 0f)` after it to remove the edges.
+     *
+     * Every Style evaluation starts from this style, so custom styles inherit its edges too.
      */
     public val regular: GlassStyle = BuiltInGlassStyle.Regular
 
@@ -125,6 +132,8 @@ public sealed interface GlassStyle {
       contentNormalBlend(0.1f)
       specularExponent(16f)
       fresnelExponent(2.5f)
+      edgeOutline(Color.Black.copy(alpha = 0.4f), 0.7.dp)
+      rimHighlight(1f, 1.dp, 0f)
     }
 
     internal val clearDark: GlassStyle = clearLight.then {
@@ -141,7 +150,8 @@ public sealed interface GlassStyle {
      *
      * Its shallow blur stays constant across material sizes while its authored refraction and
      * distinct edge and lighting response remain recognizable when a renderer simplifies advanced
-     * optical effects. Its ordinary material response is the same in light and dark appearance;
+     * optical effects. It draws the same thin dark edge outline as [regular] and a stronger top and
+     * bottom rim highlight. Its ordinary material response is the same in light and dark appearance;
      * reduced transparency may use an appearance-dependent opaque fallback. It writes the complete
      * material response while preserving separately composed
      * shape, background colour, tint, alpha, light position, and interaction presentation.
@@ -288,7 +298,12 @@ public class GlassStyleScope internal constructor(
     values.interactionPositionAnimationSpec = animationSpec
   }
 
-  /** Sets the rounded boundary used for refraction and masking. */
+  /**
+   * Sets the rounded boundary used for refraction and masking.
+   *
+   * Without an authored shape, Glass uses [GlassDefaults.continuousShape]. Built-in styles never
+   * write a shape, so an authored shape is kept whether it is written before or after them.
+   */
   public fun shape(shape: RoundedCornerShape) {
     values.shape = shape
   }
@@ -357,7 +372,8 @@ public class GlassStyleScope internal constructor(
    * equally. Its distribution is independent of [lightPosition] and of the specular highlight.
    * The band follows merged container shapes. Limited renderers approximate it.
    *
-   * The default [intensity] is `0f`, which draws no band.
+   * [GlassStyle.regular] uses an intensity of `0.6f` and [GlassStyle.clear] `1f`, each `1.dp` wide
+   * with `0f` sides; every Style evaluation starts from Regular. An [intensity] of `0f` draws no band.
    *
    * @param intensity finite band opacity in the inclusive range `0f..1f`.
    * @param width specified, finite, non-negative band width measured inward from the edge.
@@ -378,8 +394,9 @@ public class GlassStyleScope internal constructor(
    * alpha over whatever lies behind the Glass.
    *
    * The line follows a container's merged shape, and limited renderers draw an equivalent stroke.
-   * It is drawn whether or not the effect expands its layer bounds. [Color.Transparent] or a `0.dp`
-   * [width] draws nothing, which is the default.
+   * It is drawn whether or not the effect expands its layer bounds. [GlassStyle.regular] and
+   * [GlassStyle.clear] draw black at 40% alpha, `0.7.dp` wide; every Style evaluation starts from
+   * Regular. [Color.Transparent] or a `0.dp` [width] draws nothing.
    *
    * @param color the specified line color; its alpha controls the line's strength.
    * @param width specified, finite, non-negative line width measured outward from the boundary.
@@ -552,7 +569,7 @@ private fun validateLightPositionBiases(horizontalBias: Float, verticalBias: Flo
 
 @Poko
 internal class GlassStyleValues(
-  var shape: CornerBasedShape = GlassDefaults.shape,
+  var shape: CornerBasedShape = GlassDefaults.continuousShape,
   var optics: GlassOptics = GlassOptics.regular,
   var specularIntensity: Float = GlassDefaults.specularIntensity,
   var edgeShadow: Color = GlassDefaults.edgeShadow,
