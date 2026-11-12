@@ -10,7 +10,7 @@
  "candidate": {
   "commit": "1c0bdb323ba697979ea5265c52a15c4d21993e1f (not on the branch; see candidate.patch)",
   "patchSha256": "9d9bd7170965a85bedc7841a2a1dbb45cf964b5dac6c97fdc1bf6cb6e274a7c2",
-  "outcome": "reverted: macOS primary row s4m-circular did not beat variability"
+  "outcome": "reverted: Android primary row improved; macOS primary row s4m-circular inconclusive (invalid launch, repeat at a different display rate)"
  },
  "apks": {
   "baseline": {
@@ -72,7 +72,8 @@
   "mac-t5-summary.json",
   "shaders.json",
   "t3-gpu.json",
-  "t3-run.json"
+  "t3-run.json",
+  "t5-acceptance-rule.md"
  ],
  "localArchive": {
   "androidT1Diagnostic": {
@@ -840,10 +841,10 @@
    "warm/s2i-circular/3": "993d4f4c2d6c2c8a8551d7f38727cca2fdb43e6db488e26bd0b5766644350633",
    "warm/s2m-circular/1": "0e0e0f5ea6a507b629020c483d1d71b9a8c467239ed9511e040482c67a516a02",
    "warm/s2m-circular/2": "8eb9a7e0fb7dc4d50807d5f3b359ae741b9f5b0cb83763353a5a7436ccad254b",
-   "warm/s2m-circular/3": "92ceccc3f3ddec744add53864496f0b3d4aadc6f9b083cb2ec8b3a658eb2b188",
+   "warm/s2m-circular/3": "311ffe0e6390d0e98df909ceec6a2e52a87b27dcc270bc9768f0a748eb5bc6a4",
    "warm/s4m-circular/1": "cd00d3556ddc345e58aaa6b220028ce8924b75c62705c31cc041ba0d1dfc99d9",
    "warm/s4m-circular/2": "77d9c05ec5f3c028c020607d69a6729be75f4bbb0a0db9d6be7cb28f9f986d59",
-   "warm/s4m-circular/3": "61a3ec9e284b05845ca698431f00e010758a469faa9b9d494cfeed54c32c1c7d",
+   "warm/s4m-circular/3": "766b9f56d5526224b81a0d58f15d9fc950622686f23ad5cdfc569b97f49828f6",
    "warm/s4m-continuous/1": "5509ce10f5c134455a8c486d655e6e572f44a420b8665c4136cc9fc9d9152836",
    "warm/s4m-continuous/2": "191809041eeadca7e459aac2e52ec6f5f940b5dd793d89f5c683ce9b9a521af1",
    "warm/s4m-continuous/3": "1dc2d9b21af357082dfe46428b0297fb094f30a9f793f7e8a3bab1577d0941d2"

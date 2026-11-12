@@ -788,7 +788,7 @@ private fun changedFields(
   if (first.cornerRadius != second.cornerRadius) add("cornerRadius")
 }
 
-// Every constructor parameter except continuousCorners.
+// Every constructor parameter except continuousCorners; add new GlassProfilingScenario parameters here.
 private fun scenarioParameters(scenario: GlassProfilingScenario): List<Any?> = with(scenario) {
   listOf(
     glassEnabled, effectCount, attachesDuringMeasurement, prewarmsBeforeMeasurement, steadyDraw,

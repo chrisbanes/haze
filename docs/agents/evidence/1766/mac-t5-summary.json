@@ -896,84 +896,84 @@
  "t5-candidate/warm/s2m-circular": {
   "gpuBusyMsPerFrame": {
    "n": 3,
-   "median": 0.673,
-   "iqr": 0.071,
+   "median": 0.696,
+   "iqr": 0.033,
    "values": [
     0.673,
     0.74,
-    0.597
+    0.696
    ]
   },
   "fragmentMsPerFrame": {
    "n": 3,
-   "median": 0.554,
-   "iqr": 0.03,
+   "median": 0.565,
+   "iqr": 0.019,
    "values": [
     0.565,
     0.554,
-    0.505
+    0.592
    ]
   },
   "measuredFrames": {
    "n": 3,
-   "median": 299,
-   "iqr": 108.0,
+   "median": 300,
+   "iqr": 110.0,
    "values": [
     300,
     299,
-    84
+    519
    ]
   },
   "compilerMsBeforeFirstFrame": {
    "n": 3,
-   "median": 4.45,
-   "iqr": 0.895,
+   "median": 4.51,
+   "iqr": 1.55,
    "values": [
     2.72,
     4.51,
-    4.45
+    5.82
    ]
   }
  },
  "t5-candidate/warm/s4m-circular": {
   "gpuBusyMsPerFrame": {
    "n": 3,
-   "median": 0.898,
-   "iqr": 0.029,
+   "median": 0.85,
+   "iqr": 0.055,
    "values": [
     0.908,
     0.85,
-    0.898
+    0.798
    ]
   },
   "fragmentMsPerFrame": {
    "n": 3,
-   "median": 0.768,
-   "iqr": 0.022,
+   "median": 0.754,
+   "iqr": 0.046,
    "values": [
     0.768,
     0.754,
-    0.798
+    0.677
    ]
   },
   "measuredFrames": {
    "n": 3,
-   "median": 299,
-   "iqr": 142.0,
+   "median": 300,
+   "iqr": 146.0,
    "values": [
     299,
     300,
-    16
+    591
    ]
   },
   "compilerMsBeforeFirstFrame": {
    "n": 3,
-   "median": 5.02,
-   "iqr": 0.76,
+   "median": 5.39,
+   "iqr": 1.25,
    "values": [
     5.39,
     5.02,
-    3.87
+    7.52
    ]
   }
  },

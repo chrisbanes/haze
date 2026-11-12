@@ -9,9 +9,9 @@ execution on a Pixel 6 and an M1 Max, and the measured outcome of one shader-sou
 ## Outcome
 
 **No shader change lands.** The one candidate, skipping the lighting gradient where the circular
-surface is flat, kept every pixel test unchanged. It did not improve its primary rows beyond
-run-to-run variability, so it was reverted under the acceptance rule fixed before
-measurement. `haze-glass/src/commonMain` is byte-identical to base
+surface is flat, passed every `haze-glass` `jvmTest` pixel test unchanged. It improved the
+Android primary row, but its Metal primary row was inconclusive, so it was reverted under the
+[acceptance rule](t5-acceptance-rule.md) fixed before measurement. `haze-glass/src/commonMain` is byte-identical to base
 `95c0c48a915d3593e7f8d34039404f54f4e538e7`. The candidate is kept as
 [candidate.patch](candidate.patch) with its raw numbers below.
 
@@ -101,7 +101,9 @@ were rerun into the same archive after returning the device to the home screen.
 Build `fd85578d9`. Warm: three fresh-JVM launches per scene under `Metal System Trace`, 240 warm
 frames, then a 5 s window; GPU busy time is the union of the process's depth-0 GPU intervals in the
 window divided by the frames drawn. Cold: five fresh-JVM launches per scene under `Time Profiler`;
-the first frame callback precedes the first Glass frame and the second follows it. Rounds were
+`firstFrameCallbackCpuWallMs` is taken when the scene's `LaunchedEffect` starts, after the first
+composition and before any frame callback; `secondFrameCallbackCpuWallMs` follows the next frame
+callback, after the first frame was drawn. Neither proves that frame contained Glass pixels. Rounds were
 interleaved across scenes. `s1` is one surface, `s2m`/`s4m` are two or four merged members,
 `s2i` is two independent surfaces, all with a changing source unless marked static.
 
@@ -116,7 +118,7 @@ interleaved across scenes. `s1` is one surface, `s2m`/`s4m` are two or four merg
 | `s4m-circular` | 0.921 (IQR 0.013) | 0.768 (IQR 0.022) | 296 | 5.700 (IQR 0.940) |
 | `s4m-continuous` | 1.402 (IQR 0.028) | 1.278 (IQR 0.012) | 299 | 4.830 (IQR 1.505) |
 
-| Scene | Process start to first frame callback (ms) | To second frame callback (ms) | JVM/JIT CPU ms | Skia/Skiko CPU ms | Metal compiler CPU ms | Other CPU ms |
+| Scene | Process start to effect start (ms) | To first frame callback (ms) | JVM/JIT CPU ms | Skia/Skiko CPU ms | Metal compiler CPU ms | Other CPU ms |
 | --- | --- | --- | --- | --- | --- | --- |
 | `s1-circular` | 2004 (IQR 1004) | 2815 (IQR 1163) | 1478 (IQR 470) | 36 (IQR 8) | 8 (IQR 7) | 206 (IQR 42) |
 | `s1-circular-static` | 1430 (IQR 281) | 1657 (IQR 276) | 1386 (IQR 245) | 36 (IQR 5) | 5 (IQR 2) | 183 (IQR 15) |
@@ -129,8 +131,8 @@ interleaved across scenes. `s1` is one surface, `s2m`/`s4m` are two or four merg
 
 The Metal cache directory under `$(getconf DARWIN_USER_CACHE_DIR)com.apple.metal` held 8 files
 (40,368 KB) before every launch and was not cleared. The T3 proof launch, the first after the
-launcher was built, recorded 581 ms of Metal compiler intervals before its first Glass frame; later
-launches recorded 3-6 ms. That is one observation of a cold driver cache, not a controlled
+launcher was built, recorded 581 ms of Metal compiler intervals before its first frame; later
+launches recorded scene medians of 3-6 ms, with individual launches up to 13 ms. That is one observation of a cold driver cache, not a controlled
 measurement.
 
 ### Cost ranking
@@ -146,13 +148,15 @@ measurement.
    continuous corners about 1 ms on top. This is consistent with GPU cost, but T2 could not
    attribute GPU time, so it is reported as frame deadline only.
 3. **CPU preparation and recording.** Small and flat. Android `frameDurationCpuMs` P50 is
-   2.7-4.2 ms across rows; two independent surfaces cost about 1.2 ms more than one cluster, from
-   recording two layers. Only `prepare`, `runtimeDraw` and `compose` markers (plus container markers)
+   2.7-4.2 ms across the warm rows (5.2-5.6 ms in the cold-attach rows); two independent surfaces
+   cost 1.2 ms (pass one) and 0.8 ms (pass two) more than one cluster, plausibly from recording two
+   layers. Only `prepare`, `runtimeDraw` and `compose` markers (plus container markers)
    appear in steady rows ([markers](android-t4-markers.json)).
-4. **Cold first draw.** On macOS a fresh process reaches the frame callback after its first Glass
-   frame in 1.55-2.8 s (scene medians), and about 1.4 s of the sampled CPU before it is JVM
+4. **Cold first draw.** On macOS a fresh process reaches the frame callback after its first frame
+   in 1.55-2.8 s (scene medians), and about 1.4 s of the sampled CPU before it is JVM
    start-up and JIT; Skia/Skiko native code is about 35 ms,
-   in-process Metal compiler work 4-8 ms and Metal compiler intervals 3-6 ms with a warm cache. On
+   in-process Metal compiler work 4-8 ms and Metal compiler intervals 3-6 ms (medians) with a warm
+   cache. On
    Android, `effectAttach` and `effectAttachContainer2` measure first attachment in a warm process:
    no iteration started its process inside the trace, so none is process-cold. Haze's
    `createRenderEffect` ran 3 (one surface) or 2 (container) times per iteration for about 0.02 ms
@@ -182,9 +186,12 @@ The candidate ([candidate.patch](candidate.patch), commit `1c0bdb323`) returns a
 gradient when `fieldWeight <= 0` and `-sd >= max(refractionHeight, 0.0001) + sampleStep + 1`,
 for circular sources only. It changed only the fused and optical sources (nine
 `GlassShadersGoldenTest` digests). All 1,019 `haze-glass` `jvmTest` tests passed with every other
-digest, pixel test and tolerance unchanged.
+digest, pixel test and tolerance unchanged. Because it did not land, `testAndroidHostTest`, the
+screenshot matrix and the Pixel 6 device tests were not run on it.
 
-The acceptance rule was fixed before any candidate result was read. The primary values are
+The [acceptance rule](t5-acceptance-rule.md) was written at 15:02 UTC, before the first
+candidate result (15:11 UTC). It is stricter than the plan, which names a primary metric per
+affected path. The primary values are
 per-iteration P50 `frameOverrunMs` on Android (frame deadline, not GPU time) and per-launch GPU
 busy ms per frame on Metal. A row improves when the candidate median beats the baseline median by
 more than the larger IQR, in each Android pass separately or across the three alternating macOS
@@ -195,7 +202,8 @@ regress, and Android CPU placement must be comparable. Continuous rows are uncha
 **Android, fused path.** Baseline APK `ec906484…` (identical to T4) and candidate APK
 `eafa8a46…`, run in the order baseline forward, candidate forward, candidate reverse, baseline
 reverse. Eight iterations per row, 271 frames each, so the app rendered at 60 Hz although the
-pass headers read 90 Hz from the launcher shown before each pass. RenderThread placement was comparable: for
+pass headers read 90 Hz. That differs from T4, whose headers read 60 Hz: in T5 the launcher was in
+the foreground when each header was read. RenderThread placement was comparable: for
 `sourceUpdateContainer4`, all 16 baseline and 16 candidate iterations ran on the middle cluster
 except one baseline iteration ([placement](android-t5-placement.json)).
 
@@ -211,21 +219,28 @@ except one baseline iteration ([placement](android-t5-placement.json)).
 | `sourceUpdateContainer4Continuous` | two | -6.118 (IQR 0.600) | -6.036 (IQR 0.467) | -0.082 | 0.600 | no difference |
 
 **macOS, split path.** Frozen baseline and candidate `haze-glass` classes, otherwise identical
-classpaths. Three warm launches each, in the order B C, C B, B C.
+classpaths. Three warm launches each, in the order B C, C B, B C. Every baseline launch drew
+297-300 frames in its 5 s window.
 
 | Scene | Baseline | Candidate | Baseline - candidate | Margin | Result |
 | --- | --- | --- | --- | --- | --- |
-| `s4m-circular` | 0.911 (IQR 0.019) | 0.898 (IQR 0.029) | +0.013 | 0.029 | no difference |
-| `s2m-circular` | 0.718 (IQR 0.033) | 0.673 (IQR 0.071) | +0.045 | 0.071 | no difference |
+| `s4m-circular` | 0.911, 0.880, 0.918 | 0.908, 0.850 (third launch invalid) | - | - | inconclusive |
+| `s2m-circular` | 0.779, 0.714, 0.718 | 0.673, 0.740 (third launch invalid) | - | - | inconclusive |
 | `s1-circular` | 0.389 (IQR 0.008) | 0.360 (IQR 0.014) | +0.029 | 0.014 | improved |
 | `s2i-circular` | 0.893 (IQR 0.123) | 0.850 (IQR 0.178) | +0.043 | 0.178 | no difference |
 | `s4m-continuous` | 1.577 (IQR 0.096) | 1.561 (IQR 0.079) | +0.016 | 0.096 | no difference |
 
+The candidate's third-round launches of `s4m-circular` and `s2m-circular` drew only 16 and 84
+frames, so they are not valid measurements. Each was repeated once. The repeats drew 591 and 519
+frames, so the display was then running at about 120 Hz instead of 60 Hz. Their per-frame values
+(0.798 and 0.696) are therefore not comparable with the 60 Hz baseline launches. Both rows are
+inconclusive, and the remaining scenes are shown for context only. The committed summary includes
+the repeats; the invalid launches are kept in the local archive.
+
 **Result: not landed.** The Android primary row improved by about 0.3 ms of frame-deadline P50
-in both passes, beyond its 0.09-0.11 ms IQR, and its continuous control did not move. On Metal the
-primary `s4m-circular` row moved 0.013 ms per frame, inside its 0.029 ms margin; only the single
-circular surface improved (0.029 ms, about 7%). Because the split-path primary row did not
-qualify, the rule requires reverting. P90 values and the two-member and single-surface Android
+in both passes, beyond its 0.09-0.11 ms IQR, and its continuous control did not move. The Metal
+primary row was inconclusive after one repeat. Only the single circular surface clearly improved,
+by 0.029 ms (about 7%). The rule requires both paths to qualify, so the candidate was reverted. P90 values and the two-member and single-surface Android
 rows showed no difference beyond variability ([raw summary](android-t5-summary.json),
 [Metal summary](mac-t5-summary.json)).
 
@@ -243,6 +258,16 @@ the Android improvement here is frame deadline on one device, not GPU time.
 - The Mac was shared with other work during captures (other processes, including iOS simulators,
   were present); this widens warm-launch spread, for example `s2i-circular` between sessions.
 - The Pixel 6 display ran at 60 Hz but was not pinned; each pass reports the rate at its start.
+- Device handling followed the runbook. Fixed-performance mode was enabled per pass and disabled
+  on exit. Each method checked the keyguard first. The Google app respawned after a force-stop, so
+  it was disabled with `pm disable-user` for the session and re-enabled afterwards.
+- The T1 gated diagnostic (`sourceUpdateContainer2Continuous`, `sourceUpdateContainer4`,
+  `sourceUpdateContainer4Continuous`, eight iterations each) passed every `gates_for` gate,
+  including `graphicsLayerDrawCount` 0.9-1.1 per frame. Its archive hashes are in the manifest; it
+  is not published as a measurement.
+- [shaders.json](shaders.json) lists the base sources with `coverageOutset = false`. Runtime
+  selects the outset variants for pixel-aligned surfaces, and the dump does not show which variant
+  each scene ran.
 - Cold Android rows are warm-process first attachment. macOS cold launches include JVM start-up
   and ran with a warm Metal cache; the cold-cache observation is a single launch.
 - Benchmark JSON (about 130 KB per invocation) and all traces stay in the local archive, listed

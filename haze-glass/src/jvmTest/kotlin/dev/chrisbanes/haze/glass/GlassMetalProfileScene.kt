@@ -81,7 +81,8 @@ fun main(args: Array<String>) {
           System.err.println("Expected METAL, got $renderApi")
           exitProcess(2)
         }
-        // The first callback runs before the first Glass frame draws; the second follows it.
+        // "first" is taken as this effect starts, after the first composition and before any frame
+        // callback; "second" follows the next frame callback, after the first frame was drawn.
         val firstCallbackMs = System.currentTimeMillis() - processStartMs
         withFrameNanos { frame.intValue++ }
         val secondCallbackMs = System.currentTimeMillis() - processStartMs
