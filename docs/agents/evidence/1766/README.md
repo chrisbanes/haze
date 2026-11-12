@@ -235,7 +235,9 @@ The candidate's third-round launches of `s4m-circular` and `s2m-circular` drew o
 frames, so they are not valid measurements. Each was repeated once. The repeats drew 591 and 519
 frames, so the display was then running at about 120 Hz instead of 60 Hz. Their per-frame values
 (0.798 and 0.696) are therefore not comparable with the 60 Hz baseline launches. Both rows are
-inconclusive. The rule's "repeat once, then inconclusive" step is written for Android CPU
+inconclusive. The two valid `s4m-circular` launches alone would clear the margin (0.032 against
+0.029 ms), but two launches do not meet the rule's three alternating rounds. The rule's "repeat
+once, then inconclusive" step is written for Android CPU
 placement; it was applied to Metal frame validity by analogy. The remaining scenes are context
 only. The committed summary keeps both launches out of its values, median and IQR and lists them
 under `excludedLaunches`; the manifest lists both traces by SHA-256. The T5 capture script also
