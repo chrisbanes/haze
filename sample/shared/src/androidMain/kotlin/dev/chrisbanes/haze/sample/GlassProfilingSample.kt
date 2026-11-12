@@ -65,6 +65,7 @@ import dev.chrisbanes.haze.HazeFeatureFlags
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
+import dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
@@ -478,10 +479,11 @@ private fun GlassProfilingEffectGrid(
   drawProgress: (() -> Float)?,
   modifier: Modifier = Modifier,
 ) {
-  val rowCount = if (styles.size <= 3) 1 else 3
+  val rowCount = glassProfilingGridRowCount(styles.size)
   val columnCount = styles.size / rowCount
   Column(
-    if (containerMergeDistance != null) modifier.hazeGlassContainer(containerMergeDistance) else modifier,
+    modifier = if (containerMergeDistance != null) modifier.hazeGlassContainer(containerMergeDistance) else modifier,
+    verticalArrangement = Arrangement.spacedBy(memberGap),
   ) {
     repeat(rowCount) { rowIndex ->
       Row(
@@ -569,6 +571,7 @@ internal fun profilingGlassStyle(
     chromaticAberrationStrength(0.3f)
   }
   if (!scenario.rimEnabled) specularIntensity(0f)
+  if (scenario.continuousCorners) shape(ContinuousRoundedCornerShape(16.dp))
   when (scenario) {
     GlassProfilingScenario.OpticalUpdate -> {
       lightPosition(
@@ -653,6 +656,10 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.ContainerPress2,
     GlassProfilingScenario.LazyIndependentScroll,
     GlassProfilingScenario.EffectAttachContainer2,
+    GlassProfilingScenario.SourceUpdateBalancedContinuous,
+    GlassProfilingScenario.SourceUpdateContainer2Continuous,
+    GlassProfilingScenario.SourceUpdateContainer4,
+    GlassProfilingScenario.SourceUpdateContainer4Continuous,
     -> Unit
   }
 }.then {
@@ -677,7 +684,7 @@ internal fun profilingStyleUsesFrame(scenario: GlassProfilingScenario): Boolean 
 }
 
 private fun profilingEffectSize(surfaceSize: Size, effectCount: Int): Size {
-  val rowCount = if (effectCount <= 3) 1 else 3
+  val rowCount = glassProfilingGridRowCount(effectCount)
   val columnCount = effectCount / rowCount
   return Size(
     width = surfaceSize.width / columnCount,

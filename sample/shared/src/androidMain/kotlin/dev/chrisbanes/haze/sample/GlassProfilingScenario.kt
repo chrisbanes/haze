@@ -51,6 +51,7 @@ internal enum class GlassProfilingScenario(
   val groupKey: String? = null,
   val pressesMergedMember: Boolean = false,
   val joinsAndLeaves: Boolean = false,
+  val continuousCorners: Boolean = false,
 ) {
   EffectAttach(
     id = "effect_attach",
@@ -376,6 +377,42 @@ internal enum class GlassProfilingScenario(
     containerMergeDistance = 32.dp,
     attachesDuringMeasurement = true,
   ),
+
+  // Shader-cost rows (#1766). Each continuous row differs from its circular control only in
+  // ContinuousRoundedCornerShape(16.dp), and the four-member rows use the container_2 gap and merge
+  // distance in a 2x2 grid.
+  SourceUpdateBalancedContinuous(
+    id = "source_update_balanced_continuous",
+    performanceMode = HazePerformanceMode.Balanced,
+    continuousCorners = true,
+  ),
+  SourceUpdateContainer2Continuous(
+    id = "source_update_container_2_continuous",
+    effectCount = 2,
+    memberGap = 12.dp,
+    containerMergeDistance = 32.dp,
+    continuousCorners = true,
+  ),
+  SourceUpdateContainer4(
+    id = "source_update_container_4",
+    effectCount = 4,
+    memberGap = 12.dp,
+    containerMergeDistance = 32.dp,
+  ),
+  SourceUpdateContainer4Continuous(
+    id = "source_update_container_4_continuous",
+    effectCount = 4,
+    memberGap = 12.dp,
+    containerMergeDistance = 32.dp,
+    continuousCorners = true,
+  ),
+}
+
+/** Rows of the profiling effect grid: one row up to three effects, 2x2 for four, else three. */
+internal fun glassProfilingGridRowCount(effectCount: Int): Int = when {
+  effectCount <= 3 -> 1
+  effectCount == 4 -> 2
+  else -> 3
 }
 
 private val ProfilingJoinLeaveMemberCounts = intArrayOf(2, 3, 4, 3, 2, 3)
@@ -543,6 +580,10 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.ContainerJoinLeave,
     GlassProfilingScenario.ContainerGroup3,
     GlassProfilingScenario.ContainerPress2,
+    GlassProfilingScenario.SourceUpdateBalancedContinuous,
+    GlassProfilingScenario.SourceUpdateContainer2Continuous,
+    GlassProfilingScenario.SourceUpdateContainer4,
+    GlassProfilingScenario.SourceUpdateContainer4Continuous,
     -> base.copy(sourceOffset = lerp(-0.08f, 0.08f, progress))
   }
 }
@@ -570,6 +611,10 @@ internal inline fun glassProfilingSourceProgress(
   GlassProfilingScenario.ContainerJoinLeave,
   GlassProfilingScenario.ContainerGroup3,
   GlassProfilingScenario.ContainerPress2,
+  GlassProfilingScenario.SourceUpdateBalancedContinuous,
+  GlassProfilingScenario.SourceUpdateContainer2Continuous,
+  GlassProfilingScenario.SourceUpdateContainer4,
+  GlassProfilingScenario.SourceUpdateContainer4Continuous,
   -> progress()
   else -> 0f
 }

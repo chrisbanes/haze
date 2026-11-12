@@ -221,6 +221,30 @@ class GlassProfilingBenchmark {
   )
 
   @Test
+  fun sourceUpdateBalancedContinuous() = measureCalibrationScenario("source_update_balanced_continuous")
+
+  @Test
+  fun sourceUpdateContainer2Continuous() = measureScenario(
+    scenarioId = "source_update_container_2_continuous",
+    includeMemory = true,
+    includeRedrawMetrics = true,
+  )
+
+  @Test
+  fun sourceUpdateContainer4() = measureScenario(
+    scenarioId = "source_update_container_4",
+    includeMemory = true,
+    includeRedrawMetrics = true,
+  )
+
+  @Test
+  fun sourceUpdateContainer4Continuous() = measureScenario(
+    scenarioId = "source_update_container_4_continuous",
+    includeMemory = true,
+    includeRedrawMetrics = true,
+  )
+
+  @Test
   fun lazyContainerScroll() = measureScenario("lazy_container_scroll", includeMemory = true)
 
   @Test
