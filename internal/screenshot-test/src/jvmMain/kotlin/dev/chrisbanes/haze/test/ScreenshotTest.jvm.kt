@@ -9,6 +9,7 @@ package dev.chrisbanes.haze.test
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.LocalSystemTheme
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ImageBitmap
@@ -28,17 +29,41 @@ import com.github.takahirom.roborazzi.InternalRoborazziApi
 import com.github.takahirom.roborazzi.provideRoborazziContext
 import com.github.takahirom.roborazzi.roboOutputName
 import io.github.takahirom.roborazzi.captureRoboImage
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
 actual abstract class ScreenshotTest : ContextTest()
 
-@OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class, InternalRoborazziApi::class)
 actual fun ScreenshotTest.runScreenshotTest(
   size: Size,
+  block: ScreenshotUiTest.() -> Unit,
+) = runScreenshotTestIn(size, EmptyCoroutineContext, block)
+
+/**
+ * Runs [block] with a zero [MotionDurationScale], so animations jump to their end state instead of
+ * rendering every intermediate frame in [ScreenshotUiTest.waitForIdle] (#1778). Use it only when
+ * every capture is pixel-identical to the animated run: samples that read the scale can change
+ * behavior.
+ */
+fun ScreenshotTest.runScreenshotTestWithoutMotion(
+  size: Size = Size(1080f, 1920f),
+  block: ScreenshotUiTest.() -> Unit,
+) = runScreenshotTestIn(size, NoMotion, block)
+
+private object NoMotion : MotionDurationScale {
+  override val scaleFactor = 0f
+}
+
+@OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class, InternalRoborazziApi::class)
+private fun runScreenshotTestIn(
+  size: Size,
+  effectContext: CoroutineContext,
   block: ScreenshotUiTest.() -> Unit,
 ) {
   runSkikoComposeUiTest(
     size = size,
     density = Density(2.75f),
+    effectContext = effectContext,
   ) {
     provideRoborazziContext().apply {
       setRuleOverrideRoborazziOptions(HazeRoborazziDefaults.roborazziOptions)
