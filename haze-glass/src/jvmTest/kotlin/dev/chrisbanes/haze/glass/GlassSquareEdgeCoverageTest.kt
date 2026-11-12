@@ -69,13 +69,16 @@ class GlassSquareEdgeCoverageTest {
   @Test
   fun squareSurface_edgePixelsHideUnderlay_smallBlur() {
     // Clear's shallow blur runs the tap blur, whose taps past the clipped edge read transparency.
+    // Expanded bounds too: the clip still crops the padding, so taps must not reach into it.
     for (performanceMode in listOf(HazePerformanceMode.Default, HazePerformanceMode.Quality)) {
-      assertRuntimeEdgesHideUnderlay(performanceMode, expandLayerBounds = false, optics = GlassOptics.clear)
-      assertRuntimeEdgesHideUnderlay(
-        performanceMode,
-        expandLayerBounds = false,
-        optics = GlassOptics.clear.copy(refractionStrength = 0f),
-      )
+      for (expandLayerBounds in listOf(false, true)) {
+        assertRuntimeEdgesHideUnderlay(performanceMode, expandLayerBounds, optics = GlassOptics.clear)
+        assertRuntimeEdgesHideUnderlay(
+          performanceMode,
+          expandLayerBounds,
+          optics = GlassOptics.clear.copy(refractionStrength = 0f),
+        )
+      }
     }
   }
 
@@ -86,7 +89,9 @@ class GlassSquareEdgeCoverageTest {
       progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 1f),
     )
     for (performanceMode in listOf(HazePerformanceMode.Default, HazePerformanceMode.Quality)) {
-      assertRuntimeEdgesHideUnderlay(performanceMode, expandLayerBounds = false, optics = progressive)
+      for (expandLayerBounds in listOf(false, true)) {
+        assertRuntimeEdgesHideUnderlay(performanceMode, expandLayerBounds, optics = progressive)
+      }
     }
   }
 
