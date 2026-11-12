@@ -1,0 +1,3226 @@
+{
+ "one/containerPress2": [
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter000_2026-11-12-13-40-08.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.99,
+    "middle": 0.01,
+    "dominant": "little",
+    "running_ms": 466.6
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.16,
+    "middle": 0.84,
+    "dominant": "middle",
+    "running_ms": 576.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter001_2026-11-12-13-40-15.perfetto-trace",
+   "main": {
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 450.9
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.41,
+    "middle": 0.59,
+    "dominant": "middle",
+    "running_ms": 733.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter002_2026-11-12-13-40-22.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.85,
+    "middle": 0.15,
+    "dominant": "little",
+    "running_ms": 443.0
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.1,
+    "middle": 0.89,
+    "dominant": "middle",
+    "running_ms": 575.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter003_2026-11-12-13-40-28.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.97,
+    "middle": 0.02,
+    "dominant": "little",
+    "running_ms": 463.3
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.36,
+    "middle": 0.64,
+    "dominant": "middle",
+    "running_ms": 694.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter004_2026-11-12-13-40-35.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.92,
+    "middle": 0.07,
+    "dominant": "little",
+    "running_ms": 484.0
+   },
+   "RenderThread": {
+    "big": 0.03,
+    "little": 0.07,
+    "middle": 0.9,
+    "dominant": "middle",
+    "running_ms": 591.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter005_2026-11-12-13-40-41.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.88,
+    "middle": 0.12,
+    "dominant": "little",
+    "running_ms": 433.3
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.42,
+    "middle": 0.58,
+    "dominant": "middle",
+    "running_ms": 733.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter006_2026-11-12-13-40-48.perfetto-trace",
+   "main": {
+    "big": 0.02,
+    "little": 0.0,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 269.8
+   },
+   "RenderThread": {
+    "big": 0.02,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 759.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter007_2026-11-12-13-40-55.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.92,
+    "middle": 0.08,
+    "dominant": "little",
+    "running_ms": 447.6
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.22,
+    "middle": 0.78,
+    "dominant": "middle",
+    "running_ms": 664.2
+   }
+  }
+ ],
+ "one/effectAttach": [
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter000_2026-11-12-13-43-06.perfetto-trace",
+   "main": {
+    "little": 0.5,
+    "middle": 0.5,
+    "dominant": "middle",
+    "running_ms": 26.3
+   },
+   "RenderThread": {
+    "little": 0.04,
+    "middle": 0.96,
+    "dominant": "middle",
+    "running_ms": 5.3
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter001_2026-11-12-13-43-13.perfetto-trace",
+   "main": {
+    "big": 0.02,
+    "little": 0.53,
+    "middle": 0.44,
+    "dominant": "little",
+    "running_ms": 27.5
+   },
+   "RenderThread": {
+    "little": 0.0,
+    "middle": 1.0,
+    "dominant": "middle",
+    "running_ms": 4.6
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter002_2026-11-12-13-43-20.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.65,
+    "middle": 0.34,
+    "dominant": "little",
+    "running_ms": 29.1
+   },
+   "RenderThread": {
+    "little": 0.0,
+    "middle": 1.0,
+    "dominant": "middle",
+    "running_ms": 5.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter003_2026-11-12-13-43-27.perfetto-trace",
+   "main": {
+    "big": 0.04,
+    "little": 0.66,
+    "middle": 0.3,
+    "dominant": "little",
+    "running_ms": 28.6
+   },
+   "RenderThread": {
+    "big": 0.09,
+    "little": 0.04,
+    "middle": 0.87,
+    "dominant": "middle",
+    "running_ms": 4.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter004_2026-11-12-13-43-33.perfetto-trace",
+   "main": {
+    "little": 0.46,
+    "middle": 0.54,
+    "dominant": "middle",
+    "running_ms": 24.1
+   },
+   "RenderThread": {
+    "little": 0.02,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 4.6
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter005_2026-11-12-13-43-40.perfetto-trace",
+   "main": {
+    "little": 0.84,
+    "middle": 0.16,
+    "dominant": "little",
+    "running_ms": 30.6
+   },
+   "RenderThread": {
+    "big": 0.07,
+    "little": 0.0,
+    "middle": 0.93,
+    "dominant": "middle",
+    "running_ms": 5.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter006_2026-11-12-13-43-47.perfetto-trace",
+   "main": {
+    "big": 0.02,
+    "little": 0.56,
+    "middle": 0.42,
+    "dominant": "little",
+    "running_ms": 27.1
+   },
+   "RenderThread": {
+    "little": 0.04,
+    "middle": 0.96,
+    "dominant": "middle",
+    "running_ms": 4.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter007_2026-11-12-13-43-54.perfetto-trace",
+   "main": {
+    "little": 0.76,
+    "middle": 0.24,
+    "dominant": "little",
+    "running_ms": 27.6
+   },
+   "RenderThread": {
+    "big": 0.06,
+    "little": 0.08,
+    "middle": 0.86,
+    "dominant": "middle",
+    "running_ms": 4.9
+   }
+  }
+ ],
+ "one/effectAttachContainer2": [
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter000_2026-11-12-13-44-36.perfetto-trace",
+   "main": {
+    "little": 0.64,
+    "middle": 0.36,
+    "dominant": "little",
+    "running_ms": 31.2
+   },
+   "RenderThread": {
+    "big": 0.06,
+    "little": 0.02,
+    "middle": 0.92,
+    "dominant": "middle",
+    "running_ms": 6.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter001_2026-11-12-13-44-43.perfetto-trace",
+   "main": {
+    "big": 0.06,
+    "little": 0.58,
+    "middle": 0.36,
+    "dominant": "little",
+    "running_ms": 31.2
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.71,
+    "middle": 0.28,
+    "dominant": "little",
+    "running_ms": 175.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter002_2026-11-12-13-44-50.perfetto-trace",
+   "main": {
+    "big": 0.12,
+    "little": 0.7,
+    "middle": 0.18,
+    "dominant": "little",
+    "running_ms": 30.1
+   },
+   "RenderThread": {
+    "big": 0.06,
+    "middle": 0.94,
+    "dominant": "middle",
+    "running_ms": 5.3
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter003_2026-11-12-13-44-56.perfetto-trace",
+   "main": {
+    "big": 0.04,
+    "little": 0.59,
+    "middle": 0.37,
+    "dominant": "little",
+    "running_ms": 26.7
+   },
+   "RenderThread": {
+    "little": 0.02,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 5.6
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter004_2026-11-12-13-45-03.perfetto-trace",
+   "main": {
+    "little": 0.74,
+    "middle": 0.26,
+    "dominant": "little",
+    "running_ms": 35.0
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.02,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 4.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter005_2026-11-12-13-45-10.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.73,
+    "middle": 0.27,
+    "dominant": "little",
+    "running_ms": 33.7
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.86,
+    "middle": 0.14,
+    "dominant": "little",
+    "running_ms": 153.0
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter006_2026-11-12-13-45-17.perfetto-trace",
+   "main": {
+    "big": 0.02,
+    "little": 0.58,
+    "middle": 0.4,
+    "dominant": "little",
+    "running_ms": 28.6
+   },
+   "RenderThread": {
+    "big": 0.08,
+    "middle": 0.92,
+    "dominant": "middle",
+    "running_ms": 5.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter007_2026-11-12-13-45-24.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.38,
+    "middle": 0.61,
+    "dominant": "middle",
+    "running_ms": 24.4
+   },
+   "RenderThread": {
+    "big": 0.09,
+    "little": 0.02,
+    "middle": 0.89,
+    "dominant": "middle",
+    "running_ms": 5.5
+   }
+  }
+ ],
+ "one/interactionUpdate": [
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter000_2026-11-12-13-41-37.perfetto-trace",
+   "main": {
+    "little": 0.9,
+    "middle": 0.1,
+    "dominant": "little",
+    "running_ms": 93.4
+   },
+   "RenderThread": {
+    "little": 0.82,
+    "middle": 0.18,
+    "dominant": "little",
+    "running_ms": 142.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter001_2026-11-12-13-41-44.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.9,
+    "middle": 0.09,
+    "dominant": "little",
+    "running_ms": 90.7
+   },
+   "RenderThread": {
+    "little": 0.78,
+    "middle": 0.22,
+    "dominant": "little",
+    "running_ms": 139.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter002_2026-11-12-13-41-51.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.9,
+    "middle": 0.09,
+    "dominant": "little",
+    "running_ms": 93.1
+   },
+   "RenderThread": {
+    "little": 0.58,
+    "middle": 0.42,
+    "dominant": "little",
+    "running_ms": 120.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter003_2026-11-12-13-41-58.perfetto-trace",
+   "main": {
+    "little": 0.89,
+    "middle": 0.11,
+    "dominant": "little",
+    "running_ms": 89.5
+   },
+   "RenderThread": {
+    "little": 0.8,
+    "middle": 0.2,
+    "dominant": "little",
+    "running_ms": 136.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter004_2026-11-12-13-42-05.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.82,
+    "middle": 0.17,
+    "dominant": "little",
+    "running_ms": 95.2
+   },
+   "RenderThread": {
+    "big": 0.03,
+    "little": 0.27,
+    "middle": 0.7,
+    "dominant": "middle",
+    "running_ms": 99.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter005_2026-11-12-13-42-12.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.84,
+    "middle": 0.15,
+    "dominant": "little",
+    "running_ms": 87.9
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.42,
+    "middle": 0.57,
+    "dominant": "middle",
+    "running_ms": 105.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter006_2026-11-12-13-42-19.perfetto-trace",
+   "main": {
+    "big": 0.05,
+    "little": 0.79,
+    "middle": 0.15,
+    "dominant": "little",
+    "running_ms": 77.8
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.41,
+    "middle": 0.59,
+    "dominant": "middle",
+    "running_ms": 98.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter007_2026-11-12-13-42-26.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.89,
+    "middle": 0.1,
+    "dominant": "little",
+    "running_ms": 94.6
+   },
+   "RenderThread": {
+    "little": 0.36,
+    "middle": 0.64,
+    "dominant": "middle",
+    "running_ms": 100.4
+   }
+  }
+ ],
+ "one/sourceUpdateBalanced": [
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter000_2026-11-12-13-29-45.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 269.4
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.08,
+    "middle": 0.92,
+    "dominant": "middle",
+    "running_ms": 525.0
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter001_2026-11-12-13-29-52.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.93,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 253.8
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.07,
+    "middle": 0.93,
+    "dominant": "middle",
+    "running_ms": 520.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter002_2026-11-12-13-29-58.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 259.0
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.41,
+    "middle": 0.58,
+    "dominant": "middle",
+    "running_ms": 623.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter003_2026-11-12-13-30-05.perfetto-trace",
+   "main": {
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 255.0
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.32,
+    "middle": 0.68,
+    "dominant": "middle",
+    "running_ms": 585.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter004_2026-11-12-13-30-11.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 269.6
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.16,
+    "middle": 0.84,
+    "dominant": "middle",
+    "running_ms": 545.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter005_2026-11-12-13-30-18.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 261.0
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.19,
+    "middle": 0.81,
+    "dominant": "middle",
+    "running_ms": 554.9
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter006_2026-11-12-13-30-24.perfetto-trace",
+   "main": {
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 255.8
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.47,
+    "middle": 0.53,
+    "dominant": "middle",
+    "running_ms": 653.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter007_2026-11-12-13-30-31.perfetto-trace",
+   "main": {
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 264.3
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.1,
+    "middle": 0.9,
+    "dominant": "middle",
+    "running_ms": 515.9
+   }
+  }
+ ],
+ "one/sourceUpdateBalancedContinuous": [
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter000_2026-11-12-13-31-14.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.93,
+    "middle": 0.07,
+    "dominant": "little",
+    "running_ms": 274.3
+   },
+   "RenderThread": {
+    "big": 0.02,
+    "little": 0.08,
+    "middle": 0.9,
+    "dominant": "middle",
+    "running_ms": 503.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter001_2026-11-12-13-31-21.perfetto-trace",
+   "main": {
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 269.8
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.06,
+    "middle": 0.94,
+    "dominant": "middle",
+    "running_ms": 503.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter002_2026-11-12-13-31-27.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.92,
+    "middle": 0.08,
+    "dominant": "little",
+    "running_ms": 271.2
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.35,
+    "middle": 0.65,
+    "dominant": "middle",
+    "running_ms": 604.3
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter003_2026-11-12-13-31-34.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 264.2
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.31,
+    "middle": 0.69,
+    "dominant": "middle",
+    "running_ms": 590.6
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter004_2026-11-12-13-31-40.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.93,
+    "middle": 0.07,
+    "dominant": "little",
+    "running_ms": 286.0
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.58,
+    "middle": 0.41,
+    "dominant": "little",
+    "running_ms": 743.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter005_2026-11-12-13-31-47.perfetto-trace",
+   "main": {
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 267.4
+   },
+   "RenderThread": {
+    "little": 0.28,
+    "middle": 0.72,
+    "dominant": "middle",
+    "running_ms": 560.0
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter006_2026-11-12-13-31-54.perfetto-trace",
+   "main": {
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 260.1
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.06,
+    "middle": 0.94,
+    "dominant": "middle",
+    "running_ms": 646.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter007_2026-11-12-13-32-00.perfetto-trace",
+   "main": {
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 259.0
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.4,
+    "middle": 0.6,
+    "dominant": "middle",
+    "running_ms": 599.3
+   }
+  }
+ ],
+ "one/sourceUpdateContainer2": [
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter000_2026-11-12-13-34-12.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 269.4
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.38,
+    "middle": 0.61,
+    "dominant": "middle",
+    "running_ms": 682.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter001_2026-11-12-13-34-19.perfetto-trace",
+   "main": {
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 266.8
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.26,
+    "middle": 0.73,
+    "dominant": "middle",
+    "running_ms": 634.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter002_2026-11-12-13-34-25.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.95,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 282.0
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.28,
+    "middle": 0.71,
+    "dominant": "middle",
+    "running_ms": 661.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter003_2026-11-12-13-34-32.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 262.8
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.03,
+    "middle": 0.96,
+    "dominant": "middle",
+    "running_ms": 543.6
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter004_2026-11-12-13-34-39.perfetto-trace",
+   "main": {
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 268.5
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.14,
+    "middle": 0.85,
+    "dominant": "middle",
+    "running_ms": 582.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter005_2026-11-12-13-34-45.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 261.9
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.27,
+    "middle": 0.72,
+    "dominant": "middle",
+    "running_ms": 613.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter006_2026-11-12-13-34-52.perfetto-trace",
+   "main": {
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 272.7
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.22,
+    "middle": 0.78,
+    "dominant": "middle",
+    "running_ms": 607.6
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter007_2026-11-12-13-34-59.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 264.7
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.7,
+    "middle": 0.3,
+    "dominant": "little",
+    "running_ms": 867.7
+   }
+  }
+ ],
+ "one/sourceUpdateContainer2Continuous": [
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter000_2026-11-12-13-35-40.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 264.4
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.01,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 481.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter001_2026-11-12-13-35-47.perfetto-trace",
+   "main": {
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 248.8
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.12,
+    "middle": 0.88,
+    "dominant": "middle",
+    "running_ms": 508.0
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter002_2026-11-12-13-35-53.perfetto-trace",
+   "main": {
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 254.4
+   },
+   "RenderThread": {
+    "big": 0.02,
+    "little": 0.17,
+    "middle": 0.8,
+    "dominant": "middle",
+    "running_ms": 567.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter003_2026-11-12-13-36-00.perfetto-trace",
+   "main": {
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 260.3
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.03,
+    "middle": 0.97,
+    "dominant": "middle",
+    "running_ms": 504.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter004_2026-11-12-13-36-06.perfetto-trace",
+   "main": {
+    "big": 0.08,
+    "little": 0.03,
+    "middle": 0.88,
+    "dominant": "middle",
+    "running_ms": 161.8
+   },
+   "RenderThread": {
+    "big": 0.09,
+    "middle": 0.91,
+    "dominant": "middle",
+    "running_ms": 647.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter005_2026-11-12-13-36-13.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 251.3
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.22,
+    "middle": 0.78,
+    "dominant": "middle",
+    "running_ms": 550.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter006_2026-11-12-13-36-20.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.93,
+    "middle": 0.07,
+    "dominant": "little",
+    "running_ms": 263.7
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.41,
+    "middle": 0.59,
+    "dominant": "middle",
+    "running_ms": 641.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter007_2026-11-12-13-36-27.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 252.5
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.01,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 480.4
+   }
+  }
+ ],
+ "one/sourceUpdateContainer4": [
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter000_2026-11-12-13-37-08.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 281.4
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.02,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 522.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter001_2026-11-12-13-37-14.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 261.1
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.02,
+    "middle": 0.97,
+    "dominant": "middle",
+    "running_ms": 503.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter002_2026-11-12-13-37-21.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.93,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 280.3
+   },
+   "RenderThread": {
+    "big": 0.02,
+    "little": 0.27,
+    "middle": 0.72,
+    "dominant": "middle",
+    "running_ms": 600.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter003_2026-11-12-13-37-28.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 275.0
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.01,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 500.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter004_2026-11-12-13-37-34.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 280.1
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.03,
+    "middle": 0.97,
+    "dominant": "middle",
+    "running_ms": 523.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter005_2026-11-12-13-37-41.perfetto-trace",
+   "main": {
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 268.5
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.82,
+    "middle": 0.18,
+    "dominant": "little",
+    "running_ms": 925.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter006_2026-11-12-13-37-48.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 270.2
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.03,
+    "middle": 0.97,
+    "dominant": "middle",
+    "running_ms": 513.6
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter007_2026-11-12-13-37-54.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 274.1
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.03,
+    "middle": 0.97,
+    "dominant": "middle",
+    "running_ms": 538.2
+   }
+  }
+ ],
+ "one/sourceUpdateContainer4Continuous": [
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter000_2026-11-12-13-38-38.perfetto-trace",
+   "main": {
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 252.7
+   },
+   "RenderThread": {
+    "little": 0.27,
+    "middle": 0.73,
+    "dominant": "middle",
+    "running_ms": 575.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter001_2026-11-12-13-38-45.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 242.4
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 1002.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter002_2026-11-12-13-38-51.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 276.6
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.29,
+    "middle": 0.7,
+    "dominant": "middle",
+    "running_ms": 605.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter003_2026-11-12-13-38-58.perfetto-trace",
+   "main": {
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 245.8
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.59,
+    "middle": 0.4,
+    "dominant": "little",
+    "running_ms": 708.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter004_2026-11-12-13-39-04.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 280.4
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.69,
+    "middle": 0.31,
+    "dominant": "little",
+    "running_ms": 821.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter005_2026-11-12-13-39-11.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.96,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 254.8
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.1,
+    "middle": 0.89,
+    "dominant": "middle",
+    "running_ms": 499.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter006_2026-11-12-13-39-18.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.95,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 259.9
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.45,
+    "middle": 0.54,
+    "dominant": "middle",
+    "running_ms": 662.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter007_2026-11-12-13-39-24.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 253.2
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.02,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 476.3
+   }
+  }
+ ],
+ "one/sourceUpdateIndependent2": [
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter000_2026-11-12-13-32-42.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.96,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 280.0
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.01,
+    "middle": 0.99,
+    "dominant": "middle",
+    "running_ms": 832.3
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter001_2026-11-12-13-32-49.perfetto-trace",
+   "main": {
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 263.2
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.02,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 796.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter002_2026-11-12-13-32-55.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.92,
+    "middle": 0.07,
+    "dominant": "little",
+    "running_ms": 273.5
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.02,
+    "middle": 0.97,
+    "dominant": "middle",
+    "running_ms": 849.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter003_2026-11-12-13-33-02.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 262.5
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.01,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 800.9
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter004_2026-11-12-13-33-09.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.95,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 270.2
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.01,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 808.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter005_2026-11-12-13-33-16.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 264.5
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.01,
+    "middle": 0.99,
+    "dominant": "middle",
+    "running_ms": 814.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter006_2026-11-12-13-33-22.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.95,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 269.7
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.02,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 802.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter007_2026-11-12-13-33-29.perfetto-trace",
+   "main": {
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 263.4
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.02,
+    "middle": 0.97,
+    "dominant": "middle",
+    "running_ms": 837.7
+   }
+  }
+ ],
+ "one/stableBalanced": [
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter000_2026-11-12-13-28-10.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.98,
+    "middle": 0.02,
+    "dominant": "little",
+    "running_ms": 297.1
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.99,
+    "middle": 0.01,
+    "dominant": "little",
+    "running_ms": 535.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter001_2026-11-12-13-28-17.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.98,
+    "middle": 0.02,
+    "dominant": "little",
+    "running_ms": 300.9
+   },
+   "RenderThread": {
+    "little": 0.99,
+    "middle": 0.01,
+    "dominant": "little",
+    "running_ms": 541.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter002_2026-11-12-13-28-24.perfetto-trace",
+   "main": {
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 330.4
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.92,
+    "middle": 0.07,
+    "dominant": "little",
+    "running_ms": 535.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter003_2026-11-12-13-28-30.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.98,
+    "middle": 0.02,
+    "dominant": "little",
+    "running_ms": 307.6
+   },
+   "RenderThread": {
+    "little": 0.99,
+    "middle": 0.01,
+    "dominant": "little",
+    "running_ms": 527.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter004_2026-11-12-13-28-37.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.98,
+    "middle": 0.02,
+    "dominant": "little",
+    "running_ms": 303.0
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.98,
+    "middle": 0.02,
+    "dominant": "little",
+    "running_ms": 517.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter005_2026-11-12-13-28-43.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.97,
+    "middle": 0.02,
+    "dominant": "little",
+    "running_ms": 285.9
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.99,
+    "middle": 0.01,
+    "dominant": "little",
+    "running_ms": 517.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter006_2026-11-12-13-28-50.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.96,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 321.3
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 532.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter007_2026-11-12-13-28-56.perfetto-trace",
+   "main": {
+    "little": 0.98,
+    "middle": 0.02,
+    "dominant": "little",
+    "running_ms": 308.0
+   },
+   "RenderThread": {
+    "little": 0.99,
+    "middle": 0.01,
+    "dominant": "little",
+    "running_ms": 541.9
+   }
+  }
+ ],
+ "two/containerPress2": [
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter000_2026-11-12-13-50-22.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.93,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 476.8
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.09,
+    "middle": 0.9,
+    "dominant": "middle",
+    "running_ms": 630.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter001_2026-11-12-13-50-28.perfetto-trace",
+   "main": {
+    "big": 0.03,
+    "little": 0.01,
+    "middle": 0.96,
+    "dominant": "middle",
+    "running_ms": 271.8
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "middle": 0.99,
+    "dominant": "middle",
+    "running_ms": 768.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter002_2026-11-12-13-50-35.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.8,
+    "middle": 0.2,
+    "dominant": "little",
+    "running_ms": 416.4
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.37,
+    "middle": 0.62,
+    "dominant": "middle",
+    "running_ms": 711.3
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter003_2026-11-12-13-50-42.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 471.5
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.07,
+    "middle": 0.93,
+    "dominant": "middle",
+    "running_ms": 579.0
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter004_2026-11-12-13-50-49.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 467.0
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.18,
+    "middle": 0.82,
+    "dominant": "middle",
+    "running_ms": 642.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter005_2026-11-12-13-50-55.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 459.0
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.41,
+    "middle": 0.59,
+    "dominant": "middle",
+    "running_ms": 730.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter006_2026-11-12-13-51-02.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.89,
+    "middle": 0.1,
+    "dominant": "little",
+    "running_ms": 459.9
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.32,
+    "middle": 0.67,
+    "dominant": "middle",
+    "running_ms": 694.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_containerPress2_iter007_2026-11-12-13-51-09.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.93,
+    "middle": 0.07,
+    "dominant": "little",
+    "running_ms": 442.1
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.29,
+    "middle": 0.71,
+    "dominant": "middle",
+    "running_ms": 721.1
+   }
+  }
+ ],
+ "two/effectAttach": [
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter000_2026-11-12-13-47-26.perfetto-trace",
+   "main": {
+    "big": 0.05,
+    "little": 0.59,
+    "middle": 0.36,
+    "dominant": "little",
+    "running_ms": 24.1
+   },
+   "RenderThread": {
+    "big": 0.06,
+    "little": 0.02,
+    "middle": 0.92,
+    "dominant": "middle",
+    "running_ms": 5.0
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter001_2026-11-12-13-47-33.perfetto-trace",
+   "main": {
+    "big": 0.1,
+    "little": 0.61,
+    "middle": 0.29,
+    "dominant": "little",
+    "running_ms": 26.0
+   },
+   "RenderThread": {
+    "big": 0.37,
+    "little": 0.02,
+    "middle": 0.61,
+    "dominant": "middle",
+    "running_ms": 5.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter002_2026-11-12-13-47-40.perfetto-trace",
+   "main": {
+    "big": 0.04,
+    "little": 0.45,
+    "middle": 0.51,
+    "dominant": "middle",
+    "running_ms": 22.4
+   },
+   "RenderThread": {
+    "big": 0.08,
+    "little": 0.02,
+    "middle": 0.9,
+    "dominant": "middle",
+    "running_ms": 5.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter003_2026-11-12-13-47-46.perfetto-trace",
+   "main": {
+    "big": 0.05,
+    "little": 0.59,
+    "middle": 0.36,
+    "dominant": "little",
+    "running_ms": 24.1
+   },
+   "RenderThread": {
+    "big": 0.09,
+    "little": 0.02,
+    "middle": 0.89,
+    "dominant": "middle",
+    "running_ms": 4.6
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter004_2026-11-12-13-47-53.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.7,
+    "middle": 0.29,
+    "dominant": "little",
+    "running_ms": 31.0
+   },
+   "RenderThread": {
+    "big": 0.08,
+    "little": 0.15,
+    "middle": 0.77,
+    "dominant": "middle",
+    "running_ms": 5.3
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter005_2026-11-12-13-48-00.perfetto-trace",
+   "main": {
+    "little": 0.66,
+    "middle": 0.34,
+    "dominant": "little",
+    "running_ms": 28.5
+   },
+   "RenderThread": {
+    "big": 0.07,
+    "middle": 0.93,
+    "dominant": "middle",
+    "running_ms": 4.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter006_2026-11-12-13-48-07.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.75,
+    "middle": 0.25,
+    "dominant": "little",
+    "running_ms": 32.9
+   },
+   "RenderThread": {
+    "middle": 1.0,
+    "dominant": "middle",
+    "running_ms": 4.6
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttach_iter007_2026-11-12-13-48-13.perfetto-trace",
+   "main": {
+    "big": 0.04,
+    "little": 0.65,
+    "middle": 0.32,
+    "dominant": "little",
+    "running_ms": 28.2
+   },
+   "RenderThread": {
+    "big": 0.09,
+    "little": 0.02,
+    "middle": 0.89,
+    "dominant": "middle",
+    "running_ms": 5.4
+   }
+  }
+ ],
+ "two/effectAttachContainer2": [
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter000_2026-11-12-13-46-02.perfetto-trace",
+   "main": {
+    "little": 0.58,
+    "middle": 0.42,
+    "dominant": "little",
+    "running_ms": 29.7
+   },
+   "RenderThread": {
+    "big": 0.23,
+    "little": 0.0,
+    "middle": 0.77,
+    "dominant": "middle",
+    "running_ms": 4.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter001_2026-11-12-13-46-09.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.67,
+    "middle": 0.33,
+    "dominant": "little",
+    "running_ms": 30.4
+   },
+   "RenderThread": {
+    "big": 0.08,
+    "little": 0.02,
+    "middle": 0.9,
+    "dominant": "middle",
+    "running_ms": 5.0
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter002_2026-11-12-13-46-16.perfetto-trace",
+   "main": {
+    "little": 0.45,
+    "middle": 0.55,
+    "dominant": "middle",
+    "running_ms": 25.1
+   },
+   "RenderThread": {
+    "big": 0.09,
+    "little": 0.02,
+    "middle": 0.89,
+    "dominant": "middle",
+    "running_ms": 4.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter003_2026-11-12-13-46-23.perfetto-trace",
+   "main": {
+    "big": 0.02,
+    "little": 0.59,
+    "middle": 0.39,
+    "dominant": "little",
+    "running_ms": 28.2
+   },
+   "RenderThread": {
+    "big": 0.12,
+    "little": 0.0,
+    "middle": 0.88,
+    "dominant": "middle",
+    "running_ms": 5.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter004_2026-11-12-13-46-29.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.7,
+    "middle": 0.3,
+    "dominant": "little",
+    "running_ms": 31.2
+   },
+   "RenderThread": {
+    "big": 0.07,
+    "little": 0.11,
+    "middle": 0.82,
+    "dominant": "middle",
+    "running_ms": 5.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter005_2026-11-12-13-46-36.perfetto-trace",
+   "main": {
+    "big": 0.12,
+    "little": 0.56,
+    "middle": 0.32,
+    "dominant": "little",
+    "running_ms": 26.6
+   },
+   "RenderThread": {
+    "big": 0.07,
+    "little": 0.03,
+    "middle": 0.9,
+    "dominant": "middle",
+    "running_ms": 5.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter006_2026-11-12-13-46-43.perfetto-trace",
+   "main": {
+    "little": 0.71,
+    "middle": 0.29,
+    "dominant": "little",
+    "running_ms": 32.4
+   },
+   "RenderThread": {
+    "big": 0.08,
+    "little": 0.04,
+    "middle": 0.88,
+    "dominant": "middle",
+    "running_ms": 5.0
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_effectAttachContainer2_iter007_2026-11-12-13-46-49.perfetto-trace",
+   "main": {
+    "little": 0.18,
+    "middle": 0.82,
+    "dominant": "middle",
+    "running_ms": 22.1
+   },
+   "RenderThread": {
+    "little": 0.02,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 5.1
+   }
+  }
+ ],
+ "two/interactionUpdate": [
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter000_2026-11-12-13-48-55.perfetto-trace",
+   "main": {
+    "little": 0.78,
+    "middle": 0.22,
+    "dominant": "little",
+    "running_ms": 89.7
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.54,
+    "middle": 0.45,
+    "dominant": "little",
+    "running_ms": 121.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter001_2026-11-12-13-49-02.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.92,
+    "middle": 0.07,
+    "dominant": "little",
+    "running_ms": 92.4
+   },
+   "RenderThread": {
+    "little": 0.88,
+    "middle": 0.12,
+    "dominant": "little",
+    "running_ms": 144.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter002_2026-11-12-13-49-09.perfetto-trace",
+   "main": {
+    "little": 0.83,
+    "middle": 0.17,
+    "dominant": "little",
+    "running_ms": 82.5
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.47,
+    "middle": 0.53,
+    "dominant": "middle",
+    "running_ms": 112.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter003_2026-11-12-13-49-16.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.76,
+    "middle": 0.23,
+    "dominant": "little",
+    "running_ms": 82.0
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.7,
+    "middle": 0.29,
+    "dominant": "little",
+    "running_ms": 284.3
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter004_2026-11-12-13-49-22.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.84,
+    "middle": 0.16,
+    "dominant": "little",
+    "running_ms": 91.9
+   },
+   "RenderThread": {
+    "big": 0.02,
+    "little": 0.51,
+    "middle": 0.47,
+    "dominant": "little",
+    "running_ms": 107.6
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter005_2026-11-12-13-49-29.perfetto-trace",
+   "main": {
+    "little": 0.85,
+    "middle": 0.15,
+    "dominant": "little",
+    "running_ms": 89.4
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.58,
+    "middle": 0.42,
+    "dominant": "little",
+    "running_ms": 116.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter006_2026-11-12-13-49-36.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.91,
+    "middle": 0.08,
+    "dominant": "little",
+    "running_ms": 93.5
+   },
+   "RenderThread": {
+    "little": 0.69,
+    "middle": 0.31,
+    "dominant": "little",
+    "running_ms": 125.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_interactionUpdate_iter007_2026-11-12-13-49-43.perfetto-trace",
+   "main": {
+    "big": 0.02,
+    "little": 0.71,
+    "middle": 0.28,
+    "dominant": "little",
+    "running_ms": 84.3
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.61,
+    "middle": 0.38,
+    "dominant": "little",
+    "running_ms": 267.9
+   }
+  }
+ ],
+ "two/sourceUpdateBalanced": [
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter000_2026-11-12-14-04-25.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 254.3
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.48,
+    "middle": 0.51,
+    "dominant": "middle",
+    "running_ms": 662.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter001_2026-11-12-14-04-32.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.93,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 275.5
+   },
+   "RenderThread": {
+    "big": 0.02,
+    "little": 0.25,
+    "middle": 0.73,
+    "dominant": "middle",
+    "running_ms": 588.6
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter002_2026-11-12-14-04-38.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.93,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 256.7
+   },
+   "RenderThread": {
+    "big": 0.02,
+    "little": 0.03,
+    "middle": 0.95,
+    "dominant": "middle",
+    "running_ms": 495.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter003_2026-11-12-14-04-45.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 256.0
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.51,
+    "middle": 0.49,
+    "dominant": "little",
+    "running_ms": 658.0
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter004_2026-11-12-14-04-52.perfetto-trace",
+   "main": {
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 258.3
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.53,
+    "middle": 0.46,
+    "dominant": "little",
+    "running_ms": 696.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter005_2026-11-12-14-04-58.perfetto-trace",
+   "main": {
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 260.4
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.62,
+    "middle": 0.38,
+    "dominant": "little",
+    "running_ms": 725.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter006_2026-11-12-14-05-05.perfetto-trace",
+   "main": {
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 264.9
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.31,
+    "middle": 0.68,
+    "dominant": "middle",
+    "running_ms": 580.3
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalanced_iter007_2026-11-12-14-05-11.perfetto-trace",
+   "main": {
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 264.3
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.33,
+    "middle": 0.67,
+    "dominant": "middle",
+    "running_ms": 587.5
+   }
+  }
+ ],
+ "two/sourceUpdateBalancedContinuous": [
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter000_2026-11-12-14-02-41.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 259.1
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.21,
+    "middle": 0.79,
+    "dominant": "middle",
+    "running_ms": 558.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter001_2026-11-12-14-02-48.perfetto-trace",
+   "main": {
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 251.5
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.12,
+    "middle": 0.88,
+    "dominant": "middle",
+    "running_ms": 527.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter002_2026-11-12-14-02-54.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 277.8
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.04,
+    "middle": 0.95,
+    "dominant": "middle",
+    "running_ms": 509.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter003_2026-11-12-14-03-01.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.97,
+    "middle": 0.02,
+    "dominant": "little",
+    "running_ms": 264.9
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.04,
+    "middle": 0.96,
+    "dominant": "middle",
+    "running_ms": 510.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter004_2026-11-12-14-03-08.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 262.0
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.42,
+    "middle": 0.58,
+    "dominant": "middle",
+    "running_ms": 624.9
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter005_2026-11-12-14-03-14.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.96,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 257.1
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.08,
+    "middle": 0.92,
+    "dominant": "middle",
+    "running_ms": 502.6
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter006_2026-11-12-14-03-21.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.93,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 264.2
+   },
+   "RenderThread": {
+    "big": 0.02,
+    "little": 0.08,
+    "middle": 0.9,
+    "dominant": "middle",
+    "running_ms": 526.9
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateBalancedContinuous_iter007_2026-11-12-14-03-27.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 253.2
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.39,
+    "middle": 0.6,
+    "dominant": "middle",
+    "running_ms": 619.3
+   }
+  }
+ ],
+ "two/sourceUpdateContainer2": [
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter000_2026-11-12-13-59-26.perfetto-trace",
+   "main": {
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 257.2
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.67,
+    "middle": 0.33,
+    "dominant": "little",
+    "running_ms": 819.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter001_2026-11-12-13-59-32.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 261.7
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.53,
+    "middle": 0.47,
+    "dominant": "little",
+    "running_ms": 757.9
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter002_2026-11-12-13-59-39.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.95,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 271.4
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.27,
+    "middle": 0.73,
+    "dominant": "middle",
+    "running_ms": 646.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter003_2026-11-12-13-59-46.perfetto-trace",
+   "main": {
+    "little": 0.98,
+    "middle": 0.02,
+    "dominant": "little",
+    "running_ms": 271.3
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.33,
+    "middle": 0.66,
+    "dominant": "middle",
+    "running_ms": 650.3
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter004_2026-11-12-13-59-52.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 273.1
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.23,
+    "middle": 0.77,
+    "dominant": "middle",
+    "running_ms": 651.0
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter005_2026-11-12-13-59-59.perfetto-trace",
+   "main": {
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 266.5
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.61,
+    "middle": 0.39,
+    "dominant": "little",
+    "running_ms": 827.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter006_2026-11-12-14-00-05.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.94,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 265.4
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.55,
+    "middle": 0.45,
+    "dominant": "little",
+    "running_ms": 762.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2_iter007_2026-11-12-14-00-12.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.95,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 257.9
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.41,
+    "middle": 0.59,
+    "dominant": "middle",
+    "running_ms": 681.6
+   }
+  }
+ ],
+ "two/sourceUpdateContainer2Continuous": [
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter000_2026-11-12-13-55-22.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 258.6
+   },
+   "RenderThread": {
+    "big": 0.02,
+    "little": 0.0,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 486.2
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter001_2026-11-12-13-55-29.perfetto-trace",
+   "main": {
+    "little": 0.98,
+    "middle": 0.02,
+    "dominant": "little",
+    "running_ms": 255.8
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.15,
+    "middle": 0.85,
+    "dominant": "middle",
+    "running_ms": 523.9
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter002_2026-11-12-13-55-36.perfetto-trace",
+   "main": {
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 252.5
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.43,
+    "middle": 0.57,
+    "dominant": "middle",
+    "running_ms": 634.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter003_2026-11-12-13-55-42.perfetto-trace",
+   "main": {
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 254.4
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.19,
+    "middle": 0.81,
+    "dominant": "middle",
+    "running_ms": 555.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter004_2026-11-12-13-55-49.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.93,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 276.0
+   },
+   "RenderThread": {
+    "big": 0.02,
+    "little": 0.27,
+    "middle": 0.72,
+    "dominant": "middle",
+    "running_ms": 610.9
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter005_2026-11-12-13-55-56.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 255.8
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.04,
+    "middle": 0.96,
+    "dominant": "middle",
+    "running_ms": 495.9
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter006_2026-11-12-13-56-02.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.92,
+    "middle": 0.08,
+    "dominant": "little",
+    "running_ms": 257.7
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.09,
+    "middle": 0.9,
+    "dominant": "middle",
+    "running_ms": 512.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer2Continuous_iter007_2026-11-12-13-56-09.perfetto-trace",
+   "main": {
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 251.6
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.04,
+    "middle": 0.96,
+    "dominant": "middle",
+    "running_ms": 501.2
+   }
+  }
+ ],
+ "two/sourceUpdateContainer4": [
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter000_2026-11-12-13-53-51.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 271.0
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.03,
+    "middle": 0.97,
+    "dominant": "middle",
+    "running_ms": 501.9
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter001_2026-11-12-13-53-57.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 267.4
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.78,
+    "middle": 0.22,
+    "dominant": "little",
+    "running_ms": 873.0
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter002_2026-11-12-13-54-04.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.94,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 282.4
+   },
+   "RenderThread": {
+    "big": 0.02,
+    "little": 0.03,
+    "middle": 0.96,
+    "dominant": "middle",
+    "running_ms": 520.3
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter003_2026-11-12-13-54-11.perfetto-trace",
+   "main": {
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 262.7
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.02,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 501.3
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter004_2026-11-12-13-54-17.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.97,
+    "middle": 0.02,
+    "dominant": "little",
+    "running_ms": 270.2
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.4,
+    "middle": 0.6,
+    "dominant": "middle",
+    "running_ms": 649.7
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter005_2026-11-12-13-54-24.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.05,
+    "middle": 0.94,
+    "dominant": "middle",
+    "running_ms": 169.1
+   },
+   "RenderThread": {
+    "big": 0.05,
+    "little": 0.0,
+    "middle": 0.95,
+    "dominant": "middle",
+    "running_ms": 678.9
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter006_2026-11-12-13-54-31.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 264.8
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.11,
+    "middle": 0.88,
+    "dominant": "middle",
+    "running_ms": 661.0
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4_iter007_2026-11-12-13-54-37.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 259.1
+   },
+   "RenderThread": {
+    "little": 0.41,
+    "middle": 0.59,
+    "dominant": "middle",
+    "running_ms": 777.3
+   }
+  }
+ ],
+ "two/sourceUpdateContainer4Continuous": [
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter000_2026-11-12-13-52-21.perfetto-trace",
+   "main": {
+    "big": 0.03,
+    "little": 0.89,
+    "middle": 0.08,
+    "dominant": "little",
+    "running_ms": 258.7
+   },
+   "RenderThread": {
+    "big": 0.03,
+    "little": 0.32,
+    "middle": 0.65,
+    "dominant": "middle",
+    "running_ms": 615.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter001_2026-11-12-13-52-29.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.98,
+    "middle": 0.02,
+    "dominant": "little",
+    "running_ms": 235.7
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.92,
+    "middle": 0.08,
+    "dominant": "little",
+    "running_ms": 932.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter002_2026-11-12-13-52-35.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.94,
+    "middle": 0.06,
+    "dominant": "little",
+    "running_ms": 264.8
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.75,
+    "middle": 0.24,
+    "dominant": "little",
+    "running_ms": 862.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter003_2026-11-12-13-52-42.perfetto-trace",
+   "main": {
+    "big": 0.03,
+    "little": 0.03,
+    "middle": 0.93,
+    "dominant": "middle",
+    "running_ms": 172.3
+   },
+   "RenderThread": {
+    "big": 0.08,
+    "middle": 0.92,
+    "dominant": "middle",
+    "running_ms": 632.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter004_2026-11-12-13-52-49.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.95,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 242.1
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.2,
+    "middle": 0.79,
+    "dominant": "middle",
+    "running_ms": 536.0
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter005_2026-11-12-13-52-55.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.95,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 255.8
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.44,
+    "middle": 0.55,
+    "dominant": "middle",
+    "running_ms": 644.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter006_2026-11-12-13-53-02.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.94,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 268.2
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.67,
+    "middle": 0.32,
+    "dominant": "little",
+    "running_ms": 795.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateContainer4Continuous_iter007_2026-11-12-13-53-09.perfetto-trace",
+   "main": {
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 248.1
+   },
+   "RenderThread": {
+    "little": 0.9,
+    "middle": 0.1,
+    "dominant": "little",
+    "running_ms": 932.8
+   }
+  }
+ ],
+ "two/sourceUpdateIndependent2": [
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter000_2026-11-12-14-01-02.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 282.1
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.0,
+    "middle": 0.99,
+    "dominant": "middle",
+    "running_ms": 811.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter001_2026-11-12-14-01-09.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 263.2
+   },
+   "RenderThread": {
+    "little": 0.01,
+    "middle": 0.99,
+    "dominant": "middle",
+    "running_ms": 796.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter002_2026-11-12-14-01-15.perfetto-trace",
+   "main": {
+    "big": 0.02,
+    "little": 0.95,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 273.0
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.01,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 800.3
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter003_2026-11-12-14-01-22.perfetto-trace",
+   "main": {
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 265.6
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.01,
+    "middle": 0.99,
+    "dominant": "middle",
+    "running_ms": 811.8
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter004_2026-11-12-14-01-29.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.94,
+    "middle": 0.05,
+    "dominant": "little",
+    "running_ms": 270.7
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.0,
+    "middle": 1.0,
+    "dominant": "middle",
+    "running_ms": 790.0
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter005_2026-11-12-14-01-36.perfetto-trace",
+   "main": {
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 272.9
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.01,
+    "middle": 0.99,
+    "dominant": "middle",
+    "running_ms": 826.3
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter006_2026-11-12-14-01-42.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.92,
+    "middle": 0.08,
+    "dominant": "little",
+    "running_ms": 256.2
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.01,
+    "middle": 0.98,
+    "dominant": "middle",
+    "running_ms": 790.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_sourceUpdateIndependent2_iter007_2026-11-12-14-01-49.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.91,
+    "middle": 0.09,
+    "dominant": "little",
+    "running_ms": 253.1
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.02,
+    "middle": 0.97,
+    "dominant": "middle",
+    "running_ms": 823.0
+   }
+  }
+ ],
+ "two/stableBalanced": [
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter000_2026-11-12-14-05-53.perfetto-trace",
+   "main": {
+    "big": 0.07,
+    "little": 0.05,
+    "middle": 0.88,
+    "dominant": "middle",
+    "running_ms": 202.4
+   },
+   "RenderThread": {
+    "big": 0.06,
+    "little": 0.01,
+    "middle": 0.93,
+    "dominant": "middle",
+    "running_ms": 500.1
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter001_2026-11-12-14-05-59.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.96,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 315.8
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.77,
+    "middle": 0.23,
+    "dominant": "little",
+    "running_ms": 654.9
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter002_2026-11-12-14-06-06.perfetto-trace",
+   "main": {
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 323.4
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 552.4
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter003_2026-11-12-14-06-13.perfetto-trace",
+   "main": {
+    "big": 0.01,
+    "little": 0.96,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 334.4
+   },
+   "RenderThread": {
+    "big": 0.01,
+    "little": 0.96,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 559.3
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter004_2026-11-12-14-06-19.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 329.7
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.95,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 533.6
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter005_2026-11-12-14-06-26.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 313.0
+   },
+   "RenderThread": {
+    "little": 0.99,
+    "middle": 0.01,
+    "dominant": "little",
+    "running_ms": 544.9
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter006_2026-11-12-14-06-32.perfetto-trace",
+   "main": {
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 314.9
+   },
+   "RenderThread": {
+    "big": 0.0,
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 529.5
+   }
+  },
+  {
+   "trace": "GlassProfilingBenchmark_stableBalanced_iter007_2026-11-12-14-06-39.perfetto-trace",
+   "main": {
+    "big": 0.0,
+    "little": 0.96,
+    "middle": 0.04,
+    "dominant": "little",
+    "running_ms": 317.3
+   },
+   "RenderThread": {
+    "little": 0.97,
+    "middle": 0.03,
+    "dominant": "little",
+    "running_ms": 543.9
+   }
+  }
+ ]
+}

@@ -1,0 +1,1022 @@
+{
+ "t5-baseline/cold/s1-circular": {
+  "firstFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1735.5,
+   "iqr": 594.5,
+   "values": [
+    1141,
+    2330
+   ]
+  },
+  "secondFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1910.0,
+   "iqr": 641.0,
+   "values": [
+    1269,
+    2551
+   ]
+  },
+  "cpuSampleMs.jvmRuntimeOrJit": {
+   "n": 2,
+   "median": 1516.5,
+   "iqr": 271.5,
+   "values": [
+    1245.0,
+    1788.0
+   ]
+  },
+  "cpuSampleMs.metalShaderCompiler": {
+   "n": 2,
+   "median": 6.0,
+   "iqr": 2.0,
+   "values": [
+    4.0,
+    8.0
+   ]
+  },
+  "cpuSampleMs.skiaSkikoNative": {
+   "n": 2,
+   "median": 30.5,
+   "iqr": 5.5,
+   "values": [
+    25.0,
+    36.0
+   ]
+  },
+  "cpuSampleMs.other": {
+   "n": 2,
+   "median": 199.0,
+   "iqr": 0.0,
+   "values": [
+    199.0,
+    199.0
+   ]
+  },
+  "cacheBefore": [
+   "cache_entries=8 cache_kb=40368",
+   "cache_entries=8 cache_kb=40368"
+  ]
+ },
+ "t5-baseline/cold/s2i-circular": {
+  "firstFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1339.5,
+   "iqr": 148.5,
+   "values": [
+    1488,
+    1191
+   ]
+  },
+  "secondFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1514.0,
+   "iqr": 196.0,
+   "values": [
+    1710,
+    1318
+   ]
+  },
+  "cpuSampleMs.jvmRuntimeOrJit": {
+   "n": 2,
+   "median": 1467.0,
+   "iqr": 43.0,
+   "values": [
+    1510.0,
+    1424.0
+   ]
+  },
+  "cpuSampleMs.metalShaderCompiler": {
+   "n": 2,
+   "median": 6.5,
+   "iqr": 1.5,
+   "values": [
+    8.0,
+    5.0
+   ]
+  },
+  "cpuSampleMs.skiaSkikoNative": {
+   "n": 2,
+   "median": 36.0,
+   "iqr": 2.0,
+   "values": [
+    34.0,
+    38.0
+   ]
+  },
+  "cpuSampleMs.other": {
+   "n": 2,
+   "median": 198.5,
+   "iqr": 10.5,
+   "values": [
+    209.0,
+    188.0
+   ]
+  },
+  "cacheBefore": [
+   "cache_entries=8 cache_kb=40368",
+   "cache_entries=8 cache_kb=40368"
+  ]
+ },
+ "t5-baseline/cold/s2m-circular": {
+  "firstFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1465.5,
+   "iqr": 317.5,
+   "values": [
+    1148,
+    1783
+   ]
+  },
+  "secondFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1689.5,
+   "iqr": 385.5,
+   "values": [
+    1304,
+    2075
+   ]
+  },
+  "cpuSampleMs.jvmRuntimeOrJit": {
+   "n": 2,
+   "median": 1516.0,
+   "iqr": 211.0,
+   "values": [
+    1305.0,
+    1727.0
+   ]
+  },
+  "cpuSampleMs.metalShaderCompiler": {
+   "n": 2,
+   "median": 9.0,
+   "iqr": 2.0,
+   "values": [
+    7.0,
+    11.0
+   ]
+  },
+  "cpuSampleMs.skiaSkikoNative": {
+   "n": 2,
+   "median": 36.0,
+   "iqr": 3.0,
+   "values": [
+    33.0,
+    39.0
+   ]
+  },
+  "cpuSampleMs.other": {
+   "n": 2,
+   "median": 205.0,
+   "iqr": 2.0,
+   "values": [
+    203.0,
+    207.0
+   ]
+  },
+  "cacheBefore": [
+   "cache_entries=8 cache_kb=40368",
+   "cache_entries=8 cache_kb=40368"
+  ]
+ },
+ "t5-baseline/cold/s4m-circular": {
+  "firstFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1031.0,
+   "iqr": 39.0,
+   "values": [
+    1070,
+    992
+   ]
+  },
+  "secondFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1183.0,
+   "iqr": 37.0,
+   "values": [
+    1220,
+    1146
+   ]
+  },
+  "cpuSampleMs.jvmRuntimeOrJit": {
+   "n": 2,
+   "median": 1345.0,
+   "iqr": 3.0,
+   "values": [
+    1348.0,
+    1342.0
+   ]
+  },
+  "cpuSampleMs.metalShaderCompiler": {
+   "n": 2,
+   "median": 7.0,
+   "iqr": 2.0,
+   "values": [
+    9.0,
+    5.0
+   ]
+  },
+  "cpuSampleMs.skiaSkikoNative": {
+   "n": 2,
+   "median": 32.5,
+   "iqr": 0.5,
+   "values": [
+    32.0,
+    33.0
+   ]
+  },
+  "cpuSampleMs.other": {
+   "n": 2,
+   "median": 185.0,
+   "iqr": 12.0,
+   "values": [
+    173.0,
+    197.0
+   ]
+  },
+  "cacheBefore": [
+   "cache_entries=8 cache_kb=40368",
+   "cache_entries=8 cache_kb=40368"
+  ]
+ },
+ "t5-baseline/cold/s4m-continuous": {
+  "firstFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1448.5,
+   "iqr": 310.5,
+   "values": [
+    1759,
+    1138
+   ]
+  },
+  "secondFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1610.0,
+   "iqr": 327.0,
+   "values": [
+    1937,
+    1283
+   ]
+  },
+  "cpuSampleMs.jvmRuntimeOrJit": {
+   "n": 2,
+   "median": 1474.0,
+   "iqr": 153.0,
+   "values": [
+    1627.0,
+    1321.0
+   ]
+  },
+  "cpuSampleMs.metalShaderCompiler": {
+   "n": 2,
+   "median": 5.5,
+   "iqr": 2.5,
+   "values": [
+    8.0,
+    3.0
+   ]
+  },
+  "cpuSampleMs.skiaSkikoNative": {
+   "n": 2,
+   "median": 29.0,
+   "iqr": 3.0,
+   "values": [
+    26.0,
+    32.0
+   ]
+  },
+  "cpuSampleMs.other": {
+   "n": 2,
+   "median": 202.5,
+   "iqr": 15.5,
+   "values": [
+    218.0,
+    187.0
+   ]
+  },
+  "cacheBefore": [
+   "cache_entries=8 cache_kb=40368",
+   "cache_entries=8 cache_kb=40368"
+  ]
+ },
+ "t5-baseline/warm/s1-circular": {
+  "gpuBusyMsPerFrame": {
+   "n": 3,
+   "median": 0.389,
+   "iqr": 0.008,
+   "values": [
+    0.389,
+    0.388,
+    0.403
+   ]
+  },
+  "fragmentMsPerFrame": {
+   "n": 3,
+   "median": 0.298,
+   "iqr": 0.001,
+   "values": [
+    0.299,
+    0.298,
+    0.297
+   ]
+  },
+  "measuredFrames": {
+   "n": 3,
+   "median": 299,
+   "iqr": 4.0,
+   "values": [
+    292,
+    299,
+    300
+   ]
+  },
+  "compilerMsBeforeFirstFrame": {
+   "n": 3,
+   "median": 3.55,
+   "iqr": 4.72,
+   "values": [
+    12.69,
+    3.25,
+    3.55
+   ]
+  }
+ },
+ "t5-baseline/warm/s2i-circular": {
+  "gpuBusyMsPerFrame": {
+   "n": 3,
+   "median": 0.893,
+   "iqr": 0.123,
+   "values": [
+    0.954,
+    0.709,
+    0.893
+   ]
+  },
+  "fragmentMsPerFrame": {
+   "n": 3,
+   "median": 0.462,
+   "iqr": 0.03,
+   "values": [
+    0.521,
+    0.462,
+    0.461
+   ]
+  },
+  "measuredFrames": {
+   "n": 3,
+   "median": 298,
+   "iqr": 6.0,
+   "values": [
+    298,
+    286,
+    298
+   ]
+  },
+  "compilerMsBeforeFirstFrame": {
+   "n": 3,
+   "median": 5.11,
+   "iqr": 0.95,
+   "values": [
+    5.11,
+    3.55,
+    5.45
+   ]
+  }
+ },
+ "t5-baseline/warm/s2m-circular": {
+  "gpuBusyMsPerFrame": {
+   "n": 3,
+   "median": 0.718,
+   "iqr": 0.033,
+   "values": [
+    0.779,
+    0.714,
+    0.718
+   ]
+  },
+  "fragmentMsPerFrame": {
+   "n": 3,
+   "median": 0.538,
+   "iqr": 0.056,
+   "values": [
+    0.636,
+    0.525,
+    0.538
+   ]
+  },
+  "measuredFrames": {
+   "n": 3,
+   "median": 299,
+   "iqr": 0.0,
+   "values": [
+    299,
+    299,
+    299
+   ]
+  },
+  "compilerMsBeforeFirstFrame": {
+   "n": 3,
+   "median": 4.19,
+   "iqr": 0.43,
+   "values": [
+    3.48,
+    4.19,
+    4.34
+   ]
+  }
+ },
+ "t5-baseline/warm/s4m-circular": {
+  "gpuBusyMsPerFrame": {
+   "n": 3,
+   "median": 0.911,
+   "iqr": 0.019,
+   "values": [
+    0.911,
+    0.88,
+    0.918
+   ]
+  },
+  "fragmentMsPerFrame": {
+   "n": 3,
+   "median": 0.75,
+   "iqr": 0.046,
+   "values": [
+    0.799,
+    0.75,
+    0.708
+   ]
+  },
+  "measuredFrames": {
+   "n": 3,
+   "median": 299,
+   "iqr": 1.0,
+   "values": [
+    299,
+    299,
+    297
+   ]
+  },
+  "compilerMsBeforeFirstFrame": {
+   "n": 3,
+   "median": 4.36,
+   "iqr": 1.55,
+   "values": [
+    6.07,
+    4.36,
+    2.97
+   ]
+  }
+ },
+ "t5-baseline/warm/s4m-continuous": {
+  "gpuBusyMsPerFrame": {
+   "n": 3,
+   "median": 1.577,
+   "iqr": 0.096,
+   "values": [
+    1.619,
+    1.577,
+    1.427
+   ]
+  },
+  "fragmentMsPerFrame": {
+   "n": 3,
+   "median": 1.472,
+   "iqr": 0.156,
+   "values": [
+    1.548,
+    1.472,
+    1.235
+   ]
+  },
+  "measuredFrames": {
+   "n": 3,
+   "median": 299,
+   "iqr": 0.0,
+   "values": [
+    299,
+    299,
+    299
+   ]
+  },
+  "compilerMsBeforeFirstFrame": {
+   "n": 3,
+   "median": 5.33,
+   "iqr": 0.62,
+   "values": [
+    5.33,
+    5.02,
+    6.26
+   ]
+  }
+ },
+ "t5-candidate/cold/s1-circular": {
+  "firstFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1069.5,
+   "iqr": 12.5,
+   "values": [
+    1057,
+    1082
+   ]
+  },
+  "secondFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1483.0,
+   "iqr": 302.0,
+   "values": [
+    1181,
+    1785
+   ]
+  },
+  "cpuSampleMs.jvmRuntimeOrJit": {
+   "n": 2,
+   "median": 1313.5,
+   "iqr": 45.5,
+   "values": [
+    1268.0,
+    1359.0
+   ]
+  },
+  "cpuSampleMs.metalShaderCompiler": {
+   "n": 2,
+   "median": 5.0,
+   "iqr": 0.0,
+   "values": [
+    5.0,
+    5.0
+   ]
+  },
+  "cpuSampleMs.skiaSkikoNative": {
+   "n": 2,
+   "median": 26.0,
+   "iqr": 4.0,
+   "values": [
+    22.0,
+    30.0
+   ]
+  },
+  "cpuSampleMs.other": {
+   "n": 2,
+   "median": 171.0,
+   "iqr": 3.0,
+   "values": [
+    168.0,
+    174.0
+   ]
+  },
+  "cacheBefore": [
+   "cache_entries=8 cache_kb=40368",
+   "cache_entries=8 cache_kb=40368"
+  ]
+ },
+ "t5-candidate/cold/s2i-circular": {
+  "firstFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1089.0,
+   "iqr": 51.0,
+   "values": [
+    1038,
+    1140
+   ]
+  },
+  "secondFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1223.0,
+   "iqr": 55.0,
+   "values": [
+    1168,
+    1278
+   ]
+  },
+  "cpuSampleMs.jvmRuntimeOrJit": {
+   "n": 2,
+   "median": 1347.5,
+   "iqr": 79.5,
+   "values": [
+    1268.0,
+    1427.0
+   ]
+  },
+  "cpuSampleMs.metalShaderCompiler": {
+   "n": 2,
+   "median": 8.5,
+   "iqr": 0.5,
+   "values": [
+    9.0,
+    8.0
+   ]
+  },
+  "cpuSampleMs.skiaSkikoNative": {
+   "n": 2,
+   "median": 27.0,
+   "iqr": 2.0,
+   "values": [
+    25.0,
+    29.0
+   ]
+  },
+  "cpuSampleMs.other": {
+   "n": 2,
+   "median": 189.0,
+   "iqr": 12.0,
+   "values": [
+    177.0,
+    201.0
+   ]
+  },
+  "cacheBefore": [
+   "cache_entries=8 cache_kb=40368",
+   "cache_entries=8 cache_kb=40368"
+  ]
+ },
+ "t5-candidate/cold/s2m-circular": {
+  "firstFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1045.5,
+   "iqr": 2.5,
+   "values": [
+    1048,
+    1043
+   ]
+  },
+  "secondFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1395.5,
+   "iqr": 205.5,
+   "values": [
+    1190,
+    1601
+   ]
+  },
+  "cpuSampleMs.jvmRuntimeOrJit": {
+   "n": 2,
+   "median": 1343.0,
+   "iqr": 22.0,
+   "values": [
+    1321.0,
+    1365.0
+   ]
+  },
+  "cpuSampleMs.metalShaderCompiler": {
+   "n": 2,
+   "median": 7.0,
+   "iqr": 3.0,
+   "values": [
+    4.0,
+    10.0
+   ]
+  },
+  "cpuSampleMs.skiaSkikoNative": {
+   "n": 2,
+   "median": 29.5,
+   "iqr": 0.5,
+   "values": [
+    29.0,
+    30.0
+   ]
+  },
+  "cpuSampleMs.other": {
+   "n": 2,
+   "median": 183.0,
+   "iqr": 3.0,
+   "values": [
+    186.0,
+    180.0
+   ]
+  },
+  "cacheBefore": [
+   "cache_entries=8 cache_kb=40368",
+   "cache_entries=8 cache_kb=40368"
+  ]
+ },
+ "t5-candidate/cold/s4m-circular": {
+  "firstFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1473.5,
+   "iqr": 333.5,
+   "values": [
+    1140,
+    1807
+   ]
+  },
+  "secondFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1697.5,
+   "iqr": 412.5,
+   "values": [
+    1285,
+    2110
+   ]
+  },
+  "cpuSampleMs.jvmRuntimeOrJit": {
+   "n": 2,
+   "median": 1378.5,
+   "iqr": 23.5,
+   "values": [
+    1355.0,
+    1402.0
+   ]
+  },
+  "cpuSampleMs.metalShaderCompiler": {
+   "n": 2,
+   "median": 4.5,
+   "iqr": 1.5,
+   "values": [
+    3.0,
+    6.0
+   ]
+  },
+  "cpuSampleMs.skiaSkikoNative": {
+   "n": 2,
+   "median": 30.0,
+   "iqr": 0.0,
+   "values": [
+    30.0,
+    30.0
+   ]
+  },
+  "cpuSampleMs.other": {
+   "n": 2,
+   "median": 180.0,
+   "iqr": 5.0,
+   "values": [
+    185.0,
+    175.0
+   ]
+  },
+  "cacheBefore": [
+   "cache_entries=8 cache_kb=40368",
+   "cache_entries=8 cache_kb=40368"
+  ]
+ },
+ "t5-candidate/cold/s4m-continuous": {
+  "firstFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1065.5,
+   "iqr": 39.5,
+   "values": [
+    1026,
+    1105
+   ]
+  },
+  "secondFrameCallbackCpuWallMs": {
+   "n": 2,
+   "median": 1219.5,
+   "iqr": 43.5,
+   "values": [
+    1176,
+    1263
+   ]
+  },
+  "cpuSampleMs.jvmRuntimeOrJit": {
+   "n": 2,
+   "median": 1360.5,
+   "iqr": 12.5,
+   "values": [
+    1348.0,
+    1373.0
+   ]
+  },
+  "cpuSampleMs.metalShaderCompiler": {
+   "n": 2,
+   "median": 5.5,
+   "iqr": 1.5,
+   "values": [
+    4.0,
+    7.0
+   ]
+  },
+  "cpuSampleMs.skiaSkikoNative": {
+   "n": 2,
+   "median": 33.5,
+   "iqr": 1.5,
+   "values": [
+    32.0,
+    35.0
+   ]
+  },
+  "cpuSampleMs.other": {
+   "n": 2,
+   "median": 186.0,
+   "iqr": 8.0,
+   "values": [
+    178.0,
+    194.0
+   ]
+  },
+  "cacheBefore": [
+   "cache_entries=8 cache_kb=40368",
+   "cache_entries=8 cache_kb=40368"
+  ]
+ },
+ "t5-candidate/warm/s1-circular": {
+  "gpuBusyMsPerFrame": {
+   "n": 3,
+   "median": 0.36,
+   "iqr": 0.014,
+   "values": [
+    0.345,
+    0.36,
+    0.374
+   ]
+  },
+  "fragmentMsPerFrame": {
+   "n": 3,
+   "median": 0.26,
+   "iqr": 0.017,
+   "values": [
+    0.257,
+    0.26,
+    0.291
+   ]
+  },
+  "measuredFrames": {
+   "n": 3,
+   "median": 299,
+   "iqr": 5.5,
+   "values": [
+    289,
+    299,
+    300
+   ]
+  },
+  "compilerMsBeforeFirstFrame": {
+   "n": 3,
+   "median": 2.95,
+   "iqr": 0.575,
+   "values": [
+    2.95,
+    2.62,
+    3.77
+   ]
+  }
+ },
+ "t5-candidate/warm/s2i-circular": {
+  "gpuBusyMsPerFrame": {
+   "n": 3,
+   "median": 0.85,
+   "iqr": 0.178,
+   "values": [
+    0.565,
+    0.921,
+    0.85
+   ]
+  },
+  "fragmentMsPerFrame": {
+   "n": 3,
+   "median": 0.442,
+   "iqr": 0.024,
+   "values": [
+    0.428,
+    0.475,
+    0.442
+   ]
+  },
+  "measuredFrames": {
+   "n": 3,
+   "median": 299,
+   "iqr": 0.5,
+   "values": [
+    300,
+    299,
+    299
+   ]
+  },
+  "compilerMsBeforeFirstFrame": {
+   "n": 3,
+   "median": 4.18,
+   "iqr": 4.635,
+   "values": [
+    13.1,
+    3.83,
+    4.18
+   ]
+  }
+ },
+ "t5-candidate/warm/s2m-circular": {
+  "gpuBusyMsPerFrame": {
+   "n": 3,
+   "median": 0.673,
+   "iqr": 0.071,
+   "values": [
+    0.673,
+    0.74,
+    0.597
+   ]
+  },
+  "fragmentMsPerFrame": {
+   "n": 3,
+   "median": 0.554,
+   "iqr": 0.03,
+   "values": [
+    0.565,
+    0.554,
+    0.505
+   ]
+  },
+  "measuredFrames": {
+   "n": 3,
+   "median": 299,
+   "iqr": 108.0,
+   "values": [
+    300,
+    299,
+    84
+   ]
+  },
+  "compilerMsBeforeFirstFrame": {
+   "n": 3,
+   "median": 4.45,
+   "iqr": 0.895,
+   "values": [
+    2.72,
+    4.51,
+    4.45
+   ]
+  }
+ },
+ "t5-candidate/warm/s4m-circular": {
+  "gpuBusyMsPerFrame": {
+   "n": 3,
+   "median": 0.898,
+   "iqr": 0.029,
+   "values": [
+    0.908,
+    0.85,
+    0.898
+   ]
+  },
+  "fragmentMsPerFrame": {
+   "n": 3,
+   "median": 0.768,
+   "iqr": 0.022,
+   "values": [
+    0.768,
+    0.754,
+    0.798
+   ]
+  },
+  "measuredFrames": {
+   "n": 3,
+   "median": 299,
+   "iqr": 142.0,
+   "values": [
+    299,
+    300,
+    16
+   ]
+  },
+  "compilerMsBeforeFirstFrame": {
+   "n": 3,
+   "median": 5.02,
+   "iqr": 0.76,
+   "values": [
+    5.39,
+    5.02,
+    3.87
+   ]
+  }
+ },
+ "t5-candidate/warm/s4m-continuous": {
+  "gpuBusyMsPerFrame": {
+   "n": 3,
+   "median": 1.561,
+   "iqr": 0.079,
+   "values": [
+    1.448,
+    1.606,
+    1.561
+   ]
+  },
+  "fragmentMsPerFrame": {
+   "n": 3,
+   "median": 1.463,
+   "iqr": 0.113,
+   "values": [
+    1.258,
+    1.484,
+    1.463
+   ]
+  },
+  "measuredFrames": {
+   "n": 3,
+   "median": 298,
+   "iqr": 2.5,
+   "values": [
+    298,
+    294,
+    299
+   ]
+  },
+  "compilerMsBeforeFirstFrame": {
+   "n": 3,
+   "median": 4.95,
+   "iqr": 2.395,
+   "values": [
+    4.54,
+    9.33,
+    4.95
+   ]
+  }
+ }
+}
