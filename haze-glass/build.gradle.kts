@@ -116,3 +116,14 @@ tasks.withType<Test>().matching { it.name == "testAndroidHostTest" }.configureEa
 tasks.withType<Test>().matching { it.name == "jvmTest" }.configureEach {
   maxParallelForks = 4
 }
+
+// Classpath for the Metal profiling launcher GlassMetalProfileScene (#1766). Run it with `java -cp`
+// as documented in docs/agents/evidence/1766/README.md.
+val prepareGlassMetalProfile by tasks.registering {
+  val test = kotlin.jvm().compilations.getByName("test")
+  val classpath = files(test.output.allOutputs, test.runtimeDependencyFiles)
+  val outputFile = layout.buildDirectory.file("glass-metal-profile-classpath.txt")
+  inputs.files(classpath)
+  outputs.file(outputFile)
+  doLast { outputFile.get().asFile.writeText(classpath.files.joinToString(File.pathSeparator)) }
+}
