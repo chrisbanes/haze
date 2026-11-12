@@ -60,15 +60,17 @@ iteration's own P50 or P90, with the IQR of those eight values. Fixed-performanc
 thermal status 0, battery 27-34 °C, on AC. The display was not pinned. Pass headers read 60 Hz,
 but those readings were taken before the app launched. In the traces themselves, every warm
 iteration in T4 and T5 has a median interval of 11.07-11.11 ms between the app's actual frames,
-which is 90 Hz. That matches 271 frames in a measureBlock of about 3.3 s
-([frame rate](android-frame-rate.json)). The cold-attach rows draw too few frames to measure a
-rate.
+which is 90 Hz. That matches 271 frames over the 3 s animation
+([frame rate](android-frame-rate.json)). The cold-attach rows draw only 2-3 frames per
+iteration, so their intervals are not a rate.
 
-All rows, and both arms of every T5 comparison, therefore ran at 90 Hz. This has two consequences:
+All warm rows, and both arms of every T5 comparison, therefore ran at 90 Hz. This has two
+consequences:
 
-- `frameOverrunMs` is headroom against a deadline of about 11.1 ms, not 16.7 ms.
-- Differences between rows and between baseline and candidate are same-rate comparisons. The
-  absolute headroom values would differ at 60 Hz.
+- `frameOverrunMs` is headroom against the app's FrameTimeline expected frame. In every measured
+  trace, that expected frame lasted 16.5-16.6 ms (`expected_frame_timeline_slice`).
+- Differences between rows and between baseline and candidate are same-rate comparisons. Absolute
+  headroom may differ at another refresh rate.
 
 | Row | Pass | `frameOverrunMs` P50 | `frameOverrunMs` P90 | `frameDurationCpuMs` P50 | `frameDurationCpuMs` P90 | Frames |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -274,9 +276,10 @@ the Android improvement here is frame deadline on one device, not GPU time.
   Xclipse) and Android below 37.
 - The Mac was shared with other work during captures (other processes, including iOS simulators,
   were present); this widens warm-launch spread, for example `s2i-circular` between sessions.
-- The Pixel 6 display was not pinned to 60 Hz as the runbook asks. Every measured iteration ran
-  at 90 Hz per its trace, so absolute `frameOverrunMs` headroom is against a deadline of about
-  11.1 ms. Pass-header rates were read before launch and do not describe the measurement.
+- The Pixel 6 display was not pinned to 60 Hz as the runbook asks. Every warm iteration ran at
+  90 Hz per its trace, with a FrameTimeline expected frame of 16.5-16.6 ms, so absolute
+  `frameOverrunMs` headroom applies only to that configuration. Pass-header rates were read before
+  launch and do not describe the measurement.
 - Device handling followed the runbook. Fixed-performance mode was enabled per pass and disabled
   on exit. Each method checked the keyguard first. The Google app respawned after a force-stop, so
   it was disabled with `pm disable-user` for the session and re-enabled afterwards.
