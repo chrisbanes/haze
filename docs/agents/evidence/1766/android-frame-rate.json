@@ -1,0 +1,442 @@
+{
+ "baseline.e8dZnO/one/containerPress2": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.072,
+   11.085
+  ],
+  "windowMs": [
+   3316.0,
+   3345.0
+  ]
+ },
+ "baseline.e8dZnO/one/effectAttach": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   null,
+   null
+  ],
+  "windowMs": [
+   3302.0,
+   3332.0
+  ]
+ },
+ "baseline.e8dZnO/one/effectAttachContainer2": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   16.905,
+   27.846
+  ],
+  "windowMs": [
+   3312.0,
+   3858.0
+  ]
+ },
+ "baseline.e8dZnO/one/interactionUpdate": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.085,
+   11.109
+  ],
+  "windowMs": [
+   3313.0,
+   3325.0
+  ]
+ },
+ "baseline.e8dZnO/one/sourceUpdateBalanced": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.075,
+   11.09
+  ],
+  "windowMs": [
+   3315.0,
+   3336.0
+  ]
+ },
+ "baseline.e8dZnO/one/sourceUpdateBalancedContinuous": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.076,
+   11.088
+  ],
+  "windowMs": [
+   3324.0,
+   3337.0
+  ]
+ },
+ "baseline.e8dZnO/one/sourceUpdateContainer2": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.077,
+   11.084
+  ],
+  "windowMs": [
+   3314.0,
+   3326.0
+  ]
+ },
+ "baseline.e8dZnO/one/sourceUpdateContainer2Continuous": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.076,
+   11.085
+  ],
+  "windowMs": [
+   3318.0,
+   3347.0
+  ]
+ },
+ "baseline.e8dZnO/one/sourceUpdateContainer4": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.078,
+   11.089
+  ],
+  "windowMs": [
+   3321.0,
+   3340.0
+  ]
+ },
+ "baseline.e8dZnO/one/sourceUpdateContainer4Continuous": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.079,
+   11.085
+  ],
+  "windowMs": [
+   3317.0,
+   3339.0
+  ]
+ },
+ "baseline.e8dZnO/one/sourceUpdateIndependent2": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.075,
+   11.086
+  ],
+  "windowMs": [
+   3318.0,
+   3336.0
+  ]
+ },
+ "baseline.e8dZnO/one/stableBalanced": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.08,
+   11.089
+  ],
+  "windowMs": [
+   3320.0,
+   3341.0
+  ]
+ },
+ "baseline.e8dZnO/two/containerPress2": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.076,
+   11.084
+  ],
+  "windowMs": [
+   3320.0,
+   3332.0
+  ]
+ },
+ "baseline.e8dZnO/two/effectAttach": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   null,
+   null
+  ],
+  "windowMs": [
+   3306.0,
+   3609.0
+  ]
+ },
+ "baseline.e8dZnO/two/effectAttachContainer2": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   null,
+   null
+  ],
+  "windowMs": [
+   3309.0,
+   3327.0
+  ]
+ },
+ "baseline.e8dZnO/two/interactionUpdate": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.085,
+   11.114
+  ],
+  "windowMs": [
+   3316.0,
+   3334.0
+  ]
+ },
+ "baseline.e8dZnO/two/sourceUpdateBalanced": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.071,
+   11.085
+  ],
+  "windowMs": [
+   3317.0,
+   3344.0
+  ]
+ },
+ "baseline.e8dZnO/two/sourceUpdateBalancedContinuous": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.075,
+   11.086
+  ],
+  "windowMs": [
+   3317.0,
+   3338.0
+  ]
+ },
+ "baseline.e8dZnO/two/sourceUpdateContainer2": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.074,
+   11.083
+  ],
+  "windowMs": [
+   3323.0,
+   3337.0
+  ]
+ },
+ "baseline.e8dZnO/two/sourceUpdateContainer2Continuous": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.078,
+   11.083
+  ],
+  "windowMs": [
+   3317.0,
+   3351.0
+  ]
+ },
+ "baseline.e8dZnO/two/sourceUpdateContainer4": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.073,
+   11.083
+  ],
+  "windowMs": [
+   3324.0,
+   3339.0
+  ]
+ },
+ "baseline.e8dZnO/two/sourceUpdateContainer4Continuous": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.075,
+   11.085
+  ],
+  "windowMs": [
+   3322.0,
+   3342.0
+  ]
+ },
+ "baseline.e8dZnO/two/sourceUpdateIndependent2": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.077,
+   11.083
+  ],
+  "windowMs": [
+   3321.0,
+   3340.0
+  ]
+ },
+ "baseline.e8dZnO/two/stableBalanced": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.074,
+   11.084
+  ],
+  "windowMs": [
+   3309.0,
+   3332.0
+  ]
+ },
+ "t5-baseline.yrQMSQ/one/sourceUpdateBalanced": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.085,
+   11.091
+  ],
+  "windowMs": [
+   3322.0,
+   3334.0
+  ]
+ },
+ "t5-baseline.yrQMSQ/one/sourceUpdateContainer2": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.085,
+   11.092
+  ],
+  "windowMs": [
+   3313.0,
+   3352.0
+  ]
+ },
+ "t5-baseline.yrQMSQ/one/sourceUpdateContainer4": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.084,
+   11.098
+  ],
+  "windowMs": [
+   3322.0,
+   3342.0
+  ]
+ },
+ "t5-baseline.yrQMSQ/one/sourceUpdateContainer4Continuous": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.084,
+   11.091
+  ],
+  "windowMs": [
+   3311.0,
+   3337.0
+  ]
+ },
+ "t5-baseline.yrQMSQ/two/sourceUpdateBalanced": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.073,
+   11.087
+  ],
+  "windowMs": [
+   3312.0,
+   3332.0
+  ]
+ },
+ "t5-baseline.yrQMSQ/two/sourceUpdateContainer2": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.081,
+   11.087
+  ],
+  "windowMs": [
+   3320.0,
+   3338.0
+  ]
+ },
+ "t5-baseline.yrQMSQ/two/sourceUpdateContainer4": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.077,
+   11.09
+  ],
+  "windowMs": [
+   3326.0,
+   3350.0
+  ]
+ },
+ "t5-baseline.yrQMSQ/two/sourceUpdateContainer4Continuous": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.077,
+   11.087
+  ],
+  "windowMs": [
+   3311.0,
+   3338.0
+  ]
+ },
+ "t5-candidate.QFJSS8/one/sourceUpdateBalanced": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.08,
+   11.087
+  ],
+  "windowMs": [
+   3317.0,
+   3342.0
+  ]
+ },
+ "t5-candidate.QFJSS8/one/sourceUpdateContainer2": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.082,
+   11.09
+  ],
+  "windowMs": [
+   3316.0,
+   3336.0
+  ]
+ },
+ "t5-candidate.QFJSS8/one/sourceUpdateContainer4": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.079,
+   11.09
+  ],
+  "windowMs": [
+   3315.0,
+   3339.0
+  ]
+ },
+ "t5-candidate.QFJSS8/one/sourceUpdateContainer4Continuous": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.078,
+   11.089
+  ],
+  "windowMs": [
+   3327.0,
+   3343.0
+  ]
+ },
+ "t5-candidate.QFJSS8/two/sourceUpdateBalanced": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.078,
+   11.092
+  ],
+  "windowMs": [
+   3316.0,
+   3337.0
+  ]
+ },
+ "t5-candidate.QFJSS8/two/sourceUpdateContainer2": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.075,
+   11.09
+  ],
+  "windowMs": [
+   3311.0,
+   3341.0
+  ]
+ },
+ "t5-candidate.QFJSS8/two/sourceUpdateContainer4": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.081,
+   11.087
+  ],
+  "windowMs": [
+   3327.0,
+   3344.0
+  ]
+ },
+ "t5-candidate.QFJSS8/two/sourceUpdateContainer4Continuous": {
+  "iterations": 8,
+  "medianFrameIntervalMs": [
+   11.082,
+   11.092
+  ],
+  "windowMs": [
+   3322.0,
+   3349.0
+  ]
+ }
+}

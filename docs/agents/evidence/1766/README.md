@@ -57,8 +57,18 @@ eight-iteration invocation per pass: pass one in the listed order, pass two reve
 rows passed the `gates_for` per-frame gates, including `graphicsLayerDrawCount` 0.9-1.1 for every
 cluster row, so each cluster formed. Values are the median across the eight iterations of each
 iteration's own P50 or P90, with the IQR of those eight values. Fixed-performance mode was on,
-thermal status 0, battery 27-34 °C, on AC. The display was not pinned to 60 Hz; the device
-reported 60 Hz at each pass start, and 271 frames per three-second window confirm 60 Hz rendering.
+thermal status 0, battery 27-34 °C, on AC. The display was not pinned. Pass headers read 60 Hz,
+but those readings were taken before the app launched. In the traces themselves, every warm
+iteration in T4 and T5 has a median interval of 11.07-11.11 ms between the app's actual frames,
+which is 90 Hz. That matches 271 frames in a measureBlock of about 3.3 s
+([frame rate](android-frame-rate.json)). The cold-attach rows draw too few frames to measure a
+rate.
+
+All rows, and both arms of every T5 comparison, therefore ran at 90 Hz. This has two consequences:
+
+- `frameOverrunMs` is headroom against a deadline of about 11.1 ms, not 16.7 ms.
+- Differences between rows and between baseline and candidate are same-rate comparisons. The
+  absolute headroom values would differ at 60 Hz.
 
 | Row | Pass | `frameOverrunMs` P50 | `frameOverrunMs` P90 | `frameDurationCpuMs` P50 | `frameDurationCpuMs` P90 | Frames |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -144,7 +154,7 @@ measurement.
    about 23% more than two.
 2. **Warm frame deadline, fused path (Pixel 6).** The same order appears in `frameOverrunMs` while
    `frameDurationCpuMs` P50 stays at 2.7-3.4 ms for every source-update container row: four continuous members lose
-   about 5.5 ms of headroom against one circular surface, four circular members about 4.5 ms, and
+   about 5.5 ms of headroom (at 90 Hz) against one circular surface, four circular members about 4.5 ms, and
    continuous corners about 1 ms on top. This is consistent with GPU cost, but T2 could not
    attribute GPU time, so it is reported as frame deadline only.
 3. **CPU preparation and recording.** Small and flat. Android `frameDurationCpuMs` P50 is
@@ -202,9 +212,10 @@ regress, and Android CPU placement must be comparable. Continuous rows are uncha
 
 **Android, fused path.** Baseline APK `ec906484…` (identical to T4) and candidate APK
 `eafa8a46…`, run in the order baseline forward, candidate forward, candidate reverse, baseline
-reverse. Eight iterations per row, 271 frames each, so the app rendered at 60 Hz although the
-pass headers read 90 Hz. That differs from T4, whose headers read 60 Hz: in T5 the launcher was in
-the foreground when each header was read. RenderThread placement was comparable: for
+reverse. Eight iterations per row, 271 frames each. The traces show the app rendering at 90 Hz
+in every iteration of both arms, as it did in T4, so the comparison holds at a single rate. The T5
+pass headers read 90 Hz from the launcher and the T4 headers read 60 Hz; neither reading was
+taken while the app was running. RenderThread placement was comparable: for
 `sourceUpdateContainer4`, all 16 baseline and 16 candidate iterations ran on the middle cluster
 except one baseline iteration ([placement](android-t5-placement.json)).
 
@@ -263,7 +274,9 @@ the Android improvement here is frame deadline on one device, not GPU time.
   Xclipse) and Android below 37.
 - The Mac was shared with other work during captures (other processes, including iOS simulators,
   were present); this widens warm-launch spread, for example `s2i-circular` between sessions.
-- The Pixel 6 display ran at 60 Hz but was not pinned; each pass reports the rate at its start.
+- The Pixel 6 display was not pinned to 60 Hz as the runbook asks. Every measured iteration ran
+  at 90 Hz per its trace, so absolute `frameOverrunMs` headroom is against a deadline of about
+  11.1 ms. Pass-header rates were read before launch and do not describe the measurement.
 - Device handling followed the runbook. Fixed-performance mode was enabled per pass and disabled
   on exit. Each method checked the keyguard first. The Google app respawned after a force-stop, so
   it was disabled with `pm disable-user` for the session and re-enabled afterwards.

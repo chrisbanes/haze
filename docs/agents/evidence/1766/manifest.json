@@ -29,7 +29,8 @@
   "egl": "mali",
   "gles": "ARM, Mali-G78, OpenGL ES 3.2 v1.r54p3-01eac0.8acd90adf601ed5e7c6df1066c9b17c1",
   "vulkanDriverVersion": 226504704,
-  "path": "fused"
+  "path": "fused",
+  "renderRate": "90 Hz in every warm T4/T5 iteration (median actual-frame interval 11.07-11.11 ms; android-frame-rate.json); display not pinned; pass-header vsyncRate readings were taken before launch"
  },
  "mac": {
   "model": "Apple M1 Max",
@@ -62,6 +63,7 @@
  },
  "committed": [
   "README.md",
+  "android-frame-rate.json",
   "android-t4-markers.json",
   "android-t4-placement.json",
   "android-t4-summary.json",
