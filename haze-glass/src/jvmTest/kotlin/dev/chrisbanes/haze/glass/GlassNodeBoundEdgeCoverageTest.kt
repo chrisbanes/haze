@@ -38,6 +38,7 @@ import assertk.assertions.isLessThan
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlin.math.abs
@@ -51,8 +52,67 @@ import kotlin.test.Test
  */
 class GlassNodeBoundEdgeCoverageTest {
   @Test
-  fun roundedSurface_nodeBoundEdgePixelsHideUnderlay_qualityMode() =
-    assertNodeBoundEdgesHideUnderlay(BottomRounded, HazePerformanceMode.Quality, expandLayerBounds = false)
+  fun nodeBoundEdges_hideUnderlay_qualityMode() = assertNodeBoundEdgesCovered(HazePerformanceMode.Quality, expandLayerBounds = false)
+
+  @Test
+  fun nodeBoundEdges_hideUnderlay_qualityMode_expanded() = assertNodeBoundEdgesCovered(HazePerformanceMode.Quality, expandLayerBounds = true)
+
+  @Test
+  fun nodeBoundEdges_hideUnderlay_defaultMode() = assertNodeBoundEdgesCovered(HazePerformanceMode.Default, expandLayerBounds = false)
+
+  @Test
+  fun nodeBoundEdges_hideUnderlay_defaultMode_expanded() = assertNodeBoundEdgesCovered(HazePerformanceMode.Default, expandLayerBounds = true)
+
+  @Test
+  fun nodeBoundEdges_hideUnderlay_smallBlur() {
+    // Clear's shallow blur runs the tap blur, whose taps past the clipped edge read transparency.
+    for (performanceMode in listOf(HazePerformanceMode.Default, HazePerformanceMode.Quality)) {
+      for (expandLayerBounds in listOf(false, true)) {
+        for (optics in listOf(GlassOptics.clear, GlassOptics.clear.copy(refractionStrength = 0f))) {
+          assertNodeBoundEdgesCovered(performanceMode, expandLayerBounds, listOf(Rounded, Continuous), optics)
+        }
+      }
+    }
+  }
+
+  @Test
+  fun nodeBoundEdges_hideUnderlay_progressiveBlur() {
+    // Progressive blur always runs the tap blur.
+    val progressive = GlassOptics.regular.copy(
+      progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 1f),
+    )
+    for (performanceMode in listOf(HazePerformanceMode.Default, HazePerformanceMode.Quality)) {
+      for (expandLayerBounds in listOf(false, true)) {
+        assertNodeBoundEdgesCovered(performanceMode, expandLayerBounds, listOf(Rounded, Continuous), progressive)
+      }
+    }
+  }
+
+  /**
+   * For every bar, outlined or not and at each edge softness: the node-bound edge pixels do not
+   * depend on what lies beneath the bar, and coverage only falls from an edge into its corner.
+   */
+  private fun assertNodeBoundEdgesCovered(
+    performanceMode: HazePerformanceMode,
+    expandLayerBounds: Boolean,
+    bars: List<Bar> = listOf(Square, BottomRounded, Rounded, Continuous, Capsule),
+    optics: GlassOptics? = null,
+  ) {
+    for (bar in bars) {
+      for (outlined in listOf(false, true)) {
+        for (softness in listOf(0.dp, 1.dp, 4.dp)) {
+          val overMagenta = capture(bar, performanceMode, expandLayerBounds, softness, Color.Magenta, outlined = outlined, optics = optics)
+          val overGreen = capture(bar, performanceMode, expandLayerBounds, softness, Color.Green, outlined = outlined, optics = optics)
+          val variant = "bar=$bar outlined=$outlined mode=$performanceMode expand=$expandLayerBounds softness=$softness optics=$optics"
+          for ((x, y) in overMagenta.nodeBoundEdgePixels(bar)) {
+            assertThat(underlayDifference(overMagenta, overGreen, x, y), "$variant underlay shows at ($x, $y)")
+              .isLessThan(4f / 255f)
+          }
+          assertCoverageFallsMonotonicallyIntoCorners(bar, overMagenta, overGreen, variant)
+        }
+      }
+    }
+  }
 
   @Test
   fun roundedSurface_withoutCoverage_showsUnderlayAtNodeBoundEdges() {
@@ -79,17 +139,6 @@ class GlassNodeBoundEdgeCoverageTest {
     }
     // The corner boxes alone hold more pixels than the excluded edge band.
     assertThat(compared).isGreaterThan(covering.width * covering.height * 9 / 10)
-  }
-
-  @Test
-  fun roundedSurface_coverageFallsMonotonicallyIntoCorner_qualityMode() =
-    assertCoverageFallsMonotonicallyIntoCorners(BottomRounded, HazePerformanceMode.Quality, expandLayerBounds = false)
-
-  @Test
-  fun outlinedSurfaces_nodeBoundEdgePixelsHideUnderlay_qualityMode() {
-    for (bar in listOf(Square, BottomRounded, Continuous)) {
-      assertNodeBoundEdgesHideUnderlay(bar, HazePerformanceMode.Quality, expandLayerBounds = false, outlined = true)
-    }
   }
 
   @Test
@@ -151,15 +200,7 @@ class GlassNodeBoundEdgeCoverageTest {
   private fun colorDifference(a: Color, b: Color): Float =
     maxOf(abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
 
-  private fun assertCoverageFallsMonotonicallyIntoCorners(
-    bar: Bar,
-    performanceMode: HazePerformanceMode,
-    expandLayerBounds: Boolean,
-    softness: Dp = 0.dp,
-  ) {
-    val overMagenta = capture(bar, performanceMode, expandLayerBounds, softness, Color.Magenta)
-    val overGreen = capture(bar, performanceMode, expandLayerBounds, softness, Color.Green)
-    val variant = "bar=$bar mode=$performanceMode expand=$expandLayerBounds softness=$softness"
+  private fun assertCoverageFallsMonotonicallyIntoCorners(bar: Bar, overMagenta: PixelMap, overGreen: PixelMap, variant: String) {
     val right = overMagenta.width - 1
     val bottom = overMagenta.height - 1
     // Each run starts mid-edge, on the straight segment, and ends at a corner of the node.
@@ -177,24 +218,9 @@ class GlassNodeBoundEdgeCoverageTest {
         assertThat(shown, "$variant $name: coverage rises again at ($x, $y)").isGreaterThan(previous - 2f / 255f)
         previous = maxOf(previous, shown)
       }
-      assertThat(previous, "$variant $name: the corner beyond the arc shows the underlay").isGreaterThan(1.9f)
-    }
-  }
-
-  private fun assertNodeBoundEdgesHideUnderlay(
-    bar: Bar,
-    performanceMode: HazePerformanceMode,
-    expandLayerBounds: Boolean,
-    softness: Dp = 0.dp,
-    outlined: Boolean = false,
-  ) {
-    // A fully covered edge cannot depend on what lies beneath the bar.
-    val overMagenta = capture(bar, performanceMode, expandLayerBounds, softness, Color.Magenta, outlined = outlined)
-    val overGreen = capture(bar, performanceMode, expandLayerBounds, softness, Color.Green, outlined = outlined)
-    val variant = "bar=$bar mode=$performanceMode expand=$expandLayerBounds softness=$softness outlined=$outlined"
-    for ((x, y) in overMagenta.nodeBoundEdgePixels(bar)) {
-      assertThat(underlayDifference(overMagenta, overGreen, x, y), "$variant underlay shows at ($x, $y)")
-        .isLessThan(4f / 255f)
+      if (bar.bottomRadius > 0.dp) {
+        assertThat(previous, "$variant $name: the corner beyond the arc shows the underlay").isGreaterThan(1.9f)
+      }
     }
   }
 
@@ -206,10 +232,11 @@ class GlassNodeBoundEdgeCoverageTest {
     underlay: Color,
     covering: Boolean = true,
     outlined: Boolean = false,
+    optics: GlassOptics? = null,
   ): PixelMap {
     lateinit var pixels: PixelMap
     runComposeUiTest {
-      setContent { DockedBar(bar, performanceMode, expandLayerBounds, softness, underlay, covering, outlined) }
+      setContent { DockedBar(bar, performanceMode, expandLayerBounds, softness, underlay, covering, outlined, optics) }
       waitForIdle()
       pixels = onNodeWithTag("glass").captureToImage().toPixelMap()
     }
@@ -252,6 +279,7 @@ class GlassNodeBoundEdgeCoverageTest {
     underlay: Color,
     covering: Boolean,
     outlined: Boolean,
+    optics: GlassOptics?,
   ) {
     val state = HazeState()
     Box(Modifier.size(BAR_WIDTH, 300.dp)) {
@@ -263,7 +291,7 @@ class GlassNodeBoundEdgeCoverageTest {
           .testTag("glass")
           .background(underlay)
           .clip(RectangleShape)
-          .glassBar(state, bar, performanceMode, expandLayerBounds, softness, outlined, covering),
+          .glassBar(state, bar, performanceMode, expandLayerBounds, softness, outlined, covering, optics),
       )
     }
   }
@@ -278,7 +306,9 @@ class GlassNodeBoundEdgeCoverageTest {
         .drawBehind {
           val stripe = size.width / SOURCE_STRIPES.size
           SOURCE_STRIPES.forEachIndexed { index, color ->
-            drawRect(color, topLeft = Offset(index * stripe, 0f), size = Size(stripe, size.height))
+            // Each stripe runs to the far edge, under the next: stripes that only abut leave a
+            // translucent seam when a reduced-scale capture puts their shared edge mid-pixel.
+            drawRect(color, topLeft = Offset(index * stripe, 0f), size = Size(size.width - index * stripe, size.height))
           }
         },
     )
@@ -293,6 +323,7 @@ class GlassNodeBoundEdgeCoverageTest {
     softness: Dp,
     outlined: Boolean,
     covering: Boolean,
+    optics: GlassOptics? = null,
   ): Modifier {
     val effect = remember { GlassRuntimeEffect().apply { nodeBoundEdgeCoverageDisabledForTest = !covering } }
     return hazeGlass(
@@ -306,6 +337,7 @@ class GlassNodeBoundEdgeCoverageTest {
         }
         edgeSoftness(softness)
         if (outlined) edgeOutline(Color.White.copy(alpha = 0.5f), 0.7.dp)
+        optics?.let { optics(it) }
       },
       performanceMode = performanceMode,
       expandLayerBounds = expandLayerBounds,
@@ -323,6 +355,8 @@ class GlassNodeBoundEdgeCoverageTest {
     val SOURCE_STRIPES = listOf(Color.Green, Color.Blue, Color.Yellow, Color.Cyan, Color.Green)
     val Square = Bar("square", RoundedCornerShape(0.dp), 0.dp, 0.dp)
     val BottomRounded = Bar("bottomRounded", RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp), 0.dp, 16.dp)
+    val Rounded = Bar("rounded", RoundedCornerShape(16.dp), 16.dp, 16.dp)
+    val Capsule = Bar("capsule", RoundedCornerShape(percent = 50), 40.dp, 40.dp)
 
     // A continuous corner eases into its edges beyond its radius, by continuousCornerExtent.
     val Continuous = Bar("continuous", ContinuousRoundedCornerShape(16.dp), 25.dp, 25.dp)
