@@ -121,7 +121,7 @@ class GlassNodeBoundEdgeCoverageInstrumentationTest {
     val cornerBox = ceil(with(composeTestRule.density) { (CORNER * 1.6f).toPx() }).toInt()
     for (continuous in listOf(false, true)) {
       for (outlined in listOf(false, true)) {
-        for (softness in listOf(0.dp, 1.dp)) {
+        for (softness in listOf(0.dp, 1.dp, 4.dp)) {
           // A fully covered edge cannot depend on what lies beneath the bar.
           val overMagenta = capture(Configuration(continuous, outlined, softness, Color.Magenta))
           val overGreen = capture(Configuration(continuous, outlined, softness, Color.Green))
