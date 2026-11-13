@@ -1,1 +1,0 @@
-{"pid": "83348", "windowMs": 5001.0, "frames": 297, "intervals": 5106, "gpuBusyMsPerFrame": 0.632, "channelMsPerFrame": {"Fragment": 0.5592, "Vertex": 0.0996}, "compilerIntervals": 50, "compilerMsBeforeFirstFrame": 581.22, "compilerMsAfterFirstFrame": 0.09}

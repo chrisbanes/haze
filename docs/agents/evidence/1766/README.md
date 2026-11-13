@@ -18,6 +18,11 @@ Android primary row, but its Metal primary row was inconclusive, so it was rever
 The investigation tooling is retained deliberately: four Android benchmark rows (continuous corners
 and a four-member cluster) and the `GlassMetalProfileScene` launcher for macOS.
 
+Only this report, the acceptance rule and the candidate patch are kept in the tree. The
+per-iteration summaries, placement and marker tables, the trace manifest and the shader list are in
+[commit `0693289`](https://github.com/chrisbanes/haze/tree/0693289577942e0ed28328bf16066c59e61cbb58/docs/agents/evidence/1766)
+of [PR #1788](https://github.com/chrisbanes/haze/pull/1788), and the data links below point there.
+
 ## Paths and devices
 
 The two platforms render different programs, so every comparison names its path.
@@ -61,7 +66,7 @@ thermal status 0, battery 27-34 °C, on AC. The display was not pinned. Pass hea
 but those readings were taken before the app launched. In the traces themselves, every warm
 iteration in T4 and T5 has a median interval of 11.07-11.11 ms between the app's actual frames,
 which is 90 Hz. That matches 271 frames over the 3 s animation
-([frame rate](android-frame-rate.json)). The cold-attach rows draw only 2-3 frames per
+([frame rate][android-frame-rate]). The cold-attach rows draw only 2-3 frames per
 iteration, so their intervals are not a rate.
 
 All warm rows, and both arms of every T5 comparison, therefore ran at 90 Hz. This has two
@@ -101,7 +106,7 @@ consequences:
 
 RenderThread ran mostly on the middle cluster (CPUs 4-5) in 146 of 192 iterations and on the
 little cluster in 46; the main thread ran on the little cluster in almost every iteration
-([placement](android-t4-placement.json)). `stableBalanced` and pass-two `interactionUpdate` are
+([placement][android-t4-placement]). `stableBalanced` and pass-two `interactionUpdate` are
 mostly little-cluster RenderThread iterations, so compare them with that in mind.
 
 Pass two was interrupted twice by a lost start click on `sourceUpdateContainer2`'s first
@@ -151,19 +156,23 @@ measurement.
 
 1. **Warm GPU execution, split path (Metal).** Continuous corners cost most: they raise fragment
    time by about 60% in merged clusters (0.61 to 0.99 ms per frame for two members, 0.77 to
-   1.28 ms for four) and about 20% for one surface. Merging costs less than drawing the same members
-   independently (two merged 0.75 ms versus two independent 1.03 ms). Four merged members cost
-   about 23% more than two.
-2. **Warm frame deadline, fused path (Pixel 6).** The same order appears in `frameOverrunMs` while
+   1.28 ms for four) and about 20% for one surface. Merging costs less GPU busy time than drawing
+   the same members independently (two merged 0.75 ms versus two independent 1.03 ms), but not
+   less fragment time (0.61 versus 0.57 ms); the saving is outside the fragment channel. Four
+   merged members cost about 23% more than two.
+2. **Warm frame deadline, fused path (Pixel 6).** The same order for member count and corner style
+   appears in `frameOverrunMs` while
    `frameDurationCpuMs` P50 stays at 2.7-3.4 ms for every source-update container row: four continuous members lose
    about 5.5 ms of headroom (at 90 Hz) against one circular surface, four circular members about 4.5 ms, and
    continuous corners about 1 ms on top. This is consistent with GPU cost, but T2 could not
-   attribute GPU time, so it is reported as frame deadline only.
+   attribute GPU time, so it is reported as frame deadline only. Merging does not follow the Metal
+   order here: two independent surfaces keep about 1 ms more headroom than a two-member cluster
+   (-10.05 and -10.16 against -9.10 and -8.92), although they cost more CPU (item 3).
 3. **CPU preparation and recording.** Small and flat. Android `frameDurationCpuMs` P50 is
    2.7-4.2 ms across the warm rows (5.2-5.6 ms in the cold-attach rows); two independent surfaces
    cost 1.2 ms (pass one) and 0.8 ms (pass two) more than one cluster, plausibly from recording two
    layers. Only `prepare`, `runtimeDraw` and `compose` markers (plus container markers)
-   appear in steady rows ([markers](android-t4-markers.json)).
+   appear in steady rows ([markers][android-t4-markers]).
 4. **Cold first draw.** On macOS a fresh process reaches the frame callback after its first frame
    in 1.55-2.8 s (scene medians), and about 1.4 s of the sampled CPU before it is JVM
    start-up and JIT; Skia/Skiko native code is about 35 ms,
@@ -219,7 +228,7 @@ in every iteration of both arms, as it did in T4, so the comparison holds at a s
 pass headers read 90 Hz from the launcher and the T4 headers read 60 Hz; neither reading was
 taken while the app was running. RenderThread placement was comparable: for
 `sourceUpdateContainer4`, all 16 baseline and 16 candidate iterations ran on the middle cluster
-except one baseline iteration ([placement](android-t5-placement.json)).
+except one baseline iteration ([placement][android-t5-placement]).
 
 | Row | Pass | Baseline | Candidate | Baseline - candidate | Margin | Result |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -252,7 +261,7 @@ inconclusive. The two valid `s4m-circular` launches alone would clear the margin
 0.029 ms), but two launches do not meet the rule's three alternating rounds. The rule's "repeat
 once, then inconclusive" step is written for Android CPU
 placement; it was applied to Metal frame validity by analogy. The remaining scenes are context
-only. The committed summary keeps both launches out of its values, median and IQR and lists them
+only. The summary keeps both launches out of its values, median and IQR and lists them
 under `excludedLaunches`; the manifest lists both traces by SHA-256. The T5 capture script also
 ran one unrequested round of cold launches per label; they are hashed in the manifest and unused.
 
@@ -260,8 +269,8 @@ ran one unrequested round of cold launches per label; they are hashed in the man
 in both passes, beyond its 0.09-0.11 ms IQR, and its continuous control did not move. The Metal
 primary row was inconclusive after one repeat. Only the single circular surface clearly improved,
 by 0.029 ms (about 7%). The rule requires both paths to qualify, so the candidate was reverted. P90 values and the two-member and single-surface Android
-rows showed no difference beyond variability ([raw summary](android-t5-summary.json),
-[Metal summary](mac-t5-summary.json)).
+rows showed no difference beyond variability ([raw summary][android-t5-summary],
+[Metal summary][mac-t5-summary]).
 
 A follow-up could re-measure this exact change on the fused path alone with GPU attribution, for
 example on a device that exposes `gpu.renderstages`. That would need its own acceptance decision;
@@ -287,13 +296,13 @@ the Android improvement here is frame deadline on one device, not GPU time.
   `sourceUpdateContainer4Continuous`, eight iterations each) passed every `gates_for` gate,
   including `graphicsLayerDrawCount` 0.9-1.1 per frame. Its archive hashes are in the manifest; it
   is not published as a measurement.
-- [shaders.json](shaders.json) lists the base sources with `coverageOutset = false`. Runtime
+- [shaders.json][shaders] lists the base sources with `coverageOutset = false`. Runtime
   selects the outset variants for pixel-aligned surfaces, and the dump does not show which variant
   each scene ran.
 - Cold Android rows are warm-process first attachment. macOS cold launches include JVM start-up
   and ran with a warm Metal cache; the cold-cache observation is a single launch.
 - Benchmark JSON (about 130 KB per invocation) and all traces stay in the local archive, listed
-  by SHA-256 in the [manifest](manifest.json); per-iteration values are committed as summaries.
+  by SHA-256 in the [manifest][manifest]; per-iteration values are in the summaries.
 
 ## Reproduce
 
@@ -321,4 +330,13 @@ measured window. Export GPU intervals with
 `xcrun xctrace export --input warm.trace --xpath '/trace-toc/run[@number="1"]/data/table[@schema="metal-gpu-intervals"]'`
 and compiler intervals with the `graphics-compiler-activity-intervals` schema. `xctrace`
 occasionally hung while saving after the target exited; such launches were stopped and repeated.
-[shaders.json](shaders.json) lists the dumped split and fused sources at base with SHA-256.
+[shaders.json][shaders] lists the dumped split and fused sources at base with SHA-256.
+
+[android-frame-rate]: https://github.com/chrisbanes/haze/blob/0693289577942e0ed28328bf16066c59e61cbb58/docs/agents/evidence/1766/android-frame-rate.json
+[android-t4-markers]: https://github.com/chrisbanes/haze/blob/0693289577942e0ed28328bf16066c59e61cbb58/docs/agents/evidence/1766/android-t4-markers.json
+[android-t4-placement]: https://github.com/chrisbanes/haze/blob/0693289577942e0ed28328bf16066c59e61cbb58/docs/agents/evidence/1766/android-t4-placement.json
+[android-t5-placement]: https://github.com/chrisbanes/haze/blob/0693289577942e0ed28328bf16066c59e61cbb58/docs/agents/evidence/1766/android-t5-placement.json
+[android-t5-summary]: https://github.com/chrisbanes/haze/blob/0693289577942e0ed28328bf16066c59e61cbb58/docs/agents/evidence/1766/android-t5-summary.json
+[mac-t5-summary]: https://github.com/chrisbanes/haze/blob/0693289577942e0ed28328bf16066c59e61cbb58/docs/agents/evidence/1766/mac-t5-summary.json
+[manifest]: https://github.com/chrisbanes/haze/blob/0693289577942e0ed28328bf16066c59e61cbb58/docs/agents/evidence/1766/manifest.json
+[shaders]: https://github.com/chrisbanes/haze/blob/0693289577942e0ed28328bf16066c59e61cbb58/docs/agents/evidence/1766/shaders.json
