@@ -488,6 +488,35 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun interactionPatch_movesCaptureBoundsIntoPatchSpace() {
+    val coordinates = resolveGlassCoordinates(
+      layerSize = Size(1000f, 600f),
+      layerOffset = Offset.Zero,
+      materialSize = Size(1000f, 600f),
+      scaleFactor = 1f,
+      alignToPixels = true,
+    )
+    val patch = checkNotNull(
+      resolveGlassInteractionPatch(
+        params = testRenderParams(coordinates = coordinates, refractionStrength = 0.5f, refractionScalePx = 20f),
+        // Near the right edge, so the captured layer ends inside the patch.
+        uniforms = GlassInteractionUniforms(Offset(960f, 300f), 60f, 1f, 1.1f, 0.04f),
+        topology = GlassInteractionTopology(true, true, 1.2f),
+      ),
+    )
+
+    val capture = checkNotNull(coordinates.captureBounds)
+    assertThat(patch.coordinates.captureBounds).isEqualTo(
+      Rect(
+        left = 0f,
+        top = 0f,
+        right = capture.right - patch.bounds.left,
+        bottom = patch.bounds.height.toFloat(),
+      ),
+    )
+  }
+
+  @Test
   fun interactionPatch_clipsAtSampleEdge() {
     val params = testRenderParams(
       coordinates = GlassCoordinates(Size(200f, 100f), Offset.Zero, Size(200f, 100f), 1f),

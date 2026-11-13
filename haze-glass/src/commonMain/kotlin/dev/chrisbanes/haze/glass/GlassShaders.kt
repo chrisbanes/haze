@@ -695,8 +695,7 @@ internal object GlassShaders {
   // where its silhouette lies on the material rectangle (#1775). The outset fades out as a corner
   // curves away, reaching the shape's own coverage half a physical pixel from the rectangle, where
   // the outermost pixel's centre leaves the shape, so no pixel outside the shape gains any (#1785).
-  // It is a constant, not a uniform: the uniform layout, and so the GPU state, matches the original
-  // programs, which every other surface still compiles.
+  // It is a constant, not a uniform, and every other surface still compiles the original programs.
   private fun coverage(sd: String, outset: Boolean): String {
     val shape = "shapeCoverage($sd, sampleStep * 0.5)"
     if (!outset) return shape

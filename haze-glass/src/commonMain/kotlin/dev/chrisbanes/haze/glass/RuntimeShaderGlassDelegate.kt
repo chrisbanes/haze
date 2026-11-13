@@ -2760,6 +2760,7 @@ private fun GlassRefractionDetailEffectKey.localTo(
   sampleSize = coordinates.sampleSize,
   materialOrigin = coordinates.materialOrigin,
   materialSize = coordinates.materialSize,
+  captureBounds = coordinates.captureBounds,
 )
 
 private fun depthPassThrough(
