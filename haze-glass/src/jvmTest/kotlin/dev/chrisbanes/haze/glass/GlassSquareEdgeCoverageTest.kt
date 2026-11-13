@@ -35,7 +35,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
-import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.prop
@@ -211,9 +210,9 @@ class GlassSquareEdgeCoverageTest {
   }
 
   @Test
-  fun squareSurface_shapeChangeAtLayerLimit_reevaluatesBudget() = runComposeUiTest {
-    // A full-scale rounded surface exactly at the layer limit fits; its square capture gains margins
-    // and must lower its scale rather than reuse the rounded decision, and recover when rounded again.
+  fun surfaceAtLayerLimit_lowersScaleWhateverItsShape() = runComposeUiTest {
+    // A surface exactly at the layer limit gains capture margins to cover its node-bound edges, so
+    // it must lower its scale, rounded (#1785) or square.
     val state = HazeState()
     val effect = GlassRuntimeEffect()
     var square by mutableStateOf(false)
@@ -235,16 +234,12 @@ class GlassSquareEdgeCoverageTest {
     }
     waitForIdle()
     assertThat(effect.preparedRenderBudget).isInstanceOf<GlassRenderBudgetDecision.Runtime>()
+      .prop(GlassRenderBudgetDecision.Runtime::scaleFactor).isLessThan(1f)
 
     square = true
     waitForIdle()
     assertThat(effect.preparedRenderBudget).isInstanceOf<GlassRenderBudgetDecision.Runtime>()
       .prop(GlassRenderBudgetDecision.Runtime::scaleFactor).isLessThan(1f)
-
-    square = false
-    waitForIdle()
-    assertThat(effect.preparedRenderBudget).isInstanceOf<GlassRenderBudgetDecision.Runtime>()
-      .prop(GlassRenderBudgetDecision.Runtime::scaleFactor).isEqualTo(1f)
   }
 
   private fun PixelMap.rowMean(y: Int): FloatArray {

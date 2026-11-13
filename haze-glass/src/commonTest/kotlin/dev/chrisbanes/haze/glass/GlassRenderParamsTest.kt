@@ -1231,8 +1231,9 @@ class GlassRenderParamsTest {
     }
     val rect = Rect(0f, 0f, 200f, 100f)
 
+    // A surface covering its node-bound edges pads by whole pixels.
     assertThat(effect.calculateLayerBounds(rect, Density(1f))).isEqualTo(
-      rect.inflate(32f + 15f * fixed.refractionStrength + 1f),
+      rect.inflate(ceil(32f + 15f * fixed.refractionStrength + 1f)),
     )
   }
 
@@ -1582,7 +1583,7 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun coversSquareEdges_onlyForSquareUnoutlinedSurfaces() {
+  fun coversNodeBoundEdges_whateverTheShapeOrOutline() {
     fun effect(block: GlassStyleScope.() -> Unit) = GlassRuntimeEffect().apply {
       style = style.then {
         shape(RoundedCornerShape(0.dp))
@@ -1590,16 +1591,17 @@ class GlassRenderParamsTest {
       }
     }
 
-    assertThat(effect {}.coversSquareEdges(), "square").isTrue()
-    assertThat(effect { edgeSoftness(4.dp) }.coversSquareEdges(), "softened square").isTrue()
-    assertThat(effect { edgeOutline(Color.Transparent, 4.dp) }.coversSquareEdges(), "invisible outline").isTrue()
-    assertThat(effect { shape(RoundedCornerShape(1.dp)) }.coversSquareEdges(), "rounded").isFalse()
-    assertThat(effect { edgeOutline(Color.Green, 4.dp) }.coversSquareEdges(), "outlined").isFalse()
-    assertThat(effect { drawOutset(1.dp) }.coversSquareEdges(), "draw outset").isFalse()
+    assertThat(effect {}.coversNodeBoundEdges(), "square").isTrue()
+    assertThat(effect { edgeSoftness(4.dp) }.coversNodeBoundEdges(), "softened square").isTrue()
+    assertThat(effect { edgeOutline(Color.Transparent, 4.dp) }.coversNodeBoundEdges(), "invisible outline").isTrue()
+    assertThat(effect { shape(RoundedCornerShape(1.dp)) }.coversNodeBoundEdges(), "rounded").isTrue()
+    assertThat(effect { shape(ContinuousRoundedCornerShape(16.dp)) }.coversNodeBoundEdges(), "continuous").isTrue()
+    assertThat(effect { edgeOutline(Color.Green, 4.dp) }.coversNodeBoundEdges(), "outlined").isTrue()
+    assertThat(effect { drawOutset(1.dp) }.coversNodeBoundEdges(), "draw outset").isTrue()
   }
 
   @Test
-  fun calculateLayerBounds_padsWholePixelsOnlyWhileSquare() {
+  fun calculateLayerBounds_padsWholePixelsWhileCoveringNodeBoundEdges() {
     val effect = GlassRuntimeEffect().apply {
       style = style.then { shape(RoundedCornerShape(0.dp)) }
     }
@@ -1610,9 +1612,11 @@ class GlassRenderParamsTest {
 
     assertThat(-effect.calculateLayerBounds(rect, density).left, "square").isEqualTo(ceil(raw))
     effect.style = effect.style.then { shape(RoundedCornerShape(8.dp)) }
-    assertThat(-effect.calculateLayerBounds(rect, density).left, "rounded").isEqualTo(expectedLayerPadding(effect, rect, density))
-    effect.style = effect.style.then { shape(RoundedCornerShape(0.dp)) }
-    assertThat(-effect.calculateLayerBounds(rect, density).left, "square again").isEqualTo(ceil(raw))
+    assertThat(-effect.calculateLayerBounds(rect, density).left, "rounded")
+      .isEqualTo(ceil(expectedLayerPadding(effect, rect, density)))
+    effect.nodeBoundEdgeCoverageDisabledForTest = true
+    assertThat(-effect.calculateLayerBounds(rect, density).left, "not covering")
+      .isEqualTo(expectedLayerPadding(effect, rect, density))
   }
 
   @Test
@@ -1721,7 +1725,7 @@ class GlassRenderParamsTest {
 
     assertThat(resolved.blurRadiusPx).isGreaterThan(20f)
     assertThat(resolved.blurRadiusPx).isLessThan(24f)
-    assertThat(-effect.calculateLayerBounds(rect, density).left).isEqualTo(expectedPadding)
+    assertThat(-effect.calculateLayerBounds(rect, density).left).isEqualTo(ceil(expectedPadding))
   }
 
   @Test
@@ -1757,7 +1761,7 @@ class GlassRenderParamsTest {
     val secondBounds = secondEffect.calculateLayerBounds(rect, density)
 
     assertThat(firstBounds).isEqualTo(secondBounds)
-    assertThat(firstBounds).isEqualTo(rect.inflate(expectedLayerPadding(firstEffect, rect, density)))
+    assertThat(firstBounds).isEqualTo(rect.inflate(ceil(expectedLayerPadding(firstEffect, rect, density))))
   }
 
   @Test

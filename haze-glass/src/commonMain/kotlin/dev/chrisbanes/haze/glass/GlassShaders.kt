@@ -94,7 +94,7 @@ internal object GlassShaders {
   } else {
     "float outputSd = ${shapeSd(merged, "localCoord", continuous)};"
   }}
-      float coverage = shapeCoverage(${outsetSd("outputSd", coverageOutset)}, sampleStep * 0.5);
+      float coverage = ${coverage("outputSd", coverageOutset)};
       if (coverage <= 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
@@ -333,7 +333,7 @@ internal object GlassShaders {
   } else {
     "float sd = ${shapeSd(merged, "localCoord", continuous)};"
   }}
-      float coverage = shapeCoverage(${outsetSd("sd", coverageOutset)}, sampleStep * 0.5);
+      float coverage = ${coverage("sd", coverageOutset)};
       if (coverage <= 0.0) return vec4(0.0);
 
       float distToEdge = max(-sd, 0.0);
@@ -472,7 +472,7 @@ internal object GlassShaders {
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
       float outputSd = ${shapeSd(merged, "localCoord", continuous)};
-      float coverage = shapeCoverage(${outsetSd("outputSd", coverageOutset)}, sampleStep * 0.5);
+      float coverage = ${coverage("outputSd", coverageOutset)};
       if (coverage <= 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
@@ -691,15 +691,22 @@ internal object GlassShaders {
     ${sdfGradientHelpers(continuous)}
   """
 
-  // Square surfaces extend coverage past the material by a fixed outset (#1775). It is a constant,
-  // not a uniform: the uniform layout, and so the GPU state, matches the original programs, which
-  // every other surface still compiles.
-  private fun outsetSd(sd: String, enabled: Boolean): String =
-    if (enabled) "$sd - $GLASS_SQUARE_EDGE_COVERAGE_OUTSET_SKSL" else sd
+  // A surface covering its node-bound edges extends coverage past the material by a fixed outset
+  // where its silhouette lies on the material rectangle (#1775). The outset fades out as a corner
+  // curves away, reaching the shape's own coverage a physical pixel from the rectangle (#1785). It
+  // is a constant, not a uniform: the uniform layout, and so the GPU state, matches the original
+  // programs, which every other surface still compiles.
+  private fun coverage(sd: String, outset: Boolean): String {
+    val shape = "shapeCoverage($sd, sampleStep * 0.5)"
+    if (!outset) return shape
+    return "mix($shape, shapeCoverage($sd - $GLASS_EDGE_COVERAGE_OUTSET_SKSL, sampleStep * 0.5), " +
+      "clamp(1.0 - ($sd - sdRectangle(localCoord, materialSize)) / max(sampleStep * 0.5, 0.0001), 0.0, 1.0))"
+  }
 
-  // A square surface is presented cropped to its material, and clips above it, such as a window
-  // edge, crop it too, so every stage's input ends at the material: a sample past it reads
-  // transparency. Clamping to the material repeats its edge, as the native blur's clamp does.
+  // A surface covering its node-bound edges is presented cropped to its material, and clips above
+  // it, such as a window edge, crop it too, so every stage's input ends at the material: a sample
+  // past it reads transparency. Clamping to the material repeats its edge, as the native blur's
+  // clamp does.
   private fun clampSampleExpression(toMaterial: Boolean): String = if (toMaterial) {
     "clamp(coord, max(vec2(0.5), materialOrigin + vec2(0.5)), " +
       "min(sampleSize - vec2(0.5), materialOrigin + materialSize - vec2(0.5)))"
@@ -1691,5 +1698,5 @@ ${ifContinuous(continuous, "    uniform float4 memberCornerExponents[4];\n")}   
   """
 }
 
-/** [SQUARE_EDGE_COVERAGE_OUTSET] as an SkSL literal. */
-internal const val GLASS_SQUARE_EDGE_COVERAGE_OUTSET_SKSL = "2.0"
+/** [EDGE_COVERAGE_OUTSET] as an SkSL literal. */
+internal const val GLASS_EDGE_COVERAGE_OUTSET_SKSL = "2.0"

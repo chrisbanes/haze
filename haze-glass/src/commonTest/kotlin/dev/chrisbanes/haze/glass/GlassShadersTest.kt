@@ -20,8 +20,8 @@ import kotlin.test.Test
 class GlassShadersTest {
 
   @Test
-  fun coverageOutsetVariant_keepsUniformLayoutAndOnlySquareProgramsExtendCoverage() {
-    // The outset is a constant, so square programs declare exactly the uniforms the original ones do
+  fun coverageOutsetVariant_keepsUniformLayoutAndOnlyOutsetProgramsExtendCoverage() {
+    // The outset is a constant, so outset programs declare exactly the uniforms the original ones do
     // and other surfaces compile the original source unchanged (#1775).
     fun uniforms(source: String) = source.lines().filter { "uniform " in it }
     for (variant in listOf(
@@ -31,10 +31,13 @@ class GlassShadersTest {
     )) {
       assertThat(uniforms(variant(true))).isEqualTo(uniforms(variant(false)))
       assertThat(variant(false)).doesNotContain(" - 2.0, sampleStep * 0.5)")
+      assertThat(variant(false)).doesNotContain("mix(shapeCoverage(")
       assertThat(variant(true)).contains(" - 2.0, sampleStep * 0.5)")
+      // The outset fades out where the silhouette leaves the material rectangle (#1785).
+      assertThat(variant(true)).contains(" - sdRectangle(localCoord, materialSize)) / max(sampleStep * 0.5, 0.0001)")
     }
     // The SkSL literal is hard-coded so every platform compiles the same source; it must match.
-    assertThat(GLASS_SQUARE_EDGE_COVERAGE_OUTSET_SKSL.toFloat()).isEqualTo(SQUARE_EDGE_COVERAGE_OUTSET)
+    assertThat(GLASS_EDGE_COVERAGE_OUTSET_SKSL.toFloat()).isEqualTo(EDGE_COVERAGE_OUTSET)
   }
 
   @Test

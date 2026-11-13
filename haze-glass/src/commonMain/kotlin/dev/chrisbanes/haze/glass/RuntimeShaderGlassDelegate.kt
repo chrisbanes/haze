@@ -44,6 +44,7 @@ import dev.chrisbanes.haze.drawScaledContent
 import dev.chrisbanes.haze.trace
 import dev.chrisbanes.haze.translate
 import dev.chrisbanes.haze.wrapRuntimeShaderConstruction
+import kotlin.math.ceil
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RuntimeShaderGlassDelegate(
@@ -877,7 +878,7 @@ internal class RuntimeShaderGlassDelegate(
           val effects = preparedRenderEffects ?: return
           recordRimIfNeeded(render, effects) ?: return
         }
-        drawCompletedLayer(rim, context, params, alpha = render.alpha)
+        drawCompletedLayer(rim, context, params, alpha = render.alpha, rim = true)
       }
     }
 
@@ -1240,19 +1241,26 @@ internal class RuntimeShaderGlassDelegate(
     return layer
   }
 
-  /** Presents working space in node coordinates, reversing how [recordSource] captured it. */
+  /**
+   * Presents working space in node coordinates, reversing how [recordSource] captured it. A
+   * pixel-aligned surface is trimmed to its node, grown by [clipOutsetPx].
+   */
   private inline fun DrawScope.drawPresented(
     context: HazeEffectRuntimeDrawScope,
     params: GlassRenderParams,
+    clipOutsetPx: Float = 0f,
     crossinline block: DrawScope.() -> Unit,
   ) {
     val coordinates = params.coordinates
     if (coordinates.pixelAligned) {
       // Coverage extends past the material so filtering at its edge reads Glass; the node trims it.
-      drawScaledContent(
-        offset = coordinates.presentationOffset(),
-        captureScale = coordinates.captureScale,
-      ) { block() }
+      clipRect(-clipOutsetPx, -clipOutsetPx, size.width + clipOutsetPx, size.height + clipOutsetPx) {
+        drawScaledContent(
+          offset = coordinates.presentationOffset(),
+          captureScale = coordinates.captureScale,
+          clip = false,
+        ) { block() }
+      }
     } else {
       drawScaledContent(
         offset = -context.layerOffset,
@@ -1716,16 +1724,22 @@ internal class RuntimeShaderGlassDelegate(
     layer.renderEffect = checkNotNull(interactionOutputComposeEffect)
   }
 
+  /**
+   * Draws a completed stage. The material ends at the node; the [rim] layer also draws the edge
+   * outline, in the draw outset beyond it.
+   */
   private fun DrawScope.drawCompletedLayer(
     layer: GraphicsLayer,
     context: HazeEffectRuntimeDrawScope,
     params: GlassRenderParams,
     alpha: Float,
+    rim: Boolean = false,
   ) {
     layer.clip = effect.shouldClipToNodeBounds()
     layer.alpha = alpha
     clipToNodeBounds {
-      drawPresented(context, params) {
+      // Whole pixels, so the trim does not thin the outline's own anti-aliased edge.
+      drawPresented(context, params, clipOutsetPx = if (rim) ceil(effect.nodeClipOutsetPx()) else 0f) {
         drawLayer(layer)
       }
       glassOutsetDrawForTest?.invoke(this)
@@ -2489,7 +2503,7 @@ internal fun RuntimeShaderUniformProvider.setGlassBlurUniforms(
 
 /**
  * A shader family compiled lazily per variant: circular or continuous corners, and with or without
- * the square-edge coverage outset (#1775), which only square surfaces compile.
+ * the edge coverage outset (#1775), which only surfaces covering their node-bound edges compile.
  */
 private class GlassProgram(private val source: (continuous: Boolean, coverageOutset: Boolean) -> String) {
   private val circular by lazy(LazyThreadSafetyMode.NONE) { createRuntimeEffect(source(false, false)) }
@@ -2504,7 +2518,7 @@ private class GlassProgram(private val source: (continuous: Boolean, coverageOut
   }
 }
 
-/** A blur pass's variants, each compiled on first use; only square surfaces clamp taps to their material. */
+/** A blur pass's variants, each compiled on first use; only pixel-aligned surfaces clamp taps to their material. */
 private class GlassBlurProgram(private val progressive: Boolean) {
   private val effects = arrayOfNulls<PlatformRuntimeEffect>(4)
 

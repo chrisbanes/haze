@@ -33,7 +33,7 @@ private const val MAX_REFRACTION_DISPLACEMENT_PX = 16_384f
 /**
  * Working-space placement of a Glass surface. [scaleFactor] scales optics. A [pixelAligned] surface
  * places its material on whole working pixels, capturing and presenting with the per-axis
- * [captureScale], and extends its coverage [SQUARE_EDGE_COVERAGE_OUTSET] working pixels past the
+ * [captureScale], and extends its coverage [EDGE_COVERAGE_OUTSET] working pixels past the
  * material; others use [scaleFactor] on both axes.
  */
 internal data class GlassCoordinates(
@@ -83,7 +83,7 @@ internal fun resolveGlassCoordinates(
   // Coverage extends this far past the material. The captured layer already holds content there
   // where its sample padding reaches that far; elsewhere, typically at a window edge or without
   // expanded bounds, the sample gains a margin on that side for the capture to fill.
-  val outset = SQUARE_EDGE_COVERAGE_OUTSET
+  val outset = EDGE_COVERAGE_OUTSET
   val beforeX = layerOffset.x * captureScale.scaleX
   val beforeY = layerOffset.y * captureScale.scaleY
   val afterX = (layerSize.width - layerOffset.x) * captureScale.scaleX - scaledMaterial.width
@@ -121,8 +121,8 @@ internal fun GlassCoordinates.presentationOffset(): Offset = Offset(
 // Absorbs float error so an exact whole-pixel position does not round up by a pixel.
 private const val PIXEL_EPSILON = 0.001f
 
-// Working pixels of coverage past a square surface's edges: upscaling filters across one of them.
-internal const val SQUARE_EDGE_COVERAGE_OUTSET = 2f
+// Working pixels of coverage past a surface's node-bound edges: upscaling filters across one of them.
+internal const val EDGE_COVERAGE_OUTSET = 2f
 
 internal fun calculateGlassSamplePaddingPx(
   blurRadiusPx: Float,
