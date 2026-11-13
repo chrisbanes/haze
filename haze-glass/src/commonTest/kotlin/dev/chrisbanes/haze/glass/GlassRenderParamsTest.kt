@@ -1636,6 +1636,12 @@ class GlassRenderParamsTest {
     val shift = coordinates.captureShift(layerOffset)
     assertThat(shift.x + layerOffset.x * scale.scaleX).isCloseTo(coordinates.materialOrigin.x, 0.0001f)
     assertThat(shift.y + layerOffset.y * scale.scaleY).isCloseTo(coordinates.materialOrigin.y, 0.0001f)
+    // ...so the captured layer starts at the shift and spans the scaled layer...
+    val capture = checkNotNull(coordinates.captureBounds)
+    assertThat(capture.left).isCloseTo(shift.x, 0.0001f)
+    assertThat(capture.top).isCloseTo(shift.y, 0.0001f)
+    assertThat(capture.width).isCloseTo(424.6f * scale.scaleX, 0.001f)
+    assertThat(capture.height).isCloseTo(95.2f * scale.scaleY, 0.001f)
     // ...and presentation maps the material origin and far edge back onto the node's edges.
     val presentation = coordinates.presentationOffset()
     assertThat(presentation.x + coordinates.materialOrigin.x / scale.scaleX).isCloseTo(0f, 0.0001f)

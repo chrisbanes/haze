@@ -20,10 +20,10 @@ import kotlin.test.Test
 class GlassShadersTest {
 
   @Test
-  fun coverageOutsetVariant_keepsUniformLayoutAndOnlyOutsetProgramsExtendCoverage() {
-    // The outset is a constant, so outset programs declare exactly the uniforms the original ones do
-    // and other surfaces compile the original source unchanged (#1775).
-    fun uniforms(source: String) = source.lines().filter { "uniform " in it }
+  fun coverageOutsetVariant_addsOnlyCaptureBoundsAndOnlyOutsetProgramsExtendCoverage() {
+    // The outset is a constant, so outset programs declare the uniforms the original ones do, plus
+    // the captured layer's bounds, and other surfaces compile the original source unchanged (#1775).
+    fun uniforms(source: String) = source.lines().filter { "uniform " in it && "captureBounds" !in it }
     for (variant in listOf(
       { outset: Boolean -> GlassShaders.buildFused(coverageOutset = outset) },
       { outset: Boolean -> GlassShaders.buildOptical(coverageOutset = outset) },
@@ -35,6 +35,10 @@ class GlassShadersTest {
       assertThat(variant(true)).contains(" - 2.0, sampleStep * 0.5)")
       // The outset fades out where the silhouette leaves the material rectangle (#1785).
       assertThat(variant(true)).contains(" - sdRectangle(localCoord, materialSize)) / max(sampleStep * 0.25, 0.0001)")
+      // Refraction reads the captured layer, never the margin an outset sample adds around it.
+      assertThat(variant(false)).doesNotContain("captureBounds")
+      assertThat(variant(true)).contains("uniform vec4 captureBounds;")
+      assertThat(variant(true)).contains("clamp(coord, captureBounds.xy + vec2(0.5), ")
     }
     // The SkSL literal is hard-coded so every platform compiles the same source; it must match.
     assertThat(GLASS_EDGE_COVERAGE_OUTSET_SKSL.toFloat()).isEqualTo(EDGE_COVERAGE_OUTSET)

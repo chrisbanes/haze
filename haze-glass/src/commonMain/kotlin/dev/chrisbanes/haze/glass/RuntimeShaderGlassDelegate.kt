@@ -6,15 +6,18 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.layer.CompositingStrategy
@@ -154,6 +157,7 @@ internal class RuntimeShaderGlassDelegate(
     private set
   internal var sourceRecordCount: Int = 0
     private set
+  private val presentationClip = Path()
   internal var blurRecordCount: Int = 0
     private set
   internal var depthRecordCount: Int = 0
@@ -1254,7 +1258,11 @@ internal class RuntimeShaderGlassDelegate(
     val coordinates = params.coordinates
     if (coordinates.pixelAligned) {
       // Coverage extends past the material so filtering at its edge reads Glass; the node trims it.
-      clipRect(-clipOutsetPx, -clipOutsetPx, size.width + clipOutsetPx, size.height + clipOutsetPx) {
+      // A path clip is antialiased on every platform, unlike Android's rectangle clip, so a node
+      // off the pixel grid is trimmed as a caller's clip would trim it.
+      presentationClip.rewind()
+      presentationClip.addRect(Rect(-clipOutsetPx, -clipOutsetPx, size.width + clipOutsetPx, size.height + clipOutsetPx))
+      clipPath(presentationClip) {
         drawScaledContent(
           offset = coordinates.presentationOffset(),
           captureScale = coordinates.captureScale,
@@ -2566,6 +2574,7 @@ internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
     key.cornerRadii,
     continuousCorners(key.cornerRadii, key.mergedField),
   )
+  key.coordinates.captureBounds?.let { setFloatUniform("captureBounds", it.left, it.top, it.right, it.bottom) }
   setFloatUniform("refractionStrength", key.refractionStrength)
   setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
   setFloatUniform("ambientResponse", key.ambientResponse)
@@ -2597,6 +2606,7 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
     key.cornerRadii,
     continuousCorners(key.cornerRadii, key.mergedField),
   )
+  key.captureBounds?.let { setFloatUniform("captureBounds", it.left, it.top, it.right, it.bottom) }
   setFloatUniform("refractionStrength", key.refractionStrength)
   setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
   setFloatUniform("refractionHeight", key.refractionHeightPx)

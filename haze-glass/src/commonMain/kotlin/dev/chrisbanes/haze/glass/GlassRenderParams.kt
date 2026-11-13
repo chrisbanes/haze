@@ -34,7 +34,8 @@ private const val MAX_REFRACTION_DISPLACEMENT_PX = 16_384f
  * Working-space placement of a Glass surface. [scaleFactor] scales optics. A [pixelAligned] surface
  * places its material on whole working pixels, capturing and presenting with the per-axis
  * [captureScale], and extends its coverage [EDGE_COVERAGE_OUTSET] working pixels past the
- * material; others use [scaleFactor] on both axes.
+ * material; others use [scaleFactor] on both axes. [captureBounds] is where the captured layer
+ * lies in a pixel-aligned sample, which may add a margin around it.
  */
 internal data class GlassCoordinates(
   val sampleSize: Size,
@@ -43,6 +44,7 @@ internal data class GlassCoordinates(
   val scaleFactor: Float,
   val captureScale: ScaleFactor = ScaleFactor(scaleFactor, scaleFactor),
   val pixelAligned: Boolean = false,
+  val captureBounds: Rect? = null,
 )
 
 internal fun Size.isDrawable(): Boolean =
@@ -103,6 +105,12 @@ internal fun resolveGlassCoordinates(
     scaleFactor = scaleFactor,
     captureScale = captureScale,
     pixelAligned = true,
+    captureBounds = Rect(
+      left = originX - beforeX,
+      top = originY - beforeY,
+      right = originX + scaledMaterial.width + afterX,
+      bottom = originY + scaledMaterial.height + afterY,
+    ),
   )
 }
 
@@ -413,6 +421,7 @@ internal data class GlassRefractionDetailEffectKey(
   val edgeRefractionWidthPx: Float = -1f,
   val mergedField: GlassMergedField? = null,
   val coverageOutset: Boolean = false,
+  val captureBounds: Rect? = null,
 )
 
 internal fun GlassRenderParams.refractionDetailEffectKey(
@@ -422,6 +431,7 @@ internal fun GlassRenderParams.refractionDetailEffectKey(
   materialOrigin = coordinates.materialOrigin,
   materialSize = coordinates.materialSize,
   coverageOutset = coordinates.pixelAligned,
+  captureBounds = coordinates.captureBounds,
   sampleStepPx = sampleStepPx,
   refractionStrength = refractionStrength,
   refractionFoldStrength = refractionFoldStrength,
