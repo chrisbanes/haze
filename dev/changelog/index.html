@@ -7694,6 +7694,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   (<a href="https://github.com/chrisbanes/haze/issues/1772">#1772</a>).</li>
 <li>Blur masks and brush tints keep their authored positions when captured content is scaled or
   resized (<a href="https://github.com/chrisbanes/haze/issues/1730">#1730</a>).</li>
+<li>Glass no longer lets the layer beneath show through the edges of square surfaces, such as a bar
+  docked to a window edge. Square, unoutlined, unmerged surfaces now cover their outermost pixels at
+  full and reduced input scale, with or without expanded layer bounds, except with
+  <code>HazeInput.Backdrop</code> (<a href="https://github.com/chrisbanes/haze/issues/1775">#1775</a>).</li>
 </ul>
 <h2 id="2.1.0">2.1.0 <small>2026-11-02</small><a class="headerlink" href="#2.1.0" title="Permanent link">¶</a></h2>
 <h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">¶</a></h3>
