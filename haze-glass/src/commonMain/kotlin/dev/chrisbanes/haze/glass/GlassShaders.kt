@@ -693,14 +693,15 @@ internal object GlassShaders {
 
   // A surface covering its node-bound edges extends coverage past the material by a fixed outset
   // where its silhouette lies on the material rectangle (#1775). The outset fades out as a corner
-  // curves away, reaching the shape's own coverage a physical pixel from the rectangle (#1785). It
-  // is a constant, not a uniform: the uniform layout, and so the GPU state, matches the original
+  // curves away, reaching the shape's own coverage half a physical pixel from the rectangle, where
+  // the outermost pixel's centre leaves the shape, so no pixel outside the shape gains any (#1785).
+  // It is a constant, not a uniform: the uniform layout, and so the GPU state, matches the original
   // programs, which every other surface still compiles.
   private fun coverage(sd: String, outset: Boolean): String {
     val shape = "shapeCoverage($sd, sampleStep * 0.5)"
     if (!outset) return shape
     return "mix($shape, shapeCoverage($sd - $GLASS_EDGE_COVERAGE_OUTSET_SKSL, sampleStep * 0.5), " +
-      "clamp(1.0 - ($sd - sdRectangle(localCoord, materialSize)) / max(sampleStep * 0.5, 0.0001), 0.0, 1.0))"
+      "clamp(1.0 - ($sd - sdRectangle(localCoord, materialSize)) / max(sampleStep * 0.25, 0.0001), 0.0, 1.0))"
   }
 
   // A surface covering its node-bound edges is presented cropped to its material, and clips above

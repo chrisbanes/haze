@@ -34,7 +34,7 @@ class GlassShadersTest {
       assertThat(variant(false)).doesNotContain("mix(shapeCoverage(")
       assertThat(variant(true)).contains(" - 2.0, sampleStep * 0.5)")
       // The outset fades out where the silhouette leaves the material rectangle (#1785).
-      assertThat(variant(true)).contains(" - sdRectangle(localCoord, materialSize)) / max(sampleStep * 0.5, 0.0001)")
+      assertThat(variant(true)).contains(" - sdRectangle(localCoord, materialSize)) / max(sampleStep * 0.25, 0.0001)")
     }
     // The SkSL literal is hard-coded so every platform compiles the same source; it must match.
     assertThat(GLASS_EDGE_COVERAGE_OUTSET_SKSL.toFloat()).isEqualTo(EDGE_COVERAGE_OUTSET)
