@@ -33,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   has an equivalent stroke on limited renderers
   ([#1741](https://github.com/chrisbanes/haze/issues/1741)).
 
+### Changed
+
+- Glass with circular corners does less shader work across the flat interior of a surface, most
+  noticeably in merged containers. The rendered result is unchanged
+  ([#1766](https://github.com/chrisbanes/haze/issues/1766)).
+
 ### Fixed
 
 - Progressive blur avoids long first-render pauses on Windows Direct3D, including when opening a
