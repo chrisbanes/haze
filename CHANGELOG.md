@@ -52,10 +52,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ([#1772](https://github.com/chrisbanes/haze/issues/1772)).
 - Blur masks and brush tints keep their authored positions when captured content is scaled or
   resized ([#1730](https://github.com/chrisbanes/haze/issues/1730)).
-- Glass no longer lets the layer beneath show through the edges of square surfaces, such as a bar
-  docked to a window edge. Square, unoutlined, unmerged surfaces now cover their outermost pixels at
-  full and reduced input scale, with or without expanded layer bounds, except with
-  `HazeInput.Backdrop` ([#1775](https://github.com/chrisbanes/haze/issues/1775)).
+- Glass no longer lets the layer beneath show through the straight edges of its surfaces, such as
+  a bar docked to a window edge. Unmerged surfaces now cover the outermost pixels of those edges
+  whatever their corners, with or without an edge outline or expanded layer bounds, except with
+  `HazeInput.Backdrop`. Square surfaces do so at full and reduced input scale; rounded and
+  continuous ones in the Default and Quality modes. A surface that refracts outwards, such as a
+  strongly concave one, still shows the layer beneath where its refraction reads past the content
+  it captured. These surfaces also draw fine detail more sharply, because their content is no
+  longer resampled at a sub-pixel offset
+  ([#1775](https://github.com/chrisbanes/haze/issues/1775),
+  [#1785](https://github.com/chrisbanes/haze/issues/1785)).
 
 ## 2.1.0 <small>2026-11-02</small> { id="2.1.0" }
 

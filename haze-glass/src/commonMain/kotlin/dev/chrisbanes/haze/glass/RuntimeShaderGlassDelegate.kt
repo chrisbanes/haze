@@ -6,15 +6,18 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.layer.CompositingStrategy
@@ -44,6 +47,7 @@ import dev.chrisbanes.haze.drawScaledContent
 import dev.chrisbanes.haze.trace
 import dev.chrisbanes.haze.translate
 import dev.chrisbanes.haze.wrapRuntimeShaderConstruction
+import kotlin.math.ceil
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RuntimeShaderGlassDelegate(
@@ -153,6 +157,7 @@ internal class RuntimeShaderGlassDelegate(
     private set
   internal var sourceRecordCount: Int = 0
     private set
+  private val presentationClip = Path()
   internal var blurRecordCount: Int = 0
     private set
   internal var depthRecordCount: Int = 0
@@ -877,7 +882,8 @@ internal class RuntimeShaderGlassDelegate(
           val effects = preparedRenderEffects ?: return
           recordRimIfNeeded(render, effects) ?: return
         }
-        drawCompletedLayer(rim, context, params, alpha = render.alpha)
+        // Whole pixels, so the trim does not thin the outline's own anti-aliased edge.
+        drawCompletedLayer(rim, context, params, alpha = render.alpha, clipOutsetPx = ceil(effect.nodeClipOutsetPx()))
       }
     }
 
@@ -1240,19 +1246,30 @@ internal class RuntimeShaderGlassDelegate(
     return layer
   }
 
-  /** Presents working space in node coordinates, reversing how [recordSource] captured it. */
+  /**
+   * Presents working space in node coordinates, reversing how [recordSource] captured it. A
+   * pixel-aligned surface is trimmed to its node, grown by [clipOutsetPx].
+   */
   private inline fun DrawScope.drawPresented(
     context: HazeEffectRuntimeDrawScope,
     params: GlassRenderParams,
+    clipOutsetPx: Float = 0f,
     crossinline block: DrawScope.() -> Unit,
   ) {
     val coordinates = params.coordinates
     if (coordinates.pixelAligned) {
       // Coverage extends past the material so filtering at its edge reads Glass; the node trims it.
-      drawScaledContent(
-        offset = coordinates.presentationOffset(),
-        captureScale = coordinates.captureScale,
-      ) { block() }
+      // A path clip is antialiased on every platform, unlike Android's rectangle clip, so a node
+      // off the pixel grid is trimmed as a caller's clip would trim it.
+      presentationClip.rewind()
+      presentationClip.addRect(Rect(-clipOutsetPx, -clipOutsetPx, size.width + clipOutsetPx, size.height + clipOutsetPx))
+      clipPath(presentationClip) {
+        drawScaledContent(
+          offset = coordinates.presentationOffset(),
+          captureScale = coordinates.captureScale,
+          clip = false,
+        ) { block() }
+      }
     } else {
       drawScaledContent(
         offset = -context.layerOffset,
@@ -1716,16 +1733,21 @@ internal class RuntimeShaderGlassDelegate(
     layer.renderEffect = checkNotNull(interactionOutputComposeEffect)
   }
 
+  /**
+   * Draws a completed stage. The material ends at the node; the rim layer also draws the edge
+   * outline, in the draw outset beyond it, so it passes that as [clipOutsetPx].
+   */
   private fun DrawScope.drawCompletedLayer(
     layer: GraphicsLayer,
     context: HazeEffectRuntimeDrawScope,
     params: GlassRenderParams,
     alpha: Float,
+    clipOutsetPx: Float = 0f,
   ) {
     layer.clip = effect.shouldClipToNodeBounds()
     layer.alpha = alpha
     clipToNodeBounds {
-      drawPresented(context, params) {
+      drawPresented(context, params, clipOutsetPx) {
         drawLayer(layer)
       }
       glassOutsetDrawForTest?.invoke(this)
@@ -2489,7 +2511,7 @@ internal fun RuntimeShaderUniformProvider.setGlassBlurUniforms(
 
 /**
  * A shader family compiled lazily per variant: circular or continuous corners, and with or without
- * the square-edge coverage outset (#1775), which only square surfaces compile.
+ * the edge coverage outset (#1775), which only surfaces covering their node-bound edges compile.
  */
 private class GlassProgram(private val source: (continuous: Boolean, coverageOutset: Boolean) -> String) {
   private val circular by lazy(LazyThreadSafetyMode.NONE) { createRuntimeEffect(source(false, false)) }
@@ -2504,7 +2526,7 @@ private class GlassProgram(private val source: (continuous: Boolean, coverageOut
   }
 }
 
-/** A blur pass's variants, each compiled on first use; only square surfaces clamp taps to their material. */
+/** A blur pass's variants, each compiled on first use; only pixel-aligned surfaces clamp taps to their material. */
 private class GlassBlurProgram(private val progressive: Boolean) {
   private val effects = arrayOfNulls<PlatformRuntimeEffect>(4)
 
@@ -2552,6 +2574,7 @@ internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
     key.cornerRadii,
     continuousCorners(key.cornerRadii, key.mergedField),
   )
+  setCaptureBoundsUniform(key.coordinates.captureBounds)
   setFloatUniform("refractionStrength", key.refractionStrength)
   setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
   setFloatUniform("ambientResponse", key.ambientResponse)
@@ -2583,6 +2606,7 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
     key.cornerRadii,
     continuousCorners(key.cornerRadii, key.mergedField),
   )
+  setCaptureBoundsUniform(key.captureBounds)
   setFloatUniform("refractionStrength", key.refractionStrength)
   setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
   setFloatUniform("refractionHeight", key.refractionHeightPx)
@@ -2713,6 +2737,14 @@ private fun RuntimeShaderUniformProvider.setCommonUniforms(
 }
 
 /**
+ * Only the optical and refraction-detail programs that cover node-bound edges declare
+ * `captureBounds`; the rim never does, and Android rejects undeclared uniforms.
+ */
+private fun RuntimeShaderUniformProvider.setCaptureBoundsUniform(bounds: Rect?) {
+  bounds?.let { setFloatUniform("captureBounds", it.left, it.top, it.right, it.bottom) }
+}
+
+/**
  * Uploads `cornerRadii`: radii for the circular variant, exactly as before continuous corners,
  * and corner extents for the continuous one. Only the continuous variant declares
  * `cornerExponents`, and Android rejects undeclared uniforms.
@@ -2736,6 +2768,7 @@ private fun GlassRefractionDetailEffectKey.localTo(
   sampleSize = coordinates.sampleSize,
   materialOrigin = coordinates.materialOrigin,
   materialSize = coordinates.materialSize,
+  captureBounds = coordinates.captureBounds,
 )
 
 private fun depthPassThrough(

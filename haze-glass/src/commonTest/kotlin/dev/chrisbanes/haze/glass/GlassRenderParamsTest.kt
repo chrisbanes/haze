@@ -488,6 +488,35 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun interactionPatch_movesCaptureBoundsIntoPatchSpace() {
+    val coordinates = resolveGlassCoordinates(
+      layerSize = Size(1000f, 600f),
+      layerOffset = Offset.Zero,
+      materialSize = Size(1000f, 600f),
+      scaleFactor = 1f,
+      alignToPixels = true,
+    )
+    val patch = checkNotNull(
+      resolveGlassInteractionPatch(
+        params = testRenderParams(coordinates = coordinates, refractionStrength = 0.5f, refractionScalePx = 20f),
+        // Near the right edge, so the captured layer ends inside the patch.
+        uniforms = GlassInteractionUniforms(Offset(960f, 300f), 60f, 1f, 1.1f, 0.04f),
+        topology = GlassInteractionTopology(true, true, 1.2f),
+      ),
+    )
+
+    val capture = checkNotNull(coordinates.captureBounds)
+    assertThat(patch.coordinates.captureBounds).isEqualTo(
+      Rect(
+        left = 0f,
+        top = 0f,
+        right = capture.right - patch.bounds.left,
+        bottom = patch.bounds.height.toFloat(),
+      ),
+    )
+  }
+
+  @Test
   fun interactionPatch_clipsAtSampleEdge() {
     val params = testRenderParams(
       coordinates = GlassCoordinates(Size(200f, 100f), Offset.Zero, Size(200f, 100f), 1f),
@@ -1231,8 +1260,9 @@ class GlassRenderParamsTest {
     }
     val rect = Rect(0f, 0f, 200f, 100f)
 
+    // A surface covering its node-bound edges pads by whole pixels.
     assertThat(effect.calculateLayerBounds(rect, Density(1f))).isEqualTo(
-      rect.inflate(32f + 15f * fixed.refractionStrength + 1f),
+      rect.inflate(ceil(32f + 15f * fixed.refractionStrength + 1f)),
     )
   }
 
@@ -1582,7 +1612,7 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun coversSquareEdges_onlyForSquareUnoutlinedSurfaces() {
+  fun coversNodeBoundEdges_whateverTheShapeOrOutline() {
     fun effect(block: GlassStyleScope.() -> Unit) = GlassRuntimeEffect().apply {
       style = style.then {
         shape(RoundedCornerShape(0.dp))
@@ -1590,16 +1620,17 @@ class GlassRenderParamsTest {
       }
     }
 
-    assertThat(effect {}.coversSquareEdges(), "square").isTrue()
-    assertThat(effect { edgeSoftness(4.dp) }.coversSquareEdges(), "softened square").isTrue()
-    assertThat(effect { edgeOutline(Color.Transparent, 4.dp) }.coversSquareEdges(), "invisible outline").isTrue()
-    assertThat(effect { shape(RoundedCornerShape(1.dp)) }.coversSquareEdges(), "rounded").isFalse()
-    assertThat(effect { edgeOutline(Color.Green, 4.dp) }.coversSquareEdges(), "outlined").isFalse()
-    assertThat(effect { drawOutset(1.dp) }.coversSquareEdges(), "draw outset").isFalse()
+    assertThat(effect {}.coversNodeBoundEdges(), "square").isTrue()
+    assertThat(effect { edgeSoftness(4.dp) }.coversNodeBoundEdges(), "softened square").isTrue()
+    assertThat(effect { edgeOutline(Color.Transparent, 4.dp) }.coversNodeBoundEdges(), "invisible outline").isTrue()
+    assertThat(effect { shape(RoundedCornerShape(1.dp)) }.coversNodeBoundEdges(), "rounded").isTrue()
+    assertThat(effect { shape(ContinuousRoundedCornerShape(16.dp)) }.coversNodeBoundEdges(), "continuous").isTrue()
+    assertThat(effect { edgeOutline(Color.Green, 4.dp) }.coversNodeBoundEdges(), "outlined").isTrue()
+    assertThat(effect { drawOutset(1.dp) }.coversNodeBoundEdges(), "draw outset").isTrue()
   }
 
   @Test
-  fun calculateLayerBounds_padsWholePixelsOnlyWhileSquare() {
+  fun calculateLayerBounds_padsWholePixelsWhileCoveringNodeBoundEdges() {
     val effect = GlassRuntimeEffect().apply {
       style = style.then { shape(RoundedCornerShape(0.dp)) }
     }
@@ -1610,9 +1641,11 @@ class GlassRenderParamsTest {
 
     assertThat(-effect.calculateLayerBounds(rect, density).left, "square").isEqualTo(ceil(raw))
     effect.style = effect.style.then { shape(RoundedCornerShape(8.dp)) }
-    assertThat(-effect.calculateLayerBounds(rect, density).left, "rounded").isEqualTo(expectedLayerPadding(effect, rect, density))
-    effect.style = effect.style.then { shape(RoundedCornerShape(0.dp)) }
-    assertThat(-effect.calculateLayerBounds(rect, density).left, "square again").isEqualTo(ceil(raw))
+    assertThat(-effect.calculateLayerBounds(rect, density).left, "rounded")
+      .isEqualTo(ceil(expectedLayerPadding(effect, rect, density)))
+    effect.nodeBoundEdgeCoverageDisabledForTest = true
+    assertThat(-effect.calculateLayerBounds(rect, density).left, "not covering")
+      .isEqualTo(expectedLayerPadding(effect, rect, density))
   }
 
   @Test
@@ -1632,6 +1665,12 @@ class GlassRenderParamsTest {
     val shift = coordinates.captureShift(layerOffset)
     assertThat(shift.x + layerOffset.x * scale.scaleX).isCloseTo(coordinates.materialOrigin.x, 0.0001f)
     assertThat(shift.y + layerOffset.y * scale.scaleY).isCloseTo(coordinates.materialOrigin.y, 0.0001f)
+    // ...so the captured layer starts at the shift and spans the scaled layer...
+    val capture = checkNotNull(coordinates.captureBounds)
+    assertThat(capture.left).isCloseTo(shift.x, 0.0001f)
+    assertThat(capture.top).isCloseTo(shift.y, 0.0001f)
+    assertThat(capture.width).isCloseTo(424.6f * scale.scaleX, 0.001f)
+    assertThat(capture.height).isCloseTo(95.2f * scale.scaleY, 0.001f)
     // ...and presentation maps the material origin and far edge back onto the node's edges.
     val presentation = coordinates.presentationOffset()
     assertThat(presentation.x + coordinates.materialOrigin.x / scale.scaleX).isCloseTo(0f, 0.0001f)
@@ -1721,7 +1760,7 @@ class GlassRenderParamsTest {
 
     assertThat(resolved.blurRadiusPx).isGreaterThan(20f)
     assertThat(resolved.blurRadiusPx).isLessThan(24f)
-    assertThat(-effect.calculateLayerBounds(rect, density).left).isEqualTo(expectedPadding)
+    assertThat(-effect.calculateLayerBounds(rect, density).left).isEqualTo(ceil(expectedPadding))
   }
 
   @Test
@@ -1757,7 +1796,7 @@ class GlassRenderParamsTest {
     val secondBounds = secondEffect.calculateLayerBounds(rect, density)
 
     assertThat(firstBounds).isEqualTo(secondBounds)
-    assertThat(firstBounds).isEqualTo(rect.inflate(expectedLayerPadding(firstEffect, rect, density)))
+    assertThat(firstBounds).isEqualTo(rect.inflate(ceil(expectedLayerPadding(firstEffect, rect, density))))
   }
 
   @Test

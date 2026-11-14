@@ -351,7 +351,6 @@ internal class GlassRuntimeEffect() :
 
   private var shouldClipToNodeBoundsCacheValid: Boolean = false
   private var shouldClipToNodeBoundsCache: Boolean = false
-  private var squareShapeCache: Boolean = false
 
   private val renderPreparation = GlassRenderPreparation(
     decision = GlassRenderBudgetDecision.Fallback(
@@ -857,26 +856,23 @@ internal class GlassRuntimeEffect() :
     return shouldClipToNodeBoundsCache
   }
 
-  /** Reads the corner check [shouldClipToNodeBounds] caches, so it is invalidated with the shape. */
-  private fun hasSquareShape(): Boolean {
-    shouldClipToNodeBounds()
-    return squareShapeCache
+  private fun updateClipCache() {
+    shouldClipToNodeBoundsCache = edgeSoftness > 0.dp || !shape.hasZeroCornerRadii()
   }
 
-  private fun updateClipCache() {
-    squareShapeCache = shape.hasZeroCornerRadii()
-    shouldClipToNodeBoundsCache = edgeSoftness > 0.dp || !squareShapeCache
-  }
+  /** Renders this surface as one that does not cover its node-bound edges, for comparison in tests. */
+  internal var nodeBoundEdgeCoverageDisabledForTest: Boolean = false
 
   /**
-   * Whether this surface fully covers its edges, all of which meet its node bounds (#1775). Its
-   * outermost pixels would otherwise be only partly covered, by the shape's anti-aliasing, a
-   * fractional sample origin or an upscaled reduced-scale layer, showing whatever lies beneath. It
-   * places its material on whole pixels and extends coverage past it, clipped to the node. An
-   * outline is drawn beyond the edge, and containers draw merged shapes, so neither does.
+   * Whether this surface fully covers its node-bound edges, the straight parts of its silhouette
+   * that lie on its node bounds (#1775, #1785). Their outermost pixels would otherwise be only
+   * partly covered, by the shape's anti-aliasing, a fractional sample origin or an upscaled
+   * reduced-scale layer, showing whatever lies beneath. It places its material on whole pixels and
+   * extends coverage past those edges, clipped to the node. Containers draw merged shapes, so
+   * their surfaces do not.
    */
-  internal fun coversSquareEdges(): Boolean =
-    surfaceSnapshot == null && hasSquareShape() && drawExtent <= 0.dp &&
+  internal fun coversNodeBoundEdges(): Boolean =
+    !nodeBoundEdgeCoverageDisabledForTest && surfaceSnapshot == null &&
       // The platform captures a backdrop itself, so its placement and presentation stay as they are.
       memberBinding?.input !is HazeInput.Backdrop
 
@@ -977,7 +973,7 @@ internal class GlassRuntimeEffect() :
       )
     }
     // Evaluated once, so the budget plan and the prepared coordinates agree on the placement.
-    val alignToPixels = coversSquareEdges()
+    val alignToPixels = coversNodeBoundEdges()
     val style = resolvePreparedStyle(context)
     val interaction = resolvePreparedInteraction(context)
     // Budget for the layers buildGlassPreparedRender keeps, which merges only interaction lighting.
@@ -1280,9 +1276,9 @@ internal class GlassRuntimeEffect() :
       layerPaddingCacheRefractionMultiplier = multiplier
       layerPaddingCacheValid = true
     }
-    // A square surface covering its edges keeps its material on whole layer pixels at full scale,
-    // so its capture needs no sub-pixel shift (#1775). Rounding up keeps the sampling reach.
-    return rect.inflate(if (coversSquareEdges()) ceil(layerPaddingCache) else layerPaddingCache)
+    // A surface covering its node-bound edges keeps its material on whole layer pixels at full
+    // scale, so its capture needs no sub-pixel shift (#1775). Rounding up keeps the sampling reach.
+    return rect.inflate(if (coversNodeBoundEdges()) ceil(layerPaddingCache) else layerPaddingCache)
   }
 
   private fun samplePaddingPx(

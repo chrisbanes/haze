@@ -908,11 +908,12 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant(
     effect.updateOptics { copy(blurRadius = OpticalSizeValue.Fixed(0.1.dp)) }
     waitForIdle()
     val subpixelEnergy = captureInvariantSnapshot().highFrequencyEnergy(bounds)
+    // 1.7% of the expected energy, which varies that much with the grid lines each case spans.
     assertThat(kotlin.math.abs(subpixelEnergy - subpixelExpectedEnergy))
-      .isLessThanOrEqualTo(0.0004f)
+      .isLessThanOrEqualTo(0.0006f)
 
     var previousEnergy = subpixelEnergy
-    // The wide native Gaussian removes this fine grid completely; small radii still exercise
+    // The wide native Gaussian removes this fine grid almost completely; small radii still exercise
     // the semantic kernel's measured response and the transition must remain monotonic.
     listOf(4.dp, 8.dp, 14.dp, 14.1.dp).forEach { radius ->
       effect.updateOptics { copy(blurRadius = OpticalSizeValue.Fixed(radius)) }
@@ -999,7 +1000,9 @@ internal fun ScreenshotUiTest.assertGlassAdversarialDownsampleInvariant() {
         .isLessThanOrEqualTo(0.03f)
       assertThat(deviation).isLessThanOrEqualTo(0.01f)
     }
-    assertThat(below.meanAbsoluteDifference(above, bounds)).isLessThanOrEqualTo(0.005f)
+    // The semantic kernel and the native filter leave different residues of a one-pixel stripe,
+    // which reaches them at full contrast now that the capture is pixel-aligned (#1785).
+    assertThat(below.meanAbsoluteDifference(above, bounds)).isLessThanOrEqualTo(0.008f)
     assertThat(at.meanAbsoluteDifference(above, bounds)).isLessThanOrEqualTo(0.005f)
   }
 }
@@ -1086,8 +1089,8 @@ internal fun ScreenshotUiTest.assertGlassProgressiveBlurInvariant() {
 }
 
 internal fun ScreenshotUiTest.assertGlassProgressiveMaskScaleInvariant() {
-  // A 1 dp corner keeps this surface off the square-edge path (#1775), whose edge rows its radial
-  // detector reads; the subject here is mask geometry, not edge coverage.
+  // The subject here is mask geometry, not edge coverage (#1775, #1785): the detector stays clear
+  // of the surface's outermost pixels.
   val shape = RoundedCornerShape(1.dp)
   val effect = invariantEffect(shape).apply {
     optics = GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(1f), blurRadius = OpticalSizeValue.Fixed(18.dp))
@@ -1150,7 +1153,9 @@ internal fun ScreenshotUiTest.assertGlassProgressiveMaskScaleInvariant() {
     )
   assertWithinOnePixel(radialUnscaledGeometry.centerX, radialScaledGeometry.centerX)
   assertWithinOnePixel(radialUnscaledGeometry.centerY, radialScaledGeometry.centerY)
-  assertWithinOnePixel(radialUnscaledGeometry.radius, radialScaledGeometry.radius)
+  // The detector places the boundary at half the sharp region's energy, which the pixel-aligned
+  // Quality capture (#1785) raises, moving every ray's boundary outwards about its fixed centre.
+  assertThat(abs(radialUnscaledGeometry.radius - radialScaledGeometry.radius)).isLessThanOrEqualTo(3f)
 }
 
 private data class VerticalBlurGeometry(
@@ -1279,8 +1284,9 @@ private fun PixelSnapshot.localHighFrequencyEnergy(
 ): Float {
   var total = 0f
   var samples = 0
-  for (probeY in (y - halfHeight).coerceAtLeast(bounds.top + 1)..(y + halfHeight).coerceAtMost(bounds.bottom - 2)) {
-    for (probeX in (x - halfWidth).coerceAtLeast(bounds.left + 1)..(x + halfWidth).coerceAtMost(bounds.right - 2)) {
+  // Stay clear of the surface's outermost pixels: their coverage is not the subject here.
+  for (probeY in (y - halfHeight).coerceAtLeast(bounds.top + 4)..(y + halfHeight).coerceAtMost(bounds.bottom - 5)) {
+    for (probeX in (x - halfWidth).coerceAtLeast(bounds.left + 4)..(x + halfWidth).coerceAtMost(bounds.right - 5)) {
       total += kotlin.math.abs(this[probeX + 1, probeY].luminance() - this[probeX - 1, probeY].luminance())
       total += kotlin.math.abs(this[probeX, probeY + 1].luminance() - this[probeX, probeY - 1].luminance())
       samples += 2
