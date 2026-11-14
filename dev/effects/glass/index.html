@@ -1653,11 +1653,20 @@ written first, so the receiver Style can override either:</p>
 <h3 id="built-in-styles">Built-in styles<a class="headerlink" href="#built-in-styles" title="Permanent link">¶</a></h3>
 <p><a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/-companion/regular.html"><code>GlassStyle.regular</code></a> is the default style. Its blur and depth grow with the surface's shortest
 side: compact controls keep some refracted detail and a curved edge, while larger surfaces fully
-diffuse the backdrop. In dark appearance it uses a darker tone, edge, and lighting response.</p>
+diffuse the backdrop. In dark appearance it uses a darker tone, edge, and lighting response.
+Dark Regular now uses a lighter interior with less backdrop contrast.</p>
 <p><a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/-companion/clear.html"><code>GlassStyle.clear</code></a> keeps more of the background visible. It uses the same shallow blur at every
 size, with refraction concentrated in a band along the edge that forms loops around the corners.
 Clear uses its light response in both system appearances. Fallback renderers simplify its optics;
 on Android 12 and 12L they keep an approximation of blur and tone.</p>
+<p>Both styles draw a 0.7 dp black outline at 40% opacity outside the surface and a 1 dp light band
+inside its top and bottom edges. The band is stronger on Clear. Custom styles inherit Regular's
+edges; disable them with later writes when needed:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">withoutEdges</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">edgeOutline</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Transparent</span><span class="p">,</span><span class="w"> </span><span class="m">0.</span><span class="n">dp</span><span class="p">)</span>
+<span class="w">  </span><span class="n">rimHighlight</span><span class="p">(</span><span class="m">0f</span><span class="p">,</span><span class="w"> </span><span class="m">0.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="m">0f</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
 <p>Prefer Regular when background content could interfere with labels or controls, especially for
 surfaces containing substantial text. Use Clear for controls over photos and video where the
 underlying content should remain visible. This follows Apple's
@@ -1702,14 +1711,16 @@ beneath it, so check foreground contrast with your own content.</p>
 <li><strong>rimHighlight</strong>(intensity, width, sides): Thin light band just inside the top and bottom edges,
   drawn above content. <code>sides</code> scales the left and right edges: <code>0</code> lights only the top and bottom,
   <code>1</code> lights every edge equally. It ignores <code>lightPosition</code>, follows merged container shapes, and is
-  off by default. Limited renderers approximate it.</li>
+  enabled by default at intensity <code>0.6f</code> for Regular and <code>1f</code> for Clear, with width <code>1.dp</code> and
+  sides <code>0f</code>. Limited renderers approximate it.</li>
 <li><strong>edgeOutline</strong>(color, width): Hard line of <code>width</code> drawn just outside the shape, composited with
   the color's alpha over what lies behind the Glass. It follows merged container shapes, limited
-  renderers draw an equivalent stroke, and it is off by default. An outer <code>Modifier.clip()</code> hides it.</li>
+  renderers draw an equivalent stroke. Both built-ins use black at 40% opacity and width <code>0.7.dp</code>.
+  An outer <code>Modifier.clip()</code> hides it.</li>
 <li><strong>ambientResponse</strong>: Fresnel/edge lift <code>0..1</code> (default 0.15).</li>
 <li><strong>edgeSoftness</strong>: Soft fade at the edges (default 1.dp). Set to 0.dp for hard edges.</li>
 <li><strong>shape</strong> (<code>RoundedCornerShape</code> or <code>ContinuousRoundedCornerShape</code>): Boundary for refraction and
-  masking (default 16.dp circular corners). <code>ContinuousRoundedCornerShape</code> gives continuous,
+  masking (default 16.dp continuous corners). <code>ContinuousRoundedCornerShape</code> gives continuous,
   iOS-style corners that ease into each edge; its <code>smoothing</code> runs from <code>0f</code> (circular) to <code>1f</code>
   (the default, matching SwiftUI's <code>.continuous</code> style). When a corner cannot ease within its edges,
   as in a capsule, its smoothing is reduced and its radius kept. When corners would overlap, as in a
@@ -1722,6 +1733,17 @@ beneath it, so check foreground contrast with your own content.</p>
 <li><strong>chromaticAberrationMode</strong>: <code>Simple</code> (default, cheaper) or <code>Full</code> (spectral, more expensive).</li>
 <li><strong>alpha</strong>: Overall opacity multiplier <code>0..1</code> (default 1). Values outside that range are clamped.</li>
 </ul>
+<p>Use <code>GlassDefaults.continuousShape</code> to match the default silhouette in a clip, border or indication.
+The default applies whenever no shape is authored, including custom styles. An authored shape keeps
+its radii and smoothing whether it is composed before or after a built-in style.
+<code>GlassDefaults.shape</code> is deprecated and retains its former circular value; use
+<code>RoundedCornerShape(16.dp)</code> explicitly to keep those corners.</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">shape</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassDefaults</span><span class="p">.</span><span class="na">continuousShape</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">matchingClipAndBorder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">  </span><span class="p">.</span><span class="na">clip</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+<span class="w">  </span><span class="p">.</span><span class="na">border</span><span class="p">(</span><span class="m">1.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">,</span><span class="w"> </span><span class="n">shape</span><span class="p">)</span>
+</code></pre></div>
+<p>An outer clip also clips Glass's outline, so add it only when child content needs clipping.</p>
 <h3 id="color-handling">Color handling<a class="headerlink" href="#color-handling" title="Permanent link">¶</a></h3>
 <p><code>chromaMultiplier</code> values above <code>1f</code> boost saturation without clipping colors that are already in
 the sRGB gamut; out-of-gamut source colors are left unchanged. <code>tint</code> and <code>edgeShadow</code> keep their

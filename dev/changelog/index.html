@@ -1057,6 +1057,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#deprecated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deprecated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4428,6 +4439,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#deprecated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deprecated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -7676,6 +7698,8 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">¶</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">¶</a></h3>
 <ul>
+<li><code>GlassDefaults.continuousShape</code> exposes the default continuous 16 dp shape for clips, borders and
+  indications (<a href="https://github.com/chrisbanes/haze/issues/1743">#1743</a>).</li>
 <li>Glass fallback rendering blurs captured content on Android 12 and 12L hardware and uses an
   automatic scrim on unblurred paths. Set <code>fallbackColor</code> to replace or disable that scrim. Clear
   uses its light response in both system appearances
@@ -7693,23 +7717,35 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </li>
 <li>Glass styles can draw a thin light band inside a surface's top and bottom edges with
   <code>rimHighlight(intensity, width, sides)</code>, where <code>sides</code> sets how strongly the left and right edges
-  are lit. It is off by default and follows merged container shapes
+  are lit. It follows merged container shapes
   (<a href="https://github.com/chrisbanes/haze/issues/1742">#1742</a>).</li>
 <li>Glass interaction responses accept a <code>scale</code> up to <code>1.2f</code>, so a pressed surface can grow instead of
   shrinking. A grown member of a <code>hazeGlassContainer</code> merges with nearby neighbours while pressed
   (<a href="https://github.com/chrisbanes/haze/issues/1735">#1735</a>).</li>
 <li>Glass styles can draw a thin line just outside a surface's shape with <code>edgeOutline(color, width)</code>,
-  separating the Glass from its backdrop. It is off by default, follows merged container shapes, and
+  separating the Glass from its backdrop. It follows merged container shapes and
   has an equivalent stroke on limited renderers
   (<a href="https://github.com/chrisbanes/haze/issues/1741">#1741</a>).</li>
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">¶</a></h3>
 <ul>
+<li>Glass uses continuous 16 dp corners when no shape is authored. Regular and Clear draw a thin dark
+  outline and a top and bottom rim highlight, stronger on Clear; dark Regular has a lighter interior
+  with less backdrop contrast. Custom styles inherit Regular's edges, which can be disabled with
+  later <code>edgeOutline</code> and <code>rimHighlight</code> writes. Authored shapes and
+  Clear's appearance-independent ordinary response are preserved
+  (<a href="https://github.com/chrisbanes/haze/issues/1743">#1743</a>).</li>
 <li>Glass with circular corners does less shader work across the flat interior of a surface, most
   noticeably in merged containers. The rendered result is unchanged
   (<a href="https://github.com/chrisbanes/haze/issues/1766">#1766</a>).</li>
 <li>Glass containers do less shader work for members that are too far from a pixel to shape it.
   The rendered result is unchanged (<a href="https://github.com/chrisbanes/haze/issues/1766">#1766</a>).</li>
+</ul>
+<h3 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">¶</a></h3>
+<ul>
+<li><code>GlassDefaults.shape</code> retains its circular value and released getter type. Use
+  <code>GlassDefaults.continuousShape</code> for the new default, or <code>RoundedCornerShape(16.dp)</code> to keep the
+  former corners (<a href="https://github.com/chrisbanes/haze/issues/1743">#1743</a>).</li>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
