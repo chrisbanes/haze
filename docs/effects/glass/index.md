@@ -169,6 +169,15 @@ its radii and smoothing whether it is composed before or after a built-in style.
 `GlassDefaults.shape` is deprecated and retains its former circular value; use
 `RoundedCornerShape(16.dp)` explicitly to keep those corners.
 
+```kotlin
+val shape = GlassDefaults.continuousShape
+val matchingClipAndBorder = Modifier
+  .clip(shape)
+  .border(1.dp, Color.White, shape)
+```
+
+An outer clip also clips Glass's outline, so add it only when child content needs clipping.
+
 ### Color handling
 
 `chromaMultiplier` values above `1f` boost saturation without clipping colors that are already in

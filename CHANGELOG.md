@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `GlassDefaults.continuousShape` exposes the default continuous 16 dp shape for clips, borders and
+  indications ([#1743](https://github.com/chrisbanes/haze/issues/1743)).
 - Glass fallback rendering blurs captured content on Android 12 and 12L hardware and uses an
   automatic scrim on unblurred paths. Set `fallbackColor` to replace or disable that scrim. Clear
   uses its light response in both system appearances
@@ -38,8 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Glass uses continuous 16 dp corners when no shape is authored. Regular and Clear draw a thin dark
   outline and a top and bottom rim highlight, stronger on Clear; dark Regular has a lighter interior
   with less backdrop contrast. Custom styles inherit Regular's edges, which can be disabled with
-  later `edgeOutline` and `rimHighlight` writes. Reuse `GlassDefaults.continuousShape` for clips and
-  borders; `GlassDefaults.shape` is deprecated but retains its circular value. Authored shapes and
+  later `edgeOutline` and `rimHighlight` writes. Authored shapes and
   Clear's appearance-independent ordinary response are preserved
   ([#1743](https://github.com/chrisbanes/haze/issues/1743)).
 - Glass with circular corners does less shader work across the flat interior of a surface, most
@@ -47,6 +48,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ([#1766](https://github.com/chrisbanes/haze/issues/1766)).
 - Glass containers do less shader work for members that are too far from a pixel to shape it.
   The rendered result is unchanged ([#1766](https://github.com/chrisbanes/haze/issues/1766)).
+
+### Deprecated
+
+- `GlassDefaults.shape` retains its circular value and released getter type. Use
+  `GlassDefaults.continuousShape` for the new default, or `RoundedCornerShape(16.dp)` to keep the
+  former corners ([#1743](https://github.com/chrisbanes/haze/issues/1743)).
 
 ### Fixed
 
