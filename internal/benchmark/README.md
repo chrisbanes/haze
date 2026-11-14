@@ -241,6 +241,25 @@ gates. The last two take no gates, like `lazy_container_scroll` and
 once per method, as described in [Validate automation](#validate-automation). Never publish a
 dry-run result as a measurement.
 
+#### Shader-cost workloads
+
+These four rows (#1766) extend the container comparison for Glass shader profiling. Each differs from
+its control in one variable, and all use the changing-source workload. The continuous rows apply
+`ContinuousRoundedCornerShape(16.dp)` (default smoothing) in place of the default
+`RoundedCornerShape(16.dp)`. The four-member rows use a 2×2 grid with 12 dp gaps in both directions
+and the 32 dp merge distance, so the four members form one cluster.
+
+| Scenario | Method | Variable | Per-frame gate | Pairs with |
+| --- | --- | --- | --- | --- |
+| `source_update_balanced_continuous` | `sourceUpdateBalancedContinuous` | Continuous corners, one surface | none | `source_update_balanced` |
+| `source_update_container_2_continuous` | `sourceUpdateContainer2Continuous` | Continuous corners, two-member cluster | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
+| `source_update_container_4` | `sourceUpdateContainer4` | Four members in one cluster | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
+| `source_update_container_4_continuous` | `sourceUpdateContainer4Continuous` | Continuous corners, four-member cluster | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_4` |
+
+`gates_for` supplies the container gates; run `sourceUpdateBalancedContinuous` with `gates=()`, like
+its calibration control. The [#1766 evidence](../../docs/agents/evidence/1766/README.md) records the
+gated diagnostic and baseline measurements on a Pixel 6.
+
 ## Noise/tint construction
 
 `BlurNoiseTintBenchmark` measures the Android combined noise-and-single-SrcOver-tint path.
@@ -525,7 +544,8 @@ gates_for() {
   gates=(--per-frame hazeSourceRecordCount=0.9:1.1 --positive hazeGlassRuntimeDrawCount)
   case "$1" in
     sourceUpdateIndependent2) gates+=(--per-frame graphicsLayerDrawCount=1.8:2.2) ;;
-    sourceUpdateContainer2|containerGap2|containerPress2|containerGroup3)
+    sourceUpdateContainer2|containerGap2|containerPress2|containerGroup3|\
+      sourceUpdateContainer2Continuous|sourceUpdateContainer4|sourceUpdateContainer4Continuous)
       gates+=(--per-frame graphicsLayerDrawCount=0.9:1.1) ;;
   esac
 }

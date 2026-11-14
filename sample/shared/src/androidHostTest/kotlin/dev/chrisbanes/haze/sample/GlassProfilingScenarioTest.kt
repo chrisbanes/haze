@@ -197,6 +197,10 @@ class GlassProfilingScenarioTest {
         "container_press_2",
         "lazy_independent_scroll",
         "effect_attach_container_2",
+        "source_update_balanced_continuous",
+        "source_update_container_2_continuous",
+        "source_update_container_4",
+        "source_update_container_4_continuous",
       ),
     )
     assertThat(
@@ -276,6 +280,10 @@ class GlassProfilingScenarioTest {
         GlassProfilingScenario.ContainerJoinLeave,
         GlassProfilingScenario.ContainerGroup3,
         GlassProfilingScenario.ContainerPress2,
+        GlassProfilingScenario.SourceUpdateBalancedContinuous,
+        GlassProfilingScenario.SourceUpdateContainer2Continuous,
+        GlassProfilingScenario.SourceUpdateContainer4,
+        GlassProfilingScenario.SourceUpdateContainer4Continuous,
         -> setOf("sourceOffset")
         else -> emptySet()
       }
@@ -367,7 +375,11 @@ class GlassProfilingScenarioTest {
         scenario == GlassProfilingScenario.ContainerGap2 ||
         scenario == GlassProfilingScenario.ContainerJoinLeave ||
         scenario == GlassProfilingScenario.ContainerGroup3 ||
-        scenario == GlassProfilingScenario.ContainerPress2
+        scenario == GlassProfilingScenario.ContainerPress2 ||
+        scenario == GlassProfilingScenario.SourceUpdateBalancedContinuous ||
+        scenario == GlassProfilingScenario.SourceUpdateContainer2Continuous ||
+        scenario == GlassProfilingScenario.SourceUpdateContainer4 ||
+        scenario == GlassProfilingScenario.SourceUpdateContainer4Continuous
 
       assertThat(readCount, name = scenario.id).isEqualTo(if (updatesSource) 1 else 0)
       assertThat(resolved, name = scenario.id).isEqualTo(if (updatesSource) 0.75f else 0f)
@@ -527,11 +539,51 @@ class GlassProfilingScenarioTest {
       GlassProfilingScenario.ContainerPress2,
       GlassProfilingScenario.LazyIndependentScroll,
       GlassProfilingScenario.EffectAttachContainer2,
+      GlassProfilingScenario.SourceUpdateContainer2Continuous,
+      GlassProfilingScenario.SourceUpdateContainer4,
+      GlassProfilingScenario.SourceUpdateContainer4Continuous,
     )
     (GlassProfilingScenario.entries - containerPair).forEach { scenario ->
       assertThat(scenario.memberGap, name = scenario.id).isEqualTo(0.dp)
       assertThat(scenario.containerMergeDistance, name = scenario.id).isNull()
     }
+  }
+
+  @Test
+  fun continuousScenarios_differFromCircularControlOnlyInCornerStyle() {
+    listOf(
+      GlassProfilingScenario.SourceUpdateBalanced to GlassProfilingScenario.SourceUpdateBalancedContinuous,
+      GlassProfilingScenario.SourceUpdateContainer2 to GlassProfilingScenario.SourceUpdateContainer2Continuous,
+      GlassProfilingScenario.SourceUpdateContainer4 to GlassProfilingScenario.SourceUpdateContainer4Continuous,
+    ).forEach { (circular, continuous) ->
+      assertThat(circular.continuousCorners, name = circular.id).isFalse()
+      assertThat(continuous.continuousCorners, name = continuous.id).isTrue()
+      assertThat(scenarioParameters(continuous), name = continuous.id)
+        .isEqualTo(scenarioParameters(circular))
+      assertThat(glassProfilingFrame(continuous, 0.75f), name = continuous.id)
+        .isEqualTo(glassProfilingFrame(circular, 0.75f))
+    }
+    assertThat(GlassProfilingScenario.entries.filter { it.continuousCorners }).isEqualTo(
+      listOf(
+        GlassProfilingScenario.SourceUpdateBalancedContinuous,
+        GlassProfilingScenario.SourceUpdateContainer2Continuous,
+        GlassProfilingScenario.SourceUpdateContainer4Continuous,
+      ),
+    )
+  }
+
+  @Test
+  fun containerFourScenarios_useTwoByTwoGridWithContainer2Spacing() {
+    val control = GlassProfilingScenario.SourceUpdateContainer2
+    val scenario = GlassProfilingScenario.SourceUpdateContainer4
+
+    assertThat(scenario.effectCount).isEqualTo(4)
+    assertThat(scenario.memberGap).isEqualTo(control.memberGap)
+    assertThat(scenario.containerMergeDistance).isEqualTo(control.containerMergeDistance)
+    assertThat(scenario.performanceMode).isEqualTo(control.performanceMode)
+    assertThat(glassProfilingGridRowCount(scenario.effectCount)).isEqualTo(2)
+    // Existing one-, two-, three- and nine-effect geometries are unchanged.
+    assertThat(listOf(1, 2, 3, 9).map(::glassProfilingGridRowCount)).isEqualTo(listOf(1, 1, 1, 3))
   }
 
   @Test
@@ -734,4 +786,14 @@ private fun changedFields(
   if (first.depth != second.depth) add("depth")
   if (first.blurRadius != second.blurRadius) add("blurRadius")
   if (first.cornerRadius != second.cornerRadius) add("cornerRadius")
+}
+
+// Every constructor parameter except continuousCorners; add new GlassProfilingScenario parameters here.
+private fun scenarioParameters(scenario: GlassProfilingScenario): List<Any?> = with(scenario) {
+  listOf(
+    glassEnabled, effectCount, attachesDuringMeasurement, prewarmsBeforeMeasurement, steadyDraw,
+    rimEnabled, performanceMode, opticsOverride, fullChroma, usesBackdrop, resizesLayoutBounds,
+    memberGap, containerMergeDistance, scrollsSource, scrollsLazyContainer, groupKey,
+    pressesMergedMember, joinsAndLeaves,
+  )
 }
