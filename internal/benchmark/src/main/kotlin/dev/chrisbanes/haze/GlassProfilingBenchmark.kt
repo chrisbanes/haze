@@ -245,6 +245,13 @@ class GlassProfilingBenchmark {
   )
 
   @Test
+  fun sourceUpdateContainer4ContinuousPerformance() = measureScenario(
+    scenarioId = "source_update_container_4_continuous_performance",
+    includeMemory = true,
+    includeRedrawMetrics = true,
+  )
+
+  @Test
   fun lazyContainerScroll() = measureScenario("lazy_container_scroll", includeMemory = true)
 
   @Test

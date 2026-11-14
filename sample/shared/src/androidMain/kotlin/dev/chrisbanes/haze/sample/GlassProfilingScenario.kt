@@ -406,6 +406,15 @@ internal enum class GlassProfilingScenario(
     containerMergeDistance = 32.dp,
     continuousCorners = true,
   ),
+  // Performance mode, where continuous corners use circular optics (#1766).
+  SourceUpdateContainer4ContinuousPerformance(
+    id = "source_update_container_4_continuous_performance",
+    performanceMode = HazePerformanceMode.Performance,
+    effectCount = 4,
+    memberGap = 12.dp,
+    containerMergeDistance = 32.dp,
+    continuousCorners = true,
+  ),
 }
 
 /** Rows of the profiling effect grid: one row up to three effects, 2x2 for four, else three. */
@@ -584,6 +593,7 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.SourceUpdateContainer2Continuous,
     GlassProfilingScenario.SourceUpdateContainer4,
     GlassProfilingScenario.SourceUpdateContainer4Continuous,
+    GlassProfilingScenario.SourceUpdateContainer4ContinuousPerformance,
     -> base.copy(sourceOffset = lerp(-0.08f, 0.08f, progress))
   }
 }
@@ -615,6 +625,7 @@ internal inline fun glassProfilingSourceProgress(
   GlassProfilingScenario.SourceUpdateContainer2Continuous,
   GlassProfilingScenario.SourceUpdateContainer4,
   GlassProfilingScenario.SourceUpdateContainer4Continuous,
+  GlassProfilingScenario.SourceUpdateContainer4ContinuousPerformance,
   -> progress()
   else -> 0f
 }

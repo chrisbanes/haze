@@ -660,6 +660,7 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.SourceUpdateContainer2Continuous,
     GlassProfilingScenario.SourceUpdateContainer4,
     GlassProfilingScenario.SourceUpdateContainer4Continuous,
+    GlassProfilingScenario.SourceUpdateContainer4ContinuousPerformance,
     -> Unit
   }
 }.then {

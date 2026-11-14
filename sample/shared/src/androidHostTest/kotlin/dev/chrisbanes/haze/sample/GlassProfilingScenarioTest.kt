@@ -201,6 +201,7 @@ class GlassProfilingScenarioTest {
         "source_update_container_2_continuous",
         "source_update_container_4",
         "source_update_container_4_continuous",
+        "source_update_container_4_continuous_performance",
       ),
     )
     assertThat(
@@ -284,6 +285,7 @@ class GlassProfilingScenarioTest {
         GlassProfilingScenario.SourceUpdateContainer2Continuous,
         GlassProfilingScenario.SourceUpdateContainer4,
         GlassProfilingScenario.SourceUpdateContainer4Continuous,
+        GlassProfilingScenario.SourceUpdateContainer4ContinuousPerformance,
         -> setOf("sourceOffset")
         else -> emptySet()
       }
@@ -379,7 +381,8 @@ class GlassProfilingScenarioTest {
         scenario == GlassProfilingScenario.SourceUpdateBalancedContinuous ||
         scenario == GlassProfilingScenario.SourceUpdateContainer2Continuous ||
         scenario == GlassProfilingScenario.SourceUpdateContainer4 ||
-        scenario == GlassProfilingScenario.SourceUpdateContainer4Continuous
+        scenario == GlassProfilingScenario.SourceUpdateContainer4Continuous ||
+        scenario == GlassProfilingScenario.SourceUpdateContainer4ContinuousPerformance
 
       assertThat(readCount, name = scenario.id).isEqualTo(if (updatesSource) 1 else 0)
       assertThat(resolved, name = scenario.id).isEqualTo(if (updatesSource) 0.75f else 0f)
@@ -542,6 +545,7 @@ class GlassProfilingScenarioTest {
       GlassProfilingScenario.SourceUpdateContainer2Continuous,
       GlassProfilingScenario.SourceUpdateContainer4,
       GlassProfilingScenario.SourceUpdateContainer4Continuous,
+      GlassProfilingScenario.SourceUpdateContainer4ContinuousPerformance,
     )
     (GlassProfilingScenario.entries - containerPair).forEach { scenario ->
       assertThat(scenario.memberGap, name = scenario.id).isEqualTo(0.dp)
@@ -568,6 +572,7 @@ class GlassProfilingScenarioTest {
         GlassProfilingScenario.SourceUpdateBalancedContinuous,
         GlassProfilingScenario.SourceUpdateContainer2Continuous,
         GlassProfilingScenario.SourceUpdateContainer4Continuous,
+        GlassProfilingScenario.SourceUpdateContainer4ContinuousPerformance,
       ),
     )
   }
