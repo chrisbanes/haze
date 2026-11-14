@@ -2574,6 +2574,7 @@ internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
     key.cornerRadii,
     continuousCorners(key.cornerRadii, key.mergedField),
   )
+  setCaptureBoundsUniform(key.coordinates.captureBounds)
   setFloatUniform("refractionStrength", key.refractionStrength)
   setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
   setFloatUniform("ambientResponse", key.ambientResponse)
@@ -2600,12 +2601,12 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
     key.sampleSize,
     key.materialOrigin,
     key.materialSize,
-    key.captureBounds,
     key.sampleStepPx,
     key.edgeSoftnessPx,
     key.cornerRadii,
     continuousCorners(key.cornerRadii, key.mergedField),
   )
+  setCaptureBoundsUniform(key.captureBounds)
   setFloatUniform("refractionStrength", key.refractionStrength)
   setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
   setFloatUniform("refractionHeight", key.refractionHeightPx)
@@ -2711,7 +2712,6 @@ private fun RuntimeShaderUniformProvider.setCommonUniforms(
     coordinates.sampleSize,
     coordinates.materialOrigin,
     coordinates.materialSize,
-    coordinates.captureBounds,
     sampleStepPx,
     edgeSoftnessPx,
     cornerRadii,
@@ -2723,7 +2723,6 @@ private fun RuntimeShaderUniformProvider.setCommonUniforms(
   sampleSize: Size,
   materialOrigin: Offset,
   materialSize: Size,
-  captureBounds: Rect?,
   sampleStepPx: Float,
   edgeSoftnessPx: Float,
   cornerRadii: CornerRadii,
@@ -2732,11 +2731,17 @@ private fun RuntimeShaderUniformProvider.setCommonUniforms(
   setFloatUniform("sampleSize", sampleSize.width, sampleSize.height)
   setFloatUniform("materialOrigin", materialOrigin.x, materialOrigin.y)
   setFloatUniform("materialSize", materialSize.width, materialSize.height)
-  // Only programs that cover node-bound edges declare it, and Android rejects undeclared uniforms.
-  captureBounds?.let { setFloatUniform("captureBounds", it.left, it.top, it.right, it.bottom) }
   setFloatUniform("sampleStep", sampleStepPx)
   setFloatUniform("edgeSoftness", edgeSoftnessPx)
   setCornerUniforms(cornerRadii, continuous)
+}
+
+/**
+ * Only the optical and refraction-detail programs that cover node-bound edges declare
+ * `captureBounds`; the rim never does, and Android rejects undeclared uniforms.
+ */
+private fun RuntimeShaderUniformProvider.setCaptureBoundsUniform(bounds: Rect?) {
+  bounds?.let { setFloatUniform("captureBounds", it.left, it.top, it.right, it.bottom) }
 }
 
 /**
