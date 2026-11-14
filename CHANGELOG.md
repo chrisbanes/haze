@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Glass with circular corners does less shader work across the flat interior of a surface, most
   noticeably in merged containers. The rendered result is unchanged
   ([#1766](https://github.com/chrisbanes/haze/issues/1766)).
+- Glass containers do less shader work for members that are too far from a pixel to shape it.
+  The rendered result is unchanged ([#1766](https://github.com/chrisbanes/haze/issues/1766)).
 
 ### Fixed
 
