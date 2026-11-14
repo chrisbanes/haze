@@ -124,6 +124,7 @@ class GlassRuntimeEffectAndroidCapabilityTest {
     val effect = GlassRuntimeEffect(
       GlassNodeConfiguration(
         style = GlassStyle {
+          noBuiltInEdges()
           specularIntensity(0f)
           edgeShadow(Color.Transparent)
         },

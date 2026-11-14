@@ -254,6 +254,9 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
     val source = HazeState()
     val secondWidth = mutableStateOf(800.dp)
     fun style(tint: Color, exponent: Float) = GlassStyle {
+      // Isolate source/native colour and cluster budgeting from optional foreground edges.
+      edgeOutline(Color.Transparent, 0.dp)
+      rimHighlight(0f, 0.dp, 0f)
       optics(GlassOptics(refractionStrength = 0f, refractionDisplacement = 0.dp, refractionDetailIntensity = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp)))
       tint(tint)
       backgroundColor(Color.Transparent)

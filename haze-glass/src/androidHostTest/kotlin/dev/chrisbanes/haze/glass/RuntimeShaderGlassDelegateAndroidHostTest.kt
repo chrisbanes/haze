@@ -893,6 +893,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
       val countBeforeDisable = delegate.rimRecordCount
       style.value = style.value.then {
+        noBuiltInEdges()
         specularIntensity(0f)
         edgeShadow(Color.Transparent)
       }

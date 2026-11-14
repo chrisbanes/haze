@@ -1201,10 +1201,11 @@ internal class RuntimeShaderGlassDelegate(
       // before the layer, the layer and the margin after it. The layer cell draws the source once,
       // clipped so a translucent source is never composited twice; each margin cell copies the band
       // just inside its edge, so blur and refraction there read content rather than transparency.
-      val left = shift.x
-      val top = shift.y
-      val right = shift.x + context.layerSize.width * captureScale.scaleX
-      val bottom = shift.y + context.layerSize.height * captureScale.scaleY
+      val cells = coordinates.captureCellBounds()
+      val left = cells.left
+      val top = cells.top
+      val right = cells.right
+      val bottom = cells.bottom
       val width = sampleSize.width.toFloat()
       val height = sampleSize.height.toFloat()
 

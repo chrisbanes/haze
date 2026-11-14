@@ -301,6 +301,7 @@ class RuntimeShaderGlassDelegateSourceAndroidRegressionTest : ScreenshotTest() {
   }
 
   private fun hardwareStyle() = GlassStyle.regular.then {
+    noBuiltInEdges()
     tint(Color.Blue.copy(alpha = 0.75f))
     specularIntensity(0f)
     edgeShadow(Color.Transparent)

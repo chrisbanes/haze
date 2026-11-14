@@ -71,11 +71,23 @@ CompositionLocalProvider(LocalGlassStyle provides GlassStyle.material3()) {
 [`GlassStyle.regular`][GlassStyle.regular] is the default style. Its blur and depth grow with the surface's shortest
 side: compact controls keep some refracted detail and a curved edge, while larger surfaces fully
 diffuse the backdrop. In dark appearance it uses a darker tone, edge, and lighting response.
+Dark Regular now uses a lighter interior with less backdrop contrast.
 
 [`GlassStyle.clear`][GlassStyle.clear] keeps more of the background visible. It uses the same shallow blur at every
 size, with refraction concentrated in a band along the edge that forms loops around the corners.
 Clear uses its light response in both system appearances. Fallback renderers simplify its optics;
 on Android 12 and 12L they keep an approximation of blur and tone.
+
+Both styles draw a 0.7 dp black outline at 40% opacity outside the surface and a 1 dp light band
+inside its top and bottom edges. The band is stronger on Clear. Custom styles inherit Regular's
+edges; disable them with later writes when needed:
+
+```kotlin
+val withoutEdges = GlassStyle.regular.then {
+  edgeOutline(Color.Transparent, 0.dp)
+  rimHighlight(0f, 0.dp, 0f)
+}
+```
 
 Prefer Regular when background content could interfere with labels or controls, especially for
 surfaces containing substantial text. Use Clear for controls over photos and video where the
@@ -129,14 +141,16 @@ Modifier.hazeGlass(
 - **rimHighlight**(intensity, width, sides): Thin light band just inside the top and bottom edges,
   drawn above content. `sides` scales the left and right edges: `0` lights only the top and bottom,
   `1` lights every edge equally. It ignores `lightPosition`, follows merged container shapes, and is
-  off by default. Limited renderers approximate it.
+  enabled by default at intensity `0.6f` for Regular and `1f` for Clear, with width `1.dp` and
+  sides `0f`. Limited renderers approximate it.
 - **edgeOutline**(color, width): Hard line of `width` drawn just outside the shape, composited with
   the color's alpha over what lies behind the Glass. It follows merged container shapes, limited
-  renderers draw an equivalent stroke, and it is off by default. An outer `Modifier.clip()` hides it.
+  renderers draw an equivalent stroke. Both built-ins use black at 40% opacity and width `0.7.dp`.
+  An outer `Modifier.clip()` hides it.
 - **ambientResponse**: Fresnel/edge lift `0..1` (default 0.15).
 - **edgeSoftness**: Soft fade at the edges (default 1.dp). Set to 0.dp for hard edges.
 - **shape** (`RoundedCornerShape` or `ContinuousRoundedCornerShape`): Boundary for refraction and
-  masking (default 16.dp circular corners). `ContinuousRoundedCornerShape` gives continuous,
+  masking (default 16.dp continuous corners). `ContinuousRoundedCornerShape` gives continuous,
   iOS-style corners that ease into each edge; its `smoothing` runs from `0f` (circular) to `1f`
   (the default, matching SwiftUI's `.continuous` style). When a corner cannot ease within its edges,
   as in a capsule, its smoothing is reduced and its radius kept. When corners would overlap, as in a
@@ -148,6 +162,21 @@ Modifier.hazeGlass(
 - **chromaticAberrationStrength**: Dispersion strength `0..1` (default 0). Higher values produce prismatic color splitting at edges.
 - **chromaticAberrationMode**: `Simple` (default, cheaper) or `Full` (spectral, more expensive).
 - **alpha**: Overall opacity multiplier `0..1` (default 1). Values outside that range are clamped.
+
+Use `GlassDefaults.continuousShape` to match the default silhouette in a clip, border or indication.
+The default applies whenever no shape is authored, including custom styles. An authored shape keeps
+its radii and smoothing whether it is composed before or after a built-in style.
+`GlassDefaults.shape` is deprecated and retains its former circular value; use
+`RoundedCornerShape(16.dp)` explicitly to keep those corners.
+
+```kotlin
+val shape = GlassDefaults.continuousShape
+val matchingClipAndBorder = Modifier
+  .clip(shape)
+  .border(1.dp, Color.White, shape)
+```
+
+An outer clip also clips Glass's outline, so add it only when child content needs clipping.
 
 ### Color handling
 
