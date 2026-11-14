@@ -342,6 +342,46 @@ clustered screens against independent surfaces before adopting a container.
 
 <a id="blur-noise-tint"></a>
 
+<a id="continuous-corner-optics"></a>
+
+## Continuous-corner optics
+
+Below `Balanced`, Glass on Android refracts and lights continuous corners as circular corners of
+the same radius, keeping the exact continuous silhouette. This comparison measures that change
+in [`HazePerformanceMode.Performance`][HazePerformanceMode.Performance] for four Regular Glass
+surfaces with `ContinuousRoundedCornerShape` corners, merged by one `hazeGlassContainer` (a 2 × 2
+grid with 12 dp gaps and a 32 dp merge distance), over a continuously changing source. It used a
+Pixel 6 running an Android 17 beta at 90 Hz, with fixed-performance mode enabled.
+
+!!! warning "Controlled CPU placement"
+
+    The sample's main thread and RenderThread were restricted to the middle CPU cluster.
+    These are controlled comparisons, not expected timings under normal Android scheduling.
+
+Each value is the median of eight iterations' P50 frame overrun.
+
+| Corner optics | First pass (ms) | Second pass (ms) |
+| --- | ---: | ---: |
+| Exact continuous | -8.20 | -8.26 |
+| Circular | -9.60 | -9.62 |
+
+Circular optics left 1.36–1.40 ms more frame-deadline headroom; the largest spread between
+iterations in any run was 0.07 ms. These runs did not record GPU timings, and the result does not
+cover a single surface, other devices or normal scheduling.
+
+??? info "Measurement details"
+
+    Both builds were release builds from the same tree; the exact-optics build forced the
+    performance-mode check off. Runs alternated exact, circular, circular, exact, and every
+    Perfetto trace confirmed that main and RenderThread executed only on CPUs 4–5. Each run passed
+    its source-record, Glass-draw and layer-draw gates. Runs started at thermal status 0 with a
+    battery temperature of 21–22°C. The sample APK SHA-256 prefixes were `7ae1b7fb3d83` (exact)
+    and `1b6e6a35993a` (circular).
+
+    With the same change forced on in `Balanced`, the gain was 0.91–1.12 ms; `Balanced` keeps
+    exact optics. Desktop and iOS draw Glass through a different shader path, which still uses
+    exact continuous optics in every mode.
+
 ## Blur noise and tint shader reuse
 
 On Android 13 and newer, Blur combines nonzero noise with one `SrcOver` color tint in a single
@@ -731,4 +771,5 @@ For the historical scrolling and dragging comparison between Haze 1 and Haze 2, 
 
 [HazeInput.Sources]: api/haze/dev.chrisbanes.haze/-haze-input/-sources/index.html
 [HazePerformanceMode.Default]: api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-default.html
+[HazePerformanceMode.Performance]: api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-performance.html
 [hazeSource]: api/haze/dev.chrisbanes.haze/haze-source.html

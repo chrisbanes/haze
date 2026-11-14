@@ -215,6 +215,61 @@ internal object GlassShaders {
     }
   """
 
+  /**
+   * The fused program for continuous corners with circular optics (#1766): coverage, and so the
+   * silhouette and its edge softness, use the exact continuous corner, while refraction, lighting
+   * and detail use circular corners of the nominal radius, which stay within 0.023× the radius of
+   * the continuous edge. It is the circular program with its corner uniforms renamed, so
+   * `cornerRadii`, `cornerExponents`, `memberRadii` and `memberCornerExponents` keep their
+   * continuous meaning and the circular radii arrive as `circularCornerRadii` and
+   * `memberCircularRadii`.
+   */
+  fun buildFusedWithCircularOptics(
+    interactionOptics: Boolean = false,
+    sharpDetail: Boolean = true,
+    merged: Boolean = false,
+    coverageOutset: Boolean = false,
+  ): String {
+    val circular = buildFused(interactionOptics, sharpDetail, merged, continuous = false, coverageOutset = coverageOutset)
+      .replace("cornerRadii", "circularCornerRadii")
+      .replace("memberRadii", "memberCircularRadii")
+    val silhouetteSd = CONTINUOUS_SD_ROUNDED_RECT.substringAfter("vec2 cornerNormal")
+      .substringAfter("}\n")
+      .replace("roundedCornerSd(", "silhouetteCornerSd(")
+      .replace("sdRoundedRect(", "silhouetteSd(")
+    // Android rejects setting an undeclared uniform, and the continuous setters upload these.
+    val silhouette = """
+    uniform vec4 cornerRadii;
+    uniform vec4 cornerExponents;
+    """ + if (merged) {
+      """
+    uniform float4 memberRadii[4];
+    uniform float4 memberCornerExponents[4];
+    $silhouetteSd
+
+    vec4 silhouetteMemberDistances(vec2 localCoord) {
+      vec4 d = vec4(0.0);
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        d[i] = silhouetteSd(localCoord - memberRects[i].xy, memberRects[i].zw, memberRadii[i], memberCornerExponents[i]);
+      }
+      return d;
+    }
+      """
+    } else {
+      silhouetteSd
+    }
+    val coverageSd = if (merged) {
+      "memberDistancesAtCoord = memberDistances(localCoord);" to "memberDistancesAtCoord = silhouetteMemberDistances(localCoord);"
+    } else {
+      "float outputSd = sdRoundedRect(localCoord, materialSize, circularCornerRadii);" to
+        "float outputSd = silhouetteSd(localCoord, materialSize, cornerRadii, cornerExponents);"
+    }
+    check(circular.contains(coverageSd.first) && circular.contains("vec4 main(vec2 coord)"))
+    return circular.replace(coverageSd.first, coverageSd.second)
+      .replace("vec4 main(vec2 coord)", "$silhouette\n    vec4 main(vec2 coord)")
+  }
+
   fun buildBlur(horizontal: Boolean, progressive: Boolean = false, clampToMaterial: Boolean = false): String {
     val samples = buildString {
       repeat(SemanticBlurKernel.MAX_TAP_PAIRS) { index ->

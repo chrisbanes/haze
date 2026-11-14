@@ -75,25 +75,44 @@ class MergedGlassFusedAndroidHostTest : ContextTest() {
 
   @Test
   @Config(sdk = [35])
+  fun sdk35_continuousMembersBelowBalancedUseCircularOptics() =
+    assertBridgeCoverage(continuous = true, performanceMode = HazePerformanceMode.Performance)
+
+  @Test
+  @Config(sdk = [37])
+  fun sdk37_continuousMembersBelowBalancedUseCircularOptics() =
+    assertBridgeCoverage(continuous = true, performanceMode = HazePerformanceMode.Performance)
+
+  @Test
+  @Config(sdk = [35])
   fun sdk35_circularMembersUseBaseVariant() {
     midpointColor(gapDp = 6f, continuous = false)
   }
 
-  private fun assertBridgeCoverage(continuous: Boolean = false) {
+  private fun assertBridgeCoverage(
+    continuous: Boolean = false,
+    performanceMode: HazePerformanceMode = HazePerformanceMode.Quality,
+  ) {
     // A bridged midpoint shows the members' opaque green tint, darkened slightly by refraction
     // detail. A separate midpoint is outside the glass, so no tint reaches it.
-    val bridged = midpointColor(gapDp = 6f, continuous = continuous)
+    val bridged = midpointColor(gapDp = 6f, continuous = continuous, performanceMode = performanceMode)
     assertThat(bridged.green, "bridged green: $bridged").isGreaterThan(0.85f)
     assertThat(bridged.red, "bridged red: $bridged").isLessThan(0.05f)
-    val separate = midpointColor(gapDp = 10f, continuous = continuous)
+    val separate = midpointColor(gapDp = 10f, continuous = continuous, performanceMode = performanceMode)
     assertThat(separate.red, "separate red: $separate").isGreaterThan(0.5f)
   }
 
   /**
    * [continuous] members use `ContinuousRoundedCornerShape(6.dp)` corners, which stay smoothed at
-   * this size; otherwise they are capsules. Either way the fused shader must use that variant.
+   * this size; otherwise they are capsules. Either way the fused shader must use that variant, with
+   * circular optics for continuous corners below Balanced.
    */
-  private fun midpointColor(gapDp: Float, unsetAfterwards: Boolean = false, continuous: Boolean = false): Color {
+  private fun midpointColor(
+    gapDp: Float,
+    unsetAfterwards: Boolean = false,
+    continuous: Boolean = false,
+    performanceMode: HazePerformanceMode = HazePerformanceMode.Quality,
+  ): Color {
     var color = Color.Unspecified
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = GlassRuntimeEffect().apply {
@@ -109,7 +128,7 @@ class MergedGlassFusedAndroidHostTest : ContextTest() {
             factory = HazeEffectFactory { effect },
             input = HazeInput.Content,
             style = effect.style,
-            performanceMode = HazePerformanceMode.Quality,
+            performanceMode = performanceMode,
             expandLayerBounds = true,
             interactionSource = null,
           ),
@@ -145,6 +164,8 @@ class MergedGlassFusedAndroidHostTest : ContextTest() {
       val delegate = effect.delegate as? RuntimeShaderGlassDelegate
       assertThat(delegate?.fusedShader).isNotNull()
       assertThat(delegate?.fusedInputKey?.continuous).isEqualTo(continuous)
+      assertThat(delegate?.fusedInputKey?.circularOptics)
+        .isEqualTo(continuous && performanceMode.usesCircularCornerOptics())
       assertThat(effect.preparedRender?.opticalKey?.mergedField).isNotNull()
       if (unsetAfterwards) {
         runOnIdle { effect.mergedField = null }

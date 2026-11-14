@@ -163,6 +163,39 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     }
 
   @Test
+  fun sdk35_performanceModeSwitchSelectsCircularOptics() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = GlassRuntimeEffect()
+      val style = GlassStyle.regular.then { shape(ContinuousRoundedCornerShape(16.dp)) }
+      val performanceMode = mutableStateOf(HazePerformanceMode.Balanced)
+      setContent {
+        Box(
+          Modifier.size(120.dp).testTag("optics").hazeEffect(
+            factory = HazeEffectFactory { effect },
+            input = HazeInput.Content,
+            style = GlassNodeConfiguration(style, performanceMode = performanceMode.value, interactionSource = null),
+            expandLayerBounds = true,
+          ),
+        ) {
+          Box(Modifier.fillMaxSize().background(Color.Red))
+        }
+      }
+      fun assertFrame(expectCircularOptics: Boolean) {
+        waitForIdle()
+        val pixels = onNodeWithTag("optics").captureToImage().toPixelMap()
+        val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+        assertThat(delegate.fusedInputKey?.continuous).isEqualTo(true)
+        assertThat(delegate.fusedInputKey?.circularOptics).isEqualTo(expectCircularOptics)
+        assertThat(pixels[pixels.width / 2, pixels.height / 2].alpha).isGreaterThan(0.5f)
+      }
+      assertFrame(expectCircularOptics = false)
+      performanceMode.value = HazePerformanceMode.Performance
+      assertFrame(expectCircularOptics = true)
+      performanceMode.value = HazePerformanceMode.Quality
+      assertFrame(expectCircularOptics = false)
+    }
+
+  @Test
   fun hardwareToSoftwareCanvas_drawsFallbackAndKeepsRuntimeDelegate() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = retainedBlurEffect()

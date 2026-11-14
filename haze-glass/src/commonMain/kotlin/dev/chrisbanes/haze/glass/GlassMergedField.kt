@@ -304,7 +304,8 @@ internal class MergedFieldUniformScratch {
     const val WHITE_POINT_DELTAS = 10
     const val STANDALONE_WEIGHTS = 11
     const val CORNER_EXPONENTS = 12
-    private const val SLOT_COUNT = 13
+    const val CIRCULAR_RADII = 13
+    private const val SLOT_COUNT = 14
   }
 }
 

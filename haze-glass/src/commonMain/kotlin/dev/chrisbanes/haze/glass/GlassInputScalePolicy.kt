@@ -18,3 +18,14 @@ internal fun HazePerformanceMode.resolveGlassInputScale(): Float = when (this) {
   is HazePerformanceMode.Fixed ->
     sqrt(MIN_FIXED_PIXEL_FRACTION + (MAX_FIXED_PIXEL_FRACTION - MIN_FIXED_PIXEL_FRACTION) * qualityFraction)
 }
+
+/**
+ * Whether continuous corners keep their exact silhouette but refract and light through circular
+ * corners (#1766). Only modes below [HazePerformanceMode.Balanced] trade that fidelity, and only the
+ * fused Android program has the variant.
+ */
+@Suppress("DEPRECATION")
+internal fun HazePerformanceMode.usesCircularCornerOptics(): Boolean = when (this) {
+  HazePerformanceMode.Adaptive -> HazePerformanceMode.Default.usesCircularCornerOptics()
+  is HazePerformanceMode.Fixed -> qualityFraction < (HazePerformanceMode.Balanced as HazePerformanceMode.Fixed).qualityFraction
+}

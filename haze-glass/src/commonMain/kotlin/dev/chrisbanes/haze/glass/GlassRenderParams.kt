@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp as lerpDp
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.util.lerp
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.scaledContentScale
@@ -323,6 +324,8 @@ internal data class GlassRenderParams(
   val mergedField: GlassMergedField? = null,
   val rimHighlight: GlassRimHighlight = GlassRimHighlight.None,
   val edgeOutline: GlassEdgeOutline = GlassEdgeOutline.None,
+  /** See [HazePerformanceMode.usesCircularCornerOptics]. */
+  val circularCornerOptics: Boolean = false,
 )
 
 internal data class GlassBlurEffectKey(
@@ -389,6 +392,8 @@ internal data class GlassOpticalEffectKey(
   /** Negative selects Surface; zero disables Edge refraction. */
   val edgeRefractionWidthPx: Float = -1f,
   val mergedField: GlassMergedField? = null,
+  /** See [HazePerformanceMode.usesCircularCornerOptics]. */
+  val circularCornerOptics: Boolean = false,
 )
 
 internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
@@ -412,6 +417,7 @@ internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
   sampleStepPx = sampleStepPx,
   edgeRefractionWidthPx = edgeRefractionWidthPx,
   mergedField = mergedField?.withoutLights,
+  circularCornerOptics = circularCornerOptics,
 )
 
 internal data class GlassRefractionDetailEffectKey(
@@ -782,6 +788,7 @@ private fun resolveBiasPosition(
 internal fun buildGlassRenderParams(
   style: ResolvedGlassStyle,
   coordinates: GlassCoordinates,
+  circularCornerOptics: Boolean = false,
 ): GlassRenderParams {
   val scaleFactor = coordinates.scaleFactor
   val resolvedOptics = style.resolvedOptics
@@ -823,6 +830,7 @@ internal fun buildGlassRenderParams(
     },
     rimHighlight = style.rimHighlight.scaled(scaleFactor),
     edgeOutline = style.edgeOutline.scaled(scaleFactor),
+    circularCornerOptics = circularCornerOptics,
   )
 }
 
@@ -1189,7 +1197,8 @@ private fun GlassRenderParams.hasSameOpticalEffectInputs(other: GlassRenderParam
     fresnelExponent == other.fresnelExponent &&
     cornerRadii == other.cornerRadii &&
     mergedField?.withoutLights == other.mergedField?.withoutLights &&
-    sampleStepPx == other.sampleStepPx
+    sampleStepPx == other.sampleStepPx &&
+    circularCornerOptics == other.circularCornerOptics
 
 private fun GlassRenderParams.hasSameRefractionDetailEffectInputs(
   other: GlassRenderParams,
