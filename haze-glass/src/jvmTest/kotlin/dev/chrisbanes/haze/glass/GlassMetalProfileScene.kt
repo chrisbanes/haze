@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -73,7 +74,8 @@ fun main(args: Array<String>) {
       val frame = remember { mutableIntStateOf(0) }
       val density = LocalDensity.current.density
       val style = remember(continuous) {
-        if (continuous) GlassStyle.regular.then { shape(ContinuousRoundedCornerShape(16.dp)) } else GlassStyle.regular
+        // Regular defaults to continuous corners (#1793), so circular corners are authored explicitly.
+        if (continuous) GlassStyle.regular.then { shape(ContinuousRoundedCornerShape(16.dp)) } else GlassStyle.regular.then { shape(RoundedCornerShape(16.dp)) }
       }
       LaunchedEffect(Unit) {
         val renderApi = window.renderApi
