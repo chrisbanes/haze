@@ -46,6 +46,31 @@ and locally complete. Do not extract helpers or parameterize sample composables 
 duplication; flag duplication only when it creates a concrete correctness or maintenance risk.
 Share application infrastructure, fixtures, or abstractions that are themselves being demonstrated.
 
+## Android emulator work
+
+- Prefer targeted Gradle-managed device tasks for automated instrumentation,
+  such as `./gradlew :haze-blur:pixel6Api31Check --no-scan`.
+  Blur and Glass opt into `dev.chrisbanes.android.managed-devices`, which owns
+  their API 30–34 AOSP matrix. Keep benchmark/profile devices separate.
+  Use an interactive device when the task needs visual reproduction, manual
+  interaction, or device screenshots and recordings. Follow the screenshot-test
+  guide for automated screenshot coverage.
+- Approved interactive profiles are ARM64 AOSP `default` images:
+  `Agent_Pixel5_API30_AOSP`, `Agent_Pixel6_API31_AOSP`, and
+  `Agent_Pixel6_API34_AOSP`. Create them only when needed, reusing a suitable
+  existing AVD first.
+- Normally use API 34; use API 30 for pre-31 fallback behavior and API 31 for
+  its rendering path. Request another API when the affected behavior requires
+  it. The library/sample/benchmark minimums of 23/24/28 do not require keeping
+  an interactive AVD for each minimum.
+- Use full-rendering images for interactive visual work; ATD images are
+  unsuitable. Request Google APIs or Play Store images only when the
+  reproduction requires those services.
+- Preserve the personal `Medium_Phone` AVD. Use its preview image for
+  preview-specific investigation; qualify evidence from that environment.
+- Use physical hardware for performance measurements, following the benchmark
+  runbook.
+
 ## Android physical-device benchmarks
 
 - Read [`internal/benchmark/README.md`](internal/benchmark/README.md) before running or interpreting
