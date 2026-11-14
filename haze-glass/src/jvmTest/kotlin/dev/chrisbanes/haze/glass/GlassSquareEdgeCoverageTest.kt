@@ -66,6 +66,17 @@ class GlassSquareEdgeCoverageTest {
   fun squareSurface_edgePixelsHideUnderlay_defaultMode_expanded() = assertRuntimeEdgesHideUnderlay(HazePerformanceMode.Default, expandLayerBounds = true)
 
   @Test
+  fun squareSurface_fractionalCapturePaddingDoesNotShowUnderlay() {
+    // At half scale, the outline's one-pixel allowance splits capture cells at half pixels.
+    val magenta = capture(4.dp, false, HazePerformanceMode.Default, false, Color.Magenta)
+    val green = capture(4.dp, false, HazePerformanceMode.Default, false, Color.Green)
+    val difference = magenta.borderPixels().maxOf { (x, y) ->
+      abs(magenta[x, y].red - green[x, y].red) + abs(magenta[x, y].green - green[x, y].green)
+    }
+    assertThat(difference).isLessThan(1.5f / 255f)
+  }
+
+  @Test
   fun squareSurface_edgePixelsHideUnderlay_smallBlur() {
     // Clear's shallow blur runs the tap blur, whose taps past the clipped edge read transparency.
     // Expanded bounds too: the clip still crops the padding, so taps must not reach into it.

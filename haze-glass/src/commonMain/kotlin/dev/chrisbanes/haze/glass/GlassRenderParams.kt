@@ -27,6 +27,7 @@ import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.scaledContentScale
 import kotlin.math.abs
 import kotlin.math.ceil
+import kotlin.math.floor
 
 private const val MAX_REFRACTION_DISPLACEMENT_PX = 16_384f
 
@@ -117,6 +118,19 @@ internal fun GlassCoordinates.captureShift(layerOffset: Offset): Offset = Offset
   materialOrigin.x - layerOffset.x * captureScale.scaleX,
   materialOrigin.y - layerOffset.y * captureScale.scaleY,
 )
+
+/** Whole source-padding cells avoid antialiased seams when repeating the capture's edge bands. */
+internal fun GlassCoordinates.captureCellBounds(): Rect {
+  val bounds = checkNotNull(captureBounds)
+  val whole = Rect(
+    ceil(bounds.left - PIXEL_EPSILON),
+    ceil(bounds.top - PIXEL_EPSILON),
+    floor(bounds.right + PIXEL_EPSILON),
+    floor(bounds.bottom + PIXEL_EPSILON),
+  )
+  // Without a complete captured pixel to repeat, preserve its fractional coverage.
+  return if (whole.width >= 1f && whole.height >= 1f) whole else bounds
+}
 
 /** The node-space offset that presents a pixel-aligned capture with its material origin at the node origin. */
 internal fun GlassCoordinates.presentationOffset(): Offset = Offset(

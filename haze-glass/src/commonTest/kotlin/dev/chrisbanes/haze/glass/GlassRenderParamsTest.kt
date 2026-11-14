@@ -35,6 +35,7 @@ import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNull
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeProgressive
 import kotlin.math.ceil
@@ -1732,6 +1733,45 @@ class GlassRenderParamsTest {
       GlassCoordinates(Size(424.6f, 95.2f) * 0.79f, Offset(12.3f, 7.6f) * 0.79f, Size(400f, 80f) * 0.79f, 0.79f),
     )
     assertThat(coordinates.pixelAligned).isFalse()
+  }
+
+  @Test
+  fun coordinates_captureCellsUseWholeInteriorWithoutChangingRefractionBounds() {
+    val coordinates = resolveGlassCoordinates(
+      layerSize = Size(202f, 102f),
+      layerOffset = Offset(1f, 1f),
+      materialSize = Size(200f, 100f),
+      scaleFactor = 0.5f,
+      alignToPixels = true,
+    )
+    assertThat(coordinates.captureCellBounds()).isEqualTo(Rect(3f, 3f, 103f, 53f))
+    assertThat(coordinates.captureBounds).isEqualTo(Rect(2.5f, 2.5f, 103.5f, 53.5f))
+  }
+
+  @Test
+  fun coordinates_subpixelCaptureKeepsFractionalCoverage() {
+    for (layerSize in listOf(Size(1f, 40f), Size(40f, 1f))) {
+      val coordinates = resolveGlassCoordinates(
+        layerSize = layerSize,
+        layerOffset = Offset.Zero,
+        materialSize = Size(400f, 80f),
+        scaleFactor = 0.5f,
+        alignToPixels = true,
+      )
+      assertThat(coordinates.captureCellBounds()).isSameInstanceAs(coordinates.captureBounds)
+    }
+  }
+
+  @Test
+  fun coordinates_captureCellsAbsorbWholePixelRoundingError() {
+    val coordinates = resolveGlassCoordinates(
+      layerSize = Size(202f, 102f),
+      layerOffset = Offset(1f, 1f),
+      materialSize = Size(200f, 100f),
+      scaleFactor = 0.5f,
+      alignToPixels = true,
+    ).copy(captureBounds = Rect(3.00001f, 3.00001f, 102.99999f, 52.99999f))
+    assertThat(coordinates.captureCellBounds()).isEqualTo(Rect(3f, 3f, 103f, 53f))
   }
 
   @Test
