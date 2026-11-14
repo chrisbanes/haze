@@ -7,6 +7,7 @@ import org.gradle.api.tasks.testing.Test
 
 plugins {
   id("dev.chrisbanes.android.library")
+  id("dev.chrisbanes.android.managed-devices")
   id("dev.chrisbanes.kotlin.multiplatform")
   id("dev.chrisbanes.compose")
   id("org.jetbrains.dokka")
@@ -23,21 +24,6 @@ kotlin {
 
     withHostTest {
       isIncludeAndroidResources = true
-    }
-
-    withDeviceTest {
-      instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-      @Suppress("UnstableApiUsage")
-      managedDevices {
-        localDevices {
-          create("pixel6Api34") {
-            device = "Pixel 6"
-            sdkVersion = 34
-            systemImageSource = "aosp_atd"
-          }
-        }
-      }
     }
   }
 
