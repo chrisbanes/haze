@@ -340,8 +340,6 @@ clustered screens against independent surfaces before adopting a container.
     Raw JSON, traces and device readbacks are retained locally under
     `internal/benchmark/build/benchmark-results/container-2.1.9TQlOX/`.
 
-<a id="blur-noise-tint"></a>
-
 <a id="continuous-corner-optics"></a>
 
 ## Continuous-corner optics
@@ -372,15 +370,21 @@ cover a single surface, other devices or normal scheduling.
 ??? info "Measurement details"
 
     Both builds were release builds from the same tree; the exact-optics build forced the
-    performance-mode check off. Runs alternated exact, circular, circular, exact, and every
+    performance-mode check off. The circular build predates a fix that gives the separate
+    refraction-detail pass the same circular optics, so its detail pass still used the exact
+    corners. Runs alternated exact, circular, circular, exact, and every
     Perfetto trace confirmed that main and RenderThread executed only on CPUs 4–5. Each run passed
     its source-record, Glass-draw and layer-draw gates. Runs started at thermal status 0 with a
     battery temperature of 21–22°C. The sample APK SHA-256 prefixes were `7ae1b7fb3d83` (exact)
-    and `1b6e6a35993a` (circular).
+    and `1b6e6a35993a` (circular). Raw JSON, XML, traces, the pre-registered rules and device
+    readbacks are retained locally under
+    `internal/benchmark/build/benchmark-results/1766-optics/`, in `performance/` for this table.
 
     With the same change forced on in `Balanced`, the gain was 0.91–1.12 ms; `Balanced` keeps
     exact optics. Desktop and iOS draw Glass through a different shader path, which still uses
     exact continuous optics in every mode.
+
+<a id="blur-noise-tint"></a>
 
 ## Blur noise and tint shader reuse
 

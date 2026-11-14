@@ -229,10 +229,46 @@ internal object GlassShaders {
     sharpDetail: Boolean = true,
     merged: Boolean = false,
     coverageOutset: Boolean = false,
-  ): String {
-    val circular = buildFused(interactionOptics, sharpDetail, merged, continuous = false, coverageOutset = coverageOutset)
-      .replace("cornerRadii", "circularCornerRadii")
-      .replace("memberRadii", "memberCircularRadii")
+  ): String = withCircularOptics(
+    buildFused(interactionOptics, sharpDetail, merged, continuous = false, coverageOutset = coverageOutset),
+    merged,
+    if (merged) {
+      listOf("memberDistancesAtCoord = memberDistances(localCoord);" to "memberDistancesAtCoord = silhouetteMemberDistances(localCoord);")
+    } else {
+      listOf(CIRCULAR_OUTPUT_SD to SILHOUETTE_OUTPUT_SD)
+    },
+  )
+
+  /**
+   * The refraction-detail program paired with [buildFusedWithCircularOptics]. The fused pass
+   * removes its detail alpha and this pass adds it back, so both use the same silhouette distances
+   * for coverage, displacement and member weights, and circular corners where the refracted
+   * sample lands.
+   */
+  fun buildRefractionDetailWithCircularOptics(
+    interactive: Boolean = false,
+    merged: Boolean = false,
+    coverageOutset: Boolean = false,
+  ): String = withCircularOptics(
+    buildRefractionDetail(interactive, coverageOnly = false, merged = merged, continuous = false, coverageOutset = coverageOutset),
+    merged,
+    if (merged) {
+      listOf(
+        "float outputSd = shapeSd(localCoord);" to
+          "vec4 silhouetteDistances = silhouetteMemberDistances(localCoord);\n      float outputSd = shapeSdFromDistances(silhouetteDistances);",
+        "vec4 w = memberWeights(localCoord);" to "vec4 w = memberWeightsFromDistances(silhouetteDistances);",
+      )
+    } else {
+      listOf(CIRCULAR_OUTPUT_SD to SILHOUETTE_OUTPUT_SD)
+    },
+  )
+
+  private const val CIRCULAR_OUTPUT_SD = "float outputSd = sdRoundedRect(localCoord, materialSize, circularCornerRadii);"
+  private const val SILHOUETTE_OUTPUT_SD = "float outputSd = silhouetteSd(localCoord, materialSize, cornerRadii, cornerExponents);"
+
+  /** Renames a circular program's corner uniforms and swaps each replacement's distance for the continuous silhouette's. */
+  private fun withCircularOptics(source: String, merged: Boolean, replacements: List<Pair<String, String>>): String {
+    var circular = source.replace("cornerRadii", "circularCornerRadii").replace("memberRadii", "memberCircularRadii")
     val silhouetteSd = CONTINUOUS_SD_ROUNDED_RECT.substringAfter("vec2 cornerNormal")
       .substringAfter("}\n")
       .replace("roundedCornerSd(", "silhouetteCornerSd(")
@@ -259,15 +295,11 @@ internal object GlassShaders {
     } else {
       silhouetteSd
     }
-    val coverageSd = if (merged) {
-      "memberDistancesAtCoord = memberDistances(localCoord);" to "memberDistancesAtCoord = silhouetteMemberDistances(localCoord);"
-    } else {
-      "float outputSd = sdRoundedRect(localCoord, materialSize, circularCornerRadii);" to
-        "float outputSd = silhouetteSd(localCoord, materialSize, cornerRadii, cornerExponents);"
+    for ((from, to) in replacements + ("vec4 main(vec2 coord)" to "$silhouette\n    vec4 main(vec2 coord)")) {
+      check(circular.split(from).size == 2) { "expected one '$from'" }
+      circular = circular.replace(from, to)
     }
-    check(circular.contains(coverageSd.first) && circular.contains("vec4 main(vec2 coord)"))
-    return circular.replace(coverageSd.first, coverageSd.second)
-      .replace("vec4 main(vec2 coord)", "$silhouette\n    vec4 main(vec2 coord)")
+    return circular
   }
 
   fun buildBlur(horizontal: Boolean, progressive: Boolean = false, clampToMaterial: Boolean = false): String {

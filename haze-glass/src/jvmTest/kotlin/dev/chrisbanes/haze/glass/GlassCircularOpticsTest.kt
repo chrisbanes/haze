@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -26,6 +27,7 @@ import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
+import kotlin.math.abs
 import kotlin.test.Test
 import org.jetbrains.skia.RuntimeEffect
 
@@ -43,13 +45,32 @@ class GlassCircularOpticsTest {
   fun buildFusedWithCircularOptics_merged_keepsContinuousCoverage() = assertKeepsCoverage(merged = true)
 
   @Test
-  fun buildFusedWithCircularOptics_declaresEveryContinuousUniform() {
-    // Android throws on setting an undeclared uniform, and the continuous setters still run.
+  fun buildRefractionDetailWithCircularOptics_single_restoresFusedDetailCoverage() = assertDetailRestoresCoverage(merged = false)
+
+  @Test
+  fun buildRefractionDetailWithCircularOptics_merged_restoresFusedDetailCoverage() = assertDetailRestoresCoverage(merged = true)
+
+  @Test
+  fun circularOpticsPrograms_compileAndDeclareEveryContinuousUniform() {
+    // Android throws on setting an undeclared uniform, and the continuous setters still run. Every
+    // variant the delegate can select is built here, since each compiles lazily on first draw.
     for (merged in listOf(false, true)) {
-      for (sharpDetail in listOf(false, true)) {
-        val continuous = uniformNames(GlassShaders.buildFused(sharpDetail = sharpDetail, merged = merged, continuous = true))
-        val circularOptics = uniformNames(GlassShaders.buildFusedWithCircularOptics(sharpDetail = sharpDetail, merged = merged))
-        assertThat(continuous - circularOptics, "undeclared uniforms, merged=$merged sharpDetail=$sharpDetail").isEmpty()
+      // Interaction optics are not merged.
+      for (interactive in if (merged) listOf(false) else listOf(false, true)) {
+        for (coverageOutset in listOf(false, true)) {
+          val variant = "merged=$merged interactive=$interactive coverageOutset=$coverageOutset"
+          for (sharpDetail in listOf(false, true)) {
+            val continuous = GlassShaders.buildFused(interactive, sharpDetail, merged, continuous = true, coverageOutset = coverageOutset)
+            val circularOptics = GlassShaders.buildFusedWithCircularOptics(interactive, sharpDetail, merged, coverageOutset)
+            RuntimeEffect.makeForShader(circularOptics)
+            assertThat(uniformNames(continuous) - uniformNames(circularOptics), "undeclared uniforms, $variant sharpDetail=$sharpDetail")
+              .isEmpty()
+          }
+          val detail = GlassShaders.buildRefractionDetail(interactive, merged = merged, continuous = true, coverageOutset = coverageOutset)
+          val circularDetail = GlassShaders.buildRefractionDetailWithCircularOptics(interactive, merged, coverageOutset)
+          RuntimeEffect.makeForShader(circularDetail)
+          assertThat(uniformNames(detail) - uniformNames(circularDetail), "undeclared detail uniforms, $variant").isEmpty()
+        }
       }
     }
   }
@@ -88,6 +109,39 @@ class GlassCircularOpticsTest {
     ).depthInputKey(interactionOptics = false).circularOptics
   }
 
+  /**
+   * Android multiplies the fused output by `1 - detailAlpha` and adds the detail pass with
+   * [BlendMode.Plus], so over an opaque source the two passes' alpha sums to coverage only when they
+   * compute the same detail alpha.
+   */
+  private fun assertDetailRestoresCoverage(merged: Boolean) {
+    val key = scene(merged).first
+    val params = buildGlassRenderParams(
+      resolveGlassStyle(GlassRuntimeEffect().apply { style = GlassStyle { shape(ContinuousRoundedCornerShape(RADIUS.dp)) } }, SCENE_SIZE, Density(1f), LayoutDirection.Ltr),
+      GlassCoordinates(SCENE_SIZE, Offset.Zero, SCENE_SIZE, 1f),
+    )
+    val detail = checkNotNull(params.activeRefractionDetailEffectKey()).copy(mergedField = key.mergedField)
+    fun pipeline(fused: String, detailSource: String, circularOptics: Boolean): IntArray {
+      val uniforms: RuntimeShaderUniformProvider.() -> Unit = {
+        setOpticalUniforms(key)
+        setRefractionDetailUniforms(detail)
+        if (circularOptics) setCircularOpticsUniforms(key.cornerRadii, key.mergedField)
+      }
+      return render(fused, detail = detailSource, uniforms = uniforms)
+    }
+    val exact = pipeline(
+      GlassShaders.buildFused(merged = merged, continuous = true),
+      GlassShaders.buildRefractionDetail(merged = merged, continuous = true),
+      circularOptics = false,
+    )
+    val circularFused = GlassShaders.buildFusedWithCircularOptics(merged = merged)
+    val unpaired = pipeline(circularFused, GlassShaders.buildRefractionDetail(merged = merged, continuous = true), circularOptics = true)
+    val paired = pipeline(circularFused, GlassShaders.buildRefractionDetailWithCircularOptics(merged = merged), circularOptics = true)
+    fun alphaErrors(pixels: IntArray) = exact.indices.count { abs((exact[it] ushr 24) - (pixels[it] ushr 24)) > 1 }
+    assertThat(alphaErrors(unpaired), "pixels an unpaired detail pass leaves uncovered").isGreaterThan(0)
+    assertThat(alphaErrors(paired), "pixels whose coverage changed").isEqualTo(0)
+  }
+
   private fun uniformNames(source: String): Set<String> =
     Regex("""uniform\s+(?:shader|\w+)\s+(\w+)""").findAll(source).map { it.groupValues[1] }.toSet()
 
@@ -99,7 +153,7 @@ class GlassCircularOpticsTest {
     }
     val circularOptics = render(GlassShaders.buildFusedWithCircularOptics(sharpDetail = false, merged = merged)) {
       setOpticalUniforms(key)
-      setCircularOpticsUniforms(key)
+      setCircularOpticsUniforms(key.cornerRadii, key.mergedField)
     }
     val alphaDiffers = continuous.indices.count { (continuous[it] ushr 24) != (circularOptics[it] ushr 24) }
     assertThat(alphaDiffers, "pixels whose coverage changed").isEqualTo(0)
@@ -141,21 +195,33 @@ class GlassCircularOpticsTest {
     return base.copy(mergedField = field) to field
   }
 
-  private fun render(source: String, uniforms: RuntimeShaderUniformProvider.() -> Unit): IntArray {
-    val filter = createRuntimeShaderRenderEffect(RuntimeEffect.makeForShader(source), arrayOf("content"), arrayOf(null), uniforms)
+  private fun render(
+    source: String,
+    detail: String? = null,
+    uniforms: RuntimeShaderUniformProvider.() -> Unit,
+  ): IntArray {
     val width = SCENE_SIZE.width.toInt()
     val height = SCENE_SIZE.height.toInt()
     val image = ImageBitmap(width, height)
     with(Canvas(image)) {
       val bounds = Rect(Offset.Zero, SCENE_SIZE)
-      saveLayer(bounds, Paint().apply { skiaPaint.imageFilter = filter })
-      for (x in 0 until width step 16) {
-        drawRect(
-          Rect(x.toFloat(), 0f, x + 16f, SCENE_SIZE.height),
-          Paint().apply { color = if (x % 32 == 0) Color(0xFF2F6FDE) else Color(0xFFE8C547) },
+      for ((program, blendMode) in listOfNotNull(source to BlendMode.SrcOver, detail?.let { it to BlendMode.Plus })) {
+        val filter = createRuntimeShaderRenderEffect(RuntimeEffect.makeForShader(program), arrayOf("content"), arrayOf(null), uniforms)
+        saveLayer(
+          bounds,
+          Paint().apply {
+            skiaPaint.imageFilter = filter
+            this.blendMode = blendMode
+          },
         )
+        for (x in 0 until width step 16) {
+          drawRect(
+            Rect(x.toFloat(), 0f, x + 16f, SCENE_SIZE.height),
+            Paint().apply { color = if (x % 32 == 0) Color(0xFF2F6FDE) else Color(0xFFE8C547) },
+          )
+        }
+        restore()
       }
-      restore()
     }
     return IntArray(width * height).also { image.toPixelMap().buffer.copyInto(it) }
   }
