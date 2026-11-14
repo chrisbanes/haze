@@ -10,8 +10,9 @@ import kotlin.test.Test
 
 /**
  * Pins the circular shader sources, which must stay identical to those before continuous corners,
- * apart from the rim sources, which gained the rim highlight and edge outline afterwards, and the
- * fused and optical sources, which skip the flat interior lighting gradient (#1766).
+ * apart from the rim sources, which gained the rim highlight and edge outline afterwards, the
+ * fused and optical sources, which skip the flat interior lighting gradient (#1766), and the
+ * merged sources, whose field skips far members (#1766).
  * Pixel and profile regressions cover their rendering behavior.
  */
 class GlassShadersGoldenTest {
@@ -55,18 +56,19 @@ class GlassShadersGoldenTest {
 
   private companion object {
     // Recorded from the circular sources of main, before continuous corners were added. The rim
-    // sources were re-recorded when the rim highlight and edge outline were added, and the fused
-    // and optical sources when the flat interior lighting gradient was skipped (#1766).
+    // sources were re-recorded when the rim highlight and edge outline were added, the fused and
+    // optical sources when the flat interior lighting gradient was skipped (#1766), and the merged
+    // sources when the field began to skip far members (#1766).
     val ADDITIONAL_RECORDED = mapOf(
-      "fused-merged" to "c47d0bb94393486f3e3b177004e8ad14a07cca8c8a01f85ec37bd78730a22d5f",
-      "fused-merged-no-detail" to "8e2f6af88c35beaa743aa56f62e30f2e61b93af7900f0b8bde12c8009f347601",
-      "optical-merged" to "218068a00872d1c825d84084d0ec77188468a4e9325304c1e3d31e01e82aaa6e",
-      "detail-merged" to "21f315ab287af09897300a94ff5866e8a3a9c61fe45b1ac20ab623989f701d60",
-      "detail-merged-coverage" to "dd5b0f4913bdded15398addd1b083026a3fb45e8afb15b24f759d17e9604143b",
-      "rim-merged" to "ea0eda097197102c35f7a84c1c33c511613adae5db6cc92b08b3b613c9b12e90",
+      "fused-merged" to "954a4f172ef97b5c3ad9c3f043afe0c81b8caf83fe051d5675f77c7e7496f715",
+      "fused-merged-no-detail" to "739f78671a686db9f801da7e97f88dd737ae664d149da8f982411e55bec946e6",
+      "optical-merged" to "a40dd9d5a3bbcf108f164d0063edcec26fd0be0668066a78b2b47fd88d344cff",
+      "detail-merged" to "cfb63dc5bbe3775548bab65eb082dc2f3b2eee3e3e254503e135a006f43a6c44",
+      "detail-merged-coverage" to "df2ab0fda95fe2d1e0347d97941959237d6918d7b3a12de9c939f22d7962bf02",
+      "rim-merged" to "546522a52bc0949946aa1c2c1162131fc986349ef438b1446305f20c43ffe7fc",
       "lighting" to "d956b1c8f406d634b73f8d3db694422582afe99427ae71a354073dcb06e53e24",
-      "lighting-merged" to "d1320d53329be3a08f838438c6d663bf0d0cfcb463ee76149bafbf8f723e750b",
-      "merged-background" to "541da6d9a6b17f07e4b97cf3018d196acf23963184848a9eca213d2732325221",
+      "lighting-merged" to "fb4070698512ad824e538a4b657eb5661e58e853f959f10ee397d83e5e8a06ec",
+      "merged-background" to "b55ffc3933f7106cf7cdcc47a50cfd41dc07d2c86e207baa979b0e28255d8ee5",
     )
 
     val RECORDED = mapOf(

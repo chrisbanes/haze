@@ -1250,6 +1250,13 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
   /** Returns [text] in continuous-corner sources and nothing in circular ones. */
   private fun ifContinuous(continuous: Boolean, text: String): String = if (continuous) text else ""
 
+  // Circular fields only: the continuous merged programs are at the size Android 15's software
+  // pipeline still draws, and the skip measured no gain there (#1766).
+  private const val FAR_MEMBER_SKIP = """
+        // A member is never nearer than its rectangle, and one at least its smoothing radius
+        // beyond the running field leaves the smooth minimum unchanged.
+        if (sdRectangle(localCoord - memberRects[i].xy, memberRects[i].zw) - d >= max(memberSmoothing[i], 0.0)) continue;"""
+
   private const val CIRCULAR_SD_ROUNDED_RECT = """float sdRoundedRect(vec2 localCoord, vec2 size, vec4 radii) {
       float sd = sdRectangle(localCoord, size);
       if (localCoord.x < radii.x && localCoord.y < radii.x) {
@@ -1529,7 +1536,7 @@ ${ifContinuous(continuous, "    uniform float4 memberCornerExponents[4];\n")}   
     float shapeSd(vec2 localCoord) {
       float d = memberSd(localCoord, memberRects[0], memberRadii[0]${ifContinuous(continuous, ", memberCornerExponents[0]")});
       for (int i = 1; i < 4; i++) {
-        if (float(i) >= memberCount) break;
+        if (float(i) >= memberCount) break;${if (continuous) "" else FAR_MEMBER_SKIP}
         d = smoothMin(d, memberSd(localCoord, memberRects[i], memberRadii[i]${ifContinuous(continuous, ", memberCornerExponents[i]")}), memberSmoothing[i]);
       }
       return d;
