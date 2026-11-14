@@ -65,12 +65,13 @@ class GlassShaderShortcutExactnessTest {
     // A threshold no member reaches, so every member joins the smooth minimum.
     val neverSkips = source.replace(FAR_MEMBER_THRESHOLD, ">= 1e9) continue;")
     assertThat(neverSkips, "the far-member test is in the source").isNotEqualTo(source)
-    // Skips every member after the first, which leaves a one-member field.
-    val alwaysSkips = source.replace(FAR_MEMBER_THRESHOLD, ">= -1e9) continue;")
+    // Pushes the field far outside where the skip fires, so those fragments lose their coverage.
+    val marksSkips = source.replace(FAR_MEMBER_THRESHOLD, FAR_MEMBER_THRESHOLD.replace("continue;", "{ d += 1000.0; continue; }"))
+    assertThat(marksSkips, "the far-member skip is in the source").isNotEqualTo(source)
 
     val expected = scene.render(neverSkips)
     assertThat(differingPixels(scene.render(source), expected), "pixels changed by the skip").isEqualTo(0)
-    assertThat(differingPixels(scene.render(alwaysSkips), expected), "pixels that depend on later members")
+    assertThat(differingPixels(scene.render(marksSkips), expected), "fragments the skip covers")
       .isGreaterThan(MIN_COVERED_PIXELS)
   }
 
