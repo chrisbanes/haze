@@ -1,0 +1,18 @@
+vec4 main(vec2 coord) {
+  vec2 localCoord = materialCoord(coord);
+  vec4 memberDistancesAtCoord = memberDistances(localCoord);
+  vec4 w = memberWeightsFromDistances(memberDistancesAtCoord);
+  float coverage = shapeCoverage(-1.0, sampleStep * 0.5);
+  if (coverage <= 0.0) return vec4(0.0);
+  float opticalDistance = opticalDistanceFromSignedDistance(localCoord, -1.0, 0.0);
+  float heightNorm = 0.5;
+  vec2 sampleDisplacement;
+  vec2 displacement = refractionDisplacement(
+    localCoord, heightNorm, edgeRefractionWidth >= 0.0 ? 1.0 : opticalDistance,
+    1.0, 0.0, w, sampleDisplacement
+  );
+  vec4 sampled = sampleDepth(clampSample(coord + sampleDisplacement));
+  vec3 straight = applyAmbient(clamp(unpremultiply(sampled), 0.0, 1.0), 1.0);
+  vec4 processed = premultiply(straight, sampled.a);
+  return processed.a > 0.0 ? processed * coverage : vec4(0.0);
+}

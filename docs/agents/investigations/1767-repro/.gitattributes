@@ -1,0 +1,3 @@
+# Preserve the exact captured shader and uniform bytes across checkouts.
+src/main/resources/* -text
+src/main/resources/*.sksl -whitespace

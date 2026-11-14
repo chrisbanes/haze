@@ -1,0 +1,103 @@
+name: Windows Glass first-draw investigation
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reproduce:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: false
+      - name: Record environment
+        shell: pwsh
+        run: |
+          git rev-parse HEAD
+          java -version
+          Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion | Format-List
+          New-Item -ItemType Directory -Force haze-glass/build/outputs | Out-Null
+          $tools = @(Get-Command wpr, wpaexporter, xperf, cdb -ErrorAction SilentlyContinue | Select-Object Name, Source)
+          $tools | ConvertTo-Json | Set-Content haze-glass/build/outputs/glass-probe-profiler-tools.json
+          $wpr = Get-Command wpr -ErrorAction SilentlyContinue
+          if ($null -ne $wpr) {
+            & $wpr.Source -profiles 2>&1 | Set-Content haze-glass/build/outputs/glass-probe-wpr-profiles.txt
+            if ($LASTEXITCODE -ne 0) { Write-Output 'WPR profile enumeration failed; inspect retained diagnostics' }
+          }
+          exit 0
+      - name: Compile probe and check variant selection
+        shell: pwsh
+        run: ./gradlew.bat :haze-glass:prepareWindowsGlassProbe :haze-glass:jvmTest --tests '*WindowsGlassProbeTest' '-Phaze.disableAppleTargets' --no-scan --console=plain --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8'
+      - name: Reject ambiguous profiling requests before native recording
+        shell: pwsh
+        run: |
+          pwsh -File scripts/windows-glass-probe.ps1 -Mode SelfTest
+          if ($LASTEXITCODE -ne 0) { throw 'Cold/warm diagnostic self-check failed' }
+          pwsh -File scripts/windows-glass-probe.ps1 -Mode Profile -Variant baseline -Trials 1
+          if ($LASTEXITCODE -ne 2) { throw 'Profiling argument errors must be INVALID, not a latency failure' }
+          exit 0
+      - name: Recheck native control and retained cold stall
+        shell: pwsh
+        run: |
+          $cuts = 'ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance,optical-height,rect-gradient,compact-main,member-weights,standalone-refraction'
+          pwsh -File scripts/windows-glass-probe.ps1 -Mode Diagnose -Variant control -Width 64 -Height 48
+          if ($LASTEXITCODE -ne 0) { throw 'Native control failed' }
+          pwsh -File scripts/windows-glass-probe.ps1 -Mode Diagnose -Variant original -Continuous true -Width 64 -Height 48 -Cuts $cuts
+          if ($LASTEXITCODE -ne 1) { throw 'Retained cold stall no longer reproduces' }
+          $rows = @(Get-ChildItem haze-glass/build/outputs/glass-probe -Filter results.json -Recurse | ForEach-Object { Get-Content $_.FullName -Raw | ConvertFrom-Json })
+          if (@($rows | Where-Object coldStall -eq $true).Count -ne 3) { throw 'Retained cold signal is not repeatable' }
+          exit 0
+      - name: Capture first-draw stacks for retained, control and original continuous sources
+        shell: pwsh
+        run: |
+          $cuts = 'ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance,optical-height,rect-gradient,compact-main,member-weights,standalone-refraction'
+          pwsh -File scripts/windows-glass-probe.ps1 -Mode Profile -Variant original -Continuous true -Width 64 -Height 48 -Trials 1 -Cuts $cuts
+          if ($LASTEXITCODE -ne 1) { throw 'Profiled retained case did not preserve the cold stall' }
+          pwsh -File scripts/windows-glass-probe.ps1 -Mode Profile -Variant original -Continuous true -Width 64 -Height 48 -Trials 1 -Cuts ($cuts + ',refraction')
+          if ($LASTEXITCODE -ne 0) { throw 'Profiled refraction-free control failed' }
+          pwsh -File scripts/windows-glass-probe.ps1 -Mode Profile -Variant original -Continuous true -Trials 1
+          if ($LASTEXITCODE -ne 1) { throw 'Original continuous source did not preserve the cold stall' }
+          exit 0
+      - name: Package and validate standalone upstream reproducer outside checkout
+        shell: pwsh
+        run: |
+          ./gradlew.bat :haze-glass:packageWindowsGlassRepro '-Phaze.disableAppleTargets' --no-scan --console=plain --max-workers=2
+          if ($LASTEXITCODE -ne 0) { throw 'Could not package standalone reproducer' }
+          $repro = Join-Path $env:RUNNER_TEMP 'windows-glass-repro'
+          Expand-Archive haze-glass/build/outputs/windows-glass-repro.zip $repro
+          Push-Location $repro
+          try {
+            ./gradlew.bat installDist --no-scan --console=plain --max-workers=2
+            if ($LASTEXITCODE -ne 0) { throw 'Standalone compilation failed' }
+            $watchdogScript = Join-Path $repro 'watchdog-test.ps1'
+            (Get-Content run.ps1 -Raw).Replace('WaitForExit(60000)', 'WaitForExit(1)') | Set-Content $watchdogScript
+            pwsh -File $watchdogScript
+            if ($LASTEXITCODE -ne 2) { throw 'Forced watchdog must be INVALID' }
+            if (@(Get-ChildItem build/results -Filter stdout.txt -Recurse).Count -ne 1 -or
+                @(Get-ChildItem build/results -Filter stderr.txt -Recurse).Count -ne 1) {
+              throw 'Forced watchdog discarded captured process streams'
+            }
+            Remove-Item $watchdogScript
+            pwsh -File run.ps1
+            if ($LASTEXITCODE -ne 1) { throw 'Standalone reduced cold stall did not reproduce' }
+          } finally {
+            Pop-Location
+            Copy-Item "$repro/build/results" haze-glass/build/outputs/glass-probe/standalone -Recurse -ErrorAction Continue
+          }
+          exit 0
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: windows-glass-first-draw
+          path: |
+            haze-glass/build/outputs/glass-probe
+            haze-glass/build/outputs/glass-probe-profiler-tools.json
+            haze-glass/build/outputs/glass-probe-wpr-profiles.txt
+            haze-glass/build/test-results/jvmTest
+            haze-glass/build/outputs/windows-glass-repro.zip
