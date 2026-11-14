@@ -882,7 +882,8 @@ internal class RuntimeShaderGlassDelegate(
           val effects = preparedRenderEffects ?: return
           recordRimIfNeeded(render, effects) ?: return
         }
-        drawCompletedLayer(rim, context, params, alpha = render.alpha, rim = true)
+        // Whole pixels, so the trim does not thin the outline's own anti-aliased edge.
+        drawCompletedLayer(rim, context, params, alpha = render.alpha, clipOutsetPx = ceil(effect.nodeClipOutsetPx()))
       }
     }
 
@@ -1733,21 +1734,20 @@ internal class RuntimeShaderGlassDelegate(
   }
 
   /**
-   * Draws a completed stage. The material ends at the node; the [rim] layer also draws the edge
-   * outline, in the draw outset beyond it.
+   * Draws a completed stage. The material ends at the node; the rim layer also draws the edge
+   * outline, in the draw outset beyond it, so it passes that as [clipOutsetPx].
    */
   private fun DrawScope.drawCompletedLayer(
     layer: GraphicsLayer,
     context: HazeEffectRuntimeDrawScope,
     params: GlassRenderParams,
     alpha: Float,
-    rim: Boolean = false,
+    clipOutsetPx: Float = 0f,
   ) {
     layer.clip = effect.shouldClipToNodeBounds()
     layer.alpha = alpha
     clipToNodeBounds {
-      // Whole pixels, so the trim does not thin the outline's own anti-aliased edge.
-      drawPresented(context, params, clipOutsetPx = if (rim) ceil(effect.nodeClipOutsetPx()) else 0f) {
+      drawPresented(context, params, clipOutsetPx) {
         drawLayer(layer)
       }
       glassOutsetDrawForTest?.invoke(this)
@@ -2574,7 +2574,6 @@ internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
     key.cornerRadii,
     continuousCorners(key.cornerRadii, key.mergedField),
   )
-  key.coordinates.captureBounds?.let { setFloatUniform("captureBounds", it.left, it.top, it.right, it.bottom) }
   setFloatUniform("refractionStrength", key.refractionStrength)
   setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
   setFloatUniform("ambientResponse", key.ambientResponse)
@@ -2601,12 +2600,12 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
     key.sampleSize,
     key.materialOrigin,
     key.materialSize,
+    key.captureBounds,
     key.sampleStepPx,
     key.edgeSoftnessPx,
     key.cornerRadii,
     continuousCorners(key.cornerRadii, key.mergedField),
   )
-  key.captureBounds?.let { setFloatUniform("captureBounds", it.left, it.top, it.right, it.bottom) }
   setFloatUniform("refractionStrength", key.refractionStrength)
   setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
   setFloatUniform("refractionHeight", key.refractionHeightPx)
@@ -2712,6 +2711,7 @@ private fun RuntimeShaderUniformProvider.setCommonUniforms(
     coordinates.sampleSize,
     coordinates.materialOrigin,
     coordinates.materialSize,
+    coordinates.captureBounds,
     sampleStepPx,
     edgeSoftnessPx,
     cornerRadii,
@@ -2723,6 +2723,7 @@ private fun RuntimeShaderUniformProvider.setCommonUniforms(
   sampleSize: Size,
   materialOrigin: Offset,
   materialSize: Size,
+  captureBounds: Rect?,
   sampleStepPx: Float,
   edgeSoftnessPx: Float,
   cornerRadii: CornerRadii,
@@ -2731,6 +2732,8 @@ private fun RuntimeShaderUniformProvider.setCommonUniforms(
   setFloatUniform("sampleSize", sampleSize.width, sampleSize.height)
   setFloatUniform("materialOrigin", materialOrigin.x, materialOrigin.y)
   setFloatUniform("materialSize", materialSize.width, materialSize.height)
+  // Only programs that cover node-bound edges declare it, and Android rejects undeclared uniforms.
+  captureBounds?.let { setFloatUniform("captureBounds", it.left, it.top, it.right, it.bottom) }
   setFloatUniform("sampleStep", sampleStepPx)
   setFloatUniform("edgeSoftness", edgeSoftnessPx)
   setCornerUniforms(cornerRadii, continuous)

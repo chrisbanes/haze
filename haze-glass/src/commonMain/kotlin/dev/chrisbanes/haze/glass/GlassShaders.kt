@@ -21,7 +21,7 @@ internal object GlassShaders {
     uniform float2 sampleSize;
     uniform float2 materialOrigin;
     uniform float2 materialSize;
-    uniform float sampleStep;${if (coverageOutset) "\n    uniform vec4 captureBounds;" else ""}
+    uniform float sampleStep;${captureBoundsUniform(coverageOutset)}
     uniform float refractionStrength;
     uniform float refractionFoldStrength;
     uniform float ambientResponse;
@@ -63,7 +63,7 @@ internal object GlassShaders {
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
     vec2 clampSample(vec2 coord) {
-      return ${clampSampleExpression(if (coverageOutset) SampleClamp.Capture else SampleClamp.Sample)};
+      return ${refractionClamp(coverageOutset)};
     }
 
     vec2 clampMaterial(vec2 coord) {
@@ -277,7 +277,7 @@ internal object GlassShaders {
     uniform float2 sampleSize;
     uniform float2 materialOrigin;
     uniform float2 materialSize;
-    uniform float sampleStep;${if (coverageOutset) "\n    uniform vec4 captureBounds;" else ""}
+    uniform float sampleStep;${captureBoundsUniform(coverageOutset)}
     uniform float refractionStrength;
     uniform float refractionFoldStrength;
     uniform float ambientResponse;
@@ -302,7 +302,7 @@ internal object GlassShaders {
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
     vec2 clampSample(vec2 coord) {
-      return ${clampSampleExpression(if (coverageOutset) SampleClamp.Capture else SampleClamp.Sample)};
+      return ${refractionClamp(coverageOutset)};
     }
 
     vec2 clampMaterial(vec2 coord) {
@@ -436,7 +436,7 @@ internal object GlassShaders {
     uniform float2 sampleSize;
     uniform float2 materialOrigin;
     uniform float2 materialSize;
-    uniform float sampleStep;${if (coverageOutset) "\n    uniform vec4 captureBounds;" else ""}
+    uniform float sampleStep;${captureBoundsUniform(coverageOutset)}
     uniform float refractionStrength;
     uniform float refractionFoldStrength;
     uniform float edgeSoftness;
@@ -458,7 +458,7 @@ internal object GlassShaders {
   } else {
     """
     vec2 clampSample(vec2 coord) {
-      return ${clampSampleExpression(if (coverageOutset) SampleClamp.Capture else SampleClamp.Sample)};
+      return ${refractionClamp(coverageOutset)};
     }
     """
   }}
@@ -704,6 +704,11 @@ internal object GlassShaders {
   }
 
   private enum class SampleClamp { Sample, Material, Capture }
+
+  private fun captureBoundsUniform(outset: Boolean): String = if (outset) "\n    uniform vec4 captureBounds;" else ""
+
+  private fun refractionClamp(outset: Boolean): String =
+    clampSampleExpression(if (outset) SampleClamp.Capture else SampleClamp.Sample)
 
   // A surface covering its node-bound edges is presented cropped to its material, and clips above
   // it, such as a window edge, crop it too, so the tap blur's input ends at the material: a tap

@@ -106,10 +106,8 @@ internal fun resolveGlassCoordinates(
     captureScale = captureScale,
     pixelAligned = true,
     captureBounds = Rect(
-      left = originX - beforeX,
-      top = originY - beforeY,
-      right = originX + scaledMaterial.width + afterX,
-      bottom = originY + scaledMaterial.height + afterY,
+      Offset(originX - beforeX, originY - beforeY),
+      Size(layerSize.width * captureScale.scaleX, layerSize.height * captureScale.scaleY),
     ),
   )
 }

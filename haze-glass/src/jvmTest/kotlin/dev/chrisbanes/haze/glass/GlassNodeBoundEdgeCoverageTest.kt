@@ -250,7 +250,7 @@ class GlassNodeBoundEdgeCoverageTest {
   /** The border pixels outside every rounded corner's box. */
   private fun PixelMap.nodeBoundEdgePixels(bar: Bar): List<Pair<Int, Int>> =
     ((0 until width).flatMap { x -> listOf(x to 0, x to height - 1) } + (0 until height).flatMap { y -> listOf(0 to y, width - 1 to y) })
-      .filterNot { (x, y) -> cornerDistanceAt(bar, x, y) != null }
+      .filter { (x, y) -> cornerDistanceAt(bar, x, y) == null }
 
   /**
    * Whether the pixel is where coverage may change: within a physical pixel of the silhouette, where

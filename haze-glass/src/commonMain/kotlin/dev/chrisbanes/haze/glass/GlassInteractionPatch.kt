@@ -115,16 +115,15 @@ internal fun resolveGlassInteractionPatch(
     return null
   }
   val origin = Offset(bounds.left.toFloat(), bounds.top.toFloat())
+  val patchSampleSize = Size(bounds.width.toFloat(), bounds.height.toFloat())
   return GlassInteractionPatch(
     bounds = bounds,
     compositeBounds = compositeBounds,
     coordinates = params.coordinates.copy(
-      sampleSize = Size(bounds.width.toFloat(), bounds.height.toFloat()),
+      sampleSize = patchSampleSize,
       materialOrigin = params.coordinates.materialOrigin - origin,
       // The patch's input holds only the patch, so the captured layer ends with it.
-      captureBounds = params.coordinates.captureBounds
-        ?.translate(-origin)
-        ?.intersect(Rect(0f, 0f, bounds.width.toFloat(), bounds.height.toFloat())),
+      captureBounds = params.coordinates.captureBounds?.translate(-origin)?.intersect(Rect(Offset.Zero, patchSampleSize)),
     ),
     uniforms = uniforms.copy(
       position = uniforms.position - origin,
