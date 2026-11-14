@@ -23,18 +23,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ([#1734](https://github.com/chrisbanes/haze/issues/1734)).
 - Glass styles can draw a thin light band inside a surface's top and bottom edges with
   `rimHighlight(intensity, width, sides)`, where `sides` sets how strongly the left and right edges
-  are lit. It is off by default and follows merged container shapes
+  are lit. It follows merged container shapes
   ([#1742](https://github.com/chrisbanes/haze/issues/1742)).
 - Glass interaction responses accept a `scale` up to `1.2f`, so a pressed surface can grow instead of
   shrinking. A grown member of a `hazeGlassContainer` merges with nearby neighbours while pressed
   ([#1735](https://github.com/chrisbanes/haze/issues/1735)).
 - Glass styles can draw a thin line just outside a surface's shape with `edgeOutline(color, width)`,
-  separating the Glass from its backdrop. It is off by default, follows merged container shapes, and
+  separating the Glass from its backdrop. It follows merged container shapes and
   has an equivalent stroke on limited renderers
   ([#1741](https://github.com/chrisbanes/haze/issues/1741)).
 
 ### Changed
 
+- Glass uses continuous 16 dp corners when no shape is authored. Regular and Clear draw a thin dark
+  outline and a top and bottom rim highlight, stronger on Clear; dark Regular has a lighter interior
+  with less backdrop contrast. Custom styles inherit Regular's edges, which can be disabled with
+  later `edgeOutline` and `rimHighlight` writes. Reuse `GlassDefaults.continuousShape` for clips and
+  borders; `GlassDefaults.shape` is deprecated but retains its circular value. Authored shapes and
+  Clear's appearance-independent ordinary response are preserved
+  ([#1743](https://github.com/chrisbanes/haze/issues/1743)).
 - Glass with circular corners does less shader work across the flat interior of a surface, most
   noticeably in merged containers. The rendered result is unchanged
   ([#1766](https://github.com/chrisbanes/haze/issues/1766)).

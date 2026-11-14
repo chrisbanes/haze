@@ -233,6 +233,9 @@ private fun sceneStyle(
   shape: RoundedCornerShape = RoundedCornerShape(12.dp),
 ): GlassStyle =
   (if (clear) GlassStyle.clear else GlassStyle.regular).then {
+    // Geometry and tint comparisons exclude built-in edges; edge scenes add their own below.
+    edgeOutline(Color.Transparent, 0.dp)
+    rimHighlight(0f, 0.dp, 0f)
     optics(GlassOptics(refractionStrength = 0f, refractionDisplacement = 0.dp, refractionDetailIntensity = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp)))
     tint(tint)
     backgroundColor(background)

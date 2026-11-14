@@ -1373,6 +1373,11 @@ private fun PixelSnapshot.meanAbsoluteDifference(other: PixelSnapshot, bounds: I
 internal fun ScreenshotUiTest.assertGlassPaddingPreservesSourceInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val effect = invariantEffect(shape).apply {
+    // Compare the material silhouette without the built-in outline and rim.
+    style = style.then {
+      edgeOutline(Color.Transparent, 0.dp)
+      rimHighlight(0f, 0.dp, 0f)
+    }
     optics = GlassOptics(
       refractionStrength = 1f,
       refractionDisplacement = 0.dp,
@@ -1816,6 +1821,11 @@ private fun Color.toLinearSrgb(): LinearSrgb {
 internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
   val shape = RoundedCornerShape(28.dp)
   val effect = invariantEffect(shape).apply {
+    // Compare the material silhouette without the built-in outline and rim.
+    style = style.then {
+      edgeOutline(Color.Transparent, 0.dp)
+      rimHighlight(0f, 0.dp, 0f)
+    }
     // Preserve the previous effective values while making the literal contract explicit.
     optics = GlassOptics(
       refractionStrength = 0.2f,
@@ -2332,6 +2342,11 @@ private fun ScreenshotUiTest.assertGlassCornersMatchComposeClipInvariant(
   shape: RoundedCornerShape,
 ) {
   val effect = GlassTestConfiguration().apply {
+    // A plain Compose clip has no outward outline or inner rim.
+    style = style.then {
+      edgeOutline(Color.Transparent, 0.dp)
+      rimHighlight(0f, 0.dp, 0f)
+    }
     tint = Color.White
     optics = GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp))
     specularIntensity = 0f

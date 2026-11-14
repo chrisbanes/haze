@@ -358,6 +358,9 @@ class GlassScreenshotTest : ScreenshotTest() {
     val shape = RoundedCornerShape(0.dp)
     var style by mutableStateOf(
       GlassStyle {
+        // Hold physical blur constant across densities without density-dependent edge bands.
+        edgeOutline(Color.Transparent, 0.dp)
+        rimHighlight(0f, 0.dp, 0f)
         tint(Color.White.copy(alpha = 0.08f))
         optics(
           GlassOptics(

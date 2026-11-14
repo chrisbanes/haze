@@ -1298,13 +1298,14 @@ internal class GlassRuntimeEffect() :
   }
 
   /**
-   * A single surface draws [drawExtent] beyond its node on every side. A container surface's
-   * bounds already include every member's outset, so it adds none.
+   * Reserves whole pixels for a single surface's [drawExtent] beyond its node on every side.
+   * A container surface's bounds already include every member's outset, so it adds none.
    */
   override fun nodeClipOutsetPx(): Float {
     if (surfaceSnapshot != null) return 0f
     val density = attachedContext?.requireDensity() ?: return 0f
-    return with(density) { drawExtent.toPx() }
+    // A fractional capture origin resamples the material even when only the outline adds padding.
+    return with(density) { ceil(drawExtent.toPx()) }
   }
 
   // Output drawn beyond the shape, such as an edge outline, would be lost to a layer cut to the input.

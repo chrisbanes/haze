@@ -226,7 +226,7 @@ class GlassSquareEdgeCoverageTest {
             input = HazeInput.Sources(state),
             style = GlassStyle.regular.then {
               shape(RoundedCornerShape(if (square) 0.dp else 1.dp))
-              // An outlined square keeps the unaligned capture, which this budget check does not cover.
+              // This budget check isolates material capture from the outline's draw extent.
               noBuiltInEdges()
             },
             performanceMode = HazePerformanceMode.Quality,
