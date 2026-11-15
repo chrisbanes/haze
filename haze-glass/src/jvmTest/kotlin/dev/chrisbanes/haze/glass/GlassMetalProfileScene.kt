@@ -40,7 +40,8 @@ import org.jetbrains.skiko.GraphicsApi
 
 /**
  * Fixed Glass scene for macOS Metal profiling under `xctrace` (#1766). It is a `main`, not a test,
- * so test discovery never opens a window. See `docs/agents/evidence/1766/README.md` for commands.
+ * so test discovery never opens a window. Commands are in
+ * `internal/benchmark/README.md#metal-profiling-launcher`.
  *
  * The scene matches the Android `GlassProfilingSample` geometry: `GlassStyle.regular`, `Balanced`,
  * a 280×180 dp grid with 12 dp gaps (four members as 2×2) and a 32 dp merge distance. The source is

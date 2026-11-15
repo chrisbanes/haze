@@ -104,7 +104,7 @@ tasks.withType<Test>().matching { it.name == "jvmTest" }.configureEach {
 }
 
 // Classpath for the Metal profiling launcher GlassMetalProfileScene (#1766). Run it with `java -cp`
-// as documented in docs/agents/evidence/1766/README.md.
+// as documented in internal/benchmark/README.md#metal-profiling-launcher.
 val prepareGlassMetalProfile by tasks.registering {
   val test = kotlin.jvm().compilations.getByName("test")
   val classpath = files(test.output.allOutputs, test.runtimeDependencyFiles)

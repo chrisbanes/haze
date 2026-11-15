@@ -16,6 +16,7 @@ see the [performance guide](../../docs/performance.md); published historical mea
 | Compare resting gap, join/leave, group, press, lazy-independent or cold container workloads | [Animated container workloads](#animated-container-workloads) |
 | Compare source and native backdrop paths | [Android 37.2 comparisons](#android-372-sourcebackdrop-comparisons) |
 | Compare unshared, feed-only and nested input sharing | [Nested input-sharing comparison](#nested-input-sharing-comparison) |
+| Profile the desktop split path on macOS | [Metal profiling launcher](#metal-profiling-launcher) |
 | Find artifacts and interpret metrics or traces | [Results](#results) |
 | Generate and verify library baseline profiles | [Baseline-profile maintenance](BASELINE_PROFILES.md) |
 
@@ -262,8 +263,58 @@ and the 32 dp merge distance, so the four members form one cluster.
 | `source_update_container_4_continuous_performance` | `sourceUpdateContainer4ContinuousPerformance` | Performance mode, four continuous members | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_4_continuous` |
 
 `gates_for` supplies the container gates; run `sourceUpdateBalancedContinuous` with `gates=()`, like
-its calibration control. The [#1766 evidence](../../docs/agents/evidence/1766/README.md) records the
-gated diagnostic and baseline measurements on a Pixel 6.
+its calibration control. The [archived #1766 report](https://github.com/chrisbanes/haze/blob/7a5ff2e1f65fd4f576c70b6b6426e9f80e96408f/docs/agents/evidence/1766/README.md)
+records the gated diagnostic and baseline measurements on a Pixel 6.
+
+## Metal profiling launcher
+
+On an Apple-silicon Mac with Xcode's profiling tools, `GlassMetalProfileScene` runs a deterministic
+Glass scene under `xctrace`. It is a standalone JVM launcher, so test discovery does not open its
+window. It exercises the desktop split rendering path and exits with status 2 unless the window
+renders on `METAL`.
+
+From the repository root with Java 21:
+
+```sh
+./gradlew --no-scan -Phaze.disableAppleTargets :haze-glass:prepareGlassMetalProfile
+profile_classpath=$(cat haze-glass/build/glass-metal-profile-classpath.txt)
+profile_java=$(readlink -f "$(which java)")  # xctrace --launch needs the real binary, not a shim
+xcrun xctrace record --template 'Metal System Trace' --time-limit 60s --output warm.trace --launch -- \
+  "$profile_java" -cp "$profile_classpath" dev.chrisbanes.haze.glass.GlassMetalProfileSceneKt \
+  --members 4 --merged true --corners circular --source changing \
+  --warm-frames 240 --measure-seconds 5 --build-sha "$(git rev-parse --short HEAD)" --output warm
+xcrun xctrace record --template 'Time Profiler' --time-limit 60s --output cold.trace --launch -- \
+  "$profile_java" -cp "$profile_classpath" dev.chrisbanes.haze.glass.GlassMetalProfileSceneKt \
+  --members 4 --merged true --corners circular --source changing \
+  --warm-frames 30 --measure-seconds 1 --build-sha "$(git rev-parse --short HEAD)" --output cold
+"$profile_java" -cp "$profile_classpath" dev.chrisbanes.haze.glass.GlassMetalProfileSceneKt --dump-shaders shaders
+```
+
+Use distinct output paths for each launch. Options are `--members 1|2|4`, `--merged true|false`,
+`--corners circular|continuous`, and `--source static|changing`. Both corner styles are authored
+explicitly. The scene uses Regular optics, `Balanced`, a 280×180 dp grid with 12 dp gaps
+(four members as 2×2), and a 32 dp merge distance.
+
+The launcher writes `run.json` with the scene, build identifier, `renderApi`, `renderInfo`, display
+scale, OS, JVM, frame-callback times and measured window. `--dump-shaders` writes generated split
+and fused shader sources. Keep those sources, their hashes and the traces with each comparison.
+
+Export GPU intervals with:
+
+```sh
+xcrun xctrace export --input warm.trace \
+  --xpath '/trace-toc/run[@number="1"]/data/table[@schema="metal-gpu-intervals"]'
+```
+
+Use the `graphics-compiler-activity-intervals` schema for compiler intervals. Keep warm GPU intervals,
+CPU recording time and cold first draw separate; frame-callback wall time is not isolated GPU time.
+Record cache conditions without clearing system or driver caches. Compare fixed workloads in
+alternating build order, retain frame counts and variability, and state concurrent machine activity.
+If `xctrace` hangs while saving after the target exits, treat the capture as incomplete rather than
+publishing timings from it.
+
+Historical measurements, the rejected candidate and its acceptance rule remain accessible through
+[the pinned #1766 evidence archive](https://github.com/chrisbanes/haze/tree/7a5ff2e1f65fd4f576c70b6b6426e9f80e96408f/docs/agents/evidence/1766).
 
 ## Noise/tint construction
 
