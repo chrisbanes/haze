@@ -573,7 +573,8 @@ internal fun profilingGlassStyle(
   if (!scenario.rimEnabled) specularIntensity(0f)
   if (scenario.continuousCorners) {
     shape(ContinuousRoundedCornerShape(16.dp))
-  } else if (scenario == GlassProfilingScenario.SourceUpdateBalanced ||
+  } else if (
+    scenario == GlassProfilingScenario.SourceUpdateBalanced ||
     scenario == GlassProfilingScenario.SourceUpdateContainer2 ||
     scenario == GlassProfilingScenario.SourceUpdateContainer4
   ) {
