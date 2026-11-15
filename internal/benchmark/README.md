@@ -82,6 +82,8 @@ frame overrun, and peak memory; Blur rows record frame timing and frame overrun.
 
 Controlled Glass calibration scenarios start from `GlassStyle.regular` with unmodified presentation
 defaults.
+`source_update_balanced` explicitly uses circular corners as the shader-cost control below;
+the other calibration rows retain Regular’s current shape.
 `stable_quality`, `stable_balanced`, and `stable_performance` therefore differ only in
 `HazePerformanceMode`; they use the regular size-responsive optics, default shape, and all default
 lighting, color, and rendering values. `steady_full_3` and `steady_full_9` retain the historical
@@ -243,10 +245,10 @@ dry-run result as a measurement.
 
 #### Shader-cost workloads
 
-These four rows (#1766) extend the container comparison for Glass shader profiling. Each differs from
+These five rows (#1766) extend the container comparison for Glass shader profiling. Each differs from
 its control in one variable, and all use the changing-source workload. The continuous rows apply
-`ContinuousRoundedCornerShape(16.dp)` (default smoothing) in place of the default
-`RoundedCornerShape(16.dp)`. The four-member rows use a 2×2 grid with 12 dp gaps in both directions
+`ContinuousRoundedCornerShape(16.dp)` (default smoothing). Their circular controls explicitly author
+`RoundedCornerShape(16.dp)` so a change to Regular defaults cannot change the comparison. The four-member rows use a 2×2 grid with 12 dp gaps in both directions
 and the 32 dp merge distance, so the four members form one cluster.
 
 | Scenario | Method | Variable | Per-frame gate | Pairs with |
@@ -255,6 +257,7 @@ and the 32 dp merge distance, so the four members form one cluster.
 | `source_update_container_2_continuous` | `sourceUpdateContainer2Continuous` | Continuous corners, two-member cluster | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
 | `source_update_container_4` | `sourceUpdateContainer4` | Four members in one cluster | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
 | `source_update_container_4_continuous` | `sourceUpdateContainer4Continuous` | Continuous corners, four-member cluster | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_4` |
+| `source_update_container_4_continuous_performance` | `sourceUpdateContainer4ContinuousPerformance` | Performance mode, four continuous members | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_4_continuous` |
 
 `gates_for` supplies the container gates; run `sourceUpdateBalancedContinuous` with `gates=()`, like
 its calibration control. The [#1766 evidence](../../docs/agents/evidence/1766/README.md) records the
@@ -545,7 +548,8 @@ gates_for() {
   case "$1" in
     sourceUpdateIndependent2) gates+=(--per-frame graphicsLayerDrawCount=1.8:2.2) ;;
     sourceUpdateContainer2|containerGap2|containerPress2|containerGroup3|\
-      sourceUpdateContainer2Continuous|sourceUpdateContainer4|sourceUpdateContainer4Continuous)
+      sourceUpdateContainer2Continuous|sourceUpdateContainer4|sourceUpdateContainer4Continuous|\
+      sourceUpdateContainer4ContinuousPerformance)
       gates+=(--per-frame graphicsLayerDrawCount=0.9:1.1) ;;
   esac
 }

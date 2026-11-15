@@ -571,7 +571,15 @@ internal fun profilingGlassStyle(
     chromaticAberrationStrength(0.3f)
   }
   if (!scenario.rimEnabled) specularIntensity(0f)
-  if (scenario.continuousCorners) shape(ContinuousRoundedCornerShape(16.dp))
+  if (scenario.continuousCorners) {
+    shape(ContinuousRoundedCornerShape(16.dp))
+  } else if (scenario == GlassProfilingScenario.SourceUpdateBalanced ||
+    scenario == GlassProfilingScenario.SourceUpdateContainer2 ||
+    scenario == GlassProfilingScenario.SourceUpdateContainer4
+  ) {
+    // Keep the shader-cost controls circular even when Regular defaults change.
+    shape(RoundedCornerShape(16.dp))
+  }
   when (scenario) {
     GlassProfilingScenario.OpticalUpdate -> {
       lightPosition(

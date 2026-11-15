@@ -578,6 +578,20 @@ class GlassProfilingScenarioTest {
   }
 
   @Test
+  fun continuousPerformanceScenario_changesOnlyModeFromBalanced() {
+    val balanced = GlassProfilingScenario.SourceUpdateContainer4Continuous
+    val performance = GlassProfilingScenario.SourceUpdateContainer4ContinuousPerformance
+    assertThat(performance.performanceMode).isEqualTo(HazePerformanceMode.Performance)
+    assertThat(performance.continuousCorners).isTrue()
+    assertThat(
+      scenarioParameters(performance).map {
+        if (it == HazePerformanceMode.Performance) HazePerformanceMode.Balanced else it
+      },
+    ).isEqualTo(scenarioParameters(balanced))
+    assertThat(glassProfilingFrame(performance, 0.75f)).isEqualTo(glassProfilingFrame(balanced, 0.75f))
+  }
+
+  @Test
   fun containerFourScenarios_useTwoByTwoGridWithContainer2Spacing() {
     val control = GlassProfilingScenario.SourceUpdateContainer2
     val scenario = GlassProfilingScenario.SourceUpdateContainer4

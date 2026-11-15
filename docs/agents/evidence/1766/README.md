@@ -8,15 +8,32 @@ execution on a Pixel 6 and an M1 Max, and the measured outcome of one shader-sou
 
 ## Outcome
 
-**No shader change lands.** The one candidate, skipping the lighting gradient where the circular
+**No production shader change is included in this profiling PR.** The initial candidate, skipping the lighting gradient where the circular
 surface is flat, passed every `haze-glass` `jvmTest` pixel test unchanged. It improved the
 Android primary row, but its Metal primary row was inconclusive, so it was reverted under the
-[acceptance rule](t5-acceptance-rule.md) fixed before measurement. `haze-glass/src/commonMain` is byte-identical to base
-`95c0c48a915d3593e7f8d34039404f54f4e538e7`. The candidate is kept as
+[acceptance rule](t5-acceptance-rule.md) fixed before measurement. The original evidence head left
+`haze-glass/src/commonMain` byte-identical to base `95c0c48a915d3593e7f8d34039404f54f4e538e7`;
+this branch now also incorporates subsequent changes from `main`. The candidate is kept as
 [candidate.patch](candidate.patch) with its raw numbers below.
 
-The investigation tooling is retained deliberately: four Android benchmark rows (continuous corners
-and a four-member cluster) and the `GlassMetalProfileScene` launcher for macOS.
+The investigation tooling is retained deliberately: five Android benchmark rows (continuous corners,
+a four-member cluster and a four-member continuous `Performance` row) and the
+`GlassMetalProfileScene` launcher for macOS. The Android shader-cost controls and the Metal circular
+scene explicitly author circular corners, so later Regular default changes cannot silently change
+those comparisons.
+
+### Subsequent work
+
+The measurements below describe the original investigation builds. Later exploration led to
+[#1790](https://github.com/chrisbanes/haze/pull/1790) (circular flat-interior lighting),
+[#1792](https://github.com/chrisbanes/haze/pull/1792) (far-member skipping in circular merged fields),
+and [#1795](https://github.com/chrisbanes/haze/pull/1795) (circular optics for continuous corners below
+`Balanced` on Android). All three are merged. The
+[follow-up exploration](https://github.com/chrisbanes/haze/issues/1766#issuecomment-6876241002) and
+[circular-optics decision](https://github.com/chrisbanes/haze/issues/1766#issuecomment-6885045994)
+record their measurements and limits. The new `Performance` row reproduces the shipped mode;
+it does not turn the original baseline into a measurement of the final shader. The desktop/iOS
+split-path investigation is tracked separately in [#1797](https://github.com/chrisbanes/haze/issues/1797).
 
 Only this report, the acceptance rule and the candidate patch are kept in the tree. The
 per-iteration summaries, placement and marker tables, the trace manifest and the shader list are in

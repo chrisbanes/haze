@@ -75,7 +75,9 @@ fun main(args: Array<String>) {
       val density = LocalDensity.current.density
       val style = remember(continuous) {
         // Regular defaults to continuous corners (#1793), so circular corners are authored explicitly.
-        if (continuous) GlassStyle.regular.then { shape(ContinuousRoundedCornerShape(16.dp)) } else GlassStyle.regular.then { shape(RoundedCornerShape(16.dp)) }
+        GlassStyle.regular.then {
+          shape(if (continuous) ContinuousRoundedCornerShape(16.dp) else RoundedCornerShape(16.dp))
+        }
       }
       LaunchedEffect(Unit) {
         val renderApi = window.renderApi
