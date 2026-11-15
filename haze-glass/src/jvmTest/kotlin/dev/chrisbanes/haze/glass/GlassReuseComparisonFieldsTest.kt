@@ -18,9 +18,10 @@ class GlassReuseComparisonFieldsTest {
   fun effectKeyFields_matchGlassRenderParamsReuseComparisons() {
     // Update hasSame*EffectInputs in GlassRenderParams.kt before changing these counts.
     assertThat(fieldCount<GlassBlurEffectKey>()).isEqualTo(7)
-    assertThat(fieldCount<GlassOpticalEffectKey>()).isEqualTo(20)
-    // coverageOutset is compared through coordinates in hasSameRefractionDetailEffectInputs (#1775).
-    assertThat(fieldCount<GlassRefractionDetailEffectKey>()).isEqualTo(17)
+    assertThat(fieldCount<GlassOpticalEffectKey>()).isEqualTo(21)
+    // coverageOutset and captureBounds are compared through coordinates in
+    // hasSameRefractionDetailEffectInputs (#1775, #1785).
+    assertThat(fieldCount<GlassRefractionDetailEffectKey>()).isEqualTo(18)
     assertThat(fieldCount<GlassRimEffectKey>()).isEqualTo(11)
   }
 

@@ -136,6 +136,8 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       edgeSoftness(0.dp)
       specularIntensity(0f)
       alpha(0.5f)
+      // An outline would draw beyond the edge and leave the square coverage path (#1775).
+      noBuiltInEdges()
       optics(
         GlassOptics(
           refractionStrength = 0f,
@@ -1700,7 +1702,13 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
   @Test
   fun fractionalAlpha_inputScalingUsesOutputSizedGroupLayerAndPlan() = runComposeUiTest {
-    val effect = activeDetailEffect().apply { style = style.then { alpha(0.5f) } }
+    val effect = activeDetailEffect().apply {
+      style = style.then {
+        alpha(0.5f)
+        // The outline's extent would grow the group layer beyond the output.
+        noBuiltInEdges()
+      }
+    }
 
     setContent {
       RuntimeGlassTestContent(

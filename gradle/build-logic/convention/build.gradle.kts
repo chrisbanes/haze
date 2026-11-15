@@ -78,6 +78,11 @@ gradlePlugin {
       implementationClass = "dev.chrisbanes.gradle.AndroidLibraryConventionPlugin"
     }
 
+    register("androidManagedDevices") {
+      id = "dev.chrisbanes.android.managed-devices"
+      implementationClass = "dev.chrisbanes.gradle.AndroidManagedDevicesConventionPlugin"
+    }
+
     register("androidTest") {
       id = "dev.chrisbanes.android.test"
       implementationClass = "dev.chrisbanes.gradle.AndroidTestConventionPlugin"

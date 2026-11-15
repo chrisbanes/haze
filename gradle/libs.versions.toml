@@ -22,7 +22,7 @@ jetpack-compose = "1.12.1"
 kamera = "1.2"
 metalava = "0.5.1"
 navigation-compose = "2.10.0"
-robolectric = "4.17"
+robolectric = "4.18"
 roborazzi = "1.79.0"
 spotless = "8.11.0"
 leakcanary = "2.14"
@@ -37,7 +37,7 @@ baselineprofile = { id = "androidx.baselineprofile", version.ref = "androidx-ben
 cacheFixPlugin = { id = "org.gradle.android.cache-fix", version = "3.0.3" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
-dokka = { id = "org.jetbrains.dokka", version = "2.2.0" }
+dokka = { id = "org.jetbrains.dokka", version = "2.3.0" }
 metalava = { id = "me.tylerbwong.gradle.metalava", version.ref = "metalava" }
 poko = { id = "dev.drewhamilton.poko", version = "0.23.2" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }

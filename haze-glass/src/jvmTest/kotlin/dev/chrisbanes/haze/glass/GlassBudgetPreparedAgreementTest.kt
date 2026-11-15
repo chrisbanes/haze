@@ -80,6 +80,8 @@ class GlassBudgetPreparedAgreementTest {
       val style = detailStyle(refractionStrength = .009f) {
         specularIntensity(specular)
         edgeShadow(shadow)
+        // The rim highlight would add the Rim layer regardless of specular and shadow.
+        noBuiltInEdges()
       }
 
       assertThat(budgetPlan(style).hasKind(GlassRetainedLayerKind.Rim)).isEqualTo(expectedRim)

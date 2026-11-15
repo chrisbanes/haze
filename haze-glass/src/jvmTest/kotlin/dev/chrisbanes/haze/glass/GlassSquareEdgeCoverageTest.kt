@@ -35,7 +35,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
-import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.prop
@@ -65,6 +64,17 @@ class GlassSquareEdgeCoverageTest {
 
   @Test
   fun squareSurface_edgePixelsHideUnderlay_defaultMode_expanded() = assertRuntimeEdgesHideUnderlay(HazePerformanceMode.Default, expandLayerBounds = true)
+
+  @Test
+  fun squareSurface_fractionalCapturePaddingDoesNotShowUnderlay() {
+    // At half scale, the outline's one-pixel allowance splits capture cells at half pixels.
+    val magenta = capture(4.dp, false, HazePerformanceMode.Default, false, Color.Magenta)
+    val green = capture(4.dp, false, HazePerformanceMode.Default, false, Color.Green)
+    val difference = magenta.borderPixels().maxOf { (x, y) ->
+      abs(magenta[x, y].red - green[x, y].red) + abs(magenta[x, y].green - green[x, y].green)
+    }
+    assertThat(difference).isLessThan(1.5f / 255f)
+  }
 
   @Test
   fun squareSurface_edgePixelsHideUnderlay_smallBlur() {
@@ -211,9 +221,9 @@ class GlassSquareEdgeCoverageTest {
   }
 
   @Test
-  fun squareSurface_shapeChangeAtLayerLimit_reevaluatesBudget() = runComposeUiTest {
-    // A full-scale rounded surface exactly at the layer limit fits; its square capture gains margins
-    // and must lower its scale rather than reuse the rounded decision, and recover when rounded again.
+  fun surfaceAtLayerLimit_lowersScaleWhateverItsShape() = runComposeUiTest {
+    // A surface exactly at the layer limit gains capture margins to cover its node-bound edges, so
+    // it must lower its scale, rounded (#1785) or square.
     val state = HazeState()
     val effect = GlassRuntimeEffect()
     var square by mutableStateOf(false)
@@ -225,7 +235,11 @@ class GlassSquareEdgeCoverageTest {
           Modifier.fillMaxSize().hazeGlass(
             factory = HazeEffectFactory { effect },
             input = HazeInput.Sources(state),
-            style = GlassStyle.regular.then { shape(RoundedCornerShape(if (square) 0.dp else 1.dp)) },
+            style = GlassStyle.regular.then {
+              shape(RoundedCornerShape(if (square) 0.dp else 1.dp))
+              // This budget check isolates material capture from the outline's draw extent.
+              noBuiltInEdges()
+            },
             performanceMode = HazePerformanceMode.Quality,
             expandLayerBounds = false,
             interactionSource = null,
@@ -235,16 +249,12 @@ class GlassSquareEdgeCoverageTest {
     }
     waitForIdle()
     assertThat(effect.preparedRenderBudget).isInstanceOf<GlassRenderBudgetDecision.Runtime>()
+      .prop(GlassRenderBudgetDecision.Runtime::scaleFactor).isLessThan(1f)
 
     square = true
     waitForIdle()
     assertThat(effect.preparedRenderBudget).isInstanceOf<GlassRenderBudgetDecision.Runtime>()
       .prop(GlassRenderBudgetDecision.Runtime::scaleFactor).isLessThan(1f)
-
-    square = false
-    waitForIdle()
-    assertThat(effect.preparedRenderBudget).isInstanceOf<GlassRenderBudgetDecision.Runtime>()
-      .prop(GlassRenderBudgetDecision.Runtime::scaleFactor).isEqualTo(1f)
   }
 
   private fun PixelMap.rowMean(y: Int): FloatArray {
@@ -282,6 +292,7 @@ class GlassSquareEdgeCoverageTest {
                   edgeShadow(Color.Transparent)
                   ambientResponse(0f)
                   tint(Color.Transparent)
+                  noBuiltInEdges()
                 },
                 performanceMode = performanceMode,
                 expandLayerBounds = false,

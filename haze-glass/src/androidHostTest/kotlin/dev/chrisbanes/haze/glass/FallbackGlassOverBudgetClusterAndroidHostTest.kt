@@ -265,6 +265,7 @@ class FallbackGlassOverBudgetClusterAndroidHostTest : ScreenshotTest() {
 
   // Default edge and highlight brushes scale with the surface, so they are off.
   private fun style(shape: RoundedCornerShape) = GlassStyle {
+    noBuiltInEdges()
     shape(shape)
     backgroundColor(Color(0x8020C040))
     tint(Color(0x802060E0))

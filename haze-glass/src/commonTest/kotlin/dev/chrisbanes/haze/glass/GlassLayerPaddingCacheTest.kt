@@ -25,6 +25,7 @@ import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.LocalHazePerformanceMode
 import dev.chrisbanes.haze.PlatformContext
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.math.ceil
 import kotlin.test.Test
 import kotlinx.coroutines.CoroutineScope
 
@@ -180,13 +181,16 @@ class GlassLayerPaddingCacheTest {
 
   private fun expectedPadding(material: ResolvedGlassStyle, edgeSoftnessPx: Float, foregroundOutsetPx: Float): Float {
     val optics = material.resolvedOptics
-    return calculateGlassSamplePaddingPx(
-      blurRadiusPx = if (optics.depth <= 0f) 0f else optics.blurRadiusPx,
-      refractionScale = optics.refractionScalePx,
-      refractionStrength = optics.refractionStrength.coerceIn(0f, 1f),
-      chromaticAberrationStrength = material.chromaticAberrationStrength,
-      edgeSoftnessPx = edgeSoftnessPx,
-      foregroundOutsetPx = foregroundOutsetPx,
+    // A surface covering its node-bound edges pads by whole pixels.
+    return ceil(
+      calculateGlassSamplePaddingPx(
+        blurRadiusPx = if (optics.depth <= 0f) 0f else optics.blurRadiusPx,
+        refractionScale = optics.refractionScalePx,
+        refractionStrength = optics.refractionStrength.coerceIn(0f, 1f),
+        chromaticAberrationStrength = material.chromaticAberrationStrength,
+        edgeSoftnessPx = edgeSoftnessPx,
+        foregroundOutsetPx = foregroundOutsetPx,
+      ),
     )
   }
 

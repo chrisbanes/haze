@@ -22,19 +22,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp as lerpDp
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.util.lerp
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.scaledContentScale
 import kotlin.math.abs
 import kotlin.math.ceil
+import kotlin.math.floor
 
 private const val MAX_REFRACTION_DISPLACEMENT_PX = 16_384f
 
 /**
  * Working-space placement of a Glass surface. [scaleFactor] scales optics. A [pixelAligned] surface
  * places its material on whole working pixels, capturing and presenting with the per-axis
- * [captureScale], and extends its coverage [SQUARE_EDGE_COVERAGE_OUTSET] working pixels past the
- * material; others use [scaleFactor] on both axes.
+ * [captureScale], and extends its coverage [EDGE_COVERAGE_OUTSET] working pixels past the
+ * material; others use [scaleFactor] on both axes. [captureBounds] is where the captured layer
+ * lies in a pixel-aligned sample, which may add a margin around it.
  */
 internal data class GlassCoordinates(
   val sampleSize: Size,
@@ -43,6 +46,7 @@ internal data class GlassCoordinates(
   val scaleFactor: Float,
   val captureScale: ScaleFactor = ScaleFactor(scaleFactor, scaleFactor),
   val pixelAligned: Boolean = false,
+  val captureBounds: Rect? = null,
 )
 
 internal fun Size.isDrawable(): Boolean =
@@ -83,7 +87,7 @@ internal fun resolveGlassCoordinates(
   // Coverage extends this far past the material. The captured layer already holds content there
   // where its sample padding reaches that far; elsewhere, typically at a window edge or without
   // expanded bounds, the sample gains a margin on that side for the capture to fill.
-  val outset = SQUARE_EDGE_COVERAGE_OUTSET
+  val outset = EDGE_COVERAGE_OUTSET
   val beforeX = layerOffset.x * captureScale.scaleX
   val beforeY = layerOffset.y * captureScale.scaleY
   val afterX = (layerSize.width - layerOffset.x) * captureScale.scaleX - scaledMaterial.width
@@ -103,6 +107,10 @@ internal fun resolveGlassCoordinates(
     scaleFactor = scaleFactor,
     captureScale = captureScale,
     pixelAligned = true,
+    captureBounds = Rect(
+      Offset(originX - beforeX, originY - beforeY),
+      Size(layerSize.width * captureScale.scaleX, layerSize.height * captureScale.scaleY),
+    ),
   )
 }
 
@@ -111,6 +119,19 @@ internal fun GlassCoordinates.captureShift(layerOffset: Offset): Offset = Offset
   materialOrigin.x - layerOffset.x * captureScale.scaleX,
   materialOrigin.y - layerOffset.y * captureScale.scaleY,
 )
+
+/** Whole source-padding cells avoid antialiased seams when repeating the capture's edge bands. */
+internal fun GlassCoordinates.captureCellBounds(): Rect {
+  val bounds = checkNotNull(captureBounds)
+  val whole = Rect(
+    ceil(bounds.left - PIXEL_EPSILON),
+    ceil(bounds.top - PIXEL_EPSILON),
+    floor(bounds.right + PIXEL_EPSILON),
+    floor(bounds.bottom + PIXEL_EPSILON),
+  )
+  // Without a complete captured pixel to repeat, preserve its fractional coverage.
+  return if (whole.width >= 1f && whole.height >= 1f) whole else bounds
+}
 
 /** The node-space offset that presents a pixel-aligned capture with its material origin at the node origin. */
 internal fun GlassCoordinates.presentationOffset(): Offset = Offset(
@@ -121,8 +142,8 @@ internal fun GlassCoordinates.presentationOffset(): Offset = Offset(
 // Absorbs float error so an exact whole-pixel position does not round up by a pixel.
 private const val PIXEL_EPSILON = 0.001f
 
-// Working pixels of coverage past a square surface's edges: upscaling filters across one of them.
-internal const val SQUARE_EDGE_COVERAGE_OUTSET = 2f
+// Working pixels of coverage past a surface's node-bound edges: upscaling filters across one of them.
+internal const val EDGE_COVERAGE_OUTSET = 2f
 
 internal fun calculateGlassSamplePaddingPx(
   blurRadiusPx: Float,
@@ -303,6 +324,8 @@ internal data class GlassRenderParams(
   val mergedField: GlassMergedField? = null,
   val rimHighlight: GlassRimHighlight = GlassRimHighlight.None,
   val edgeOutline: GlassEdgeOutline = GlassEdgeOutline.None,
+  /** See [HazePerformanceMode.usesCircularCornerOptics]. */
+  val circularCornerOptics: Boolean = false,
 )
 
 internal data class GlassBlurEffectKey(
@@ -369,6 +392,8 @@ internal data class GlassOpticalEffectKey(
   /** Negative selects Surface; zero disables Edge refraction. */
   val edgeRefractionWidthPx: Float = -1f,
   val mergedField: GlassMergedField? = null,
+  /** See [HazePerformanceMode.usesCircularCornerOptics]. */
+  val circularCornerOptics: Boolean = false,
 )
 
 internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
@@ -392,6 +417,7 @@ internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
   sampleStepPx = sampleStepPx,
   edgeRefractionWidthPx = edgeRefractionWidthPx,
   mergedField = mergedField?.withoutLights,
+  circularCornerOptics = circularCornerOptics,
 )
 
 internal data class GlassRefractionDetailEffectKey(
@@ -413,6 +439,7 @@ internal data class GlassRefractionDetailEffectKey(
   val edgeRefractionWidthPx: Float = -1f,
   val mergedField: GlassMergedField? = null,
   val coverageOutset: Boolean = false,
+  val captureBounds: Rect? = null,
 )
 
 internal fun GlassRenderParams.refractionDetailEffectKey(
@@ -422,6 +449,7 @@ internal fun GlassRenderParams.refractionDetailEffectKey(
   materialOrigin = coordinates.materialOrigin,
   materialSize = coordinates.materialSize,
   coverageOutset = coordinates.pixelAligned,
+  captureBounds = coordinates.captureBounds,
   sampleStepPx = sampleStepPx,
   refractionStrength = refractionStrength,
   refractionFoldStrength = refractionFoldStrength,
@@ -760,6 +788,7 @@ private fun resolveBiasPosition(
 internal fun buildGlassRenderParams(
   style: ResolvedGlassStyle,
   coordinates: GlassCoordinates,
+  circularCornerOptics: Boolean = false,
 ): GlassRenderParams {
   val scaleFactor = coordinates.scaleFactor
   val resolvedOptics = style.resolvedOptics
@@ -801,6 +830,7 @@ internal fun buildGlassRenderParams(
     },
     rimHighlight = style.rimHighlight.scaled(scaleFactor),
     edgeOutline = style.edgeOutline.scaled(scaleFactor),
+    circularCornerOptics = circularCornerOptics,
   )
 }
 
@@ -1167,7 +1197,8 @@ private fun GlassRenderParams.hasSameOpticalEffectInputs(other: GlassRenderParam
     fresnelExponent == other.fresnelExponent &&
     cornerRadii == other.cornerRadii &&
     mergedField?.withoutLights == other.mergedField?.withoutLights &&
-    sampleStepPx == other.sampleStepPx
+    sampleStepPx == other.sampleStepPx &&
+    circularCornerOptics == other.circularCornerOptics
 
 private fun GlassRenderParams.hasSameRefractionDetailEffectInputs(
   other: GlassRenderParams,

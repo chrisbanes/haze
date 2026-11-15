@@ -21,7 +21,7 @@ internal object GlassShaders {
     uniform float2 sampleSize;
     uniform float2 materialOrigin;
     uniform float2 materialSize;
-    uniform float sampleStep;
+    uniform float sampleStep;${captureBoundsUniform(coverageOutset)}
     uniform float refractionStrength;
     uniform float refractionFoldStrength;
     uniform float ambientResponse;
@@ -63,7 +63,7 @@ internal object GlassShaders {
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
     vec2 clampSample(vec2 coord) {
-      return ${clampSampleExpression(coverageOutset)};
+      return ${refractionClamp(coverageOutset)};
     }
 
     vec2 clampMaterial(vec2 coord) {
@@ -94,7 +94,7 @@ internal object GlassShaders {
   } else {
     "float outputSd = ${shapeSd(merged, "localCoord", continuous)};"
   }}
-      float coverage = shapeCoverage(${outsetSd("outputSd", coverageOutset)}, sampleStep * 0.5);
+      float coverage = ${coverage("outputSd", coverageOutset)};
       if (coverage <= 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
@@ -215,6 +215,93 @@ internal object GlassShaders {
     }
   """
 
+  /**
+   * The fused program for continuous corners with circular optics (#1766): coverage, and so the
+   * silhouette and its edge softness, use the exact continuous corner, while refraction, lighting
+   * and detail use circular corners of the nominal radius, which stay within 0.023× the radius of
+   * the continuous edge. It is the circular program with its corner uniforms renamed, so
+   * `cornerRadii`, `cornerExponents`, `memberRadii` and `memberCornerExponents` keep their
+   * continuous meaning and the circular radii arrive as `circularCornerRadii` and
+   * `memberCircularRadii`.
+   */
+  fun buildFusedWithCircularOptics(
+    interactionOptics: Boolean = false,
+    sharpDetail: Boolean = true,
+    merged: Boolean = false,
+    coverageOutset: Boolean = false,
+  ): String = withCircularOptics(
+    buildFused(interactionOptics, sharpDetail, merged, continuous = false, coverageOutset = coverageOutset),
+    merged,
+    if (merged) {
+      listOf("memberDistancesAtCoord = memberDistances(localCoord);" to "memberDistancesAtCoord = silhouetteMemberDistances(localCoord);")
+    } else {
+      listOf(CIRCULAR_OUTPUT_SD to SILHOUETTE_OUTPUT_SD)
+    },
+  )
+
+  /**
+   * The refraction-detail program paired with [buildFusedWithCircularOptics]. The fused pass
+   * removes its detail alpha and this pass adds it back, so both use the same silhouette distances
+   * for coverage, displacement and member weights, and circular corners where the refracted
+   * sample lands.
+   */
+  fun buildRefractionDetailWithCircularOptics(
+    interactive: Boolean = false,
+    merged: Boolean = false,
+    coverageOutset: Boolean = false,
+  ): String = withCircularOptics(
+    buildRefractionDetail(interactive, coverageOnly = false, merged = merged, continuous = false, coverageOutset = coverageOutset),
+    merged,
+    if (merged) {
+      listOf(
+        "float outputSd = shapeSd(localCoord);" to
+          "vec4 silhouetteDistances = silhouetteMemberDistances(localCoord);\n      float outputSd = shapeSdFromDistances(silhouetteDistances);",
+        "vec4 w = memberWeights(localCoord);" to "vec4 w = memberWeightsFromDistances(silhouetteDistances);",
+      )
+    } else {
+      listOf(CIRCULAR_OUTPUT_SD to SILHOUETTE_OUTPUT_SD)
+    },
+  )
+
+  private const val CIRCULAR_OUTPUT_SD = "float outputSd = sdRoundedRect(localCoord, materialSize, circularCornerRadii);"
+  private const val SILHOUETTE_OUTPUT_SD = "float outputSd = silhouetteSd(localCoord, materialSize, cornerRadii, cornerExponents);"
+
+  /** Renames a circular program's corner uniforms and swaps each replacement's distance for the continuous silhouette's. */
+  private fun withCircularOptics(source: String, merged: Boolean, replacements: List<Pair<String, String>>): String {
+    var circular = source.replace("cornerRadii", "circularCornerRadii").replace("memberRadii", "memberCircularRadii")
+    val silhouetteSd = CONTINUOUS_SD_ROUNDED_RECT.substringAfter("vec2 cornerNormal")
+      .substringAfter("}\n")
+      .replace("roundedCornerSd(", "silhouetteCornerSd(")
+      .replace("sdRoundedRect(", "silhouetteSd(")
+    // Android rejects setting an undeclared uniform, and the continuous setters upload these.
+    val silhouette = """
+    uniform vec4 cornerRadii;
+    uniform vec4 cornerExponents;
+    """ + if (merged) {
+      """
+    uniform float4 memberRadii[4];
+    uniform float4 memberCornerExponents[4];
+    $silhouetteSd
+
+    vec4 silhouetteMemberDistances(vec2 localCoord) {
+      vec4 d = vec4(0.0);
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        d[i] = silhouetteSd(localCoord - memberRects[i].xy, memberRects[i].zw, memberRadii[i], memberCornerExponents[i]);
+      }
+      return d;
+    }
+      """
+    } else {
+      silhouetteSd
+    }
+    for ((from, to) in replacements + ("vec4 main(vec2 coord)" to "$silhouette\n    vec4 main(vec2 coord)")) {
+      check(circular.split(from).size == 2) { "expected one '$from'" }
+      circular = circular.replace(from, to)
+    }
+    return circular
+  }
+
   fun buildBlur(horizontal: Boolean, progressive: Boolean = false, clampToMaterial: Boolean = false): String {
     val samples = buildString {
       repeat(SemanticBlurKernel.MAX_TAP_PAIRS) { index ->
@@ -247,7 +334,7 @@ internal object GlassShaders {
       $tapUniforms
 
       vec2 clampSample(vec2 coord) {
-        return ${clampSampleExpression(clampToMaterial)};
+        return ${clampSampleExpression(if (clampToMaterial) SampleClamp.Material else SampleClamp.Sample)};
       }
 
       vec4 main(vec2 coord) {
@@ -277,7 +364,7 @@ internal object GlassShaders {
     uniform float2 sampleSize;
     uniform float2 materialOrigin;
     uniform float2 materialSize;
-    uniform float sampleStep;
+    uniform float sampleStep;${captureBoundsUniform(coverageOutset)}
     uniform float refractionStrength;
     uniform float refractionFoldStrength;
     uniform float ambientResponse;
@@ -302,7 +389,7 @@ internal object GlassShaders {
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
     vec2 clampSample(vec2 coord) {
-      return ${clampSampleExpression(coverageOutset)};
+      return ${refractionClamp(coverageOutset)};
     }
 
     vec2 clampMaterial(vec2 coord) {
@@ -333,7 +420,7 @@ internal object GlassShaders {
   } else {
     "float sd = ${shapeSd(merged, "localCoord", continuous)};"
   }}
-      float coverage = shapeCoverage(${outsetSd("sd", coverageOutset)}, sampleStep * 0.5);
+      float coverage = ${coverage("sd", coverageOutset)};
       if (coverage <= 0.0) return vec4(0.0);
 
       float distToEdge = max(-sd, 0.0);
@@ -436,7 +523,7 @@ internal object GlassShaders {
     uniform float2 sampleSize;
     uniform float2 materialOrigin;
     uniform float2 materialSize;
-    uniform float sampleStep;
+    uniform float sampleStep;${captureBoundsUniform(coverageOutset)}
     uniform float refractionStrength;
     uniform float refractionFoldStrength;
     uniform float edgeSoftness;
@@ -458,7 +545,7 @@ internal object GlassShaders {
   } else {
     """
     vec2 clampSample(vec2 coord) {
-      return ${clampSampleExpression(coverageOutset)};
+      return ${refractionClamp(coverageOutset)};
     }
     """
   }}
@@ -472,7 +559,7 @@ internal object GlassShaders {
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
       float outputSd = ${shapeSd(merged, "localCoord", continuous)};
-      float coverage = shapeCoverage(${outsetSd("outputSd", coverageOutset)}, sampleStep * 0.5);
+      float coverage = ${coverage("outputSd", coverageOutset)};
       if (coverage <= 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
@@ -691,20 +778,38 @@ internal object GlassShaders {
     ${sdfGradientHelpers(continuous)}
   """
 
-  // Square surfaces extend coverage past the material by a fixed outset (#1775). It is a constant,
-  // not a uniform: the uniform layout, and so the GPU state, matches the original programs, which
-  // every other surface still compiles.
-  private fun outsetSd(sd: String, enabled: Boolean): String =
-    if (enabled) "$sd - $GLASS_SQUARE_EDGE_COVERAGE_OUTSET_SKSL" else sd
+  // A surface covering its node-bound edges extends coverage past the material by a fixed outset
+  // where its silhouette lies on the material rectangle (#1775). The outset fades out as a corner
+  // curves away, reaching the shape's own coverage half a physical pixel from the rectangle, where
+  // the outermost pixel's centre leaves the shape, so no pixel outside the shape gains any (#1785).
+  // It is a constant, not a uniform, and every other surface still compiles the original programs.
+  private fun coverage(sd: String, outset: Boolean): String {
+    val shape = "shapeCoverage($sd, sampleStep * 0.5)"
+    if (!outset) return shape
+    return "mix($shape, shapeCoverage($sd - $GLASS_EDGE_COVERAGE_OUTSET_SKSL, sampleStep * 0.5), " +
+      "clamp(1.0 - ($sd - sdRectangle(localCoord, materialSize)) / max(sampleStep * 0.25, 0.0001), 0.0, 1.0))"
+  }
 
-  // A square surface is presented cropped to its material, and clips above it, such as a window
-  // edge, crop it too, so every stage's input ends at the material: a sample past it reads
-  // transparency. Clamping to the material repeats its edge, as the native blur's clamp does.
-  private fun clampSampleExpression(toMaterial: Boolean): String = if (toMaterial) {
-    "clamp(coord, max(vec2(0.5), materialOrigin + vec2(0.5)), " +
-      "min(sampleSize - vec2(0.5), materialOrigin + materialSize - vec2(0.5)))"
-  } else {
-    "clamp(coord, vec2(0.5), sampleSize - vec2(0.5))"
+  private enum class SampleClamp { Sample, Material, Capture }
+
+  private fun captureBoundsUniform(outset: Boolean): String = if (outset) "\n    uniform vec4 captureBounds;" else ""
+
+  private fun refractionClamp(outset: Boolean): String =
+    clampSampleExpression(if (outset) SampleClamp.Capture else SampleClamp.Sample)
+
+  // A surface covering its node-bound edges is presented cropped to its material, and clips above
+  // it, such as a window edge, crop it too, so the tap blur's input ends at the material: a tap
+  // past it reads transparency. Clamping taps to the material repeats its edge, as the native
+  // blur's clamp does. Refraction keeps the captured layer's reach instead, as on other surfaces,
+  // whose sample is that layer: a surface that refracts outwards, such as a concave one, reads
+  // the layer's padding where it has any, and never the margin added around the layer.
+  private fun clampSampleExpression(clamp: SampleClamp): String = when (clamp) {
+    SampleClamp.Material ->
+      "clamp(coord, max(vec2(0.5), materialOrigin + vec2(0.5)), " +
+        "min(sampleSize - vec2(0.5), materialOrigin + materialSize - vec2(0.5)))"
+    SampleClamp.Capture ->
+      "clamp(coord, captureBounds.xy + vec2(0.5), max(captureBounds.xy + vec2(0.5), captureBounds.zw - vec2(0.5)))"
+    SampleClamp.Sample -> "clamp(coord, vec2(0.5), sampleSize - vec2(0.5))"
   }
 
   private fun sdfShapeHelpers(continuous: Boolean): String = """
@@ -1004,7 +1109,7 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
         float t = clamp(opticalDistance / refractionZone, 0.0, 1.0);
         float lightingSlope = 2.0 * (1.0 - smootherstep(t));
         return opticalSurfaceGradient(localCoord, fieldWeight) * lightingSlope;
-      }
+      }${if (continuous) "" else FLAT_INTERIOR_LIGHTING_GRADIENT}
       return surfaceGradient(localCoord, fieldWeight);
     }
 
@@ -1231,6 +1336,13 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
 
   /** Returns [text] in continuous-corner sources and nothing in circular ones. */
   private fun ifContinuous(continuous: Boolean, text: String): String = if (continuous) text else ""
+
+  // Circular fields only: the continuous merged programs are at the size Android 15's software
+  // pipeline still draws, and the skip measured no gain there (#1766).
+  private const val FAR_MEMBER_SKIP = """
+        // A member is never nearer than its rectangle, and one at least its smoothing radius
+        // beyond the running field leaves the smooth minimum unchanged.
+        if (sdRectangle(localCoord - memberRects[i].xy, memberRects[i].zw) - d >= max(memberSmoothing[i], 0.0)) continue;"""
 
   private const val CIRCULAR_SD_ROUNDED_RECT = """float sdRoundedRect(vec2 localCoord, vec2 size, vec4 radii) {
       float sd = sdRectangle(localCoord, size);
@@ -1461,6 +1573,16 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
       );
     }"""
 
+  /**
+   * Past the refraction zone every surface profile is flat, so the four height samples of
+   * `surfaceGradient` are equal and its result is exactly zero. Circular fields, including their
+   * smooth union, are 1-Lipschitz, so each sample (at most `sampleStep` away) is still past the zone
+   * when the centre is a pixel beyond it; the pixel absorbs rounding. Continuous corners use an
+   * approximate distance without that bound, so they always sample (#1766).
+   */
+  private const val FLAT_INTERIOR_LIGHTING_GRADIENT = """
+      if (fieldWeight <= 0.0 && -sd >= max(refractionHeight, 0.0001) + sampleStep + 1.0) return vec2(0.0);"""
+
   private fun mergedShapeHelpers(merged: Boolean, continuous: Boolean, tint: Boolean = false): String = when {
     !merged -> ""
     tint -> MERGED_MEMBER_TINTS + mergedFieldHelpers(continuous) + MERGED_OPTICS_HELPERS
@@ -1501,7 +1623,7 @@ ${ifContinuous(continuous, "    uniform float4 memberCornerExponents[4];\n")}   
     float shapeSd(vec2 localCoord) {
       float d = memberSd(localCoord, memberRects[0], memberRadii[0]${ifContinuous(continuous, ", memberCornerExponents[0]")});
       for (int i = 1; i < 4; i++) {
-        if (float(i) >= memberCount) break;
+        if (float(i) >= memberCount) break;${if (continuous) "" else FAR_MEMBER_SKIP}
         d = smoothMin(d, memberSd(localCoord, memberRects[i], memberRadii[i]${ifContinuous(continuous, ", memberCornerExponents[i]")}), memberSmoothing[i]);
       }
       return d;
@@ -1691,5 +1813,5 @@ ${ifContinuous(continuous, "    uniform float4 memberCornerExponents[4];\n")}   
   """
 }
 
-/** [SQUARE_EDGE_COVERAGE_OUTSET] as an SkSL literal. */
-internal const val GLASS_SQUARE_EDGE_COVERAGE_OUTSET_SKSL = "2.0"
+/** [EDGE_COVERAGE_OUTSET] as an SkSL literal. */
+internal const val GLASS_EDGE_COVERAGE_OUTSET_SKSL = "2.0"

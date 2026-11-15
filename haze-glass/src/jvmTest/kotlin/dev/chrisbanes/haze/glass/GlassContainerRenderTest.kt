@@ -71,6 +71,7 @@ internal fun containerTestStyle(tint: Color, alpha: Float = 1f, background: Colo
   contrast(0f)
   whitePoint(0f)
   chromaMultiplier(1f)
+  noBuiltInEdges()
   alpha(alpha)
 }
 

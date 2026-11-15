@@ -115,14 +115,17 @@ internal fun CornerBasedShape.toValidCornerRadiiPxOrNull(
 private val CornerBasedShape.requestedSmoothing: Float
   get() = (this as? ContinuousRoundedCornerShape)?.smoothing ?: 0f
 
-/** Falls back from an invalid or missing shape to [GlassDefaults.shape], then to square corners. */
+/**
+ * Falls back from an invalid or missing shape to [GlassDefaults.continuousShape], then to square
+ * corners.
+ */
 internal fun CornerBasedShape?.resolveCornerRadiiPx(
   layerSize: Size,
   density: Density,
   layoutDirection: LayoutDirection,
 ): CornerRadii = this?.toValidCornerRadiiPxOrNull(layerSize, density, layoutDirection)
   ?.takeIf { it.isFiniteAndNonNegative() }
-  ?: GlassDefaults.shape.toCornerRadiiPx(layerSize, density, layoutDirection)
+  ?: GlassDefaults.continuousShape.toCornerRadiiPx(layerSize, density, layoutDirection)
     .takeIf { it.isFiniteAndNonNegative() }
   ?: CornerRadii.zero
 
