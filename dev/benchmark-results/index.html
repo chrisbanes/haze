@@ -959,6 +959,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#continuous-corner-optics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Continuous-corner optics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#blur-noise-and-tint-shader-reuse" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1446,6 +1457,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#continuous-corner-optics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Continuous-corner optics
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2026,6 +2048,60 @@ the little cluster. The RenderThread ran 11–23% on the big core in every conta
 traces had no scheduler data and are excluded from the running-time means.</p>
 <p>Raw JSON, traces and device readbacks are retained locally under
 <code>internal/benchmark/build/benchmark-results/container-2.1.9TQlOX/</code>.</p>
+</details>
+<p><a id="continuous-corner-optics"></a></p>
+<h2 id="continuous-corner-optics">Continuous-corner optics<a class="headerlink" href="#continuous-corner-optics" title="Permanent link">¶</a></h2>
+<p>Below <code>Balanced</code>, Glass on Android refracts and lights continuous corners as circular corners of
+the same radius, keeping the exact continuous silhouette. This comparison measures that change
+in <a href="../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-performance.html"><code>HazePerformanceMode.Performance</code></a> for four Regular Glass
+surfaces with <code>ContinuousRoundedCornerShape</code> corners, merged by one <code>hazeGlassContainer</code> (a 2 × 2
+grid with 12 dp gaps and a 32 dp merge distance), over a continuously changing source. It used a
+Pixel 6 running an Android 17 beta at 90 Hz, with fixed-performance mode enabled.</p>
+<div class="admonition warning">
+<p class="admonition-title">Controlled CPU placement</p>
+<p>The sample's main thread and RenderThread were restricted to the middle CPU cluster.
+These are controlled comparisons, not expected timings under normal Android scheduling.</p>
+</div>
+<p>Each value is the median of eight iterations' P50 frame overrun.</p>
+<table>
+<thead>
+<tr>
+<th>Corner optics</th>
+<th style="text-align: right;">First pass (ms)</th>
+<th style="text-align: right;">Second pass (ms)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Exact continuous</td>
+<td style="text-align: right;">-8.20</td>
+<td style="text-align: right;">-8.26</td>
+</tr>
+<tr>
+<td>Circular</td>
+<td style="text-align: right;">-9.60</td>
+<td style="text-align: right;">-9.62</td>
+</tr>
+</tbody>
+</table>
+<p>Circular optics left 1.36–1.40 ms more frame-deadline headroom; the largest spread between
+iterations in any run was 0.07 ms. These runs did not record GPU timings, and the result does not
+cover a single surface, other devices or normal scheduling.</p>
+<details class="info">
+<summary>Measurement details</summary>
+<p>Both builds were release builds from the same tree; the exact-optics build forced the
+performance-mode check off. The circular build predates a fix that gives the separate
+refraction-detail pass the same circular optics, so its detail pass still used the exact
+corners. Runs alternated exact, circular, circular, exact, and every
+Perfetto trace confirmed that main and RenderThread executed only on CPUs 4–5. Each run passed
+its source-record, Glass-draw and layer-draw gates. Runs started at thermal status 0 with a
+battery temperature of 21–22°C. The sample APK SHA-256 prefixes were <code>7ae1b7fb3d83</code> (exact)
+and <code>1b6e6a35993a</code> (circular). Raw JSON, XML, traces, the pre-registered rules and device
+readbacks are retained locally under
+<code>internal/benchmark/build/benchmark-results/1766-optics/</code>, in <code>performance/</code> for this table.</p>
+<p>With the same change forced on in <code>Balanced</code>, the gain was 0.91–1.12 ms; <code>Balanced</code> keeps
+exact optics. Desktop and iOS draw Glass through a different shader path, which still uses
+exact continuous optics in every mode.</p>
 </details>
 <p><a id="blur-noise-tint"></a></p>
 <h2 id="blur-noise-and-tint-shader-reuse">Blur noise and tint shader reuse<a class="headerlink" href="#blur-noise-and-tint-shader-reuse" title="Permanent link">¶</a></h2>

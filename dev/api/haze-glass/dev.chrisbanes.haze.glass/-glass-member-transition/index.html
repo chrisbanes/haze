@@ -93,7 +93,7 @@
   <div class="breadcrumbs"><a href="../../index.html">haze-glass</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze.glass</a><span class="delimiter">/</span><span class="current">GlassMemberTransition</span></div>
   <div class="cover ">
     <h1 class="cover"><span>Glass</span><wbr><span>Member</span><wbr><span><span>Transition</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">enum </span><a href="index.html">GlassMemberTransition</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="index.html">GlassMemberTransition</a><span class="token operator">&gt; </span></div><p class="paragraph">How a Glass member's material enters and leaves its <a href="../haze-glass-container.html">hazeGlassContainer</a>.</p><p class="paragraph">Members have no identifiers: a member's modifier node is its identity for as long as it stays attached. Timing comes from the container's <code class="lang-kotlin">memberTransitionSpec</code> and <code class="lang-kotlin">memberReducedMotionPolicy</code>. Outside a container, the value is ignored.</p><p class="paragraph">Haze animates only the glass. Callers animate member content themselves, for example by wrapping the member in <code class="lang-kotlin">AnimatedVisibility</code>.</p><p class="paragraph">Members of a lazy layout such as <code class="lang-kotlin">LazyRow</code> or <code class="lang-kotlin">LazyColumn</code> attach as they scroll into view, and Compose gives a modifier no signal that tells that from a state change. Pass the layout's state to <a href="../haze-glass-container.html">hazeGlassContainer</a>, so that items appear and disappear without a transition while it scrolls, and still animate when state inserts or removes them:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">val listState = rememberLazyListState()<br>LazyRow(state = listState, modifier = Modifier.hazeGlassContainer(mergeDistance = 16.dp, scrollState = listState)) {<br>  items(chips, key = { it.id }) { chip -&gt;<br>    Chip(Modifier.hazeGlass(input = input, style = style))<br>  }<br>}</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><p class="paragraph">Future minor releases may add entries. Keep an <code class="lang-kotlin">else</code> branch when you match exhaustively with <code class="lang-kotlin">when</code>.</p></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">enum class </span><a href="index.html">GlassMemberTransition</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="index.html">GlassMemberTransition</a><span class="token operator">&gt; </span></div><p class="paragraph">How a Glass member's material enters and leaves its <a href="../haze-glass-container.html">hazeGlassContainer</a>.</p><p class="paragraph">Members have no identifiers: a member's modifier node is its identity for as long as it stays attached. Timing comes from the container's <code class="lang-kotlin">memberTransitionSpec</code> and <code class="lang-kotlin">memberReducedMotionPolicy</code>. Outside a container, the value is ignored.</p><p class="paragraph">Haze animates only the glass. Callers animate member content themselves, for example by wrapping the member in <code class="lang-kotlin">AnimatedVisibility</code>.</p><p class="paragraph">Members of a lazy layout such as <code class="lang-kotlin">LazyRow</code> or <code class="lang-kotlin">LazyColumn</code> attach as they scroll into view, and Compose gives a modifier no signal that tells that from a state change. Pass the layout's state to <a href="../haze-glass-container.html">hazeGlassContainer</a>, so that items appear and disappear without a transition while it scrolls, and still animate when state inserts or removes them:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">val listState = rememberLazyListState()<br>LazyRow(state = listState, modifier = Modifier.hazeGlassContainer(mergeDistance = 16.dp, scrollState = listState)) {<br>  items(chips, key = { it.id }) { chip -&gt;<br>    Chip(Modifier.hazeGlass(input = input, style = style))<br>  }<br>}</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div><p class="paragraph">Future minor releases may add entries. Keep an <code class="lang-kotlin">else</code> branch when you match exhaustively with <code class="lang-kotlin">when</code>.</p></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button><button class="section-tab" data-togglable="ENTRY">Entries</button></div>
@@ -148,23 +148,61 @@
         </div>
       </div>
       <div data-togglable="PROPERTY">
-        <h2 class="tableheader">Properties</h2>
-        <div class="table"><a data-name="1809317247%2FProperties%2F1575282654" anchor-label="entries" id="1809317247%2FProperties%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+        <h2 class="tableheader">Companion properties</h2>
+        <div class="table"><a data-name="902791074%2FProperties%2F1575282654" anchor-label="entries" id="902791074%2FProperties%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
           <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
                   <div><a href="entries.html"><span><span>entries</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1809317247%2FProperties%2F1575282654"></span>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="902791074%2FProperties%2F1575282654"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="entries.html">entries</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.enums/-enum-entries/index.html">EnumEntries</a><span class="token operator">&lt;</span><a href="index.html">GlassMemberTransition</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Returns a representation of an immutable list of all enum entries, in the order they're declared.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="entries.html">entries</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.enums/-enum-entries/index.html">EnumEntries</a><span class="token operator">&lt;</span><a href="index.html">GlassMemberTransition</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Returns an immutable <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.enums/-enum-entries/index.html">kotlin.enums.EnumEntries</a> list containing the constants of this enum type, in the order they're declared.</p></div></div></div>
                 </div>
               </div>
             </div>
           </div>
-<a data-name="-372974862%2FProperties%2F1575282654" anchor-label="name" id="-372974862%2FProperties%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Companion functions</h2>
+        <div class="table"><a data-name="-275455200%2FFunctions%2F1575282654" anchor-label="valueOf" id="-275455200%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="value-of.html"><span>value</span><wbr><span><span>Of</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-275455200%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="value-of.html"><span class="token function">valueOf</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">GlassMemberTransition</a></div><div class="brief "><p class="paragraph">Returns the enum constant of this type with the specified name. The string must match exactly an identifier used to declare an enum constant in this type. (Extraneous whitespace characters are not permitted.)</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-774123540%2FFunctions%2F1575282654" anchor-label="values" id="-774123540%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="values.html"><span><span>values</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-774123540%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="values.html"><span class="token function">values</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-array/index.html">Array</a><span class="token operator">&lt;</span><a href="index.html">GlassMemberTransition</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Returns an array containing the constants of this enum type, in the order they're declared.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="-372974862%2FProperties%2F1575282654" anchor-label="name" id="-372974862%2FProperties%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
           <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
@@ -190,40 +228,6 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">expect </span><span class="token keyword">val </span><a href="../-surface-profile/-lip/index.html#-739389684%2FProperties%2F1575282654">ordinal</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div data-togglable="FUNCTION">
-        <h2 class="tableheader">Functions</h2>
-        <div class="table"><a data-name="77465213%2FFunctions%2F1575282654" anchor-label="valueOf" id="77465213%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
-          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
-            <div class="main-subrow keyValue ">
-              <div class=""><span class="inline-flex">
-                  <div><a href="value-of.html"><span>value</span><wbr><span><span>Of</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="77465213%2FFunctions%2F1575282654"></span>
-                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                  </span></span></div>
-              <div>
-                <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="value-of.html"><span class="token function">valueOf</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">GlassMemberTransition</a></div><div class="brief "><p class="paragraph">Returns the enum constant of this type with the specified name. The string must match exactly an identifier used to declare an enum constant in this type. (Extraneous whitespace characters are not permitted.)</p></div></div></div>
-                </div>
-              </div>
-            </div>
-          </div>
-<a data-name="-17546679%2FFunctions%2F1575282654" anchor-label="values" id="-17546679%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
-          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
-            <div class="main-subrow keyValue ">
-              <div class=""><span class="inline-flex">
-                  <div><a href="values.html"><span><span>values</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-17546679%2FFunctions%2F1575282654"></span>
-                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                  </span></span></div>
-              <div>
-                <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="values.html"><span class="token function">values</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-array/index.html">Array</a><span class="token operator">&lt;</span><a href="index.html">GlassMemberTransition</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Returns an array containing the constants of this enum type, in the order they're declared.</p></div></div></div>
                 </div>
               </div>
             </div>

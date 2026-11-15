@@ -7740,6 +7740,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   (<a href="https://github.com/chrisbanes/haze/issues/1766">#1766</a>).</li>
 <li>Glass containers do less shader work for members that are too far from a pixel to shape it.
   The rendered result is unchanged (<a href="https://github.com/chrisbanes/haze/issues/1766">#1766</a>).</li>
+<li>On Android, <code>HazePerformanceMode.Performance</code> and other modes below <code>Balanced</code> refract and light
+  continuous Glass corners as circular corners of the same radius. The silhouette and edge softness
+  stay exact; <code>Balanced</code> and <code>Quality</code> are unchanged
+  (<a href="https://github.com/chrisbanes/haze/issues/1766">#1766</a>).</li>
 </ul>
 <h3 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">¶</a></h3>
 <ul>

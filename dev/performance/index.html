@@ -1478,6 +1478,10 @@ based on the problem you can see:</p>
 subtree, provide <a href="../api/haze/dev.chrisbanes.haze/-local-haze-performance-mode.html"><code>LocalHazePerformanceMode</code></a>; an explicit <code>performanceMode</code> argument overrides it.</p>
 <p><code>Performance</code>, <code>Balanced</code>, and <code>Quality</code> correspond to <code>Fixed(0f)</code>, <code>Fixed(0.5f)</code>, and
 <code>Fixed(1f)</code>. The fraction describes quality, not a percentage reduction in rendering time.</p>
+<p>On Android, modes below <code>Balanced</code> also refract and light continuous Glass corners as circular
+corners of the same radius, while the silhouette stays exact. For four merged continuous surfaces
+on a Pixel 6 under controlled CPU placement, that left about 1.4 ms more frame headroom in
+<code>Performance</code> (<a href="../benchmark-results/#continuous-corner-optics">details</a>).</p>
 <div class="admonition note">
 <p class="admonition-title">Measured quality trade-offs</p>
 <p>In a two-pass test on a Pixel 8a (Android 17, 60 Hz, fixed-performance mode) with a changing
