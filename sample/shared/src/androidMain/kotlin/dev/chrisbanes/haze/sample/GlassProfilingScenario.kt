@@ -406,6 +406,7 @@ internal enum class GlassProfilingScenario(
     containerMergeDistance = 32.dp,
     continuousCorners = true,
   ),
+
   // Performance mode, where continuous corners use circular optics (#1766).
   SourceUpdateContainer4ContinuousPerformance(
     id = "source_update_container_4_continuous_performance",
