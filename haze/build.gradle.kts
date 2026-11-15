@@ -104,10 +104,10 @@ val enableAppleTests = providers.gradleProperty("haze.enableAppleTests").isPrese
 
 /**
  * Disable native host and iOS sim tests by default. They have a high CI cost (mostly
- * linking), but CI can opt in to iOS simulator coverage with -Phaze.enableAppleTests.
+ * linking). CI opts in with -Phaze.enableAppleTests; managed mode also enables iOS tests locally.
  */
 tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest> {
-  enabled = enableAppleTests
+  enabled = enableAppleTests || providers.gradleProperty("haze.iosSimulator.managed").map(String::toBoolean).getOrElse(false)
 }
 tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeHostTest> {
   enabled = enableAppleTests

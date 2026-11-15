@@ -41,8 +41,12 @@ testing {
   }
 }
 
+val kotlinPluginTestRuntime = configurations.create("kotlinPluginTestRuntime")
+
 dependencies {
   testImplementation(libs.assertk)
+  testImplementation(gradleTestKit())
+  add(kotlinPluginTestRuntime.name, libs.kotlin.gradlePlugin)
 
   compileOnly(libs.android.gradlePlugin)
   compileOnly(libs.kotlin.gradlePlugin)
@@ -51,8 +55,17 @@ dependencies {
   compileOnly(libs.metalava.gradlePlugin)
 }
 
+tasks.pluginUnderTestMetadata {
+  pluginClasspath.from(kotlinPluginTestRuntime)
+}
+
 gradlePlugin {
   plugins {
+    register("iosManagedSimulator") {
+      id = "dev.chrisbanes.ios.managed-simulator"
+      implementationClass = "dev.chrisbanes.gradle.IosSimulatorConventionPlugin"
+    }
+
     register("kotlinMultiplatform") {
       id = "dev.chrisbanes.kotlin.multiplatform"
       implementationClass = "dev.chrisbanes.gradle.KotlinMultiplatformConventionPlugin"
