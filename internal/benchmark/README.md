@@ -80,12 +80,13 @@ frame overrun, and peak memory; Blur rows record frame timing and frame overrun.
 
 ## Controlled scenario baseline
 
-Controlled Glass calibration scenarios start from `GlassStyle.regular` with unmodified presentation
-defaults.
-`source_update_balanced` explicitly uses circular corners as the shader-cost control below;
-the other calibration rows retain Regular’s current shape.
+Controlled Glass calibration scenarios start from `GlassStyle.regular` and explicitly author
+`RoundedCornerShape(16.dp)`. This holds corner geometry fixed across Regular default changes and
+keeps the calibration, independent/container, gap, press and cold-attachment comparisons matched.
+Continuous shader-cost rows explicitly use continuous corners; shape-update rows override the radius
+with their animated value. Other presentation defaults follow Regular.
 `stable_quality`, `stable_balanced`, and `stable_performance` therefore differ only in
-`HazePerformanceMode`; they use the regular size-responsive optics, default shape, and all default
+`HazePerformanceMode`; they use the regular size-responsive optics, explicit circular corners, and default
 lighting, color, and rendering values. `steady_full_3` and `steady_full_9` retain the historical
 controls at three and nine effects.
 
@@ -151,7 +152,8 @@ surfaces drawn independently with the same two surfaces in one Glass cluster. Th
 parameter except the container:
 
 - two surfaces 12 dp apart in the 280×180 dp grid, each about 134×180 dp;
-- `HazePerformanceMode.Default` (`Balanced`), `HazeInput.Sources`, and the Regular style;
+- `HazePerformanceMode.Default` (`Balanced`), `HazeInput.Sources`, and the Regular style with
+  explicit `RoundedCornerShape(16.dp)`;
 - the continuously changing source workload used by `source_update_balanced`.
 
 `source_update_container_2` wraps the grid in `hazeGlassContainer(mergeDistance = 32.dp)`. Members

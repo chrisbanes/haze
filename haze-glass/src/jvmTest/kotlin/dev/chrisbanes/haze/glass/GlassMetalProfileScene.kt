@@ -76,7 +76,11 @@ fun main(args: Array<String>) {
       val style = remember(continuous) {
         // Regular defaults to continuous corners (#1793), so circular corners are authored explicitly.
         GlassStyle.regular.then {
-          shape(if (continuous) ContinuousRoundedCornerShape(16.dp) else RoundedCornerShape(16.dp))
+          if (continuous) {
+            shape(ContinuousRoundedCornerShape(16.dp))
+          } else {
+            shape(RoundedCornerShape(16.dp))
+          }
         }
       }
       LaunchedEffect(Unit) {

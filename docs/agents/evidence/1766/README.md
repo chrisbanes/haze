@@ -18,9 +18,9 @@ this branch now also incorporates subsequent changes from `main`. The candidate 
 
 The investigation tooling is retained deliberately: five Android benchmark rows (continuous corners,
 a four-member cluster and a four-member continuous `Performance` row) and the
-`GlassMetalProfileScene` launcher for macOS. The Android shader-cost controls and the Metal circular
-scene explicitly author circular corners, so later Regular default changes cannot silently change
-those comparisons.
+`GlassMetalProfileScene` launcher for macOS. Android profiling rows explicitly author circular
+corners except the continuous-corner and animated-shape rows. The Metal circular scene also authors
+its shape explicitly. This keeps related workload pairs matched when Regular defaults change.
 
 ### Subsequent work
 
