@@ -21,7 +21,6 @@ import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.translate
 
-@OptIn(InternalHazeApi::class)
 /**
  * Draws a color effect with optional mask.
  *

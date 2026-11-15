@@ -155,6 +155,11 @@ subtree, provide [`LocalHazePerformanceMode`][LocalHazePerformanceMode]; an expl
 `Performance`, `Balanced`, and `Quality` correspond to `Fixed(0f)`, `Fixed(0.5f)`, and
 `Fixed(1f)`. The fraction describes quality, not a percentage reduction in rendering time.
 
+On Android, modes below `Balanced` also refract and light continuous Glass corners as circular
+corners of the same radius, while the silhouette stays exact. For four merged continuous surfaces
+on a Pixel 6 under controlled CPU placement, that left about 1.4 ms more frame headroom in
+`Performance` ([details](benchmark-results.md#continuous-corner-optics)).
+
 !!! note "Measured quality trade-offs"
 
     In a two-pass test on a Pixel 8a (Android 17, 60 Hz, fixed-performance mode) with a changing

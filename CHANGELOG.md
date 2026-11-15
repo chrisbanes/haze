@@ -48,6 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ([#1766](https://github.com/chrisbanes/haze/issues/1766)).
 - Glass containers do less shader work for members that are too far from a pixel to shape it.
   The rendered result is unchanged ([#1766](https://github.com/chrisbanes/haze/issues/1766)).
+- On Android, `HazePerformanceMode.Performance` and other modes below `Balanced` refract and light
+  continuous Glass corners as circular corners of the same radius. The silhouette and edge softness
+  stay exact; `Balanced` and `Quality` are unchanged
+  ([#1766](https://github.com/chrisbanes/haze/issues/1766)).
 
 ### Deprecated
 

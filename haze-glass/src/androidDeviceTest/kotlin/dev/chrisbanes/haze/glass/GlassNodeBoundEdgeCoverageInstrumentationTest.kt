@@ -65,6 +65,13 @@ class GlassNodeBoundEdgeCoverageInstrumentationTest {
   @Test
   fun bar_nodeBoundEdgePixelsHideUnderlay_qualityMode_expanded() = assertNodeBoundEdgesCovered(HazePerformanceMode.Quality, expandLayerBounds = true)
 
+  // Continuous corners draw with circular optics below Balanced (#1766); their silhouette must not move.
+  @Test
+  fun bar_nodeBoundEdgePixelsHideUnderlay_performanceMode() = assertNodeBoundEdgesCovered(HazePerformanceMode.Performance, expandLayerBounds = false)
+
+  @Test
+  fun bar_nodeBoundEdgePixelsHideUnderlay_performanceMode_expanded() = assertNodeBoundEdgesCovered(HazePerformanceMode.Performance, expandLayerBounds = true)
+
   @Test
   fun bar_withRefractionDetailAtEdge_nodeBoundEdgePixelsHideUnderlay() =
     // A large displacement puts the refracted edge sample inside the separate detail shader's band.
