@@ -62,7 +62,7 @@ class GlassProfilingStyleTest {
 private fun resolvedShape(scenario: GlassProfilingScenario): CornerBasedShape {
   val style = profilingGlassStyle(scenario, glassProfilingFrame(scenario, 0.75f), Color.White) { 24.dp }
   // Replay the real style without adding a public library API just for a sample test.
-  val appearance = Class.forName("dev.chrisbanes.haze.glass.GlassSystemAppearance").enumConstants.first()
+  val appearance = Class.forName("dev.chrisbanes.haze.glass.GlassSystemAppearance").getField("Light").get(null)
   val resolve = Class.forName("dev.chrisbanes.haze.glass.GlassStyleKt")
     .methods.single { it.name == "resolveGlassStyleValues" }
   val values = resolve.invoke(null, GlassStyle, style, appearance)
