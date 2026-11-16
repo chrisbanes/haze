@@ -126,10 +126,10 @@ class GlassNodeBoundEdgeCoverageInstrumentationTest {
     }
     // A continuous corner eases into its edges beyond its radius, by continuousCornerExtent.
     val cornerBox = ceil(with(composeTestRule.density) { (CORNER * 1.6f).toPx() }).toInt()
-    val withDefaultOutline = mutableMapOf<Pair<Boolean, Dp>, PixelMap>()
     for (continuous in listOf(false, true)) {
-      for (outlined in listOf(false, true)) {
-        for (softness in listOf(0.dp, 1.dp, 4.dp)) {
+      for (softness in listOf(0.dp, 1.dp, 4.dp)) {
+        var defaultOutline: PixelMap? = null
+        for (outlined in listOf(false, true)) {
           // A fully covered edge cannot depend on what lies beneath the bar.
           val overMagenta = capture(Configuration(continuous, outlined, softness, Color.Magenta))
           val overGreen = capture(Configuration(continuous, outlined, softness, Color.Green))
@@ -142,10 +142,10 @@ class GlassNodeBoundEdgeCoverageInstrumentationTest {
           }
           // An outline lies outside the shape, so it cannot tint a covered edge pixel (#1798):
           // Regular's default dark outline and the white one must leave those pixels identical.
-          if (!outlined) {
-            withDefaultOutline[continuous to softness] = overMagenta
+          val dark = defaultOutline
+          if (dark == null) {
+            defaultOutline = overMagenta
           } else {
-            val dark = withDefaultOutline.getValue(continuous to softness)
             for ((x, y) in overMagenta.nodeBoundEdgePixels(cornerBox)) {
               val tint = abs(overMagenta[x, y].red - dark[x, y].red) +
                 abs(overMagenta[x, y].green - dark[x, y].green) +

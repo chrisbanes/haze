@@ -714,12 +714,7 @@ internal object GlassShaders {
       // Match the body's node-bound coverage inside the shape (#1798), so neither the outline nor a
       // halved rim shows on the outermost pixel. Outside the shape the outline keeps its full band.
       if (coversNodeBoundEdges > 0.5 && sd < 0.0 && coverage < 1.0) {
-        float onRectangle = clamp(
-          1.0 - (sd - sdRectangle(localCoord, materialSize)) / max(sampleStep * 0.25, 0.0001),
-          0.0,
-          1.0
-        );
-        coverage = mix(coverage, 1.0, onRectangle);
+        coverage = mix(coverage, 1.0, ${onMaterialRectangle("sd")});
       }
       // A hard band just outside the shape, complementing its coverage so the two leave no seam.
       vec4 outline = vec4(0.0);
@@ -794,12 +789,17 @@ internal object GlassShaders {
   // curves away, reaching the shape's own coverage half a physical pixel from the rectangle, where
   // the outermost pixel's centre leaves the shape, so no pixel outside the shape gains any (#1785).
   // It is a constant, not a uniform, and every other surface still compiles the original programs.
+  // The rim reads the same fade behind a uniform instead, raising coverage only inside the shape.
   private fun coverage(sd: String, outset: Boolean): String {
     val shape = "shapeCoverage($sd, sampleStep * 0.5)"
     if (!outset) return shape
     return "mix($shape, shapeCoverage($sd - $GLASS_EDGE_COVERAGE_OUTSET_SKSL, sampleStep * 0.5), " +
-      "clamp(1.0 - ($sd - sdRectangle(localCoord, materialSize)) / max(sampleStep * 0.25, 0.0001), 0.0, 1.0))"
+      "${onMaterialRectangle(sd)})"
   }
+
+  /** 1 where the silhouette lies on the material rectangle, fading to 0 as a corner curves away. */
+  private fun onMaterialRectangle(sd: String): String =
+    "clamp(1.0 - ($sd - sdRectangle(localCoord, materialSize)) / max(sampleStep * 0.25, 0.0001), 0.0, 1.0)"
 
   private enum class SampleClamp { Sample, Material, Capture }
 
