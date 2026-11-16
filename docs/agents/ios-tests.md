@@ -2,7 +2,7 @@
 
 The shared KMP convention applies [Simsteward 0.0.1](https://github.com/chrisbanes/simsteward/releases/tag/0.0.1)
 from Maven Central. Managed mode is opt-in with `-Psimsteward.enabled=true`; stock local runs and CI
-retain their existing behaviour. Haze defaults to slim simulators and one simulator per pool.
+retain their existing behaviour. Haze defaults to slim simulators and at most two simulators per pool.
 
 ## Run tests
 
@@ -21,17 +21,19 @@ retain their existing behaviour. Haze defaults to slim simulators and one simula
      --no-scan
    ```
 
-   Managed mode also enables core `haze` simulator tests, which are otherwise gated by
-   `-Phaze.enableAppleTests`. It does not enable macOS host tests. Existing test filters still apply.
+   Core `haze` simulator tests run when the Simsteward extension is enabled (including DSL overrides)
+   or `-Phaze.enableAppleTests` is supplied. Managed mode does not enable macOS host tests.
+   Existing test filters still apply.
    Omit the device and runtime pins to let Simsteward select a compatible installed device and the
    newest installed runtime. Pin identifiers for repeatable comparisons.
 3. Confirm the requested test reports contain executed tests. Compilation or an up-to-date task is
    not evidence of a fresh test execution. Use `--rerun-tasks` when a fresh run is required.
 
 Simsteward leases a build-owned simulator to each executing test task and returns the lease when
-its tests finish or fail. Modules with the same simulator spec share a pool; Haze's cap of one
-serializes their simulator use. Separate specs have separate pools. Separate builds own their own
-devices, though simultaneous runs of the same task in one checkout can collide on its task name.
+its tests finish or fail. Modules with the same simulator spec share a pool; Haze's cap of two
+allows their simulator tests to run concurrently. Separate specs have separate pools. Separate builds
+own their own devices, though simultaneous runs of the same task in one checkout can collide on
+its task name.
 All owned devices are deleted at build end. Up-to-date tests create no simulator.
 
 ## Configuration and migration
@@ -52,6 +54,8 @@ applies. Keep services required by the tests enabled; `verify` checks service ov
 application correctness. Failed slimming fails the test task instead of falling back to stock.
 Use `-Psimsteward.slim=false` to test managed stock simulators while retaining lifecycle ownership.
 The pool cap can be changed with `-Psimsteward.maxSimulators=<count>`.
+Sharding remains off (`simsteward.testShards` defaults to one); the pool allows parallel execution
+across modules without splitting each module's suite.
 
 ## Cleanup and failure recovery
 
