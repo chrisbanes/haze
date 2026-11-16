@@ -126,7 +126,7 @@ class GlassNodeBoundEdgeCoverageInstrumentationTest {
     }
     // A continuous corner eases into its edges beyond its radius, by continuousCornerExtent.
     val cornerBox = ceil(with(composeTestRule.density) { (CORNER * 1.6f).toPx() }).toInt()
-    val withoutOutline = mutableMapOf<Pair<Boolean, Dp>, PixelMap>()
+    val withDefaultOutline = mutableMapOf<Pair<Boolean, Dp>, PixelMap>()
     for (continuous in listOf(false, true)) {
       for (outlined in listOf(false, true)) {
         for (softness in listOf(0.dp, 1.dp, 4.dp)) {
@@ -140,16 +140,17 @@ class GlassNodeBoundEdgeCoverageInstrumentationTest {
             assertThat(shown(x, y), "$variant underlay shows at ($x, $y): ${overMagenta[x, y]} vs ${overGreen[x, y]}")
               .isLessThan(4f / 255f)
           }
-          // The outline lies outside the shape, so it cannot tint a covered edge pixel (#1798).
+          // An outline lies outside the shape, so it cannot tint a covered edge pixel (#1798):
+          // Regular's default dark outline and the white one must leave those pixels identical.
           if (!outlined) {
-            withoutOutline[continuous to softness] = overMagenta
+            withDefaultOutline[continuous to softness] = overMagenta
           } else {
-            val plain = withoutOutline.getValue(continuous to softness)
+            val dark = withDefaultOutline.getValue(continuous to softness)
             for ((x, y) in overMagenta.nodeBoundEdgePixels(cornerBox)) {
-              val tint = abs(overMagenta[x, y].red - plain[x, y].red) +
-                abs(overMagenta[x, y].green - plain[x, y].green) +
-                abs(overMagenta[x, y].blue - plain[x, y].blue)
-              assertThat(tint, "$variant outline tints ($x, $y): ${overMagenta[x, y]} vs ${plain[x, y]}")
+              val tint = abs(overMagenta[x, y].red - dark[x, y].red) +
+                abs(overMagenta[x, y].green - dark[x, y].green) +
+                abs(overMagenta[x, y].blue - dark[x, y].blue)
+              assertThat(tint, "$variant outline tints ($x, $y): ${overMagenta[x, y]} vs ${dark[x, y]}")
                 .isLessThan(4f / 255f)
             }
           }
