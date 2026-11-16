@@ -57,6 +57,52 @@ class GlassRimBrushTest {
   }
 
   @Test
+  fun directRim_nodeBoundEdges_keepOutlineOffInsideEdgePixel() {
+    val provider = checkNotNull(createGlassRimBrushProvider())
+    val key = nodeBoundEdgeKey().copy(edgeOutline = GlassEdgeOutline(Color.Green, 3f))
+    val aligned = drawBrush(checkNotNull(provider(key))).toPixelMap()
+    val unaligned = drawBrush(checkNotNull(provider(key.notPixelAligned()))).toPixelMap()
+
+    // The material's left edge is at x = 8, so pixel 8 is the outermost pixel inside it.
+    assertThat(unaligned[8, 48].alpha).isGreaterThan(0.1f)
+    assertThat(aligned[8, 48].alpha).isEqualTo(0f)
+    assertThat(aligned[63, 89].alpha).isEqualTo(0f)
+    // The band outside the shape keeps its full width and strength.
+    for (x in 4..7) assertThat(aligned[x, 48]).isEqualTo(unaligned[x, 48])
+    assertThat(aligned[6, 48].alpha).isGreaterThanOrEqualTo(0.9f)
+    assertThat(aligned[7, 48].alpha).isGreaterThanOrEqualTo(0.9f)
+    assertThat(aligned[63, 90]).isEqualTo(unaligned[63, 90])
+  }
+
+  @Test
+  fun directRim_nodeBoundEdges_drawRimHighlightAtFullStrengthOnEdgePixel() {
+    val provider = checkNotNull(createGlassRimBrushProvider())
+    val key = nodeBoundEdgeKey().copy(rimHighlight = GlassRimHighlight(intensity = 1f, widthPx = 4f, sides = 1f))
+    val aligned = drawBrush(checkNotNull(provider(key))).toPixelMap()
+    val unaligned = drawBrush(checkNotNull(provider(key.notPixelAligned()))).toPixelMap()
+
+    assertThat(unaligned[8, 48].alpha).isLessThanOrEqualTo(0.6f)
+    assertThat(aligned[8, 48].alpha).isEqualTo(aligned[9, 48].alpha)
+    assertThat(aligned[9, 48].alpha).isGreaterThanOrEqualTo(0.9f)
+  }
+
+  @Test
+  fun directRim_nodeBoundEdges_keepRoundedCornerAntialiasing() {
+    val provider = checkNotNull(createGlassRimBrushProvider())
+    val key = nodeBoundEdgeKey().copy(
+      cornerRadii = CornerRadii(18f, 18f, 18f, 18f),
+      edgeOutline = GlassEdgeOutline(Color.Green, 3f),
+    )
+    val aligned = drawBrush(checkNotNull(provider(key))).toPixelMap()
+    val unaligned = drawBrush(checkNotNull(provider(key.notPixelAligned()))).toPixelMap()
+
+    // Pixel (13,11) straddles the top-left arc, away from the material rectangle; (9,7) is outside.
+    assertThat(aligned[13, 11]).isEqualTo(unaligned[13, 11])
+    assertThat(aligned[13, 11].alpha).isGreaterThan(0.1f)
+    assertThat(aligned[9, 7]).isEqualTo(unaligned[9, 7])
+  }
+
+  @Test
   fun directRim_continuousCorners_edgeOutlineFollowsSmoothedShape() {
     val key = outlineKey().copy(cornerRadii = CornerRadii(18f, 18f, 18f, 18f, 1f, 1f, 1f, 1f))
     val provider = checkNotNull(createGlassRimBrushProvider(merged = false, continuous = true))
@@ -208,6 +254,17 @@ class GlassRimBrushTest {
     }
     return difference
   }
+
+  // A rectangle with production's sample step: the shape's coverage spans one pixel.
+  private fun nodeBoundEdgeKey() = rimKey().copy(
+    coordinates = rimKey().coordinates.copy(pixelAligned = true),
+    specularIntensity = 0f,
+    edgeShadow = Color.Transparent,
+    cornerRadii = CornerRadii(0f, 0f, 0f, 0f),
+    sampleStepPx = 2f,
+  )
+
+  private fun GlassRimEffectKey.notPixelAligned() = copy(coordinates = coordinates.copy(pixelAligned = false))
 
   private fun outlineKey() = rimKey().copy(
     specularIntensity = 0f,

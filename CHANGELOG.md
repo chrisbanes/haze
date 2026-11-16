@@ -82,6 +82,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   longer resampled at a sub-pixel offset
   ([#1775](https://github.com/chrisbanes/haze/issues/1775),
   [#1785](https://github.com/chrisbanes/haze/issues/1785)).
+- Glass no longer tints the outermost pixel inside those straight edges with its edge outline, which
+  Regular and Clear draw by default. The outline stays outside the shape there, and the rim's
+  specular, edge shadow and highlight reach that pixel at full strength
+  ([#1798](https://github.com/chrisbanes/haze/issues/1798)).
 
 ## 2.1.0 <small>2026-11-02</small> { id="2.1.0" }
 

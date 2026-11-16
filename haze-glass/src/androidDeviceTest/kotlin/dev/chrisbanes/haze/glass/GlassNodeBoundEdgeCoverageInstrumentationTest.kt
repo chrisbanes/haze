@@ -127,8 +127,9 @@ class GlassNodeBoundEdgeCoverageInstrumentationTest {
     // A continuous corner eases into its edges beyond its radius, by continuousCornerExtent.
     val cornerBox = ceil(with(composeTestRule.density) { (CORNER * 1.6f).toPx() }).toInt()
     for (continuous in listOf(false, true)) {
-      for (outlined in listOf(false, true)) {
-        for (softness in listOf(0.dp, 1.dp, 4.dp)) {
+      for (softness in listOf(0.dp, 1.dp, 4.dp)) {
+        var defaultOutline: PixelMap? = null
+        for (outlined in listOf(false, true)) {
           // A fully covered edge cannot depend on what lies beneath the bar.
           val overMagenta = capture(Configuration(continuous, outlined, softness, Color.Magenta))
           val overGreen = capture(Configuration(continuous, outlined, softness, Color.Green))
@@ -138,6 +139,20 @@ class GlassNodeBoundEdgeCoverageInstrumentationTest {
           for ((x, y) in overMagenta.nodeBoundEdgePixels(cornerBox)) {
             assertThat(shown(x, y), "$variant underlay shows at ($x, $y): ${overMagenta[x, y]} vs ${overGreen[x, y]}")
               .isLessThan(4f / 255f)
+          }
+          // An outline lies outside the shape, so it cannot tint a covered edge pixel (#1798):
+          // Regular's default dark outline and the white one must leave those pixels identical.
+          val dark = defaultOutline
+          if (dark == null) {
+            defaultOutline = overMagenta
+          } else {
+            for ((x, y) in overMagenta.nodeBoundEdgePixels(cornerBox)) {
+              val tint = abs(overMagenta[x, y].red - dark[x, y].red) +
+                abs(overMagenta[x, y].green - dark[x, y].green) +
+                abs(overMagenta[x, y].blue - dark[x, y].blue)
+              assertThat(tint, "$variant outline tints ($x, $y): ${overMagenta[x, y]} vs ${dark[x, y]}")
+                .isLessThan(4f / 255f)
+            }
           }
           // Coverage only falls from the bottom edge into its corner, where the underlay shows.
           var previous = 0f
