@@ -2,7 +2,7 @@
 
 The shared KMP convention applies [Simsteward 0.0.1](https://github.com/chrisbanes/simsteward/releases/tag/0.0.1)
 from Maven Central. Managed mode is opt-in with `-Psimsteward.enabled=true`; stock local runs and CI
-retain their existing behaviour. Haze defaults to slim simulators and at most two simulators per pool.
+retain their existing behaviour. Haze defaults to slim simulators and at most six simulators per pool.
 
 ## Run tests
 
@@ -30,7 +30,7 @@ retain their existing behaviour. Haze defaults to slim simulators and at most tw
    not evidence of a fresh test execution. Use `--rerun-tasks` when a fresh run is required.
 
 Simsteward leases a build-owned simulator to each executing test task and returns the lease when
-its tests finish or fail. Modules with the same simulator spec share a pool; Haze's cap of two
+its tests finish or fail. Modules with the same simulator spec share a pool; Haze's cap of six
 allows their simulator tests to run concurrently. Separate specs have separate pools. Separate builds
 own their own devices, though simultaneous runs of the same task in one checkout can collide on
 its task name.
