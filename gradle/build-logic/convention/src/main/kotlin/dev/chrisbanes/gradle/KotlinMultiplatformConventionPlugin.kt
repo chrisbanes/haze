@@ -18,7 +18,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile
 class KotlinMultiplatformConventionPlugin : Plugin<Project> {
   override fun apply(target: Project) = with(target) {
     pluginManager.apply("org.jetbrains.kotlin.multiplatform")
-    pluginManager.apply("dev.chrisbanes.ios.managed-simulator")
+    pluginManager.apply("dev.chrisbanes.simsteward")
 
     configureJava()
 

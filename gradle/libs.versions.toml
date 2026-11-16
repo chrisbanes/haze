@@ -114,3 +114,4 @@ kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", ve
 spotless-gradlePlugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
 compose-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "compose-multiplatform" }
 metalava-gradlePlugin = { module = "me.tylerbwong.gradle.metalava:plugin", version.ref = "metalava" }
+simsteward-gradlePlugin = { module = "dev.chrisbanes.simsteward:simsteward", version = "0.0.1" }

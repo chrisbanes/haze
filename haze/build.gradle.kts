@@ -107,7 +107,7 @@ val enableAppleTests = providers.gradleProperty("haze.enableAppleTests").isPrese
  * linking). CI opts in with -Phaze.enableAppleTests; managed mode also enables iOS tests locally.
  */
 tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest> {
-  enabled = enableAppleTests || providers.gradleProperty("haze.iosSimulator.managed").map(String::toBoolean).getOrElse(false)
+  enabled = enableAppleTests || providers.gradleProperty("simsteward.enabled").map(String::toBoolean).getOrElse(false)
 }
 tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeHostTest> {
   enabled = enableAppleTests
