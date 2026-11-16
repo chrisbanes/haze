@@ -2696,6 +2696,7 @@ internal fun RuntimeShaderUniformProvider.setRimUniforms(
   setFloatUniform("rimHighlightSides", key.rimHighlight.sides)
   setColorUniform("edgeOutline", key.edgeOutline.color)
   setFloatUniform("edgeOutlineWidth", key.edgeOutline.widthPx)
+  setFloatUniform("coversNodeBoundEdges", if (key.coordinates.pixelAligned) 1f else 0f)
   key.mergedField?.let { setMergedFieldUniforms(it, scratch = scratch) }
 }
 

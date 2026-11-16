@@ -685,6 +685,7 @@ internal object GlassShaders {
     uniform float rimHighlightSides;
     layout(color) uniform vec4 edgeOutline;
     uniform float edgeOutlineWidth;
+    uniform float coversNodeBoundEdges;
 
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
@@ -710,6 +711,16 @@ internal object GlassShaders {
       vec2 localCoord = materialCoord(coord);
       float sd = materialSdf(localCoord);
       float coverage = shapeCoverage(sd, sampleStep * 0.5);
+      // Match the body's node-bound coverage inside the shape (#1798), so neither the outline nor a
+      // halved rim shows on the outermost pixel. Outside the shape the outline keeps its full band.
+      if (coversNodeBoundEdges > 0.5 && sd < 0.0 && coverage < 1.0) {
+        float onRectangle = clamp(
+          1.0 - (sd - sdRectangle(localCoord, materialSize)) / max(sampleStep * 0.25, 0.0001),
+          0.0,
+          1.0
+        );
+        coverage = mix(coverage, 1.0, onRectangle);
+      }
       // A hard band just outside the shape, complementing its coverage so the two leave no seam.
       vec4 outline = vec4(0.0);
       if (edgeOutlineWidth > 0.0) {
