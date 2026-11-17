@@ -7774,6 +7774,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   longer resampled at a sub-pixel offset
   (<a href="https://github.com/chrisbanes/haze/issues/1775">#1775</a>,
   <a href="https://github.com/chrisbanes/haze/issues/1785">#1785</a>).</li>
+<li>Glass no longer tints the outermost pixel inside those straight edges with its edge outline, which
+  Regular and Clear draw by default. The outline stays outside the shape there, and the rim's
+  specular, edge shadow and highlight reach that pixel at full strength
+  (<a href="https://github.com/chrisbanes/haze/issues/1798">#1798</a>).</li>
 </ul>
 <h2 id="2.1.0">2.1.0 <small>2026-11-02</small><a class="headerlink" href="#2.1.0" title="Permanent link">¶</a></h2>
 <h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">¶</a></h3>
