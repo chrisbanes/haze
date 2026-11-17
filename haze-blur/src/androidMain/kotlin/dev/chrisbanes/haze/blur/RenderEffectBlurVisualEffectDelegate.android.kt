@@ -163,7 +163,7 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
     val captureScale = scaledContentScale(context.layerSize, inputScale)
     val offset = Offset(context.layerOffset.x * captureScale.scaleX, context.layerOffset.y * captureScale.scaleY)
     val brush = if (userMask is ShaderBrush) {
-      ShaderBrush(userMask.createScaledShader(context.size, captureScale, layerSize, offset))
+      ShaderBrush(userMask.createScaledShader(context.size, captureScale, offset))
     } else {
       userMask
     }

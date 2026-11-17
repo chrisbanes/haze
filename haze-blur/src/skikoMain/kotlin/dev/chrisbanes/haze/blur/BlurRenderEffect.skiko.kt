@@ -25,7 +25,7 @@ import org.jetbrains.skia.ColorFilter
 import org.jetbrains.skia.ColorMatrix
 import org.jetbrains.skia.Matrix33
 
-internal actual fun ShaderBrush.createScaledShader(size: Size, scale: ScaleFactor, captureSize: Size, offset: Offset): Shader {
+internal actual fun ShaderBrush.createScaledShader(size: Size, scale: ScaleFactor, offset: Offset): Shader {
   val shader = createShader(size)
   return if (scale.scaleX == 1f && scale.scaleY == 1f && offset == Offset.Zero) {
     shader

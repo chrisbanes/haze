@@ -110,7 +110,7 @@ class ProgressiveCaptureCropAndroidHostTest : ScreenshotTest() {
                   }
                 }
               }
-              val mask = if (brush is ShaderBrush) brush.createScaledShader(content, a, Size(allocation.width.toFloat(), allocation.height.toFloat()), Offset.Zero) else (Brush.linearGradient(listOf(Color.Black, Color.Black)) as ShaderBrush).createShader(content)
+              val mask = if (brush is ShaderBrush) brush.createScaledShader(content, a, Offset.Zero) else (Brush.linearGradient(listOf(Color.Black, Color.Black)) as ShaderBrush).createShader(content)
               layer.renderEffect = if (variant == 0) {
                 createRenderEffect(
                   composeTestRule.activity, Density(1f),
