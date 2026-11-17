@@ -12,7 +12,7 @@ https://github.com/user-attachments/assets/836dd79a-abdc-4cdc-b27d-baee394c1e26
 
 Haze provides hardware-accelerated visual effects for Compose Multiplatform — Android, iOS, macOS, Desktop, and Web. Its modular Haze 2 API lets you apply source-backed or own-content Blur, refraction-driven Glass, and custom effects with explicit, reusable configuration.
 
-If you are upgrading from Haze 1.x, see the [Haze 2 migration guide](docs/migrating-2.0.md).
+If you are upgrading from Haze 1.x, see the [Haze 2 migration guide](https://chrisbanes.github.io/haze/latest/migrating-2.0/).
 
 ## Platforms
 
@@ -122,7 +122,7 @@ Blur and Glass can process a live camera preview when its pixels are drawn in th
 - [Glass guide](https://chrisbanes.github.io/haze/effects/glass/)
 - [Custom effects](https://chrisbanes.github.io/haze/custom-effects/)
 - [Sample code](https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample)
-- [Haze 2 migration guide](docs/migrating-2.0.md)
+- [Haze 2 migration guide](https://chrisbanes.github.io/haze/latest/migrating-2.0/)
 
 ## License
 
