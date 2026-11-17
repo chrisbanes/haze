@@ -866,7 +866,22 @@ internal fun buildGlassRetainedLayerPlan(
   )
 }
 
-internal fun buildGlassBudgetLayerPlan(
+/** Shared by candidate budgeting and preparation, including fused and merged lighting policy. */
+internal fun resolveGlassInteractionPatchSize(
+  params: GlassRenderParams,
+  radiusFraction: Float,
+  topology: GlassInteractionTopology,
+): IntSize = if (supportsFusedGlassRenderEffect && !topology.hasLighting) {
+  IntSize.Zero
+} else {
+  calculateGlassInteractionPatchSize(
+    params,
+    radiusFraction = if (topology === MergedLightingTopology) params.coordinates.mergedLightingRadiusFraction() else radiusFraction,
+    topology = topology,
+  )
+}
+
+internal fun buildGlassLayerPlan(
   sampleSize: IntSize,
   groupCompositeSize: IntSize? = null,
   blurRadiusPx: Float,
@@ -1044,22 +1059,12 @@ internal fun buildGlassPreparedRender(
 ): GlassPreparedRender {
   val topology = params.mergedField?.interactionTopology ?: interactionTopology
   // Merged lights live in the field; these uniforms only size a patch covering the whole layer.
-  val (uniforms, radiusFraction) = if (topology === MergedLightingTopology) {
-    params.coordinates.mergedLightingUniforms() to params.coordinates.mergedLightingRadiusFraction()
+  val uniforms = if (topology === MergedLightingTopology) {
+    params.coordinates.mergedLightingUniforms()
   } else {
-    interactionUniforms to interactionRadiusFraction
+    interactionUniforms
   }
-  val interactionPatchSize = if (
-    supportsFusedGlassRenderEffect && !topology.hasLighting
-  ) {
-    IntSize.Zero
-  } else {
-    calculateGlassInteractionPatchSize(
-      params = params,
-      radiusFraction = radiusFraction,
-      topology = topology,
-    )
-  }
+  val interactionPatchSize = resolveGlassInteractionPatchSize(params, interactionRadiusFraction, topology)
   val interactionLayersActive = interactionPatchSize.width > 0 && interactionPatchSize.height > 0
   val groupCompositeSize = resolveGlassGroupCompositeSize(
     outputSize = outputSize,
@@ -1106,29 +1111,20 @@ internal fun buildGlassPreparedRender(
   ) {
     previous.plan
   } else {
-    if (supportsFusedGlassRenderEffect) {
-      buildGlassFusedLayerPlan(
-        sampleSize = params.coordinates.sampleSize.roundToIntSize(),
-        rimActive = rimKey != null,
-        interactionPatchSize = interactionPatchSize,
-        interactionLightingActive = interactionLayersActive && topology.hasLighting,
-        groupCompositeSize = groupCompositeSize,
-      )
-    } else {
-      buildGlassRetainedLayerPlan(
-        sampleSize = params.coordinates.sampleSize.roundToIntSize(),
-        blurActive = blurKey != null,
-        nativeBlurActive = blurKey?.plan?.usesNativeWideBlur == true,
-        depthMixActive = blurKey != null && params.depth < 1f,
-        refractionDetailActive = refractionDetailKey != null,
-        rimActive = rimKey != null,
-        interactionPatchSize = interactionPatchSize,
-        interactionOpticsActive = interactionLayersActive && topology.hasOptics,
-        interactionLightingActive = interactionLayersActive && topology.hasLighting,
-        groupCompositeSize = groupCompositeSize,
-      )
-    }
+    buildGlassLayerPlan(
+      sampleSize = params.coordinates.sampleSize.roundToIntSize(),
+      groupCompositeSize = groupCompositeSize,
+      blurRadiusPx = params.blurRadiusPx,
+      depth = params.depth,
+      allowNativeWideBlur = params.progressive == null,
+      refractionDetailActive = refractionDetailKey != null,
+      rimActive = rimKey != null,
+      interactionPatchSize = interactionPatchSize,
+      interactionOpticsActive = topology.hasOptics,
+      interactionLightingActive = topology.hasLighting,
+    )
   }
+
   return GlassPreparedRender(
     params = params,
     interactionUniforms = uniforms,

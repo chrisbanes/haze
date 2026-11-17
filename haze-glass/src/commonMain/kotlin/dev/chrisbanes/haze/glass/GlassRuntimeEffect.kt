@@ -978,64 +978,6 @@ internal class GlassRuntimeEffect() :
     val interaction = resolvePreparedInteraction(context)
     // Budget for the layers buildGlassPreparedRender keeps, which merges only interaction lighting.
     val interactionTopology = style.mergedField?.interactionTopology ?: interactionTopologySnapshot
-    val optics = style.resolvedOptics
-    val allowNativeWideBlur = optics.progressive == null
-    val buildPlan: (Float) -> GlassRetainedLayerPlan = buildPlan@{ scaleFactor ->
-      val rawCoordinates = resolveGlassCoordinates(
-        layerSize = context.layerSize,
-        layerOffset = context.layerOffset,
-        materialSize = context.modifierSize,
-        scaleFactor = scaleFactor,
-        alignToPixels = alignToPixels,
-      )
-      if (!rawCoordinates.materialSize.isDrawable() || !rawCoordinates.sampleSize.isDrawable()) {
-        return@buildPlan GlassRetainedLayerPlan(emptyList())
-      }
-      val coordinates = rawCoordinates.withRoundedSampleSize()
-      if (!coordinates.materialSize.isDrawable() || !coordinates.sampleSize.isDrawable()) {
-        return@buildPlan GlassRetainedLayerPlan(emptyList())
-      }
-      val outputSize = context.modifierSize.outsetToIntSize(nodeClipOutsetPx())
-      val params = buildGlassRenderParams(style, coordinates, performanceMode.usesCircularCornerOptics())
-      val interactionPatchSize = calculateGlassInteractionPatchSize(
-        params,
-        radiusFraction = if (interactionTopology === MergedLightingTopology) {
-          coordinates.mergedLightingRadiusFraction()
-        } else {
-          interaction.radiusFraction
-        },
-        topology = interactionTopology,
-      )
-      val interactionLayersActive =
-        interactionPatchSize.width > 0 && interactionPatchSize.height > 0
-      if (backdrop) {
-        buildGlassBackdropLayerPlan(
-          sampleSize = coordinates.sampleSize.roundToIntSize(),
-          rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight, params.edgeOutline),
-          interactionPatchSize = interactionPatchSize,
-          interactionLightingActive = interactionTopology.hasLighting,
-        )
-      } else {
-        buildGlassBudgetLayerPlan(
-          sampleSize = coordinates.sampleSize.roundToIntSize(),
-          groupCompositeSize = resolveGlassGroupCompositeSize(
-            outputSize = outputSize,
-            alpha = style.alpha,
-            interactionLayersActive = interactionLayersActive,
-            interactionTopology = interactionTopology,
-          ),
-          blurRadiusPx = params.blurRadiusPx,
-          depth = params.depth,
-          allowNativeWideBlur = allowNativeWideBlur,
-          refractionDetailActive =
-          params.activeRefractionDetailEffectKey(params.refractionDetailIntensity) != null,
-          rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight, params.edgeOutline),
-          interactionPatchSize = interactionPatchSize,
-          interactionOpticsActive = interactionTopology.hasOptics,
-          interactionLightingActive = interactionTopology.hasLighting,
-        )
-      }
-    }
     val requestedScale = requestedScaleOverride ?: performanceMode.resolveGlassInputScale()
     if (requestedScale != resolvedInputScale) {
       HazeLogger.d(TAG) {
@@ -1065,6 +1007,58 @@ internal class GlassRuntimeEffect() :
     ) {
       checkNotNull(budgetCacheDecision)
     } else {
+      val buildPlan: (Float) -> GlassRetainedLayerPlan = buildPlan@{ scaleFactor ->
+        val rawCoordinates = resolveGlassCoordinates(
+          layerSize = context.layerSize,
+          layerOffset = context.layerOffset,
+          materialSize = context.modifierSize,
+          scaleFactor = scaleFactor,
+          alignToPixels = alignToPixels,
+        )
+        if (!rawCoordinates.materialSize.isDrawable() || !rawCoordinates.sampleSize.isDrawable()) {
+          return@buildPlan GlassRetainedLayerPlan(emptyList())
+        }
+        val coordinates = rawCoordinates.withRoundedSampleSize()
+        if (!coordinates.materialSize.isDrawable() || !coordinates.sampleSize.isDrawable()) {
+          return@buildPlan GlassRetainedLayerPlan(emptyList())
+        }
+        val outputSize = context.modifierSize.outsetToIntSize(nodeClipOutsetPx())
+        val params = buildGlassRenderParams(style, coordinates, performanceMode.usesCircularCornerOptics())
+        val interactionPatchSize = resolveGlassInteractionPatchSize(
+          params,
+          radiusFraction = interaction.radiusFraction,
+          topology = interactionTopology,
+        )
+        val interactionLayersActive =
+          interactionPatchSize.width > 0 && interactionPatchSize.height > 0
+        if (backdrop) {
+          buildGlassBackdropLayerPlan(
+            sampleSize = coordinates.sampleSize.roundToIntSize(),
+            rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight, params.edgeOutline),
+            interactionPatchSize = interactionPatchSize,
+            interactionLightingActive = interactionTopology.hasLighting,
+          )
+        } else {
+          buildGlassLayerPlan(
+            sampleSize = coordinates.sampleSize.roundToIntSize(),
+            groupCompositeSize = resolveGlassGroupCompositeSize(
+              outputSize = outputSize,
+              alpha = style.alpha,
+              interactionLayersActive = interactionLayersActive,
+              interactionTopology = interactionTopology,
+            ),
+            blurRadiusPx = params.blurRadiusPx,
+            depth = params.depth,
+            allowNativeWideBlur = params.progressive == null,
+            refractionDetailActive =
+            params.activeRefractionDetailEffectKey(params.refractionDetailIntensity) != null,
+            rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight, params.edgeOutline),
+            interactionPatchSize = interactionPatchSize,
+            interactionOpticsActive = interactionTopology.hasOptics,
+            interactionLightingActive = interactionTopology.hasLighting,
+          )
+        }
+      }
       val resolvedDecision = if (requestedScaleOverride != null) {
         val forcedPlan = buildPlan(requestedScale)
         when {
