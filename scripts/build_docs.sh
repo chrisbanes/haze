@@ -14,7 +14,9 @@ rm -rf docs/sample/
 mkdir -p docs/sample
 cp -r sample/web/build/dist/wasmJs/productionExecutable/ docs/sample/wasm/
 
-cp CHANGELOG.md docs/changelog.md
+# Older changelog entries use HTML details blocks, where Markdown links are left as text.
+sed 's|\[\([^]]*\)\](https://chrisbanes\.github\.io/haze/migrating-2\.0/)|<a href="../migrating-2.0/">\1</a>|g' \
+    CHANGELOG.md > docs/changelog.md
 
 mkdir -p docs/javascripts
 curl --fail --location --silent --show-error \
