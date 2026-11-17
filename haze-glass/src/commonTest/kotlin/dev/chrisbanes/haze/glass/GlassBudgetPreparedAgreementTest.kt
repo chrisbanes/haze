@@ -28,15 +28,16 @@ import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
+import dev.chrisbanes.haze.test.ContextTest
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
 import kotlinx.coroutines.CoroutineScope
 
 /**
  * The budget plan is built before the prepared render, so the two must agree on which layers are
- * active. Compares non-fused plans, so it only holds on JVM (Android fuses detail into one layer).
+ * active on both retained and Android fused renderers.
  */
-class GlassBudgetPreparedAgreementTest {
+class GlassBudgetPreparedAgreementTest : ContextTest() {
   @Test
   fun budgetAndPreparedPlans_agreeAtTheRefractionDetailThreshold() {
     val below = detailStyle(refractionStrength = .008f)
@@ -45,7 +46,7 @@ class GlassBudgetPreparedAgreementTest {
     assertThat(activeDetailKey(below)).isNull()
     assertThat(activeDetailKey(above)).isNotNull()
     assertThat(budgetPlan(below).hasKind(GlassRetainedLayerKind.RefractionDetail)).isFalse()
-    assertThat(budgetPlan(above).hasKind(GlassRetainedLayerKind.RefractionDetail)).isTrue()
+    assertThat(budgetPlan(above).hasKind(GlassRetainedLayerKind.RefractionDetail)).isEqualTo(!supportsFusedGlassRenderEffect)
     assertThat(budgetPlan(below).layers).isEqualTo(preparedPlan(below).layers)
     assertThat(budgetPlan(above).layers).isEqualTo(preparedPlan(above).layers)
   }
@@ -55,7 +56,7 @@ class GlassBudgetPreparedAgreementTest {
     val style = detailStyle(refractionStrength = .009f)
 
     assertThat(budgetPlan(style, scale = 0.5f).hasKind(GlassRetainedLayerKind.RefractionDetail))
-      .isTrue()
+      .isEqualTo(!supportsFusedGlassRenderEffect)
     assertThat(budgetPlan(style, scale = 0.5f).layers)
       .isEqualTo(preparedPlan(style, scale = 0.5f).layers)
   }
@@ -65,7 +66,7 @@ class GlassBudgetPreparedAgreementTest {
     val style = detailStyle(refractionStrength = .009f, depth = 0.5f)
 
     listOf(1f, 0.5f).forEach { scale ->
-      assertThat(budgetPlan(style, scale).hasKind(GlassRetainedLayerKind.DepthMixed)).isTrue()
+      assertThat(budgetPlan(style, scale).hasKind(GlassRetainedLayerKind.DepthMixed)).isEqualTo(!supportsFusedGlassRenderEffect)
       assertThat(budgetPlan(style, scale).layers).isEqualTo(preparedPlan(style, scale).layers)
     }
   }
@@ -86,6 +87,32 @@ class GlassBudgetPreparedAgreementTest {
 
       assertThat(budgetPlan(style).hasKind(GlassRetainedLayerKind.Rim)).isEqualTo(expectedRim)
       assertThat(budgetPlan(style).layers).isEqualTo(preparedPlan(style).layers)
+    }
+  }
+
+  @Test
+  fun budgetAndPreparedPlans_agreeWithOutlineAndMergedLighting() {
+    val field = mergedField(
+      mergedMember(0f, 0f, 100f, 80f, lightPosition = Offset(30f, 30f), lightRadius = 20f, lightIntensity = 1f),
+      mergedMember(90f, 0f, 100f, 80f),
+    )
+    for (merged in listOf(null, field)) {
+      for (scale in listOf(1f, 0.5f)) {
+        for (alpha in listOf(1f, 0.5f)) {
+          val style = detailStyle(refractionStrength = .009f, depth = 0.5f) {
+            noBuiltInEdges()
+            specularIntensity(0f)
+            edgeShadow(Color.Transparent)
+            edgeOutline(Color.Black, 3.dp)
+            alpha(alpha)
+          }
+          val budget = budgetPlan(style, scale, merged)
+          assertThat(budget.hasKind(GlassRetainedLayerKind.Rim)).isTrue()
+          assertThat(budget.hasKind(GlassRetainedLayerKind.InteractionLighting)).isEqualTo(merged != null)
+          assertThat(budget.layers, "merged=${merged != null} scale=$scale alpha=$alpha")
+            .isEqualTo(preparedPlan(style, scale, merged).layers)
+        }
+      }
     }
   }
 
@@ -135,8 +162,8 @@ class GlassBudgetPreparedAgreementTest {
   }
 
   /** The plan from the budget lambda, which `runtimeShaderSupported = true` would validate away. */
-  private fun budgetPlan(style: GlassStyle, scale: Float = 1f): GlassRetainedLayerPlan {
-    val effect = effectWith(style)
+  private fun budgetPlan(style: GlassStyle, scale: Float = 1f, field: GlassMergedField? = null): GlassRetainedLayerPlan {
+    val effect = effectWith(style).apply { mergedField = field }
     val decision = effect.prepareRenderBudget(
       AgreementContext(),
       runtimeShaderSupported = false,
@@ -146,8 +173,8 @@ class GlassBudgetPreparedAgreementTest {
     return (decision as GlassRenderBudgetDecision.Runtime).plan
   }
 
-  private fun preparedPlan(style: GlassStyle, scale: Float = 1f): GlassRetainedLayerPlan {
-    val effect = effectWith(style)
+  private fun preparedPlan(style: GlassStyle, scale: Float = 1f, field: GlassMergedField? = null): GlassRetainedLayerPlan {
+    val effect = effectWith(style).apply { mergedField = field }
     effect.prepareRenderBudget(
       AgreementContext(),
       runtimeShaderSupported = true,

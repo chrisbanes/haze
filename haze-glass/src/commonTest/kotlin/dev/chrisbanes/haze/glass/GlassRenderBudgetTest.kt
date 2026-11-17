@@ -72,7 +72,7 @@ class GlassRenderBudgetTest {
   @Test
   fun configuredInteractionBudget_usesLocalPatchSize() {
     val patchSize = IntSize(240, 240)
-    val plan = buildGlassBudgetLayerPlan(
+    val plan = buildGlassLayerPlan(
       sampleSize = IntSize(1000, 600),
       blurRadiusPx = 0f,
       depth = 0f,
@@ -114,7 +114,7 @@ class GlassRenderBudgetTest {
 
   @Test
   fun fractionalAlpha_addsMaterialSizedGroupCompositeToBudget() {
-    val plan = buildGlassBudgetLayerPlan(
+    val plan = buildGlassLayerPlan(
       sampleSize = IntSize(100, 100),
       groupCompositeSize = IntSize(200, 300),
       blurRadiusPx = 0f,
@@ -184,7 +184,7 @@ class GlassRenderBudgetTest {
 
   @Test
   fun wideNativeBlur_budgetsOnlyItsFullSizeOutput() {
-    val plan = buildGlassBudgetLayerPlan(
+    val plan = buildGlassLayerPlan(
       sampleSize = IntSize(1_080, 1_920),
       blurRadiusPx = 84f,
       depth = 1f,
@@ -286,7 +286,7 @@ class GlassRenderBudgetTest {
   fun fusedPlan_doesNotBudgetRetainedBlurTopology() {
     val result = resolveGlassRenderBudget(1f) { scale ->
       val side = (2_191 * scale).roundToInt().coerceAtLeast(1)
-      buildGlassBudgetLayerPlan(
+      buildGlassLayerPlan(
         sampleSize = IntSize(side, side),
         blurRadiusPx = 22.24324f * scale,
         depth = 1f,
