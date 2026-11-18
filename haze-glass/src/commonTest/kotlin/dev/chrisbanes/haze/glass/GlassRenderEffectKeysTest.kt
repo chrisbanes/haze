@@ -539,6 +539,76 @@ class GlassRenderEffectKeysTest {
     assertThat(updated.rimKey?.rimHighlight).isEqualTo(GlassRimHighlight(0.8f, 3f, 0f))
   }
 
+  @Test
+  fun preparedRender_reuseMatchesFreshPreparationAcrossInputChanges() {
+    val base = params()
+    val first = preparedRender(base)
+    val changes = mapOf(
+      "sample size" to base.copy(coordinates = base.coordinates.copy(sampleSize = Size(800f, 600f))),
+      "material origin" to base.copy(coordinates = base.coordinates.copy(materialOrigin = Offset(10.5f, 7.5f))),
+      "material size" to base.copy(coordinates = base.coordinates.copy(materialSize = Size(300f, 200f))),
+      "scale" to base.copy(coordinates = base.coordinates.copy(scaleFactor = 0.5f)),
+      "coverage" to base.copy(coordinates = base.coordinates.copy(pixelAligned = true)),
+      "refractionStrength" to base.copy(refractionStrength = 0.9f),
+      "refractionFoldStrength" to base.copy(refractionFoldStrength = 0.2f),
+      "specularIntensity" to base.copy(specularIntensity = 0.8f),
+      "edgeShadow" to base.copy(edgeShadow = Color.Red),
+      "depth" to base.copy(depth = 0.5f),
+      "ambientResponse" to base.copy(ambientResponse = 0.8f),
+      "backgroundColor" to base.copy(backgroundColor = Color.White),
+      "tint" to base.copy(tint = Color.Red),
+      "edgeSoftnessPx" to base.copy(edgeSoftnessPx = 8f),
+      "blurRadiusPx" to base.copy(blurRadiusPx = 40f),
+      "blurSigmaPx" to base.copy(blurSigmaPx = 12f),
+      "progressive" to base.copy(progressive = HazeProgressive.verticalGradient()),
+      "refractionHeightPx" to base.copy(refractionHeightPx = 30f),
+      "chromaticAberrationStrength" to base.copy(chromaticAberrationStrength = 0.4f),
+      "surfaceProfile" to base.copy(surfaceProfile = 1f),
+      "chromaticAberrationMode" to base.copy(chromaticAberrationMode = 1f),
+      "contrast" to base.copy(contrast = 0.5f),
+      "whitePoint" to base.copy(whitePoint = 0.5f),
+      "chromaMultiplier" to base.copy(chromaMultiplier = 0.5f),
+      "refractionScalePx" to base.copy(refractionScalePx = 30f),
+      "contentNormalBlend" to base.copy(contentNormalBlend = 0.5f),
+      "specularExponent" to base.copy(specularExponent = 32f),
+      "fresnelExponent" to base.copy(fresnelExponent = 4f),
+      "cornerRadii" to base.copy(cornerRadii = CornerRadii(16f, 16f, 16f, 16f, 0.6f, 0.6f, 0.6f, 0.6f)),
+      "lightPosition" to base.copy(lightPosition = Offset(30f, 20f)),
+      "sampleStepPx" to base.copy(sampleStepPx = 3f),
+      "refractionDetailIntensity" to base.copy(refractionDetailIntensity = 0f),
+      "edgeRefractionWidthPx" to base.copy(edgeRefractionWidthPx = 24f),
+      "mergedField" to base.copy(mergedField = mergedField(mergedMember(0f, 0f, 100f, 40f))),
+      "rimHighlight" to base.copy(rimHighlight = GlassRimHighlight(0.8f, 3f, 0f)),
+      "edgeOutline" to base.copy(edgeOutline = GlassEdgeOutline(Color.Black, 3f)),
+      "circularCornerOptics" to base.copy(circularCornerOptics = true),
+      "blur disabled" to base.copy(blurRadiusPx = 0f),
+      "depth disabled" to base.copy(depth = 0f),
+      "rim disabled" to base.copy(specularIntensity = 0f, edgeShadow = Color.Transparent),
+    )
+    for ((name, changed) in changes) {
+      val reused = preparedRender(changed, previous = first)
+      assertSamePreparation(reused, preparedRender(changed), name)
+      assertSamePreparation(preparedRender(base, previous = reused), first, "$name restored")
+    }
+    val unchanged = preparedRender(base.copy(), previous = first)
+    assertThat(unchanged.blurKey).isSameInstanceAs(first.blurKey)
+    assertThat(unchanged.opticalKey).isSameInstanceAs(first.opticalKey)
+    assertThat(unchanged.refractionDetailKey).isSameInstanceAs(first.refractionDetailKey)
+    assertThat(unchanged.rimKey).isSameInstanceAs(first.rimKey)
+    assertThat(unchanged.plan).isSameInstanceAs(first.plan)
+  }
+
+  private fun assertSamePreparation(actual: GlassPreparedRender, expected: GlassPreparedRender, name: String) {
+    assertThat(actual.blurKey, "$name blur").isEqualTo(expected.blurKey)
+    assertThat(actual.opticalKey, "$name optics").isEqualTo(expected.opticalKey)
+    assertThat(actual.refractionDetailKey, "$name detail").isEqualTo(expected.refractionDetailKey)
+    assertThat(actual.rimKey, "$name rim").isEqualTo(expected.rimKey)
+    assertThat(actual.plan, "$name plan").isEqualTo(expected.plan)
+    assertThat(actual.groupCompositeSize, "$name composite").isEqualTo(expected.groupCompositeSize)
+    assertThat(actual.interactionPatchSize, "$name patch").isEqualTo(expected.interactionPatchSize)
+    assertThat(actual.interactionUniforms, "$name interaction").isEqualTo(expected.interactionUniforms)
+  }
+
   private fun preparedRender(params: GlassRenderParams, previous: GlassPreparedRender? = null) =
     buildGlassPreparedRender(
       params = params,

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `GlassDefaults.continuousShape` exposes the default continuous 16 dp shape for clips, borders and
+  indications ([#1743](https://github.com/chrisbanes/haze/issues/1743)).
 - Glass fallback rendering blurs captured content on Android 12 and 12L hardware and uses an
   automatic scrim on unblurred paths. Set `fallbackColor` to replace or disable that scrim. Clear
   uses its light response in both system appearances
@@ -23,24 +25,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ([#1734](https://github.com/chrisbanes/haze/issues/1734)).
 - Glass styles can draw a thin light band inside a surface's top and bottom edges with
   `rimHighlight(intensity, width, sides)`, where `sides` sets how strongly the left and right edges
-  are lit. It is off by default and follows merged container shapes
+  are lit. It follows merged container shapes
   ([#1742](https://github.com/chrisbanes/haze/issues/1742)).
 - Glass interaction responses accept a `scale` up to `1.2f`, so a pressed surface can grow instead of
   shrinking. A grown member of a `hazeGlassContainer` merges with nearby neighbours while pressed
   ([#1735](https://github.com/chrisbanes/haze/issues/1735)).
 - Glass styles can draw a thin line just outside a surface's shape with `edgeOutline(color, width)`,
-  separating the Glass from its backdrop. It is off by default, follows merged container shapes, and
-  has an equivalent stroke on limited renderers
-  ([#1741](https://github.com/chrisbanes/haze/issues/1741)).
+  separating the Glass from its backdrop. The outline follows merged container shapes and leaves
+  the rim visible up to the outermost pixel inside a straight node-bound edge. Limited renderers
+  draw an equivalent stroke ([#1741](https://github.com/chrisbanes/haze/issues/1741),
+  [#1798](https://github.com/chrisbanes/haze/issues/1798)).
+
+### Changed
+
+- Glass uses continuous 16 dp corners when no shape is authored. Regular and Clear draw a thin dark
+  outline and a top and bottom rim highlight, stronger on Clear; dark Regular has a lighter interior
+  with less backdrop contrast. Custom styles inherit Regular's edges, which can be disabled with
+  later `edgeOutline` and `rimHighlight` writes. Authored shapes and
+  Clear's appearance-independent ordinary response are preserved
+  ([#1743](https://github.com/chrisbanes/haze/issues/1743)).
+- Glass with circular corners does less shader work across the flat interior of a surface, most
+  noticeably in merged containers. The rendered result is unchanged
+  ([#1766](https://github.com/chrisbanes/haze/issues/1766)).
+- Glass containers do less shader work for members that are too far from a pixel to shape it.
+  The rendered result is unchanged ([#1766](https://github.com/chrisbanes/haze/issues/1766)).
+- On Android, `HazePerformanceMode.Performance` and other modes below `Balanced` refract and light
+  continuous Glass corners as circular corners of the same radius. The silhouette and edge softness
+  stay exact; `Balanced` and `Quality` are unchanged
+  ([#1766](https://github.com/chrisbanes/haze/issues/1766)).
+
+### Deprecated
+
+- `GlassDefaults.shape` retains its circular value and released getter type. Use
+  `GlassDefaults.continuousShape` for the new default, or `RoundedCornerShape(16.dp)` to keep the
+  former corners ([#1743](https://github.com/chrisbanes/haze/issues/1743)).
 
 ### Fixed
 
+- Progressive blur avoids long first-render pauses on Windows Direct3D, including when opening a
+  new window ([#1260](https://github.com/chrisbanes/haze/issues/1260)).
 - Progressive blur preserves edge opacity by keeping accepted samples inside the captured content
   ([#1727](https://github.com/chrisbanes/haze/issues/1727)).
 - Progressive blur keeps its crop within the captured content when downscaling, including expanded
   bounds and fractional offsets ([#1728](https://github.com/chrisbanes/haze/issues/1728)).
+- Progressive blur no longer lets the page show through the edges of its content in the Default and
+  Performance modes, where the mask leaves those edges unblurred
+  ([#1772](https://github.com/chrisbanes/haze/issues/1772)).
 - Blur masks and brush tints keep their authored positions when captured content is scaled or
   resized ([#1730](https://github.com/chrisbanes/haze/issues/1730)).
+- Glass no longer lets the layer beneath show through the straight edges of its surfaces, such as
+  a bar docked to a window edge. Unmerged surfaces now cover the outermost pixels of those edges
+  whatever their corners, with or without an edge outline or expanded layer bounds, except with
+  `HazeInput.Backdrop`. Square surfaces do so at full and reduced input scale; rounded and
+  continuous ones in the Default and Quality modes. A surface that refracts outwards, such as a
+  strongly concave one, still shows the layer beneath where its refraction reads past the content
+  it captured. These surfaces also draw fine detail more sharply, because their content is no
+  longer resampled at a sub-pixel offset
+  ([#1775](https://github.com/chrisbanes/haze/issues/1775),
+  [#1785](https://github.com/chrisbanes/haze/issues/1785)).
 
 ## 2.1.0 <small>2026-11-02</small> { id="2.1.0" }
 

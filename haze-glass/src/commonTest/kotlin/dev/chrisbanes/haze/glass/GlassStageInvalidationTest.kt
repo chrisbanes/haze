@@ -6,12 +6,14 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
@@ -613,6 +615,32 @@ class GlassStageInvalidationTest {
     assertThat(second).isSameInstanceAs(first)
     assertThat(second.hasDrawableSource).isTrue()
     assertThat(second.snapshot).isSameInstanceAs(first.snapshot)
+  }
+
+  @Test
+  fun resolveGlassRuntimeSourceState_changedCapturePlacementBuildsNewState() {
+    // A clipped layer can keep its size and offset while the material, and so its placement, changes.
+    val previous = snapshot(captureScale = 0.79f)
+    val aligned = GlassCoordinates(
+      sampleSize = Size(79f, 63f),
+      materialOrigin = Offset(0f, 1f),
+      materialSize = Size(79f, 62f),
+      scaleFactor = 0.79f,
+      captureScale = ScaleFactor(0.79f, 0.7875f),
+      pixelAligned = true,
+    )
+    val second = resolveGlassRuntimeSourceState(
+      captureScale = 0.79f,
+      layerSize = Size(100f, 80f),
+      layerOffset = Offset.Zero,
+      hasDrawableInput = true,
+      inputSnapshot = TestInputSnapshot(1),
+      previousSnapshot = previous,
+      alignedCoordinates = aligned,
+    )
+
+    assertThat(second.snapshot).isNotNull().isNotSameInstanceAs(previous)
+    assertThat(second.snapshot!!.alignedCoordinates).isEqualTo(aligned)
   }
 
   @Test

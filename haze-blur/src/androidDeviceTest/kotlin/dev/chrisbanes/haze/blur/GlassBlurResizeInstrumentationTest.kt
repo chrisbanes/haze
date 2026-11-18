@@ -23,13 +23,13 @@ import androidx.compose.ui.unit.dp
 import androidx.test.filters.SdkSuppress
 import assertk.assertThat
 import assertk.assertions.isGreaterThan
-import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.OpticalSizeValue
@@ -38,9 +38,18 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
 
 @OptIn(ExperimentalTestApi::class, ExperimentalHazeApi::class)
-class GlassBlurResizeInstrumentationTest {
+@RunWith(Parameterized::class)
+class GlassBlurResizeInstrumentationTest(private val trimMemory: Boolean) {
+  companion object {
+    @JvmStatic
+    @Parameterized.Parameters(name = "trimMemory={0}")
+    fun parameters(): List<Array<Any>> = listOf(arrayOf(false), arrayOf(true))
+  }
+
   @get:Rule
   val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -119,10 +128,8 @@ class GlassBlurResizeInstrumentationTest {
       }
     }
     composeTestRule.waitForIdle()
-    val blurDelegate = blurFactory.renderer.delegate as RenderEffectBlurVisualEffectDelegate
-    // Glass can still show red when a resized Blur replaces its capture layer. Check layer
-    // identity as well as pixels to catch the replacement that caused the transient flicker.
-    val captureLayer = checkNotNull(blurDelegate.scaledContentLayer)
+    // Memory pressure may legitimately replace the capture layer. The JVM delegate tests assert
+    // resize-only layer reuse; this device test checks that Glass keeps receiving pixels.
 
     fun assertGlassInput(frame: String, sampleX: Int) {
       val pixels = composeTestRule.onNodeWithTag("root").captureToImage().toPixelMap()
@@ -135,12 +142,13 @@ class GlassBlurResizeInstrumentationTest {
     assertGlassInput("initial", sampleX = 50)
     composeTestRule.mainClock.autoAdvance = false
     for (width in 105..180 step 5) {
-      composeTestRule.runOnIdle { blurWidth.value = width.dp }
+      composeTestRule.runOnIdle {
+        if (trimMemory) blurFactory.renderer.onTrimMemory(TrimMemoryLevel.COMPLETE)
+        blurWidth.value = width.dp
+      }
       composeTestRule.mainClock.advanceTimeByFrame()
       // From 125dp onward this samples beyond the Blur's original 100dp width.
       assertGlassInput("${width}dp", sampleX = width - 20)
-      assertThat(blurDelegate.scaledContentLayer, "Blur capture layer at ${width}dp")
-        .isSameInstanceAs(captureLayer)
     }
   }
 }

@@ -317,9 +317,9 @@ private fun PixelSnapshot.maxChannelDifference(other: PixelSnapshot): Float {
   require(width == other.width && height == other.height) {
     "Cannot compare ${width}x$height to ${other.width}x${other.height}"
   }
-  return colors.indices.maxOf { index ->
-    val first = colors[index]
-    val second = other.colors[index]
+  return (0 until size).maxOf { index ->
+    val first = this[index]
+    val second = other[index]
     maxOf(
       abs(first.red - second.red),
       abs(first.green - second.green),

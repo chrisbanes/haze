@@ -17,7 +17,9 @@ class GlassRoundedEdgeInvariantTest {
       height = 2,
       colors = List(4) { Color.Black },
     )
-    val effectClip = internalMaskOnly.copy(
+    val effectClip = PixelSnapshot(
+      width = 2,
+      height = 2,
       colors = internalMaskOnly.colors.toMutableList().apply {
         this[0] = Color(0.5f, 0f, 0f)
       },

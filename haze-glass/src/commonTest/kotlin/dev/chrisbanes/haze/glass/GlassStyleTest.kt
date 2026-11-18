@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAbsoluteAlignment
@@ -455,7 +456,7 @@ class GlassStyleTest {
     assertThat(resolved.tint).isEqualTo(Color.Blue)
     assertThat(resolved.alpha).isEqualTo(0.75f)
     assertThat(resolved.contrast).isEqualTo(0.25f)
-    assertThat(resolved.shape).isEqualTo(GlassDefaults.shape)
+    assertThat(resolved.shape).isEqualTo(GlassDefaults.continuousShape)
   }
 
   @Test
@@ -585,14 +586,6 @@ class GlassStyleTest {
   }
 
   @Test
-  fun edgeOutline_defaultIsNone() {
-    val values = resolveGlassStyleValues(GlassStyle, GlassStyle)
-
-    assertThat(values.edgeOutlineColor).isEqualTo(Color.Transparent)
-    assertThat(values.edgeOutlineWidth).isEqualTo(0.dp)
-  }
-
-  @Test
   fun edgeSoftness_rejectsInvalidValuesWhenEvaluated() {
     listOf(Dp.Unspecified, Float.NaN.dp, Float.NEGATIVE_INFINITY.dp, (-1).dp, Float.POSITIVE_INFINITY.dp)
       .forEach { invalid ->
@@ -600,19 +593,6 @@ class GlassStyleTest {
           edgeSoftness(invalid)
         }
       }
-  }
-
-  @Test
-  fun rimHighlight_defaultsToNone() {
-    val styles = listOf(GlassStyle, GlassStyle.regular, GlassStyle.clear)
-    for (appearance in GlassSystemAppearance.entries) {
-      for (style in styles) {
-        val values = resolveGlassStyleValues(GlassStyle, style, appearance)
-        assertThat(values.rimHighlightIntensity).isEqualTo(0f)
-        assertThat(values.rimHighlightWidth).isEqualTo(0.dp)
-        assertThat(values.rimHighlightSides).isEqualTo(0f)
-      }
-    }
   }
 
   @Test
@@ -974,10 +954,152 @@ class GlassStyleTest {
     assertThat(resolved.shape).isEqualTo(RoundedCornerShape(8.dp))
   }
 
+  /** Local and explicit Styles covering explicit built-ins and a custom Style inheriting Regular. */
+  private val defaultResolutions = listOf(
+    GlassStyle to GlassStyle,
+    GlassStyle to GlassStyle.regular,
+    GlassStyle to GlassStyle.clear,
+    GlassStyle { tint(Color.Red) } to GlassStyle,
+  )
+
   @Test
-  fun shape_builtInStylesKeepCircularDefault() {
-    assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle.regular).shape).isEqualTo(GlassDefaults.shape)
-    assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle.clear).shape).isEqualTo(GlassDefaults.shape)
+  fun builtInStyles_applySelectedC1EdgesAndTone() {
+    val clearLight = resolveGlassStyleValues(GlassStyle, GlassStyle.clearLight)
+    for (appearance in GlassSystemAppearance.entries) {
+      for ((local, explicit) in defaultResolutions) {
+        val values = resolveGlassStyleValues(local, explicit, appearance)
+        val clear = explicit === GlassStyle.clear
+        assertThat(values.edgeOutlineColor).isEqualTo(Color.Black.copy(alpha = 0.4f))
+        assertThat(values.edgeOutlineWidth).isEqualTo(0.7.dp)
+        assertThat(values.rimHighlightIntensity).isEqualTo(if (clear) 1f else 0.6f)
+        assertThat(values.rimHighlightWidth).isEqualTo(1.dp)
+        assertThat(values.rimHighlightSides).isEqualTo(0f)
+        when {
+          clear -> {
+            assertThat(values.specularIntensity).isEqualTo(clearLight.specularIntensity)
+            assertThat(values.edgeShadow).isEqualTo(clearLight.edgeShadow)
+            assertThat(values.ambientResponse).isEqualTo(clearLight.ambientResponse)
+            assertThat(values.contrast).isEqualTo(clearLight.contrast)
+            assertThat(values.whitePoint).isEqualTo(clearLight.whitePoint)
+            assertThat(values.chromaMultiplier).isEqualTo(clearLight.chromaMultiplier)
+          }
+          appearance == GlassSystemAppearance.Dark -> {
+            assertThat(values.whitePoint).isEqualTo(-0.10f)
+            assertThat(values.contrast).isEqualTo(0.02f)
+          }
+          else -> {
+            assertThat(values.whitePoint).isEqualTo(GlassDefaults.whitePoint)
+            assertThat(values.contrast).isEqualTo(GlassDefaults.contrast)
+          }
+        }
+      }
+    }
+  }
+
+  @Test
+  fun builtInStyles_edgesCanBeDisabledAfterBuiltIn() {
+    for (builtIn in listOf(GlassStyle.regular, GlassStyle.clear)) {
+      val values = resolveGlassStyleValues(
+        GlassStyle,
+        builtIn.then {
+          edgeOutline(Color.Transparent, 0.dp)
+          rimHighlight(0f, 0.dp, 0f)
+        },
+      )
+      assertThat(values.edgeOutlineColor).isEqualTo(Color.Transparent)
+      assertThat(values.edgeOutlineWidth).isEqualTo(0.dp)
+      assertThat(values.rimHighlightIntensity).isEqualTo(0f)
+      assertThat(values.rimHighlightWidth).isEqualTo(0.dp)
+      assertThat(values.drawExtent).isEqualTo(0.dp)
+    }
+  }
+
+  @Test
+  fun shape_unauthoredUsesContinuousDefault() {
+    for (appearance in GlassSystemAppearance.entries) {
+      for ((local, explicit) in defaultResolutions) {
+        val shape = resolveGlassStyleValues(local, explicit, appearance).shape
+        assertThat(shape).isSameInstanceAs(GlassDefaults.continuousShape)
+        assertThat(shape).isEqualTo(ContinuousRoundedCornerShape(16.dp, smoothing = 1f))
+      }
+    }
+    val continuous = GlassDefaults.continuousShape
+    assertThat(continuous.smoothing).isEqualTo(1f)
+    assertThat(continuous.topStart).isEqualTo(CornerSize(16.dp))
+    assertThat(continuous.bottomEnd).isEqualTo(CornerSize(16.dp))
+  }
+
+  @Test
+  fun shape_authoredShapesSurviveBuiltInsInEitherOrder() {
+    val rounded = RoundedCornerShape(topStart = 4.dp, topEnd = 9.dp, bottomEnd = 13.dp, bottomStart = 17.dp)
+    val continuous = ContinuousRoundedCornerShape(
+      CornerSize(4.dp),
+      CornerSize(9.dp),
+      CornerSize(13.dp),
+      CornerSize(17.dp),
+      smoothing = 0.6f,
+    )
+    val circular = RoundedCornerShape(16.dp)
+    val authoredStyles = listOf(
+      rounded to GlassStyle { shape(rounded) },
+      continuous to GlassStyle { shape(continuous) },
+      circular to GlassStyle { shape(circular) },
+    )
+    for (builtIn in listOf(GlassStyle.regular, GlassStyle.clear)) {
+      for ((authored, shapeStyle) in authoredStyles) {
+        val resolutions = listOf(
+          resolveGlassStyleValues(shapeStyle, builtIn),
+          resolveGlassStyleValues(GlassStyle, builtIn.then(shapeStyle)),
+          resolveGlassStyleValues(GlassStyle, shapeStyle.then(builtIn)),
+          resolveGlassStyleValues(GlassStyle { shape(RoundedCornerShape(3.dp)) }, builtIn.then(shapeStyle)),
+        )
+        for (values in resolutions) {
+          assertThat(values.shape).isSameInstanceAs(authored)
+        }
+      }
+    }
+  }
+
+  @Test
+  fun builtInStyles_preserveCallerWritesAndOrder() {
+    for (builtIn in listOf(GlassStyle.regular, GlassStyle.clear)) {
+      val authored = GlassStyle {
+        tint(Color.Red)
+        backgroundColor(Color.Transparent)
+        fallbackColor(Color.Blue)
+        alpha(0.7f)
+        lightPosition(Alignment.BottomEnd)
+        hovered { lightingIntensity(0.3f) }
+      }
+      val values = resolveGlassStyleValues(authored, builtIn, GlassSystemAppearance.Dark)
+      assertThat(values.tint).isEqualTo(Color.Red)
+      assertThat(values.backgroundColor).isEqualTo(Color.Transparent)
+      assertThat(values.fallbackColor).isEqualTo(Color.Blue)
+      assertThat(values.alpha).isEqualTo(0.7f)
+      assertThat(values.lightPosition).isEqualTo(Alignment.BottomEnd)
+      assertThat(values.hoveredInteraction?.lightingIntensity?.value).isEqualTo(0.3f)
+      val overridden = resolveGlassStyleValues(
+        authored,
+        builtIn.then {
+          tint(Color.Transparent)
+          fallbackColor(Color.Unspecified)
+          contrast(0.3f)
+        },
+        GlassSystemAppearance.Dark,
+      )
+      assertThat(overridden.tint).isEqualTo(Color.Transparent)
+      assertThat(overridden.fallbackColor).isEqualTo(Color.Unspecified)
+      assertThat(overridden.contrast).isEqualTo(0.3f)
+      assertThat(resolveGlassStyleValues(GlassStyle, builtIn.then { fallbackColor(Color.Transparent) }).fallbackColor)
+        .isEqualTo(Color.Transparent)
+    }
+  }
+
+  @Suppress("DEPRECATION")
+  @Test
+  fun deprecatedShape_keepsCircularValue() {
+    val shape: RoundedCornerShape = GlassDefaults.shape
+    assertThat(shape).isEqualTo(RoundedCornerShape(16.dp))
   }
 }
 

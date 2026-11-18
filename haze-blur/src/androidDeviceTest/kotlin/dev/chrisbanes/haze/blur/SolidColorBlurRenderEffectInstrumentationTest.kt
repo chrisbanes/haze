@@ -131,12 +131,13 @@ class SolidColorBlurRenderEffectInstrumentationTest {
     install()
     verifyInputControls()
     // Dst discards its tint source; compare each API variant against the destination itself.
-    val dstColors = listOf(0f, 0.002f, 0.004f, 0.005f, 1f / 255, 2f / 255, 0.25f, 0.5f, 1f).map { Color.Green.copy(alpha = it) } + Color(0.2f, 0.7f, 0.4f, 0.5f)
+    val dstColors = (listOf(0f, 0.002f, 0.004f, 0.005f, 1f / 255, 2f / 255, 0.25f, 0.5f, 1f).map { Color.Green.copy(alpha = it) } + Color(0.2f, 0.7f, 0.4f, 0.5f)).distinct()
+    // The fixture and arguments never change across colors, so one reference serves every iteration.
+    val identityDestination = raster()
     for (color in dstColors) {
-      val destination = raster()
       for (effect in listOf(HazeColorEffect.tint(color, BlendMode.Dst), HazeColorEffect.tint(SolidColor(color), BlendMode.Dst))) {
         val actual = raster(effects = listOf(effect))
-        compare(actual, destination, "Dst identity $color $effect")
+        compare(actual, identityDestination, "Dst identity $color $effect")
         assertMaskedInput(actual, 1f, "Dst unchanged input")
       }
     }
@@ -146,11 +147,12 @@ class SolidColorBlurRenderEffectInstrumentationTest {
       HazeColorEffect.tint(Color.Green.copy(alpha = 0.25f), BlendMode.Dst),
       HazeColorEffect.tint(SolidColor(Color.Green.copy(alpha = 0.25f)), BlendMode.Dst),
     )
-    for (modulate in listOf(0f, 0.25f, 0.5f, 1f)) for (brush in dstProgressives) {
+    for (brush in dstProgressives) {
       val progressive = brush?.let { HazeProgressive.Brush(it) }
       for (mask in listOf(null, SolidColor(Color.Black.copy(alpha = 0.5f)))) {
-        val destination = raster(mask = mask, progressive = progressive, modulate = modulate)
-        for (effect in dstEffects) {
+        // No color effects, so modulate cannot change this reference; it is captured once for all modulate values.
+        val destination = raster(mask = mask, progressive = progressive)
+        for (modulate in listOf(0f, 0.25f, 0.5f, 1f)) for (effect in dstEffects) {
           val actual = raster(mask = mask, effects = listOf(effect), progressive = progressive, modulate = modulate)
           compare(actual, destination, "Dst modulated identity $modulate $brush mask=$mask")
           assertMaskedInput(actual, if (mask == null) 1f else 0.5f, "Dst preserves overall mask")
@@ -266,7 +268,7 @@ class SolidColorBlurRenderEffectInstrumentationTest {
     val supplied = raster(effects = listOf(HazeColorEffect.tint(SolidColor(Color.Green))))
     assertThat(probe(supplied, 0.25f, 0.25f).green, "supplied green-brush-tint reproduction").isCloseTo(1f, TOLERANCE)
     assertThat(probe(supplied, 0.25f, 0.25f).red).isCloseTo(0f, TOLERANCE)
-    val colors = listOf(0f, 0.002f, 0.004f, 0.005f, 1f / 255, 2f / 255, 0.25f, 0.5f, 1f).map { Color.Green.copy(alpha = it) } + Color(0.2f, 0.7f, 0.4f, 0.5f)
+    val colors = (listOf(0f, 0.002f, 0.004f, 0.005f, 1f / 255, 2f / 255, 0.25f, 0.5f, 1f).map { Color.Green.copy(alpha = it) } + Color(0.2f, 0.7f, 0.4f, 0.5f)).distinct()
     for (mode in MODES) for (color in colors) {
       compare(
         raster(effects = listOf(HazeColorEffect.tint(SolidColor(color), mode))),

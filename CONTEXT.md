@@ -80,6 +80,12 @@ They draw as one Glass shape over their combined bounds, whatever the distance b
 group takes part in a Glass cluster as one member.
 _Avoid_: Glass container, union
 
+**Node-bound edge**:
+A straight part of a Glass surface's silhouette that lies on the bounds of the surface's layout
+node. A corner that curves away from those bounds is not part of it. The edge is node-bound
+wherever the surface sits, not only where it meets a window edge.
+_Avoid_: Window edge, screen edge
+
 **Backdrop input**:
 The `HazeInput.Backdrop` intent to consume all pixels drawn earlier in the same window. A native
 renderer may consume those current-window pixels when it is eligible. When native rendering is

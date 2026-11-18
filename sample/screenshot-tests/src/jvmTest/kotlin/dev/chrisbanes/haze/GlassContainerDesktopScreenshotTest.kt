@@ -4,9 +4,10 @@
 package dev.chrisbanes.haze
 
 import dev.chrisbanes.haze.test.ScreenshotTest
-import dev.chrisbanes.haze.test.runScreenshotTest
+import dev.chrisbanes.haze.test.runScreenshotTestWithoutMotion
 import kotlin.test.Test
 
 class GlassContainerDesktopScreenshotTest : ScreenshotTest() {
-  @Test fun container() = runScreenshotTest { captureGlassContainer() }
+  // Captures are pixel-identical without motion; skipping it avoids rendering every animation frame.
+  @Test fun container() = runScreenshotTestWithoutMotion { captureGlassContainer() }
 }

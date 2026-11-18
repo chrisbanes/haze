@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
+import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
@@ -54,6 +55,94 @@ class GlassRimBrushTest {
     assertThat(band.green).isGreaterThan(maxOf(band.red, band.blue))
     assertThat(pixels[3, 48].alpha).isEqualTo(0f)
     assertThat(pixels[14, 48].alpha).isEqualTo(0f)
+  }
+
+  @Test
+  fun edgeOutline_subpixelWidths_coverFirstOutsidePixelOnNodeBoundEdges() {
+    val provider = checkNotNull(createGlassRimBrushProvider())
+    for (widthPx in listOf(0.35f, 0.5f, 0.7f)) {
+      val key = nodeBoundEdgeKey().copy(edgeOutline = GlassEdgeOutline(Color.Green.copy(alpha = 0.4f), widthPx))
+      val direct = drawBrush(checkNotNull(provider(key)))
+      val filtered = drawFilter(key)
+      assertThat(maxChannelDifference(direct, filtered), "$widthPx px direct/filter difference")
+        .isLessThanOrEqualTo(1f / 255f)
+
+      val pixels = direct.toPixelMap()
+      for ((x, y) in listOf(7 to 48, 120 to 48, 64 to 5, 64 to 90)) {
+        assertThat(pixels[x, y].alpha, "$widthPx px outline at ($x, $y)").isCloseTo(0.4f * widthPx, 1f / 255f)
+      }
+      for ((x, y) in listOf(8 to 48, 119 to 48, 64 to 6, 64 to 89, 6 to 48, 121 to 48, 64 to 4, 64 to 91)) {
+        assertThat(pixels[x, y].alpha, "$widthPx px outline at ($x, $y)").isEqualTo(0f)
+      }
+    }
+  }
+
+  @Test
+  fun edgeOutline_subpixelWidths_surviveHalfResolutionRenderEffect() {
+    val provider = checkNotNull(createGlassRimBrushProvider())
+    for (widthPx in listOf(0.35f, 0.5f, 0.7f)) {
+      val key = nodeBoundEdgeKey().copy(
+        coordinates = GlassCoordinates(Size(64f, 48f), Offset(4f, 3f), Size(56f, 42f), 0.5f, pixelAligned = true),
+        sampleStepPx = 1f,
+        edgeOutline = GlassEdgeOutline(Color.Green.copy(alpha = 0.4f), widthPx * 0.5f),
+      )
+      // A direct draw samples the presented physical pixels, with x = 8 as the material edge.
+      val direct = drawBrush(checkNotNull(provider(key)), canvasScale = 2f).toPixelMap()
+      assertThat(direct[7, 48].alpha, "$widthPx px direct outline").isCloseTo(0.4f * widthPx, 1f / 255f)
+      assertThat(direct[8, 48].alpha).isEqualTo(0f)
+      assertThat(direct[6, 48].alpha).isEqualTo(0f)
+
+      // The filter first rasterizes at working resolution, where x = 4 is the material edge.
+      val raster = drawFilter(key).toPixelMap()
+      assertThat(raster[3, 24].alpha, "$widthPx px rasterized outline").isCloseTo(0.4f * widthPx * 0.5f, 1f / 255f)
+      assertThat(raster[4, 24].alpha).isEqualTo(0f)
+      assertThat(raster[2, 24].alpha).isEqualTo(0f)
+    }
+  }
+
+  @Test
+  fun directRim_nodeBoundEdges_keepOutlineOffInsideEdgePixel() {
+    val provider = checkNotNull(createGlassRimBrushProvider())
+    val key = nodeBoundEdgeKey().copy(edgeOutline = GlassEdgeOutline(Color.Green, 3f))
+    val aligned = drawBrush(checkNotNull(provider(key))).toPixelMap()
+    val unaligned = drawBrush(checkNotNull(provider(key.notPixelAligned()))).toPixelMap()
+
+    // The material's left edge is at x = 8, so pixel 8 is the outermost pixel inside it.
+    assertThat(unaligned[8, 48].alpha).isGreaterThan(0.1f)
+    assertThat(aligned[8, 48].alpha).isEqualTo(0f)
+    assertThat(aligned[63, 89].alpha).isEqualTo(0f)
+    // All three outside pixels in the band are fully covered on the aligned side.
+    for (x in 5..7) assertThat(aligned[x, 48].alpha).isEqualTo(1f)
+    assertThat(aligned[4, 48].alpha).isEqualTo(0f)
+    assertThat(aligned[63, 90]).isEqualTo(unaligned[63, 90])
+  }
+
+  @Test
+  fun directRim_nodeBoundEdges_drawRimHighlightAtFullStrengthOnEdgePixel() {
+    val provider = checkNotNull(createGlassRimBrushProvider())
+    val key = nodeBoundEdgeKey().copy(rimHighlight = GlassRimHighlight(intensity = 1f, widthPx = 4f, sides = 1f))
+    val aligned = drawBrush(checkNotNull(provider(key))).toPixelMap()
+    val unaligned = drawBrush(checkNotNull(provider(key.notPixelAligned()))).toPixelMap()
+
+    assertThat(unaligned[8, 48].alpha).isLessThanOrEqualTo(0.6f)
+    assertThat(aligned[8, 48].alpha).isEqualTo(aligned[9, 48].alpha)
+    assertThat(aligned[9, 48].alpha).isGreaterThanOrEqualTo(0.9f)
+  }
+
+  @Test
+  fun directRim_nodeBoundEdges_keepRoundedCornerAntialiasing() {
+    val provider = checkNotNull(createGlassRimBrushProvider())
+    val key = nodeBoundEdgeKey().copy(
+      cornerRadii = CornerRadii(18f, 18f, 18f, 18f),
+      edgeOutline = GlassEdgeOutline(Color.Green, 3f),
+    )
+    val aligned = drawBrush(checkNotNull(provider(key))).toPixelMap()
+    val unaligned = drawBrush(checkNotNull(provider(key.notPixelAligned()))).toPixelMap()
+
+    // Pixel (13,11) straddles the top-left arc, away from the material rectangle; (9,7) is outside.
+    assertThat(aligned[13, 11]).isEqualTo(unaligned[13, 11])
+    assertThat(aligned[13, 11].alpha).isGreaterThan(0.1f)
+    assertThat(aligned[9, 7]).isEqualTo(unaligned[9, 7])
   }
 
   @Test
@@ -170,8 +259,9 @@ class GlassRimBrushTest {
     return provider as SkiaGlassMergedBackgroundShaderProvider
   }
 
-  private fun drawBrush(brush: Brush): ImageBitmap = ImageBitmap(128, 96).also { image ->
-    CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, Canvas(image), Size(128f, 96f)) {
+  private fun drawBrush(brush: Brush, canvasScale: Float = 1f): ImageBitmap = ImageBitmap(128, 96).also { image ->
+    val canvas = Canvas(image).apply { scale(canvasScale, canvasScale) }
+    CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, canvas, Size(128f, 96f) / canvasScale) {
       assertThat(drawGlassRimWithBrush(brush)).isTrue()
     }
   }
@@ -181,8 +271,8 @@ class GlassRimBrushTest {
       RuntimeEffect.makeForShader(GlassShaders.buildRim()),
       arrayOf("content"),
       arrayOf(null),
-    ) { setRimUniforms(key) }
-    val bounds = Rect(0f, 0f, 128f, 96f)
+    ) { setRimUniforms(key, rasterized = true) }
+    val bounds = Rect(Offset.Zero, key.coordinates.sampleSize)
     val paint = Paint().apply { skiaPaint.imageFilter = effect }
     with(Canvas(image)) {
       saveLayer(bounds, paint)
@@ -208,6 +298,17 @@ class GlassRimBrushTest {
     }
     return difference
   }
+
+  // A rectangle with production's sample step: the shape's coverage spans one pixel.
+  private fun nodeBoundEdgeKey() = rimKey().copy(
+    coordinates = rimKey().coordinates.copy(pixelAligned = true),
+    specularIntensity = 0f,
+    edgeShadow = Color.Transparent,
+    cornerRadii = CornerRadii(0f, 0f, 0f, 0f),
+    sampleStepPx = 2f,
+  )
+
+  private fun GlassRimEffectKey.notPixelAligned() = copy(coordinates = coordinates.copy(pixelAligned = false))
 
   private fun outlineKey() = rimKey().copy(
     specularIntensity = 0f,

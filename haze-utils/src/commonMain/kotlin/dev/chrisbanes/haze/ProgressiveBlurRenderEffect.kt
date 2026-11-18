@@ -30,7 +30,13 @@ public fun createProgressiveBlurRenderEffect(
   mask: Shader,
 ): PlatformRenderEffect = createProgressiveBlurRenderEffect(blurRadiusPx, size, offset, mask, offset)
 
-/** Creates a progressive blur with a mask origin independent of its crop bounds. */
+/**
+ * Creates a progressive blur with a mask origin independent of its crop bounds.
+ *
+ * Samples are clamped for output pixels inside the crop and, with [repeatEdge], for one more pixel
+ * beyond it, so a downscaled result drawn back up retains its edge opacity. Further out, unclamped
+ * samples let the blur fade into the expanded margin.
+ */
 @InternalHazeApi
 public fun createProgressiveBlurRenderEffect(
   blurRadiusPx: Float,
@@ -38,7 +44,10 @@ public fun createProgressiveBlurRenderEffect(
   offset: Offset,
   mask: Shader,
   maskOrigin: Offset,
+  repeatEdge: Boolean = false,
 ): PlatformRenderEffect {
+  // Drawing a result back up filters at most one pixel past its edge.
+  val edgeRepeat = if (repeatEdge) 1f else 0f
   val crop = floatArrayOf(
     offset.x,
     offset.y,
@@ -54,6 +63,7 @@ public fun createProgressiveBlurRenderEffect(
     setFloatUniform("blurRadius", blurRadiusPx)
     setFloatUniform("crop", crop[0], crop[1], crop[2], crop[3])
     setFloatUniform("maskOrigin", maskOrigin.x, maskOrigin.y)
+    setFloatUniform("edgeRepeat", edgeRepeat)
     setChildShader("mask", mask)
   }
 
@@ -65,17 +75,20 @@ public fun createProgressiveBlurRenderEffect(
     setFloatUniform("blurRadius", blurRadiusPx)
     setFloatUniform("crop", crop[0], crop[1], crop[2], crop[3])
     setFloatUniform("maskOrigin", maskOrigin.x, maskOrigin.y)
+    setFloatUniform("edgeRepeat", edgeRepeat)
     setChildShader("mask", mask)
   }
 }
 
 private val VERTICAL_PROGRESSIVE_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(makeBlurSksl(vertical = true))
+  createRuntimeEffect(makeProgressiveBlurSksl(vertical = true))
 }
 
 private val HORIZONTAL_PROGRESSIVE_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(makeBlurSksl(vertical = false))
+  createRuntimeEffect(makeProgressiveBlurSksl(vertical = false))
 }
+
+internal expect val avoidProgressiveBlurLoopBreak: Boolean
 
 /**
  * Creates the SKSL blur shader code for either vertical or horizontal pass.
@@ -84,11 +97,15 @@ private val HORIZONTAL_PROGRESSIVE_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE
  * Uses GPU-friendly optimizations, see
  * https://www.rastergrid.com/blog/2010/09/efficient-gaussian-blur-with-linear-sampling
  */
-private fun makeBlurSksl(vertical: Boolean): String = """
+internal fun makeProgressiveBlurSksl(
+  vertical: Boolean,
+  avoidLoopBreak: Boolean = avoidProgressiveBlurLoopBreak,
+): String = """
     uniform shader content;
     uniform float blurRadius;
     uniform vec4 crop;
     uniform float2 maskOrigin;
+    uniform float edgeRepeat;
     uniform shader mask;
 
     const half maxRadius = 150.0;
@@ -97,11 +114,15 @@ private fun makeBlurSksl(vertical: Boolean): String = """
       return exp(-(x * x) / (2.0 * sigma * sigma));
     }
 
-    vec4 sampleContent(vec2 coord) {
+    vec2 clampToCrop(vec2 coord) {
       vec2 midpoint = (crop.xy + crop.zw) / 2.0;
       vec2 lower = min(crop.xy + vec2(0.5), midpoint);
       vec2 upper = max(crop.zw - vec2(0.5), midpoint);
-      return content.eval(clamp(coord, lower, upper));
+      return clamp(coord, lower, upper);
+    }
+
+    vec4 sampleContent(vec2 coord, bool repeatsEdge) {
+      return content.eval(repeatsEdge ? clampToCrop(coord) : coord);
     }
 
     vec4 blur(vec2 coord, float radius) {
@@ -113,33 +134,31 @@ private fun makeBlurSksl(vertical: Boolean): String = """
       // https://github.com/chrisbanes/haze/issues/520
       float sigma = max(radius / 2.0, 1.0);
       float weightSum = 1.0;
-      vec4 result = content.eval(coord);
+      // Unclipped expanded layers need unclamped samples to fade beyond the repeated edge.
+      bool repeatsEdge = all(greaterThanEqual(coord, crop.xy - vec2(edgeRepeat))) &&
+        all(lessThanEqual(coord, crop.zw + vec2(edgeRepeat)));
+      vec4 result = sampleContent(coord, repeatsEdge);
 
-      // We need to use a constant max size Skia to know the size of the program. We use a large
-      // number, along with a break
+      // Windows Direct3D stalls on first draw with an early break (issue #1260).
       for (half i = 1.0; i < maxRadius; i += 2.0) {
-        // i is always odd.
-        // The algorithm needs pixels exist at the offset of [i] (odd) and [i + 1] (even).
-        // If radius r is even (i > r), we can break safely here, as all the pixels have been calculated;
-        // otherwise (i == r) we need to calculate the pixel at the offset of [r], so break in advance.
-        if (i >= r) { break; }
+        if (i < r) {
+          float weightL = gaussian(i, sigma);
+          float weightH = gaussian(i + 1.0, sigma);
+          float weight = weightL + weightH;
+          vec2 offset = ${if (vertical) "vec2(0.0, i + weightH / weight)" else "vec2(i + weightH / weight, 0.0)"};
 
-        float weightL = gaussian(i, sigma);
-        float weightH = gaussian(i + 1.0, sigma);
-        float weight = weightL + weightH;
-        vec2 offset = ${if (vertical) "vec2(0.0, i + weightH / weight)" else "vec2(i + weightH / weight, 0.0)"};
+          vec2 newCoord = coord - offset;
+          if (newCoord.x >= crop[0] && newCoord.y >= crop[1]) {
+            result += weight * sampleContent(newCoord, repeatsEdge);
+            weightSum += weight;
+          }
 
-        vec2 newCoord = coord - offset;
-        if (newCoord.x >= crop[0] && newCoord.y >= crop[1]) {
-          result += weight * sampleContent(newCoord);
-          weightSum += weight;
-        }
-
-        newCoord = coord + offset;
-        if (newCoord.x <= crop[2] && newCoord.y <= crop[3]) {
-          result += weight * sampleContent(newCoord);
-          weightSum += weight;
-        }
+          newCoord = coord + offset;
+          if (newCoord.x <= crop[2] && newCoord.y <= crop[3]) {
+            result += weight * sampleContent(newCoord, repeatsEdge);
+            weightSum += weight;
+          }
+        } ${if (avoidLoopBreak) "" else "else { break; }"}
       }
 
       // Check if radius is odd
@@ -149,13 +168,13 @@ private fun makeBlurSksl(vertical: Boolean): String = """
 
         vec2 newCoord = coord - offset;
         if (newCoord.x >= crop[0] && newCoord.y >= crop[1]) {
-          result += weight * sampleContent(newCoord);
+          result += weight * sampleContent(newCoord, repeatsEdge);
           weightSum += weight;
         }
 
         newCoord = coord + offset;
         if (newCoord.x <= crop[2] && newCoord.y <= crop[3]) {
-          result += weight * sampleContent(newCoord);
+          result += weight * sampleContent(newCoord, repeatsEdge);
           weightSum += weight;
         }
       }

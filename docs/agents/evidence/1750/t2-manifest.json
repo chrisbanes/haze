@@ -1,0 +1,144 @@
+{
+  "freeze_utc": "2026-11-09T08:39:59.368342+00:00",
+  "base": "8742b2688999a83c7d681d285b1465729e5b24ac",
+  "basis": "T1 accepted D106; current regular B0 with explicit edge controls; no C1/C2 overlay",
+  "renderer": "Skiko source-backed Glass Quality; per-instance T1 collaborator; tagged sRGB SDR",
+  "canvas_px": [
+    128,
+    96
+  ],
+  "density": 1,
+  "surface_rect_px": [
+    16,
+    16,
+    112,
+    80
+  ],
+  "shape": "circular radius 8dp",
+  "appearance": "Light",
+  "material": "GlassStyle.regular actual built-in with transparent background; geometry and optical/tone settings unchanged across modes and backgrounds",
+  "edge_controls": {
+    "rimHighlight": [
+      0.4,
+      3,
+      1.0
+    ],
+    "outline": {
+      "rgba": [
+        1,
+        0,
+        0,
+        0.5
+      ],
+      "width_dp": 2
+    },
+    "lightPosition": "regular Center",
+    "other_edges": "regular defaults"
+  },
+  "gain_modes": {
+    "fixed": [
+      0,
+      0
+    ],
+    "rim": [
+      1,
+      0
+    ],
+    "outline": [
+      0,
+      1
+    ],
+    "combined": [
+      1,
+      1
+    ]
+  },
+  "backdrops": {
+    "light": "opaque sRGB gray 0.9",
+    "dark": "opaque sRGB gray 0.1",
+    "split": "gray 0.1 for x<64 and 0.9 for x>=64",
+    "checker": "8px cells, parity(x//8+y//8), gray 0.1/0.9",
+    "photo": "repository photo.jpg; scaled 256x170 and cropped; path and SHA below"
+  },
+  "photo": {
+    "path": "haze-screenshot-tests/src/commonMain/composeResources/drawable/photo.jpg",
+    "sha256": "1170e80909419d8c7181c4db2d7a251ec457433541d6a59a9612d3b22925137e",
+    "repository_provenance": "git d7c51af836477340f6e30a1911d80e9c142b28a9; original photo attribution/licence not located; repository LICENSE applies to repository generally, individual asset licence unverified"
+  },
+  "still_case_ids": [
+    "light-fixed",
+    "light-rim",
+    "light-outline",
+    "light-combined",
+    "dark-fixed",
+    "dark-rim",
+    "dark-outline",
+    "dark-combined",
+    "split-fixed",
+    "split-rim",
+    "split-outline",
+    "split-combined",
+    "checker-fixed",
+    "checker-rim",
+    "checker-outline",
+    "checker-combined",
+    "photo-fixed",
+    "photo-rim",
+    "photo-outline",
+    "photo-combined"
+  ],
+  "frame_mask": {
+    "interior": [
+      32,
+      32,
+      96,
+      64
+    ],
+    "edgeOuter": [
+      12,
+      12,
+      116,
+      84
+    ],
+    "edgeInner": [
+      24,
+      24,
+      104,
+      72
+    ]
+  },
+  "pairwise_controls": [
+    "red vs cyan rgba alpha .5",
+    "outline alpha 0",
+    "rim intensity 0",
+    "gain 0, .5, 1",
+    "circular vs continuous radius8 smoothing .6",
+    "light vs dark appearance",
+    "rim sides 0 vs 1"
+  ],
+  "motion": {
+    "families": [
+      "split",
+      "checker",
+      "photo"
+    ],
+    "frames": 120,
+    "fps_simulated": 60,
+    "source_translation_px": "frame n: min(n,89), moves 1px/frame for 0..89; stationary frames 90..119 at 89px",
+    "surface_only_move": "separate control uses stationary source and surface translation 8px",
+    "capture_format": "lossless PNG frame-%04d.png, presentation timestamps n/60 seconds",
+    "video": "H.264, yuv420p, 60 simulated fps, no audio"
+  },
+  "thresholds": {
+    "fixed_gain0_max_rgba": 0.00392156862745098,
+    "interior_max_rgba": 0.00392156862745098,
+    "stationary_repeat_max_rgba": 0.00392156862745098,
+    "same_position_max_rgba": 0.00392156862745098,
+    "smooth_gray_adjacent_alpha_max": 0.00784313725490196,
+    "gain_monotonic": "alpha monotonic before clipping",
+    "transparent_outline_alpha": 0
+  },
+  "artifact_root": "/private/tmp/haze-project-drain-20261108/1750-evidence/t2",
+  "output_gating": "HAZE_T2_ARTIFACT_DIR enables writes only; rendering and assertions always run",
+  "expected": "at least 20 separate still test cases and 3 independent motion sequences; no skips"
+}

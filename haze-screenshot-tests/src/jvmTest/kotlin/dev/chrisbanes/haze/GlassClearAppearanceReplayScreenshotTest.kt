@@ -83,11 +83,8 @@ class GlassClearAppearanceReplayScreenshotTest : ScreenshotTest() {
     deltas.forEach { assertThat(it).isGreaterThan(1f / 255f) }
   }
 
-  private fun PixelSnapshot.cropNode(top: Int): PixelSnapshot = PixelSnapshot(
-    width = 280,
-    height = 176,
-    colors = buildList { for (y in top until top + 176) for (x in 70 until 350) add(this@cropNode[x, y]) },
-  )
+  private fun PixelSnapshot.cropNode(top: Int): PixelSnapshot =
+    PixelSnapshot.build(width = 280, height = 176) { x, y -> this[70 + x, top + y] }
 
   @Test
   fun sharedClear_independentLocalStylesDoNotContaminateOtherNode() = runScreenshotTest(size = Size(420f, 800f)) {

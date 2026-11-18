@@ -53,7 +53,8 @@ class GlassContainerShowcaseInteractionTest {
 
   @Test fun narrowCompactColourSelectionRingRemainsVisible() = checkCompactSelection(Size(648f, 360f))
 
-  private fun checkCompactSelection(size: Size) = runSkikoComposeUiTest(size = size, density = Density(1f)) {
+  // Settled-state check: skip motion so each click jumps to its end state instead of rendering the animation.
+  private fun checkCompactSelection(size: Size) = runSkikoComposeUiTest(size = size, density = Density(1f), effectContext = NoMotion) {
     val state = GlassContainerShowcaseState().apply {
       pause()
       seek(4f / 14)
@@ -125,9 +126,7 @@ class GlassContainerShowcaseInteractionTest {
   @Test fun noMotionSpeedChangesKeepClosedPaletteClosed() = runSkikoComposeUiTest(
     size = Size(688f, 560f),
     density = Density(1f),
-    effectContext = object : MotionDurationScale {
-      override val scaleFactor = 0f
-    },
+    effectContext = NoMotion,
   ) {
     setContent { SamplesTheme { GlassContainerShowcaseSample(rememberNavController()) } }
     onNodeWithText("Stroke").assertIsDisplayed()
@@ -262,6 +261,10 @@ class GlassContainerShowcaseInteractionTest {
     assertThat(abs(positions.last() - positions.first()), "Must exercise the collapse").isGreaterThan(80f)
     assertThat(movements.last(), "Final visible movement in pixels").isLessThanOrEqualTo(2f)
   }
+}
+
+private object NoMotion : MotionDurationScale {
+  override val scaleFactor = 0f
 }
 
 // Make the indication's full drawing bounds visible without pointer timing or ripple fades.

@@ -1,0 +1,34 @@
+{
+  "base": "8742b2688999a83c7d681d285b1465729e5b24ac",
+  "status": "research qualification accepted with limitations; final integrated review pending",
+  "android_host": {
+    "sdk": [
+      35,
+      37
+    ],
+    "graphics": "Robolectric NATIVE; asserted hardware canvas and RuntimeShaderGlassDelegate fused shader",
+    "prototype_methods": 19,
+    "existing_methods": 12,
+    "failures": 0,
+    "skips": 0,
+    "actual_input_scales": [
+      1.0,
+      0.7905694,
+      0.5
+    ]
+  },
+  "skiko": {
+    "renderer": "multipass",
+    "manual_merged_transition": true,
+    "actual_shared_settings_container_cluster": true,
+    "android_actual_container_adaptive_binding": "not separately tested"
+  },
+  "accessibility": "test-owned reduced-transparency selector cleared collaborator and restored fixed; unguarded collaborator differed by 18/255; not production policy",
+  "native_backdrop": "no qualified pre-optical source; fixed limit",
+  "physical": "Android 15 and GPU performance not established",
+  "motion_review": "manual playback skipped at explicit user request; perceived quality unassessed",
+  "chronology": "D102 invalid early observation; D103 prospective base plus timed supplements; D113/D114 source-reference repairs and later band/transition freezes preserve prior observations",
+  "full_private_patch_sha256": "3cf212b37a5b518baad9d1f5e0d87d3f594b51b3f09c38a55c234db8d9b53b1d",
+  "source_only_patch_sha256": "6652111e25a3b5861e50726c3d7783a37b3cbf647e728f637eb86598f0fd3d63",
+  "photo_copy_required_sha256": "1170e80909419d8c7181c4db2d7a251ec457433541d6a59a9612d3b22925137e"
+}

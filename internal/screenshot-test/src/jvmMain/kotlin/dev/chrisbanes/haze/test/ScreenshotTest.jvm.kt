@@ -9,8 +9,10 @@ package dev.chrisbanes.haze.test
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.LocalSystemTheme
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -27,17 +29,41 @@ import com.github.takahirom.roborazzi.InternalRoborazziApi
 import com.github.takahirom.roborazzi.provideRoborazziContext
 import com.github.takahirom.roborazzi.roboOutputName
 import io.github.takahirom.roborazzi.captureRoboImage
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
 actual abstract class ScreenshotTest : ContextTest()
 
-@OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class, InternalRoborazziApi::class)
 actual fun ScreenshotTest.runScreenshotTest(
   size: Size,
+  block: ScreenshotUiTest.() -> Unit,
+) = runScreenshotTestIn(size, EmptyCoroutineContext, block)
+
+/**
+ * Runs [block] with a zero [MotionDurationScale], so animations jump to their end state instead of
+ * rendering every intermediate frame in [ScreenshotUiTest.waitForIdle] (#1778). Use it only when
+ * every capture is pixel-identical to the animated run: samples that read the scale can change
+ * behavior.
+ */
+fun ScreenshotTest.runScreenshotTestWithoutMotion(
+  size: Size = Size(1080f, 1920f),
+  block: ScreenshotUiTest.() -> Unit,
+) = runScreenshotTestIn(size, NoMotion, block)
+
+private object NoMotion : MotionDurationScale {
+  override val scaleFactor = 0f
+}
+
+@OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class, InternalRoborazziApi::class)
+private fun runScreenshotTestIn(
+  size: Size,
+  effectContext: CoroutineContext,
   block: ScreenshotUiTest.() -> Unit,
 ) {
   runSkikoComposeUiTest(
     size = size,
     density = Density(2.75f),
+    effectContext = effectContext,
   ) {
     provideRoborazziContext().apply {
       setRuleOverrideRoborazziOptions(HazeRoborazziDefaults.roborazziOptions)
@@ -76,14 +102,14 @@ private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiT
     artifactPath?.substringBeforeLast('/', missingDelimiterValue = "")?.takeIf(String::isNotEmpty)
       ?.let { provideRoborazziContext().setRuleOverrideOutputDirectory(it) }
     try {
-      this@createScreenshotUiTest.onRoot().captureRoboImage(output, options)
+      this@createScreenshotUiTest.captureRootImage().captureRoboImage(output, options)
     } finally {
       if (artifactPath != null) context.setRuleOverrideOutputDirectory(previousOutputDirectory)
     }
   }
 
   override fun captureRootPixels(): PixelMap =
-    this@createScreenshotUiTest.onRoot().captureToImage().toPixelMap()
+    this@createScreenshotUiTest.captureRootImage().toPixelMap()
 
   override fun onNodeWithTag(testTag: String) =
     this@createScreenshotUiTest.onNodeWithTag(testTag)
@@ -97,4 +123,20 @@ private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiT
       swipeUp()
     }
   }
+}
+
+/**
+ * Captures the root without rendering it again. [SkikoComposeUiTest.waitForIdle] already renders
+ * pending changes to the test surface, but `onRoot().captureToImage()` redraws the whole scene,
+ * which doubles the cost of every Desktop capture (#1778). Redraw only when the root does not
+ * cover the surface, because the surface snapshot is not cropped.
+ */
+@OptIn(ExperimentalTestApi::class)
+private fun SkikoComposeUiTest.captureRootImage(): ImageBitmap {
+  // Fetch bounds first: the fetch can wait for idle and draw, which must precede the snapshot.
+  val bounds = onRoot().fetchSemanticsNode().boundsInWindow
+  val image = captureToImage()
+  val coversSurface = bounds.left == 0f && bounds.top == 0f &&
+    bounds.width.toInt() == image.width && bounds.height.toInt() == image.height
+  return if (coversSurface) image else onRoot().captureToImage()
 }

@@ -7,6 +7,7 @@ import org.gradle.api.tasks.testing.Test
 
 plugins {
   id("dev.chrisbanes.android.library")
+  id("dev.chrisbanes.android.managed-devices")
   id("dev.chrisbanes.kotlin.multiplatform")
   id("dev.chrisbanes.compose")
   id("org.jetbrains.dokka")
@@ -23,21 +24,6 @@ kotlin {
 
     withHostTest {
       isIncludeAndroidResources = true
-    }
-
-    withDeviceTest {
-      instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-      @Suppress("UnstableApiUsage")
-      managedDevices {
-        localDevices {
-          create("pixel6Api34") {
-            device = "Pixel 6"
-            sdkVersion = 34
-            systemImageSource = "aosp_atd"
-          }
-        }
-      }
     }
   }
 
@@ -115,6 +101,17 @@ tasks.withType<Test>().matching { it.name == "testAndroidHostTest" }.configureEa
 // The CPU-bound Skiko Desktop suite ran as a single 17-minute fork on CI's critical path.
 tasks.withType<Test>().matching { it.name == "jvmTest" }.configureEach {
   maxParallelForks = 4
+}
+
+// Classpath for the Metal profiling launcher GlassMetalProfileScene (#1766). Run it with `java -cp`
+// as documented in internal/benchmark/README.md#metal-profiling-launcher.
+val prepareGlassMetalProfile by tasks.registering {
+  val test = kotlin.jvm().compilations.getByName("test")
+  val classpath = files(test.output.allOutputs, test.runtimeDependencyFiles)
+  val outputFile = layout.buildDirectory.file("glass-metal-profile-classpath.txt")
+  inputs.files(classpath)
+  outputs.file(outputFile)
+  doLast { outputFile.get().asFile.writeText(classpath.files.joinToString(File.pathSeparator)) }
 }
 
 // Compile once, then launch fresh probe JVMs without Gradle startup in the timing loop.

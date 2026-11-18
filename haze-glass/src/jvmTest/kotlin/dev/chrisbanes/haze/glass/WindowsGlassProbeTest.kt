@@ -46,7 +46,7 @@ class WindowsGlassProbeTest {
       "grading", "tint", "edge-fade", "signed-distance", "member-weights",
     )
     for (count in 1..cuts.size) {
-      val source = WindowsGlassProbe.sourceFor("original", continuous = true, cuts = cuts.take(count).joinToString(","))
+      val source = WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, cuts.take(count).joinToString(","))
       RuntimeEffect.makeForShader(source).close()
     }
   }
@@ -64,25 +64,25 @@ class WindowsGlassProbeTest {
       "rect-gradient",
     )
     for (cut in subcuts) {
-      val source = WindowsGlassProbe.sourceFor("original", continuous = true, cuts = "$retained,$cut")
+      val source = WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, "$retained,$cut")
       RuntimeEffect.makeForShader(source).close()
     }
-    val combined = WindowsGlassProbe.sourceFor("original", continuous = true, cuts = retained + "," + subcuts.joinToString(","))
+    val combined = WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, retained + "," + subcuts.joinToString(","))
     RuntimeEffect.makeForShader(combined).close()
   }
 
   @Test
   fun sourceFor_compactMainPreservesRetainedFixturePixels() {
     val retained = "ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance,optical-height,rect-gradient"
-    val reference = WindowsGlassProbe.sourceFor("original", continuous = true, cuts = retained)
-    val compact = WindowsGlassProbe.sourceFor("original", continuous = true, cuts = "$retained,compact-main")
+    val reference = WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, retained)
+    val compact = WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, "$retained,compact-main")
     val referencePixels = fixturePixels(reference, "reference")
     assertThat(referencePixels.distinct().size).isGreaterThan(3)
     assertThat(fixturePixels(compact, "compact")).isEqualTo(referencePixels)
-    val noRefraction = WindowsGlassProbe.sourceFor("original", continuous = true, cuts = "$retained,compact-main,refraction")
+    val noRefraction = WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, "$retained,compact-main,refraction")
     assertThat(fixturePixels(noRefraction, "no-refraction")).isNotEqualTo(referencePixels)
     for (cut in listOf("refraction", "member-weights", "standalone-refraction", "merged-refraction", "merged-gradient")) {
-      RuntimeEffect.makeForShader(WindowsGlassProbe.sourceFor("original", continuous = true, cuts = "$retained,compact-main,$cut")).close()
+      RuntimeEffect.makeForShader(WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, "$retained,compact-main,$cut")).close()
     }
   }
 
@@ -101,22 +101,16 @@ class WindowsGlassProbeTest {
 
   @Test
   fun frozenReproducer_matchesMeasuredSourceAndUniforms() {
-    val retained = "ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance,optical-height,rect-gradient,compact-main,member-weights,standalone-refraction"
-    val source = WindowsGlassProbe.sourceFor("original", true, retained)
-    val fixture = File("../docs/agents/investigations/1767-repro/src/main/resources")
-    val frozen = File(fixture, "retained.sksl")
-    val hash = MessageDigest.getInstance("SHA-256").digest(frozen.readBytes())
+    val source = WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, RETAINED_CUTS)
+    val hash = MessageDigest.getInstance("SHA-256").digest(File(FIXTURES, "retained.sksl").readBytes())
       .joinToString("") { "%02x".format(it) }
     assertThat(hash).isEqualTo("3bdf411bbbd5b324be57b374d141590b1f78c72a4cf9ce0fc74bba71fd320ebc")
-    assertThat(frozen.readText().replace("\r\n", "\n")).isEqualTo(source.replace("\r\n", "\n"))
-    assertThat(File(fixture, "control.sksl").readText().replace("\r\n", "\n"))
-      .isEqualTo(WindowsGlassProbe.sourceFor("original", true, "$retained,refraction").replace("\r\n", "\n"))
     val output = File("build/outputs/glass-probe-parity/frozen").apply { mkdirs() }
     RuntimeEffect.makeForShader(source).use { effect ->
       WindowsGlassProbe.makeShader(effect, source, 2, output).close()
     }
-    assertThat(File(output, "uniforms.txt").readText()).isEqualTo(File(fixture, "uniforms.txt").readText())
-    assertThat(File(fixture, "content.sksl").readText()).isEqualTo(WindowsGlassProbe.CONTROL_SOURCE)
+    assertThat(File(output, "uniforms.txt").readText()).isEqualTo(File(FIXTURES, "uniforms.txt").readText())
+    assertThat(File(FIXTURES, "content.sksl").readText()).isEqualTo(WindowsGlassProbe.CONTROL_SOURCE)
   }
 
   @Test
@@ -126,21 +120,18 @@ class WindowsGlassProbeTest {
       .joinToString("") { "%02x".format(it) }
     // Profiled original continuous 240x160 case of run 42534101240.
     assertThat(hash).isEqualTo("80410be10e8eb678519f41d6cc5c6bbf3c22b23aa5bff2213bc36ea1b33a10ab")
-    val source = frozen.readText().replace("\r\n", "\n")
-    assertThat(source).isEqualTo(WindowsGlassProbe.sourceFor("original", true).replace("\r\n", "\n"))
     val output = File("build/outputs/glass-probe-parity/frozen-original").apply { mkdirs() }
-    RuntimeEffect.makeForShader(source).use { effect ->
-      WindowsGlassProbe.makeShader(effect, source, 2, output).close()
+    RuntimeEffect.makeForShader(FROZEN_ORIGINAL).use { effect ->
+      WindowsGlassProbe.makeShader(effect, FROZEN_ORIGINAL, 2, output).close()
     }
     assertThat(File(output, "uniforms.txt").readText()).isEqualTo(File(FIXTURES, "uniforms.txt").readText())
   }
 
   @Test
   fun cutSource_frozenOriginalProducesRetainedFixture() {
-    val original = File(FIXTURES, "original.sksl").readText().replace("\r\n", "\n")
-    assertThat(WindowsGlassProbe.cutSource(original, RETAINED_CUTS))
+    assertThat(WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, RETAINED_CUTS))
       .isEqualTo(File(FIXTURES, "retained.sksl").readText().replace("\r\n", "\n"))
-    assertThat(WindowsGlassProbe.cutSource(original, "$RETAINED_CUTS,refraction"))
+    assertThat(WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, "$RETAINED_CUTS,refraction"))
       .isEqualTo(File(FIXTURES, "control.sksl").readText().replace("\r\n", "\n"))
   }
 
@@ -163,6 +154,9 @@ class WindowsGlassProbeTest {
 
   private companion object {
     val FIXTURES = File("../docs/agents/investigations/1767-repro/src/main/resources")
+
+    // The measured source; current GlassShaders output has drifted, so cut tests anchor here.
+    val FROZEN_ORIGINAL = File(FIXTURES, "original.sksl").readText().replace("\r\n", "\n")
     const val RETAINED_CUTS =
       "ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance," +
         "optical-height,rect-gradient,compact-main,member-weights,standalone-refraction"

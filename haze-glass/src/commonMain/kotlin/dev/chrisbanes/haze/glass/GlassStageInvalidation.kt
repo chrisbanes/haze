@@ -136,6 +136,8 @@ internal class GlassRuntimeSourceSnapshot(
   val inputSnapshot: HazeEffectInputSnapshot,
   val backgroundColor: Color = Color.Transparent,
   val mergedBackground: GlassMergedField? = null,
+  // A pixel-aligned capture is also placed by its coordinates (#1775); others leave this null.
+  val alignedCoordinates: GlassCoordinates? = null,
 ) {
   /** The drawable-source state holding this snapshot, built with it so unchanged frames reuse it. */
   val state: GlassRuntimeSourceState = GlassRuntimeSourceState(hasDrawableSource = true, snapshot = this)
@@ -148,7 +150,9 @@ internal class GlassRuntimeSourceSnapshot(
     inputSnapshot: HazeEffectInputSnapshot,
     backgroundColor: Color,
     mergedBackground: GlassMergedField?,
+    alignedCoordinates: GlassCoordinates? = null,
   ): Boolean = this.captureScale.compareTo(captureScale) == 0 &&
+    this.alignedCoordinates == alignedCoordinates &&
     this.layerSize == layerSize &&
     this.layerOffset == layerOffset &&
     this.inputSnapshot == inputSnapshot &&
@@ -171,6 +175,7 @@ internal fun HazeEffectRuntimeDrawScope.resolveGlassRuntimeSourceState(
   backgroundColor: Color,
   previousSnapshot: GlassRuntimeSourceSnapshot? = null,
   mergedBackground: GlassMergedField? = null,
+  alignedCoordinates: GlassCoordinates? = null,
 ): GlassRuntimeSourceState = resolveGlassRuntimeSourceState(
   captureScale = captureScale,
   layerSize = layerSize,
@@ -180,6 +185,7 @@ internal fun HazeEffectRuntimeDrawScope.resolveGlassRuntimeSourceState(
   backgroundColor = backgroundColor,
   previousSnapshot = previousSnapshot,
   mergedBackground = mergedBackground,
+  alignedCoordinates = alignedCoordinates,
 )
 
 internal fun resolveGlassRuntimeSourceState(
@@ -191,6 +197,7 @@ internal fun resolveGlassRuntimeSourceState(
   backgroundColor: Color = Color.Transparent,
   previousSnapshot: GlassRuntimeSourceSnapshot? = null,
   mergedBackground: GlassMergedField? = null,
+  alignedCoordinates: GlassCoordinates? = null,
 ): GlassRuntimeSourceState {
   if (!hasDrawableInput) return GlassRuntimeSourceState.NoDrawableSource
   val currentInputSnapshot = inputSnapshot ?: return GlassRuntimeSourceState.UnknownSnapshot
@@ -203,6 +210,7 @@ internal fun resolveGlassRuntimeSourceState(
       currentInputSnapshot,
       backgroundColor,
       mergedBackground,
+      alignedCoordinates,
     )
   ) {
     return previousSnapshot.state
@@ -214,6 +222,7 @@ internal fun resolveGlassRuntimeSourceState(
     inputSnapshot = currentInputSnapshot,
     backgroundColor = backgroundColor,
     mergedBackground = mergedBackground,
+    alignedCoordinates = alignedCoordinates,
   ).state
 }
 

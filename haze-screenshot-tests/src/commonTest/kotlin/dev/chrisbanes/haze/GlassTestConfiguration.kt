@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassInteractionScope
@@ -121,7 +122,7 @@ internal class GlassTestConfiguration {
     }
 
   private var hasShapeOverride by mutableStateOf(false)
-  private var shapeOverride by mutableStateOf(GlassDefaults.shape)
+  private var shapeOverride by mutableStateOf(RoundedCornerShape(16.dp))
   var shape: RoundedCornerShape
     get() = shapeOverride
     set(value) {

@@ -179,9 +179,9 @@ private fun PixelSnapshot.maximumChannelDifference(
     "Pixel snapshots must have matching dimensions"
   }
   var maximum = 0f
-  for (index in colors.indices) {
-    val first = colors[index]
-    val second = other.colors[index]
+  for (index in 0 until size) {
+    val first = this[index]
+    val second = other[index]
     val difference = maxOf(
       abs(first.red - second.red),
       abs(first.green - second.green),

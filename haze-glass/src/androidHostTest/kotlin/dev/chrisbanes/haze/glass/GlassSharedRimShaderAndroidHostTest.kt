@@ -67,7 +67,9 @@ class GlassSharedRimShaderAndroidHostTest : ScreenshotTest() {
       val second = rimProvider(merged)
       assertThat(second).isNotSameInstanceAs(first)
       assertThat(second.shader).isSameInstanceAs(first.shader)
-      assertThat(second(rimKey(Color.Red))).isSameInstanceAs(first(rimKey(Color.Blue)))
+      val field = if (merged) mergedField(mergedMember(0f, 0f, 48f, 48f)) else null
+      assertThat(second(rimKey(Color.Red).copy(mergedField = field)))
+        .isSameInstanceAs(first(rimKey(Color.Blue).copy(mergedField = field)))
     }
   }
 

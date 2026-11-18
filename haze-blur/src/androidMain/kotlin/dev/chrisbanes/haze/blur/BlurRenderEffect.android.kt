@@ -40,7 +40,7 @@ import kotlin.math.abs
 
 private var noiseTexture: Bitmap? = null
 
-internal actual fun ShaderBrush.createScaledShader(size: Size, scale: ScaleFactor, captureSize: Size, offset: Offset): Shader {
+internal actual fun ShaderBrush.createScaledShader(size: Size, scale: ScaleFactor, offset: Offset): Shader {
   val shader = createShader(size)
   if (scale.scaleX == 1f && scale.scaleY == 1f && offset == Offset.Zero) return shader
 

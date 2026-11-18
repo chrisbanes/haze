@@ -42,6 +42,7 @@ import dev.chrisbanes.haze.HazeEffectRendererInteraction
 import dev.chrisbanes.haze.HazeEffectRendererLifecycle
 import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
@@ -51,6 +52,7 @@ import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.trace
+import kotlin.math.ceil
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
@@ -71,6 +73,9 @@ private class GlassRenderBudgetCacheKey(
   val interactionTopology: GlassInteractionTopology,
   val interactionRadiusFraction: Float,
   val backdrop: Boolean,
+  // Pixel-aligned placement sizes the capture from the layer offset too (#1775).
+  val alignToPixels: Boolean,
+  val layerOffset: Offset,
 )
 
 private class GlassPreparedDrawCacheKey(
@@ -336,6 +341,7 @@ internal class GlassRuntimeEffect() :
   private var coordinatesCacheLayerOffset: Offset = Offset.Unspecified
   private var coordinatesCacheMaterialSize: Size = Size.Unspecified
   private var coordinatesCacheScaleFactor: Float = Float.NaN
+  private var coordinatesCacheAlignToPixels: Boolean = false
 
   private var interactionRenderStateCache: GlassInteractionRenderState? = null
   private var interactionRadiusFractionCache: Float = Float.NaN
@@ -841,16 +847,34 @@ internal class GlassRuntimeEffect() :
     if (!shouldClipToNodeBoundsCacheValid) {
       val observer = geometrySnapshotObserver
       if (observer != null) {
-        observer.observeReads(clipObservationScope, onObservedStyleChanged) {
-          shouldClipToNodeBoundsCache = edgeSoftness > 0.dp || !shape.hasZeroCornerRadii()
-        }
+        observer.observeReads(clipObservationScope, onObservedStyleChanged) { updateClipCache() }
       } else {
-        shouldClipToNodeBoundsCache = edgeSoftness > 0.dp || !shape.hasZeroCornerRadii()
+        updateClipCache()
       }
       shouldClipToNodeBoundsCacheValid = true
     }
     return shouldClipToNodeBoundsCache
   }
+
+  private fun updateClipCache() {
+    shouldClipToNodeBoundsCache = edgeSoftness > 0.dp || !shape.hasZeroCornerRadii()
+  }
+
+  /** Renders this surface as one that does not cover its node-bound edges, for comparison in tests. */
+  internal var nodeBoundEdgeCoverageDisabledForTest: Boolean = false
+
+  /**
+   * Whether this surface fully covers its node-bound edges, the straight parts of its silhouette
+   * that lie on its node bounds (#1775, #1785). Their outermost pixels would otherwise be only
+   * partly covered, by the shape's anti-aliasing, a fractional sample origin or an upscaled
+   * reduced-scale layer, showing whatever lies beneath. It places its material on whole pixels and
+   * extends coverage past those edges, clipped to the node. Containers draw merged shapes, so
+   * their surfaces do not.
+   */
+  internal fun coversNodeBoundEdges(): Boolean =
+    !nodeBoundEdgeCoverageDisabledForTest && surfaceSnapshot == null &&
+      // The platform captures a backdrop itself, so its placement and presentation stay as they are.
+      memberBinding?.input !is HazeInput.Backdrop
 
   internal fun resolvePreparedStyle(context: HazeEffectRuntimeDrawScope): ResolvedGlassStyle {
     val density = context.requireDensity()
@@ -907,12 +931,14 @@ internal class GlassRuntimeEffect() :
     layerOffset: Offset,
     materialSize: Size,
     scaleFactor: Float,
+    alignToPixels: Boolean,
   ): GlassCoordinates {
     coordinatesCache?.takeIf {
       coordinatesCacheLayerSize == layerSize &&
         coordinatesCacheLayerOffset == layerOffset &&
         coordinatesCacheMaterialSize == materialSize &&
-        coordinatesCacheScaleFactor == scaleFactor
+        coordinatesCacheScaleFactor == scaleFactor &&
+        coordinatesCacheAlignToPixels == alignToPixels
     }?.let { return it }
 
     return resolveGlassCoordinates(
@@ -920,12 +946,14 @@ internal class GlassRuntimeEffect() :
       layerOffset = layerOffset,
       materialSize = materialSize,
       scaleFactor = scaleFactor,
+      alignToPixels = alignToPixels,
     ).withRoundedSampleSize().also {
       coordinatesCache = it
       coordinatesCacheLayerSize = layerSize
       coordinatesCacheLayerOffset = layerOffset
       coordinatesCacheMaterialSize = materialSize
       coordinatesCacheScaleFactor = scaleFactor
+      coordinatesCacheAlignToPixels = alignToPixels
     }
   }
 
@@ -944,67 +972,12 @@ internal class GlassRuntimeEffect() :
         null,
       )
     }
+    // Evaluated once, so the budget plan and the prepared coordinates agree on the placement.
+    val alignToPixels = coversNodeBoundEdges()
     val style = resolvePreparedStyle(context)
     val interaction = resolvePreparedInteraction(context)
     // Budget for the layers buildGlassPreparedRender keeps, which merges only interaction lighting.
     val interactionTopology = style.mergedField?.interactionTopology ?: interactionTopologySnapshot
-    val optics = style.resolvedOptics
-    val allowNativeWideBlur = optics.progressive == null
-    val buildPlan: (Float) -> GlassRetainedLayerPlan = buildPlan@{ scaleFactor ->
-      val rawCoordinates = resolveGlassCoordinates(
-        layerSize = context.layerSize,
-        layerOffset = context.layerOffset,
-        materialSize = context.modifierSize,
-        scaleFactor = scaleFactor,
-      )
-      if (!rawCoordinates.materialSize.isDrawable() || !rawCoordinates.sampleSize.isDrawable()) {
-        return@buildPlan GlassRetainedLayerPlan(emptyList())
-      }
-      val coordinates = rawCoordinates.withRoundedSampleSize()
-      if (!coordinates.materialSize.isDrawable() || !coordinates.sampleSize.isDrawable()) {
-        return@buildPlan GlassRetainedLayerPlan(emptyList())
-      }
-      val outputSize = context.modifierSize.outsetToIntSize(nodeClipOutsetPx())
-      val params = buildGlassRenderParams(style, coordinates)
-      val interactionPatchSize = calculateGlassInteractionPatchSize(
-        params,
-        radiusFraction = if (interactionTopology === MergedLightingTopology) {
-          coordinates.mergedLightingRadiusFraction()
-        } else {
-          interaction.radiusFraction
-        },
-        topology = interactionTopology,
-      )
-      val interactionLayersActive =
-        interactionPatchSize.width > 0 && interactionPatchSize.height > 0
-      if (backdrop) {
-        buildGlassBackdropLayerPlan(
-          sampleSize = coordinates.sampleSize.roundToIntSize(),
-          rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight, params.edgeOutline),
-          interactionPatchSize = interactionPatchSize,
-          interactionLightingActive = interactionTopology.hasLighting,
-        )
-      } else {
-        buildGlassBudgetLayerPlan(
-          sampleSize = coordinates.sampleSize.roundToIntSize(),
-          groupCompositeSize = resolveGlassGroupCompositeSize(
-            outputSize = outputSize,
-            alpha = style.alpha,
-            interactionLayersActive = interactionLayersActive,
-            interactionTopology = interactionTopology,
-          ),
-          blurRadiusPx = params.blurRadiusPx,
-          depth = params.depth,
-          allowNativeWideBlur = allowNativeWideBlur,
-          refractionDetailActive =
-          params.activeRefractionDetailEffectKey(params.refractionDetailIntensity) != null,
-          rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight, params.edgeOutline),
-          interactionPatchSize = interactionPatchSize,
-          interactionOpticsActive = interactionTopology.hasOptics,
-          interactionLightingActive = interactionTopology.hasLighting,
-        )
-      }
-    }
     val requestedScale = requestedScaleOverride ?: performanceMode.resolveGlassInputScale()
     if (requestedScale != resolvedInputScale) {
       HazeLogger.d(TAG) {
@@ -1028,10 +1001,64 @@ internal class GlassRuntimeEffect() :
       budgetKey.materialSize == context.modifierSize &&
       budgetKey.interactionTopology === interactionTopology &&
       budgetKey.interactionRadiusFraction == interaction.radiusFraction &&
-      budgetKey.backdrop == backdrop
+      budgetKey.backdrop == backdrop &&
+      budgetKey.alignToPixels == alignToPixels &&
+      (!alignToPixels || budgetKey.layerOffset == context.layerOffset)
     ) {
       checkNotNull(budgetCacheDecision)
     } else {
+      val buildPlan: (Float) -> GlassRetainedLayerPlan = buildPlan@{ scaleFactor ->
+        val rawCoordinates = resolveGlassCoordinates(
+          layerSize = context.layerSize,
+          layerOffset = context.layerOffset,
+          materialSize = context.modifierSize,
+          scaleFactor = scaleFactor,
+          alignToPixels = alignToPixels,
+        )
+        if (!rawCoordinates.materialSize.isDrawable() || !rawCoordinates.sampleSize.isDrawable()) {
+          return@buildPlan GlassRetainedLayerPlan(emptyList())
+        }
+        val coordinates = rawCoordinates.withRoundedSampleSize()
+        if (!coordinates.materialSize.isDrawable() || !coordinates.sampleSize.isDrawable()) {
+          return@buildPlan GlassRetainedLayerPlan(emptyList())
+        }
+        val outputSize = context.modifierSize.outsetToIntSize(nodeClipOutsetPx())
+        val params = buildGlassRenderParams(style, coordinates, performanceMode.usesCircularCornerOptics())
+        val interactionPatchSize = resolveGlassInteractionPatchSize(
+          params,
+          radiusFraction = interaction.radiusFraction,
+          topology = interactionTopology,
+        )
+        val interactionLayersActive =
+          interactionPatchSize.width > 0 && interactionPatchSize.height > 0
+        if (backdrop) {
+          buildGlassBackdropLayerPlan(
+            sampleSize = coordinates.sampleSize.roundToIntSize(),
+            rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight, params.edgeOutline),
+            interactionPatchSize = interactionPatchSize,
+            interactionLightingActive = interactionTopology.hasLighting,
+          )
+        } else {
+          buildGlassLayerPlan(
+            sampleSize = coordinates.sampleSize.roundToIntSize(),
+            groupCompositeSize = resolveGlassGroupCompositeSize(
+              outputSize = outputSize,
+              alpha = style.alpha,
+              interactionLayersActive = interactionLayersActive,
+              interactionTopology = interactionTopology,
+            ),
+            blurRadiusPx = params.blurRadiusPx,
+            depth = params.depth,
+            allowNativeWideBlur = params.progressive == null,
+            refractionDetailActive =
+            params.activeRefractionDetailEffectKey(params.refractionDetailIntensity) != null,
+            rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight, params.edgeOutline),
+            interactionPatchSize = interactionPatchSize,
+            interactionOpticsActive = interactionTopology.hasOptics,
+            interactionLightingActive = interactionTopology.hasLighting,
+          )
+        }
+      }
       val resolvedDecision = if (requestedScaleOverride != null) {
         val forcedPlan = buildPlan(requestedScale)
         when {
@@ -1056,6 +1083,8 @@ internal class GlassRuntimeEffect() :
           interactionTopology = interactionTopology,
           interactionRadiusFraction = interaction.radiusFraction,
           backdrop = backdrop,
+          alignToPixels = alignToPixels,
+          layerOffset = context.layerOffset,
         )
         budgetCacheDecision = it
       }
@@ -1072,6 +1101,7 @@ internal class GlassRuntimeEffect() :
       layerOffset = context.layerOffset,
       materialSize = context.size,
       scaleFactor = decision.scaleFactor,
+      alignToPixels = alignToPixels,
     )
     val preparedCacheKey = preparedRenderCacheKey
     if (
@@ -1088,14 +1118,16 @@ internal class GlassRuntimeEffect() :
     val previousCoordinates = preparedCacheKey?.coordinates
     val previousInteraction = preparedCacheKey?.interaction
     val previousPrepared = preparedRenderCache.takeIf { preparedCacheKey?.backdrop == backdrop }
+    val circularCornerOptics = performanceMode.usesCircularCornerOptics()
     val params = if (
       previousStyle != null && previousCoordinates != null && previousPrepared != null &&
       coordinates === previousCoordinates &&
-      style.hasSameRenderParams(previousStyle)
+      style.hasSameRenderParams(previousStyle) &&
+      previousPrepared.params.circularCornerOptics == circularCornerOptics
     ) {
       previousPrepared.params
     } else {
-      buildGlassRenderParams(style, coordinates)
+      buildGlassRenderParams(style, coordinates, circularCornerOptics)
     }
     val interactionUniforms = if (
       previousCoordinates != null && previousInteraction != null && previousPrepared != null &&
@@ -1240,7 +1272,9 @@ internal class GlassRuntimeEffect() :
       layerPaddingCacheRefractionMultiplier = multiplier
       layerPaddingCacheValid = true
     }
-    return rect.inflate(layerPaddingCache)
+    // A surface covering its node-bound edges keeps its material on whole layer pixels at full
+    // scale, so its capture needs no sub-pixel shift (#1775). Rounding up keeps the sampling reach.
+    return rect.inflate(if (coversNodeBoundEdges()) ceil(layerPaddingCache) else layerPaddingCache)
   }
 
   private fun samplePaddingPx(
@@ -1260,13 +1294,14 @@ internal class GlassRuntimeEffect() :
   }
 
   /**
-   * A single surface draws [drawExtent] beyond its node on every side. A container surface's
-   * bounds already include every member's outset, so it adds none.
+   * Reserves whole pixels for a single surface's [drawExtent] beyond its node on every side.
+   * A container surface's bounds already include every member's outset, so it adds none.
    */
   override fun nodeClipOutsetPx(): Float {
     if (surfaceSnapshot != null) return 0f
     val density = attachedContext?.requireDensity() ?: return 0f
-    return with(density) { drawExtent.toPx() }
+    // A fractional capture origin resamples the material even when only the outline adds padding.
+    return with(density) { ceil(drawExtent.toPx()) }
   }
 
   // Output drawn beyond the shape, such as an edge outline, would be lost to a layer cut to the input.

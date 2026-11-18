@@ -322,6 +322,8 @@ private enum class SharingEffect {
 
 /** Source colours without the built-in material's tone, refraction, edge or tint adjustments. */
 private val PassthroughGlassStyle = GlassStyle.regular.then {
+  edgeOutline(Color.Transparent, 0.dp)
+  rimHighlight(0f, 0.dp, 0f)
   optics(
     GlassOptics(
       refractionStrength = 0f,

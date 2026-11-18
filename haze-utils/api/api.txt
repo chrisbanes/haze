@@ -55,7 +55,7 @@ package dev.chrisbanes.haze {
 
   public final class ProgressiveBlurRenderEffectKt {
     method @KotlinOnly @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.PlatformRenderEffect createProgressiveBlurRenderEffect(float blurRadiusPx, androidx.compose.ui.geometry.Size size, androidx.compose.ui.geometry.Offset offset, androidx.compose.ui.graphics.Shader mask);
-    method @KotlinOnly @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.PlatformRenderEffect createProgressiveBlurRenderEffect(float blurRadiusPx, androidx.compose.ui.geometry.Size size, androidx.compose.ui.geometry.Offset offset, androidx.compose.ui.graphics.Shader mask, androidx.compose.ui.geometry.Offset maskOrigin);
+    method @KotlinOnly @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.PlatformRenderEffect createProgressiveBlurRenderEffect(float blurRadiusPx, androidx.compose.ui.geometry.Size size, androidx.compose.ui.geometry.Offset offset, androidx.compose.ui.graphics.Shader mask, androidx.compose.ui.geometry.Offset maskOrigin, optional boolean repeatEdge);
   }
 
   public final class RenderEffectKt {

@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
@@ -114,12 +115,15 @@ internal fun resolveGlassInteractionPatch(
     return null
   }
   val origin = Offset(bounds.left.toFloat(), bounds.top.toFloat())
+  val patchSampleSize = Size(bounds.width.toFloat(), bounds.height.toFloat())
   return GlassInteractionPatch(
     bounds = bounds,
     compositeBounds = compositeBounds,
     coordinates = params.coordinates.copy(
-      sampleSize = Size(bounds.width.toFloat(), bounds.height.toFloat()),
+      sampleSize = patchSampleSize,
       materialOrigin = params.coordinates.materialOrigin - origin,
+      // The patch's input holds only the patch, so the captured layer ends with it.
+      captureBounds = params.coordinates.captureBounds?.translate(-origin)?.intersect(Rect(Offset.Zero, patchSampleSize)),
     ),
     uniforms = uniforms.copy(
       position = uniforms.position - origin,

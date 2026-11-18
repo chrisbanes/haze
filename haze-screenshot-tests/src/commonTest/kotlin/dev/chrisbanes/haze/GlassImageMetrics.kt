@@ -156,43 +156,60 @@ internal fun assertContentAlignedAcrossInputScales(
   assertThat(abs(displacement)).isLessThanOrEqualTo(1f)
 }
 
-internal data class PixelSnapshot(
+/**
+ * Row-major pixels of a capture. Colors are stored as packed [Color.value]s rather than a
+ * `List<Color>`, which would box every pixel; screenshot invariants compare millions of pixels per
+ * test (#1778).
+ */
+internal class PixelSnapshot private constructor(
   val width: Int,
   val height: Int,
-  val colors: List<Color>,
+  private val values: LongArray,
 ) {
+  constructor(width: Int, height: Int, colors: List<Color>) :
+    this(width, height, LongArray(colors.size) { colors[it].value.toLong() })
+
   init {
     require(width >= 0 && height >= 0) {
       "PixelSnapshot dimensions must be non-negative, but were ${width}x$height"
     }
     val expectedColorCount = width.toLong() * height
-    require(expectedColorCount <= Int.MAX_VALUE && colors.size.toLong() == expectedColorCount) {
+    require(expectedColorCount <= Int.MAX_VALUE && values.size.toLong() == expectedColorCount) {
       "PixelSnapshot ${width}x$height requires $expectedColorCount colors, " +
-        "but received ${colors.size}"
+        "but received ${values.size}"
     }
   }
 
-  operator fun get(x: Int, y: Int): Color = colors[y * width + x]
+  val size: Int get() = values.size
+
+  /** A boxed view for convenience; use [get] in per-pixel loops. */
+  val colors: List<Color> get() = List(size, ::get)
+
+  operator fun get(index: Int): Color = Color(values[index].toULong())
+
+  operator fun get(x: Int, y: Int): Color = get(y * width + x)
+
+  companion object {
+    fun build(width: Int, height: Int, pixel: (x: Int, y: Int) -> Color): PixelSnapshot =
+      PixelSnapshot(
+        width,
+        height,
+        LongArray(width * height) { pixel(it % width, it / width).value.toLong() },
+      )
+  }
 }
 
-internal fun PixelMap.snapshot(): PixelSnapshot = PixelSnapshot(
-  width = width,
-  height = height,
-  colors = buildList(width * height) {
-    for (y in 0 until height) {
-      for (x in 0 until width) add(this@snapshot[x, y])
-    }
-  },
-)
+internal fun PixelMap.snapshot(): PixelSnapshot =
+  PixelSnapshot.build(width, height) { x, y -> this[x, y] }
 
 internal fun PixelSnapshot.changedPixelRatio(other: PixelSnapshot): Float {
   requireComparableSnapshot(other)
 
   var changedPixels = 0
-  for (index in colors.indices) {
-    if (colors[index].differsFrom(other.colors[index])) changedPixels++
+  for (index in 0 until size) {
+    if (this[index].differsFrom(other[index])) changedPixels++
   }
-  return changedPixels.toFloat() / colors.size
+  return changedPixels.toFloat() / size
 }
 
 internal fun PixelSnapshot.changedPixelRatioOutside(
@@ -204,7 +221,7 @@ internal fun PixelSnapshot.changedPixelRatioOutside(
     "Excluded bounds must not be inverted"
   }
   requireContains(excludedBounds, "Excluded bounds")
-  val comparedPixels = colors.size - excludedBounds.width * excludedBounds.height
+  val comparedPixels = size - excludedBounds.width * excludedBounds.height
   require(comparedPixels > 0) { "Excluded bounds must leave pixels to compare" }
 
   var changedPixels = 0
@@ -308,15 +325,15 @@ internal fun residualChangedPixelRatio(
 internal fun PixelSnapshot.meanAbsoluteDifference(other: PixelSnapshot): Float {
   requireComparableSnapshot(other)
   var total = 0f
-  for (index in colors.indices) {
-    val first = colors[index]
-    val second = other.colors[index]
+  for (index in 0 until size) {
+    val first = this[index]
+    val second = other[index]
     total += abs(first.red - second.red)
     total += abs(first.green - second.green)
     total += abs(first.blue - second.blue)
     total += abs(first.alpha - second.alpha)
   }
-  return total / (colors.size * 4)
+  return total / (size * 4)
 }
 
 internal fun recoverPremultipliedSnapshot(
@@ -324,14 +341,17 @@ internal fun recoverPremultipliedSnapshot(
   overWhite: PixelSnapshot,
 ): PixelSnapshot {
   overBlack.requireComparableSnapshot(overWhite)
-  require(overBlack.colors.all { it.alpha >= 1f - PixelTolerance }) {
+  val indices = 0 until overBlack.size
+  require(indices.all { overBlack[it].alpha >= 1f - PixelTolerance }) {
     "Black-matte capture must contain only opaque pixels"
   }
-  require(overWhite.colors.all { it.alpha >= 1f - PixelTolerance }) {
+  require(indices.all { overWhite[it].alpha >= 1f - PixelTolerance }) {
     "White-matte capture must contain only opaque pixels"
   }
   require(
-    overBlack.colors.zip(overWhite.colors).all { (black, white) ->
+    indices.all { index ->
+      val black = overBlack[index]
+      val white = overWhite[index]
       white.red + PixelTolerance >= black.red &&
         white.green + PixelTolerance >= black.green &&
         white.blue + PixelTolerance >= black.blue
@@ -340,9 +360,9 @@ internal fun recoverPremultipliedSnapshot(
     "White-matte RGB channels must not be darker than black-matte channels"
   }
   var inconsistentDelta: Pair<Int, List<Float>>? = null
-  for (index in overBlack.colors.indices) {
-    val black = overBlack.colors[index]
-    val white = overWhite.colors[index]
+  for (index in indices) {
+    val black = overBlack[index]
+    val white = overWhite[index]
     val redDelta = white.red - black.red
     val greenDelta = white.green - black.green
     val blueDelta = white.blue - black.blue
@@ -358,23 +378,21 @@ internal fun recoverPremultipliedSnapshot(
     "White-minus-black RGB channel deltas must agree within $PixelTolerance; " +
       "index=${inconsistentDelta?.first}, deltas=${inconsistentDelta?.second}"
   }
-  return PixelSnapshot(
-    width = overBlack.width,
-    height = overBlack.height,
-    colors = overBlack.colors.zip(overWhite.colors) { black, white ->
-      val transparency = (
-        (white.red - black.red) +
-          (white.green - black.green) +
-          (white.blue - black.blue)
-        ) / 3f
-      Color(
-        red = black.red,
-        green = black.green,
-        blue = black.blue,
-        alpha = (1f - transparency).coerceIn(0f, 1f),
-      )
-    },
-  )
+  return PixelSnapshot.build(overBlack.width, overBlack.height) { x, y ->
+    val black = overBlack[x, y]
+    val white = overWhite[x, y]
+    val transparency = (
+      (white.red - black.red) +
+        (white.green - black.green) +
+        (white.blue - black.blue)
+      ) / 3f
+    Color(
+      red = black.red,
+      green = black.green,
+      blue = black.blue,
+      alpha = (1f - transparency).coerceIn(0f, 1f),
+    )
+  }
 }
 
 internal fun PixelSnapshot.scanlineDerivative(
@@ -532,15 +550,9 @@ internal fun PixelSnapshot.crop(bounds: IntRect): PixelSnapshot {
     "Crop bounds must be non-empty, but were ${bounds.width}x${bounds.height}"
   }
   requireContains(bounds, "Crop bounds")
-  return PixelSnapshot(
-    width = bounds.width,
-    height = bounds.height,
-    colors = buildList(bounds.width * bounds.height) {
-      for (y in bounds.top until bounds.bottom) {
-        for (x in bounds.left until bounds.right) add(this@crop[x, y])
-      }
-    },
-  )
+  return PixelSnapshot.build(bounds.width, bounds.height) { x, y ->
+    this[bounds.left + x, bounds.top + y]
+  }
 }
 
 internal fun PixelSnapshot.assertTransparentAt(
@@ -559,7 +571,7 @@ internal fun PixelSnapshot.assertTransparentAt(
 }
 
 private fun PixelSnapshot.requireComparableSnapshot(other: PixelSnapshot) {
-  require(colors.isNotEmpty() && other.colors.isNotEmpty()) {
+  require(size > 0 && other.size > 0) {
     "PixelSnapshot comparisons require non-empty snapshots"
   }
   require(width == other.width && height == other.height) {
@@ -581,8 +593,11 @@ private fun PixelSnapshot.requireContains(bounds: IntRect, label: String) {
 internal fun PixelSnapshot.assertZeroAlphaHasZeroRgb(
   tolerance: Float = PixelTolerance,
 ) {
-  colors.filter { it.alpha <= tolerance }.forEach { color ->
-    assertThat(maxOf(color.red, color.green, color.blue)).isLessThanOrEqualTo(tolerance)
+  for (index in 0 until size) {
+    val color = this[index]
+    if (color.alpha <= tolerance) {
+      assertThat(maxOf(color.red, color.green, color.blue)).isLessThanOrEqualTo(tolerance)
+    }
   }
 }
 

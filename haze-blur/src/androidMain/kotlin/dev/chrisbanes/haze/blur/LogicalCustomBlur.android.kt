@@ -112,7 +112,9 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
         return
       }
       drawStack(count - 1)
-      when (val colorEffect = effects[count - 1]) {
+      val effect = effects[count - 1]
+      val colorEffect = (effect as? TintBrushHazeColorEffect)?.asColorTintOrNull() ?: effect
+      when (colorEffect) {
         is TintBrushHazeColorEffect -> drawRect(
           brush = colorEffect.brush.logical(),
           topLeft = -offset,
@@ -121,8 +123,9 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
           blendMode = colorEffect.blendMode,
         )
         is TintColorHazeColorEffect -> {
-          val color = colorEffect.color.copy(alpha = colorEffect.color.alpha * intensity)
-          if (color.alpha >= 0.005f) drawRect(color, topLeft = -offset, size = expandedSize, blendMode = colorEffect.blendMode)
+          colorEffect.resolveColor(intensity)?.let { color ->
+            drawRect(color, topLeft = -offset, size = expandedSize, blendMode = colorEffect.blendMode)
+          }
         }
         is ColorFilterHazeColorEffect -> PaintPool.usePaint { blend ->
           blend.blendMode = colorEffect.blendMode

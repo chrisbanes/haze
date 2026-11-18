@@ -14,23 +14,24 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import dev.chrisbanes.haze.test.ScreenshotTest
-import dev.chrisbanes.haze.test.runScreenshotTest
+import dev.chrisbanes.haze.test.runScreenshotTestWithoutMotion
 import kotlin.test.Test
 
+// Captures are pixel-identical without motion; skipping it avoids rendering every animation frame.
 class GlassContainerShowcaseDesktopScreenshotTest : ScreenshotTest() {
-  @Test fun showcaseDark() = runScreenshotTest(size = Size(1280f, 720f)) {
+  @Test fun showcaseDark() = runScreenshotTestWithoutMotion(size = Size(1280f, 720f)) {
     captureGlassContainerShowcase(isDark = true) { content -> PaletteEnvironment(true, content = content) }
   }
 
-  @Test fun showcaseLight() = runScreenshotTest(size = Size(1280f, 720f)) {
+  @Test fun showcaseLight() = runScreenshotTestWithoutMotion(size = Size(1280f, 720f)) {
     captureGlassContainerShowcase(isDark = false) { content -> PaletteEnvironment(false, content = content) }
   }
 
-  @Test fun showcasePhoneDark() = runScreenshotTest(size = Size(360f, 760f)) {
+  @Test fun showcasePhoneDark() = runScreenshotTestWithoutMotion(size = Size(360f, 760f)) {
     captureGlassContainerShowcase(isDark = true) { content -> PaletteEnvironment(true, content = content) }
   }
 
-  @Test fun showcasePhoneLargeTextDark() = runScreenshotTest(size = Size(360f, 760f)) {
+  @Test fun showcasePhoneLargeTextDark() = runScreenshotTestWithoutMotion(size = Size(360f, 760f)) {
     captureGlassContainerShowcase(isDark = true) { content -> PaletteEnvironment(true, fontScale = 2f, content = content) }
   }
 }

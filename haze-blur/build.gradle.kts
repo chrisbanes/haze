@@ -8,6 +8,7 @@ import org.gradle.api.tasks.testing.AbstractTestTask
 
 plugins {
   id("dev.chrisbanes.android.library")
+  id("dev.chrisbanes.android.managed-devices")
   id("dev.chrisbanes.kotlin.multiplatform")
   id("dev.chrisbanes.compose")
   id("org.jetbrains.dokka")
@@ -23,46 +24,6 @@ kotlin {
 
     withHostTest {
       isIncludeAndroidResources = true
-    }
-
-    withDeviceTest {
-      instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-      @Suppress("UnstableApiUsage")
-      managedDevices {
-        localDevices {
-          create("pixel5Api30") {
-            device = "Pixel 5"
-            sdkVersion = 30
-            systemImageSource = "aosp"
-          }
-
-          create("pixel6Api31") {
-            device = "Pixel 6"
-            sdkVersion = 31
-            systemImageSource = "aosp"
-          }
-
-          create("pixel6Api32") {
-            device = "Pixel 6"
-            sdkVersion = 32
-            systemImageSource = "aosp"
-          }
-
-          create("pixel6Api33") {
-            device = "Pixel 6"
-            sdkVersion = 33
-            systemImageSource = "aosp"
-          }
-
-          create("pixel6Api34") {
-            device = "Pixel 6"
-            sdkVersion = 34
-            // Window PixelCopy tests require rendering; ATD images disable it.
-            systemImageSource = "aosp"
-          }
-        }
-      }
     }
   }
 

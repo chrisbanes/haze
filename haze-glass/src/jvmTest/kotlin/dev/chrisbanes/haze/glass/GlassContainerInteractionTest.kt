@@ -57,6 +57,8 @@ import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.test.Test
 import kotlinx.coroutines.runBlocking
 
@@ -285,31 +287,90 @@ class GlassContainerInteractionTest : ContextTest() {
   }
 
   @Test
-  fun releaseOvershoot_staysInsideClusterSurface() = runComposeUiTest {
-    // Abutting members with a 2px merge distance: a 4% overshoot pushes A's outer edge past the
-    // merge distance. The press snaps so only the bouncy release is animated, keeping the
-    // wall-clock time short.
-    val bouncy = GlassStyle { pressed { animate(snap(), spring(dampingRatio = 0.5f, stiffness = 400f)) { scale(0.5f) } } }
-    val fixture = cluster(gap = 0, mergeDistance = 2, pressed = bouncy)
-    val press = fixture.press(fixture.firstSource)
-    mainClock.autoAdvance = false
-    runBlocking { fixture.firstSource.emit(PressInteraction.Release(press)) }
-    var overshot = false
-    var minLeft = Float.POSITIVE_INFINITY
-    repeat(60) {
-      mainClock.advanceTimeByFrame()
-      waitForIdle()
-      overshot = overshot || fixture.first.currentInteractionState.scaleX > 1.04f
-      val field = fixture.owner().renderer.runtimeSurfaces.singleOrNull()?.mergedField ?: return@repeat
-      minLeft = minOf(minLeft, field.members.minOf { it.rect.left })
+  fun releaseOvershoot_staysInsideClusterSurface() {
+    // Abutting members with a 2px merge distance and a 4px outside outline: an overshoot past the
+    // resting reservation pushes the outer stroke past the merge distance when layer expansion is
+    // disabled. The press snaps so only the bouncy release is animated.
+    val outlineWidthPx = 4f
+    val bouncy = GlassStyle {
+      edgeOutline(Color.Green, outlineWidthPx.dp)
+      pressed { animate(snap(), spring(dampingRatio = 0.5f, stiffness = 400f)) { scale(0.5f) } }
     }
-    // Let every animation settle so no frame-awaiting coroutine outlives the test body.
-    mainClock.autoAdvance = true
-    waitForIdle()
-    assertThat(overshot).isTrue()
-    assertThat(minLeft, "merged field observed").isLessThan(Float.POSITIVE_INFINITY)
-    // Field rects are relative to the surface bounds, so a negative edge is clipped.
-    assertThat(minLeft).isGreaterThanOrEqualTo(0f)
+    runComposeUiTest {
+      val fixture = cluster(gap = 0, mergeDistance = 2, pressed = bouncy, expandLayerBounds = false)
+      fixture.capture()
+      val restBounds = fixture.surfaceBounds()
+      val press = fixture.press(fixture.firstSource)
+      mainClock.autoAdvance = false
+      var checkedOvershoot = false
+      var minLeft = Float.POSITIVE_INFINITY
+      try {
+        runBlocking { fixture.firstSource.emit(PressInteraction.Release(press)) }
+        repeat(60) {
+          mainClock.advanceTimeByFrame()
+          waitForIdle()
+          val runtime = fixture.owner().renderer.runtimeSurfaces.singleOrNull() ?: return@repeat
+          val field = runtime.mergedField ?: return@repeat
+          minLeft = minOf(minLeft, field.members.minOf { it.rect.left })
+          val exposedLeft = runtime.surfaceOrigin.x + field.members.first().rect.left
+          val oldLeft = minOf(36f, exposedLeft) - 2f
+          val probeX = ceil(exposedLeft - outlineWidthPx).toInt()
+          if (!checkedOvershoot && probeX + 1 <= floor(oldLeft).toInt()) {
+            GlassDrawOutsideBoundsTest.assertGreen(fixture.capture(), probeX, 100, "member overshoot ($probeX, 100)")
+            fixture.assertOutlineFits(outlineWidthPx)
+            checkedOvershoot = true
+          }
+        }
+      } finally {
+        // Let every animation settle so no frame-awaiting coroutine outlives the test body.
+        mainClock.autoAdvance = true
+        waitForIdle()
+      }
+      assertThat(checkedOvershoot, "member overshoot frame observed").isTrue()
+      assertThat(minLeft, "merged field observed").isLessThan(Float.POSITIVE_INFINITY)
+      // Field rects are relative to the surface bounds, so a negative edge is clipped.
+      assertThat(minLeft).isGreaterThanOrEqualTo(0f)
+      val settledCapture = fixture.capture()
+      assertThat(fixture.surfaceBounds()).isCloseTo(restBounds)
+      GlassDrawOutsideBoundsTest.assertGreen(settledCapture, 37, 100, "member settled (37, 100)")
+    }
+    runComposeUiTest {
+      val fixture = groupedCluster(
+        neighbourLeft = null,
+        mergeDistance = 2,
+        pressed = bouncy,
+        expandLayerBounds = false,
+      )
+      fixture.capture()
+      val restBounds = fixture.surfaceBounds()
+      val press = fixture.press(fixture.firstSource, Offset(25f, 40f))
+      mainClock.autoAdvance = false
+      var checkedOvershoot = false
+      try {
+        runBlocking { fixture.firstSource.emit(PressInteraction.Release(press)) }
+        repeat(60) {
+          mainClock.advanceTimeByFrame()
+          waitForIdle()
+          val runtime = fixture.owner().renderer.runtimeSurfaces.singleOrNull() ?: return@repeat
+          val field = runtime.mergedField ?: return@repeat
+          val exposedRight = runtime.surfaceOrigin.x + field.members.single().rect.right
+          val oldRight = maxOf(384f, exposedRight) + 2f
+          val probeX = floor(exposedRight + 3f).toInt()
+          if (!checkedOvershoot && exposedRight > 384f && probeX >= ceil(oldRight).toInt()) {
+            GlassDrawOutsideBoundsTest.assertGreen(fixture.capture(), probeX, 100, "group overshoot ($probeX, 100)")
+            fixture.assertOutlineFits(outlineWidthPx)
+            checkedOvershoot = true
+          }
+        }
+      } finally {
+        mainClock.autoAdvance = true
+        waitForIdle()
+      }
+      assertThat(checkedOvershoot, "group overshoot frame observed").isTrue()
+      val settledCapture = fixture.capture()
+      assertThat(fixture.surfaceBounds()).isCloseTo(restBounds)
+      GlassDrawOutsideBoundsTest.assertGreen(settledCapture, 382, 100, "group settled (382, 100)")
+    }
   }
 
   @Test
@@ -658,9 +719,7 @@ class GlassContainerInteractionTest : ContextTest() {
       for ((x, y) in probes) {
         GlassDrawOutsideBoundsTest.assertGreen(settled, x, y, "unavailable=$unavailable ($x, $y)")
       }
-      val current = owner.renderer.runtimeSurfaces.single()
-      val coordinates = checkNotNull(current.preparedRender).params.coordinates
-      val surface = Rect(current.surfaceOrigin, coordinates.materialSize / coordinates.scaleFactor)
+      val surface = fixture.surfaceBounds()
       for ((x, y) in probes) {
         assertThat(surface.contains(Offset(x + 0.5f, y + 0.5f)), "reserved surface ($x, $y)").isTrue()
       }
@@ -890,6 +949,24 @@ class GlassContainerInteractionTest : ContextTest() {
 
     fun owner() = checkNotNull(first.memberBindingForTest?.node?.container)
     fun field() = checkNotNull(owner().renderer.runtimeSurfaces.single().mergedField)
+
+    fun surfaceBounds(): Rect {
+      val runtime = owner().renderer.runtimeSurfaces.single()
+      val coordinates = checkNotNull(runtime.preparedRender).params.coordinates
+      return Rect(runtime.surfaceOrigin, coordinates.materialSize / coordinates.scaleFactor)
+    }
+
+    fun assertOutlineFits(outlineWidthPx: Float) {
+      val surface = surfaceBounds()
+      val outline = field().members.map { it.rect }.union().inflate(outlineWidthPx).translate(surface.topLeft)
+      assertThat(surface, "surface contains the full outline").all {
+        prop(Rect::left).isLessThanOrEqualTo(outline.left)
+        prop(Rect::top).isLessThanOrEqualTo(outline.top)
+        prop(Rect::right).isGreaterThanOrEqualTo(outline.right)
+        prop(Rect::bottom).isGreaterThanOrEqualTo(outline.bottom)
+      }
+    }
+
     fun assertFallback() {
       assertThat(owner().renderer.runtimeSurfaces.single().delegate).isInstanceOf<FallbackGlassDelegate>()
     }
@@ -945,6 +1022,7 @@ class GlassContainerInteractionTest : ContextTest() {
     adjustableGap: Boolean = false,
     checkerboard: Boolean = false,
     optical: Boolean = false,
+    expandLayerBounds: Boolean = true,
   ): ClusterFixture {
     val first = GlassRuntimeEffect()
     val second = GlassRuntimeEffect()
@@ -984,7 +1062,7 @@ class GlassContainerInteractionTest : ContextTest() {
                   base
                 }
               }.then(pressed),
-              HazePerformanceMode.Quality, true, firstSource, GlassTransformTarget.MaterialOnly, pivot, policy,
+              HazePerformanceMode.Quality, expandLayerBounds, firstSource, GlassTransformTarget.MaterialOnly, pivot, policy,
             ),
           )
           Box(
@@ -1001,7 +1079,7 @@ class GlassContainerInteractionTest : ContextTest() {
                   base
                 }
               }.then(pressed),
-              HazePerformanceMode.Quality, true, secondSource, GlassTransformTarget.MaterialOnly, pivot, policy,
+              HazePerformanceMode.Quality, expandLayerBounds, secondSource, GlassTransformTarget.MaterialOnly, pivot, policy,
             ),
           )
         }
@@ -1020,6 +1098,8 @@ class GlassContainerInteractionTest : ContextTest() {
     unavailable: Boolean = false,
     mergeDistance: Int = 40,
     outline: GlassStyle = GlassStyle,
+    pressed: GlassStyle = GlassStyle { pressed { animate(linear300, linear300) { scale(1.2f) } } },
+    expandLayerBounds: Boolean = true,
   ): ClusterFixture {
     val first = GlassRuntimeEffect()
     val second = GlassRuntimeEffect()
@@ -1032,7 +1112,6 @@ class GlassContainerInteractionTest : ContextTest() {
     val firstSource = MutableInteractionSource()
     val secondSource = MutableInteractionSource()
     val neighbourSource = MutableInteractionSource()
-    val pressed = GlassStyle { pressed { animate(linear300, linear300) { scale(1.2f) } } }
     val state = HazeState()
     setContent {
       Box(Modifier.size(560.dp, 240.dp).testTag("root").background(Color.White)) {
@@ -1041,14 +1120,14 @@ class GlassContainerInteractionTest : ContextTest() {
           Box(
             Modifier.offset(80.dp, 60.dp).size(50.dp, 80.dp).hazeGlass(
               HazeEffectFactory { first }, HazeInput.Sources(state), containerTestStyle(Color.Red).then(outline).then(pressed),
-              HazePerformanceMode.Quality, true, firstSource, GlassTransformTarget.MaterialOnly, GlassTransformPivot.Center,
+              HazePerformanceMode.Quality, expandLayerBounds, firstSource, GlassTransformTarget.MaterialOnly, GlassTransformPivot.Center,
               GlassReducedMotionPolicy.Full, groupKey = "group",
             ),
           )
           Box(
             Modifier.offset(280.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(
               HazeEffectFactory { second }, HazeInput.Sources(state), containerTestStyle(Color.Red).then(outline).then(pressed),
-              HazePerformanceMode.Quality, true, secondSource, GlassTransformTarget.MaterialOnly, GlassTransformPivot.Center,
+              HazePerformanceMode.Quality, expandLayerBounds, secondSource, GlassTransformTarget.MaterialOnly, GlassTransformPivot.Center,
               GlassReducedMotionPolicy.Full, groupKey = "group",
             ),
           )
@@ -1056,7 +1135,7 @@ class GlassContainerInteractionTest : ContextTest() {
             Box(
               Modifier.offset(neighbourLeft.dp, 60.dp).size(100.dp, 80.dp).hazeGlass(
                 HazeEffectFactory { neighbour }, HazeInput.Sources(state), containerTestStyle(Color.Blue).then(pressed),
-                HazePerformanceMode.Quality, true, neighbourSource, GlassTransformTarget.MaterialOnly,
+                HazePerformanceMode.Quality, expandLayerBounds, neighbourSource, GlassTransformTarget.MaterialOnly,
                 GlassTransformPivot.Center, GlassReducedMotionPolicy.Full,
               ),
             )
