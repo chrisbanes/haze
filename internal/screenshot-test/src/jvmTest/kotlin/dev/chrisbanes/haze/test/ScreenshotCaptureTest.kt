@@ -96,8 +96,9 @@ class ScreenshotCaptureTest {
         val previous = context.outputDirectory
         context.setRuleOverrideOutputDirectory(dir.absolutePath)
         try {
-          captureRootArtifact("fast.webp", recording)
-          onRoot().captureToImage().captureRoboImage("full.webp", recording)
+          val imageOnly = recording.copy(uiTreeDumpOptions = null)
+          captureRootArtifact("fast.webp", imageOnly)
+          onRoot().captureToImage().captureRoboImage("full.webp", imageOnly)
         } finally {
           context.setRuleOverrideOutputDirectory(previous)
         }
