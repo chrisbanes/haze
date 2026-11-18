@@ -105,6 +105,9 @@ class WindowsGlassProbeTest {
     val hash = MessageDigest.getInstance("SHA-256").digest(File(FIXTURES, "retained.sksl").readBytes())
       .joinToString("") { "%02x".format(it) }
     assertThat(hash).isEqualTo("3bdf411bbbd5b324be57b374d141590b1f78c72a4cf9ce0fc74bba71fd320ebc")
+    val controlHash = MessageDigest.getInstance("SHA-256").digest(File(FIXTURES, "control.sksl").readBytes())
+      .joinToString("") { "%02x".format(it) }
+    assertThat(controlHash).isEqualTo("5498debd8f5f3ce9b33dcf04959b496ad38ea239e915ee8ac245ab677137a401")
     val output = File("build/outputs/glass-probe-parity/frozen").apply { mkdirs() }
     RuntimeEffect.makeForShader(source).use { effect ->
       WindowsGlassProbe.makeShader(effect, source, 2, output).close()
@@ -129,6 +132,7 @@ class WindowsGlassProbeTest {
 
   @Test
   fun cutSource_frozenOriginalProducesRetainedFixture() {
+    // Measured fixtures keep the CRLF a Windows checkout gives compact-main; hashes above lock exact bytes.
     assertThat(WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, RETAINED_CUTS).replace("\r\n", "\n"))
       .isEqualTo(File(FIXTURES, "retained.sksl").readText().replace("\r\n", "\n"))
     assertThat(WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, "$RETAINED_CUTS,refraction").replace("\r\n", "\n"))
