@@ -1,8 +1,10 @@
 # Draft: Direct3D first draw spends seconds in WARP shader compilation
 
 Not filed. Proposed starting point: Skiko, because the attached source reproduces through its native
-SkiaLayer API without Compose or Haze. The traces also identify Microsoft backend compiler work;
-ownership and a suitable compiler-level input still need upstream triage.
+SkiaLayer API without Compose or Haze. Skiko 0.156.1 (Skia m156) emits byte-identical HLSL and still
+stalls. The captured HLSL spends about a third of the reduced case's first draw in
+`d3dcompiler_47!D3DCompile`, and the rest after it returns, consistent with WARP pixel-shader JIT.
+That HLSL is a compiler-level input for Microsoft triage if Skia owners consider it reasonable.
 
 ## Symptom
 
@@ -85,6 +87,28 @@ including WARP's pixel-shader JIT, rather than steady-state software rasterizati
 waits. These are sampled CPU counts, not wall-time shares; the control sample is small. JVM/Skiko
 private-symbol gaps remain. It does not isolate a specific compiler algorithm defect.
 
+## Skiko 0.156.1 and captured HLSL
+
+Three hosted runs ([44395260503](https://github.com/chrisbanes/haze/actions/runs/44395260503),
+[44397560602](https://github.com/chrisbanes/haze/actions/runs/44397560602),
+[44399094411](https://github.com/chrisbanes/haze/actions/runs/44399094411)) compare Skiko 0.150.2
+(Skia `m150-a3f509bf52`) with 0.156.1 (Skia `m156-6416302ae5`). Each runs two fresh VMs in opposite
+orders, alternating versions per trial, on Microsoft Basic Render Driver. The reduced case has the
+cold signal in all 18 trials per version, 1,493–3,509 ms cold against warm medians up to 16 ms.
+Paired controls take 25–121 ms. The unreduced original drawn at its measured 240×160 never produces
+a valid trial: it either exceeds the 60-second watchdog, or finishes after 14.5–34.6 s and then fails
+the blank-screenshot check. The comparison artifacts are named `windows-glass-skiko-compare-<order>`.
+
+A Frida hook on `d3dcompiler_47.dll` (`windows-glass-d3dcompile` artifact of run 44399094411)
+records `D3DCompile` calls with `ps_5_1`/`vs_5_1`, entry `main`, flags `0x8` and no
+defines/include. Pixel HLSL is byte-identical across both Skia versions.
+
+| Case | Pixel HLSL | In-process D3DCompile | Direct D3DCompile, 3 fresh processes | Hooked first draw |
+| --- | --- | --- | --- | --- |
+| Control | 10,119 B | 16–27 ms | 16–17 ms | 37–105 ms |
+| Reduced | 26,292 B | 706–748 ms | 684–752 ms | 2,064–2,133 ms |
+| Original | 66,156 B | 6.5–8.3 s | 8.7–10.8 s | 23.8 s (INVALID: blank) / censored ≥ 90 s |
+
 ## Attempts and limits
 
 Guarding member-loop bodies instead of `break` does not fix the original stall. Adding test-only
@@ -93,11 +117,13 @@ trials with the same seconds-long cold signal. Neither is proposed as a producti
 Reducing draw area also leaves the original stall intact.
 
 The frozen source is feature-reduced, with unused generated helpers retained for source fidelity.
-Physical GPUs, newer Skiko versions and a standalone D3D bytecode/HLSL reproduction remain untested.
+Physical GPUs remain untested. The hook times `D3DCompile` only, not the pipeline creation that
+follows, so the post-compile share is inferred from the remaining wall time and the earlier ETW
+stacks.
 The Haze issue remains open: [#1767](https://github.com/chrisbanes/haze/issues/1767).
 
 ## Requested triage
 
-Can this runtime-effect input be used to isolate the generated backend program and determine whether
-Skia lowering, D3DCompiler or WARP needs to change? A safe equivalent shader workaround would also
+Is this HLSL a reasonable lowering of the runtime effect? If so, can WARP's pixel-shader JIT and
+D3DCompiler cost be raised with Microsoft? If not, which Skia lowering change would reduce it? A safe equivalent shader workaround would also
 help; the existing evidence does not justify a production shader rewrite.

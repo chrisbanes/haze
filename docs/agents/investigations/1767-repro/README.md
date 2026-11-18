@@ -94,6 +94,9 @@ standalone timings, renderer identities, screenshots and partial watchdog output
 
 ## D3DCompile ownership probe
 
+Result on hosted Direct3D/WARP: see the
+[evidence record](../1767-direct3d-first-draw.md#skiko-01561-comparison-and-d3dcompile-attribution).
+
 `d3dcompile.py profile <root> <output> <version>...` runs each case once per version under
 [Frida](https://frida.re) 17 (`pip install frida==17.24.3`) with `d3dcompile-hook.js`, which records
 every `d3dcompiler_47!D3DCompile`/`D3DCompile2` call: HLSL, entry point, target, flags and in-process

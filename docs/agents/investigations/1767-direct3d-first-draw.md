@@ -1,7 +1,9 @@
 # Glass Direct3D first-draw investigation
 
 Tracks [#1767](https://github.com/chrisbanes/haze/issues/1767). First-draw stacks identify backend shader compilation,
-including WARP JIT work. No production workaround has been selected.
+including WARP JIT work. No production workaround has been selected. Skiko 0.156.1 does not change the
+result: Skia emits byte-identical HLSL and the stall persists
+([comparison](#skiko-01561-comparison-and-d3dcompile-attribution)).
 
 ## Outcome and qualification
 
@@ -282,3 +284,62 @@ native SkiaLayer, with no Haze or Compose runtime. Fixture-fidelity tests bind i
 fourteen-cut case. Its exported ZIP is compiled and run outside the checkout by the investigation
 workflow before it can be called upstream-ready. The [upstream report draft](1767-upstream-report.md)
 is for review; it has not been filed externally.
+
+## Skiko 0.156.1 comparison and D3DCompile attribution
+
+[Plan revision 2](https://github.com/chrisbanes/haze/issues/1767#issuecomment-6990669475) compares
+Skiko 0.150.2 (Skia `m150-a3f509bf52`) with 0.156.1 (Skia `m156-6416302ae5`) in the standalone
+reproducer, without Compose. Haze's Compose 1.12.2 still resolves Skiko 0.150.2; no default changed.
+Each `compare-skiko` matrix job runs on a fresh hosted `windows-2025` VM (image
+`win25-vs2026 20261103.298.1`, Microsoft Basic Render Driver). It alternates versions per trial,
+`baseline-first` or `candidate-first`. Every case is a fresh JVM, and every counted trial's runtime
+`Version.skiko` matches the requested version. Fixture SHA-256: `original.sksl` `80410be1…`,
+`retained.sksl` `3bdf411b…`, `control.sksl` `5498debd…`, `content.sksl` `f5915d75…`, `uniforms.txt`
+`249f5987…`.
+
+The frozen `original.sksl` is the profiled 240×160 source of run 42534101240. After merging `main`
+at `1418b61c2`, production `GlassShaders.buildOptical(merged = true, continuous = true)` still
+produces those exact bytes. `GlassShaders.kt` changed elsewhere, so this variant has no source drift.
+
+| Run (head) | Order | 0.150.2 retained ms | 0.156.1 retained ms | Controls valid | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| [44395260503](https://github.com/chrisbanes/haze/actions/runs/44395260503) (`ef2f969`) | baseline-first | 2,569–2,717 | 2,493–2,821 | 6/6 | persists |
+| | candidate-first | 1,519–1,589 | 1,493–1,606 | 6/6 | persists |
+| [44397560602](https://github.com/chrisbanes/haze/actions/runs/44397560602) (`381a7cc`) | baseline-first | 2,504–2,528 | 2,451–2,566 | 6/6 | persists |
+| | candidate-first | 2,098–2,122 | 2,075–2,124 | 6/6 | persists |
+| [44399094411](https://github.com/chrisbanes/haze/actions/runs/44399094411) (`6b55a44`) | baseline-first | 2,522–3,339 | 2,491–2,535 | 6/6 | persists |
+| | candidate-first | 2,580–3,509 | 2,528–2,621 | 6/6 | persists |
+
+**Verdict: the stall persists in Skiko 0.156.1.** Every retained trial, 18 per version, has the cold
+signal. Warm medians are 0.3–16 ms, and every control completes in 25–121 ms. Neither version completes
+a valid original trial. Per version, 14 or 15 of 18 originals hit the 60-second watchdog
+(`INVALID (censored ≥ 60 s)`). The rest finished their first draw in 14.5–34.6 s, above the 5-second
+latency gate, and then failed the blank-screenshot check. Those are INVALID, not durations.
+
+That blank-output gate marks five of the six matrix jobs failed, all on original rows. Retained and
+control results stay valid. The `reproduce` job failed in the first run on a Windows line-ending
+defect in a new test (fixed in `bc0ef7bdf`), and passes in the later two. The ranges vary by VM and
+order, while each job's two versions stay close. Fresh JVMs and VMs do not prove empty OS, driver or
+compiler caches. The first trial in each job is not systematically slower.
+
+The `profile-compiler` job in run 44399094411 runs one hooked JVM per case and version under Frida
+17.24.3. Skia's Direct3D backend calls
+`C:\Windows\SYSTEM32\d3dcompiler_47.dll!D3DCompile` with `vs_5_1`/`ps_5_1`, entry `main`, flags
+`0x8` (row-major packing) and no defines/include. **The generated HLSL is byte-identical between
+Skia m150 and m156** for all three cases. Each captured shader was recompiled through `D3DCompile`
+in three fresh processes:
+
+| Case | Pixel HLSL | In-process D3DCompile ms (0.150.2 / 0.156.1) | Direct ms | Hooked first draw ms |
+| --- | --- | --- | --- | --- |
+| Control | 10,119 B, 301 lines | 27 / 16 | 16–17 | 105 / 37 |
+| Retained | 26,292 B, 719 lines | 706 / 748 | 684–752 | 2,064 / 2,133 |
+| Original | 66,156 B, 1,679 lines | 6,515 / 8,297 | 8,716–10,845 | censored ≥ 90 s / 23,801 (then blank, INVALID) |
+
+Vertex shaders compile in about 3 ms. Microsoft's HLSL compiler is a real cost: about 0.7 s for the
+retained pixel shader and about 8–11 s for the original. It accounts for roughly a third of the
+retained first draw. The remaining ≈1.35 s, and most of the original's first draw, is spent after
+`D3DCompile` returns. That matches the earlier ETW attribution to WARP's pixel-shader JIT
+(`D3D10Warp!PixelJITProcessor`), but the hook does not time pipeline creation itself. The captured
+HLSL is now a compiler-level input for Microsoft triage. It does not decide between "Skia emits
+pathological HLSL" and "compiler/WARP pathology". Hooked timings carry Frida overhead and are kept out
+of the comparison table. No production change is proposed; physical GPUs remain unmeasured.
