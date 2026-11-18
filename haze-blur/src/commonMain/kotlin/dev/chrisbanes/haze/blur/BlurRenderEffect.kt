@@ -227,11 +227,8 @@ private fun PlatformRenderEffect.withBrushTint(
   alphaModulate: Float,
   mask: Shader?,
 ): PlatformRenderEffect {
-  val brush = effect.brush
-  if (brush is SolidColor) {
-    return withColorTint(TintColorHazeColorEffect(brush.value, effect.blendMode), alphaModulate, mask)
-  }
-  val tintBrush = brush.toShader(size, scale, offset) ?: return this
+  effect.asColorTintOrNull()?.let { return withColorTint(it, alphaModulate, mask) }
+  val tintBrush = effect.brush.toShader(size, scale, offset) ?: return this
 
   val brushEffect = if (alphaModulate >= 1f) {
     createShaderRenderEffect(tintBrush)
@@ -284,7 +281,10 @@ private fun PlatformRenderEffect.withColorTint(
   )
 }
 
-private fun TintColorHazeColorEffect.resolveColor(alphaModulate: Float): Color? {
+internal fun TintBrushHazeColorEffect.asColorTintOrNull(): TintColorHazeColorEffect? =
+  (brush as? SolidColor)?.let { TintColorHazeColorEffect(it.value, blendMode) }
+
+internal fun TintColorHazeColorEffect.resolveColor(alphaModulate: Float): Color? {
   val resolved = when {
     alphaModulate < 1f -> color.copy(alpha = color.alpha * alphaModulate)
     else -> color

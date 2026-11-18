@@ -684,7 +684,7 @@ internal object GlassShaders {
     uniform float rimHighlightWidth;
     uniform float rimHighlightSides;
     layout(color) uniform vec4 edgeOutline;
-    uniform float edgeOutlineWidth;
+    uniform float edgeOutlineWidth;${if (merged) "" else "\n    uniform float outlinePixelWidth;"}
     uniform float coversNodeBoundEdges;
 
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
@@ -718,9 +718,9 @@ internal object GlassShaders {
       }
       // A hard band just outside the shape, complementing its coverage so the two leave no seam.
       vec4 outline = vec4(0.0);
-      if (edgeOutlineWidth > 0.0) {
+      if (edgeOutlineWidth > 0.0) {${if (merged) "" else nodeBoundOutlineCoverage()}
         float outlineAlpha =
-          edgeOutline.a * (1.0 - coverage) * shapeCoverage(sd - edgeOutlineWidth, sampleStep * 0.5);
+          edgeOutline.a * (1.0 - coverage) * ${if (merged) "shapeCoverage(sd - edgeOutlineWidth, sampleStep * 0.5)" else "outlineCoverage"};
         outline = vec4(edgeOutline.rgb * outlineAlpha, outlineAlpha);
       }
       if (coverage <= 0.0) return outline;
@@ -796,6 +796,14 @@ internal object GlassShaders {
     return "mix($shape, shapeCoverage($sd - $GLASS_EDGE_COVERAGE_OUTSET_SKSL, sampleStep * 0.5), " +
       "${onMaterialRectangle(sd)})"
   }
+
+  private fun nodeBoundOutlineCoverage(): String = """
+        float outlineCoverage = shapeCoverage(sd - edgeOutlineWidth, sampleStep * 0.5);
+        // Center the outline's outer coverage ramp on its edge at node-bound straight sides.
+        if (coversNodeBoundEdges > 0.5 && sd >= 0.0) {
+          float rectOutlineCoverage = shapeCoverage(sd - edgeOutlineWidth - outlinePixelWidth * 0.5, outlinePixelWidth);
+          outlineCoverage = mix(outlineCoverage, rectOutlineCoverage, ${onMaterialRectangle("sd")});
+        }"""
 
   /** 1 where the silhouette lies on the material rectangle, fading to 0 as a corner curves away. */
   private fun onMaterialRectangle(sd: String): String =

@@ -213,9 +213,8 @@ or `reducedMotionPolicy` in this record refers to them.
 ## Amendment: interaction scales may exceed 1 (2026-11-06)
 
 Authored interaction scales are in `0f < value <= 1.2f`, so a pressed member can grow the way iOS
-interactive Liquid Glass does ([#1735](https://github.com/chrisbanes/haze/issues/1735)). Writing a
-value above 1 is the opt-in; there is no separate flag, and the default pressed response still
-shrinks.
+interactive Liquid Glass does ([#1735](https://github.com/chrisbanes/haze/issues/1735)). Press
+scaling is opt-in. Author a pressed scale below 1 to shrink the member or above 1 to grow it.
 
 - **Bounds.** A grown surface draws beyond its layout bounds automatically, without
   `expandLayerBounds`. At rest, a cluster's bounds already reserve each member's largest grown rect

@@ -33,8 +33,9 @@ class ProgressiveBlurShaderTest {
                   RuntimeEffect.makeForShader(makeProgressiveBlurSksl(vertical, guarded)).use { effect ->
                     val builder = RuntimeShaderBuilder(effect)
                     builder.uniform("blurRadius", radius)
-                    builder.uniform("crop", 0.25f, 0.25f, 31.75f, 23.75f)
+                    builder.uniform("crop", 2.25f, 3.25f, 29.75f, 20.75f)
                     builder.uniform("maskOrigin", 0f, 0f)
+                    builder.uniform("edgeRepeat", 1f)
                     builder.child("content", content)
                     builder.child("mask", mask)
                     builder.makeShader().use { shader ->

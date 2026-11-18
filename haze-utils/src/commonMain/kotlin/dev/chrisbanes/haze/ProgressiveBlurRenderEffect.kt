@@ -33,9 +33,9 @@ public fun createProgressiveBlurRenderEffect(
 /**
  * Creates a progressive blur with a mask origin independent of its crop bounds.
  *
- * Blur taps are clamped to the crop. Each pixel's own (centre) sample is clamped inside the crop
- * and, with [repeatEdge], for one more pixel beyond it, so a downscaled result drawn back up does not
- * blend its edge with the transparency outside. Further out, the centre sample is unclamped.
+ * Samples are clamped for output pixels inside the crop and, with [repeatEdge], for one more pixel
+ * beyond it, so a downscaled result drawn back up retains its edge opacity. Further out, unclamped
+ * samples let the blur fade into the expanded margin.
  */
 @InternalHazeApi
 public fun createProgressiveBlurRenderEffect(
@@ -121,8 +121,8 @@ internal fun makeProgressiveBlurSksl(
       return clamp(coord, lower, upper);
     }
 
-    vec4 sampleContent(vec2 coord) {
-      return content.eval(clampToCrop(coord));
+    vec4 sampleContent(vec2 coord, bool repeatsEdge) {
+      return content.eval(repeatsEdge ? clampToCrop(coord) : coord);
     }
 
     vec4 blur(vec2 coord, float radius) {
@@ -134,10 +134,10 @@ internal fun makeProgressiveBlurSksl(
       // https://github.com/chrisbanes/haze/issues/520
       float sigma = max(radius / 2.0, 1.0);
       float weightSum = 1.0;
-      // Unclipped expanded layers show the margin past edgeRepeat, so leave it unchanged there.
+      // Unclipped expanded layers need unclamped samples to fade beyond the repeated edge.
       bool repeatsEdge = all(greaterThanEqual(coord, crop.xy - vec2(edgeRepeat))) &&
         all(lessThanEqual(coord, crop.zw + vec2(edgeRepeat)));
-      vec4 result = content.eval(repeatsEdge ? clampToCrop(coord) : coord);
+      vec4 result = sampleContent(coord, repeatsEdge);
 
       // Windows Direct3D stalls on first draw with an early break (issue #1260).
       for (half i = 1.0; i < maxRadius; i += 2.0) {
@@ -149,13 +149,13 @@ internal fun makeProgressiveBlurSksl(
 
           vec2 newCoord = coord - offset;
           if (newCoord.x >= crop[0] && newCoord.y >= crop[1]) {
-            result += weight * sampleContent(newCoord);
+            result += weight * sampleContent(newCoord, repeatsEdge);
             weightSum += weight;
           }
 
           newCoord = coord + offset;
           if (newCoord.x <= crop[2] && newCoord.y <= crop[3]) {
-            result += weight * sampleContent(newCoord);
+            result += weight * sampleContent(newCoord, repeatsEdge);
             weightSum += weight;
           }
         } ${if (avoidLoopBreak) "" else "else { break; }"}
@@ -168,13 +168,13 @@ internal fun makeProgressiveBlurSksl(
 
         vec2 newCoord = coord - offset;
         if (newCoord.x >= crop[0] && newCoord.y >= crop[1]) {
-          result += weight * sampleContent(newCoord);
+          result += weight * sampleContent(newCoord, repeatsEdge);
           weightSum += weight;
         }
 
         newCoord = coord + offset;
         if (newCoord.x <= crop[2] && newCoord.y <= crop[3]) {
-          result += weight * sampleContent(newCoord);
+          result += weight * sampleContent(newCoord, repeatsEdge);
           weightSum += weight;
         }
       }

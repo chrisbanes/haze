@@ -60,7 +60,11 @@ public object GlassDefaults {
   @Deprecated(
     message = "Glass now defaults to continuous corners. Use GlassDefaults.continuousShape, or " +
       "RoundedCornerShape(16.dp) for the former circular corners.",
-    replaceWith = ReplaceWith("GlassDefaults.continuousShape"),
+    replaceWith = ReplaceWith(
+      "RoundedCornerShape(16.dp)",
+      "androidx.compose.foundation.shape.RoundedCornerShape",
+      "androidx.compose.ui.unit.dp",
+    ),
   )
   public val shape: RoundedCornerShape = RoundedCornerShape(16.dp)
 

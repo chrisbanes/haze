@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.graphics.ColorFilter as ComposeColorFilter
 import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.TileMode as ComposeTileMode
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -108,6 +109,60 @@ import org.junit.Test
 class BlurCustomShaderHardwareInstrumentationTest {
   @get:Rule
   val rule = createAndroidComposeRule<ComponentActivity>()
+
+  @Test
+  fun productionDelegate_transparentSolidTintPreservesPriorEffects() {
+    val customMask = object : ShaderBrush() {
+      override fun createShader(size: Size): Shader = LinearGradient(
+        0f,
+        0f,
+        size.width,
+        0f,
+        android.graphics.Color.WHITE,
+        android.graphics.Color.WHITE,
+        Shader.TileMode.CLAMP,
+      )
+    }
+    val prior = HazeColorEffect.tint(ComposeColor.Green.copy(alpha = 0.4f))
+    val variants = listOf(
+      "noEffects" to emptyList(),
+      "prior" to listOf(prior),
+      "transparentColor" to listOf(prior, HazeColorEffect.tint(ComposeColor.Transparent, BlendMode.Src)),
+      "transparentBrush" to listOf(prior, HazeColorEffect.tint(SolidColor(ComposeColor.Transparent), BlendMode.Src)),
+      "redColor" to listOf(prior, HazeColorEffect.tint(ComposeColor.Red, BlendMode.Src)),
+      "redBrush" to listOf(prior, HazeColorEffect.tint(SolidColor(ComposeColor.Red), BlendMode.Src)),
+    )
+    rule.setContent {
+      CompositionLocalProvider(LocalDensity provides Density(1f)) {
+        Row {
+          variants.forEach { (tag, effects) ->
+            Box(
+              Modifier.size(40.dp).testTag(tag)
+                .hazeBlur(
+                  input = HazeInput.Content,
+                  performanceMode = HazePerformanceMode.Quality,
+                  style = HazeBlurStyle {
+                    blurRadius(4.dp)
+                    noiseFactor(0f)
+                    backgroundColor(ComposeColor.Transparent)
+                    mask(customMask)
+                    colorEffects(effects)
+                  },
+                ).drawBehind { drawRect(ComposeColor.Blue) },
+            )
+          }
+        }
+      }
+    }
+    rule.waitForIdle()
+    fun read(tag: String) = rule.onNodeWithTag(tag).captureToImage().toPixelMap()[20, 20]
+    val priorOutput = read("prior")
+    assertThat(priorOutput).isNotEqualTo(read("noEffects"))
+    assertThat(read("transparentColor")).isEqualTo(priorOutput)
+    assertThat(read("transparentBrush")).isEqualTo(priorOutput)
+    assertThat(read("redBrush")).isEqualTo(read("redColor"))
+    assertThat(read("redBrush")).isNotEqualTo(priorOutput)
+  }
 
   @Test
   fun logicalOutputStage_rendersSharedHardwareMaskAndRetainsFirstOutput() {

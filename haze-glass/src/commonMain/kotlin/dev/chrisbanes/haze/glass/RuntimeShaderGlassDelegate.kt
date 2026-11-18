@@ -2094,7 +2094,7 @@ internal class RuntimeShaderGlassDelegate(
             continuous = continuousCorners(key.cornerRadii, key.mergedField),
           )
         }.also { rimShader = it }
-        shader.updateUniforms { setRimUniforms(key, mergedFieldScratch) }
+        shader.updateUniforms { setRimUniforms(key, mergedFieldScratch, rasterized = true) }
       }
       rimKey = nextRimKey
     }
@@ -2675,6 +2675,7 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
 internal fun RuntimeShaderUniformProvider.setRimUniforms(
   key: GlassRimEffectKey,
   scratch: MergedFieldUniformScratch = MergedFieldUniformScratch(),
+  rasterized: Boolean = false,
 ) {
   setCommonUniforms(
     key.coordinates,
@@ -2697,7 +2698,15 @@ internal fun RuntimeShaderUniformProvider.setRimUniforms(
   setColorUniform("edgeOutline", key.edgeOutline.color)
   setFloatUniform("edgeOutlineWidth", key.edgeOutline.widthPx)
   setFloatUniform("coversNodeBoundEdges", if (key.coordinates.pixelAligned) 1f else 0f)
-  key.mergedField?.let { setMergedFieldUniforms(it, scratch = scratch) }
+  val mergedField = key.mergedField
+  if (mergedField != null) {
+    setMergedFieldUniforms(mergedField, scratch = scratch)
+  } else {
+    val physicalPixelWidth = key.sampleStepPx * 0.5f
+    // A RenderEffect can rasterize before presentation scales it up.
+    val outlinePixelWidth = if (rasterized) physicalPixelWidth.coerceAtLeast(1f) else physicalPixelWidth
+    setFloatUniform("outlinePixelWidth", outlinePixelWidth)
+  }
 }
 
 internal fun RuntimeShaderUniformProvider.setInteractionOpticalUniforms(
