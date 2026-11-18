@@ -847,6 +847,8 @@ internal class GlassRuntimeEffect() :
     delegate.clearRetainedOutput()
   }
 
+  // Keyed by geometry and re-checked per query. A density or direction change re-places the node,
+  // which recomputes its layer bounds with this answer, so no separate invalidation is needed.
   override fun shouldClipToNodeBounds(): Boolean {
     // Without drawable geometry, keep the node clip rather than risk cropping to the input.
     val context = attachedContext ?: return true

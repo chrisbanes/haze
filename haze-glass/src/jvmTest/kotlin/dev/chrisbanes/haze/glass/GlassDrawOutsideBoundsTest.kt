@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -441,16 +442,19 @@ class GlassDrawOutsideBoundsTest {
         Box(Modifier.size(200.dp).testTag("root").background(Color.Blue)) {
           val nodeSize = size.value
           val sourceOffset = 50 + nodeSize / 2 - 10
-          // The root density is 1. Only the surface sees density changes, so nothing else relays out.
+          // The root density is 1. Only the surface sees density changes.
           Box(Modifier.offset { IntOffset(sourceOffset, sourceOffset) }.size(20.dp).hazeSource(state).background(Color.Green))
-          CompositionLocalProvider(LocalDensity provides Density(densityState.value)) {
-            Box(
-              Modifier.offset { IntOffset(50, 50) }.size(with(LocalDensity.current) { nodeSize.toDp() }).hazeGlass(
-                HazeEffectFactory { effect }, HazeInput.Sources(state), style,
-                HazePerformanceMode.Quality, false, source, GlassTransformTarget.MaterialOnly,
-                GlassTransformPivot.Center, GlassReducedMotionPolicy.Full,
-              ),
-            )
+          // The parent fixes the pixel size, so a density change leaves the surface's modifiers equal.
+          Box(Modifier.offset { IntOffset(50, 50) }.size(nodeSize.dp)) {
+            CompositionLocalProvider(LocalDensity provides Density(densityState.value)) {
+              Box(
+                Modifier.fillMaxSize().hazeGlass(
+                  HazeEffectFactory { effect }, HazeInput.Sources(state), style,
+                  HazePerformanceMode.Quality, false, source, GlassTransformTarget.MaterialOnly,
+                  GlassTransformPivot.Center, GlassReducedMotionPolicy.Full,
+                ),
+              )
+            }
           }
         }
       }
