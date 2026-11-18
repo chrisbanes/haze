@@ -1,6 +1,15 @@
 name: Windows Glass first-draw investigation
 on:
   workflow_dispatch:
+    inputs:
+      skiko_baseline:
+        description: Skiko version that reproduced the stall
+        default: '0.150.2'
+        type: string
+      skiko_candidate:
+        description: Skiko version to compare
+        default: '0.156.1'
+        type: string
 permissions:
   contents: read
 jobs:
@@ -100,4 +109,136 @@ jobs:
             haze-glass/build/outputs/glass-probe-profiler-tools.json
             haze-glass/build/outputs/glass-probe-wpr-profiles.txt
             haze-glass/build/test-results/jvmTest
+            haze-glass/build/outputs/windows-glass-repro.zip
+
+  # Standalone reproducer only, so Compose's Skiko pin does not apply. Versions alternate per trial in
+  # matrix order; each run.ps1 case is a fresh JVM. Fresh JVMs and VMs do not prove empty OS/driver caches.
+  compare-skiko:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        order: [baseline-first, candidate-first]
+    env:
+      BASELINE: ${{ inputs.skiko_baseline }}
+      CANDIDATE: ${{ inputs.skiko_candidate }}
+      ORDER: ${{ matrix.order }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Record environment
+        shell: pwsh
+        run: |
+          $out = New-Item -ItemType Directory -Force compare
+          git rev-parse HEAD | Set-Content "$out/head.txt"
+          "image=$env:ImageOS $env:ImageVersion`norder=$env:ORDER`nbaseline=$env:BASELINE`ncandidate=$env:CANDIDATE" | Set-Content "$out/environment.txt"
+          Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion | Format-List | Out-File "$out/adapters.txt"
+          java -version 2>&1 | Out-File "$out/java.txt"
+          Get-Content "$out/environment.txt", "$out/adapters.txt"
+      - name: Install the reproducer once per Skiko version
+        shell: pwsh
+        run: |
+          ./gradlew.bat :haze-glass:packageWindowsGlassRepro '-Phaze.disableAppleTargets' --no-scan --console=plain --max-workers=2
+          if ($LASTEXITCODE -ne 0) { throw 'Could not package standalone reproducer' }
+          foreach ($version in @($env:BASELINE, $env:CANDIDATE)) {
+            $repro = Join-Path $env:RUNNER_TEMP "repro-$version"
+            Expand-Archive haze-glass/build/outputs/windows-glass-repro.zip $repro
+            Push-Location $repro
+            try {
+              ./gradlew.bat installDist "-PskikoVersion=$version" --no-scan --console=plain --max-workers=2
+              if ($LASTEXITCODE -ne 0) { throw "Could not install Skiko $version" }
+              ./gradlew.bat dependencies --configuration runtimeClasspath "-PskikoVersion=$version" --no-scan --console=plain |
+                Out-File "$env:GITHUB_WORKSPACE/compare/dependencies-$version.txt"
+              $jars = @(Get-ChildItem build/install/windows-glass-repro/lib -Name)
+              $jars | Out-File "$env:GITHUB_WORKSPACE/compare/lib-$version.txt"
+              $skiko = @($jars | Where-Object { $_ -like 'skiko-*' })
+              if ($skiko.Count -eq 0 -or @($skiko | Where-Object { $_ -notlike "*-$version.jar" }).Count -ne 0) {
+                throw "Installed Skiko jars do not match ${version}: $skiko"
+              }
+            } finally { Pop-Location }
+          }
+      - name: Run alternating trials
+        shell: pwsh
+        run: |
+          $versions = if ($env:ORDER -eq 'baseline-first') { @($env:BASELINE, $env:CANDIDATE) } else { @($env:CANDIDATE, $env:BASELINE) }
+          for ($trial = 0; $trial -lt 3; $trial++) {
+            foreach ($version in $versions) {
+              $repro = Join-Path $env:RUNNER_TEMP "repro-$version"
+              $out = New-Item -ItemType Directory -Force "compare/trial-$trial/$version"
+              Write-Output "order=$env:ORDER trial=$trial skiko=$version"
+              pwsh -File "$repro/run.ps1" -Install "$repro/build/install/windows-glass-repro" -ExpectedSkiko $version `
+                -Cases 'control,retained,original' -Trials 1 -Output $out.FullName
+              "$LASTEXITCODE" | Set-Content "$out/exit.txt"
+            }
+          }
+          exit 0
+      - name: Aggregate verdict
+        if: always()
+        shell: pwsh
+        run: |
+          $hashes = [ordered]@{}
+          Get-ChildItem docs/agents/investigations/1767-repro/src/main/resources | ForEach-Object {
+            $hashes[$_.Name] = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          }
+          $rows = @(); $invalid = @()
+          foreach ($exit in @(Get-ChildItem compare -Filter exit.txt -Recurse)) {
+            $version = $exit.Directory.Name
+            $trial = [int]$exit.Directory.Parent.Name.Substring(6)
+            if ((Get-Content $exit.FullName -Raw).Trim() -eq '2') { $invalid += "trial $trial Skiko ${version}: run.ps1 INVALID" }
+            $results = Join-Path $exit.DirectoryName 'results.json'
+            foreach ($row in @(if (Test-Path $results) { Get-Content $results -Raw | ConvertFrom-Json })) {
+              $case = Join-Path $exit.DirectoryName "$($row.case)-0"
+              $identity = Get-Content "$case/identity.txt"
+              $rows += [pscustomobject]@{
+                order = $env:ORDER; trial = $trial; version = $row.version
+                skia = @($identity | Where-Object { $_ -like 'skia=*' })[0].Substring(5)
+                case = $row.case; constructionMs = $row.constructionMs; firstDrawMs = $row.firstDrawMs
+                warmMedianMs = $row.warmMedianMs; verdict = $row.verdict; reason = $row.reason
+                renderer = if (Test-Path "$case/renderer.txt") { (Get-Content "$case/renderer.txt") -join ' | ' } else { '' }
+              }
+            }
+          }
+          function Count($version, $case, $verdict) {
+            @($rows | Where-Object { $_.version -eq $version -and $_.case -eq $case -and $_.verdict -eq $verdict }).Count
+          }
+          $reasons = @()
+          if ((Count $env:BASELINE 'retained' 'stall') -ne 3) { $reasons += "baseline $env:BASELINE retained stalls $(Count $env:BASELINE 'retained' 'stall')/3 (drift)" }
+          if ((Count $env:CANDIDATE 'control' 'pass') -ne 3) { $reasons += "candidate controls valid $(Count $env:CANDIDATE 'control' 'pass')/3" }
+          $candidateStalls = Count $env:CANDIDATE 'retained' 'stall'
+          $candidateClear = Count $env:CANDIDATE 'retained' 'no-stall'
+          $originalFast = Count $env:CANDIDATE 'original' 'within-5s'
+          $verdict = if ($reasons.Count -eq 0 -and $candidateClear -eq 3 -and $originalFast -eq 3) { 'changed' }
+            elseif ((Count $env:CANDIDATE 'control' 'pass') -eq 3 -and $candidateStalls -eq 3) { 'persists' }
+            else { 'inconclusive' }
+          if ($verdict -eq 'inconclusive') {
+            $reasons += "candidate retained stall $candidateStalls/3, no-stall $candidateClear/3; originals within 5 s $originalFast/3"
+          }
+          $summary = [ordered]@{
+            order = $env:ORDER; baseline = $env:BASELINE; candidate = $env:CANDIDATE; verdict = $verdict
+            reasons = $reasons; invalid = $invalid; fixtures = $hashes; rows = $rows
+            cacheLimit = 'Fresh JVMs and a fresh VM do not prove empty OS, driver or compiler caches.'
+          }
+          ConvertTo-Json -InputObject $summary -Depth 4 | Set-Content compare/comparison.json
+          $md = @("## Skiko comparison ($env:ORDER): $verdict", '', "Reasons: $($reasons -join '; ')", "INVALID: $($invalid -join '; ')", '',
+            '| trial | version | skia | case | construction ms | first draw ms | warm median ms | verdict | reason |',
+            '| ---: | --- | --- | --- | ---: | ---: | ---: | --- | --- |')
+          $md += @($rows | Sort-Object trial, version, case | ForEach-Object {
+            "| $($_.trial) | $($_.version) | $($_.skia) | $($_.case) | $($_.constructionMs) | $($_.firstDrawMs) | $($_.warmMedianMs) | $($_.verdict) | $($_.reason) |"
+          })
+          $md += @('', 'Renderers: ' + (@($rows.renderer | Sort-Object -Unique) -join '; '), '', 'Fixture SHA-256:')
+          $md += @($hashes.Keys | ForEach-Object { "- ``$_`` $($hashes[$_])" })
+          $md | Set-Content compare/comparison.md
+          $md | Add-Content $env:GITHUB_STEP_SUMMARY
+          if ($invalid.Count -gt 0) { throw "INVALID harness conditions: $($invalid -join '; ')" }
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: windows-glass-skiko-compare-${{ matrix.order }}
+          path: |
+            compare
             haze-glass/build/outputs/windows-glass-repro.zip
