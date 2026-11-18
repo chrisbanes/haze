@@ -1390,9 +1390,8 @@ covers member transitions only. Behavior is unchanged, and every earlier mention
 or <code>reducedMotionPolicy</code> in this record refers to them.</p>
 <h2 id="amendment-interaction-scales-may-exceed-1-2026-11-06">Amendment: interaction scales may exceed 1 (2026-11-06)<a class="headerlink" href="#amendment-interaction-scales-may-exceed-1-2026-11-06" title="Permanent link">¶</a></h2>
 <p>Authored interaction scales are in <code>0f &lt; value &lt;= 1.2f</code>, so a pressed member can grow the way iOS
-interactive Liquid Glass does (<a href="https://github.com/chrisbanes/haze/issues/1735">#1735</a>). Writing a
-value above 1 is the opt-in; there is no separate flag, and the default pressed response still
-shrinks.</p>
+interactive Liquid Glass does (<a href="https://github.com/chrisbanes/haze/issues/1735">#1735</a>). Press
+scaling is opt-in. Author a pressed scale below 1 to shrink the member or above 1 to grow it.</p>
 <ul>
 <li><strong>Bounds.</strong> A grown surface draws beyond its layout bounds automatically, without
   <code>expandLayerBounds</code>. At rest, a cluster's bounds already reserve each member's largest grown rect
