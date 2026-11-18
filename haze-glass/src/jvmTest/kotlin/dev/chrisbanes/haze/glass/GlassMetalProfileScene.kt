@@ -228,7 +228,13 @@ private fun dumpShaders(directory: File) {
       "lighting-merged" to GlassShaders.buildInteractionLighting(merged = true, continuous = continuous),
       "merged-background" to GlassShaders.buildMergedBackground(continuous = continuous),
     ).map { (name, source) -> "$name$suffix" to source }
-  }
+  } + listOf(
+    "fused-merged-no-detail-continuous" to GlassShaders.buildFused(sharpDetail = false, merged = true, continuous = true),
+    "fused-merged-no-detail-continuous-circular-optics" to GlassShaders.buildFusedWithCircularOptics(
+      sharpDetail = false,
+      merged = true,
+    ),
+  )
   val manifest = entries.joinToString(",\n", prefix = "[\n", postfix = "\n]\n") { (name, source) ->
     File(directory, "$name.sksl").writeText(source)
     val sha = MessageDigest.getInstance("SHA-256").digest(source.encodeToByteArray())
