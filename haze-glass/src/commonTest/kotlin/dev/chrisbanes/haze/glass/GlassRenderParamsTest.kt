@@ -819,8 +819,13 @@ class GlassRenderParamsTest {
     assertThat(
       resolveGlassStyle(mixed, Size(100f, 80f), Density(1f), LayoutDirection.Ltr).cornerRadii,
     ).isEqualTo(CornerRadii(topLeft = 0f, topRight = 12f, bottomRight = 12f, bottomLeft = 12f))
-    assertThat(RoundedCornerShape(fixedPxCorner(-1f)).hasZeroCornerRadii()).isTrue()
-    assertThat(RoundedCornerShape(fixedPxCorner(Float.NEGATIVE_INFINITY)).hasZeroCornerRadii()).isFalse()
+    // Finite negative corners are drawn square; non-finite ones fall back to the rounded default.
+    val size = Size(100f, 80f)
+    assertThat(RoundedCornerShape(fixedPxCorner(-1f)).resolveCornerRadiiPx(size, Density(1f), LayoutDirection.Ltr).isZero())
+      .isTrue()
+    assertThat(
+      RoundedCornerShape(fixedPxCorner(Float.NEGATIVE_INFINITY)).resolveCornerRadiiPx(size, Density(1f), LayoutDirection.Ltr).isZero(),
+    ).isFalse()
   }
 
   private fun fixedPxCorner(px: Float): CornerSize = object : CornerSize {

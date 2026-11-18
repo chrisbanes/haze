@@ -15,17 +15,26 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Interpolatable
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.layout.ScaleFactor
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
@@ -275,6 +284,91 @@ class GlassDrawOutsideBoundsTest {
     }
   }
 
+  @Test
+  fun interpolatedContinuousCorners_clipLikeStaticCorners_runtime() {
+    lateinit var static: PixelMap
+    runComposeUiTest {
+      val fixture = cornerClipSurface(ContinuousRoundedCornerShape(10f))
+      static = fixture.capture()
+      fixture.assertCapture(Rect(0f, 0f, 100f, 100f), clipsToNode = true)
+    }
+    runComposeUiTest {
+      val fixture = cornerClipSurface(mixedPxCorners)
+      val capture = fixture.capture()
+      fixture.assertCapture(Rect(0f, 0f, 100f, 100f), clipsToNode = true)
+      // Opaque material away from the source, the source at its centre, and the underlay outside a
+      // rounded corner.
+      assertColor(capture, 100, 70, Color.Red)
+      assertColor(capture, 100, 100, Color.Green)
+      assertColor(capture, 50, 50, Color.Blue)
+      assertThat(regionDifference(capture, static, 50, 50, 150, 150)).isEqualTo(0f)
+    }
+  }
+
+  @Test
+  fun interpolatedContinuousCorners_resizeUpdatesClip_runtime() {
+    val controls = mutableMapOf<Int, PixelMap>()
+    runComposeUiTest { controls[100] = cornerClipSurface(ContinuousRoundedCornerShape(10f)).capture() }
+    runComposeUiTest { controls[30] = cornerClipSurface(ContinuousRoundedCornerShape(0f), sizePx = 30).capture() }
+    runComposeUiTest {
+      // A genuinely square, unsoftened surface without an outset still crops to its source.
+      val square = cornerClipSurface(ContinuousRoundedCornerShape(0f))
+      square.capture()
+      square.assertCapture(Rect(40f, 40f, 60f, 60f), clipsToNode = false)
+    }
+    runComposeUiTest {
+      val fixture = cornerClipSurface(mixedPxCorners)
+      for ((size, rounded) in listOf(100 to true, 30 to false, 100 to true)) {
+        fixture.sizePx.value = size
+        waitForIdle()
+        val capture = fixture.capture()
+        assertThat(fixture.effect.attachedContextForTest?.modifierSize).isEqualTo(Size(size.toFloat(), size.toFloat()))
+        val expected = if (rounded) Rect(0f, 0f, size.toFloat(), size.toFloat()) else Rect(5f, 5f, 25f, 25f)
+        fixture.assertCapture(expected, clipsToNode = rounded)
+        assertThat(regionDifference(capture, controls.getValue(size), 50, 50, 50 + size, 50 + size), "size $size")
+          .isEqualTo(0f)
+      }
+    }
+  }
+
+  @Test
+  fun interpolatedContinuousCorners_densityUpdatesClipAtFixedPixelSize_runtime() = runComposeUiTest {
+    // 10 dp → 10% at 1.5 resolves to 5 px at density 2 and to square corners at density 4.
+    val shape = Interpolatable.lerp(ContinuousRoundedCornerShape(10.dp), ContinuousRoundedCornerShape(10), 1.5f)
+      as ContinuousRoundedCornerShape
+    val fixture = cornerClipSurface(shape, density = 2f)
+    for ((density, rounded) in listOf(2f to true, 4f to false, 2f to true)) {
+      fixture.density.value = density
+      waitForIdle()
+      fixture.capture()
+      assertThat(fixture.effect.attachedContextForTest?.requireDensity()?.density).isEqualTo(density)
+      assertThat(fixture.effect.attachedContextForTest?.modifierSize).isEqualTo(Size(100f, 100f))
+      fixture.assertCapture(if (rounded) Rect(0f, 0f, 100f, 100f) else Rect(40f, 40f, 60f, 60f), clipsToNode = rounded)
+    }
+  }
+
+  internal class CornerClipFixture(
+    val test: ComposeUiTest,
+    val effect: GlassRuntimeEffect,
+    val sizePx: MutableState<Int>,
+    val density: MutableState<Float>,
+  ) {
+    fun capture() = test.onNodeWithTag("root").captureToImage().toPixelMap()
+
+    /** Asserts the clip decisions, and the captured rect in material pixels, of the last draw. */
+    fun assertCapture(expected: Rect, clipsToNode: Boolean) {
+      assertThat(effect.shouldClipToNodeBounds()).isEqualTo(clipsToNode)
+      assertThat(effect.shouldPreferClipToInputBounds()).isEqualTo(!clipsToNode)
+      assertThat((effect.lastDrawDelegateForTest as RuntimeShaderGlassDelegate).sourceRecordCount).isGreaterThan(0)
+      val coordinates = checkNotNull(effect.preparedRender).params.coordinates
+      val size = sizePx.value.toFloat()
+      assertThat(coordinates.materialSize).isEqualTo(Size(size, size))
+      assertThat(coordinates.captureScale).isEqualTo(ScaleFactor(1f, 1f))
+      val bounds = checkNotNull(coordinates.captureBounds).translate(-coordinates.materialOrigin)
+      assertThat(bounds).isEqualTo(expected)
+    }
+  }
+
   internal class SurfaceFixture(
     val test: ComposeUiTest,
     val effect: GlassRuntimeEffect,
@@ -326,6 +420,49 @@ class GlassDrawOutsideBoundsTest {
       }
       waitForIdle()
       return SurfaceFixture(this, effect, source)
+    }
+
+    /** 10 px → 10% at 1.5: 10 px at 100 px, but square at 30 px and at a 1 × 1 px probe. */
+    val mixedPxCorners = Interpolatable.lerp(ContinuousRoundedCornerShape(10f), ContinuousRoundedCornerShape(10), 1.5f)
+      as ContinuousRoundedCornerShape
+
+    /**
+     * An opaque red surface at (50, 50) in a 200 × 200 px blue root, over a 20 × 20 px green source
+     * at its centre. Sizes are in pixels, kept fixed across [density] changes.
+     */
+    fun ComposeUiTest.cornerClipSurface(shape: ContinuousRoundedCornerShape, sizePx: Int = 100, density: Float = 1f): CornerClipFixture {
+      val effect = GlassRuntimeEffect()
+      val size = mutableStateOf(sizePx)
+      val densityState = mutableStateOf(density)
+      val state = HazeState()
+      val source = MutableInteractionSource()
+      val style = containerTestStyle(Color.Transparent, background = Color.Red).then(GlassStyle { shape(shape) })
+      setContent {
+        Box(Modifier.size(200.dp).testTag("root").background(Color.Blue)) {
+          val nodeSize = size.value
+          val sourceOffset = 50 + nodeSize / 2 - 10
+          // The root density is 1. Only the surface sees density changes, so nothing else relays out.
+          Box(Modifier.offset { IntOffset(sourceOffset, sourceOffset) }.size(20.dp).hazeSource(state).background(Color.Green))
+          CompositionLocalProvider(LocalDensity provides Density(densityState.value)) {
+            Box(
+              Modifier.offset { IntOffset(50, 50) }.size(with(LocalDensity.current) { nodeSize.toDp() }).hazeGlass(
+                HazeEffectFactory { effect }, HazeInput.Sources(state), style,
+                HazePerformanceMode.Quality, false, source, GlassTransformTarget.MaterialOnly,
+                GlassTransformPivot.Center, GlassReducedMotionPolicy.Full,
+              ),
+            )
+          }
+        }
+      }
+      waitForIdle()
+      return CornerClipFixture(this, effect, size, densityState)
+    }
+
+    fun assertColor(pixels: PixelMap, x: Int, y: Int, expected: Color) {
+      val color = pixels[x, y]
+      assertThat(color.red, "($x, $y)").isCloseTo(expected.red, 0.02f)
+      assertThat(color.green, "($x, $y)").isCloseTo(expected.green, 0.02f)
+      assertThat(color.blue, "($x, $y)").isCloseTo(expected.blue, 0.02f)
     }
 
     fun assertGreen(pixels: PixelMap, x: Int, y: Int, name: String = "($x, $y)") {

@@ -5,7 +5,6 @@
 
 package dev.chrisbanes.haze.glass
 
-import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -17,6 +16,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.input.pointer.PointerEvent
@@ -351,6 +351,10 @@ internal class GlassRuntimeEffect() :
 
   private var shouldClipToNodeBoundsCacheValid: Boolean = false
   private var shouldClipToNodeBoundsCache: Boolean = false
+  private var clipCacheSize: Size = Size.Unspecified
+  private var clipCacheDensity: Float = 0f
+  private var clipCacheFontScale: Float = 0f
+  private var clipCacheLayoutDirection: LayoutDirection? = null
 
   private val renderPreparation = GlassRenderPreparation(
     decision = GlassRenderBudgetDecision.Fallback(
@@ -844,20 +848,40 @@ internal class GlassRuntimeEffect() :
   }
 
   override fun shouldClipToNodeBounds(): Boolean {
-    if (!shouldClipToNodeBoundsCacheValid) {
+    // Without drawable geometry, keep the node clip rather than risk cropping to the input.
+    val context = attachedContext ?: return true
+    val size = context.modifierSize
+    if (!size.isSpecified || size.isEmpty()) return true
+    val density = context.requireDensity()
+    val layoutDirection = context.currentValueOf(LocalLayoutDirection)
+    if (
+      !shouldClipToNodeBoundsCacheValid ||
+      clipCacheSize != size ||
+      clipCacheDensity != density.density ||
+      clipCacheFontScale != density.fontScale ||
+      clipCacheLayoutDirection != layoutDirection
+    ) {
       val observer = geometrySnapshotObserver
       if (observer != null) {
-        observer.observeReads(clipObservationScope, onObservedStyleChanged) { updateClipCache() }
+        observer.observeReads(clipObservationScope, onObservedStyleChanged) {
+          updateClipCache(size, density, layoutDirection)
+        }
       } else {
-        updateClipCache()
+        updateClipCache(size, density, layoutDirection)
       }
+      clipCacheSize = size
+      clipCacheDensity = density.density
+      clipCacheFontScale = density.fontScale
+      clipCacheLayoutDirection = layoutDirection
       shouldClipToNodeBoundsCacheValid = true
     }
     return shouldClipToNodeBoundsCache
   }
 
-  private fun updateClipCache() {
-    shouldClipToNodeBoundsCache = edgeSoftness > 0.dp || !shape.hasZeroCornerRadii()
+  // Resolved as the renderer resolves them, so square clipping matches the drawn corners (#1808).
+  private fun updateClipCache(size: Size, density: Density, layoutDirection: LayoutDirection) {
+    shouldClipToNodeBoundsCache = edgeSoftness > 0.dp ||
+      !shape.resolveCornerRadiiPx(size, density, layoutDirection).isZero()
   }
 
   /** Renders this surface as one that does not cover its node-bound edges, for comparison in tests. */
@@ -1408,18 +1432,6 @@ internal expect fun isRuntimeShaderGlassSupported(): Boolean
 /** Whether this scope draws into a hardware canvas, the only canvas a runtime shader can render on. */
 internal expect fun DrawScope.isGlassHardwareCanvas(): Boolean
 
-internal fun CornerBasedShape.hasZeroCornerRadii(): Boolean {
-  // Use unit values to check if all corner sizes resolve to zero.
-  val unitSize = androidx.compose.ui.geometry.Size(1f, 1f)
-  val unitDensity = androidx.compose.ui.unit.Density(1f)
-  // Finite negative corners are drawn square, so they count as zero. Non-finite corners fall back
-  // to the default rounded shape, so they do not.
-  return topStart.toPx(unitSize, unitDensity).isSquareCorner() &&
-    topEnd.toPx(unitSize, unitDensity).isSquareCorner() &&
-    bottomEnd.toPx(unitSize, unitDensity).isSquareCorner() &&
-    bottomStart.toPx(unitSize, unitDensity).isSquareCorner()
-}
-
 internal fun reducedMotion(
   policy: GlassReducedMotionPolicy,
   systemScale: Float,
@@ -1428,8 +1440,6 @@ internal fun reducedMotion(
   GlassReducedMotionPolicy.Reduced -> true to false
   GlassReducedMotionPolicy.Full -> false to true
 }
-
-private fun Float.isSquareCorner(): Boolean = isFinite() && this <= 0f
 
 /** The root's bounds in these coordinates; under rotation or skew, their bounding box. */
 private fun LayoutCoordinates.windowBounds(): Rect? =
