@@ -26,6 +26,7 @@ import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 import androidx.compose.ui.unit.Density
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.InternalRoborazziApi
+import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.provideRoborazziContext
 import com.github.takahirom.roborazzi.roboOutputName
 import io.github.takahirom.roborazzi.captureRoboImage
@@ -100,9 +101,9 @@ private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiT
     val context = provideRoborazziContext()
     val previousOutputDirectory = context.outputDirectory
     artifactPath?.substringBeforeLast('/', missingDelimiterValue = "")?.takeIf(String::isNotEmpty)
-      ?.let { provideRoborazziContext().setRuleOverrideOutputDirectory(it) }
+      ?.let { context.setRuleOverrideOutputDirectory(it) }
     try {
-      this@createScreenshotUiTest.captureRootImage().captureRoboImage(output, options)
+      this@createScreenshotUiTest.captureRootArtifact(output, options)
     } finally {
       if (artifactPath != null) context.setRuleOverrideOutputDirectory(previousOutputDirectory)
     }
@@ -122,6 +123,21 @@ private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiT
     this@createScreenshotUiTest.onRoot().performTouchInput {
       swipeUp()
     }
+  }
+}
+
+/**
+ * Writes the root artifact with Roborazzi. Both Roborazzi overloads skip a disabled task, but only
+ * the semantics-node one writes UI-tree diagnostics, so use it when they are requested.
+ */
+@OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class)
+internal fun SkikoComposeUiTest.captureRootArtifact(output: String, options: RoborazziOptions) {
+  // Return before touching the semantics root: it can wait for idle, draw, or throw without content.
+  if (!options.taskType.isEnabled()) return
+  if (options.uiTreeDumpOptions != null) {
+    onRoot().captureRoboImage(output, options)
+  } else {
+    captureRootImage().captureRoboImage(output, options)
   }
 }
 
