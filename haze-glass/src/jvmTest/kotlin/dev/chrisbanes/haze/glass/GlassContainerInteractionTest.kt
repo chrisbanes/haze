@@ -291,17 +291,15 @@ class GlassContainerInteractionTest : ContextTest() {
     // Abutting members with a 2px merge distance and a 4px outside outline: an overshoot past the
     // resting reservation pushes the outer stroke past the merge distance when layer expansion is
     // disabled. The press snaps so only the bouncy release is animated.
+    val outlineWidthPx = 4f
     val bouncy = GlassStyle {
-      edgeOutline(Color.Green, 4.dp)
+      edgeOutline(Color.Green, outlineWidthPx.dp)
       pressed { animate(snap(), spring(dampingRatio = 0.5f, stiffness = 400f)) { scale(0.5f) } }
     }
     runComposeUiTest {
       val fixture = cluster(gap = 0, mergeDistance = 2, pressed = bouncy, expandLayerBounds = false)
       fixture.capture()
-      val restRuntime = fixture.owner().renderer.runtimeSurfaces.single()
-      val restOrigin = restRuntime.surfaceOrigin
-      val restCoordinates = checkNotNull(restRuntime.preparedRender).params.coordinates
-      val restExtent = restCoordinates.materialSize / restCoordinates.scaleFactor
+      val restBounds = fixture.surfaceBounds()
       val press = fixture.press(fixture.firstSource)
       mainClock.autoAdvance = false
       var checkedOvershoot = false
@@ -316,9 +314,10 @@ class GlassContainerInteractionTest : ContextTest() {
           minLeft = minOf(minLeft, field.members.minOf { it.rect.left })
           val exposedLeft = runtime.surfaceOrigin.x + field.members.first().rect.left
           val oldLeft = minOf(36f, exposedLeft) - 2f
-          val probeX = ceil(exposedLeft - 4f).toInt()
+          val probeX = ceil(exposedLeft - outlineWidthPx).toInt()
           if (!checkedOvershoot && probeX + 1 <= floor(oldLeft).toInt()) {
             GlassDrawOutsideBoundsTest.assertGreen(fixture.capture(), probeX, 100, "member overshoot ($probeX, 100)")
+            fixture.assertOutlineFits(outlineWidthPx)
             checkedOvershoot = true
           }
         }
@@ -332,10 +331,7 @@ class GlassContainerInteractionTest : ContextTest() {
       // Field rects are relative to the surface bounds, so a negative edge is clipped.
       assertThat(minLeft).isGreaterThanOrEqualTo(0f)
       val settledCapture = fixture.capture()
-      val settledRuntime = fixture.owner().renderer.runtimeSurfaces.single()
-      val settledCoordinates = checkNotNull(settledRuntime.preparedRender).params.coordinates
-      assertThat(settledRuntime.surfaceOrigin).isCloseTo(restOrigin)
-      assertThat(settledCoordinates.materialSize / settledCoordinates.scaleFactor).isEqualTo(restExtent)
+      assertThat(fixture.surfaceBounds()).isCloseTo(restBounds)
       GlassDrawOutsideBoundsTest.assertGreen(settledCapture, 37, 100, "member settled (37, 100)")
     }
     runComposeUiTest {
@@ -346,10 +342,7 @@ class GlassContainerInteractionTest : ContextTest() {
         expandLayerBounds = false,
       )
       fixture.capture()
-      val restRuntime = fixture.owner().renderer.runtimeSurfaces.single()
-      val restOrigin = restRuntime.surfaceOrigin
-      val restCoordinates = checkNotNull(restRuntime.preparedRender).params.coordinates
-      val restExtent = restCoordinates.materialSize / restCoordinates.scaleFactor
+      val restBounds = fixture.surfaceBounds()
       val press = fixture.press(fixture.firstSource, Offset(25f, 40f))
       mainClock.autoAdvance = false
       var checkedOvershoot = false
@@ -365,6 +358,7 @@ class GlassContainerInteractionTest : ContextTest() {
           val probeX = floor(exposedRight + 3f).toInt()
           if (!checkedOvershoot && exposedRight > 384f && probeX >= ceil(oldRight).toInt()) {
             GlassDrawOutsideBoundsTest.assertGreen(fixture.capture(), probeX, 100, "group overshoot ($probeX, 100)")
+            fixture.assertOutlineFits(outlineWidthPx)
             checkedOvershoot = true
           }
         }
@@ -374,10 +368,7 @@ class GlassContainerInteractionTest : ContextTest() {
       }
       assertThat(checkedOvershoot, "group overshoot frame observed").isTrue()
       val settledCapture = fixture.capture()
-      val settledRuntime = fixture.owner().renderer.runtimeSurfaces.single()
-      val settledCoordinates = checkNotNull(settledRuntime.preparedRender).params.coordinates
-      assertThat(settledRuntime.surfaceOrigin).isCloseTo(restOrigin)
-      assertThat(settledCoordinates.materialSize / settledCoordinates.scaleFactor).isEqualTo(restExtent)
+      assertThat(fixture.surfaceBounds()).isCloseTo(restBounds)
       GlassDrawOutsideBoundsTest.assertGreen(settledCapture, 382, 100, "group settled (382, 100)")
     }
   }
@@ -728,9 +719,7 @@ class GlassContainerInteractionTest : ContextTest() {
       for ((x, y) in probes) {
         GlassDrawOutsideBoundsTest.assertGreen(settled, x, y, "unavailable=$unavailable ($x, $y)")
       }
-      val current = owner.renderer.runtimeSurfaces.single()
-      val coordinates = checkNotNull(current.preparedRender).params.coordinates
-      val surface = Rect(current.surfaceOrigin, coordinates.materialSize / coordinates.scaleFactor)
+      val surface = fixture.surfaceBounds()
       for ((x, y) in probes) {
         assertThat(surface.contains(Offset(x + 0.5f, y + 0.5f)), "reserved surface ($x, $y)").isTrue()
       }
@@ -960,6 +949,24 @@ class GlassContainerInteractionTest : ContextTest() {
 
     fun owner() = checkNotNull(first.memberBindingForTest?.node?.container)
     fun field() = checkNotNull(owner().renderer.runtimeSurfaces.single().mergedField)
+
+    fun surfaceBounds(): Rect {
+      val runtime = owner().renderer.runtimeSurfaces.single()
+      val coordinates = checkNotNull(runtime.preparedRender).params.coordinates
+      return Rect(runtime.surfaceOrigin, coordinates.materialSize / coordinates.scaleFactor)
+    }
+
+    fun assertOutlineFits(outlineWidthPx: Float) {
+      val surface = surfaceBounds()
+      val outline = field().members.map { it.rect }.union().inflate(outlineWidthPx).translate(surface.topLeft)
+      assertThat(surface, "surface contains the full outline").all {
+        prop(Rect::left).isLessThanOrEqualTo(outline.left)
+        prop(Rect::top).isLessThanOrEqualTo(outline.top)
+        prop(Rect::right).isGreaterThanOrEqualTo(outline.right)
+        prop(Rect::bottom).isGreaterThanOrEqualTo(outline.bottom)
+      }
+    }
+
     fun assertFallback() {
       assertThat(owner().renderer.runtimeSurfaces.single().delegate).isInstanceOf<FallbackGlassDelegate>()
     }

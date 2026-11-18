@@ -88,7 +88,7 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
         if (unit.size > 1) GlassGroupDraw(unit, owner.requireDensity()) else GlassMemberDraw(unit.single())
       }
       val bounds = (
-        members.map { it.restDrawRect() } + draws.map { it.drawRect() } + cluster.groupRestDrawRects()
+        members.map { it.restDrawRect() } + draws.map { it.drawRectWithOutset() } + cluster.groupRestDrawRects()
         ).union().inflate(mergeDistance)
       val opticalSize = model.opticalSize ?: continue
       val field = GlassMergedField(draws.map { it.toMergedMember(bounds.topLeft) }.withExactCorners(), mergeDistance, opticalSize)
@@ -211,7 +211,7 @@ private interface GlassFieldDraw {
   /** The unit's drawn rect, press transform included. */
   val rect: Rect
   val material: ResolvedGlassStyle
-  fun drawRect(): Rect = rect.inflate(material.drawOutsetPx)
+  fun drawRectWithOutset(): Rect = rect.inflate(material.drawOutsetPx)
   fun toMergedMember(origin: Offset): GlassMergedMember
 }
 
