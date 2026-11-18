@@ -49,7 +49,7 @@ pwsh -File run.ps1 -Install build/install/windows-glass-repro -ExpectedSkiko 0.1
 
 Exit codes:
 
-- `1`: all three retained trials have a first draw above one second and above twenty times
+- `1`: all requested retained trials have a first draw above one second and above twenty times
   `max(1 ms, warm median)`, while all paired controls avoid that signal.
 - `0`: no retained trial has that signal, or no retained case was requested. This alone does not
   qualify a production fix.
@@ -66,8 +66,8 @@ physical-GPU behavior is unmeasured. Record `renderer.txt` when comparing anothe
 `1bf6fdce790c1de76e34864cfbe04c196d59a861` (SHA-256
 `80410be10e8eb678519f41d6cc5c6bbf3c22b23aa5bff2213bc36ea1b33a10ab`). That case's `uniforms.txt`
 (SHA-256 `249f598793605102cc7741614a4f9a9236d0bdf63df0a120fe9c82d496d286aa`) is byte-identical to
-the shared `uniforms.txt`, so every case reads that file. Haze's Glass shader has changed since; these
-frozen bytes, not current production, are the measured fixture.
+the shared `uniforms.txt`, so every case reads that file. These frozen bytes, not whatever Haze
+production generates later, are the measured fixture.
 
 `retained.sksl`, `control.sksl`, `uniforms.txt` and `content.sksl` are captured verbatim from
 [run 42534101240](https://github.com/chrisbanes/haze/actions/runs/42534101240), head

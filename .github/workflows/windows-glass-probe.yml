@@ -154,6 +154,7 @@ jobs:
               if ($LASTEXITCODE -ne 0) { throw "Could not install Skiko $version" }
               ./gradlew.bat dependencies --configuration runtimeClasspath "-PskikoVersion=$version" --no-scan --console=plain |
                 Out-File "$env:GITHUB_WORKSPACE/compare/dependencies-$version.txt"
+              if ($LASTEXITCODE -ne 0) { throw "Could not record dependencies for Skiko $version" }
               $jars = @(Get-ChildItem build/install/windows-glass-repro/lib -Name)
               $jars | Out-File "$env:GITHUB_WORKSPACE/compare/lib-$version.txt"
               $skiko = @($jars | Where-Object { $_ -like 'skiko-*' })
@@ -189,9 +190,13 @@ jobs:
           foreach ($exit in @(Get-ChildItem compare -Filter exit.txt -Recurse)) {
             $version = $exit.Directory.Name
             $trial = [int]$exit.Directory.Parent.Name.Substring(6)
-            if ((Get-Content $exit.FullName -Raw).Trim() -eq '2') { $invalid += "trial $trial Skiko ${version}: run.ps1 INVALID" }
+            $code = (Get-Content $exit.FullName -Raw).Trim()
             $results = Join-Path $exit.DirectoryName 'results.json'
-            foreach ($row in @(if (Test-Path $results) { Get-Content $results -Raw | ConvertFrom-Json })) {
+            $parsed = @(if (Test-Path $results) { Get-Content $results -Raw | ConvertFrom-Json })
+            if ($code -notin @('0', '1') -or $parsed.Count -ne 3) {
+              $invalid += "trial $trial Skiko ${version}: run.ps1 exit $code with $($parsed.Count)/3 rows"
+            }
+            foreach ($row in $parsed) {
               $case = Join-Path $exit.DirectoryName "$($row.case)-0"
               $identity = Get-Content "$case/identity.txt"
               $rows += [pscustomobject]@{
@@ -205,6 +210,10 @@ jobs:
           }
           function Count($version, $case, $verdict) {
             @($rows | Where-Object { $_.version -eq $version -and $_.case -eq $case -and $_.verdict -eq $verdict }).Count
+          }
+          foreach ($version in @($env:BASELINE, $env:CANDIDATE)) {
+            $stalls = Count $version 'retained' 'stall'
+            if ($stalls -notin @(0, 3)) { $invalid += "Skiko ${version}: mixed retained verdicts ($stalls/3 stall)" }
           }
           $reasons = @()
           if ((Count $env:BASELINE 'retained' 'stall') -ne 3) { $reasons += "baseline $env:BASELINE retained stalls $(Count $env:BASELINE 'retained' 'stall')/3 (drift)" }

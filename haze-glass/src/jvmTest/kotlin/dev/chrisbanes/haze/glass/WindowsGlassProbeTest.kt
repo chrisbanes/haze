@@ -155,7 +155,7 @@ class WindowsGlassProbeTest {
   private companion object {
     val FIXTURES = File("../docs/agents/investigations/1767-repro/src/main/resources")
 
-    // The measured source; current GlassShaders output has drifted, so cut tests anchor here.
+    // The measured source; cut tests anchor here so later GlassShaders changes cannot move them.
     val FROZEN_ORIGINAL = File(FIXTURES, "original.sksl").readText().replace("\r\n", "\n")
     const val RETAINED_CUTS =
       "ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance," +
