@@ -313,14 +313,15 @@ produces those exact bytes. `GlassShaders.kt` changed elsewhere, so this variant
 **Verdict: the stall persists in Skiko 0.156.1.** Every retained trial, 18 per version, has the cold
 signal. Warm medians are 0.3–16 ms, and every control completes in 25–121 ms. Neither version completes
 a valid original trial. Per version, 14 or 15 of 18 originals hit the 60-second watchdog
-(`INVALID (censored ≥ 60 s)`). The rest finished their first draw in 14.5–34.6 s, above the 5-second
-latency gate, and then failed the blank-screenshot check. Those are INVALID, not durations.
+(`INVALID (censored ≥ 60 s)`). The rest returned after 14.5–34.6 s with blank output; they are
+INVALID and not counted.
 
 That blank-output gate marks five of the six matrix jobs failed, all on original rows. Retained and
 control results stay valid. The `reproduce` job failed in the first run on a Windows line-ending
 defect in a new test (fixed in `bc0ef7bdf`), and passes in the later two. The ranges vary by VM and
 order, while each job's two versions stay close. Fresh JVMs and VMs do not prove empty OS, driver or
-compiler caches. The first trial in each job is not systematically slower.
+compiler caches. Retained trial 0 is not systematically slower. The first JVM in each job (trial-0
+control on the first version) takes 90–121 ms, against 25–49 ms for every other control.
 
 The `profile-compiler` job in run 44399094411 runs one hooked JVM per case and version under Frida
 17.24.3. Skia's Direct3D backend calls
@@ -335,9 +336,10 @@ in three fresh processes:
 | Retained | 26,292 B, 719 lines | 706 / 748 | 684–752 | 2,064 / 2,133 |
 | Original | 66,156 B, 1,679 lines | 6,515 / 8,297 | 8,716–10,845 | censored ≥ 90 s / 23,801 (then blank, INVALID) |
 
-Vertex shaders compile in about 3 ms. Microsoft's HLSL compiler is a real cost: about 0.7 s for the
-retained pixel shader and about 8–11 s for the original. It accounts for roughly a third of the
-retained first draw. The remaining ≈1.35 s, and most of the original's first draw, is spent after
+Vertex shaders compile in about 3 ms directly (24 ms for the first in-process call). Microsoft's HLSL
+compiler is a real cost: about 0.7 s for the retained pixel shader and 6.5–10.8 s for the original.
+In the hooked runs it is roughly a third of the retained first draw (0.7 s is 20–47% of the unhooked
+1.5–3.5 s range). The remaining ≈1.4 s, and most of the original's first draw, is spent after
 `D3DCompile` returns. That matches the earlier ETW attribution to WARP's pixel-shader JIT
 (`D3D10Warp!PixelJITProcessor`), but the hook does not time pipeline creation itself. The captured
 HLSL is now a compiler-level input for Microsoft triage. It does not decide between "Skia emits

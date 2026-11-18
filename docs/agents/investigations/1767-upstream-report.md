@@ -2,21 +2,22 @@
 
 Not filed. Proposed starting point: Skiko, because the attached source reproduces through its native
 SkiaLayer API without Compose or Haze. Skiko 0.156.1 (Skia m156) emits byte-identical HLSL and still
-stalls. The captured HLSL spends about a third of the reduced case's first draw in
-`d3dcompiler_47!D3DCompile`, and the rest after it returns, consistent with WARP pixel-shader JIT.
+stalls. In one hooked run per version, `d3dcompiler_47!D3DCompile` takes about a third of the reduced
+case's first draw, and the rest comes after it returns, consistent with WARP pixel-shader JIT.
 That HLSL is a compiler-level input for Microsoft triage if Skia owners consider it reasonable.
 
 ## Symptom
 
 A RuntimeEffect compiles to a Skia shader successfully, then its first native Direct3D draw stalls.
-The original continuous-corner shader does not complete that draw within a 30-second capture.
+The original continuous-corner shader usually does not complete that draw within 60 seconds. When it
+does return, after 14.5–34.6 seconds, the screenshot is blank.
 A feature-reduced shader completes after seconds, while later draws take milliseconds. Bypassing
 its refraction displacement removes the cold signal. This reproduces on the Windows software
 adapter; no claim is made about physical GPUs or other backends.
 
 ## Reproduction
 
-Use the [standalone source project](https://github.com/chrisbanes/haze/tree/78ff8d6f399df500a0409784bc4cb0cb68b3bbb7/docs/agents/investigations/1767-repro) or the `windows-glass-repro.zip` artifact
+Use the [standalone source project](https://github.com/chrisbanes/haze/tree/6b55a446d46c0c880f6c88b4ba105d24fd331b45/docs/agents/investigations/1767-repro) or the `windows-glass-repro.zip` artifact
 from the investigation workflow, with Java 21, PowerShell 7 and a visible Windows x64 desktop:
 
 ```powershell
@@ -29,7 +30,7 @@ head `78ff8d6f399df500a0409784bc4cb0cb68b3bbb7`, compiled and ran outside the Ha
 All three retained trials reproduce the cold signal and all three paired controls pass. A forced
 watchdog timeout returns INVALID and preserves both captured process streams.
 
-The application pins Skiko 0.150.2 and Kotlin 2.4.21, forces Direct3D and renders a 64×48 rectangle
+The application defaults to Skiko 0.150.2 (`-PskikoVersion` selects another) and Kotlin 2.4.21, forces Direct3D and renders a 64×48 rectangle
 using the frozen SKSL and explicit uniforms. There is one procedural child shader, two merged
 members and no Compose/Haze runtime. Each trial creates a fresh JVM/context. The paired control
 has identical inputs with only refraction displacement bypassed. The script preserves six warm
@@ -101,7 +102,8 @@ the blank-screenshot check. The comparison artifacts are named `windows-glass-sk
 
 A Frida hook on `d3dcompiler_47.dll` (`windows-glass-d3dcompile` artifact of run 44399094411)
 records `D3DCompile` calls with `ps_5_1`/`vs_5_1`, entry `main`, flags `0x8` and no
-defines/include. Pixel HLSL is byte-identical across both Skia versions.
+defines/include. Pixel HLSL is byte-identical across both Skia versions. Workflow artifacts expire,
+so regenerate the HLSL with `d3dcompile.py profile` from the linked source (see its README).
 
 | Case | Pixel HLSL | In-process D3DCompile | Direct D3DCompile, 3 fresh processes | Hooked first draw |
 | --- | --- | --- | --- | --- |
