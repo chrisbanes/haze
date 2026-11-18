@@ -248,17 +248,20 @@ dry-run result as a measurement.
 
 #### Shader-cost workloads
 
-These five rows (#1766) extend the container comparison for Glass shader profiling. Each differs from
-its control in one variable, and all use the changing-source workload. The continuous rows apply
-`ContinuousRoundedCornerShape(16.dp)` (default smoothing). Their circular controls explicitly author
-`RoundedCornerShape(16.dp)` so a change to Regular defaults cannot change the comparison. The four-member rows use a 2×2 grid with 12 dp gaps in both directions
-and the 32 dp merge distance, so the four members form one cluster.
+These five rows extend the container comparison for Glass shader profiling and all use the
+changing-source workload. The continuous rows apply `ContinuousRoundedCornerShape(16.dp)` (default
+smoothing). Their circular controls explicitly author `RoundedCornerShape(16.dp)` to keep corner
+geometry fixed across Regular default changes.
 
-| Scenario | Method | Variable | Per-frame gate | Pairs with |
+The two-to-four-member row compares workloads. The 2×2 grid changes member height and reduces the
+shortest side from 134 dp to 84 dp, which also changes Regular's size-responsive depth and blur.
+The 12 dp gaps and 32 dp merge distance keep all four members in one cluster.
+
+| Scenario | Method | Comparison | Per-frame gate | Pairs with |
 | --- | --- | --- | --- | --- |
 | `source_update_balanced_continuous` | `sourceUpdateBalancedContinuous` | Continuous corners, one surface | none | `source_update_balanced` |
 | `source_update_container_2_continuous` | `sourceUpdateContainer2Continuous` | Continuous corners, two-member cluster | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
-| `source_update_container_4` | `sourceUpdateContainer4` | Four members in one cluster | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
+| `source_update_container_4` | `sourceUpdateContainer4` | Four smaller members in one cluster | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
 | `source_update_container_4_continuous` | `sourceUpdateContainer4Continuous` | Continuous corners, four-member cluster | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_4` |
 | `source_update_container_4_continuous_performance` | `sourceUpdateContainer4ContinuousPerformance` | Performance mode, four continuous members | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_4_continuous` |
 
@@ -297,7 +300,10 @@ explicitly. The scene uses Regular optics, `Balanced`, a 280×180 dp grid with 1
 
 The launcher writes `run.json` with the scene, build identifier, `renderApi`, `renderInfo`, display
 scale, OS, JVM, frame-callback times and measured window. `--dump-shaders` writes generated split
-and fused shader sources. Keep those sources, their hashes and the traces with each comparison.
+and fused shader sources and their SHA-256 hashes in `shaders.json`. For the Android four-member
+continuous workloads, `fused-merged-no-detail-continuous.sksl` is the Balanced control and
+`fused-merged-no-detail-continuous-circular-optics.sksl` is the Performance variant. Keep the
+sources, their hashes and the traces with each comparison.
 
 Export GPU intervals with:
 
