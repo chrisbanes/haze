@@ -6,6 +6,7 @@
 package dev.chrisbanes.haze.test
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -18,8 +19,10 @@ import assertk.assertions.contains
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotEmpty
+import assertk.assertions.isTrue
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.InternalRoborazziApi
+import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.RoborazziTaskType
 import com.github.takahirom.roborazzi.UiTreeDumpOptions
 import com.github.takahirom.roborazzi.provideRoborazziContext
@@ -31,14 +34,14 @@ import kotlin.test.Test
 class ScreenshotCaptureTest {
 
   private fun capture(
-    options: com.github.takahirom.roborazzi.RoborazziOptions,
+    options: RoborazziOptions,
     withContent: Boolean = true,
   ): List<File> {
     val dir = createTempDirectory("haze-capture").toFile()
     try {
       runSkikoComposeUiTest {
         if (withContent) {
-          setContent { androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(Color.Red)) }
+          setContent { Box(Modifier.fillMaxSize().background(Color.Red)) }
         }
         val context = provideRoborazziContext()
         val previous = context.outputDirectory
@@ -88,7 +91,7 @@ class ScreenshotCaptureTest {
     val dir = createTempDirectory("haze-capture").toFile()
     try {
       runSkikoComposeUiTest {
-        setContent { androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(Color.Red)) }
+        setContent { Box(Modifier.fillMaxSize().background(Color.Red)) }
         val context = provideRoborazziContext()
         val previous = context.outputDirectory
         context.setRuleOverrideOutputDirectory(dir.absolutePath)
@@ -101,7 +104,7 @@ class ScreenshotCaptureTest {
       }
       val fast = dir.walkTopDown().first { it.name == "fast.webp" }.readBytes()
       val full = dir.walkTopDown().first { it.name == "full.webp" }.readBytes()
-      assertThat(fast.toList()).isEqualTo(full.toList())
+      assertThat(fast.contentEquals(full)).isTrue()
     } finally {
       dir.deleteRecursively()
     }
