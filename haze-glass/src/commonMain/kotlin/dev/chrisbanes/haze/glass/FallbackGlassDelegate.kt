@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.IntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -267,14 +268,17 @@ internal class FallbackGlassDelegate(
           if (!willBlur && style.fallbackBaseColor == null) {
             drawRect(style.fallbackColor.copy(alpha = style.fallbackColor.alpha * alphaMultiplier))
           }
-          if (backgroundColor.alpha > 0f) {
+          // Processed input carries the background beneath it, filling the padded capture.
+          if (backgroundColor.alpha > 0f && !willProcess) {
             drawRect(color = backgroundColor.copy(alpha = backgroundColor.alpha * alphaMultiplier))
           }
           val scrim: DrawScope.() -> Unit = {
             drawRect(style.fallbackColor, blendMode = BlendMode.SrcAtop)
           }
           val filtered = willProcess && with(filteredInput) {
-            draw(context, style, alphaMultiplier, inputBounds, groupSize, if (willBlur) null else scrim)
+            draw(context, style, alphaMultiplier, inputBounds, groupSize, if (willBlur) null else scrim) {
+              if (backgroundColor.alpha > 0f) drawRect(backgroundColor)
+            }
           }
           filteredInputDrawnForTest = filtered
           if (!filtered && backgroundColor.alpha > 0f && style.fallbackBaseColor == null && !inputBounds.isEmpty) {
@@ -291,9 +295,9 @@ internal class FallbackGlassDelegate(
         when {
           mergedPaths != null -> {
             val willBlur = willProcess && style.resolvedOptics.depth > 0f && style.resolvedOptics.blurRadiusPx > 0f
-            drawMergedBase(context, mergedPaths, alphaMultiplier, forceInput, visible, willBlur) { drawScrim ->
+            drawMergedBase(context, mergedPaths, alphaMultiplier, forceInput, visible, willBlur, willProcess) { drawScrim, drawBackground ->
               val filtered = willProcess && with(filteredInput) {
-                draw(context, inputStyle, alphaMultiplier, captureBounds, groupSize, drawScrim)
+                draw(context, inputStyle, alphaMultiplier, captureBounds, groupSize, drawScrim, drawBackground)
               }
               filteredInputDrawnForTest = filtered
               filtered
@@ -521,7 +525,11 @@ private fun DrawScope.drawMergedBase(
   forceInput: Boolean,
   visible: Rect?,
   willBlur: Boolean,
-  drawFilteredInput: DrawScope.(drawScrim: (DrawScope.() -> Unit)?) -> Boolean,
+  willProcess: Boolean,
+  drawFilteredInput: DrawScope.(
+    drawScrim: (DrawScope.() -> Unit)?,
+    drawBackground: (DrawScope.(effectOrigin: Offset) -> Unit)?,
+  ) -> Boolean,
 ) {
   val members = paths.field.members
   if (members.any { it.fallbackBaseColor != null }) {
@@ -532,7 +540,23 @@ private fun DrawScope.drawMergedBase(
       if (it.fallbackBaseColor == null) it.fallbackColor else Color.Transparent
     }
   }
-  if (paths.field.hasBackground) drawMergedColours(paths, alphaMultiplier, visible) { it.backgroundColor }
+  // Processed input carries the backgrounds of members it covers; reduced members keep theirs here.
+  if (paths.field.hasBackground) {
+    drawMergedColours(paths, alphaMultiplier, visible) {
+      if (willProcess && it.fallbackBaseColor == null) Color.Transparent else it.backgroundColor
+    }
+  }
+  val processedBackground: (DrawScope.(Offset) -> Unit)? = if (paths.field.hasBackground) {
+    { origin ->
+      translate(origin.x, origin.y) {
+        drawMergedColours(paths, 1f, visible) {
+          if (it.fallbackBaseColor == null) it.backgroundColor else Color.Transparent
+        }
+      }
+    }
+  } else {
+    null
+  }
   // Reduced members never replay captured input, including on the downgrade frame.
   val scrim: DrawScope.() -> Unit = {
     withLayerPaint(alpha = 1f, blendMode = BlendMode.SrcAtop, bounds = paths.unionBounds.visiblePart(visible)) {
@@ -543,7 +567,7 @@ private fun DrawScope.drawMergedBase(
   }
   var filtered = false
   if (!forceInput) {
-    paths.forceInputMask?.let { mask -> clipPath(mask) { filtered = drawFilteredInput(if (willBlur) null else scrim) } }
+    paths.forceInputMask?.let { mask -> clipPath(mask) { filtered = drawFilteredInput(if (willBlur) null else scrim, processedBackground) } }
   }
   val inputPath = if (filtered) null else if (forceInput) paths.forceInputMask else paths.inputMask
   // Both masks lie within the union, so its visible bounds hold the input.

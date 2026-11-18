@@ -94,6 +94,7 @@ internal class FallbackGlassInput {
     bounds: Rect,
     groupSize: IntSize?,
     drawScrim: (DrawScope.() -> Unit)? = null,
+    drawBackground: (DrawScope.(effectOrigin: Offset) -> Unit)? = null,
   ): Boolean {
     if (!canDraw(context, style, bounds) || !prepareForCapture(context, style, bounds, groupSize)) {
       release()
@@ -113,6 +114,8 @@ internal class FallbackGlassInput {
     capture.alpha = 1f
     capture.blendMode = BlendMode.SrcOver
     recordGlassLayer(capture, captureSize) {
+      // The authored background sits beneath the input before optics and tone.
+      drawBackground?.invoke(this, Offset(offset.x - left, offset.y - top))
       translate(-left, -top) { with(context) { this@recordGlassLayer.drawInput() } }
     }
     source = capture
