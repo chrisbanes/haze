@@ -63,7 +63,7 @@ class FallbackGlassUnionPathTest {
   }
 
   @Test
-  fun outsetMembers_coverPaddingAndKeepEarliestPrecedence() {
+  fun outsetMembers_coverSquarePaddingAndKeepEarliestPrecedence() {
     val first = Rect(40f, 40f, 120f, 100f)
     val second = Rect(100f, 60f, 180f, 120f)
     val paths = FallbackMergedPaths(field(member(first), member(second)))
@@ -76,6 +76,12 @@ class FallbackGlassUnionPathTest {
     assertThat(secondOutset, 160, 129).isFilled()
     assertThat(secondOutset, 160, 131).isEmpty()
     assertThat(firstOutset, 160, 131).isEmpty()
+    // The padding band keeps square corners: (31, 31) lies about 12 px from the first member's corner,
+    // beyond a 10 px rounded outset.
+    assertThat(firstOutset, 31, 31).isFilled()
+    assertThat(firstOutset, 29, 29).isEmpty()
+    assertThat(secondOutset, 189, 129).isFilled()
+    assertThat(secondOutset, 191, 131).isEmpty()
     // Members keep their order, so drawing keeps the earliest member's precedence.
     assertThat(paths.outsetMembers(0f).map { it.getBounds() }).containsExactly(first, second)
   }

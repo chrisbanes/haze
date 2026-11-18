@@ -547,7 +547,7 @@ private fun DrawScope.drawMergedBase(
     }
   }
   // Every member's background fills the capture: the padding takes the earliest member whose
-  // outset covers it, standing in for the nearest member, so blur never samples transparency.
+  // square outset covers it, standing in for the nearest member, so blur never samples transparency.
   val processedBackground: (DrawScope.(Offset, Float) -> Unit)? = if (paths.field.hasBackground) {
     { origin, padding ->
       translate(origin.x, origin.y) {
@@ -667,24 +667,15 @@ internal class FallbackMergedPaths(val field: GlassMergedField) {
 
   private var outset: Pair<Float, List<Path>>? = null
 
-  /** Each member outset by [padding], adding [padding] to its corner radii. */
+  /**
+   * Each member's bounds outset by [padding] with square corners, so the padding band is filled
+   * at the corners too and blur never samples a transparent corner pocket.
+   */
   fun outsetMembers(padding: Float): List<Path> {
     if (padding <= 0f) return members
     outset?.let { (cached, paths) -> if (cached == padding) return paths }
-    return field.members.map { member ->
-      Path().apply {
-        val radii = member.cornerRadii
-        addContinuousRoundRect(
-          member.rect.inflate(padding),
-          radii.copy(
-            topLeft = radii.topLeft + padding,
-            topRight = radii.topRight + padding,
-            bottomRight = radii.bottomRight + padding,
-            bottomLeft = radii.bottomLeft + padding,
-          ),
-        )
-      }
-    }.also { outset = padding to it }
+    return field.members.map { member -> Path().apply { addRect(member.rect.inflate(padding)) } }
+      .also { outset = padding to it }
   }
 
   /** The pixel-aligned union bounds. */

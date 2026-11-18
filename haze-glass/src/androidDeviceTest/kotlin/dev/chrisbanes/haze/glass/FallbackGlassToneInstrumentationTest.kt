@@ -113,6 +113,27 @@ class FallbackGlassToneInstrumentationTest {
   }
 
   @Test
+  fun merged_blurKeepsSquareOuterCornersOpaque() {
+    blurRadius.floatValue = PROOF_BLUR_DP
+    setScene(merged = true)
+    val blurred = capture()
+    assertProcessed(activeDelegate(merged = true), blurred = true)
+
+    // One dp inside each member's square outer corner, over transparent input, where blur reaches
+    // the capture's corner padding diagonally.
+    val samples = mapOf(
+      "blueTopLeft" to blurred.at(21f, 21f),
+      "blueBottomLeft" to blurred.at(21f, 219f),
+      "greenTopRight" to blurred.at(279f, 21f),
+      "greenBottomRight" to blurred.at(279f, 219f),
+    )
+    val message = samples.describe()
+    // Red can only come from the magenta underlay showing through a transparent corner. A filled
+    // corner reads 0 and a rounded padding outset 3-4/255 on API 31, so this is stricter than TOLERANCE.
+    for ((label, color) in samples) assertThat(color.red, "$label red: $message").isLessThan(1.5f / 255f)
+  }
+
+  @Test
   fun toneOnly_explicitScrimCoversAuthoredBackground() {
     blurRadius.floatValue = 0f
     whitePoint.floatValue = 1f
