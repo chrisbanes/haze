@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import assertk.assertThat
 import assertk.assertions.each
 import assertk.assertions.isEqualTo
@@ -98,9 +99,12 @@ class FallbackGlassOverBudgetClusterAndroidHostTest : ScreenshotTest() {
     // at (40, 40) dp and ends 160 dp down in surface space; the window cuts it at the root width.
     val d = scene.density
     val expected = Rect(floor(40 * d), floor(40 * d), rootWidth.toFloat(), ceil(160 * d))
-    // Background colour, input and tint, at least once each.
-    assertThat(layers).prop(List<Rect>::size).isGreaterThanOrEqualTo(3)
-    assertThat(layers).each { it.isEqualTo(expected) }
+    // Background colour, input and tint, at least once each. The processed capture also fills its
+    // window-bounded blur padding with member backgrounds in one capture-sized layer.
+    val capture = checkNotNull(scene.delegate().filteredInputLayerForTest).size.toSize()
+    val (union, padded) = layers.partition { it == expected }
+    assertThat(union).prop(List<Rect>::size).isGreaterThanOrEqualTo(3)
+    assertThat(padded).each { it.prop(Rect::size).isEqualTo(capture) }
   }
 
   @Test
@@ -226,6 +230,9 @@ class FallbackGlassOverBudgetClusterAndroidHostTest : ScreenshotTest() {
       assertThat(owner.renderer.runtimeSurfaces.size).isEqualTo(1)
       owner.renderer.runtimeSurfaces.forEach { assertThat(it.delegate).isInstanceOf<FallbackGlassDelegate>() }
     }
+
+    fun delegate(): FallbackGlassDelegate =
+      checkNotNull(effects.first().memberBindingForTest?.node?.container).renderer.runtimeSurfaces.single().delegate as FallbackGlassDelegate
   }
 
   private fun ScreenshotUiTest.clusterScene(): ClusterScene {

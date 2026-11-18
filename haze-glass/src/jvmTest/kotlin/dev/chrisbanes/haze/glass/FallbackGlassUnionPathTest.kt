@@ -62,6 +62,24 @@ class FallbackGlassUnionPathTest {
   }
 
   @Test
+  fun outsetMembers_coverPaddingAndKeepEarliestPrecedence() {
+    val first = Rect(40f, 40f, 120f, 100f)
+    val second = Rect(100f, 60f, 180f, 120f)
+    val paths = FallbackMergedPaths(field(member(first), member(second)))
+    val padding = 10f
+    val (firstOutset, secondOutset) = paths.outsetMembers(padding).map(::rasterize)
+    // One pixel inside and outside the padding beyond each member's straight edge.
+    assertThat(firstOutset, 60, 31).isFilled()
+    assertThat(firstOutset, 60, 29).isEmpty()
+    assertThat(secondOutset, 60, 29).isEmpty()
+    assertThat(secondOutset, 160, 129).isFilled()
+    assertThat(secondOutset, 160, 131).isEmpty()
+    assertThat(firstOutset, 160, 131).isEmpty()
+    // Members keep their order, so drawing keeps the earliest member's precedence.
+    assertThat(paths.outsetMembers(0f).map { it.getBounds() }).containsExactly(first, second)
+  }
+
+  @Test
   fun fallbackMergedPaths_oneMember_unionMatchesRoundRect() {
     val rect = Rect(20f, 20f, 120f, 100f)
     val path = FallbackMergedPaths(field(member(rect, radius = 12f))).union
