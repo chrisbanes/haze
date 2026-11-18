@@ -59,7 +59,8 @@ class GlassShadersGoldenTest {
     // sources were re-recorded when the rim highlight and edge outline were added, the fused and
     // optical sources when the flat interior lighting gradient was skipped (#1766), and the merged
     // sources when the field began to skip far members (#1766). The rim sources were re-recorded
-    // when they gained node-bound edge coverage (#1798).
+    // when they gained node-bound edge coverage (#1798), and the standalone rim was re-recorded
+    // when its straight outlines gained centered outer-edge coverage.
     val ADDITIONAL_RECORDED = mapOf(
       "fused-merged" to "954a4f172ef97b5c3ad9c3f043afe0c81b8caf83fe051d5675f77c7e7496f715",
       "fused-merged-no-detail" to "739f78671a686db9f801da7e97f88dd737ae664d149da8f982411e55bec946e6",
@@ -83,7 +84,7 @@ class GlassShadersGoldenTest {
       "detail-coverage" to "4d835b4c6039dff868a024c3bccc9edb4ac28135830b757dac690e942b1fb950",
       "detail-interactive" to "16052b1e27e9494c1d7c3596074682e5f16cc4a1fc743151e804d8dedebd4972",
       "detail-interactive-coverage" to "03d2bde609e92cf53438759b90a99ecfa4597df91610be182e81c7a77d0b9d35",
-      "rim" to "3cea386e579f9b6681bfd8df6d0c75f3cab5302632c96f8d4cc354a000f4cce3",
+      "rim" to "8b08a634d0aaa5f78ad0ada441cba2a0c3952fbe1fac72bdd86d4fd366764b13",
     )
   }
 }
