@@ -82,13 +82,13 @@ internal class GlassContainerRenderer(private val owner: GlassContainerNode) {
       }
       // Each member reserves its largest authored scale and draw outset at rest, keeping the surface
       // stable through a press; a spring overshoot past that briefly grows the bounds instead of
-      // clipping the member. A Glass group draws as one member over its own bounds, which a press
-      // can grow past its members'.
+      // clipping the member or its outline. A Glass group draws as one member over its own bounds,
+      // which a press can grow past its members'.
       val draws = cluster.groups.map { unit ->
         if (unit.size > 1) GlassGroupDraw(unit, owner.requireDensity()) else GlassMemberDraw(unit.single())
       }
       val bounds = (
-        members.flatMap { listOf(it.restDrawRect(), it.rect) } + draws.map { it.rect } + cluster.groupRestDrawRects()
+        members.map { it.restDrawRect() } + draws.map { it.drawRectWithOutset() } + cluster.groupRestDrawRects()
         ).union().inflate(mergeDistance)
       val opticalSize = model.opticalSize ?: continue
       val field = GlassMergedField(draws.map { it.toMergedMember(bounds.topLeft) }.withExactCorners(), mergeDistance, opticalSize)
@@ -210,12 +210,15 @@ private fun GlassCluster.slotKey(): List<Any> = (members.map { it.identity } + d
 private interface GlassFieldDraw {
   /** The unit's drawn rect, press transform included. */
   val rect: Rect
+  val material: ResolvedGlassStyle
+  fun drawRectWithOutset(): Rect = rect.inflate(material.drawOutsetPx)
   fun toMergedMember(origin: Offset): GlassMergedMember
 }
 
 /** Maps member-local values through the member's draw-time interaction scale, as it draws alone. */
 private class GlassMemberDraw(private val member: GlassMemberSnapshot) : GlassFieldDraw {
   override val rect get() = member.rect
+  override val material get() = member.material
 
   override fun toMergedMember(origin: Offset): GlassMergedMember = with(member) {
     val scaleX = rect.width / layoutRect.width
@@ -293,6 +296,7 @@ private class GlassGroupDraw(private val unit: List<GlassMemberSnapshot>, privat
   private val lighting = scaling?.takeIf { it.hasLight } ?: responses.firstOrNull { it.hasLight }
 
   override val rect = unit.glassGroupRect()
+  override val material get() = unit.first().material
 
   /**
    * The density [member] lays out at, which its own `dp` shape is measured in. A ghost uses its
