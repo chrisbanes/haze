@@ -129,9 +129,9 @@ class WindowsGlassProbeTest {
 
   @Test
   fun cutSource_frozenOriginalProducesRetainedFixture() {
-    assertThat(WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, RETAINED_CUTS))
+    assertThat(WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, RETAINED_CUTS).replace("\r\n", "\n"))
       .isEqualTo(File(FIXTURES, "retained.sksl").readText().replace("\r\n", "\n"))
-    assertThat(WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, "$RETAINED_CUTS,refraction"))
+    assertThat(WindowsGlassProbe.cutSource(FROZEN_ORIGINAL, "$RETAINED_CUTS,refraction").replace("\r\n", "\n"))
       .isEqualTo(File(FIXTURES, "control.sksl").readText().replace("\r\n", "\n"))
   }
 
