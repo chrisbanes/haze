@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.IntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -267,14 +268,17 @@ internal class FallbackGlassDelegate(
           if (!willBlur && style.fallbackBaseColor == null) {
             drawRect(style.fallbackColor.copy(alpha = style.fallbackColor.alpha * alphaMultiplier))
           }
-          if (backgroundColor.alpha > 0f) {
+          // Processed input carries the background beneath it, filling the padded capture.
+          if (backgroundColor.alpha > 0f && !willProcess) {
             drawRect(color = backgroundColor.copy(alpha = backgroundColor.alpha * alphaMultiplier))
           }
           val scrim: DrawScope.() -> Unit = {
             drawRect(style.fallbackColor, blendMode = BlendMode.SrcAtop)
           }
           val filtered = willProcess && with(filteredInput) {
-            draw(context, style, alphaMultiplier, inputBounds, groupSize, if (willBlur) null else scrim)
+            draw(context, style, alphaMultiplier, inputBounds, groupSize, if (willBlur) null else scrim) { _, _ ->
+              if (backgroundColor.alpha > 0f) drawRect(backgroundColor)
+            }
           }
           filteredInputDrawnForTest = filtered
           if (!filtered && backgroundColor.alpha > 0f && style.fallbackBaseColor == null && !inputBounds.isEmpty) {
@@ -291,9 +295,9 @@ internal class FallbackGlassDelegate(
         when {
           mergedPaths != null -> {
             val willBlur = willProcess && style.resolvedOptics.depth > 0f && style.resolvedOptics.blurRadiusPx > 0f
-            drawMergedBase(context, mergedPaths, alphaMultiplier, forceInput, visible, willBlur) { drawScrim ->
+            drawMergedBase(context, mergedPaths, alphaMultiplier, forceInput, visible, willBlur, willProcess) { drawScrim, drawBackground ->
               val filtered = willProcess && with(filteredInput) {
-                draw(context, inputStyle, alphaMultiplier, captureBounds, groupSize, drawScrim)
+                draw(context, inputStyle, alphaMultiplier, captureBounds, groupSize, drawScrim, drawBackground)
               }
               filteredInputDrawnForTest = filtered
               filtered
@@ -521,7 +525,11 @@ private fun DrawScope.drawMergedBase(
   forceInput: Boolean,
   visible: Rect?,
   willBlur: Boolean,
-  drawFilteredInput: DrawScope.(drawScrim: (DrawScope.() -> Unit)?) -> Boolean,
+  willProcess: Boolean,
+  drawFilteredInput: DrawScope.(
+    drawScrim: (DrawScope.() -> Unit)?,
+    drawBackground: (DrawScope.(effectOrigin: Offset, padding: Float) -> Unit)?,
+  ) -> Boolean,
 ) {
   val members = paths.field.members
   if (members.any { it.fallbackBaseColor != null }) {
@@ -532,7 +540,26 @@ private fun DrawScope.drawMergedBase(
       if (it.fallbackBaseColor == null) it.fallbackColor else Color.Transparent
     }
   }
-  if (paths.field.hasBackground) drawMergedColours(paths, alphaMultiplier, visible) { it.backgroundColor }
+  // Processed input carries the backgrounds of members it covers; reduced members keep theirs here.
+  if (members.any { (!willProcess || it.fallbackBaseColor != null) && it.backgroundColor.alpha > 0f }) {
+    drawMergedColours(paths, alphaMultiplier, visible) {
+      if (willProcess && it.fallbackBaseColor == null) Color.Transparent else it.backgroundColor
+    }
+  }
+  // Every member's background fills the capture: the padding takes the earliest member whose
+  // square outset covers it, standing in for the nearest member, so blur never samples transparency.
+  val processedBackground: (DrawScope.(Offset, Float) -> Unit)? = if (paths.field.hasBackground) {
+    { origin, padding ->
+      translate(origin.x, origin.y) {
+        withLayerPaint(alpha = 1f, blendMode = BlendMode.SrcOver, bounds = Rect(-origin, size)) {
+          drawMemberColours(paths.outsetMembers(padding), members, 1f) { it.backgroundColor }
+          drawMemberColours(paths.members, members, 1f) { it.backgroundColor }
+        }
+      }
+    }
+  } else {
+    null
+  }
   // Reduced members never replay captured input, including on the downgrade frame.
   val scrim: DrawScope.() -> Unit = {
     withLayerPaint(alpha = 1f, blendMode = BlendMode.SrcAtop, bounds = paths.unionBounds.visiblePart(visible)) {
@@ -543,7 +570,7 @@ private fun DrawScope.drawMergedBase(
   }
   var filtered = false
   if (!forceInput) {
-    paths.forceInputMask?.let { mask -> clipPath(mask) { filtered = drawFilteredInput(if (willBlur) null else scrim) } }
+    paths.forceInputMask?.let { mask -> clipPath(mask) { filtered = drawFilteredInput(if (willBlur) null else scrim, processedBackground) } }
   }
   val inputPath = if (filtered) null else if (forceInput) paths.forceInputMask else paths.inputMask
   // Both masks lie within the union, so its visible bounds hold the input.
@@ -587,17 +614,27 @@ internal fun DrawScope.drawMergedColours(
     return
   }
   withLayerPaint(alpha = 1f, blendMode = BlendMode.SrcOver, bounds = layerBounds) {
-    for (index in members.indices.reversed()) {
-      val memberColor = color(members[index])
-      // Src with path coverage wipes the member's whole bounding box on the API 23-27 renderer;
-      // DstOut then Plus is the same coverage blend without that.
-      drawPath(paths.members[index], Color.Black, blendMode = BlendMode.DstOut)
-      drawPath(
-        path = paths.members[index],
-        color = memberColor.copy(alpha = memberColor.alpha * alphaMultiplier),
-        blendMode = BlendMode.Plus,
-      )
-    }
+    drawMemberColours(paths.members, members, alphaMultiplier, color)
+  }
+}
+
+/** Clears and fills each of [paths] with its member's colour, last to first, inside a layer. */
+private fun DrawScope.drawMemberColours(
+  paths: List<Path>,
+  members: List<GlassMergedMember>,
+  alphaMultiplier: Float,
+  color: (GlassMergedMember) -> Color,
+) {
+  for (index in members.indices.reversed()) {
+    val memberColor = color(members[index])
+    // Src with path coverage wipes the member's whole bounding box on the API 23-27 renderer;
+    // DstOut then Plus is the same coverage blend without that.
+    drawPath(paths[index], Color.Black, blendMode = BlendMode.DstOut)
+    drawPath(
+      path = paths[index],
+      color = memberColor.copy(alpha = memberColor.alpha * alphaMultiplier),
+      blendMode = BlendMode.Plus,
+    )
   }
 }
 
@@ -626,6 +663,19 @@ internal class FallbackMergedPaths(val field: GlassMergedField) {
       Path().apply { op(path, covered, PathOperation.Difference) }
         .also { covered = Path().apply { op(covered, path, PathOperation.Union) } }
     }
+  }
+
+  private var outset: Pair<Float, List<Path>>? = null
+
+  /**
+   * Each member's bounds outset by [padding] with square corners, so the padding band is filled
+   * at the corners too and blur never samples a transparent corner pocket.
+   */
+  fun outsetMembers(padding: Float): List<Path> {
+    if (padding <= 0f) return members
+    outset?.let { (cached, paths) -> if (cached == padding) return paths }
+    return field.members.map { member -> Path().apply { addRect(member.rect.inflate(padding)) } }
+      .also { outset = padding to it }
   }
 
   /** The pixel-aligned union bounds. */
