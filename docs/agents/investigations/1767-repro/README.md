@@ -91,3 +91,14 @@ the checkout. All three retained trials reproduce the cold stall and all three p
 pass on Microsoft Basic Render Driver. A forced watchdog test returns INVALID and preserves both
 process streams. The run's `windows-glass-first-draw` artifact contains the qualified source ZIP,
 standalone timings, renderer identities, screenshots and partial watchdog outputs.
+
+## D3DCompile ownership probe
+
+`d3dcompile.py profile <root> <output> <version>...` runs each case once per version under
+[Frida](https://frida.re) 17 (`pip install frida==17.24.3`) with `d3dcompile-hook.js`, which records
+every `d3dcompiler_47!D3DCompile`/`D3DCompile2` call: HLSL, entry point, target, flags and in-process
+duration. It then compiles each captured HLSL with the same entry point, target and flags through
+`D3DCompile` in three fresh Python processes. Hooked runs are diagnostic only and never count toward
+the comparison timings. A call still running when the 90-second capture watchdog fires keeps its
+HLSL but has no duration; a direct compile over 120 seconds is censored. HLSL diffs pair calls by
+their order within a case.

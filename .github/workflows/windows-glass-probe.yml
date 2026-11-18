@@ -251,3 +251,47 @@ jobs:
           path: |
             compare
             haze-glass/build/outputs/windows-glass-repro.zip
+
+  # T4 ownership probe: one bounded run, separate from compare-skiko's acceptance timings.
+  profile-compiler:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    env:
+      BASELINE: ${{ inputs.skiko_baseline }}
+      CANDIDATE: ${{ inputs.skiko_candidate }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Install the reproducer once per Skiko version
+        shell: pwsh
+        run: |
+          ./gradlew.bat :haze-glass:packageWindowsGlassRepro '-Phaze.disableAppleTargets' --no-scan --console=plain --max-workers=2
+          if ($LASTEXITCODE -ne 0) { throw 'Could not package standalone reproducer' }
+          foreach ($version in @($env:BASELINE, $env:CANDIDATE)) {
+            $repro = Join-Path $env:RUNNER_TEMP "repro-$version"
+            Expand-Archive haze-glass/build/outputs/windows-glass-repro.zip $repro
+            Push-Location $repro
+            try {
+              ./gradlew.bat installDist "-PskikoVersion=$version" --no-scan --console=plain --max-workers=2
+              if ($LASTEXITCODE -ne 0) { throw "Could not install Skiko $version" }
+            } finally { Pop-Location }
+          }
+      - name: Capture D3DCompile calls and recompile captured HLSL
+        shell: pwsh
+        run: |
+          $frida = Join-Path $env:RUNNER_TEMP 'frida'
+          python -m pip install --disable-pip-version-check --target $frida frida==17.24.3
+          if ($LASTEXITCODE -ne 0) { throw 'Could not install Frida' }
+          $env:PYTHONPATH = $frida
+          python "$env:RUNNER_TEMP/repro-$env:BASELINE/d3dcompile.py" profile $env:RUNNER_TEMP d3dcompile $env:BASELINE $env:CANDIDATE
+          if ($LASTEXITCODE -ne 0) { throw 'D3DCompile profile failed' }
+          Get-Content d3dcompile/profile.md | Add-Content $env:GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: windows-glass-d3dcompile
+          path: d3dcompile
