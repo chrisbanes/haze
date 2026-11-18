@@ -123,7 +123,10 @@ def profile(root, output, versions):
                     except subprocess.TimeoutExpired:
                         direct_ms.append({'censored': f'>= {DIRECT_TIMEOUT_S} s'})
                 call['direct'] = direct_ms
-            run = 'censored' if result['censored'] else 'error' if (out / 'run/error.txt').exists() else 'ok'
+            run = 'censored' if result['censored'] else 'error' if (out / 'run/error.txt').exists() \
+                else 'incomplete' if timing(out / 'run', 'first-draw') is None else 'ok'
+            if result['fridaErrors'] or not result['hooks']:
+                run += '; hook failed or d3dcompiler_47 not loaded'
             if skiko != version:
                 run = f'INVALID: runtime Skiko {skiko}'
             summary.append({
