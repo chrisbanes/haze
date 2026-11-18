@@ -211,6 +211,24 @@ class ContinuousRoundedCornerShapeTest {
   }
 
   @Test
+  fun lerp_mixedUnitOvershootResolvesAtActualGeometry() {
+    // 10 px → 10% at 1.5: 10 + (10% of min dimension − 10) × 1.5.
+    val px = Interpolatable.lerp(ContinuousRoundedCornerShape(10f), ContinuousRoundedCornerShape(10), 1.5f)
+      as ContinuousRoundedCornerShape
+    val ltr = LayoutDirection.Ltr
+    assertThat(px.resolveCornerRadiiPx(Size(1f, 1f), Density(1f), ltr).isZero()).isTrue()
+    assertThat(px.resolveCornerRadiiPx(Size(30f, 30f), Density(1f), ltr).isZero()).isTrue()
+    assertThat(px.resolveCornerRadiiPx(Size(100f, 100f), Density(1f), ltr))
+      .isEqualTo(ContinuousRoundedCornerShape(10f).resolveCornerRadiiPx(Size(100f, 100f), Density(1f), ltr))
+
+    val dp = Interpolatable.lerp(ContinuousRoundedCornerShape(10.dp), ContinuousRoundedCornerShape(10), 1.5f)
+      as ContinuousRoundedCornerShape
+    assertThat(dp.resolveCornerRadiiPx(Size(100f, 100f), Density(2f), ltr))
+      .isEqualTo(ContinuousRoundedCornerShape(5f).resolveCornerRadiiPx(Size(100f, 100f), Density(2f), ltr))
+    assertThat(dp.resolveCornerRadiiPx(Size(100f, 100f), Density(4f), ltr).isZero()).isTrue()
+  }
+
+  @Test
   fun lerp_finiteOvershootClampsCornersAndSmoothing() {
     val start = ContinuousRoundedCornerShape(10f, smoothing = 0.2f)
     val end = ContinuousRoundedCornerShape(30f, smoothing = 0.8f)
