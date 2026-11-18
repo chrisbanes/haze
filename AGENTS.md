@@ -127,4 +127,4 @@ Read the relevant guide before starting that work:
 | Issues and PRDs | [Issue tracker](docs/agents/issue-tracker.md) |
 | Triage | [Canonical labels](docs/agents/triage-labels.md) |
 | Domain documentation | [Root context and ADRs](docs/agents/domain.md) |
-| GitHub Project execution | [Project binding and policy](docs/agents/run-github-project.md) |
+| GitHub Project execution | [Project binding and policy](docs/agents/deliver-tasks.md) |
