@@ -9,7 +9,7 @@ That HLSL is a compiler-level input for Microsoft triage if Skia owners consider
 ## Symptom
 
 A RuntimeEffect compiles to a Skia shader successfully, then its first native Direct3D draw stalls.
-The original continuous-corner shader usually does not complete that draw within 60 seconds. When it
+The original continuous-corner shader usually does not complete that draw within 60 seconds of process start. When it
 does return, after 14.5–34.6 seconds, the screenshot is blank.
 A feature-reduced shader completes after seconds, while later draws take milliseconds. Bypassing
 its refraction displacement removes the cold signal. This reproduces on the Windows software
@@ -25,12 +25,13 @@ from the investigation workflow, with Java 21, PowerShell 7 and a visible Window
 pwsh -File run.ps1
 ```
 
+The linked head is exercised by [run 44399094411](https://github.com/chrisbanes/haze/actions/runs/44399094411).
 The [exported ZIP qualification](https://github.com/chrisbanes/haze/actions/runs/42536087987),
 head `78ff8d6f399df500a0409784bc4cb0cb68b3bbb7`, compiled and ran outside the Haze checkout.
 All three retained trials reproduce the cold signal and all three paired controls pass. A forced
 watchdog timeout returns INVALID and preserves both captured process streams.
 
-The application defaults to Skiko 0.150.2 (`-PskikoVersion` selects another) and Kotlin 2.4.21, forces Direct3D and renders a 64×48 rectangle
+The application uses Kotlin 2.4.21 and defaults to Skiko 0.150.2 (`-PskikoVersion` selects another), forces Direct3D and renders a 64×48 rectangle
 using the frozen SKSL and explicit uniforms. There is one procedural child shader, two merged
 members and no Compose/Haze runtime. Each trial creates a fresh JVM/context. The paired control
 has identical inputs with only refraction displacement bypassed. The script preserves six warm

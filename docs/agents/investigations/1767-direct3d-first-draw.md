@@ -336,7 +336,7 @@ in three fresh processes:
 | Retained | 26,292 B, 719 lines | 706 / 748 | 684–752 | 2,064 / 2,133 |
 | Original | 66,156 B, 1,679 lines | 6,515 / 8,297 | 8,716–10,845 | censored ≥ 90 s / 23,801 (then blank, INVALID) |
 
-Vertex shaders compile in about 3 ms directly (24 ms for the first in-process call). Microsoft's HLSL
+Vertex shaders compile in about 3 ms directly (3–5 ms in-process, except 24 ms in the very first hooked JVM). Microsoft's HLSL
 compiler is a real cost: about 0.7 s for the retained pixel shader and 6.5–10.8 s for the original.
 In the hooked runs it is roughly a third of the retained first draw (0.7 s is 20–47% of the unhooked
 1.5–3.5 s range). The remaining ≈1.4 s, and most of the original's first draw, is spent after
