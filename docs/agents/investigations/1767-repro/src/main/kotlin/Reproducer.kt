@@ -6,6 +6,7 @@ import java.awt.EventQueue
 import java.awt.Rectangle
 import java.awt.Robot
 import java.io.File
+import java.security.MessageDigest
 import javax.imageio.ImageIO
 import javax.swing.JFrame
 import kotlin.system.exitProcess
@@ -14,18 +15,28 @@ import org.jetbrains.skia.Paint
 import org.jetbrains.skia.Rect
 import org.jetbrains.skia.RuntimeEffect
 import org.jetbrains.skia.RuntimeShaderBuilder
+import org.jetbrains.skia.Shader
 import org.jetbrains.skiko.SkiaLayer
 import org.jetbrains.skiko.SkikoRenderDelegate
+import org.jetbrains.skiko.Version
 
 private fun resource(name: String): String =
   checkNotNull(object {}.javaClass.getResource("/$name")).readText()
 
 fun main(args: Array<String>) {
-  require(args.size == 2 && args[0] in setOf("retained", "control")) { "Expected retained|control and output directory" }
+  // The original is measured at its profiled viewport; reduced cases keep the 64×48 qualification viewport.
+  val viewports = mapOf("retained" to (64 to 48), "control" to (64 to 48), "original" to (240 to 160))
+  require(args.size == 2 && args[0] in viewports) { "Expected retained|control|original and output directory" }
+  val (drawWidth, drawHeight) = viewports.getValue(args[0])
   val output = File(args[1]).apply { mkdirs() }
   try {
-    check(System.getProperty("os.name").startsWith("Windows")) { "Windows Direct3D required" }
     val source = resource("${args[0]}.sksl")
+    val hash = MessageDigest.getInstance("SHA-256").digest(source.toByteArray()).joinToString("") { "%02x".format(it) }
+    File(output, "identity.txt").writeText(
+      "skiko=${Version.skiko}\nskia=${Version.skia}\ncase=${args[0]}\nsha256=$hash\nviewport=${drawWidth}x$drawHeight\n" +
+        "java=${System.getProperty("java.runtime.version")}\nos=${System.getProperty("os.name")}\n",
+    )
+    check(System.getProperty("os.name").startsWith("Windows")) { "Windows Direct3D required" }
     File(output, "shader.sksl").writeText(source)
     val timings = File(output, "timings.csv").apply { writeText("phase,ms\n") }
     fun measure(phase: String, block: () -> Unit) {
@@ -34,16 +45,20 @@ fun main(args: Array<String>) {
       block()
       timings.appendText("$phase,${(System.nanoTime() - start) / 1e6}\n")
     }
-    val effect = RuntimeEffect.makeForShader(source)
     val contentEffect = RuntimeEffect.makeForShader(resource("content.sksl"))
     val content = RuntimeShaderBuilder(contentEffect).makeShader()
-    val builder = RuntimeShaderBuilder(effect)
-    for (line in resource("uniforms.txt").lineSequence().filter { it.isNotBlank() }) {
-      val (name, values) = line.split('=', limit = 2)
-      builder.uniform(name, values.split(',').map { it.trim().toFloat() }.toFloatArray())
+    lateinit var effect: RuntimeEffect
+    lateinit var shader: Shader
+    measure("construction") {
+      effect = RuntimeEffect.makeForShader(source)
+      val builder = RuntimeShaderBuilder(effect)
+      for (line in resource("uniforms.txt").lineSequence().filter { it.isNotBlank() }) {
+        val (name, values) = line.split('=', limit = 2)
+        builder.uniform(name, values.split(',').map { it.trim().toFloat() }.toFloatArray())
+      }
+      builder.child("content", content)
+      shader = builder.makeShader()
     }
-    builder.child("content", content)
-    val shader = builder.makeShader()
     val robot = Robot()
     lateinit var frame: JFrame
     lateinit var layer: SkiaLayer
@@ -56,14 +71,14 @@ fun main(args: Array<String>) {
           if (drawShader) {
             Paint().use { paint ->
               paint.shader = shader
-              canvas.drawRect(Rect.makeWH(64f, 48f), paint)
+              canvas.drawRect(Rect.makeWH(drawWidth.toFloat(), drawHeight.toFloat()), paint)
             }
           }
         }
       }
       frame = JFrame("Direct3D cold draw").apply {
         contentPane.add(layer)
-        contentPane.preferredSize = Dimension(64, 48)
+        contentPane.preferredSize = Dimension(drawWidth, drawHeight)
         pack()
         setLocation(30, 30)
         isVisible = true

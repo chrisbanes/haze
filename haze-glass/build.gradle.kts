@@ -141,3 +141,9 @@ tasks.register<Zip>("packageWindowsGlassRepro") {
     include("gradlew", "gradlew.bat", "gradle/wrapper/**", "LICENSE")
   }
 }
+
+// WindowsGlassProbeTest checks the frozen reproducer fixtures byte for byte.
+tasks.named<Test>("jvmTest") {
+  inputs.dir(rootProject.file("docs/agents/investigations/1767-repro/src/main/resources"))
+    .withPathSensitivity(PathSensitivity.RELATIVE)
+}

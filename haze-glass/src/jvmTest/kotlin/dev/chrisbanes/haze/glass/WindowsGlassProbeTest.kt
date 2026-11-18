@@ -120,6 +120,31 @@ class WindowsGlassProbeTest {
   }
 
   @Test
+  fun frozenOriginal_matchesMeasuredGeneratorSourceAndUniforms() {
+    val frozen = File(FIXTURES, "original.sksl")
+    val hash = MessageDigest.getInstance("SHA-256").digest(frozen.readBytes())
+      .joinToString("") { "%02x".format(it) }
+    // Profiled original continuous 240x160 case of run 42534101240.
+    assertThat(hash).isEqualTo("80410be10e8eb678519f41d6cc5c6bbf3c22b23aa5bff2213bc36ea1b33a10ab")
+    val source = frozen.readText().replace("\r\n", "\n")
+    assertThat(source).isEqualTo(WindowsGlassProbe.sourceFor("original", true).replace("\r\n", "\n"))
+    val output = File("build/outputs/glass-probe-parity/frozen-original").apply { mkdirs() }
+    RuntimeEffect.makeForShader(source).use { effect ->
+      WindowsGlassProbe.makeShader(effect, source, 2, output).close()
+    }
+    assertThat(File(output, "uniforms.txt").readText()).isEqualTo(File(FIXTURES, "uniforms.txt").readText())
+  }
+
+  @Test
+  fun cutSource_frozenOriginalProducesRetainedFixture() {
+    val original = File(FIXTURES, "original.sksl").readText().replace("\r\n", "\n")
+    assertThat(WindowsGlassProbe.cutSource(original, RETAINED_CUTS))
+      .isEqualTo(File(FIXTURES, "retained.sksl").readText().replace("\r\n", "\n"))
+    assertThat(WindowsGlassProbe.cutSource(original, "$RETAINED_CUTS,refraction"))
+      .isEqualTo(File(FIXTURES, "control.sksl").readText().replace("\r\n", "\n"))
+  }
+
+  @Test
   fun sourceFor_originalIsProductionSource() {
     listOf(false, true).forEach { continuous ->
       assertThat(WindowsGlassProbe.sourceFor("original", continuous))
@@ -134,5 +159,12 @@ class WindowsGlassProbeTest {
       assertThat(source).doesNotContain("if (float(i) >= memberCount) break;")
       RuntimeEffect.makeForShader(source).close()
     }
+  }
+
+  private companion object {
+    val FIXTURES = File("../docs/agents/investigations/1767-repro/src/main/resources")
+    const val RETAINED_CUTS =
+      "ambient,content-normal,chroma,member-optics,sample-offset,grading,tint,edge-fade,signed-distance," +
+        "optical-height,rect-gradient,compact-main,member-weights,standalone-refraction"
   }
 }
