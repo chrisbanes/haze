@@ -110,6 +110,9 @@ def profile(root, output, versions):
             dll = next((m for m in (out / 'modules.txt').read_text().splitlines()
                         if m.lower().endswith('d3dcompiler_47.dll')), None)
             for call in result['calls']:
+                call['direct'] = []
+                if call['defines'] or call['include']:
+                    continue  # direct passes NULL defines/include, so it would not reproduce this call
                 direct_ms = []
                 for _ in range(3):
                     command = [sys.executable, '-I', __file__, 'direct', dll, str(out / f"call-{call['id']}.hlsl"),
@@ -120,25 +123,32 @@ def profile(root, output, versions):
                     except subprocess.TimeoutExpired:
                         direct_ms.append({'censored': f'>= {DIRECT_TIMEOUT_S} s'})
                 call['direct'] = direct_ms
+            run = 'censored' if result['censored'] else 'error' if (out / 'run/error.txt').exists() else 'ok'
+            if skiko != version:
+                run = f'INVALID: runtime Skiko {skiko}'
             summary.append({
-                'version': version, 'skikoRuntime': skiko, 'case': case, 'censored': result['censored'],
+                'version': version, 'skikoRuntime': skiko, 'run': run, 'case': case, 'censored': result['censored'],
                 'firstDrawMs': timing(out / 'run', 'first-draw'), 'error': (out / 'run/error.txt').exists(),
                 'hooks': result['hooks'], 'compilerModules': result['compilerModules'],
                 'fridaErrors': result['fridaErrors'], 'calls': result['calls'],
             })
     (output / 'profile.json').write_text(json.dumps(summary, indent=2))
-    lines = ['| version | runtime | case | first draw ms | call | entry | target | flags | bytes | lines | '
-             'in-process ms | direct ms (3 fresh processes) |', '| --- | --- | --- | ---: | ---: | --- | --- | --- | ---: | ---: | ---: | --- |']
+    # Hooked first draws carry Frida overhead; never copy them into the compare-skiko tables.
+    lines = ['| version | run | case | hooked first draw ms | call | entry | target | flags | bytes | lines | '
+             'in-process ms (hresult) | direct ms (3 fresh processes) |',
+             '| --- | --- | --- | ---: | ---: | --- | --- | --- | ---: | ---: | ---: | --- |']
     for row in summary:
         first = 'censored' if row['censored'] else row['firstDrawMs']
         if not row['calls']:
-            lines.append(f"| {row['version']} | {row['skikoRuntime']} | {row['case']} | {first} | none | | | | | | | |")
+            lines.append(f"| {row['version']} | {row['run']} | {row['case']} | {first} | none | | | | | | | |")
         for call in row['calls']:
             direct_ms = ', '.join(
-                f"{d['ms']:.1f}" if 'ms' in d else d.get('censored', 'error') for d in call['direct'])
-            in_process = call['ms'] if call['ms'] is not None else 'running at kill'
+                (f"{d['ms']:.1f}" if d['hresult'] == 0 else f"error {d['hresult'] & 0xffffffff:#x}") if 'ms' in d
+                else d.get('censored', 'error') for d in call['direct']) or 'not reproduced (defines/include)'
+            in_process = f"{call['ms']} ({call['hresult'] & 0xffffffff:#x})" if call['ms'] is not None \
+                else 'running at kill'
             lines.append(
-                f"| {row['version']} | {row['skikoRuntime']} | {row['case']} | {first} | {call['id']} | {call['entry']} | "
+                f"| {row['version']} | {row['run']} | {row['case']} | {first} | {call['id']} | {call['entry']} | "
                 f"{call['target']} | {call['flags1']:#x}/{call['flags2']:#x} | {call['size']} | {call['lines']} | "
                 f"{in_process} | {direct_ms} |")
     lines += ['', 'Compiler modules: ' + '; '.join(sorted({m for r in summary for m in r['compilerModules']}))]

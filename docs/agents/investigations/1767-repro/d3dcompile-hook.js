@@ -4,6 +4,8 @@
 // Frida 17 script: records each d3dcompiler_47 D3DCompile/D3DCompile2 call. The HLSL is sent on
 // entry so a call still running when the watchdog kills the process keeps its source.
 let next = 0;
+// Only the outermost call per thread is recorded, in case D3DCompile forwards to D3DCompile2.
+const depth = new Map();
 
 function str(p) {
   return p.isNull() ? null : p.readUtf8String();
@@ -15,6 +17,10 @@ function hook(module) {
     if (address === null) continue;
     Interceptor.attach(address, {
       onEnter(args) {
+        const level = depth.get(this.threadId) ?? 0;
+        depth.set(this.threadId, level + 1);
+        this.outer = level === 0;
+        if (!this.outer) return;
         this.id = next++;
         this.start = Date.now();
         const size = args[1].toUInt32();
@@ -26,6 +32,8 @@ function hook(module) {
         }, args[0].readByteArray(size));
       },
       onLeave(result) {
+        depth.set(this.threadId, depth.get(this.threadId) - 1);
+        if (!this.outer) return;
         send({ type: 'leave', id: this.id, hresult: result.toInt32(), ms: Date.now() - this.start });
       },
     });
