@@ -59,7 +59,7 @@ internal class FallbackGlassInput {
 
   private fun captureBounds(context: HazeEffectRuntimeDrawScope, style: ResolvedGlassStyle, bounds: Rect): Rect {
     val offset = context.layerOffset
-    val padding = ceil(style.resolvedOptics.blurRadiusPx)
+    val padding = capturePadding(style)
     return Rect(
       floor((bounds.left + offset.x - padding).coerceAtLeast(0f)),
       floor((bounds.top + offset.y - padding).coerceAtLeast(0f)),
@@ -67,6 +67,8 @@ internal class FallbackGlassInput {
       ceil((bounds.bottom + offset.y + padding).coerceAtMost(context.layerSize.height)),
     )
   }
+
+  private fun capturePadding(style: ResolvedGlassStyle): Float = ceil(style.resolvedOptics.blurRadiusPx)
 
   fun DrawScope.canDraw(context: HazeEffectRuntimeDrawScope, style: ResolvedGlassStyle, bounds: Rect): Boolean =
     supportsFallbackGlassBlur() && context.hasDrawableInput && style.fallbackBaseColor == null &&
@@ -115,8 +117,9 @@ internal class FallbackGlassInput {
     capture.blendMode = BlendMode.SrcOver
     recordGlassLayer(capture, captureSize) {
       // The authored background sits beneath the input before optics and tone, filling the padding.
-      // One more pixel covers the capture's outward rounding: Clamp tiling repeats its edge rows.
-      drawBackground?.invoke(this, Offset(offset.x - left, offset.y - top), ceil(optics.blurRadiusPx) + 1f)
+      // Two more pixels cover the capture's two outward roundings (bounds, then offset), since
+      // Clamp tiling repeats its edge rows into the blur.
+      drawBackground?.invoke(this, Offset(offset.x - left, offset.y - top), capturePadding(style) + 2f)
       translate(-left, -top) { with(context) { this@recordGlassLayer.drawInput() } }
     }
     source = capture

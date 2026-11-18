@@ -99,11 +99,12 @@ class FallbackGlassOverBudgetClusterAndroidHostTest : ScreenshotTest() {
     // at (40, 40) dp and ends 160 dp down in surface space; the window cuts it at the root width.
     val d = scene.density
     val expected = Rect(floor(40 * d), floor(40 * d), rootWidth.toFloat(), ceil(160 * d))
-    // Background colour, input and tint, at least once each. The processed capture also fills its
-    // window-bounded blur padding with member backgrounds in one capture-sized layer.
+    // Input and tint, at least once each. Member backgrounds go into the processed capture, which
+    // fills its window-bounded blur padding in capture-sized layers.
     val capture = checkNotNull(scene.delegate().filteredInputLayerForTest).size.toSize()
     val (union, padded) = layers.partition { it == expected }
-    assertThat(union).prop(List<Rect>::size).isGreaterThanOrEqualTo(3)
+    assertThat(union).prop(List<Rect>::size).isGreaterThanOrEqualTo(2)
+    assertThat(padded).isNotEmpty()
     assertThat(padded).each { it.prop(Rect::size).isEqualTo(capture) }
   }
 

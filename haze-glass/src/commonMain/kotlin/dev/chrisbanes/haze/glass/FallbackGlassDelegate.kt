@@ -541,7 +541,7 @@ private fun DrawScope.drawMergedBase(
     }
   }
   // Processed input carries the backgrounds of members it covers; reduced members keep theirs here.
-  if (paths.field.hasBackground) {
+  if (members.any { (!willProcess || it.fallbackBaseColor != null) && it.backgroundColor.alpha > 0f }) {
     drawMergedColours(paths, alphaMultiplier, visible) {
       if (willProcess && it.fallbackBaseColor == null) Color.Transparent else it.backgroundColor
     }
