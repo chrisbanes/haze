@@ -36,17 +36,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   draw an equivalent stroke ([#1741](https://github.com/chrisbanes/haze/issues/1741),
   [#1798](https://github.com/chrisbanes/haze/issues/1798)).
 - `edgeOutline` accepts `topAndBottomStrength`, which weakens the outline on the top and bottom
-  edges and blends through corners; limited renderers keep a uniform outline
+  edges and blends through corners; limited renderers draw a uniform outline at the mean strength
   ([#1755](https://github.com/chrisbanes/haze/issues/1755)).
 
 ### Changed
 
 - Glass uses continuous 16 dp corners when no shape is authored. Regular and Clear draw a thin dark
-  outline and a top and bottom rim highlight, stronger on Clear; dark Regular has a lighter interior
-  with less backdrop contrast. Custom styles inherit Regular's edges, which can be disabled with
+  outline, strongest on the left and right and absent from Clear's top and bottom, and a top and
+  bottom rim highlight, stronger on Clear; dark Regular has less backdrop contrast and a fainter
+  rim. Clear brightens its left and right edges much less. Values were tuned side by side with
+  iOS 27 Liquid Glass. Custom styles inherit Regular's edges, which can be disabled with
   later `edgeOutline` and `rimHighlight` writes. Authored shapes and
   Clear's appearance-independent ordinary response are preserved
-  ([#1743](https://github.com/chrisbanes/haze/issues/1743)).
+  ([#1736](https://github.com/chrisbanes/haze/issues/1736),
+  [#1743](https://github.com/chrisbanes/haze/issues/1743)).
 - Glass with circular corners does less shader work across the flat interior of a surface, most
   noticeably in merged containers. The rendered result is unchanged
   ([#1766](https://github.com/chrisbanes/haze/issues/1766)).
