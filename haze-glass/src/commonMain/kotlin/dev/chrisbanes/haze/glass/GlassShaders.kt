@@ -684,7 +684,8 @@ internal object GlassShaders {
     uniform float rimHighlightWidth;
     uniform float rimHighlightSides;
     layout(color) uniform vec4 edgeOutline;
-    uniform float edgeOutlineWidth;${if (merged) "" else "\n    uniform float outlinePixelWidth;"}
+    uniform float edgeOutlineWidth;
+    uniform float edgeOutlineTopAndBottomStrength;${if (merged) "" else "\n    uniform float outlinePixelWidth;"}
     uniform float coversNodeBoundEdges;
 
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
@@ -706,7 +707,7 @@ internal object GlassShaders {
       float down = materialSdf(${clampMaterial(merged, "localCoord + vec2(0.0, sampleStep)")});
       return vec2(right - left, down - up) * (0.5 / max(sampleStep, 0.0001));
     }
-
+$OUTLINE_GRADIENT
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
       float sd = materialSdf(localCoord);
@@ -721,6 +722,12 @@ internal object GlassShaders {
       if (edgeOutlineWidth > 0.0) {${if (merged) "" else nodeBoundOutlineCoverage()}
         float outlineAlpha =
           edgeOutline.a * (1.0 - coverage) * ${if (merged) "shapeCoverage(sd - edgeOutlineWidth, sampleStep * 0.5)" else "outlineCoverage"};
+        if (edgeOutlineTopAndBottomStrength < 1.0 && outlineAlpha > 0.0) {
+          // Sides keep full strength; top and bottom scale by edgeOutlineTopAndBottomStrength.
+          vec2 outlineNormal = safeNormalize(outlineGradient(localCoord), vec2(1.0, 0.0));
+          outlineAlpha *= outlineNormal.x * outlineNormal.x +
+            edgeOutlineTopAndBottomStrength * outlineNormal.y * outlineNormal.y;
+        }
         outline = vec4(edgeOutline.rgb * outlineAlpha, outlineAlpha);
       }
       if (coverage <= 0.0) return outline;
@@ -754,6 +761,18 @@ internal object GlassShaders {
       return rim + outline * (1.0 - rim.a);
     }
   """
+
+  // sdfGradient clamps standalone samples to the material, which collapses the normal outside a
+  // straight edge, where the outline draws, so the outline samples its own unclamped direction.
+  private const val OUTLINE_GRADIENT = """
+    vec2 outlineGradient(vec2 localCoord) {
+      float left = materialSdf(localCoord - vec2(sampleStep, 0.0));
+      float right = materialSdf(localCoord + vec2(sampleStep, 0.0));
+      float up = materialSdf(localCoord - vec2(0.0, sampleStep));
+      float down = materialSdf(localCoord + vec2(0.0, sampleStep));
+      return vec2(right - left, down - up);
+    }
+"""
 
   /** Fills the source with each merged member's background colour, blended across bridges. */
   fun buildMergedBackground(continuous: Boolean = false): String = """
