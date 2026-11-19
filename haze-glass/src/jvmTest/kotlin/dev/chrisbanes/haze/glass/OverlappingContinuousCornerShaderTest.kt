@@ -8,6 +8,7 @@ import assertk.assertThat
 import assertk.assertions.isEmpty
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotNull
+import assertk.assertions.isTrue
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -107,6 +108,56 @@ class OverlappingContinuousCornerShaderTest {
   @Test
   fun gradSdRoundedRect_overlappingCornerMatchesCornerAlone() {
     val failures = OVERLAPPING_CASES.flatMap { case -> compareWithCornersAlone(case, NORMAL_GRAD_SD) }
+    assertThat(failures).isEmpty()
+  }
+
+  @Test
+  fun gradSdRoundedRect_disjointDiagonalBoxesKeepEveryContribution() {
+    // The diagonal extents (2 x 61.15) exceed the shorter side but not the longer one, so the boxes
+    // stay disjoint, as the fit before #1749 also allowed: no contribution may be suppressed.
+    val case = OverlapCase("asymmetric100x200", 100.0, 200.0, 40.0, 0.0, 40.0, 0.0, 1.0, rtl = false)
+    val production = GlassShaders.buildOptical(continuous = true)
+    val suppression = "vec4 cornerWeights = kept * vec4("
+    check(production.split(suppression).size == 2) { "expected one suppressed corner weight" }
+    val unsuppressed = production.replace(suppression, "vec4 cornerWeights = vec4(")
+    val expected = render(case, NORMAL_GRAD_SD_OPTICAL, unsuppressed)
+    val actual = render(case, NORMAL_GRAD_SD_OPTICAL)
+    assertThat(actual.data.contentEquals(expected.data), "identical gradients").isTrue()
+  }
+
+  @Test
+  fun gradSdRoundedRect_staysContinuousAcrossOverlappingBoxes() {
+    // Neighbouring pixels within the optical band, away from sharp joins and medial axes. The
+    // asymmetric leaves leave one corner's box deep inside the other's.
+    val asymmetric = listOf(40.0 to 60.0, 30.0 to 80.0).map { (topStart, bottomEnd) ->
+      OverlapCase("leaf${topStart.toInt()}x${bottomEnd.toInt()}", 100.0, 100.0, topStart, 0.0, bottomEnd, 0.0, 1.0, rtl = false)
+    }
+    val failures = (OVERLAPPING_CASES + asymmetric).flatMap { case ->
+      val image = render(case, NORMAL_GRAD_SD_OPTICAL)
+      val references = nearest(case)
+      val reference = OverlapReference(case)
+      fun smooth(px: Double, py: Double): Boolean {
+        val ref = references[px to py] ?: return false
+        // A medial axis: another boundary point nearly as near, with a different normal. An arc's
+        // tangent join with its edge is not one.
+        val medial = ref.minima.any {
+          it[0] + ref.signedDistance < CONTINUITY_TIE_MARGIN_PX && it[1] * ref.normalX + it[2] * ref.normalY < 0.9
+        }
+        return ref.signedDistance in -OPTICAL_BAND_PX..0.0 && !medial &&
+          reference.sharpCorners.none { (cx, cy) -> hypot(px - cx, py - cy) < CONTINUITY_JOIN_EXCLUSION_PX }
+      }
+      val found = mutableListOf<String>()
+      forEachProbe(case) { px, py ->
+        for ((qx, qy) in listOf(px + 1 to py, px to py + 1)) {
+          if (!smooth(px, py) || !smooth(qx, qy)) continue
+          val (_, ax, ay) = image.at((px - 0.5).toInt(), (py - 0.5).toInt())
+          val (_, bx, by) = image.at((qx - 0.5).toInt(), (qy - 0.5).toInt())
+          val dot = ax * bx + ay * by
+          if (dot <= CONTINUITY_DOT && found.size < 6) found += "${case.name} (%.1f, %.1f)-(%.1f, %.1f) dot %.4f".format(px, py, qx, qy, dot)
+        }
+      }
+      found
+    }
     assertThat(failures).isEmpty()
   }
 
@@ -342,5 +393,13 @@ class OverlappingContinuousCornerShaderTest {
         ))"""
     const val NORMAL_EDGE_REFRACTION = "normalize(edgeRefractionGradient(p, materialSize, cornerRadii, cornerExponents))"
     const val NORMAL_GRAD_SD = "normalize(gradSdRoundedRect(p, materialSize, cornerRadii, cornerExponents, 1.0))"
+
+    /** The blend width production passes: the refraction height, here [OPTICAL_BAND_PX]. */
+    const val NORMAL_GRAD_SD_OPTICAL = "normalize(gradSdRoundedRect(p, materialSize, cornerRadii, cornerExponents, 25.0))"
+
+    /** Neighbouring normals within about 8°, past the 1.4° encoding step. */
+    const val CONTINUITY_DOT = 0.99
+    const val CONTINUITY_TIE_MARGIN_PX = 2.0
+    const val CONTINUITY_JOIN_EXCLUSION_PX = 4.0
   }
 }

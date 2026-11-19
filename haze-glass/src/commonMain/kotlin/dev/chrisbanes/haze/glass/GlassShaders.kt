@@ -1530,12 +1530,6 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
 
     vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents, float blendWidth) {
       vec2 rectangleGradient = gradSdRectangle(localCoord, size, blendWidth);
-      if (containingCorner(localCoord, size, radii, exponents, 1).z > 0.0) {
-        // Diagonal corner boxes overlap here, so only the bounding corner's surface applies.
-        vec4 corner = boundingCorner(localCoord, size, radii, exponents);
-        float weight = smootherstep(clamp(cornerNorm(corner.xy, corner.z, corner.w), 0.0, 1.0));
-        return mix(rectangleGradient, safeNormalize(cornerNormal(corner.xy, corner.w), rectangleGradient), weight);
-      }
       vec2 topLeftDelta = min(localCoord - vec2(radii.x), vec2(0.0));
       vec2 topRightDelta = vec2(
         max(localCoord.x - (size.x - radii.y), 0.0),
@@ -1549,15 +1543,36 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
         min(localCoord.x - radii.w, 0.0),
         max(localCoord.y - (size.y - radii.w), 0.0)
       );
-      // A corner's clamped delta spans its whole row and column, which reach into the diagonally
-      // opposite corner's box when the two overlap there; that box's own corner applies instead.
-      vec4 opposite = vec4(
-        localCoord.x > size.x - radii.z && localCoord.y > size.y - radii.z ? 0.0 : 1.0,
-        localCoord.x < radii.w && localCoord.y > size.y - radii.w ? 0.0 : 1.0,
-        localCoord.x < radii.x && localCoord.y < radii.x ? 0.0 : 1.0,
-        localCoord.x > size.x - radii.y && localCoord.y < radii.y ? 0.0 : 1.0
-      );
-      vec4 cornerWeights = opposite * vec4(
+      // A corner's clamped delta spans its whole row and column. Where diagonal corner boxes
+      // overlap, that reaches into the opposite corner's box, so the contribution fades out with
+      // depth into that box, unless the corner owns the point: its first-order distance, from the
+      // clamped delta that continues as its edge's distance past the box, is the larger. Both fade
+      // over the blend width. Adjacent extents fit along each edge, so at most one diagonal pair
+      // overlaps; shapes whose diagonal boxes are disjoint keep every contribution.
+      vec4 kept = vec4(1.0);
+      float span = max(size.x, size.y);
+      bool falling = radii.x + radii.z > span;
+      if (falling || radii.y + radii.w > span) {
+        float firstOwnership = smootherstep(
+          (roundedCornerSd(falling ? topLeftDelta : topRightDelta, falling ? radii.x : radii.y, falling ? exponents.x : exponents.y) -
+            roundedCornerSd(falling ? bottomRightDelta : bottomLeftDelta, falling ? radii.z : radii.w, falling ? exponents.z : exponents.w)) /
+            blendWidth + 0.5
+        );
+        vec2 ownership = vec2(firstOwnership, 1.0 - firstOwnership);
+        // Depth into each corner's opposite box: bottom-right, bottom-left, top-left, top-right.
+        vec4 faded = reversedSmootherstep(vec4(
+          min(localCoord.x - (size.x - radii.z), localCoord.y - (size.y - radii.z)),
+          min(radii.w - localCoord.x, localCoord.y - (size.y - radii.w)),
+          min(radii.x - localCoord.x, radii.x - localCoord.y),
+          min(localCoord.x - (size.x - radii.y), radii.y - localCoord.y)
+        ) / blendWidth);
+        if (falling) {
+          kept.xz = max(faded.xz, ownership);
+        } else {
+          kept.yw = max(faded.yw, ownership);
+        }
+      }
+      vec4 cornerWeights = kept * vec4(
         smootherstep(clamp(cornerNorm(topLeftDelta, radii.x, exponents.x), 0.0, 1.0)),
         smootherstep(clamp(cornerNorm(topRightDelta, radii.y, exponents.y), 0.0, 1.0)),
         smootherstep(clamp(cornerNorm(bottomRightDelta, radii.z, exponents.z), 0.0, 1.0)),
