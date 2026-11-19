@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Glass uses continuous 16 dp corners when no shape is authored. Regular and Clear draw a thin dark
   outline, strongest on the left and right and absent from Clear's top and bottom, and a top and
   bottom rim highlight, stronger on Clear; dark Regular has less backdrop contrast and a fainter
-  rim. Clear no longer brightens its left and right edges. Values were tuned side by side with
+  rim. Clear brightens its left and right edges much less. Values were tuned side by side with
   iOS 27 Liquid Glass. Custom styles inherit Regular's edges, which can be disabled with
   later `edgeOutline` and `rimHighlight` writes. Authored shapes and
   Clear's appearance-independent ordinary response are preserved
