@@ -155,10 +155,11 @@ class GlassNodeBoundEdgeCoverageInstrumentationTest {
             }
           }
           // Coverage only falls from the bottom edge into its corner, where the underlay shows.
+          // Regular's outline darkens the underlay more as the corner turns toward the side.
           var previous = 0f
           for (x in overMagenta.width / 2 downTo 0) {
             val current = shown(x, overMagenta.height - 1)
-            assertThat(current, "$variant coverage rises again at ($x, ${overMagenta.height - 1})").isGreaterThan(previous - 2f / 255f)
+            assertThat(current, "$variant coverage rises again at ($x, ${overMagenta.height - 1})").isGreaterThan(previous - 4f / 255f)
             previous = maxOf(previous, current)
           }
           assertThat(previous, "$variant the corner beyond the arc shows the underlay").isGreaterThan(1.9f)

@@ -374,8 +374,9 @@ public class GlassStyleScope internal constructor(
    * equally. Its distribution is independent of [lightPosition] and of the specular highlight.
    * The band follows merged container shapes. Limited renderers approximate it.
    *
-   * [GlassStyle.regular] uses an intensity of `0.6f` and [GlassStyle.clear] `1f`, each `1.dp` wide
-   * with `0f` sides; every Style evaluation starts from Regular. An [intensity] of `0f` draws no band.
+   * [GlassStyle.regular] uses an intensity of `0.7f` (`0.25f` in dark appearance) and
+   * [GlassStyle.clear] `1f`, each `1.dp` wide with `0f` sides; every Style evaluation starts from
+   * Regular. An [intensity] of `0f` draws no band.
    *
    * @param intensity finite band opacity in the inclusive range `0f..1f`.
    * @param width specified, finite, non-negative band width measured inward from the edge.
