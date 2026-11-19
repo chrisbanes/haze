@@ -1024,7 +1024,47 @@ $OUTLINE_GRADIENT
 
     ${if (continuous) CONTINUOUS_EDGE_REFRACTION_GRADIENT else CIRCULAR_EDGE_REFRACTION_GRADIENT}
 
-    ${if (merged) MERGED_REFRACTION_GRADIENT else ""}vec2 evaluateRefraction(
+    ${if (merged) MERGED_REFRACTION_GRADIENT else ""}${evaluateRefraction(merged, continuous)}${standaloneRefraction(merged, continuous)}    vec2 refractionDisplacement(vec2 p, float heightNorm, float distance, float multiplier, float weight${sampleDisplacementArgument(merged, declaration = true)}) {
+      vec2 mergedResult = evaluateRefraction(
+        p, heightNorm, distance, multiplier, weight, materialSize, cornerRadii, ${ifContinuous(continuous, "cornerExponents, ")}refractionHeight, $merged${if (merged) ", w" else ""}
+      );
+      ${if (merged) {
+    """
+      sampleDisplacement = mergedResult;
+      if (dot(memberStandaloneWeights, vec4(1.0)) <= 0.0) return mergedResult;
+      vec4 shares = w * memberStandaloneWeights;
+      vec2 result = mergedResult;
+      for (int i = 0; i < 4; i++) {
+        if (float(i) >= memberCount) break;
+        if (shares[i] <= 0.0) continue;
+        vec4 rect = memberRects[i];
+        vec2 size = memberLayoutRects[i].zw;
+        vec2 scale = rect.zw / size;
+        // Continue each standalone profile from its boundary into the emerging bridge.
+        vec2 local = clamp((p - rect.xy) / scale, vec2(0.0), size);
+        vec4 radii = memberRadii[i] / min(scale.x, scale.y);
+${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n")}        float field = opticalFieldWeight(size, refractionHeight);
+        float sd = sdRoundedRect(local, size, radii${ifContinuous(continuous, ", exponents")});
+        float optical = opticalDistance(local, sd, field, size, refractionHeight);
+        float height = surfaceHeightNormFromOpticalDistance(optical);
+        vec2 standalone = ${if (continuous) "evaluateStandaloneRefraction" else "evaluateRefraction"}(
+          local, height, edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : optical,
+          multiplier, field, size, radii, ${ifContinuous(continuous, "exponents, ")}refractionHeight, false${if (continuous) "" else ", w"}
+        );
+        // Sampling reads through the press transform, so it keeps the unpressed displacement.
+        sampleDisplacement += shares[i] * (standalone - mergedResult);
+        // Coverage tests the pressed shape, where the press maps q + d(q) to p + scale * d(q).
+        result += shares[i] * (standalone * scale - mergedResult);
+      }
+      return result;
+      """
+  } else {
+    "return mergedResult;"
+  }}
+    }
+  """
+
+  private fun evaluateRefraction(merged: Boolean, continuous: Boolean, name: String = "evaluateRefraction"): String = """vec2 $name(
       vec2 localCoord,
       float heightNorm,
       float opticalDistance,
@@ -1079,45 +1119,16 @@ $OUTLINE_GRADIENT
       }
       return -displacementGradient * displacementMagnitude;
     }
-    vec2 refractionDisplacement(vec2 p, float heightNorm, float distance, float multiplier, float weight${sampleDisplacementArgument(merged, declaration = true)}) {
-      vec2 mergedResult = evaluateRefraction(
-        p, heightNorm, distance, multiplier, weight, materialSize, cornerRadii, ${ifContinuous(continuous, "cornerExponents, ")}refractionHeight, $merged${if (merged) ", w" else ""}
-      );
-      ${if (merged) {
-    """
-      sampleDisplacement = mergedResult;
-      if (dot(memberStandaloneWeights, vec4(1.0)) <= 0.0) return mergedResult;
-      vec4 shares = w * memberStandaloneWeights;
-      vec2 result = mergedResult;
-      for (int i = 0; i < 4; i++) {
-        if (float(i) >= memberCount) break;
-        if (shares[i] <= 0.0) continue;
-        vec4 rect = memberRects[i];
-        vec2 size = memberLayoutRects[i].zw;
-        vec2 scale = rect.zw / size;
-        // Continue each standalone profile from its boundary into the emerging bridge.
-        vec2 local = clamp((p - rect.xy) / scale, vec2(0.0), size);
-        vec4 radii = memberRadii[i] / min(scale.x, scale.y);
-${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n")}        float field = opticalFieldWeight(size, refractionHeight);
-        float sd = sdRoundedRect(local, size, radii${ifContinuous(continuous, ", exponents")});
-        float optical = opticalDistance(local, sd, field, size, refractionHeight);
-        float height = surfaceHeightNormFromOpticalDistance(optical);
-        vec2 standalone = evaluateRefraction(
-          local, height, edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : optical,
-          multiplier, field, size, radii, ${ifContinuous(continuous, "exponents, ")}refractionHeight, false, w
-        );
-        // Sampling reads through the press transform, so it keeps the unpressed displacement.
-        sampleDisplacement += shares[i] * (standalone - mergedResult);
-        // Coverage tests the pressed shape, where the press maps q + d(q) to p + scale * d(q).
-        result += shares[i] * (standalone * scale - mergedResult);
-      }
-      return result;
-      """
-  } else {
-    "return mergedResult;"
-  }}
-    }
-  """
+"""
+
+  /**
+   * A continuous merged field's standalone member refraction: [evaluateRefraction] without the
+   * merged-field branches, which a member never takes. Each of the four unrolled member calls would
+   * otherwise expand them, and the two-corner continuous distance leaves no room for that within
+   * Android 15's program size limit (#1749).
+   */
+  private fun standaloneRefraction(merged: Boolean, continuous: Boolean): String =
+    if (merged && continuous) "    " + evaluateRefraction(merged = false, continuous = true, name = "evaluateStandaloneRefraction") else ""
 
   private fun opticalHelpers(merged: Boolean, continuous: Boolean): String = """
     vec2 surfaceGradient(vec2 localCoord, float fieldWeight) {
@@ -1403,9 +1414,10 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
     }"""
 
   /**
-   * Corner radii carry corner extents and `exponents` their superellipse exponents. A single
-   * selected corner is evaluated: the fit keeps continuous corner boxes disjoint, and a larger
-   * program draws nothing on Android 15's software pipeline.
+   * Corner radii carry corner extents and `exponents` their superellipse exponents. The fit keeps
+   * adjacent corner boxes disjoint, so at most two diagonal corners apply at a point (#1749). Android
+   * 15's software pipeline rejects a program whose fully expanded size is too large, so the helper
+   * stays small: see [standaloneRefraction].
    */
   private const val CONTINUOUS_SD_ROUNDED_RECT = """// Corner radii are corner extents. An exponent above 2 makes a continuous (superellipse)
     // corner; 2 keeps the exact circular arc. delta is measured from the corner box's centre.
@@ -1430,32 +1442,38 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
       return (norm - 1.0) * extent / max(length(g), 0.0001);
     }
 
+    // Corner k (0 or 1) of those whose boxes contain localCoord, as (delta, extent, exponent), or
+    // zero. Adjacent boxes are disjoint and only diagonal boxes can overlap, so there are at most
+    // two; the first is the one a single-corner search finds.
+    vec4 containingCorner(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents, int k) {
+      vec4 first = vec4(0.0);
+      vec4 second = vec4(0.0);
+      bool bottomRight = localCoord.x > size.x - radii.z && localCoord.y > size.y - radii.z;
+      bool bottomLeft = localCoord.x < radii.w && localCoord.y > size.y - radii.w;
+      vec4 bottomRightCorner = vec4(localCoord - vec2(size.x - radii.z, size.y - radii.z), radii.z, exponents.z);
+      vec4 bottomLeftCorner = vec4(localCoord - vec2(radii.w, size.y - radii.w), radii.w, exponents.w);
+      if (localCoord.x < radii.x && localCoord.y < radii.x) {
+        first = vec4(localCoord - vec2(radii.x), radii.x, exponents.x);
+        if (bottomRight) second = bottomRightCorner;
+      } else if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
+        first = vec4(localCoord - vec2(size.x - radii.y, radii.y), radii.y, exponents.y);
+        if (bottomLeft) second = bottomLeftCorner;
+      } else if (bottomRight) {
+        first = bottomRightCorner;
+      } else if (bottomLeft) {
+        first = bottomLeftCorner;
+      }
+      return k == 0 ? first : second;
+    }
+
     float sdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents) {
       float sd = sdRectangle(localCoord, size);
-      // Normalized corner boxes are disjoint, so at most one corner applies.
-      vec2 delta;
-      float extent = 0.0;
-      float exponent = 2.0;
-      if (localCoord.x < radii.x && localCoord.y < radii.x) {
-        delta = localCoord - vec2(radii.x);
-        extent = radii.x;
-        exponent = exponents.x;
-      } else if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
-        delta = localCoord - vec2(size.x - radii.y, radii.y);
-        extent = radii.y;
-        exponent = exponents.y;
-      } else if (localCoord.x > size.x - radii.z && localCoord.y > size.y - radii.z) {
-        delta = localCoord - vec2(size.x - radii.z, size.y - radii.z);
-        extent = radii.z;
-        exponent = exponents.z;
-      } else if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
-        delta = localCoord - vec2(radii.w, size.y - radii.w);
-        extent = radii.w;
-        exponent = exponents.w;
-      } else {
-        return sd;
+      for (int k = 0; k < 2; k++) {
+        vec4 corner = containingCorner(localCoord, size, radii, exponents, k);
+        if (corner.z <= 0.0) break;
+        sd = max(sd, roundedCornerSd(corner.xy, corner.z, corner.w));
       }
-      return max(sd, roundedCornerSd(delta, extent, exponent));
+      return sd;
     }"""
 
   private const val CIRCULAR_GRAD_SD_ROUNDED_RECT = """vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, float blendWidth) {
@@ -1493,8 +1511,31 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
       return mix(rectangleGradient, cornerGradient, cornerWeight);
     }"""
 
-  private const val CONTINUOUS_GRAD_SD_ROUNDED_RECT = """vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents, float blendWidth) {
+  private const val CONTINUOUS_GRAD_SD_ROUNDED_RECT = """// The containing corner whose surface bounds sdRoundedRect at localCoord, or zero: where two
+    // diagonal corner boxes overlap, the one with the larger distance.
+    vec4 boundingCorner(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents) {
+      vec4 bounding = vec4(0.0);
+      float sd = 0.0;
+      for (int k = 0; k < 2; k++) {
+        vec4 corner = containingCorner(localCoord, size, radii, exponents, k);
+        if (corner.z <= 0.0) break;
+        float cornerSd = roundedCornerSd(corner.xy, corner.z, corner.w);
+        if (k == 0 || cornerSd > sd) {
+          bounding = corner;
+          sd = cornerSd;
+        }
+      }
+      return bounding;
+    }
+
+    vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents, float blendWidth) {
       vec2 rectangleGradient = gradSdRectangle(localCoord, size, blendWidth);
+      if (containingCorner(localCoord, size, radii, exponents, 1).z > 0.0) {
+        // Diagonal corner boxes overlap here, so only the bounding corner's surface applies.
+        vec4 corner = boundingCorner(localCoord, size, radii, exponents);
+        float weight = smootherstep(clamp(cornerNorm(corner.xy, corner.z, corner.w), 0.0, 1.0));
+        return mix(rectangleGradient, safeNormalize(cornerNormal(corner.xy, corner.w), rectangleGradient), weight);
+      }
       vec2 topLeftDelta = min(localCoord - vec2(radii.x), vec2(0.0));
       vec2 topRightDelta = vec2(
         max(localCoord.x - (size.x - radii.y), 0.0),
@@ -1508,7 +1549,15 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
         min(localCoord.x - radii.w, 0.0),
         max(localCoord.y - (size.y - radii.w), 0.0)
       );
-      vec4 cornerWeights = vec4(
+      // A corner's clamped delta spans its whole row and column, which reach into the diagonally
+      // opposite corner's box when the two overlap there; that box's own corner applies instead.
+      vec4 opposite = vec4(
+        localCoord.x > size.x - radii.z && localCoord.y > size.y - radii.z ? 0.0 : 1.0,
+        localCoord.x < radii.w && localCoord.y > size.y - radii.w ? 0.0 : 1.0,
+        localCoord.x < radii.x && localCoord.y < radii.x ? 0.0 : 1.0,
+        localCoord.x > size.x - radii.y && localCoord.y < radii.y ? 0.0 : 1.0
+      );
+      vec4 cornerWeights = opposite * vec4(
         smootherstep(clamp(cornerNorm(topLeftDelta, radii.x, exponents.x), 0.0, 1.0)),
         smootherstep(clamp(cornerNorm(topRightDelta, radii.y, exponents.y), 0.0, 1.0)),
         smootherstep(clamp(cornerNorm(bottomRightDelta, radii.z, exponents.z), 0.0, 1.0)),
@@ -1572,29 +1621,12 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
         exponents.z > 2.0 ? customRadii.z : widened.z,
         exponents.w > 2.0 ? customRadii.w : widened.w
       );
-      vec2 delta = vec2(0.0);
-      float exponent = 2.0;
-      bool corner = false;
-      if (localCoord.x < radii.x && localCoord.y < radii.x) {
-        delta = localCoord - vec2(radii.x);
-        exponent = exponents.x;
-        corner = true;
-      } else if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
-        delta = localCoord - vec2(size.x - radii.y, radii.y);
-        exponent = exponents.y;
-        corner = true;
-      } else if (localCoord.x > size.x - radii.z &&
-          localCoord.y > size.y - radii.z) {
-        delta = localCoord - vec2(size.x - radii.z, size.y - radii.z);
-        exponent = exponents.z;
-        corner = true;
-      } else if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
-        delta = localCoord - vec2(radii.w, size.y - radii.w);
-        exponent = exponents.w;
-        corner = true;
-      }
+      // Where diagonal continuous corner boxes overlap, the bounding corner applies.
+      vec4 bounding = boundingCorner(localCoord, size, radii, exponents);
+      vec2 delta = bounding.xy;
+      float exponent = bounding.w;
       float blendWidth = max(sampleStep * 0.5, 0.01);
-      if (!corner) return gradSdRectangle(localCoord, size, blendWidth);
+      if (bounding.z <= 0.0) return gradSdRectangle(localCoord, size, blendWidth);
       float cornerDistance = length(delta);
       float axisDistance = min(abs(delta.x), abs(delta.y));
       vec2 normal = exponent > 2.0

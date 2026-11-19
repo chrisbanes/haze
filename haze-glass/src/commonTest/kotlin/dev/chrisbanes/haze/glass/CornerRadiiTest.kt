@@ -13,7 +13,6 @@ import assertk.assertThat
 import assertk.assertions.hasMessage
 import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
-import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
@@ -161,29 +160,21 @@ class CornerRadiiTest {
   }
 
   @Test
-  fun fitSmoothingTo_overlappingDiagonalCornersAreCircular() {
-    // Each edge fits, but the top-left and bottom-right boxes would overlap.
+  fun fitSmoothingTo_overlappingDiagonalCornersKeepSmoothing() {
+    // A leaf: each edge fits, and the top-left and bottom-right boxes overlap (#1749).
     val radii = ContinuousRoundedCornerShape(topStart = 60.dp, bottomEnd = 60.dp)
       .resolveCornerRadiiPx(Size(100f, 100f), Density(1f), LayoutDirection.Ltr)
 
-    assertThat(radii).isEqualTo(CornerRadii(60f, 0f, 60f, 0f))
+    assertThat(radii).isEqualTo(CornerRadii(60f, 0f, 60f, 0f, topLeftSmoothing = 1f, bottomRightSmoothing = 1f))
   }
 
   @Test
-  fun fitSmoothingTo_diagonalExtentsReduceSmoothing() {
-    // The radii fit (80 <= 100), but the full diagonal extents would overlap.
+  fun fitSmoothingTo_overlappingDiagonalExtentsKeepSmoothing() {
+    // The radii fit (80 <= 100) and the full diagonal extents overlap.
     val radii = ContinuousRoundedCornerShape(topStart = 40.dp, bottomEnd = 40.dp)
       .resolveCornerRadiiPx(Size(100f, 100f), Density(1f), LayoutDirection.Ltr)
 
-    assertThat(radii.topLeft).isEqualTo(40f)
-    assertThat(radii.bottomRight).isEqualTo(40f)
-    assertThat(radii.topLeftSmoothing).isGreaterThan(0f)
-    assertThat(radii.topLeftSmoothing).isLessThan(1f)
-    assertThat(radii.bottomRightSmoothing).isGreaterThan(0f)
-    assertThat(
-      continuousCornerExtent(radii.topLeft, radii.topLeftSmoothing) +
-        continuousCornerExtent(radii.bottomRight, radii.bottomRightSmoothing),
-    ).isLessThanOrEqualTo(100.001f)
+    assertThat(radii).isEqualTo(CornerRadii(40f, 0f, 40f, 0f, topLeftSmoothing = 1f, bottomRightSmoothing = 1f))
   }
 
   @Test

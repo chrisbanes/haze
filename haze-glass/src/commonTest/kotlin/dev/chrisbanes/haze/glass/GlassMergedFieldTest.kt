@@ -67,21 +67,19 @@ internal fun mergedField(
 class GlassMergedFieldTest {
 
   @Test
-  fun withExactCorners_overlappingCircularMemberMakesFieldCircular() {
+  fun withExactCorners_overlappingDiagonalCornersKeepSmoothing() {
+    // The leaf's diagonal corner boxes overlap, which the continuous shaders evaluate (#1749).
     val continuous = member(Rect(0f, 0f, 100f, 60f), CornerRadii(16f, 16f, 16f, 16f, 1f, 1f, 1f, 1f))
     val leaf = member(Rect(120f, 0f, 160f, 40f), CornerRadii(40f, 0f, 40f, 0f))
+    val smoothedLeaf = member(Rect(0f, 80f, 100f, 180f), CornerRadii(60f, 0f, 60f, 0f, 1f, 0f, 1f, 0f))
+    val members = listOf(continuous, leaf, smoothedLeaf)
 
-    val exact = listOf(continuous, leaf).withExactCorners()
-
-    assertThat(exact.map { it.cornerRadii }).containsExactly(
-      CornerRadii(16f, 16f, 16f, 16f),
-      CornerRadii(40f, 0f, 40f, 0f),
-    )
+    assertThat(members.withExactCorners()).isSameInstanceAs(members)
   }
 
   @Test
-  fun withExactCorners_overlappingExtentsMakeFieldCircular() {
-    // The radii fit (80 <= 100), but the smoothed extents (2 x 61) do not.
+  fun withExactCorners_overlappingAdjacentExtentsMakeFieldCircular() {
+    // The radii fit (80 <= 100), but the smoothed extents along the top edge (2 x 61) do not.
     val member = member(Rect(0f, 0f, 100f, 60f), CornerRadii(40f, 40f, 0f, 0f, 1f, 1f, 0f, 0f))
 
     assertThat(listOf(member).withExactCorners().single().cornerRadii).isEqualTo(CornerRadii(40f, 40f, 0f, 0f))
