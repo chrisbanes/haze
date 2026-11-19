@@ -1514,18 +1514,13 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
   private const val CONTINUOUS_GRAD_SD_ROUNDED_RECT = """// The containing corner whose surface bounds sdRoundedRect at localCoord, or zero: where two
     // diagonal corner boxes overlap, the one with the larger distance.
     vec4 boundingCorner(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents) {
-      vec4 bounding = vec4(0.0);
-      float sd = 0.0;
-      for (int k = 0; k < 2; k++) {
-        vec4 corner = containingCorner(localCoord, size, radii, exponents, k);
-        if (corner.z <= 0.0) break;
-        float cornerSd = roundedCornerSd(corner.xy, corner.z, corner.w);
-        if (k == 0 || cornerSd > sd) {
-          bounding = corner;
-          sd = cornerSd;
-        }
+      vec4 first = containingCorner(localCoord, size, radii, exponents, 0);
+      vec4 second = containingCorner(localCoord, size, radii, exponents, 1);
+      // Distances are compared only where two boxes overlap, so a single corner costs no pow.
+      if (second.z > 0.0 && roundedCornerSd(second.xy, second.z, second.w) > roundedCornerSd(first.xy, first.z, first.w)) {
+        return second;
       }
-      return bounding;
+      return first;
     }
 
     vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents, float blendWidth) {
