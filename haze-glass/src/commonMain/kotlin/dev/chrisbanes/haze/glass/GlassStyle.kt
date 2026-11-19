@@ -90,24 +90,26 @@ public sealed interface GlassStyle {
       contentNormalBlend(GlassDefaults.contentNormalBlend)
       specularExponent(GlassDefaults.specularExponent)
       fresnelExponent(GlassDefaults.fresnelExponent)
-      edgeOutline(Color.Black.copy(alpha = 0.4f), 0.7.dp)
-      rimHighlight(0.6f, 1.dp, 0f)
+      edgeOutline(Color.Black.copy(alpha = 0.58f), 0.7.dp, topAndBottomStrength = 0.42f)
+      rimHighlight(0.7f, 1.dp, 0f)
     }
 
     internal val regularDark: GlassStyle = regularLight.then {
       specularIntensity(0.38f)
       edgeShadow(Color.Black.copy(alpha = 0.32f))
       ambientResponse(0.08f)
-      contrast(0.02f)
-      whitePoint(-0.10f)
-      chromaMultiplier(1.1f)
+      contrast(-0.31f)
+      whitePoint(-0.23f)
+      chromaMultiplier(1.25f)
+      edgeOutline(Color.Black.copy(alpha = 0.6f), 0.7.dp, topAndBottomStrength = 0.1f)
+      rimHighlight(0.25f, 1.dp, 0f)
     }
 
     /**
      * The default built-in Glass style.
      *
      * Its blur and depth adapt to each material's shortest dimension. It draws a thin dark
-     * [edge outline][GlassStyleScope.edgeOutline] and a top and bottom
+     * [edge outline][GlassStyleScope.edgeOutline], strongest on the left and right, and a top and bottom
      * [rim highlight][GlassStyleScope.rimHighlight]. It writes the complete material response while
      * preserving separately composed shape, background colour, tint, alpha, light position, and
      * interaction presentation. Write `edgeOutline(Color.Transparent, 0.dp)` and
@@ -121,7 +123,7 @@ public sealed interface GlassStyle {
       optics(GlassOptics.clear)
       specularIntensity(0.55f)
       edgeShadow(Color.Black.copy(alpha = 0.1f))
-      ambientResponse(0.42f)
+      ambientResponse(0.08f)
       edgeSoftness(1.dp)
       chromaticAberrationStrength(0.04f)
       surfaceProfile(SurfaceProfile.Circle)
@@ -132,7 +134,7 @@ public sealed interface GlassStyle {
       contentNormalBlend(0.1f)
       specularExponent(16f)
       fresnelExponent(2.5f)
-      edgeOutline(Color.Black.copy(alpha = 0.4f), 0.7.dp)
+      edgeOutline(Color.Black.copy(alpha = 0.58f), 0.7.dp, topAndBottomStrength = 0f)
       rimHighlight(1f, 1.dp, 0f)
     }
 
@@ -150,8 +152,8 @@ public sealed interface GlassStyle {
      *
      * Its shallow blur stays constant across material sizes while its authored refraction and
      * distinct edge and lighting response remain recognizable when a renderer simplifies advanced
-     * optical effects. It draws the same thin dark edge outline as [regular] and a stronger top and
-     * bottom rim highlight. Its ordinary material response is the same in light and dark appearance;
+     * optical effects. It draws a thin dark edge outline on its left and right only and a stronger top
+     * and bottom rim highlight. Its ordinary material response is the same in light and dark appearance;
      * reduced transparency may use an appearance-dependent opaque fallback. It writes the complete
      * material response while preserving separately composed
      * shape, background colour, tint, alpha, light position, and interaction presentation.
@@ -395,14 +397,14 @@ public class GlassStyleScope internal constructor(
    *
    * The line follows a container's merged shape, and limited renderers draw an equivalent stroke.
    * It is drawn whether or not the effect expands its layer bounds. [GlassStyle.regular] and
-   * [GlassStyle.clear] draw black at 40% alpha, `0.7.dp` wide; every Style evaluation starts from
-   * Regular. [Color.Transparent] or a `0.dp` [width] draws nothing.
+   * [GlassStyle.clear] draw black `0.7.dp` wide, strongest on the left and right; every Style
+   * evaluation starts from Regular. [Color.Transparent] or a `0.dp` [width] draws nothing.
    *
    * [topAndBottomStrength] scales the top and bottom edges relative to the left and right, which
    * keep full strength, blending through corners by the shape's edge direction: `1f` draws the
    * same line on every edge, `0f` draws only the left and right. Its distribution is independent of
-   * [lightPosition] and of the content behind the Glass. Limited renderers ignore it and draw a
-   * uniform outline.
+   * [lightPosition] and of the content behind the Glass. Limited renderers draw a uniform outline
+   * at the mean of the side and top and bottom strengths.
    *
    * @param color the specified line color; its alpha controls the line's strength.
    * @param width specified, finite, non-negative line width measured outward from the boundary.

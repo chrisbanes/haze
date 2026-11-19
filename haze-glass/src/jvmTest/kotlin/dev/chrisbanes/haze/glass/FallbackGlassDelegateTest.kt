@@ -163,6 +163,8 @@ class FallbackGlassDelegateTest {
         contrast(0f)
         whitePoint(0f)
         chromaMultiplier(1f)
+        edgeOutline(Color.Transparent, 0.dp)
+        rimHighlight(0f, 0.dp, 0f)
       }
       accessibilitySettings = GlassAccessibilitySettings(reduceTransparency = true)
     }

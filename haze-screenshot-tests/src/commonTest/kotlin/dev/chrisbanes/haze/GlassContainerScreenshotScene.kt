@@ -241,11 +241,15 @@ private fun assertDirectionalEdgeOutline(pixels: PixelMap, scene: GlassContainer
   for ((side, top) in directionalOutlineProbes) {
     val sideDarkening = darkening(side.first, side.second)
     val topDarkening = darkening(top.first, top.second)
-    assertThat(sideDarkening, "side at $side").isGreaterThan(0.5f)
     if (fallback) {
-      // Limited renderers ignore topAndBottomStrength and keep a uniform outline.
+      // Limited renderers draw a uniform outline at the mean of the side and top strengths.
+      val mean = if (scene == GlassContainerScene.EdgeOutlineSidesOnly) 0.5f else 0.625f
+      assertThat(abs(sideDarkening - mean), "side at $side").isLessThan(0.08f)
       assertThat(abs(topDarkening - sideDarkening), "top at $top").isLessThan(0.03f)
-    } else if (scene == GlassContainerScene.EdgeOutlineSidesOnly) {
+      continue
+    }
+    assertThat(sideDarkening, "side at $side").isGreaterThan(0.5f)
+    if (scene == GlassContainerScene.EdgeOutlineSidesOnly) {
       assertThat(topDarkening, "top at $top").isLessThan(0.02f)
     } else {
       assertThat(topDarkening / sideDarkening, "top at $top").isGreaterThan(0.15f)

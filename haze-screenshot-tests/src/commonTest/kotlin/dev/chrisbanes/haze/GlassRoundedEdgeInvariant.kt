@@ -85,6 +85,9 @@ private fun ScreenshotUiTest.captureRoundedEdgeClips(
     whitePoint(0f)
     chromaMultiplier(1f)
     contentNormalBlend(0f)
+    // The tolerance predates built-in edges; an outer clip hides the outline by design.
+    edgeOutline(Color.Transparent, 0.dp)
+    rimHighlight(0f, 0.dp, 0f)
     when (styleShape) {
       is ContinuousRoundedCornerShape -> shape(styleShape)
       is RoundedCornerShape -> shape(styleShape)
