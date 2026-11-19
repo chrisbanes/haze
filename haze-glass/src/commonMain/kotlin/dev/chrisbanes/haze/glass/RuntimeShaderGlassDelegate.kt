@@ -2697,6 +2697,7 @@ internal fun RuntimeShaderUniformProvider.setRimUniforms(
   setFloatUniform("rimHighlightSides", key.rimHighlight.sides)
   setColorUniform("edgeOutline", key.edgeOutline.color)
   setFloatUniform("edgeOutlineWidth", key.edgeOutline.widthPx)
+  setFloatUniform("edgeOutlineTopAndBottomStrength", key.edgeOutline.topAndBottomStrength)
   setFloatUniform("coversNodeBoundEdges", if (key.coordinates.pixelAligned) 1f else 0f)
   val mergedField = key.mergedField
   if (mergedField != null) {

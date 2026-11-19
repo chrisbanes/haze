@@ -586,6 +586,50 @@ class GlassStyleTest {
   }
 
   @Test
+  fun edgeOutline_rejectsInvalidTopAndBottomStrengthBeforeWriting() {
+    listOf(-0.01f, 1.01f, Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY).forEach { invalid ->
+      assertEvaluationFailure("edgeOutline.topAndBottomStrength must be finite and in 0f..1f") {
+        edgeOutline(Color.Black, 1.dp, invalid)
+      }
+      val values = GlassStyleValues()
+      assertFailure { GlassStyleScope(values).edgeOutline(Color.Red, 3.dp, invalid) }
+        .isInstanceOf<IllegalArgumentException>()
+      assertThat(values.edgeOutlineColor, "$invalid").isEqualTo(Color.Transparent)
+      assertThat(values.edgeOutlineWidth, "$invalid").isEqualTo(0.dp)
+      assertThat(values.edgeOutlineTopAndBottomStrength, "$invalid").isEqualTo(1f)
+    }
+  }
+
+  @Test
+  fun edgeOutline_storesTopAndBottomStrength() {
+    fun strength(block: GlassStyleScope.() -> Unit) =
+      resolveGlassStyleValues(GlassStyle, GlassStyle(block)).edgeOutlineTopAndBottomStrength
+
+    assertThat(strength { edgeOutline(Color.Black, 1.dp) }).isEqualTo(1f)
+    assertThat(strength { edgeOutline(Color.Black, 1.dp, topAndBottomStrength = 1f) }).isEqualTo(1f)
+    assertThat(strength { edgeOutline(Color.Black, 1.dp, topAndBottomStrength = 0.25f) }).isEqualTo(0.25f)
+    assertThat(
+      strength {
+        edgeOutline(Color.Black, 1.dp, topAndBottomStrength = 0.25f)
+        edgeOutline(Color.Black, 1.dp)
+      },
+    ).isEqualTo(1f)
+  }
+
+  @Test
+  fun edgeOutline_changedTopAndBottomStrengthReplayMarksEdgeOutlineDirty() {
+    var strength = 1f
+    val style = GlassStyle { edgeOutline(Color.Black, 1.dp, strength) }
+    val effect = GlassRuntimeEffect().apply { this.style = style }
+    var dirty = 0
+    effect.onConfigurationChanged = { dirty = dirty or it }
+    strength = 0.25f
+    effect.compositionLocalStyle = GlassStyle
+    assertThat(effect.edgeOutlineTopAndBottomStrength).isEqualTo(0.25f)
+    assertThat(dirty and GlassDirtyFields.EdgeOutline).isEqualTo(GlassDirtyFields.EdgeOutline)
+  }
+
+  @Test
   fun edgeSoftness_rejectsInvalidValuesWhenEvaluated() {
     listOf(Dp.Unspecified, Float.NaN.dp, Float.NEGATIVE_INFINITY.dp, (-1).dp, Float.POSITIVE_INFINITY.dp)
       .forEach { invalid ->

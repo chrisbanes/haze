@@ -34,6 +34,10 @@ class GlassContainerAndroidScreenshotTest : ScreenshotTest() {
 
   @Test fun mergedEdgeOutline() = runScreenshotTest { assertGlassContainerScene(GlassContainerScene.EdgeOutline) }
 
+  @Test fun edgeOutlineSidesOnly() = runScreenshotTest { assertGlassContainerScene(GlassContainerScene.EdgeOutlineSidesOnly) }
+
+  @Test fun edgeOutlineQuarterTopAndBottom() = runScreenshotTest { assertGlassContainerScene(GlassContainerScene.EdgeOutlineQuarterTopAndBottom) }
+
   @Test fun removalRestoresOutsideContainerPixels() = runScreenshotTest { assertGlassContainerRemovalRestoresOutsidePixels() }
 
   @Test fun memberGrowsOutOfNeighbour() = runScreenshotTest { assertGlassContainerTransitionSequence(grow = true) }

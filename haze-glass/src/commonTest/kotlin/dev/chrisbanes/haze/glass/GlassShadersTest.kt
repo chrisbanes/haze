@@ -816,6 +816,7 @@ class GlassShadersTest {
       assertThat(shader).contains("uniform float rimHighlightIntensity;")
       assertThat(shader).contains("uniform float rimHighlightWidth;")
       assertThat(shader).contains("uniform float rimHighlightSides;")
+      assertThat(shader).contains("uniform float edgeOutlineTopAndBottomStrength;")
     }
   }
 

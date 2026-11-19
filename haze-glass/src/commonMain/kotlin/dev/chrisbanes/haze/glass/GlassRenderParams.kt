@@ -518,6 +518,7 @@ internal data class GlassRimHighlight(
 internal data class GlassEdgeOutline(
   val color: Color,
   val widthPx: Float,
+  val topAndBottomStrength: Float = 1f,
 ) {
   val isVisible: Boolean get() = color.alpha > 0f && widthPx > 0f
 
@@ -696,6 +697,7 @@ internal fun resolveGlassStyle(
     edgeOutline = GlassEdgeOutline(
       color = effect.edgeOutlineColor,
       widthPx = with(density) { effect.edgeOutlineWidth.toPx() }.finiteOrZero().coerceAtLeast(0f),
+      topAndBottomStrength = effect.edgeOutlineTopAndBottomStrength,
     ).takeIf { it.isVisible } ?: GlassEdgeOutline.None,
     rimHighlight = GlassRimHighlight(
       intensity = effect.rimHighlightIntensity,

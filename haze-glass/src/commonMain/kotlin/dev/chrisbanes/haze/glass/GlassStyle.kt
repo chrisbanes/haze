@@ -398,14 +398,28 @@ public class GlassStyleScope internal constructor(
    * [GlassStyle.clear] draw black at 40% alpha, `0.7.dp` wide; every Style evaluation starts from
    * Regular. [Color.Transparent] or a `0.dp` [width] draws nothing.
    *
+   * [topAndBottomStrength] scales the top and bottom edges relative to the left and right, which
+   * keep full strength, blending through corners by the shape's edge direction: `1f` draws the
+   * same line on every edge, `0f` draws only the left and right. Its distribution is independent of
+   * [lightPosition] and of the content behind the Glass. Limited renderers ignore it and draw a
+   * uniform outline.
+   *
    * @param color the specified line color; its alpha controls the line's strength.
    * @param width specified, finite, non-negative line width measured outward from the boundary.
+   * @param topAndBottomStrength finite top and bottom edge strength in the inclusive range `0f..1f`.
    */
-  public fun edgeOutline(color: Color, width: Dp) {
+  public fun edgeOutline(color: Color, width: Dp, topAndBottomStrength: Float = 1f) {
     require(color.isSpecified) { "edgeOutline.color must be specified" }
     val validatedWidth = requireSpecifiedFiniteNonNegative("edgeOutline.width", width)
+    val validatedTopAndBottomStrength = requireFiniteInRange(
+      "edgeOutline.topAndBottomStrength",
+      topAndBottomStrength,
+      0f..1f,
+      UNIT_INTERVAL_DOMAIN,
+    )
     values.edgeOutlineColor = color
     values.edgeOutlineWidth = validatedWidth
+    values.edgeOutlineTopAndBottomStrength = validatedTopAndBottomStrength
   }
 
   /** Sets finite ambient-light response in the inclusive range `0f..1f`. */
@@ -602,6 +616,7 @@ internal class GlassStyleValues(
   var rimHighlightSides: Float = 0f,
   var edgeOutlineColor: Color = Color.Transparent,
   var edgeOutlineWidth: Dp = 0.dp,
+  var edgeOutlineTopAndBottomStrength: Float = 1f,
 )
 
 /** How far Glass draws beyond its shape: the [GlassStyleValues.drawOutset] floor or a visible outline. */

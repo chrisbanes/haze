@@ -35,6 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the rim visible up to the outermost pixel inside a straight node-bound edge. Limited renderers
   draw an equivalent stroke ([#1741](https://github.com/chrisbanes/haze/issues/1741),
   [#1798](https://github.com/chrisbanes/haze/issues/1798)).
+- `edgeOutline` accepts `topAndBottomStrength`, which weakens the outline on the top and bottom
+  edges and blends through corners; limited renderers keep a uniform outline
+  ([#1755](https://github.com/chrisbanes/haze/issues/1755)).
 
 ### Changed
 
