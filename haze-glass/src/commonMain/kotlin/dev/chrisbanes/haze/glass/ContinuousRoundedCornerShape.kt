@@ -37,8 +37,8 @@ import dev.chrisbanes.haze.Poko
  *
  * Corner sizes resolve like [RoundedCornerShape]'s. When a corner's eased extent would not fit
  * along an edge, its smoothing is reduced, never its radius. A capsule, whose radius is half its
- * shortest side, therefore draws circular ends, and a shape whose corners overlap, such as a leaf,
- * draws circular corners.
+ * shortest side, therefore draws circular ends. Diagonal corners may overlap, as in a leaf, and keep
+ * their smoothing.
  *
  * @param topStart The top-start corner size.
  * @param topEnd The top-end corner size.

@@ -75,10 +75,10 @@ internal fun continuousCorners(cornerRadii: CornerRadii, mergedField: GlassMerge
 private const val EXTENT_ROUNDING_SLACK_PX = 0.01f
 
 /**
- * Removes every member's smoothing when the field has a smoothed member and any member whose corner
- * boxes can overlap, in either frame the shader evaluates. The continuous shaders evaluate one
- * corner per point, which is exact only for disjoint corner boxes; the circular shaders are exact
- * everywhere.
+ * Removes every member's smoothing when the field has a smoothed member and any member whose
+ * adjacent corner boxes can overlap, in either frame the shader evaluates. The continuous shaders
+ * evaluate at most two diagonal corners per point, which is exact unless adjacent corner boxes
+ * overlap; the circular shaders are exact everywhere.
  */
 internal fun List<GlassMergedMember>.withExactCorners(): List<GlassMergedMember> {
   if (none { it.cornerRadii.isContinuous }) return this
