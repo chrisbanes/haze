@@ -1466,9 +1466,16 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
       return k == 0 ? first : second;
     }
 
+    // Whether a diagonal pair of corner boxes can overlap: only then can a point be in two boxes.
+    bool diagonalBoxesOverlap(vec2 size, vec4 radii) {
+      float span = max(size.x, size.y);
+      return radii.x + radii.z > span || radii.y + radii.w > span;
+    }
+
     float sdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents) {
       float sd = sdRectangle(localCoord, size);
       for (int k = 0; k < 2; k++) {
+        if (k == 1 && !diagonalBoxesOverlap(size, radii)) break;
         vec4 corner = containingCorner(localCoord, size, radii, exponents, k);
         if (corner.z <= 0.0) break;
         sd = max(sd, roundedCornerSd(corner.xy, corner.z, corner.w));
@@ -1515,6 +1522,7 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
     // diagonal corner boxes overlap, the one with the larger distance.
     vec4 boundingCorner(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents) {
       vec4 first = containingCorner(localCoord, size, radii, exponents, 0);
+      if (!diagonalBoxesOverlap(size, radii)) return first;
       vec4 second = containingCorner(localCoord, size, radii, exponents, 1);
       // Distances are compared only where two boxes overlap, so a single corner costs no pow.
       if (second.z > 0.0 && roundedCornerSd(second.xy, second.z, second.w) > roundedCornerSd(first.xy, first.z, first.w)) {
