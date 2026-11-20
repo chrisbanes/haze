@@ -240,7 +240,7 @@ internal class OverlapReference(val case: OverlapCase) {
     for (k in coarse) coarseMin = minOf(coarseMin, hypot(sx[k] - x, sy[k] - y))
     val bestPerPiece = DoubleArray(8) { Double.MAX_VALUE }
     val pointPerPiece = Array(8) { DoubleArray(4) }
-    val visited = sortedSetOf<Int>()
+    val visited = mutableSetOf<Int>()
     for (k in coarse) {
       if (hypot(sx[k] - x, sy[k] - y) > coarseMin + COARSE_MARGIN) continue
       val from = (k - COARSE_STRIDE).coerceAtLeast(0)
