@@ -1550,8 +1550,9 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
       // overlap, that reaches into the opposite corner's box, so the contribution fades out with
       // depth into that box, unless the corner owns the point: its first-order distance, from the
       // clamped delta that continues as its edge's distance past the box, is the larger. Both fade
-      // over the blend width. Adjacent extents fit along each edge, so at most one diagonal pair
-      // overlaps; shapes whose diagonal boxes are disjoint keep every contribution.
+      // over the blend width, as does the suppression itself with the overlap. Adjacent extents fit
+      // along each edge, so at most one diagonal pair overlaps; shapes whose diagonal boxes are
+      // disjoint keep every contribution.
       vec4 kept = vec4(1.0);
       float span = max(size.x, size.y);
       bool falling = radii.x + radii.z > span;
@@ -1569,10 +1570,13 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
           min(radii.x - localCoord.x, radii.x - localCoord.y),
           min(localCoord.x - (size.x - radii.y), radii.y - localCoord.y)
         ) / blendWidth);
+        // Suppression grows with the overlap, so a radius animating across it changes nothing abruptly.
+        float overlap = (falling ? radii.x + radii.z : radii.y + radii.w) - span;
+        float strength = smootherstep(clamp(overlap / blendWidth, 0.0, 1.0));
         if (falling) {
-          kept.xz = max(faded.xz, ownership);
+          kept.xz = mix(vec2(1.0), max(faded.xz, ownership), strength);
         } else {
-          kept.yw = max(faded.yw, ownership);
+          kept.yw = mix(vec2(1.0), max(faded.yw, ownership), strength);
         }
       }
       vec4 cornerWeights = kept * vec4(

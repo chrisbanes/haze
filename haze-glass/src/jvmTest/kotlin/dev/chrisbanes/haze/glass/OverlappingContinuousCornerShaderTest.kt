@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.ui.geometry.Size
 import assertk.assertThat
 import assertk.assertions.isEmpty
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotNull
 import assertk.assertions.isTrue
@@ -123,6 +124,26 @@ class OverlappingContinuousCornerShaderTest {
     val expected = render(case, NORMAL_GRAD_SD_OPTICAL, unsuppressed)
     val actual = render(case, NORMAL_GRAD_SD_OPTICAL)
     assertThat(actual.data.contentEquals(expected.data), "identical gradients").isTrue()
+  }
+
+  @Test
+  fun gradSdRoundedRect_staysContinuousAsDiagonalBoxesBeginToOverlap() {
+    // A 100x140 leaf whose smoothed extents (1.53 x radius) cross the longer side, 140 px, between
+    // these radii, as an animated radius would: no normal may jump across the threshold.
+    fun leaf(radius: Double) = OverlapCase("leaf100x140r$radius", 100.0, 140.0, radius, 0.0, radius, 0.0, 1.0, rtl = false)
+    val threshold = 140.0 / 2.0 / (1.0 + CONTINUOUS_CORNER_EXTENT_FACTOR)
+    val before = render(leaf(threshold - 0.02), NORMAL_GRAD_SD_OPTICAL)
+    val after = render(leaf(threshold + 0.02), NORMAL_GRAD_SD_OPTICAL)
+    var worst = 1.0
+    for (y in 0 until 140) {
+      for (x in 0 until 100) {
+        val (sd, ax, ay) = before.at(x, y)
+        if (sd > 0.0) continue
+        val (_, bx, by) = after.at(x, y)
+        worst = minOf(worst, ax * bx + ay * by)
+      }
+    }
+    assertThat(worst, "worst normal dot across the threshold").isGreaterThan(ALONE_DOT)
   }
 
   @Test
