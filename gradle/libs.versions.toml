@@ -24,7 +24,7 @@ metalava = "0.5.1"
 navigation-compose = "2.10.0"
 robolectric = "4.18.1"
 roborazzi = "1.79.0"
-spotless = "8.11.0"
+spotless = "8.12.0"
 leakcanary = "2.14"
 
 [plugins]
