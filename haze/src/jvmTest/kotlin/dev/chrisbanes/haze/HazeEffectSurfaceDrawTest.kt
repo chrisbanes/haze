@@ -1014,6 +1014,59 @@ class HazeEffectSurfaceDrawTest {
   }
 
   @Test
+  fun configuredBackdropSourceFallback_nativeDisabled_drawCountSettlesAfterStartup() = runComposeUiTest {
+    val previousFlag = HazeFeatureFlags.isPlatformBackdropEnabled
+    HazeFeatureFlags.isPlatformBackdropEnabled = false
+    try {
+      val owner = SurfaceOwnerNode()
+      val first = SurfaceFactory(owner)
+      val second = SurfaceFactory(owner)
+      val state = HazeState()
+      var rendererDraws = 0
+      var configured: HazeConfiguredEffectSurface<Unit>? = null
+      owner.resolveSurfaces = {
+        configured = configured ?: first.surface.createConfiguredSurface(
+          HazeEffectFactory {
+            object : HazeEffectRenderer<Unit> {
+              override fun HazeEffectDrawScope.draw(style: Unit) {
+                rendererDraws++
+                drawInput()
+              }
+            }
+          },
+          Unit, Rect(10f, 15f, 110f, 75f), listOf(first.surface, second.surface),
+        )
+        listOf(checkNotNull(configured).surface)
+      }
+      mainClock.autoAdvance = false
+      setContent {
+        Box(Modifier.size(160.dp).background(Color.White)) {
+          Box(Modifier.size(160.dp).hazeSource(state).background(Color.Red))
+          Box(Modifier.offset(20.dp, 10.dp).size(140.dp).then(OwnerElement(owner))) {
+            Box(Modifier.offset(10.dp, 15.dp).size(30.dp).hazeEffect(first, HazeInput.Backdrop(state), Unit))
+            Box(Modifier.offset(60.dp, 15.dp).size(30.dp).hazeEffect(second, HazeInput.Backdrop(state), Unit))
+          }
+        }
+      }
+      repeat(10) { mainClock.advanceTimeByFrame() }
+      assertThat(rendererDraws).isGreaterThan(0)
+      assertThat(state.areas.single().captureConsumerCount).isEqualTo(2)
+
+      val ownerDraws = owner.draws
+      val settledRendererDraws = rendererDraws
+      repeat(10) { mainClock.advanceTimeByFrame() }
+      assertThat(owner.draws).isEqualTo(ownerDraws)
+      assertThat(rendererDraws).isEqualTo(settledRendererDraws)
+      runOnIdle {
+        configured?.dispose()
+        owner.resolveSurfaces = null
+      }
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousFlag
+    }
+  }
+
+  @Test
   fun configuredSources_deduplicatesSharedSelectedCaptureAlpha() = runComposeUiTest {
     val owner = SurfaceOwnerNode()
     val first = SurfaceFactory(owner)

@@ -68,6 +68,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Merged Glass clusters that fall back from `HazeInput.Backdrop` to their source fallback no longer keep
+  redrawing while idle, and leaving Backdrop or detaching clears a temporary budget fallback
+  ([#1827](https://github.com/chrisbanes/haze/issues/1827)).
 - Progressive blur avoids long first-render pauses on Windows Direct3D, including when opening a
   new window ([#1260](https://github.com/chrisbanes/haze/issues/1260)).
 - Progressive blur preserves edge opacity by keeping accepted samples inside the captured content

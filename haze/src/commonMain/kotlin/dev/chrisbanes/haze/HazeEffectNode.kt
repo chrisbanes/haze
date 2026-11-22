@@ -98,6 +98,11 @@ internal class HazeEffectNode(
         surfaceInputsChanged = true
         if (previousInput is HazeInput.Backdrop && value !is HazeInput.Backdrop) {
           releaseBackdropRenderer()
+          if (surfaceBudgetFallback) {
+            // A budget rejection is not a native failure: restore the attach-time selection.
+            surfaceBudgetFallback = false
+            backdropBackendState.attach(backdropEnabledAtAttach)
+          }
         }
         // The content layer is only drawn for Content; free it now rather than at detach.
         if (isAttached && previousInput === HazeInput.Content) {
@@ -546,6 +551,7 @@ internal class HazeEffectNode(
     lastInputSnapshot = null
     releaseBackdropRenderer()
     backdropBackendState.reset()
+    surfaceBudgetFallback = false
     disposeTypedRenderer()
     typedEffectRenderer = null
   }
@@ -1817,9 +1823,12 @@ internal class HazeEffectNode(
   internal fun usePortableSurfaceInput(failed: Boolean = false, temporary: Boolean = true) {
     if (explicitInput is HazeInput.Backdrop) {
       // A group may include already failed/unavailable neighbours. Budget rejection cannot make
-      // their attachment-sticky fallback recoverable.
+      // their attachment-sticky fallback recoverable. A member already in sticky fallback is left
+      // untouched: re-activating it would refresh sources and invalidate the owner every pass.
       val recoverable = temporary && !failed && (surfaceBudgetFallback || !backdropBackendState.usesFallback)
-      if (failed || !surfaceBudgetFallback) activateBackdropFallback(failed = failed)
+      if (!backdropBackendState.usesFallback || (failed && surfaceBudgetFallback)) {
+        activateBackdropFallback(failed = failed)
+      }
       surfaceBudgetFallback = recoverable
     }
     preparedSurfaceBackdrop = null
