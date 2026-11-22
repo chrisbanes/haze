@@ -47,7 +47,10 @@ internal class BlurVisualEffect(
 
   private var isAttached: Boolean = false
   private var lifecycleScope: HazeEffectLifecycleScope? = null
-  private var needsDelegateSelection: Boolean = true
+  internal var needsDelegateSelection: Boolean = true
+
+  /** Canvas acceleration the Android delegate was last selected for; null until selected. */
+  internal var selectedForHardwareCanvas: Boolean? = null
   private var needsLayerBoundsInvalidation: Boolean = false
   internal val renderEffectCache =
     LruCache<RenderEffectCacheKey, PlatformRenderEffect>(maxSize = 50)
@@ -197,10 +200,9 @@ internal class BlurVisualEffect(
   }
 
   private fun DrawScope.selectDelegateForDraw(context: HazeEffectRuntimeDrawScope) {
-    if (needsDelegateSelection) {
-      delegate = updateDelegate(context, this)
-      needsDelegateSelection = false
-    }
+    // updateDelegate is a no-op unless selection is needed or the canvas capability changed.
+    delegate = updateDelegate(context, this)
+    needsDelegateSelection = false
   }
 
   internal val blurEnabled: Boolean get() = resolvedStyle.blurEnabled

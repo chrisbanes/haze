@@ -12,9 +12,13 @@ internal actual fun BlurVisualEffect.updateDelegate(
   context: HazeEffectRuntimeDrawScope,
   drawScope: DrawScope,
 ): BlurVisualEffect.Delegate {
+  val isHardwareAccelerated = drawScope.drawContext.canvas.nativeCanvas.isHardwareAccelerated
+  if (!needsDelegateSelection && selectedForHardwareCanvas == isHardwareAccelerated) return delegate
+  selectedForHardwareCanvas = isHardwareAccelerated
+
   val canUseRenderEffect = canUseRenderEffect(
     sdkInt = Build.VERSION.SDK_INT,
-    isHardwareAccelerated = drawScope.drawContext.canvas.nativeCanvas.isHardwareAccelerated,
+    isHardwareAccelerated = isHardwareAccelerated,
   )
 
   val blurEnabled = blurEnabled
