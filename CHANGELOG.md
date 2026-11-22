@@ -77,6 +77,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Effects keep following a source's size and input-sharing outsets after a static
   `CompositionLocal` change refreshes their configuration
   ([#1829](https://github.com/chrisbanes/haze/issues/1829)).
+- Masked and partially transparent Blur scrim tints apply their blend mode against the content
+  behind them, instead of against transparent pixels
+  ([#1828](https://github.com/chrisbanes/haze/issues/1828)).
 - Merged Glass clusters that fall back from `HazeInput.Backdrop` to their source fallback no longer keep
   redrawing while idle ([#1827](https://github.com/chrisbanes/haze/issues/1827)).
 - Progressive blur avoids long first-render pauses on Windows Direct3D, including when opening a
