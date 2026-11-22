@@ -11,9 +11,11 @@ import android.graphics.Shader
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.each
+import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
-import assertk.assertions.isTrue
+import assertk.assertions.prop
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -41,8 +43,9 @@ class SharedRuntimeShaderTest {
   fun createEffect_clearsBoundChildrenWhenALaterBindingFails() {
     val bound = mutableMapOf<String, Shader>()
     val real = child()
+    // Keyed on the name, as a real unknown-child failure is; "a" binds before "b" (single-key order).
     val shader = SharedRuntimeShader(SKSL) { _, name, child ->
-      if (child === real && name == "b") error("injected")
+      if (name == "b") error("injected")
       bound[name] = child
     }
     val uniforms = RecordedUniforms().apply {
@@ -52,18 +55,19 @@ class SharedRuntimeShaderTest {
 
     assertFailure { shader.createEffect(uniforms, arrayOf("a"), arrayOf(null)) }
 
-    // Whatever was bound before the failure is back to the empty child.
-    assertThat(bound.values.none { it === real }).isTrue()
-    assertThat(bound.isNotEmpty()).isTrue()
+    assertThat(bound["a"]).isNotNull().isNotSameInstanceAs(real)
   }
 
   @Test
   fun createEffect_nextEffectSeesOnlyItsOwnChildren() {
     val bound = mutableMapOf<String, Shader>()
-    var fail = true
+    var failOnB = true
+    var seenWhenBindingC: Map<String, Shader>? = null
     val real = child()
+    val other = child()
     val shader = SharedRuntimeShader(SKSL) { _, name, child ->
-      if (fail && name == "b" && child === real) error("injected")
+      if (failOnB && name == "b") error("injected")
+      if (child === other) seenWhenBindingC = bound.toMap()
       bound[name] = child
     }
     runCatching {
@@ -76,18 +80,19 @@ class SharedRuntimeShaderTest {
         arrayOf(null),
       )
     }
-    fail = false
+    failOnB = false
 
-    val other = child()
     shader.createEffect(
       RecordedUniforms().apply { setChildShader("c", other) },
       arrayOf("c"),
       arrayOf(null),
     )
 
-    assertThat(bound.filterValues { it === real }.isEmpty()).isTrue()
-    assertThat(bound.filterValues { it === other }.isEmpty()).isTrue() // released after success
-    assertThat(bound.containsKey("c")).isTrue()
+    // The second effect is built with no child left over from the failed one...
+    assertThat(seenWhenBindingC).isNotNull().prop("values") { it.values.toList() }
+      .each { it.isNotSameInstanceAs(real) }
+    // ...and its own child is released once it is built.
+    assertThat(bound["c"]).isNotNull().isNotSameInstanceAs(other)
   }
 
   private companion object {

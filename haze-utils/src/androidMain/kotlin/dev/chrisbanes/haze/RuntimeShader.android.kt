@@ -188,9 +188,8 @@ internal class SharedRuntimeShader(
     }
     try {
       for ((name, child) in uniforms.children) {
-        // Recorded first so a failure binding a later child still clears this one.
-        childNames += name
         bindChild(shader, name, child)
+        childNames += name
       }
       return createAndroidRuntimeShaderRenderEffect(shader, shaderNames, inputs)
     } finally {
