@@ -9,7 +9,7 @@ from pathlib import Path
 SCRIPT = Path(__file__).with_name("delete_old_version_docs.sh")
 
 
-# shortcut: skipped where zsh is absent (ubuntu-latest CI); the docs job runs on macOS.
+# shortcut: skipped where zsh is absent (ubuntu-latest CI), the docs job runs on macOS; install zsh in build.yml to run it in CI.
 @unittest.skipUnless(shutil.which("zsh"), "zsh is required")
 class DeleteOldVersionDocsTest(unittest.TestCase):
     def deleted(self, listing):
