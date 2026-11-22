@@ -214,6 +214,7 @@ private class HazeBlurStyleAccumulator : HazeBlurStyleScope {
 
   override fun blurRadius(radius: Dp) {
     require(radius.isSpecified) { "blurRadius must be specified" }
+    require(radius.value.isFinite()) { "blurRadius must be finite" }
     blurRadius = if (radius < 0.dp) 0.dp else radius
   }
 
