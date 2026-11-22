@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.toPixelMap
 import assertk.Assert
 import assertk.all
@@ -173,6 +174,9 @@ class ScrimBlurBlendDestinationTest {
     const val TOLERANCE = 2f / 255f
     val DST = Color(0xFFCC9966)
     val SRC = Color(0xFF3366FF)
+
+    // sRGB colours pack to 8 bits; compare against exact values in the same transfer function.
+    val UNQUANTIZED = ColorSpaces.ExtendedSrgb
     val HARD_STOP_MASK = Brush.verticalGradient(
       0f to Color.Black,
       0.5f to Color.Black,
@@ -189,6 +193,7 @@ class ScrimBlurBlendDestinationTest {
       red = dst.red + (src.red - dst.red) * k,
       green = dst.green + (src.green - dst.green) * k,
       blue = dst.blue + (src.blue - dst.blue) * k,
+      colorSpace = UNQUANTIZED,
     )
 
     /** `dst·(1−k) + k·src·dst` per channel, the Multiply blend at coverage `k`. */
@@ -196,6 +201,7 @@ class ScrimBlurBlendDestinationTest {
       red = DST.red * (1 - k) + k * SRC.red * DST.red,
       green = DST.green * (1 - k) + k * SRC.green * DST.green,
       blue = DST.blue * (1 - k) + k * SRC.blue * DST.blue,
+      colorSpace = UNQUANTIZED,
     )
   }
 }
