@@ -22,15 +22,15 @@ while IFS= read -r line; do
   fi
 done < <(mike list)
 
-# Sortable key: core version, then 0+padded prerelease or 1 for stable, so a stable
-# release outranks its own prereleases and numeric suffixes (alpha2 < alpha10) compare numerically.
+# Sortable key: core version, then 0+prerelease or 1 for stable, so a stable release outranks
+# its own prereleases; sort -V compares numeric suffixes numerically (alpha2 < alpha10).
 release_key() {
   local core="${1%%-*}" pre=""
   [[ "$1" == *-* ]] && pre="${1#*-}"
   if [[ -z "$pre" ]]; then
     printf "%s\t1\n" "$core"
   else
-    printf "%s\t0%s\n" "$core" "$(echo "$pre" | perl -pe 's/(\d+)/sprintf("%09d",$1)/ge')"
+    printf "%s\t0%s\n" "$core" "$pre"
   fi
 }
 
@@ -49,7 +49,7 @@ for v in "${bare_versions[@]}"; do
     prev="${major_latest[$major]}"
     greater=$(
       { printf "%s\t%s\n" "$(release_key "$prev")" "$prev"; printf "%s\t%s\n" "$(release_key "$v")" "$v"; } |
-        sort -t$'\t' -k1,1V -k2,2 | tail -n1 | cut -f3
+        sort -t$'\t' -k1,1V -k2,2V | tail -n1 | cut -f3
     )
     major_latest[$major]="$greater"
   fi

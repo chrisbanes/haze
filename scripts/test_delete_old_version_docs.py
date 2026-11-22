@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -8,6 +9,8 @@ from pathlib import Path
 SCRIPT = Path(__file__).with_name("delete_old_version_docs.sh")
 
 
+# shortcut: skipped where zsh is absent (ubuntu-latest CI); the docs job runs on macOS.
+@unittest.skipUnless(shutil.which("zsh"), "zsh is required")
 class DeleteOldVersionDocsTest(unittest.TestCase):
     def deleted(self, listing):
         """Runs the script against a mock `mike` and returns the versions it deleted."""
@@ -34,6 +37,10 @@ class DeleteOldVersionDocsTest(unittest.TestCase):
     def test_numericPrereleaseSuffix_comparesNumerically(self):
         self.assertEqual(["2.1.0-alpha2"], self.deleted("2.1.0-alpha2\n2.1.0-alpha10\n"))
         self.assertEqual(["2.1.0-alpha10"], self.deleted("2.1.0-alpha10\n2.1.0-beta01\n"))
+
+    def test_dottedPrerelease_groupsWithItsMinorLine(self):
+        self.assertEqual(["2.1.0-alpha.2"], self.deleted("2.1.0-alpha.2\n2.1.0-alpha.10\n"))
+        self.assertEqual(["2.1.0-alpha.1"], self.deleted("2.1.0-alpha.1\n2.1.0\n"))
 
     def test_newerPatch_winsOverOlderStableAndPrerelease(self):
         self.assertEqual(["2.1.0", "2.1.1-rc01"], self.deleted("2.1.0\n2.1.1-rc01\n2.1.1\n"))
