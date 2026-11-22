@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../media/logo.webp">
-      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.8.1">
+      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.8.2">
     
     
       
@@ -1653,15 +1653,16 @@ written first, so the receiver Style can override either:</p>
 <h3 id="built-in-styles">Built-in styles<a class="headerlink" href="#built-in-styles" title="Permanent link">¶</a></h3>
 <p><a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/-companion/regular.html"><code>GlassStyle.regular</code></a> is the default style. Its blur and depth grow with the surface's shortest
 side: compact controls keep some refracted detail and a curved edge, while larger surfaces fully
-diffuse the backdrop. In dark appearance it uses a darker tone, edge, and lighting response.
-Dark Regular now uses a lighter interior with less backdrop contrast.</p>
+diffuse the backdrop. In dark appearance it uses a darker tone, edge, and lighting response, with
+less backdrop contrast and a fainter rim highlight.</p>
 <p><a href="../../api/haze-glass/dev.chrisbanes.haze.glass/-glass-style/-companion/clear.html"><code>GlassStyle.clear</code></a> keeps more of the background visible. It uses the same shallow blur at every
 size, with refraction concentrated in a band along the edge that forms loops around the corners.
 Clear uses its light response in both system appearances. Fallback renderers simplify its optics;
 on Android 12 and 12L they keep an approximation of blur and tone.</p>
-<p>Both styles draw a 0.7 dp black outline at 40% opacity outside the surface and a 1 dp light band
-inside its top and bottom edges. The band is stronger on Clear. Custom styles inherit Regular's
-edges; disable them with later writes when needed:</p>
+<p>Both styles draw a 0.7 dp black outline outside the surface and a 1 dp light band inside its top
+and bottom edges. As on iOS 27, the outline is strongest on the left and right: Regular keeps a
+fainter outline on the top and bottom, and Clear draws none there. The band is stronger on Clear.
+Custom styles inherit Regular's edges; disable them with later writes when needed:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">withoutEdges</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">edgeOutline</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Transparent</span><span class="p">,</span><span class="w"> </span><span class="m">0.</span><span class="n">dp</span><span class="p">)</span>
 <span class="w">  </span><span class="n">rimHighlight</span><span class="p">(</span><span class="m">0f</span><span class="p">,</span><span class="w"> </span><span class="m">0.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="m">0f</span><span class="p">)</span>
@@ -1711,12 +1712,16 @@ beneath it, so check foreground contrast with your own content.</p>
 <li><strong>rimHighlight</strong>(intensity, width, sides): Thin light band just inside the top and bottom edges,
   drawn above content. <code>sides</code> scales the left and right edges: <code>0</code> lights only the top and bottom,
   <code>1</code> lights every edge equally. It ignores <code>lightPosition</code>, follows merged container shapes, and is
-  enabled by default at intensity <code>0.6f</code> for Regular and <code>1f</code> for Clear, with width <code>1.dp</code> and
-  sides <code>0f</code>. Limited renderers approximate it.</li>
-<li><strong>edgeOutline</strong>(color, width): Hard line of <code>width</code> drawn just outside the shape, composited with
-  the color's alpha over what lies behind the Glass. It follows merged container shapes, limited
-  renderers draw an equivalent stroke. Both built-ins use black at 40% opacity and width <code>0.7.dp</code>.
-  An outer <code>Modifier.clip()</code> hides it.</li>
+  enabled by default at intensity <code>0.7f</code> for Regular (<code>0.25f</code> in dark appearance) and <code>1f</code> for
+  Clear, with width <code>1.dp</code> and sides <code>0f</code>. Limited renderers approximate it.</li>
+<li><strong>edgeOutline</strong>(color, width, topAndBottomStrength): Hard line of <code>width</code> drawn just outside the
+  shape, composited with the color's alpha over what lies behind the Glass. It follows merged
+  container shapes, limited renderers draw an equivalent stroke. <code>topAndBottomStrength</code> scales the
+  top and bottom edges relative to the left and right, blending through corners: <code>1f</code> (the default)
+  draws the same line on every edge, <code>0f</code> draws only the left and right. Limited renderers draw a
+  uniform outline at the mean of the two strengths. Both built-ins use black, width <code>0.7.dp</code>, at
+  58% opacity (60% for dark Regular), with <code>topAndBottomStrength</code> <code>0.42f</code> for Regular (<code>0.1f</code> in
+  dark appearance) and <code>0f</code> for Clear. An outer <code>Modifier.clip()</code> hides it.</li>
 <li><strong>ambientResponse</strong>: Fresnel/edge lift <code>0..1</code> (default 0.15).</li>
 <li><strong>edgeSoftness</strong>: Soft fade at the edges (default 1.dp). Set to 0.dp for hard edges.</li>
 <li><strong>shape</strong> (<code>RoundedCornerShape</code> or <code>ContinuousRoundedCornerShape</code>): Boundary for refraction and

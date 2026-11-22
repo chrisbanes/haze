@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../media/logo.webp">
-      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.8.1">
+      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.8.2">
     
     
       
@@ -7727,15 +7727,21 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   the rim visible up to the outermost pixel inside a straight node-bound edge. Limited renderers
   draw an equivalent stroke (<a href="https://github.com/chrisbanes/haze/issues/1741">#1741</a>,
   <a href="https://github.com/chrisbanes/haze/issues/1798">#1798</a>).</li>
+<li><code>edgeOutline</code> accepts <code>topAndBottomStrength</code>, which weakens the outline on the top and bottom
+  edges and blends through corners; limited renderers draw a uniform outline at the mean strength
+  (<a href="https://github.com/chrisbanes/haze/issues/1755">#1755</a>).</li>
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">¶</a></h3>
 <ul>
 <li>Glass uses continuous 16 dp corners when no shape is authored. Regular and Clear draw a thin dark
-  outline and a top and bottom rim highlight, stronger on Clear; dark Regular has a lighter interior
-  with less backdrop contrast. Custom styles inherit Regular's edges, which can be disabled with
+  outline, strongest on the left and right and absent from Clear's top and bottom, and a top and
+  bottom rim highlight, stronger on Clear; dark Regular has less backdrop contrast and a fainter
+  rim. Clear brightens its left and right edges much less. Values were tuned side by side with
+  iOS 27 Liquid Glass. Custom styles inherit Regular's edges, which can be disabled with
   later <code>edgeOutline</code> and <code>rimHighlight</code> writes. Authored shapes and
   Clear's appearance-independent ordinary response are preserved
-  (<a href="https://github.com/chrisbanes/haze/issues/1743">#1743</a>).</li>
+  (<a href="https://github.com/chrisbanes/haze/issues/1736">#1736</a>,
+  <a href="https://github.com/chrisbanes/haze/issues/1743">#1743</a>).</li>
 <li>Glass with circular corners does less shader work across the flat interior of a surface, most
   noticeably in merged containers. The rendered result is unchanged
   (<a href="https://github.com/chrisbanes/haze/issues/1766">#1766</a>).</li>
