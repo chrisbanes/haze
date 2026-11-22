@@ -71,6 +71,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RenderScript Blur publishes each blurred frame from the main thread, so the renderer never reads
   its pixels while a later frame is being written
   ([#1830](https://github.com/chrisbanes/haze/issues/1830)).
+- Effects keep following a source's size and input-sharing outsets after a static
+  `CompositionLocal` change refreshes their configuration
+  ([#1829](https://github.com/chrisbanes/haze/issues/1829)).
 - Merged Glass clusters that fall back from `HazeInput.Backdrop` to their source fallback no longer keep
   redrawing while idle ([#1827](https://github.com/chrisbanes/haze/issues/1827)).
 - Progressive blur avoids long first-render pauses on Windows Direct3D, including when opening a
