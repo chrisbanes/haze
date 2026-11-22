@@ -199,8 +199,10 @@ internal class HazeEffectNode(
   private fun getOrCreateSourceSelectionSnapshotObserver(): SnapshotStateObserver {
     sourceSelectionSnapshotObserver?.let { return it }
     val observerGeneration = ++sourceSelectionObserverGeneration
+    // Snapshots can apply on any thread, even after detach, so bind to this attachment's scope (#1837).
+    val attachedScope = coroutineScope
     return SnapshotStateObserver { command ->
-      coroutineScope.launch {
+      attachedScope.launch {
         if (isAttached && sourceSelectionObserverGeneration == observerGeneration) {
           command()
         }
