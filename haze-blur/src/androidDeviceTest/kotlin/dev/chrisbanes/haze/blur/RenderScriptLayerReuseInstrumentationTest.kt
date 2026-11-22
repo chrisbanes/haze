@@ -228,6 +228,46 @@ class RenderScriptLayerReuseInstrumentationTest {
     assertImagesClose(h.capture(), trimmed, "fresh after trim during update")
   }
 
+  @Test
+  fun consecutiveSameSizeUpdates_reuseTheOutputBitmapAndPresentOnlyCompleteFrames() {
+    val h = ContentHarness(424, 384, 4)
+    h.color = Color.Red
+    h.show()
+    h.awaitOutput()
+    val ctx = checkNotNull(h.delegate.renderScriptContext)
+    val bitmap = ctx.outputBitmap
+    var previous = Color.Red
+
+    repeat(12) { i ->
+      val next = if (i % 2 == 0) Color.Blue else Color.Red
+      composeTestRule.runOnIdle { h.color = next }
+      composeTestRule.waitUntil(5_000) {
+        val pixels = h.capture()
+        assertCompleteFrame(pixels, previous, next, "update $i")
+        pixels[pixels.width / 2, pixels.height / 2].isDominantlyColored(next)
+      }
+      h.awaitOutput()
+      assertThat(h.delegate.canDrawRetainedOutput()).isTrue()
+      assertThat(h.delegate.renderScriptContext).isSameInstanceAs(ctx)
+      assertThat(ctx.outputBitmap).isSameInstanceAs(bitmap)
+      previous = next
+    }
+  }
+
+  /** Every interior pixel must be one whole frame: all [a] or all [b], never a mix of the two. */
+  private fun assertCompleteFrame(pixels: PixelMap, a: Color, b: Color, label: String) {
+    val inset = 8
+    fun distance(c: Color, e: Color) =
+      maxOf(kotlin.math.abs(c.red - e.red), kotlin.math.abs(c.green - e.green), kotlin.math.abs(c.blue - e.blue))
+    val reference = pixels[inset, inset]
+    val expected = if (distance(reference, a) <= distance(reference, b)) a else b
+    var worst = 0f
+    for (y in inset until pixels.height - inset) for (x in inset until pixels.width - inset) {
+      worst = maxOf(worst, distance(pixels[x, y], expected))
+    }
+    assertThat(worst, "$label frame completeness").isLessThanOrEqualTo(8f / 255f)
+  }
+
   private fun assertImagesClose(actual: PixelMap, expected: PixelMap, label: String) {
     assertThat(actual.width).isEqualTo(expected.width)
     assertThat(actual.height).isEqualTo(expected.height)

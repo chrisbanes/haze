@@ -384,6 +384,8 @@ internal class RenderScriptBlurVisualEffectDelegate(
         trace("Haze-RenderScriptBlurEffect-updateSurface-drawToContentLayer") {
           if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@trace
 
+          trace("Haze-RenderScriptBlurEffect-updateSurface-publishOutput") { rs.publishOutput() }
+
           // Finally draw the updated bitmap to our drawing graphics layer
           val output = rs.outputBitmap
 
