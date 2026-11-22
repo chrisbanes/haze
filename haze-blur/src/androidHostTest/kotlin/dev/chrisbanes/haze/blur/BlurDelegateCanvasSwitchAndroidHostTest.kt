@@ -40,6 +40,7 @@ class BlurDelegateCanvasSwitchAndroidHostTest {
     val scope = HostLifecycleScope(ApplicationProvider.getApplicationContext())
     val effect = BlurVisualEffect()
     val configuration = BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Quality)
+    effect.attach(scope)
     effect.update(scope, configuration, HazeSampling.FullResolution)
     val context = CanvasSwitchContext()
 
@@ -51,6 +52,7 @@ class BlurDelegateCanvasSwitchAndroidHostTest {
 
     context.prepare(effect, configuration, hardware = false)
     val softwareDelegate = effect.delegate
+    // Robolectric disables RenderScript, so the software fallback is the scrim here.
     assertThat(softwareDelegate).isInstanceOf<ScrimBlurVisualEffectDelegate>()
     context.prepare(effect, configuration, hardware = false)
     assertThat(effect.delegate).isSameInstanceAs(softwareDelegate)

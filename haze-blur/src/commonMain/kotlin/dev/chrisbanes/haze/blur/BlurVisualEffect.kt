@@ -48,6 +48,7 @@ internal class BlurVisualEffect(
   private var isAttached: Boolean = false
   private var lifecycleScope: HazeEffectLifecycleScope? = null
   internal var needsDelegateSelection: Boolean = true
+    private set
 
   /** Canvas acceleration the Android delegate was last selected for; null until selected. */
   internal var selectedForHardwareCanvas: Boolean? = null
@@ -200,7 +201,7 @@ internal class BlurVisualEffect(
   }
 
   private fun DrawScope.selectDelegateForDraw(context: HazeEffectRuntimeDrawScope) {
-    // updateDelegate is a no-op unless selection is needed or the canvas capability changed.
+    // Android's updateDelegate keeps the delegate unless selection is needed or the canvas changed.
     delegate = updateDelegate(context, this)
     needsDelegateSelection = false
   }
