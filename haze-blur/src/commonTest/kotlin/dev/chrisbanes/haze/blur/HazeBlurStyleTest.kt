@@ -252,6 +252,20 @@ class HazeBlurStyleTest {
   }
 
   @Test
+  fun blurRadius_rejectsNonFiniteValues() {
+    for (radius in listOf(Dp.Infinity, Float.NEGATIVE_INFINITY.dp)) {
+      assertFailure {
+        resolveHazeBlurStyle(
+          HazeBlurStyle,
+          HazeBlurStyle {
+            blurRadius(radius)
+          },
+        )
+      }.isInstanceOf<IllegalArgumentException>()
+    }
+  }
+
+  @Test
   fun everyStyleFunction_isCapturedInTheResolvedSnapshot() {
     val mask = Brush.verticalGradient(listOf(Color.Black, Color.Transparent))
     val progressive = HazeProgressive.verticalGradient()
