@@ -97,6 +97,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A `HazeSourceSelection.where` predicate whose state changes on a background thread while its
   effect is being removed no longer throws "This node does not have an owner"
   ([#1837](https://github.com/chrisbanes/haze/issues/1837)).
+- Android Blur switches between its RenderEffect and fallback paths when an attached effect's canvas
+  changes between hardware and software acceleration, without needing a style change
+  ([#1834](https://github.com/chrisbanes/haze/issues/1834)).
 
 ## 2.1.0 <small>2026-11-02</small> { id="2.1.0" }
 
