@@ -1238,11 +1238,13 @@ internal class HazeEffectNode(
       layerBoundsRefreshPending = false
       if (effectRoot == null) effectRoot = localEffectRoot()
       val rootInEffect = rootBoundsInEffect(effectRoot)
-      if (state != null && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
-        var left = Float.POSITIVE_INFINITY
-        var top = Float.POSITIVE_INFINITY
-        var right = Float.NEGATIVE_INFINITY
-        var bottom = Float.NEGATIVE_INFINITY
+      val canUseSources = state != null && size.isSpecified && position.isSpecified
+      var left = Float.POSITIVE_INFINITY
+      var top = Float.POSITIVE_INFINITY
+      var right = Float.NEGATIVE_INFINITY
+      var bottom = Float.NEGATIVE_INFINITY
+      // Keep reading every area's size here so placing a source re-runs geometry.
+      if (canUseSources) {
         for (area in areas) {
           val bounds = areaBoundsInEffect(area) ?: continue
           left = min(left, bounds.left)
@@ -1250,6 +1252,9 @@ internal class HazeEffectNode(
           right = max(right, bounds.right)
           bottom = max(bottom, bounds.bottom)
         }
+      }
+      // An inverted union means every selected source is unpositioned: treat it as no sources.
+      if (canUseSources && left <= right && top <= bottom) {
         val nodeRect = Rect(Offset.Zero, size)
         val expanded = if (shouldExpandLayer()) {
           calculateEffectLayerBounds(nodeRect, requireDensity())
