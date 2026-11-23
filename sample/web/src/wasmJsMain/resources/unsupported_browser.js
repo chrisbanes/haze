@@ -1,10 +1,3 @@
-const hide = (id) => {
-    const element = document.getElementById(id);
-    if (element != null) {
-        element.style.display = "none";
-    }
-}
-
 const unhandledError = (event, error) => {
     if (typeof WebAssembly !== "undefined" && error instanceof WebAssembly.CompileError) {
         const warning = document.getElementById("warning");
@@ -13,10 +6,20 @@ const unhandledError = (event, error) => {
         }
 
         // Hide Webpack Overlay
-        hide("webpack-dev-server-client-overlay");
+        const webpackOverlay = document.getElementById("webpack-dev-server-client-overlay");
+        if (webpackOverlay != null) {
+          webpackOverlay.style.display = "none";
+        }
 
-        hide("spinner");
-        hide("Sample");
+        const spinner = document.getElementById("spinner");
+        if (spinner != null) {
+            spinner.style.display = "none";
+        }
+
+        const sample = document.getElementById("Sample");
+        if (sample != null) {
+            sample.style.display = "none";
+        }
     }
 }
 addEventListener("error", (event) => unhandledError(event, event.error));
