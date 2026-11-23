@@ -7758,6 +7758,13 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Core <code>haze</code> no longer declares a dependency on <code>androidx.collection</code>, which nothing in it uses.
   Consumers still receive it through Compose
   (<a href="https://github.com/chrisbanes/haze/issues/1845">#1845</a>).</li>
+<li>Android 12 and 12L Blur with custom shader brushes no longer rebuilds its mask, tint and noise
+  shaders, or its layer paints, for each progressive band and colour-filter pass when it redraws
+  with an unchanged style (<a href="https://github.com/chrisbanes/haze/issues/1857">#1857</a>).</li>
+<li>Unmasked Blur scrim colour filters now receive the effect alpha as input instead of being faded
+  afterwards. A colour filter that replaces alpha, such as <code>ColorFilter.tint(color, BlendMode.Src)</code>,
+  therefore no longer fades with the effect's alpha. The default tint and other alpha-preserving
+  filters are unchanged (<a href="https://github.com/chrisbanes/haze/issues/1828">#1828</a>).</li>
 </ul>
 <h3 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">¶</a></h3>
 <ul>
