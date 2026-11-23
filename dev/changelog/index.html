@@ -7760,6 +7760,11 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
+<li>Blur and Glass effects keep finite layer bounds, and apply their retention policy, while every
+  selected source is still unpositioned (<a href="https://github.com/chrisbanes/haze/issues/1833">#1833</a>).</li>
+<li>RenderScript Blur releases its shared RenderScript context on memory trim until the next blurred
+  draw, recovers from native failures without crashing or presenting a failed frame, and skips
+  native work at zero blur radius (<a href="https://github.com/chrisbanes/haze/issues/1835">#1835</a>).</li>
 <li>RenderScript Blur publishes each blurred frame from the main thread, so the renderer never reads
   its pixels while a later frame is being written
   (<a href="https://github.com/chrisbanes/haze/issues/1830">#1830</a>).</li>
