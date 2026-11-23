@@ -156,19 +156,28 @@ class NoiseGrainScaleInstrumentationTest {
 
   private fun capture(tag: String): PixelMap = composeTestRule.onNodeWithTag(tag).captureToImage().toPixelMap()
 
-  /** RenderScript presents asynchronously, so wait until two consecutive captures agree. */
+  /**
+   * RenderScript presents asynchronously, so wait until two consecutive captures agree and show
+   * visible noise. A flat capture from before the first publish can repeat without being ready.
+   */
   private fun awaitStableCapture(): PixelMap {
     composeTestRule.waitForIdle()
     var previous = capture(BLUR)
+    var maxRange = noiseRange(previous)
     val deadline = SystemClock.uptimeMillis() + STABLE_TIMEOUT_MS
     while (SystemClock.uptimeMillis() < deadline) {
       SystemClock.sleep(FRAME_MS)
       composeTestRule.waitForIdle()
       val current = capture(BLUR)
-      if (current.buffer.contentEquals(previous.buffer)) return current
+      val range = noiseRange(current)
+      maxRange = maxOf(maxRange, range)
+      if (range > MIN_NOISE_RANGE && current.buffer.contentEquals(previous.buffer)) return current
       previous = current
     }
-    error("RenderScript capture did not stabilize within $STABLE_TIMEOUT_MS ms")
+    if (maxRange <= MIN_NOISE_RANGE) {
+      error("RenderScript capture never showed visible noise within $STABLE_TIMEOUT_MS ms (max range $maxRange <= $MIN_NOISE_RANGE)")
+    }
+    error("RenderScript capture did not stabilize on a capture with visible noise within $STABLE_TIMEOUT_MS ms")
   }
 
   private companion object {
@@ -187,11 +196,17 @@ class NoiseGrainScaleInstrumentationTest {
       FloatArray(width - 2 * MARGIN) { x -> this[MARGIN + x, y].luminance() }
     }
 
+    const val MIN_NOISE_RANGE = 0.05f
+
+    /** Interior luminance range, which is near zero when the effect drew no noise. */
+    fun noiseRange(pixels: PixelMap): Float {
+      val rows = pixels.interior()
+      return rows.maxOf { it.max() } - rows.minOf { it.min() }
+    }
+
     /** Fails when the effect drew no noise, which would make every comparison vacuous. */
     fun assertVisibleNoise(pixels: PixelMap) {
-      val rows = pixels.interior()
-      val range = rows.maxOf { it.max() } - rows.minOf { it.min() }
-      assertThat(range, "noise luminance range").isGreaterThan(0.05f)
+      assertThat(noiseRange(pixels), "noise luminance range").isGreaterThan(MIN_NOISE_RANGE)
     }
 
     /** About 1 for one-pixel noise; grows with the grain size. */
