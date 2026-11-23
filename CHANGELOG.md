@@ -68,6 +68,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- RenderScript Blur releases its shared RenderScript context on memory trim until the next blurred
+  draw, recovers from native failures without crashing or presenting a failed frame, and skips
+  native work at zero blur radius ([#1835](https://github.com/chrisbanes/haze/issues/1835)).
 - RenderScript Blur publishes each blurred frame from the main thread, so the renderer never reads
   its pixels while a later frame is being written
   ([#1830](https://github.com/chrisbanes/haze/issues/1830)).

@@ -21,12 +21,16 @@ internal object SharedRenderScript {
   // Test seam: host tests cannot observe a destroyed RenderScript, so they record the call.
   internal val defaultDestroy: (RenderScript) -> Unit = { it.destroy() }
   internal var destroy: (RenderScript) -> Unit = defaultDestroy
+
+  // Test seam: host tests inject a failure to create the context.
+  internal val defaultCreate: (Context) -> RenderScript = { RenderScript.create(it) }
+  internal var create: (Context) -> RenderScript = defaultCreate
   private var renderScript: RenderScript? = null
   private var references = 0
 
   /** Takes a reference, creating the context if no node holds one. Pair with [release]. */
   fun acquire(context: Context): RenderScript = synchronized(lock) {
-    val rs = renderScript ?: RenderScript.create(context.applicationContext).also { renderScript = it }
+    val rs = renderScript ?: create(context.applicationContext).also { renderScript = it }
     references++
     rs
   }
