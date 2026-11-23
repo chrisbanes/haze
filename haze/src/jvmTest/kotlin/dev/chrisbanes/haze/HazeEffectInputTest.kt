@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isFinite
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.LayerOutsets
@@ -138,7 +139,7 @@ class HazeEffectInputTest {
   fun contentInputSwitchedToSources_releasesAndRecreatesContentLayer() = runComposeUiTest {
     val state = HazeState()
     val input = mutableStateOf<HazeInput>(HazeInput.Content)
-    lateinit var node: HazeEffectNode
+    var node: HazeEffectNode? = null
 
     setContent {
       Box(
@@ -686,8 +687,8 @@ class HazeEffectInputTest {
 
         val renderer = factory.renderers.single()
         assertThat(node.layerSize.isSpecified).isTrue()
-        assertThat(node.layerOffset.isFinite()).isTrue()
-        assertThat(renderer.offsets.all { it.isFinite() }).isTrue()
+        assertThat(node.layerOffset.isFinite).isTrue()
+        assertThat(renderer.offsets.all { it.isFinite }).isTrue()
 
         val drawsBeforePlacing = renderer.offsets.size
         placed.value = true
@@ -699,7 +700,7 @@ class HazeEffectInputTest {
         assertThat(node.layerOffset).isEqualTo(Offset.Zero)
         assertThat(renderer.offsets.size).isGreaterThan(drawsBeforePlacing)
         assertThat(renderer.sizes.last()).isEqualTo(expected)
-        assertThat(renderer.offsets.all { it.isFinite() }).isTrue()
+        assertThat(renderer.offsets.all { it.isFinite }).isTrue()
       }
     }
   }
@@ -711,7 +712,7 @@ class HazeEffectInputTest {
     assertThat(node.layerSize).isEqualTo(before.first)
     assertThat(node.layerOffset).isEqualTo(before.second)
     assertThat(renderer.clearCalls).isEqualTo(before.third)
-    assertThat(renderer.offsets.all { it.isFinite() }).isTrue()
+    assertThat(renderer.offsets.all { it.isFinite }).isTrue()
   }
 
   @Test
@@ -720,8 +721,8 @@ class HazeEffectInputTest {
 
     assertThat(renderer.clearCalls).isGreaterThan(before.third)
     assertThat(node.layerSize.isSpecified).isTrue()
-    assertThat(node.layerOffset.isFinite()).isTrue()
-    assertThat(renderer.offsets.all { it.isFinite() }).isTrue()
+    assertThat(node.layerOffset.isFinite).isTrue()
+    assertThat(renderer.offsets.all { it.isFinite }).isTrue()
   }
 
   /** Swaps a placed source for a different unplaced one; returns pre-swap size, offset, clears. */
@@ -968,6 +969,8 @@ private class ClipToSourcesRenderer :
   val sizes = mutableListOf<Size>()
   var clearCalls = 0
 
+  override fun invalidateRetainedOutput() = Unit
+
   override fun HazeEffectDrawScope.draw(style: Unit) {
     val scope = this as HazeEffectRuntimeDrawScope
     offsets += scope.layerOffset
@@ -983,5 +986,3 @@ private class ClipToSourcesRenderer :
     clearCalls++
   }
 }
-
-private fun Offset.isFinite(): Boolean = x.isFinite() && y.isFinite()
