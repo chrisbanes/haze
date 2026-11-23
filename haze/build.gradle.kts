@@ -3,6 +3,7 @@
 
 
 import dev.chrisbanes.gradle.addDefaultHazeTargets
+import dev.chrisbanes.gradle.checkPublishedDependencies
 import java.time.Duration
 import java.util.Properties
 import java.util.zip.ZipFile
@@ -17,6 +18,8 @@ plugins {
   id("dev.chrisbanes.metalava")
   id("dev.drewhamilton.poko")
 }
+
+checkPublishedDependencies()
 
 kotlin {
   android {
@@ -45,7 +48,6 @@ kotlin {
         api(libs.compose.animation.core)
         api(libs.compose.ui)
         implementation(projects.hazeUtils)
-        implementation(libs.androidx.collection)
         implementation(libs.androidx.lifecycle.runtime.compose)
       }
     }
