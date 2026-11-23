@@ -15,6 +15,7 @@ import androidx.compose.runtime.ReusableContentHost
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.compositionLocalWithComputedDefaultOf
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -1309,6 +1310,39 @@ class HazeEffectSurfaceDrawTest {
     assertThat(owner.placementChanges).isGreaterThan(placements)
     assertThat(owner.fullChanges).isEqualTo(fullChanges)
     assertThat(factory.surface.boundsInOwner()?.left).isEqualTo(20f)
+  }
+
+  @Test
+  fun relocatedLayeredContentUpdate_redrawsOwnerWithoutSurfaceChange() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val factory = SurfaceFactory(owner)
+    val tick = mutableIntStateOf(0)
+    setContent {
+      Box(Modifier.size(100.dp).background(Color.White).then(OwnerElement(owner))) {
+        // The layer keeps the member's content invalidation from reaching the owner's draw.
+        Box(Modifier.size(60.dp).graphicsLayer()) {
+          Box(
+            Modifier.size(40.dp)
+              .hazeEffect(factory, HazeInput.Content, Unit)
+              .drawBehind {
+                tick.intValue
+                drawRect(Color.Red)
+              },
+          )
+        }
+      }
+    }
+    waitForIdle()
+    mainClock.autoAdvance = false
+    repeat(3) { mainClock.advanceTimeByFrame() }
+    val draws = owner.draws
+    val fullChanges = owner.fullChanges
+
+    tick.intValue++
+    repeat(4) { mainClock.advanceTimeByFrame() }
+
+    assertThat(owner.draws, "the owner redraws the member's new content").isEqualTo(draws + 1)
+    assertThat(owner.fullChanges, "content alone does not change the surface").isEqualTo(fullChanges)
   }
 
   @Test

@@ -119,7 +119,6 @@ internal class HazeSourceNode(
   internal var inputSharing: HazeInputSharing by mutableStateOf(inputSharing)
   internal var inputSharingOutsets: LayerOutsets by mutableStateOf(inputSharingOutsets)
 
-  private var lastCoordinates: LayoutCoordinates? = null
   private var hasCaptureDemand = false
 
   private var preDrawJob: Job? = null
@@ -288,7 +287,6 @@ internal class HazeSourceNode(
       return
     }
 
-    lastCoordinates = coordinates
     area.updateLayoutCoordinates(coordinates)
     // Write both local and screen positions so effects can use either coordinate space
     area.coordinates.localPosition = coordinates.positionInRoot()

@@ -529,6 +529,7 @@ internal class HazeEffectNode(
     trimMemoryCallbackDisposable?.dispose()
     trimMemoryCallbackDisposable = null
     trimMemoryCallbackLifecycle = null
+    lifecycle = null
     resetPendingInvalidations()
     _areas = emptyList()
     areaTransforms.clear()
@@ -1403,7 +1404,7 @@ internal class HazeEffectNode(
   }
 
   internal fun onForegroundContentDraw() {
-    surface.changed()
+    invalidateSurfaceOwnerDraw()
     if (!needsContentInvalidation) {
       needsContentInvalidation = true
       if (!isDrawing) {
@@ -1482,8 +1483,9 @@ internal class HazeEffectNode(
 
   /**
    * A relocated member's output is drawn by its owner, whose recorded draw this node's own
-   * invalidation does not reach when a layer separates them. Moving sources and pre-draw refreshes
-   * need a redraw only, so this does not notify the owner, which would recluster its members.
+   * invalidation does not reach when a layer separates them. Moving sources, pre-draw refreshes and
+   * redraws of the member's own content need a redraw only, so this does not notify the owner,
+   * which would recluster its members.
    */
   private fun invalidateSurfaceOwnerDraw() {
     val owner = surface.owner as? DrawModifierNode ?: return

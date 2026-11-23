@@ -6,6 +6,7 @@ package dev.chrisbanes.haze
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReusableContentHost
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -120,6 +121,41 @@ class HazeEffectTrimMemoryLifecycleTest : ContextTest() {
       }
       assertThat(factory.renderer.trimLevels).containsExactly(TrimMemoryLevel.MODERATE)
     }
+
+  @Test
+  fun reactivation_rebindsTrimMemoryToCurrentLifecycle() = runComposeUiTest {
+    if (!supportsLifecycleTrimMemoryCallbacks) return@runComposeUiTest
+
+    val lifecycleOwner = RecordingLifecycleOwner()
+    val factory = RecordingTrimMemoryFactory()
+    val active = mutableStateOf(true)
+
+    setContent {
+      CompositionLocalProvider(LocalLifecycleOwner provides lifecycleOwner) {
+        ReusableContentHost(active.value) {
+          Spacer(Modifier.size(10.dp).hazeEffect(factory, HazeInput.Content, Unit))
+        }
+      }
+    }
+    waitForIdle()
+    runOnIdle {
+      lifecycleOwner.handleEvent(Lifecycle.Event.ON_CREATE)
+      lifecycleOwner.handleEvent(Lifecycle.Event.ON_START)
+    }
+
+    // A deactivated node observes nothing.
+    runOnIdle { active.value = false }
+    waitForIdle()
+    runOnIdle { lifecycleOwner.handleEvent(Lifecycle.Event.ON_STOP) }
+    assertThat(factory.renderer.trimLevels).isEmpty()
+
+    // Reactivation binds to the current lifecycle again, after detach released it.
+    runOnIdle { lifecycleOwner.handleEvent(Lifecycle.Event.ON_START) }
+    runOnIdle { active.value = true }
+    waitForIdle()
+    runOnIdle { lifecycleOwner.handleEvent(Lifecycle.Event.ON_STOP) }
+    assertThat(factory.renderer.trimLevels).containsExactly(TrimMemoryLevel.MODERATE)
+  }
 
   @Test
   fun lifecycleStop_reachesTypedEffectsForSourcesAndContent() = runComposeUiTest {
