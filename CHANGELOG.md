@@ -63,6 +63,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (API 31), queue at most one refresh coroutine for a burst of snapshot applies instead of one per
   apply. Effects refresh in the same frame as before
   ([#1843](https://github.com/chrisbanes/haze/issues/1843)).
+- Core `haze` no longer declares a dependency on `androidx.collection`, which nothing in it uses.
+  Consumers still receive it through Compose
+  ([#1845](https://github.com/chrisbanes/haze/issues/1845)).
 
 ### Deprecated
 

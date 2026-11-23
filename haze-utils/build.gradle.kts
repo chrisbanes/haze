@@ -3,6 +3,7 @@
 
 
 import dev.chrisbanes.gradle.addDefaultHazeTargets
+import dev.chrisbanes.gradle.checkPublishedDependencies
 
 plugins {
   id("dev.chrisbanes.android.library")
@@ -12,6 +13,8 @@ plugins {
   id("com.vanniktech.maven.publish")
   id("dev.chrisbanes.metalava")
 }
+
+checkPublishedDependencies()
 
 kotlin {
   android {
