@@ -68,8 +68,8 @@ frame time, or any other performance improvement.
 
 The six AARs are the Haze library modules that the profiled sample consumer packages.
 `haze-blur-material3` is published but is not a sample dependency, so collection cannot produce
-its rules, and the verifier rejects any Blur Material 3 rule as a missing consumer or AAR
-definition. If the sample later depends on it, add the module to `EXPECTED_AARS`, to the bundle
+its rules, and the verifier rejects any Blur Material 3 rule because the consumer defines no such
+class. If the sample later depends on it, add the module to `EXPECTED_AARS`, to the bundle
 command, and to the verify command, and regenerate the profile, all in one change.
 
 After generating, package the six existing Haze Kotlin Multiplatform `androidMain` AARs and the
