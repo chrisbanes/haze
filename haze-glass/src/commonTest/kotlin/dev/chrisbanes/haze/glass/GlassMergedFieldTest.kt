@@ -25,6 +25,7 @@ import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
+import kotlin.math.nextUp
 import kotlin.test.Test
 
 internal fun mergedMember(
@@ -65,6 +66,22 @@ internal fun mergedField(
 ) = GlassMergedField(members.toList(), mergeDistancePx, opticalSize)
 
 class GlassMergedFieldTest {
+
+  @Test
+  fun withPositiveSize_keepsValidRectAndLiftsCollapsedAxis() {
+    val valid = Rect(1f, 2f, 3f, 4f)
+    assertThat(valid.withPositiveSize()).isSameInstanceAs(valid)
+    assertThat(Rect(110f, 5f, 110f, 9f).withPositiveSize()).isEqualTo(Rect(110f, 5f, 110f.nextUp(), 9f))
+    assertThat(Rect(110f, 5f, 110f, 5f).withPositiveSize()).isEqualTo(Rect(110f, 5f, 110f.nextUp(), 5f.nextUp()))
+  }
+
+  @Test
+  fun scaled_keepsOneUlpMemberPositive() {
+    val member = mergedMember(700f, 10f, 80f, 10f).copy(rect = Rect(739.63f, 10f, 739.63f.nextUp(), 20f))
+    val scaled = mergedField(member, mergeDistancePx = 0f).scaled(0.4f).members.single()
+    assertThat(scaled.rect.width).isGreaterThan(0f)
+    assertThat(scaled.rect.left).isEqualTo(739.63f * 0.4f)
+  }
 
   @Test
   fun withExactCorners_overlappingCircularMemberMakesFieldCircular() {
