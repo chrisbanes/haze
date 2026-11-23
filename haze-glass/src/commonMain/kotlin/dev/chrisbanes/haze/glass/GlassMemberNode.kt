@@ -173,10 +173,7 @@ internal class GlassMemberNode(
   fun hasTranslationOnlyTransform(owner: LayoutCoordinates): Boolean {
     val matrix = Matrix()
     owner.transformFrom(requireLayoutCoordinates(), matrix)
-    matrix[3, 0] = 0f
-    matrix[3, 1] = 0f
-    matrix[3, 2] = 0f
-    return matrix.values.contentEquals(Matrix().values)
+    return matrix.isTranslationOnlyTransform()
   }
 
   fun update(binding: GlassMemberBinding) {
@@ -207,4 +204,14 @@ internal class GlassMemberNode(
     binding.runtime?.transitionAlpha = 1f
     binding.node = null
   }
+}
+
+/** Whether this matrix only translates. Entries compare numerically, so a signed zero matches identity's zero. */
+internal fun Matrix.isTranslationOnlyTransform(): Boolean {
+  for (i in values.indices) {
+    if (i == Matrix.TranslateX || i == Matrix.TranslateY || i == Matrix.TranslateZ) continue
+    // The diagonal (indices 0, 5, 10 and 15) is 1 in an identity matrix, every other entry 0.
+    if (values[i] != if (i % 5 == 0) 1f else 0f) return false
+  }
+  return true
 }
