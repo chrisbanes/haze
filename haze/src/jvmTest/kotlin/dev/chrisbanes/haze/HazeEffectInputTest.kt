@@ -11,11 +11,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isFinite
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.LayerOutsets
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onNodeWithTag
@@ -658,6 +664,101 @@ class HazeEffectInputTest {
   }
 
   @Test
+  fun unpositionedSelectedSources_keepFiniteLayerGeometry() {
+    for (retention in listOf(HazeSourceRetention.KeepLastFrame, HazeSourceRetention.ClearWhenUnavailable)) {
+      runComposeUiTest {
+        val state = HazeState()
+        val factory = RecordingRendererFactory(::ClipToSourcesRenderer)
+        val placed = mutableStateOf(false)
+        lateinit var node: HazeEffectNode
+
+        setContent {
+          Box(Modifier.size(100.dp)) {
+            UnplacedSource(state, "source", placed = { placed.value })
+            Box(
+              Modifier
+                .fillMaxSize()
+                .hazeEffect(factory, HazeInput.Sources(state, retention = retention), Unit)
+                .captureEffectNode { node = it },
+            )
+          }
+        }
+        waitForIdle()
+
+        val renderer = factory.renderers.single()
+        assertThat(node.layerSize.isSpecified).isTrue()
+        assertThat(node.layerOffset.isFinite).isTrue()
+        assertThat(renderer.offsets.all { it.isFinite }).isTrue()
+
+        val drawsBeforePlacing = renderer.offsets.size
+        placed.value = true
+        waitForIdle()
+
+        val px = density.density * 60f
+        val expected = Size(px, px)
+        assertThat(node.layerSize).isEqualTo(expected)
+        assertThat(node.layerOffset).isEqualTo(Offset.Zero)
+        assertThat(renderer.offsets.size).isGreaterThan(drawsBeforePlacing)
+        assertThat(renderer.sizes.last()).isEqualTo(expected)
+        assertThat(renderer.offsets.all { it.isFinite }).isTrue()
+      }
+    }
+  }
+
+  @Test
+  fun sourcesKeepLastFrame_unpositionedSourceGapKeepsRetainedLayerBounds() = runComposeUiTest {
+    val (renderer, node, before) = runSourceSwapGap(HazeSourceRetention.KeepLastFrame)
+
+    assertThat(node.layerSize).isEqualTo(before.first)
+    assertThat(node.layerOffset).isEqualTo(before.second)
+    assertThat(renderer.clearCalls).isEqualTo(before.third)
+    assertThat(renderer.offsets.all { it.isFinite }).isTrue()
+  }
+
+  @Test
+  fun sourcesClearWhenUnavailable_unpositionedSourceGapClearsWithFiniteGeometry() = runComposeUiTest {
+    val (renderer, node, before) = runSourceSwapGap(HazeSourceRetention.ClearWhenUnavailable)
+
+    assertThat(renderer.clearCalls).isGreaterThan(before.third)
+    assertThat(node.layerSize.isSpecified).isTrue()
+    assertThat(node.layerOffset.isFinite).isTrue()
+    assertThat(renderer.offsets.all { it.isFinite }).isTrue()
+  }
+
+  /** Swaps a placed source for a different unplaced one; returns pre-swap size, offset, clears. */
+  private fun ComposeUiTest.runSourceSwapGap(
+    retention: HazeSourceRetention,
+  ): Triple<ClipToSourcesRenderer, HazeEffectNode, Triple<Size, Offset, Int>> {
+    val state = HazeState()
+    val factory = RecordingRendererFactory(::ClipToSourcesRenderer)
+    val phase = mutableStateOf(0)
+    lateinit var node: HazeEffectNode
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        if (phase.value == 0) {
+          UnplacedSource(state, "placed", placed = { true })
+        } else {
+          UnplacedSource(state, "unplaced", placed = { false })
+        }
+        Box(
+          Modifier
+            .fillMaxSize()
+            .hazeEffect(factory, HazeInput.Sources(state, retention = retention), Unit)
+            .captureEffectNode { node = it },
+        )
+      }
+    }
+    waitForIdle()
+
+    val renderer = factory.renderers.single()
+    val before = Triple(node.layerSize, node.layerOffset, renderer.clearCalls)
+    phase.value = 1
+    waitForIdle()
+    return Triple(renderer, node, before)
+  }
+
+  @Test
   fun sourcesKeepLastFrame_factoryReplacementDoesNotReusePreviousRendererOutput() =
     runComposeUiTest {
       val state = HazeState()
@@ -841,5 +942,47 @@ private class BoundsRenderer : HazeEffectRenderer<Unit> {
   override fun HazeEffectLayoutScope.calculateLayerBounds(style: Unit): Rect {
     calculateCalls++
     return modifierBounds.inflate(10f)
+  }
+}
+
+/** A source that is composed and attached but only placed when [placed] returns true. */
+@Composable
+private fun UnplacedSource(state: HazeState, key: String, placed: () -> Boolean) {
+  Layout(
+    content = {
+      Box(Modifier.size(60.dp).hazeSource(state, key = key).background(Color.Red))
+    },
+  ) { measurables, constraints ->
+    val children = measurables.map { it.measure(constraints.copy(minWidth = 0, minHeight = 0)) }
+    layout(constraints.maxWidth, constraints.maxHeight) {
+      if (placed()) children.forEach { it.place(0, 0) }
+    }
+  }
+}
+
+@OptIn(InternalHazeApi::class)
+private class ClipToSourcesRenderer :
+  HazeEffectRenderer<Unit>,
+  HazeEffectRendererDrawHooks<Unit>,
+  HazeEffectRendererRetainedOutput {
+  val offsets = mutableListOf<Offset>()
+  val sizes = mutableListOf<Size>()
+  var clearCalls = 0
+
+  override fun invalidateRetainedOutput() = Unit
+
+  override fun HazeEffectDrawScope.draw(style: Unit) {
+    val scope = this as HazeEffectRuntimeDrawScope
+    offsets += scope.layerOffset
+    sizes += scope.layerSize
+    drawInput()
+  }
+
+  override fun shouldPreferClipToInputBounds(): Boolean = true
+
+  override fun canDrawRetainedOutput(): Boolean = true
+
+  override fun clearRetainedOutput() {
+    clearCalls++
   }
 }

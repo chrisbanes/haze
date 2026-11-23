@@ -66,6 +66,12 @@ The checked-in output is
 coverage verify which classes and methods are exercised and shipped; they do not measure startup,
 frame time, or any other performance improvement.
 
+The six AARs are the Haze library modules that the profiled sample consumer packages.
+`haze-blur-material3` is published but is not a sample dependency, so collection cannot produce
+its rules, and the verifier rejects any Blur Material 3 rule because the consumer defines no such
+class. If the sample later depends on it, add the module to `EXPECTED_AARS`, to the bundle
+command, and to the verify command, and regenerate the profile, all in one change.
+
 After generating, package the six existing Haze Kotlin Multiplatform `androidMain` AARs and the
 non-minified sample consumer. The package task is `bundleAndroidMainAar`; skip profile generation
 when validating packaging because the checked-in profile is the input to this check:
@@ -99,6 +105,9 @@ python3 internal/benchmark/verify_baseline_profile.py \
   --aar haze-glass-material3/build/outputs/aar/haze-glass-material3.aar \
   --apk sample/android/build/outputs/apk/nonMinifiedRelease/android-nonMinifiedRelease.apk
 ```
+
+The verifier's classification and inventory checks have local unit tests; run
+`python3 -m unittest discover -s internal/benchmark -p 'test_verify_baseline_profile.py'`.
 
 The retained profile combines two API 30 collections, four API 34 collections, and five collections
 from a physical Pixel 8a running Android 37.2. The verifier reports 3,190 rules

@@ -3,6 +3,7 @@
 
 
 import dev.chrisbanes.gradle.addDefaultHazeTargets
+import dev.chrisbanes.gradle.checkPublishedDependencies
 import java.time.Duration
 import org.gradle.api.tasks.testing.AbstractTestTask
 
@@ -16,6 +17,8 @@ plugins {
   id("dev.chrisbanes.metalava")
   id("dev.drewhamilton.poko")
 }
+
+checkPublishedDependencies()
 
 kotlin {
   android {

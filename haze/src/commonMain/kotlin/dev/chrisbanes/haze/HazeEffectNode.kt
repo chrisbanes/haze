@@ -51,7 +51,6 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.roundToInt
 import kotlinx.coroutines.DisposableHandle
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
@@ -98,6 +97,11 @@ internal class HazeEffectNode(
         surfaceInputsChanged = true
         if (previousInput is HazeInput.Backdrop && value !is HazeInput.Backdrop) {
           releaseBackdropRenderer()
+          if (surfaceBudgetFallback) {
+            // A budget rejection is not a native failure: restore the attach-time selection.
+            surfaceBudgetFallback = false
+            backdropBackendState.attach(backdropEnabledAtAttach)
+          }
         }
         // The content layer is only drawn for Content; free it now rather than at detach.
         if (isAttached && previousInput === HazeInput.Content) {
@@ -199,8 +203,10 @@ internal class HazeEffectNode(
   private fun getOrCreateSourceSelectionSnapshotObserver(): SnapshotStateObserver {
     sourceSelectionSnapshotObserver?.let { return it }
     val observerGeneration = ++sourceSelectionObserverGeneration
+    // Snapshots can apply on any thread, even after detach, so bind to this attachment's scope (#1837).
+    val attachedScope = coroutineScope
     return SnapshotStateObserver { command ->
-      coroutineScope.launch {
+      attachedScope.launch {
         if (isAttached && sourceSelectionObserverGeneration == observerGeneration) {
           command()
         }
@@ -522,6 +528,7 @@ internal class HazeEffectNode(
     trimMemoryCallbackDisposable?.dispose()
     trimMemoryCallbackDisposable = null
     trimMemoryCallbackLifecycle = null
+    lifecycle = null
     resetPendingInvalidations()
     _areas = emptyList()
     areaTransforms.clear()
@@ -546,6 +553,7 @@ internal class HazeEffectNode(
     lastInputSnapshot = null
     releaseBackdropRenderer()
     backdropBackendState.reset()
+    surfaceBudgetFallback = false
     disposeTypedRenderer()
     typedEffectRenderer = null
   }
@@ -609,6 +617,8 @@ internal class HazeEffectNode(
   /** Runs [updateGeometry] in its own read scope, outside any enclosing observation. */
   private fun observeGeometry(): Boolean {
     var completed = false
+    // Each pass replaces the observer's read scope, so it must re-read all source geometry.
+    dirtyTracker += DirtyFields.AreaPositionReads
     Snapshot.withoutReadObservation {
       geometryObserver.observe { completed = updateGeometry() }
     }
@@ -1228,11 +1238,13 @@ internal class HazeEffectNode(
       layerBoundsRefreshPending = false
       if (effectRoot == null) effectRoot = localEffectRoot()
       val rootInEffect = rootBoundsInEffect(effectRoot)
-      if (state != null && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
-        var left = Float.POSITIVE_INFINITY
-        var top = Float.POSITIVE_INFINITY
-        var right = Float.NEGATIVE_INFINITY
-        var bottom = Float.NEGATIVE_INFINITY
+      val canUseSources = state != null && size.isSpecified && position.isSpecified
+      var left = Float.POSITIVE_INFINITY
+      var top = Float.POSITIVE_INFINITY
+      var right = Float.NEGATIVE_INFINITY
+      var bottom = Float.NEGATIVE_INFINITY
+      // Keep reading every area's size here so placing a source re-runs geometry.
+      if (canUseSources) {
         for (area in areas) {
           val bounds = areaBoundsInEffect(area) ?: continue
           left = min(left, bounds.left)
@@ -1240,6 +1252,9 @@ internal class HazeEffectNode(
           right = max(right, bounds.right)
           bottom = max(bottom, bounds.bottom)
         }
+      }
+      // An inverted union means every selected source is unpositioned: treat it as no sources.
+      if (canUseSources && left <= right && top <= bottom) {
         val nodeRect = Rect(Offset.Zero, size)
         val expanded = if (shouldExpandLayer()) {
           calculateEffectLayerBounds(nodeRect, requireDensity())
@@ -1388,7 +1403,7 @@ internal class HazeEffectNode(
   }
 
   internal fun onForegroundContentDraw() {
-    surface.changed()
+    invalidateSurfaceOwnerDraw()
     if (!needsContentInvalidation) {
       needsContentInvalidation = true
       if (!isDrawing) {
@@ -1467,8 +1482,9 @@ internal class HazeEffectNode(
 
   /**
    * A relocated member's output is drawn by its owner, whose recorded draw this node's own
-   * invalidation does not reach when a layer separates them. Moving sources and pre-draw refreshes
-   * need a redraw only, so this does not notify the owner, which would recluster its members.
+   * invalidation does not reach when a layer separates them. Moving sources, pre-draw refreshes and
+   * redraws of the member's own content need a redraw only, so this does not notify the owner,
+   * which would recluster its members.
    */
   private fun invalidateSurfaceOwnerDraw() {
     val owner = surface.owner as? DrawModifierNode ?: return
@@ -1631,13 +1647,7 @@ internal class HazeEffectNode(
         )
   }
 
-  internal fun hasDrawableSourceLayers(): Boolean {
-    return areas.any { area ->
-      area.size.isSpecified &&
-        area.size.minDimension.roundToInt() >= 1 &&
-        area.contentLayer?.isReleased == false
-    }
-  }
+  internal fun hasDrawableSourceLayers(): Boolean = areas.any { it.drawableContentLayer != null }
 
   internal fun hasDrawableInput(): Boolean =
     (explicitInput is HazeInput.Backdrop && !backdropBackendState.usesFallback) ||
@@ -1690,8 +1700,9 @@ internal class HazeEffectNode(
   }
   internal fun surfaceNativeEligible(): Boolean = !backdropBackendState.usesFallback || surfaceBudgetFallback
 
-  internal fun surfaceInputEntries(owner: LayoutCoordinates?): List<HazeSurfaceInputEntry> {
-    val transform = surfaceTransform(owner) ?: return emptyList()
+  /** Null means no drawable geometry (unlike an empty resolved selection). */
+  internal fun surfaceInputEntries(owner: LayoutCoordinates?): List<HazeSurfaceInputEntry>? {
+    val transform = surfaceTransform(owner) ?: return null
     return areas.mapNotNull { area ->
       val layer = area.drawableContentLayer ?: return@mapNotNull null
       require(!area.isContentDrawing) { "A relocated effect cannot sample its drawing ancestor source" }
@@ -1817,9 +1828,12 @@ internal class HazeEffectNode(
   internal fun usePortableSurfaceInput(failed: Boolean = false, temporary: Boolean = true) {
     if (explicitInput is HazeInput.Backdrop) {
       // A group may include already failed/unavailable neighbours. Budget rejection cannot make
-      // their attachment-sticky fallback recoverable.
+      // their attachment-sticky fallback recoverable. A member already in sticky fallback is left
+      // untouched: re-activating it would refresh sources and invalidate the owner every pass.
       val recoverable = temporary && !failed && (surfaceBudgetFallback || !backdropBackendState.usesFallback)
-      if (failed || !surfaceBudgetFallback) activateBackdropFallback(failed = failed)
+      if (!backdropBackendState.usesFallback || (failed && surfaceBudgetFallback)) {
+        activateBackdropFallback(failed = failed)
+      }
       surfaceBudgetFallback = recoverable
     }
     preparedSurfaceBackdrop = null

@@ -42,7 +42,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   context: HazeEffectRuntimeDrawScope,
   inputScale: Float,
 ) {
-  if (Build.VERSION.SDK_INT >= 33) {
+  if (Build.VERSION.SDK_INT >= 33 && !runtimeShaderFallback) {
     trimBandSlots(0)
     with(drawScope) {
       effectSlot.apply(
@@ -121,55 +121,55 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
   if (compositeLayer) {
     drawContext.canvas.saveLayer(Rect(Offset.Zero, layerSize), Paint().apply { this.alpha = alpha })
   }
+  try {
+    var band = 0
+    drawProgressiveWithMultipleLayers(progressive, masks = bandMasks) { mask, intensity ->
+      val index = band++
+      val slot = bandSlot(index)
+      val layer = bandLayer(index).acquire(context.requireGraphicsContext())
+      layer.record(contentLayer.size) {
+        drawLayer(contentLayer)
+      }
 
-  var band = 0
-  drawProgressiveWithMultipleLayers(progressive, masks = bandMasks) { mask, intensity ->
-    val index = band++
-    val slot = bandSlot(index)
-    val layer = bandLayer(index).acquire(context.requireGraphicsContext())
-    layer.record(contentLayer.size) {
-      drawLayer(contentLayer)
+      HazeLogger.d(RenderEffectBlurVisualEffectDelegate.TAG) {
+        "drawLinearGradientProgressiveEffectUsingLayers. mask=$mask, intensity=$intensity"
+      }
+
+      slot.apply(
+        layer,
+        blurVisualEffect.getOrCreateRenderEffect(
+          context = context,
+          inputScale = inputScale,
+          captureScale = scaledContentScale(context.layerSize, inputScale),
+          captureSize = contentLayer.size.toSize(),
+          blurRadius = blurRadius * intensity,
+          noiseFactor = noiseFactor,
+          colorEffects = colorEffects.orEmpty(),
+          colorEffectsAlphaModulate = intensity,
+          mask = mask,
+          slot = slot,
+        ),
+      )
+      layer.alpha = 1f
+
+      // Since we included a border around the content, we need to translate so that
+      // we don't see it (but it still affects the RenderEffect)
+      drawLayer(layer)
     }
 
-    HazeLogger.d(RenderEffectBlurVisualEffectDelegate.TAG) {
-      "drawLinearGradientProgressiveEffectUsingLayers. mask=$mask, intensity=$intensity"
+    trimBandSlots(band)
+
+    if (userMask != null) {
+      val captureScale = scaledContentScale(context.layerSize, inputScale)
+      val offset = Offset(context.layerOffset.x * captureScale.scaleX, context.layerOffset.y * captureScale.scaleY)
+      val brush = if (userMask is ShaderBrush) {
+        ShaderBrush(userMask.createScaledShader(context.size, captureScale, offset))
+      } else {
+        userMask
+      }
+      drawRect(brush = brush, size = layerSize, blendMode = BlendMode.DstIn)
     }
-
-    slot.apply(
-      layer,
-      blurVisualEffect.getOrCreateRenderEffect(
-        context = context,
-        inputScale = inputScale,
-        captureScale = scaledContentScale(context.layerSize, inputScale),
-        captureSize = contentLayer.size.toSize(),
-        blurRadius = blurRadius * intensity,
-        noiseFactor = noiseFactor,
-        colorEffects = colorEffects.orEmpty(),
-        colorEffectsAlphaModulate = intensity,
-        mask = mask,
-        slot = slot,
-      ),
-    )
-    layer.alpha = 1f
-
-    // Since we included a border around the content, we need to translate so that
-    // we don't see it (but it still affects the RenderEffect)
-    drawLayer(layer)
-  }
-
-  trimBandSlots(band)
-
-  if (userMask != null) {
-    val captureScale = scaledContentScale(context.layerSize, inputScale)
-    val offset = Offset(context.layerOffset.x * captureScale.scaleX, context.layerOffset.y * captureScale.scaleY)
-    val brush = if (userMask is ShaderBrush) {
-      ShaderBrush(userMask.createScaledShader(context.size, captureScale, offset))
-    } else {
-      userMask
-    }
-    drawRect(brush = brush, size = layerSize, blendMode = BlendMode.DstIn)
-  }
-  if (compositeLayer) {
-    drawContext.canvas.restore()
+  } finally {
+    if (compositeLayer) drawContext.canvas.restore()
   }
 }

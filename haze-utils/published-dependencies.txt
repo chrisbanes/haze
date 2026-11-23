@@ -1,0 +1,9 @@
+androidApiElements-published org.jetbrains.compose.ui:ui
+androidApiElements-published org.jetbrains.kotlin:kotlin-stdlib
+androidRuntimeElements-published androidx.tracing:tracing-ktx
+androidRuntimeElements-published org.jetbrains.compose.ui:ui
+androidRuntimeElements-published org.jetbrains.kotlin:kotlin-stdlib
+jvmApiElements-published org.jetbrains.compose.ui:ui
+jvmApiElements-published org.jetbrains.kotlin:kotlin-stdlib
+jvmRuntimeElements-published org.jetbrains.compose.ui:ui
+jvmRuntimeElements-published org.jetbrains.kotlin:kotlin-stdlib
