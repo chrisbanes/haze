@@ -15,6 +15,7 @@ import android.view.Surface
 import androidx.compose.ui.unit.IntSize
 import androidx.core.graphics.createBitmap
 import dev.chrisbanes.haze.HazeLogger
+import java.nio.ByteBuffer
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlinx.coroutines.channels.Channel
@@ -31,9 +32,20 @@ internal class RenderScriptContext(
   val inputSurface: Surface
     get() = inputAlloc.surface
 
-  private var outputAlloc: Allocation
-  var outputBitmap: Bitmap
-    private set
+  private val outputAlloc: Allocation
+
+  /**
+   * The published blur output. Only [publishOutput], on the main thread, writes its pixels.
+   *
+   * HWUI keeps a live reference to a recorded mutable bitmap's pixels and reads them while the UI
+   * thread is blocked on the RenderThread: at each frame sync, or for the whole draw when pinning
+   * fails ([SkiaDisplayList::prepareListAndChildren](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-11.0.0_r1/libs/hwui/pipeline/skia/SkiaDisplayList.cpp#L88-L98)).
+   * A write from any other thread can therefore race a read of a previously recorded frame.
+   */
+  val outputBitmap: Bitmap
+
+  // Written by applyBlur on a background thread, read by publishOutput on the main thread.
+  private val staging: ByteArray
 
   private val channel = Channel<Unit>(Channel.CONFLATED)
 
@@ -60,7 +72,9 @@ internal class RenderScriptContext(
     }
 
     outputBitmap = createBitmap(width, height)
-    outputAlloc = Allocation.createFromBitmap(rs, outputBitmap)
+    // Not backed by outputBitmap, so the blur kernel never writes published pixels.
+    outputAlloc = Allocation.createTyped(rs, type, Allocation.USAGE_SCRIPT)
+    staging = ByteArray(width * height * 4)
 
     blurScript = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs))
     blurScript.setInput(inputAlloc)
@@ -77,8 +91,20 @@ internal class RenderScriptContext(
       blurScript.forEach(outputAlloc)
 
       if (!isDestroyed) {
-        outputAlloc.copyTo(outputBitmap)
+        outputAlloc.copyTo(staging)
       }
+    }
+  }
+
+  /**
+   * Copies the latest [applyBlur] result into [outputBitmap]. Call on the main thread, outside a
+   * draw, so the copy cannot overlap a RenderThread read of the bitmap's pixels.
+   */
+  fun publishOutput() {
+    lock.withLock {
+      if (isDestroyed) return@withLock
+      // A fresh wrap each call: copyPixelsFromBuffer advances the buffer's position.
+      outputBitmap.copyPixelsFromBuffer(ByteBuffer.wrap(staging))
     }
   }
 
