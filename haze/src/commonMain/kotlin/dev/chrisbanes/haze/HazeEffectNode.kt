@@ -51,7 +51,6 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.roundToInt
 import kotlinx.coroutines.DisposableHandle
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
@@ -1648,13 +1647,7 @@ internal class HazeEffectNode(
         )
   }
 
-  internal fun hasDrawableSourceLayers(): Boolean {
-    return areas.any { area ->
-      area.size.isSpecified &&
-        area.size.minDimension.roundToInt() >= 1 &&
-        area.contentLayer?.isReleased == false
-    }
-  }
+  internal fun hasDrawableSourceLayers(): Boolean = areas.any { it.drawableContentLayer != null }
 
   internal fun hasDrawableInput(): Boolean =
     (explicitInput is HazeInput.Backdrop && !backdropBackendState.usesFallback) ||
