@@ -7,7 +7,9 @@
 package dev.chrisbanes.haze.blur
 
 import android.content.Context
+import android.renderscript.BaseObj
 import android.renderscript.RSIllegalArgumentException
+import android.renderscript.RSRuntimeException
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -24,6 +26,8 @@ import androidx.test.core.app.ApplicationProvider
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.each
+import assertk.assertions.hasMessage
 import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
@@ -46,6 +50,8 @@ import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.test.Test
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
@@ -216,12 +222,108 @@ class RenderScriptReleaseAndroidHostTest : ContextTest() {
     assertThat(SharedRenderScript.currentForTest).isSameInstanceAs(rs)
   }
 
+  @Test
+  fun onTrimMemory_moderate_lastOfSeveralDelegates_releasesTheSharedRenderScript() {
+    val destroyed = mutableListOf<Any>()
+    SharedRenderScript.destroy = { destroyed += it }
+    val delegates = List(3) { delegate() }
+    val shared = delegates.map { it.getRenderScriptContext(IntSize(8, 8)).rs }.first()
+    val scope = HostLifecycleScope(context)
+
+    delegates[0].onTrimMemory(scope, TrimMemoryLevel.MODERATE)
+    delegates[1].onTrimMemory(scope, TrimMemoryLevel.MODERATE)
+
+    assertThat(SharedRenderScript.currentForTest).isSameInstanceAs(shared)
+    assertThat(SharedRenderScript.referenceCountForTest).isEqualTo(1)
+    assertThat(destroyed).isEmpty()
+
+    delegates[2].onTrimMemory(scope, TrimMemoryLevel.MODERATE)
+
+    assertThat(SharedRenderScript.currentForTest).isNull()
+    assertThat(SharedRenderScript.referenceCountForTest).isEqualTo(0)
+    assertThat(destroyed).containsExactly(shared)
+  }
+
+  @Test
+  fun onTrimMemory_moderate_nextContextRequestReacquiresOnDemand() {
+    val delegate = delegate()
+    delegate.onTrimMemory(HostLifecycleScope(context), TrimMemoryLevel.MODERATE)
+    assertThat(SharedRenderScript.currentForTest).isNull()
+
+    val rs = delegate.getRenderScriptContext(IntSize(8, 8)).rs
+
+    assertThat(SharedRenderScript.currentForTest).isSameInstanceAs(rs)
+    assertThat(SharedRenderScript.referenceCountForTest).isEqualTo(1)
+    delegate.detach()
+    assertThat(SharedRenderScript.referenceCountForTest).isEqualTo(0)
+  }
+
+  @Test
+  fun renderScriptContext_creationFailsPartway_destroysEveryCreatedObject() {
+    val shared = SharedRenderScript.acquire(context)
+    try {
+      for (n in 1..3) {
+        val created = mutableListOf<BaseObj>()
+        assertFailure {
+          RenderScriptContext(shared, IntSize(8, 8)) {
+            created += it
+            if (created.size == n) throw RSRuntimeException("injected")
+          }
+        }.isInstanceOf<RSRuntimeException>().hasMessage("injected")
+
+        assertThat(created).hasSize(n)
+        assertThat(created.map { it.isDestroyed() }).each { it.isTrue() }
+      }
+    } finally {
+      SharedRenderScript.release()
+    }
+  }
+
+  @Test
+  fun release_whenOneObjectFailsToDestroy_destroysTheRest() {
+    val created = mutableListOf<BaseObj>()
+    val rsContext = RenderScriptContext(delegate().getRenderScriptContext(IntSize(8, 8)).rs, IntSize(8, 8)) {
+      created += it
+    }
+    // Destroying the blur script first makes its destroy() in release() throw.
+    created[2].destroy()
+    assertFailure { created[2].destroy() }.isInstanceOf<RSRuntimeException>()
+
+    rsContext.release()
+
+    assertThat(created[0].isDestroyed()).isTrue()
+    assertThat(created[1].isDestroyed()).isTrue()
+    assertThat(rsContext.isDestroyed()).isTrue()
+  }
+
+  @Test
+  fun receiveInputBuffer_receiveFails_deliversTheFailureToAwaitSurfaceWritten() {
+    val rsContext = delegate().getRenderScriptContext(IntSize(8, 8))
+
+    rsContext.receiveInputBuffer { throw RSRuntimeException("injected") }
+
+    assertFailure { runBlocking { withTimeout(1_000) { rsContext.awaitSurfaceWritten() } } }
+      .isInstanceOf<RSRuntimeException>()
+  }
+
+  @Test
+  fun receiveInputBuffer_afterRelease_skipsTheReceive() {
+    val rsContext = delegate().getRenderScriptContext(IntSize(8, 8))
+    rsContext.release()
+    var received = false
+
+    rsContext.receiveInputBuffer { received = true }
+
+    assertThat(received).isFalse()
+  }
+
   private val delegates = mutableListOf<RenderScriptBlurVisualEffectDelegate>()
 
   @After
   fun detachDelegates() {
     delegates.forEach { it.detach() }
     SharedRenderScript.destroy = SharedRenderScript.defaultDestroy
+    SharedRenderScript.create = SharedRenderScript.defaultCreate
   }
 
   private fun delegate() = RenderScriptBlurVisualEffectDelegate(
@@ -229,13 +331,19 @@ class RenderScriptReleaseAndroidHostTest : ContextTest() {
     graphicsContext = UnusedGraphicsContext,
     platformContext = context,
   ).also(delegates::add)
-
-  private fun RenderScriptContext.isDestroyed(): Boolean =
-    RenderScriptContext::class.java.getDeclaredField("isDestroyed").run {
-      isAccessible = true
-      getBoolean(this@isDestroyed)
-    }
 }
+
+internal fun RenderScriptContext.isDestroyed(): Boolean =
+  RenderScriptContext::class.java.getDeclaredField("isDestroyed").run {
+    isAccessible = true
+    getBoolean(this@isDestroyed)
+  }
+
+internal fun BaseObj.isDestroyed(): Boolean =
+  BaseObj::class.java.getDeclaredField("mDestroyed").run {
+    isAccessible = true
+    getBoolean(this@isDestroyed)
+  }
 
 /** These tests create no layers, so every call fails loudly. */
 private object UnusedGraphicsContext : GraphicsContext {
@@ -367,10 +475,4 @@ class RenderScriptSurfaceFailureAndroidHostTest : ScreenshotTest() {
       }
     }
   }
-
-  private fun RenderScriptContext.isDestroyed(): Boolean =
-    RenderScriptContext::class.java.getDeclaredField("isDestroyed").run {
-      isAccessible = true
-      getBoolean(this@isDestroyed)
-    }
 }

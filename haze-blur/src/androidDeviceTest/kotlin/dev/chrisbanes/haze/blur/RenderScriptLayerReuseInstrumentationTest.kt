@@ -30,6 +30,7 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
@@ -56,8 +57,9 @@ import org.junit.Test
 
 /**
  * The RenderScript delegate keeps its presentation, capture and padded layers across updates. The
- * node is a zero-radius copy whose pixel size is not a multiple of 4, so the layer size is the node
- * size and padding applies.
+ * [Harness] node's pixel size is not a multiple of 4, so at a positive radius the layer size is the
+ * node size and padding applies. At zero radius the delegate copies the capture without padding or
+ * RenderScript work.
  */
 @OptIn(ExperimentalTestApi::class)
 class RenderScriptLayerReuseInstrumentationTest {
@@ -362,7 +364,7 @@ class RenderScriptLayerReuseInstrumentationTest {
 
   @Test
   fun sourceColorChanges_keepEveryLayerAndTheOutputFollowsTheSource() {
-    val h = Harness(widthPx = 101, heightPx = 101)
+    val h = Harness(widthPx = 101, heightPx = 101, radius = 2.dp)
     h.show()
     h.awaitCenter { it.blue > it.red }
     val capture = checkNotNull(h.delegate.captureLayer.layer)
@@ -382,7 +384,7 @@ class RenderScriptLayerReuseInstrumentationTest {
 
   @Test
   fun resize_replacesThePaddedLayerUntilNoPaddingIsNeeded() {
-    val h = Harness(widthPx = 101, heightPx = 101)
+    val h = Harness(widthPx = 101, heightPx = 101, radius = 2.dp)
     h.show()
     h.awaitCenter { it.blue > it.red }
     val capture = checkNotNull(h.delegate.captureLayer.layer)
@@ -412,7 +414,7 @@ class RenderScriptLayerReuseInstrumentationTest {
 
   @Test
   fun trimModerate_releasesEveryLayerAndALaterFrameRecreatesThem() {
-    val h = Harness(widthPx = 101, heightPx = 101)
+    val h = Harness(widthPx = 101, heightPx = 101, radius = 2.dp)
     h.show()
     h.awaitCenter { it.blue > it.red }
     val layers = h.layers()
@@ -426,7 +428,7 @@ class RenderScriptLayerReuseInstrumentationTest {
 
   @Test
   fun detach_releasesEveryLayerAndTheNextAttachmentRendersCorrectly() {
-    val h = Harness(widthPx = 101, heightPx = 101)
+    val h = Harness(widthPx = 101, heightPx = 101, radius = 2.dp)
     h.show()
     h.awaitCenter { it.blue > it.red }
     val layers = h.layers()
@@ -438,14 +440,74 @@ class RenderScriptLayerReuseInstrumentationTest {
     h.awaitCenter { it.blue > it.red }
   }
 
+  @Test
+  fun zeroRadius_sameSizeAndResizedUpdates_presentTheSourceWithoutNativeWork() {
+    val h = Harness(widthPx = 101, heightPx = 101)
+    h.show()
+    h.awaitCenter { it.blue > it.red }
+    val presentation = checkNotNull(h.delegate.presentationLayer.layer)
+
+    fun assertCopied() = composeTestRule.runOnIdle {
+      assertThat(h.delegate.renderScriptContext).isNull()
+      assertThat(h.delegate.paddedLayer.layer).isNull()
+      assertThat(h.delegate.canDrawRetainedOutput()).isTrue()
+      assertThat(h.delegate.presentationLayer.layer).isNotNull().isSameInstanceAs(presentation)
+    }
+    assertCopied()
+
+    listOf(Color.Red, Color.Green, Color.Blue).forEach { color ->
+      h.source = color
+      h.awaitCenter { it.isDominantlyColored(color) }
+      assertCopied()
+    }
+
+    h.widthPx = 109
+    h.awaitLayerSize(109)
+    h.awaitCenter { it.blue > it.red }
+    assertCopied()
+
+    h.widthPx = 100
+    h.heightPx = 100
+    h.awaitLayerSize(100)
+    h.awaitCenter { it.blue > it.red }
+    assertCopied()
+  }
+
+  @Test
+  fun zeroRadius_transitionsToAndFromPositiveRadius_presentEachOutput() {
+    val h = Harness(widthPx = 101, heightPx = 101)
+    h.show()
+    h.awaitCenter { it.blue > it.red }
+    val presentation = checkNotNull(h.delegate.presentationLayer.layer)
+
+    h.radius = 4.dp
+    composeTestRule.waitUntil(5_000) {
+      h.delegate.renderScriptContext != null &&
+        h.delegate.canDrawRetainedOutput() &&
+        h.delegate.currentJob?.isActive != true
+    }
+    h.awaitCenter { it.isDominantlyColored(Color.Blue) }
+    h.source = Color.Red
+    h.awaitCenter { it.isDominantlyColored(Color.Red) }
+    assertThat(h.delegate.presentationLayer.layer).isSameInstanceAs(presentation)
+
+    h.radius = 0.dp
+    composeTestRule.waitUntil(5_000) { h.delegate.renderScriptContext == null }
+    h.awaitCenter { it.isDominantlyColored(Color.Red) }
+    h.source = Color.Green
+    h.awaitCenter { it.isDominantlyColored(Color.Green) }
+    assertThat(h.delegate.presentationLayer.layer).isSameInstanceAs(presentation)
+  }
+
   private fun Color.isDominantlyColored(expected: Color) = when (expected) {
     Color.Red -> red > blue && red > green
     Color.Green -> green > red && green > blue
     else -> blue > red && blue > green
   }
 
-  private inner class Harness(widthPx: Int, heightPx: Int) {
+  private inner class Harness(widthPx: Int, heightPx: Int, radius: Dp = 0.dp) {
     val probe = Probe()
+    var radius by mutableStateOf(radius)
     val hazeState = HazeState()
     var source by mutableStateOf(Color.Blue)
     var widthPx by mutableStateOf(widthPx)
@@ -476,10 +538,12 @@ class RenderScriptLayerReuseInstrumentationTest {
               .hazeEffect(
                 factory = probe,
                 input = HazeInput.Sources(hazeState),
+                // A positive radius would otherwise expand the layer, so it would not match the node size.
+                expandLayerBounds = false,
                 style = BlurConfiguration(
                   HazeBlurStyle {
                     blurEnabled(true)
-                    blurRadius(0.dp)
+                    blurRadius(this@Harness.radius)
                     backgroundColor(Color.Transparent)
                     colorEffects(emptyList())
                     fallbackColorEffect(null)
