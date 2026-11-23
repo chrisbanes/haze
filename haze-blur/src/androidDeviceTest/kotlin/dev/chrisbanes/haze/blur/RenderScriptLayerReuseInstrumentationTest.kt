@@ -538,6 +538,8 @@ class RenderScriptLayerReuseInstrumentationTest {
               .hazeEffect(
                 factory = probe,
                 input = HazeInput.Sources(hazeState),
+                // A positive radius would otherwise expand the layer, so it would not match the node size.
+                expandLayerBounds = false,
                 style = BlurConfiguration(
                   HazeBlurStyle {
                     blurEnabled(true)
