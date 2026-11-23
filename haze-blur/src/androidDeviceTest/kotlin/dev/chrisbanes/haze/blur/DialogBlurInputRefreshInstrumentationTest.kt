@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -118,19 +119,38 @@ class DialogBlurInputRefreshInstrumentationTest {
   private fun androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>.awaitDialogCenterPixel(
     predicate: (Color) -> Boolean,
   ): Color {
-    var pixel = captureDialogCenterPixel()
-    repeat(MAX_POLLS) {
-      if (predicate(pixel)) return pixel
-      Thread.sleep(POLL_INTERVAL_MS)
-      advanceCrossWindowFrames()
-      pixel = captureDialogCenterPixel()
+    var lastPixel: Color? = null
+    var lastCaptureError: Throwable? = null
+    repeat(MAX_POLLS + 1) { attempt ->
+      if (attempt > 0) {
+        Thread.sleep(POLL_INTERVAL_MS)
+        advanceCrossWindowFrames()
+      }
+      try {
+        val pixel = captureDialogCenterPixel()
+        lastPixel = pixel
+        lastCaptureError = null
+        if (predicate(pixel)) return pixel
+      } catch (e: ComposeTimeoutException) {
+        lastCaptureError = e
+      } catch (e: RuntimeException) {
+        if (e.javaClass.name != PIXEL_COPY_EXCEPTION) throw e
+        lastCaptureError = e
+      }
     }
-    return pixel
+    throw AssertionError(
+      "Dialog centre pixel did not match after ${MAX_POLLS + 1} capture attempts; " +
+        "last pixel: ${lastPixel ?: "none"}",
+      lastCaptureError,
+    )
   }
 
   private companion object {
     const val DIALOG_EFFECT_TAG = "dialog_effect"
     const val MAX_POLLS = 40
     const val POLL_INTERVAL_MS = 50L
+
+    // Compose's PixelCopyException is Kotlin-internal, so it is matched by name.
+    const val PIXEL_COPY_EXCEPTION = "androidx.compose.ui.test.android.PixelCopyException"
   }
 }
