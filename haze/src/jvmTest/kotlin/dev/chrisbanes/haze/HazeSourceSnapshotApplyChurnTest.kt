@@ -47,23 +47,23 @@ import kotlinx.coroutines.Job
 class HazeSourceSnapshotApplyChurnTest : ContextTest() {
 
   @Test
-  fun unrelatedApplyBurst_launchesPerApplyAndRefreshesOnce() = churnTest {
+  fun unrelatedApplyBurst_launchesOncePerFrameAndRefreshesOnce() = churnTest {
     for (n in listOf(1, 10, 100)) {
       val (launches, refreshes) = measure { repeat(n) { applyUnrelated() } }
-      assertThat(launches, "launches for $n applies").isEqualTo(n)
+      assertThat(launches, "launches for $n applies").isEqualTo(1)
       assertThat(refreshes, "refreshes for $n applies").isEqualTo(1)
     }
   }
 
   @Test
-  fun unrelatedGlobalWriteBurst_launchesPerNotificationAndRefreshesOnce() = churnTest {
+  fun unrelatedGlobalWriteBurst_launchesOncePerFrameAndRefreshesOnce() = churnTest {
     val (launches, refreshes) = measure {
       repeat(100) {
         unrelated.intValue++
         Snapshot.sendApplyNotifications()
       }
     }
-    assertThat(launches).isEqualTo(100)
+    assertThat(launches).isEqualTo(1)
     assertThat(refreshes).isEqualTo(1)
   }
 
@@ -79,6 +79,17 @@ class HazeSourceSnapshotApplyChurnTest : ContextTest() {
   }
 
   @Test
+  fun applyDuringQueuedLaunch_isCoveredByThatLaunch() = churnTest {
+    val (_, refreshes) = measure {
+      applyUnrelated()
+      assertThat(source.job().children.count()).isEqualTo(1)
+      applyUnrelated()
+      assertThat(source.job().children.count()).isEqualTo(1)
+    }
+    assertThat(refreshes).isEqualTo(1)
+  }
+
+  @Test
   fun relevantDescendantLayerWrite_refreshesCrossWindowEffect() = churnTest {
     val (launches, refreshes) = measure { Snapshot.withMutableSnapshot { alpha.floatValue = 0.5f } }
     assertThat(launches).isEqualTo(1)
@@ -87,9 +98,11 @@ class HazeSourceSnapshotApplyChurnTest : ContextTest() {
 
   @Test
   fun detachWithQueuedLaunches_cancelsSourceWork() = churnTest {
+    // The queued launch may run before the removal applies, so this does not prove that detach
+    // cancelled it; per-registration flag safety is structural (see enableSnapshotApplyObserver).
     val job = source.job()
     repeat(10) { applyUnrelated() }
-    assertThat(job.children.count()).isEqualTo(10)
+    assertThat(job.children.count()).isEqualTo(1)
 
     present.value = false
     test.waitForIdle()
@@ -108,7 +121,7 @@ class HazeSourceSnapshotApplyChurnTest : ContextTest() {
     assertThat(source).isNotSameInstanceAs(old)
 
     val (launches, refreshes) = measure { repeat(10) { applyUnrelated() } }
-    assertThat(launches).isEqualTo(10)
+    assertThat(launches).isEqualTo(1)
     assertThat(refreshes).isEqualTo(1)
   }
 
@@ -123,7 +136,7 @@ class HazeSourceSnapshotApplyChurnTest : ContextTest() {
     assertThat(source).isSameInstanceAs(old)
 
     val (launches, refreshes) = measure { repeat(10) { applyUnrelated() } }
-    assertThat(launches).isEqualTo(10)
+    assertThat(launches).isEqualTo(1)
     assertThat(refreshes).isEqualTo(1)
   }
 

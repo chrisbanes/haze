@@ -59,6 +59,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   continuous Glass corners as circular corners of the same radius. The silhouette and edge softness
   stay exact; `Balanced` and `Quality` are unchanged
   ([#1766](https://github.com/chrisbanes/haze/issues/1766)).
+- Haze sources that feed effects in another window, or same-window effects on Android 12
+  (API 31), queue at most one refresh coroutine for a burst of snapshot applies instead of one per
+  apply. Effects refresh in the same frame as before
+  ([#1843](https://github.com/chrisbanes/haze/issues/1843)).
 
 ### Deprecated
 
