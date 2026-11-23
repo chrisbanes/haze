@@ -617,6 +617,8 @@ internal class HazeEffectNode(
   /** Runs [updateGeometry] in its own read scope, outside any enclosing observation. */
   private fun observeGeometry(): Boolean {
     var completed = false
+    // Each pass replaces the observer's read scope, so it must re-read all source geometry.
+    dirtyTracker += DirtyFields.AreaPositionReads
     Snapshot.withoutReadObservation {
       geometryObserver.observe { completed = updateGeometry() }
     }

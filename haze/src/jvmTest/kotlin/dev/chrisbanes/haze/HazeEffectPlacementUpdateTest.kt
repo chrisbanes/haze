@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -23,6 +24,7 @@ import androidx.compose.ui.awt.LocalAwtWindow
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.LayerOutsets
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
@@ -34,6 +36,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.test.ContextTest
@@ -118,6 +121,44 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
         .isEqualTo(initialOffset + Offset(10f * (frame + 1), 0f))
     }
     assertThat(renderer.updateCalls).isEqualTo(updates)
+  }
+
+  @Test
+  fun staticLocalRefreshThenSourceResize_effectBoundsFollowSource() = runComposeUiTest {
+    val fixture = setStaticLocalFixtureContent()
+    val node = checkNotNull(fixture.effectNode)
+    val updates = fixture.renderer.updateCalls
+
+    // The draw-time refresh replaces the geometry read scope.
+    fixture.local = 1
+    waitForIdle()
+    assertThat(fixture.renderer.updateCalls).isGreaterThan(updates)
+    assertThat(node.layerSize.width).isEqualTo(with(density) { 60.dp.toPx() })
+    val refreshedUpdates = fixture.renderer.updateCalls
+
+    fixture.sourceDp = 80
+    waitForIdle()
+
+    assertThat(node.layerSize).isEqualTo(fixture.state.areas.single().size)
+    assertThat(node.layerSize.width).isEqualTo(with(density) { 80.dp.toPx() })
+    assertThat(fixture.renderer.updateCalls).isEqualTo(refreshedUpdates)
+  }
+
+  @Test
+  fun staticLocalRefreshThenSourceOutsetChange_effectBoundsFollowInputBounds() = runComposeUiTest {
+    val fixture = setStaticLocalFixtureContent()
+    val node = checkNotNull(fixture.effectNode)
+    val updates = fixture.renderer.updateCalls
+
+    fixture.local = 1
+    waitForIdle()
+    assertThat(fixture.renderer.updateCalls).isGreaterThan(updates)
+
+    fixture.outsets = LayerOutsets(right = 8.dp, bottom = 8.dp)
+    waitForIdle()
+
+    assertThat(node.layerSize.width).isEqualTo(with(density) { 68.dp.toPx() })
+    assertThat(node.layerSize.height).isEqualTo(with(density) { 68.dp.toPx() })
   }
 
   @Test
@@ -416,6 +457,69 @@ class HazeEffectPlacementUpdateTest : ContextTest() {
       (effectWindow as? Frame)?.dispose()
     }
   }
+}
+
+// Static, so a change reaches the effect only as a draw rather than through its read observers.
+private val StaticRefreshLocal = staticCompositionLocalOf { 0 }
+
+@OptIn(InternalHazeApi::class)
+private class StaticLocalFixture {
+  var local by mutableIntStateOf(0)
+  var sourceDp by mutableIntStateOf(60)
+  var outsets by mutableStateOf(LayerOutsets.Zero)
+  var effectNode: HazeEffectNode? = null
+  val state = HazeState()
+  val renderer = StaticLocalRenderer()
+}
+
+/** A clip-to-input effect that reads a static local in `update`, beside a resizable source. */
+@OptIn(ExperimentalTestApi::class, InternalHazeApi::class)
+private fun ComposeUiTest.setStaticLocalFixtureContent(): StaticLocalFixture {
+  val fixture = StaticLocalFixture()
+  val factory = HazeEffectFactory<Unit> { fixture.renderer }
+  setContent {
+    CompositionLocalProvider(StaticRefreshLocal provides fixture.local) {
+      Box(Modifier.size(200.dp)) {
+        // Fixed container: a source resize must not re-place the effect.
+        Box(Modifier.size(100.dp)) {
+          Box(
+            Modifier
+              .size(fixture.sourceDp.dp)
+              .hazeSource(
+                fixture.state,
+                inputSharing = HazeInputSharing.Always,
+                inputSharingOutsets = fixture.outsets,
+              ),
+          )
+        }
+        Box(
+          Modifier
+            .size(150.dp)
+            .hazeEffect(factory = factory, input = HazeInput.Sources(fixture.state), style = Unit)
+            .captureEffectNode { fixture.effectNode = it },
+        )
+      }
+    }
+  }
+  waitForIdle()
+  return fixture
+}
+
+@OptIn(InternalHazeApi::class)
+private class StaticLocalRenderer :
+  HazeEffectRenderer<Unit>,
+  HazeEffectRendererLifecycle<Unit>,
+  HazeEffectRendererDrawHooks<Unit> {
+  var updateCalls = 0
+
+  override fun update(scope: HazeEffectLifecycleScope, style: Unit, sampling: HazeSampling) {
+    updateCalls++
+    scope.currentValueOf(StaticRefreshLocal)
+  }
+
+  override fun HazeEffectDrawScope.draw(style: Unit) = drawInput()
+
+  override fun shouldPreferClipToInputBounds(): Boolean = true
 }
 
 @OptIn(InternalHazeApi::class)
