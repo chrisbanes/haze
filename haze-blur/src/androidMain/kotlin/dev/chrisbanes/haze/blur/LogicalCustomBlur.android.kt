@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.withSaveLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
@@ -31,7 +32,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
   context: HazeEffectRuntimeDrawScope,
   inputScale: Float,
 ): Boolean {
-  if (Build.VERSION.SDK_INT !in 31..32) return false
+  if (Build.VERSION.SDK_INT !in 31..32 && !runtimeShaderFallback) return false
   val effect = blurVisualEffect
   val progressiveBrush = (effect.progressive as? HazeProgressive.Brush)?.brush
   val custom = effect.mask?.isCustomShaderBrush() == true ||
@@ -102,13 +103,13 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
         if (style.noiseFactor.hasVisibleNoise()) {
           PaintPool.usePaint { paint ->
             paint.blendMode = BlendMode.Softlight
-            canvas.saveLayer(bounds, paint)
-            // Presentation space, so the grain does not follow the capture scale.
-            val noise = ShaderBrush(context.requirePlatformContext().createNoiseShader())
-            translate(-offset.x, -offset.y) {
-              drawRect(brush = noise, size = expandedSize, alpha = style.noiseFactor.coerceIn(0f, 1f))
+            canvas.withSaveLayer(bounds, paint) {
+              // Presentation space, so the grain does not follow the capture scale.
+              val noise = ShaderBrush(context.requirePlatformContext().createNoiseShader())
+              translate(-offset.x, -offset.y) {
+                drawRect(brush = noise, size = expandedSize, alpha = style.noiseFactor.coerceIn(0f, 1f))
+              }
             }
-            canvas.restore()
           }
         }
         return
@@ -131,14 +132,12 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
         }
         is ColorFilterHazeColorEffect -> PaintPool.usePaint { blend ->
           blend.blendMode = colorEffect.blendMode
-          canvas.saveLayer(bounds, blend)
-          PaintPool.usePaint { filter ->
-            filter.colorFilter = colorEffect.colorFilter
-            canvas.saveLayer(bounds, filter)
-            drawStack(count - 1)
-            canvas.restore()
+          canvas.withSaveLayer(bounds, blend) {
+            PaintPool.usePaint { filter ->
+              filter.colorFilter = colorEffect.colorFilter
+              canvas.withSaveLayer(bounds, filter) { drawStack(count - 1) }
+            }
           }
-          canvas.restore()
         }
       }
     }
@@ -149,36 +148,38 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
     val canvas = drawContext.canvas
     PaintPool.usePaint { alpha ->
       alpha.alpha = style.alpha
-      canvas.saveLayer(bounds, alpha)
-      val progressive = style.progressive
-      if (progressive is HazeProgressive.LinearGradient && shouldDrawProgressiveWithLayers(progressive, inputScale)) {
-        logicalSlot.reset()
-        logicalLayer.release()
-        var band = 0
-        drawProgressiveWithMultipleLayers(progressive, masks = bandMasks) { bandMask, intensity ->
-          val index = band++
-          val layer = bandLayer(index).acquire(context.requireGraphicsContext())
-          prepare(layer, bandSlot(index), intensity)
-          canvas.saveLayer(bounds, Paint())
-          style(layer, intensity)
-          mask(bandMask)
-          canvas.restore()
+      canvas.withSaveLayer(bounds, alpha) {
+        val progressive = style.progressive
+        if (progressive is HazeProgressive.LinearGradient && shouldDrawProgressiveWithLayers(progressive, inputScale)) {
+          logicalSlot.reset()
+          logicalLayer.release()
+          var band = 0
+          drawProgressiveWithMultipleLayers(progressive, masks = bandMasks) { bandMask, intensity ->
+            val index = band++
+            val layer = bandLayer(index).acquire(context.requireGraphicsContext())
+            prepare(layer, bandSlot(index), intensity)
+            canvas.withSaveLayer(bounds, Paint()) {
+              style(layer, intensity)
+              mask(bandMask)
+            }
+          }
+          trimBandSlots(band)
+        } else {
+          trimBandSlots(0)
+          val layer = logicalLayer.acquire(context.requireGraphicsContext())
+          prepare(layer, logicalSlot, 1f)
+          if (progressive is HazeProgressive.LinearGradient) present(contentLayer)
+          if (progressive != null) {
+            canvas.withSaveLayer(bounds, Paint()) {
+              style(layer, 1f)
+              style.progressiveBrush?.let { mask(it) }
+            }
+          } else {
+            style(layer, 1f)
+          }
         }
-        trimBandSlots(band)
-      } else {
-        trimBandSlots(0)
-        val layer = logicalLayer.acquire(context.requireGraphicsContext())
-        prepare(layer, logicalSlot, 1f)
-        if (progressive is HazeProgressive.LinearGradient) present(contentLayer)
-        if (progressive != null) canvas.saveLayer(bounds, Paint())
-        style(layer, 1f)
-        if (progressive != null) {
-          style.progressiveBrush?.let { mask(it) }
-          canvas.restore()
-        }
+        style.mask?.let { mask(it) }
       }
-      style.mask?.let { mask(it) }
-      canvas.restore()
     }
   }
 

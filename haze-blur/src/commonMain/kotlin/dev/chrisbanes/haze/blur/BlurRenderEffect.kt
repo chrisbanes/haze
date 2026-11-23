@@ -25,9 +25,11 @@ import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastFold
+import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
+import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.asBrush
 import dev.chrisbanes.haze.blendForeground
 import dev.chrisbanes.haze.createBlendColorFilter
@@ -46,6 +48,8 @@ internal fun createRenderEffect(
   context: PlatformContext,
   density: Density,
   params: RenderEffectParams,
+  combinedNoiseTint: (PlatformContext, PlatformRenderEffect, Float, Color) -> PlatformRenderEffect? =
+    ::createCombinedNoiseTintRenderEffectOrNull,
 ): PlatformRenderEffect {
   val blurRadius = params.blurRadius * params.scale
   require(blurRadius >= 0.dp) { "blurRadius needs to be equal or greater than 0.dp" }
@@ -105,12 +109,13 @@ internal fun createRenderEffect(
   }
 
   val combinedNoiseTintEffect = params.combinedNoiseTintColor()?.let { tintColor ->
-    createCombinedNoiseTintRenderEffectOrNull(
-      context = context,
-      input = blur,
-      noiseFactor = params.noiseFactor,
-      tintColor = tintColor,
-    )
+    try {
+      combinedNoiseTint(context, blur, params.noiseFactor, tintColor)
+    } catch (failure: RuntimeShaderRenderEffectException) {
+      // The combined pass is an optimisation: the separate noise and tint graph below is equivalent.
+      HazeLogger.d(BlurVisualEffect.TAG) { "Combined noise/tint pass unavailable, composing separately: $failure" }
+      null
+    }
   }
 
   val styled = combinedNoiseTintEffect ?: run {
