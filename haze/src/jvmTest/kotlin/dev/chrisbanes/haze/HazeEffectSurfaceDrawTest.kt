@@ -1108,6 +1108,54 @@ class HazeEffectSurfaceDrawTest {
   }
 
   @Test
+  fun configuredSources_zeroSizeMemberWithSharedSelection_keepsMergedDraw() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val first = SurfaceFactory(owner)
+    val second = SurfaceFactory(owner)
+    val state = HazeState()
+    val input = HazeInput.Sources(state, HazeSourceSelection.All.where { it.key == "selected" })
+    val secondSize = mutableStateOf(0.dp)
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    var clusterDraws = 0
+    owner.resolveSurfaces = {
+      configured = configured ?: first.surface.createConfiguredSurface(
+        HazeEffectFactory {
+          object : HazeEffectRenderer<Unit> {
+            override fun HazeEffectDrawScope.draw(style: Unit) {
+              clusterDraws++
+              drawInput()
+            }
+          }
+        },
+        Unit, Rect(10f, 15f, 80f, 45f), listOf(first.surface, second.surface),
+      )
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      Box(Modifier.size(160.dp).background(Color.White)) {
+        Box(Modifier.size(160.dp).hazeSource(state, key = "selected").background(Color.Red))
+        Box(Modifier.offset(20.dp, 10.dp).size(120.dp).then(OwnerElement(owner))) {
+          Box(Modifier.offset(10.dp, 15.dp).size(30.dp).hazeEffect(first, input, Unit))
+          Box(Modifier.offset(50.dp, 15.dp).size(secondSize.value).hazeEffect(second, input, Unit))
+        }
+      }
+    }
+    waitForIdle()
+    assertThat(clusterDraws, "cluster draws while one member is zero-size").isGreaterThan(0)
+    assertThat(first.draws).isEqualTo(0)
+    val before = clusterDraws
+    secondSize.value = 30.dp
+    waitForIdle()
+    assertThat(clusterDraws, "cluster keeps drawing once the member is drawable").isGreaterThan(before)
+    assertThat(first.draws).isEqualTo(0)
+    assertThat(second.draws).isEqualTo(0)
+    runOnIdle {
+      configured?.dispose()
+      owner.resolveSurfaces = null
+    }
+  }
+
+  @Test
   fun configuredSources_differentResolvedSelectionsDrawMembersSeparately() = runComposeUiTest {
     val owner = SurfaceOwnerNode()
     val first = SurfaceFactory(owner)
@@ -1738,14 +1786,14 @@ class HazeEffectSurfaceDrawTest {
       val node = factory.surface.node
       val sourceToMember = node.sourceTransformInEffect(node.areas.single())
       val retained = sourceToMember.values.copyOf()
-      val entry = node.surfaceInputEntries(ownerCoordinates).single()
+      val entry = checkNotNull(node.surfaceInputEntries(ownerCoordinates)).single()
       for (point in points) {
         val expected = direct.map(point)
         val error = (entry.transform.map(point) - expected).getDistance()
         maximumError = maxOf(maximumError, error)
       }
       assertThat(sourceToMember.values.toList(), "entry resolution retains cached source transform").isEqualTo(retained.toList())
-      val repeated = node.surfaceInputEntries(ownerCoordinates).single()
+      val repeated = checkNotNull(node.surfaceInputEntries(ownerCoordinates)).single()
       assertThat(repeated.transform.values.toList(), "consecutive entry resolution retains composed transform").isEqualTo(entry.transform.values.toList())
       assertThat(sourceToMember.values.toList(), "consecutive entry resolution retains source").isEqualTo(retained.toList())
     }
