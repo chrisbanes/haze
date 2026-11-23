@@ -66,6 +66,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Core `haze` no longer declares a dependency on `androidx.collection`, which nothing in it uses.
   Consumers still receive it through Compose
   ([#1845](https://github.com/chrisbanes/haze/issues/1845)).
+- Android 12 and 12L Blur with custom shader brushes no longer rebuilds its mask, tint and noise
+  shaders, or its layer paints, for every progressive band on unchanged draws. The rendered result
+  is unchanged ([#1857](https://github.com/chrisbanes/haze/issues/1857)).
 
 ### Deprecated
 

@@ -86,11 +86,14 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
     )
   }
 
-  fun Brush.logical(): Brush = if (this is ShaderBrush) ShaderBrush(createShader(context.size)) else this
-
-  fun DrawScope.mask(brush: Brush) {
-    drawRect(brush = brush.logical(), topLeft = -offset, size = expandedSize, blendMode = BlendMode.DstIn)
+  // A ShaderBrush keeps the shader it built for the last size, so passing the node size reuses it.
+  fun DrawScope.drawLogicalRect(brush: Brush, alpha: Float, blendMode: BlendMode) {
+    brush.applyTo(context.size, LogicalRectPaint, alpha)
+    LogicalRectPaint.blendMode = blendMode
+    drawContext.canvas.drawRect(bounds, LogicalRectPaint)
   }
+
+  fun DrawScope.mask(brush: Brush) = drawLogicalRect(brush, 1f, BlendMode.DstIn)
 
   fun DrawScope.style(layer: GraphicsLayer, intensity: Float) {
     val effects = style.colorEffects
@@ -105,7 +108,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
             paint.blendMode = BlendMode.Softlight
             canvas.withSaveLayer(bounds, paint) {
               // Presentation space, so the grain does not follow the capture scale.
-              val noise = ShaderBrush(context.requirePlatformContext().createNoiseShader())
+              val noise = ShaderBrush(LogicalNoiseShaders.get(context.requirePlatformContext()))
               translate(-offset.x, -offset.y) {
                 drawRect(brush = noise, size = expandedSize, alpha = style.noiseFactor.coerceIn(0f, 1f))
               }
@@ -118,13 +121,8 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
       val effect = effects[count - 1]
       val colorEffect = (effect as? TintBrushHazeColorEffect)?.asColorTintOrNull() ?: effect
       when (colorEffect) {
-        is TintBrushHazeColorEffect -> drawRect(
-          brush = colorEffect.brush.logical(),
-          topLeft = -offset,
-          size = expandedSize,
-          alpha = intensity.coerceIn(0f, 1f),
-          blendMode = colorEffect.blendMode,
-        )
+        is TintBrushHazeColorEffect ->
+          drawLogicalRect(colorEffect.brush, intensity.coerceIn(0f, 1f), colorEffect.blendMode)
         is TintColorHazeColorEffect -> {
           colorEffect.resolveColor(intensity)?.let { color ->
             drawRect(color, topLeft = -offset, size = expandedSize, blendMode = colorEffect.blendMode)
@@ -158,7 +156,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
             val index = band++
             val layer = bandLayer(index).acquire(context.requireGraphicsContext())
             prepare(layer, bandSlot(index), intensity)
-            canvas.withSaveLayer(bounds, Paint()) {
+            canvas.withSaveLayer(bounds, LogicalLayerPaint) {
               style(layer, intensity)
               mask(bandMask)
             }
@@ -170,7 +168,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
           prepare(layer, logicalSlot, 1f)
           if (progressive is HazeProgressive.LinearGradient) present(contentLayer)
           if (progressive != null) {
-            canvas.withSaveLayer(bounds, Paint()) {
+            canvas.withSaveLayer(bounds, LogicalLayerPaint) {
               style(layer, 1f)
               style.progressiveBrush?.let { mask(it) }
             }
@@ -188,6 +186,11 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
   }
   return true
 }
+
+// Draws run on one thread, as for PaintPool. Canvas reads a paint when called, so reuse is safe.
+private val LogicalLayerPaint = Paint()
+private val LogicalRectPaint = Paint()
+internal val LogicalNoiseShaders = NoiseShaderCache()
 
 @Poko
 private class LogicalStyle(
