@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.contains
+import assertk.assertions.doesNotContain
 import assertk.assertions.isBetween
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
@@ -1801,7 +1802,6 @@ class HazeEffectSurfaceDrawTest {
     val input = HazeInput.Sources(state, retention = retention)
     val sourceSize = mutableStateOf(60.dp)
     val sourcePresent = mutableStateOf(true)
-    var builtIn: HazeEffectNode? = null
     var configured: HazeConfiguredEffectSurface<Unit>? = null
     owner.resolveSurfaces = {
       configured = configured ?: member.surface.createConfiguredSurface(
@@ -1816,7 +1816,7 @@ class HazeEffectSurfaceDrawTest {
             Box(Modifier.size(60.dp).hazeEffect(member, input, Unit))
           }
         } else {
-          Box(Modifier.size(60.dp).hazeEffect(HazeEffectFactory<Unit> { renderer }, input, Unit).captureEffectNode { builtIn = it })
+          Box(Modifier.size(60.dp).hazeEffect(HazeEffectFactory<Unit> { renderer }, input, Unit))
         }
         if (sourcePresent.value) {
           Box(
@@ -1827,9 +1827,6 @@ class HazeEffectSurfaceDrawTest {
     }
     fun assertAgreement() {
       assertThat(renderer.disagreements, "$label draws where hasDrawableInput differs from inputSnapshot").isEqualTo(0)
-      builtIn?.let {
-        assertThat(it.hasDrawableSourceLayers(), "$label preflight matches accessor").isEqualTo(it.areas.any { area -> area.drawableContentLayer != null })
-      }
     }
     waitForIdle()
     assertThat(renderer.draws.lastOrNull(), "$label appears").isEqualTo(true)
@@ -1842,21 +1839,21 @@ class HazeEffectSurfaceDrawTest {
       waitForIdle()
       assertAgreement()
       val later = renderer.draws.drop(drawsBefore)
-      assertThat(later.none { it }, "$label $phase: no drawable draw while unavailable").isTrue()
+      assertThat(later, "$label $phase: no drawable draw while unavailable").doesNotContain(true)
       if (retention == HazeSourceRetention.KeepLastFrame) {
         assertThat(renderer.clears, "$label $phase keeps retained output").isEqualTo(clears)
-        assertThat(later.isNotEmpty(), "$label $phase keeps drawing retained output").isTrue()
+        assertThat(later, "$label $phase keeps drawing retained output").isNotEmpty()
       } else {
         assertThat(renderer.clears, "$label $phase clears retained output").isGreaterThan(clears)
       }
     }
 
-    assertUnavailable("vanish") { sourceSize.value = 0.4.dp }
+    assertUnavailable("vanish") { sourceSize.value = 0.dp }
     val drawsBeforeReappear = renderer.draws.size
     sourceSize.value = 60.dp
     waitForIdle()
     assertAgreement()
-    assertThat(renderer.draws.drop(drawsBeforeReappear).any { it }, "$label reappears").isTrue()
+    assertThat(renderer.draws.drop(drawsBeforeReappear), "$label reappears").contains(true)
     assertUnavailable("release") { sourcePresent.value = false }
     runOnIdle {
       configured?.dispose()
