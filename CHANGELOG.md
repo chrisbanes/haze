@@ -79,6 +79,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   noise and tint pass uses the separate noise and tint effects, and progressive and custom-brush
   effects draw through the routes Android 12 uses until the effect is detached. A failed custom-brush
   draw no longer leaves a canvas layer open ([#1836](https://github.com/chrisbanes/haze/issues/1836)).
+- The web sample shows its unsupported-browser message instead of throwing when the browser cannot
+  compile Wasm ([#1849](https://github.com/chrisbanes/haze/issues/1849)).
 - Blur and Glass effects keep finite layer bounds, and apply their retention policy, while every
   selected source is still unpositioned ([#1833](https://github.com/chrisbanes/haze/issues/1833)).
 - Pressing a merged Glass container member with a near-zero `scale` no longer crashes while drawing
