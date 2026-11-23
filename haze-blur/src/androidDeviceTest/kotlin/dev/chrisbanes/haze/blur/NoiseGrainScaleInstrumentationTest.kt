@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertThat
 import assertk.assertions.isBetween
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isLessThan
 import dev.chrisbanes.haze.HazeInput
@@ -75,7 +76,7 @@ class NoiseGrainScaleInstrumentationTest {
       }
     }
     composeTestRule.waitForIdle()
-    val fullBlur = grain(capture(BLUR))
+    val fullBlur = grain(capture(BLUR).also(::assertVisibleNoise))
     val fullReference = grain(capture(REFERENCE))
     // Performance resolves to exactly half resolution.
     mode = HazePerformanceMode.Performance
@@ -98,7 +99,7 @@ class NoiseGrainScaleInstrumentationTest {
         BlurBox(style, mode, BLUR)
       }
     }
-    val full = awaitStableCapture()
+    val full = awaitStableCapture().also(::assertVisibleNoise)
 
     mode = HazePerformanceMode.Performance
     assertThat(maxInteriorDifference(full, awaitStableCapture()), "Performance").isLessThan(0.03f)
@@ -118,13 +119,17 @@ class NoiseGrainScaleInstrumentationTest {
     fallbackColorEffect(null)
   }
 
-  /** A flat grey source under the effect. Without layer expansion the noise origin is fixed. */
+  /**
+   * A flat grey sibling source under the effect; an ancestor source would be excluded from the
+   * effect's input. Without layer expansion the noise origin is fixed.
+   */
   @Composable
   private fun BlurBox(style: HazeBlurStyle, mode: HazePerformanceMode, tag: String) {
     val state = rememberHazeState()
-    Box(Modifier.hazeSource(state).background(GREY).padding(PADDING.dp)) {
+    Box {
+      Box(Modifier.matchParentSize().hazeSource(state).background(GREY))
       Box(
-        Modifier.size(SIZE.dp).testTag(tag)
+        Modifier.padding(PADDING.dp).size(SIZE.dp).testTag(tag)
           .hazeBlur(HazeInput.Sources(state), style, mode, expandLayerBounds = false),
       )
     }
@@ -180,6 +185,13 @@ class NoiseGrainScaleInstrumentationTest {
     /** Luminance of the interior, row by row. */
     fun PixelMap.interior(): List<FloatArray> = (MARGIN until height - MARGIN).map { y ->
       FloatArray(width - 2 * MARGIN) { x -> this[MARGIN + x, y].luminance() }
+    }
+
+    /** Fails when the effect drew no noise, which would make every comparison vacuous. */
+    fun assertVisibleNoise(pixels: PixelMap) {
+      val rows = pixels.interior()
+      val range = rows.maxOf { it.max() } - rows.minOf { it.min() }
+      assertThat(range, "noise luminance range").isGreaterThan(0.05f)
     }
 
     /** About 1 for one-pixel noise; grows with the grain size. */
