@@ -7760,6 +7760,12 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
+<li>RenderScript Blur publishes each blurred frame from the main thread, so the renderer never reads
+  its pixels while a later frame is being written
+  (<a href="https://github.com/chrisbanes/haze/issues/1830">#1830</a>).</li>
+<li>Effects keep following a source's size and input-sharing outsets after a static
+  <code>CompositionLocal</code> change refreshes their configuration
+  (<a href="https://github.com/chrisbanes/haze/issues/1829">#1829</a>).</li>
 <li>Merged Glass clusters that fall back from <code>HazeInput.Backdrop</code> to their source fallback no longer keep
   redrawing while idle (<a href="https://github.com/chrisbanes/haze/issues/1827">#1827</a>).</li>
 <li>Progressive blur avoids long first-render pauses on Windows Direct3D, including when opening a
@@ -7786,6 +7792,9 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>A <code>HazeSourceSelection.where</code> predicate whose state changes on a background thread while its
   effect is being removed no longer throws "This node does not have an owner"
   (<a href="https://github.com/chrisbanes/haze/issues/1837">#1837</a>).</li>
+<li>Android Blur switches between its RenderEffect and fallback paths when an attached effect's canvas
+  changes between hardware and software acceleration, without needing a style change
+  (<a href="https://github.com/chrisbanes/haze/issues/1834">#1834</a>).</li>
 </ul>
 <h2 id="2.1.0">2.1.0 <small>2026-11-02</small><a class="headerlink" href="#2.1.0" title="Permanent link">¶</a></h2>
 <h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">¶</a></h3>
