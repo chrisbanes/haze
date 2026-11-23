@@ -89,7 +89,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
   // A ShaderBrush keeps the shader it built for the last size, so passing the node size reuses it.
   fun DrawScope.drawLogicalRect(brush: Brush, alpha: Float, blendMode: BlendMode) {
     // applyTo drops the shader for an empty size, which would draw an opaque rect.
-    if (context.size.isEmpty()) return
+    if (brush is ShaderBrush && context.size.isEmpty()) return
     brush.applyTo(context.size, LogicalRectPaint, alpha)
     LogicalRectPaint.blendMode = blendMode
     drawContext.canvas.drawRect(bounds, LogicalRectPaint)
