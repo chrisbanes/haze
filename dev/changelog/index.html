@@ -7762,9 +7762,14 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <ul>
 <li>Blur and Glass effects keep finite layer bounds, and apply their retention policy, while every
   selected source is still unpositioned (<a href="https://github.com/chrisbanes/haze/issues/1833">#1833</a>).</li>
+<li>Pressing a merged Glass container member with a near-zero <code>scale</code> no longer crashes while drawing
+  its merged surface (<a href="https://github.com/chrisbanes/haze/issues/1840">#1840</a>).</li>
 <li>RenderScript Blur releases its shared RenderScript context on memory trim until the next blurred
   draw, recovers from native failures without crashing or presenting a failed frame, and skips
   native work at zero blur radius (<a href="https://github.com/chrisbanes/haze/issues/1835">#1835</a>).</li>
+<li>Android Blur noise no longer grows coarser at reduced capture scales. RenderScript and the API
+  31–32 custom-brush path draw the same grain as full resolution; the RenderEffect path draws one
+  noise texel per capture pixel (<a href="https://github.com/chrisbanes/haze/issues/1832">#1832</a>).</li>
 <li>RenderScript Blur publishes each blurred frame from the main thread, so the renderer never reads
   its pixels while a later frame is being written
   (<a href="https://github.com/chrisbanes/haze/issues/1830">#1830</a>).</li>
