@@ -257,7 +257,7 @@ internal class GlassMergedField(
   fun scaled(scaleFactor: Float): GlassMergedField = GlassMergedField(
     members = members.map { member ->
       member.copy(
-        rect = member.rect.scaledBy(scaleFactor),
+        rect = member.rect.scaledBy(scaleFactor).withPositiveSize(),
         cornerRadii = member.cornerRadii * scaleFactor,
         lightPosition = member.lightPosition * scaleFactor,
         lightRadius = member.lightRadius * scaleFactor,
@@ -409,3 +409,18 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
 }
 
 private fun Rect.scaledBy(scale: Float) = Rect(left * scale, top * scale, right * scale, bottom * scale)
+
+// Rebasing or scaling a near-zero pressed rect can round its size to zero; keep the smallest positive size.
+internal fun Rect.withPositiveSize(): Rect =
+  if (width > 0f && height > 0f) {
+    this
+  } else {
+    Rect(left, top, if (width > 0f) right else left.nextUpCommon(), if (height > 0f) bottom else top.nextUpCommon())
+  }
+
+// shortcut: common Kotlin has no Float.nextUp; assumes a finite, non-NaN value as field rects are.
+private fun Float.nextUpCommon(): Float = when {
+  this == 0f -> Float.MIN_VALUE
+  this > 0f -> Float.fromBits(toRawBits() + 1)
+  else -> Float.fromBits(toRawBits() - 1)
+}
