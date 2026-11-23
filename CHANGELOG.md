@@ -75,6 +75,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The Glass sample bottom tabs no longer throw for an empty tab list, and the Glass sample slider
+  finishes an active drag when it is resized or disabled
+  ([#1848](https://github.com/chrisbanes/haze/issues/1848)).
 - Android Blur no longer keeps a previous draw's shader, colour filter or path effect on reused
   internal paints, and reused paints keep Compose's default antialiasing
   ([#1844](https://github.com/chrisbanes/haze/issues/1844)).

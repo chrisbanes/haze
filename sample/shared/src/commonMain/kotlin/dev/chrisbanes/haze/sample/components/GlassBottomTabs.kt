@@ -68,7 +68,7 @@ public fun GlassBottomTabs(
       .selectableGroup(),
   ) {
     val tabWidth = maxWidth / tabs.size.coerceAtLeast(1)
-    val indicatorOffset by animateDpAsState(tabWidth * selectedIndex.coerceIn(0, tabs.lastIndex), label = "Glass tab indicator")
+    val indicatorOffset by animateDpAsState(tabWidth * selectedIndex.coerceIn(0, tabs.lastIndex.coerceAtLeast(0)), label = "Glass tab indicator")
     Box(
       modifier = Modifier
         .offset(x = indicatorOffset)
