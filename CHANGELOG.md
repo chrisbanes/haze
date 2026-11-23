@@ -84,6 +84,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configured effect surfaces keep drawing a `HazeInput.Sources` cluster as one, instead of
   splitting it, while a member is zero-size or unplaced
   ([#1851](https://github.com/chrisbanes/haze/issues/1851)).
+- The Android ExoPlayer sample prepares and releases the player that is current, and detaches it from
+  its view when the sample is left or the player is replaced
+  ([#1847](https://github.com/chrisbanes/haze/issues/1847)).
 - Android Blur falls back instead of crashing when a runtime shader cannot be built: the combined
   noise and tint pass uses the separate noise and tint effects, and progressive and custom-brush
   effects draw through the routes Android 12 uses until the effect is detached. A failed custom-brush
