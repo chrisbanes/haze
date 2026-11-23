@@ -110,7 +110,6 @@ internal fun createRenderEffect(
       input = blur,
       noiseFactor = params.noiseFactor,
       tintColor = tintColor,
-      scale = params.scale,
     )
   }
 
@@ -121,7 +120,6 @@ internal fun createRenderEffect(
           context = context,
           noiseFactor = params.noiseFactor,
           mask = positionedProgressiveShader,
-          scale = params.scale,
         ),
         blendMode = BlendMode.Softlight,
         // Only the mask lives in content coordinates. Unmasked noise stays in layer coordinates;
@@ -173,7 +171,6 @@ internal expect fun createCombinedNoiseTintRenderEffectOrNull(
   input: PlatformRenderEffect,
   noiseFactor: Float,
   tintColor: Color,
-  scale: Float,
 ): PlatformRenderEffect?
 
 /**
@@ -185,7 +182,6 @@ internal expect fun createNoiseEffect(
   context: PlatformContext,
   noiseFactor: Float,
   mask: Shader?,
-  scale: Float,
 ): PlatformRenderEffect
 
 private fun PlatformRenderEffect.withTints(

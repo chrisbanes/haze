@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.dp
@@ -102,9 +103,10 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
           PaintPool.usePaint { paint ->
             paint.blendMode = BlendMode.Softlight
             canvas.saveLayer(bounds, paint)
-            val noise = ShaderBrush(context.requirePlatformContext().createNoiseShader(inputScale))
-            drawScaledContent(offset = -offset, captureScale = captureScale, clip = false) {
-              drawRect(brush = noise, size = contentLayer.size.toSize(), alpha = style.noiseFactor.coerceIn(0f, 1f))
+            // Presentation space, so the grain does not follow the capture scale.
+            val noise = ShaderBrush(context.requirePlatformContext().createNoiseShader())
+            translate(-offset.x, -offset.y) {
+              drawRect(brush = noise, size = expandedSize, alpha = style.noiseFactor.coerceIn(0f, 1f))
             }
             canvas.restore()
           }
