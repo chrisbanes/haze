@@ -68,6 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Blur and Glass effects keep finite layer bounds, and apply their retention policy, while every
+  selected source is still unpositioned ([#1833](https://github.com/chrisbanes/haze/issues/1833)).
 - RenderScript Blur releases its shared RenderScript context on memory trim until the next blurred
   draw, recovers from native failures without crashing or presenting a failed frame, and skips
   native work at zero blur radius ([#1835](https://github.com/chrisbanes/haze/issues/1835)).
