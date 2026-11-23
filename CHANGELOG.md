@@ -69,6 +69,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Android 12 and 12L Blur with custom shader brushes no longer rebuilds its mask, tint and noise
   shaders, or its layer paints, for each progressive band and colour-filter pass when it redraws
   with an unchanged style ([#1857](https://github.com/chrisbanes/haze/issues/1857)).
+- Unmasked Blur scrim colour filters now receive the effect alpha as input instead of being faded
+  afterwards. A colour filter that replaces alpha, such as `ColorFilter.tint(color, BlendMode.Src)`,
+  therefore no longer fades with the effect's alpha. The default tint and other alpha-preserving
+  filters are unchanged ([#1828](https://github.com/chrisbanes/haze/issues/1828)).
 
 ### Deprecated
 
