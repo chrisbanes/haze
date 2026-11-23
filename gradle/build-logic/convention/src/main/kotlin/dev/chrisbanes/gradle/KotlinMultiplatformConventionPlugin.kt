@@ -81,12 +81,10 @@ fun KotlinMultiplatformExtension.addDefaultHazeTargets(
   @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
   wasmJs {
     browser()
-    binaries.executable()
   }
 
   js {
     browser()
-    binaries.executable()
   }
 
   if (withSkikoMain) {
