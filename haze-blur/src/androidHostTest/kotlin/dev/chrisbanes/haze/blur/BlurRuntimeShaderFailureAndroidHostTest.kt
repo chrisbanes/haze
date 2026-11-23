@@ -153,6 +153,14 @@ class BlurRuntimeShaderFailureAndroidHostTest : ScreenshotTest() {
       runtimeFailure.takeIf { mask?.isCustomShaderBrush() == true }
     }
 
+  // Balanced, the default, runs the logical route below full capture scale.
+  @Test
+  @Config(sdk = [35])
+  fun customMask_balanced_injectedFailure_drawsLogicalPathWithItsMask() =
+    assertMatchesReference(style(mask = fadingBrush()), style(mask = fadingBrush()), mode = HazePerformanceMode.Balanced) { _, mask, _, _ ->
+      runtimeFailure.takeIf { mask?.isCustomShaderBrush() == true }
+    }
+
   // As on API 31–32, the logical route draws a progressive brush as a full blur under that brush.
   @Test
   @Config(sdk = [35])
@@ -287,12 +295,13 @@ class BlurRuntimeShaderFailureAndroidHostTest : ScreenshotTest() {
     style: HazeBlurStyle,
     reference: HazeBlurStyle,
     logicalRoute: Boolean = true,
+    mode: HazePerformanceMode = HazePerformanceMode.Quality,
     failure: FailureRule,
   ) = runScreenshotTest {
     val failing = FailureProbe(failure)
     val control = FailureProbe { _, _, _, _ -> null }
     var current by mutableStateOf(failing to style)
-    setContent { key(current) { FailureSplitContent(current.first, current.second) } }
+    setContent { key(current) { FailureSplitContent(current.first, current.second, mode) } }
     val recovered = frame()
     assertThat(failing.delegate.runtimeShaderFallback).isTrue()
     assertThat(failing.delegate.logicalPathActive, "logical route").isEqualTo(logicalRoute)
@@ -385,12 +394,12 @@ private class FailureProbe(private val rule: FailureRule) : HazeEffectFactory<Bl
 
 /** A black left half and a white right half, so blur is measurable across the vertical split. */
 @Composable
-private fun FailureSplitContent(probe: FailureProbe, style: HazeBlurStyle) {
+private fun FailureSplitContent(probe: FailureProbe, style: HazeBlurStyle, mode: HazePerformanceMode = HazePerformanceMode.Quality) {
   Box(Modifier.fillMaxSize().background(Color.Black)) {
     Row(
       Modifier
         .fillMaxSize()
-        .hazeEffect(factory = probe, input = HazeInput.Content, style = BlurConfiguration(style, HazePerformanceMode.Quality)),
+        .hazeEffect(factory = probe, input = HazeInput.Content, style = BlurConfiguration(style, mode)),
     ) {
       Box(Modifier.weight(1f).fillMaxHeight().background(Color.Black))
       Box(Modifier.weight(1f).fillMaxHeight().background(Color.White))
