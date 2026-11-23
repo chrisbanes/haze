@@ -90,6 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   draw no longer leaves a canvas layer open ([#1836](https://github.com/chrisbanes/haze/issues/1836)).
 - The web sample shows its unsupported-browser message instead of throwing when the browser cannot
   compile Wasm ([#1849](https://github.com/chrisbanes/haze/issues/1849)).
+- The macOS sample keeps its application delegate alive, so closing the last window quits the app
+  ([#1850](https://github.com/chrisbanes/haze/issues/1850)).
 - Glass containers no longer recluster their members each time a `HazeInput.Content` member's own
   content redraws ([#1846](https://github.com/chrisbanes/haze/issues/1846)).
 - Blur and Glass effects keep finite layer bounds, and apply their retention policy, while every
