@@ -204,14 +204,13 @@ internal class RenderScriptBlurVisualEffectDelegate(
     }
 
     val outputScale = completedCaptureScale ?: return
-    drawPresentation(context, contentLayer, offset, scaleFactor, outputScale)
+    drawPresentation(context, contentLayer, offset, outputScale)
   }
 
   internal fun DrawScope.drawPresentation(
     context: HazeEffectRuntimeDrawScope,
     output: GraphicsLayer?,
     offset: Offset,
-    scaleFactor: Float,
     captureScale: ScaleFactor,
   ) {
     val layer = presentationLayer.acquire(graphicsContext)
@@ -251,7 +250,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
             PaintPool.usePaint { paint ->
               paint.isAntiAlias = true
               paint.alpha = noiseFactor.coerceIn(0f, 1f)
-              paint.shader = noiseShaders.get(platformContext, scaleFactor)
+              paint.shader = noiseShaders.get(platformContext)
               paint.blendMode = BlendMode.SrcAtop
               drawContext.canvas.drawRect(expandedSize.toRect(), paint)
             }

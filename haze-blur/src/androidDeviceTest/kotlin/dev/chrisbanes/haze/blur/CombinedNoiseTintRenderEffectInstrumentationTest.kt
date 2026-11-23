@@ -56,18 +56,18 @@ class CombinedNoiseTintRenderEffectInstrumentationTest {
   @SdkSuppress(minSdkVersion = 33)
   fun sharedShader_matchesFreshReferenceAndRetainsSnapshots() {
     val cases = listOf(
-      Case(Color(0.2f, 0.6f, 0.9f, 0.4f), noise = 0.3f, scale = 1f),
-      Case(Color(0.2f, 0.6f, 0.9f, 0.4f), noise = 0.3f, scale = 1f, translucent = true),
-      Case(Color.Red.copy(alpha = 0.25f), noise = 0.1f, scale = 1f),
-      Case(Color.Red.copy(alpha = 0.25f), noise = 1.5f, scale = 0.5f),
-      Case(Color(0.9f, 0.2f, 0.1f, 0.5f, ColorSpaces.DisplayP3), noise = 0.5f, scale = 1f),
-      Case(Color.Transparent, noise = 1f, scale = 1f),
-      Case(Color.Transparent, noise = 0f, scale = 1f),
-      Case(Color.Green.copy(alpha = 0.5f), noise = 0.5f, scale = 0.5f, translucent = true),
+      Case(Color(0.2f, 0.6f, 0.9f, 0.4f), noise = 0.3f),
+      Case(Color(0.2f, 0.6f, 0.9f, 0.4f), noise = 0.3f, translucent = true),
+      Case(Color.Red.copy(alpha = 0.25f), noise = 0.1f),
+      Case(Color.Red.copy(alpha = 0.25f), noise = 1.5f),
+      Case(Color(0.9f, 0.2f, 0.1f, 0.5f, ColorSpaces.DisplayP3), noise = 0.5f),
+      Case(Color.Transparent, noise = 1f),
+      Case(Color.Transparent, noise = 0f),
+      Case(Color.Green.copy(alpha = 0.5f), noise = 0.5f, translucent = true),
     )
     val candidates = cases.map(::candidate)
     // Churn the shared shader as other nodes and animated cache misses do, then reuse old effects.
-    repeat(24) { candidate(Case(Color.Blue.copy(alpha = it / 24f), noise = it / 23f, scale = if (it % 2 == 0) 1f else 0.5f)) }
+    repeat(24) { candidate(Case(Color.Blue.copy(alpha = it / 24f), noise = it / 23f)) }
     val boxes = cases.indices.flatMap { listOf(candidates[it] to cases[it], reference(cases[it]) to cases[it]) } +
       listOf(candidates[0] to cases[0], candidates[4] to cases[4], candidates[0] to cases[0], null to cases[0])
     val pixels = render(boxes)
@@ -91,17 +91,17 @@ class CombinedNoiseTintRenderEffectInstrumentationTest {
   @SdkSuppress(minSdkVersion = 31, maxSdkVersion = 32)
   fun combinedEffect_isUnavailableBeforeApi33() {
     val input = RenderEffect.createOffsetEffect(0f, 0f)
-    assertThat(createCombinedNoiseTintRenderEffectOrNull(rule.activity, input, 0.5f, Color.Red, 1f)).isNull()
+    assertThat(createCombinedNoiseTintRenderEffectOrNull(rule.activity, input, 0.5f, Color.Red)).isNull()
   }
 
   private fun candidate(case: Case): ComposeRenderEffect = checkNotNull(
-    createCombinedNoiseTintRenderEffectOrNull(rule.activity, RenderEffect.createOffsetEffect(0f, 0f), case.noise, case.tint, case.scale),
+    createCombinedNoiseTintRenderEffectOrNull(rule.activity, RenderEffect.createOffsetEffect(0f, 0f), case.noise, case.tint),
   ).asComposeRenderEffect()
 
   /** The pre-reuse construction: a fresh RuntimeShader per effect. */
   private fun reference(case: Case): ComposeRenderEffect {
     val shader = RuntimeShader(COMBINED_NOISE_TINT_SKSL).apply {
-      setInputShader("noise", rule.activity.createNoiseShader(case.scale))
+      setInputShader("noise", rule.activity.createNoiseShader())
       setFloatUniform("noiseAlpha", case.noise.coerceIn(0f, 1f))
       setColorUniform("tintColor", case.tint.toArgb())
     }
@@ -161,7 +161,7 @@ class CombinedNoiseTintRenderEffectInstrumentationTest {
     }
 
   @Poko
-  private class Case(val tint: Color, val noise: Float, val scale: Float, val translucent: Boolean = false)
+  private class Case(val tint: Color, val noise: Float, val translucent: Boolean = false)
 
   private companion object {
     const val ROOT = "combined_noise_tint_root"
