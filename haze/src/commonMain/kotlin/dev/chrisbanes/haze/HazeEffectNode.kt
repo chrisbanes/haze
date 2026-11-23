@@ -1707,8 +1707,9 @@ internal class HazeEffectNode(
   }
   internal fun surfaceNativeEligible(): Boolean = !backdropBackendState.usesFallback || surfaceBudgetFallback
 
-  internal fun surfaceInputEntries(owner: LayoutCoordinates?): List<HazeSurfaceInputEntry> {
-    val transform = surfaceTransform(owner) ?: return emptyList()
+  /** Null means no drawable geometry (unlike an empty resolved selection). */
+  internal fun surfaceInputEntries(owner: LayoutCoordinates?): List<HazeSurfaceInputEntry>? {
+    val transform = surfaceTransform(owner) ?: return null
     return areas.mapNotNull { area ->
       val layer = area.drawableContentLayer ?: return@mapNotNull null
       require(!area.isContentDrawing) { "A relocated effect cannot sample its drawing ancestor source" }
