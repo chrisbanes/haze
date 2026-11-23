@@ -16,7 +16,7 @@ import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.TrimMemoryLevel
 import kotlin.test.Test
 
-/** The Scrim fallback keeps its masked-tint layer across draws and applies alpha without a layer. */
+/** The Scrim fallback keeps its masked-tint layer across draws; SrcOver tints apply alpha without a layer. */
 class ScrimBlurLayerReuseTest {
 
   private val verticalMask = Brush.verticalGradient(listOf(Color.Black, Color.Transparent))

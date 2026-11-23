@@ -119,6 +119,46 @@ class ScrimBlurBlendDestinationTest {
     assertThat(unmasked[10, 2]).isCloseTo(lerp(DST, Color.Red, 0.25f), TOLERANCE)
   }
 
+  @Test
+  fun draw_maskedSrcTint_fullAlpha_keepsDestinationWhereMaskIsTransparent() {
+    val pixels = Harness(alpha = 1f, mask = HARD_STOP_MASK, tint = HazeColorEffect.tint(SRC, BlendMode.Src)).draw()
+
+    assertThat(pixels[10, 2]).isCloseTo(SRC, TOLERANCE)
+    assertThat(pixels[10, 17]).isCloseTo(DST, 1f / 255f)
+  }
+
+  @Test
+  fun draw_maskedSrcTint_halfAlpha_keepsDestinationWhereMaskIsTransparent() {
+    val pixels = Harness(alpha = 0.5f, mask = HARD_STOP_MASK, tint = HazeColorEffect.tint(SRC, BlendMode.Src)).draw()
+
+    assertThat(pixels[10, 2]).isCloseTo(lerp(DST, SRC, 0.5f), TOLERANCE)
+    assertThat(pixels[10, 17]).isCloseTo(DST, 1f / 255f)
+  }
+
+  @Test
+  fun draw_maskedDstInTint_keepsDestinationWhereMaskIsTransparent() {
+    val pixels = Harness(alpha = 1f, mask = HARD_STOP_MASK, tint = HazeColorEffect.tint(SRC, BlendMode.DstIn)).draw()
+
+    assertThat(pixels[10, 17]).isCloseTo(DST, 1f / 255f)
+  }
+
+  @Test
+  fun draw_maskedSrcColorFilter_keepsDestinationWhereMaskIsTransparent() {
+    val tint = HazeColorEffect.colorFilter(ColorFilter.tint(Color.Red.copy(alpha = 0.5f)), BlendMode.Src)
+    val pixels = Harness(alpha = 1f, mask = HARD_STOP_MASK, tint = tint).draw()
+
+    assertThat(pixels[10, 2]).isCloseTo(lerp(DST, Color.Red, 0.5f), TOLERANCE)
+    assertThat(pixels[10, 17]).isCloseTo(DST, 1f / 255f)
+  }
+
+  @Test
+  fun draw_unmaskedSrcTint_halfAlpha_fadesOverDestination() {
+    val pixels = Harness(alpha = 0.5f, mask = null, tint = HazeColorEffect.tint(SRC, BlendMode.Src)).draw()
+
+    assertThat(pixels[10, 2]).isCloseTo(lerp(DST, SRC, 0.5f), TOLERANCE)
+    assertThat(pixels[10, 17]).isCloseTo(lerp(DST, SRC, 0.5f), TOLERANCE)
+  }
+
   private fun assertMaskedMultiply(tint: HazeColorEffect, alpha: Float) {
     val pixels = Harness(alpha = alpha, mask = HARD_STOP_MASK, tint = tint).draw()
 
