@@ -36,6 +36,7 @@ import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.createShaderRenderEffect
 import dev.chrisbanes.haze.then
 import dev.chrisbanes.haze.trace
+import dev.chrisbanes.haze.wrapRuntimeShaderConstruction
 
 private var noiseTexture: Bitmap? = null
 
@@ -47,14 +48,16 @@ internal actual fun ShaderBrush.createScaledShader(size: Size, scale: ScaleFacto
     return shader.apply { setLocalMatrix(Matrix().apply { setValues(floatArrayOf(scale.scaleX, 0f, offset.x, 0f, scale.scaleY, offset.y, 0f, 0f, 1f)) }) }
   }
   if (Build.VERSION.SDK_INT >= 33) {
-    return RuntimeShader(
-      """
-        uniform shader source;
-        uniform float2 scale;
-        uniform float2 origin;
-        half4 main(float2 coord) { return source.eval((coord - origin) / scale); }
-      """.trimIndent(),
-    ).apply {
+    return wrapRuntimeShaderConstruction {
+      RuntimeShader(
+        """
+          uniform shader source;
+          uniform float2 scale;
+          uniform float2 origin;
+          half4 main(float2 coord) { return source.eval((coord - origin) / scale); }
+        """.trimIndent(),
+      )
+    }.apply {
       setInputShader("source", shader)
       setFloatUniform("scale", scale.scaleX, scale.scaleY)
       setFloatUniform("origin", offset.x, offset.y)
