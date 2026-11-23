@@ -72,6 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Android Blur no longer keeps a previous draw's shader, colour filter or path effect on reused
+  internal paints, and reused paints keep Compose's default antialiasing
+  ([#1844](https://github.com/chrisbanes/haze/issues/1844)).
 - Android Blur falls back instead of crashing when a runtime shader cannot be built: the combined
   noise and tint pass uses the separate noise and tint effects, and progressive and custom-brush
   effects draw through the routes Android 12 uses until the effect is detached. A failed custom-brush
