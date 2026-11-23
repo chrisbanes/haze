@@ -21,6 +21,8 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
@@ -276,8 +278,9 @@ class BlurRenderEffectReuseAndroidHostTest : ScreenshotTest() {
   @Config(sdk = [32])
   fun customLogicalStage_reusesGraphAndReleasesLayerOnClear() = runScreenshotTest {
     val shader = android.graphics.LinearGradient(0f, 0f, 0f, 80f, android.graphics.Color.BLACK, android.graphics.Color.TRANSPARENT, android.graphics.Shader.TileMode.CLAMP)
+    var shaders = 0
     val brush = object : ShaderBrush() {
-      override fun createShader(size: Size): Shader = shader
+      override fun createShader(size: Size): Shader = shader.also { shaders++ }
     }
     val style = HazeBlurStyle {
       blurRadius(8.dp)
@@ -290,11 +293,13 @@ class BlurRenderEffectReuseAndroidHostTest : ScreenshotTest() {
     frame()
     val retained = checkNotNull(probe.delegate.logicalLayer.layer)
     val cold = probe.counts()
+    val coldShaders = shaders
     listOf(Color.Red, Color.Green, Color.Blue).forEach {
       content = it
       frame()
     }
     val delta = probe.counts() - cold
+    assertThat(shaders - coldShaders, "unchanged mask shader builds").isEqualTo(0)
     assertThat(probe.delegate.logicalLayer.layer).isSameInstanceAs(retained)
     assertThat(retained.isReleased).isFalse()
     assertThat(delta.wraps, "unchanged logical blur wrapper").isEqualTo(0)
@@ -460,6 +465,52 @@ class BlurRenderEffectReuseAndroidHostTest : ScreenshotTest() {
     attachment++
     frame()
 
+    assertThat(maxDifference(repeated, captureRootPixels())).isLessThan(0.01f)
+  }
+
+  @Test
+  @Config(sdk = [32])
+  fun api32_layeredCustomBrush_unchangedDrawsReuseShadersAndNoise() = assertLayeredCustomBrushReuse()
+
+  @Test
+  @Config(sdk = [32])
+  fun api32_layeredCustomBrushColorFilter_unchangedDrawsReuseShadersAndNoise() =
+    assertLayeredCustomBrushReuse(
+      HazeColorEffect.colorFilter(ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.5f) })),
+    )
+
+  private fun assertLayeredCustomBrushReuse(vararg extraEffects: HazeColorEffect) = runScreenshotTest {
+    val shader = android.graphics.LinearGradient(0f, 0f, 0f, 80f, android.graphics.Color.BLACK, android.graphics.Color.TRANSPARENT, android.graphics.Shader.TileMode.CLAMP)
+    var shaders = 0
+    val brush = object : ShaderBrush() {
+      override fun createShader(size: Size): Shader = shader.also { shaders++ }
+    }
+    val style = HazeBlurStyle {
+      blurRadius(24.dp)
+      noiseFactor(0.15f)
+      colorEffects(listOf(HazeColorEffect.tint(brush)) + extraEffects)
+      mask(brush)
+      progressive(HazeProgressive.verticalGradient(startIntensity = 0f, endIntensity = 1f))
+    }
+    val probe = Probe()
+    var content by mutableStateOf(Color.White)
+    var attachment by mutableStateOf(0)
+    setContent { key(attachment) { BlurContent(probe, style, content) } }
+    frame()
+    val coldShaders = shaders
+    val coldNoise = LogicalNoiseShaders.buildCount
+    listOf(Color.Red, Color.Green, Color.Blue).forEach {
+      content = it
+      frame()
+    }
+    val repeated = captureRootPixels()
+
+    assertThat(probe.delegate.bandSlotCount, "layered branch").isGreaterThan(2)
+    assertThat(shaders - coldShaders, "unchanged brush shader builds").isEqualTo(0)
+    assertThat(LogicalNoiseShaders.buildCount - coldNoise, "unchanged noise shader builds").isEqualTo(0)
+
+    attachment++
+    frame()
     assertThat(maxDifference(repeated, captureRootPixels())).isLessThan(0.01f)
   }
 

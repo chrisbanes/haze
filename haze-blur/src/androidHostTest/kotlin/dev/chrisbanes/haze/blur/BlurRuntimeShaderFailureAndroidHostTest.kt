@@ -185,17 +185,21 @@ class BlurRuntimeShaderFailureAndroidHostTest : ScreenshotTest() {
   @Config(sdk = [32])
   fun logicalPath_failureInsideAlphaLayer_restoresCanvas() = assertRestoresCanvas(
     style = { brush -> style(mask = brush, alpha = 0.8f) },
-    fail = { lookups, _ -> IllegalStateException("injected").takeIf { lookups >= 1 } },
+    fail = { lookups, _, _ -> IllegalStateException("injected").takeIf { lookups >= 1 } },
   )
 
   @Test
   @Config(sdk = [32])
   fun logicalPath_failureInsideColorFilterLayers_restoresCanvas() = assertRestoresCanvas(
     style = { brush ->
-      style(colorEffects = listOf(HazeColorEffect.tint(brush), HazeColorEffect.colorFilter(ColorFilter.tint(Color.Green.copy(alpha = 0.5f)))))
+      style(
+        colorEffects = listOf(HazeColorEffect.tint(brush), HazeColorEffect.colorFilter(ColorFilter.tint(Color.Green.copy(alpha = 0.5f)))),
+        noiseFactor = 0.15f,
+      )
     },
-    // The second shader is the replay inside both color-filter layers.
-    fail = { _, shaders -> IllegalStateException("injected").takeIf { shaders >= 2 } },
+    // Brush shaders are built once, outside the replay; the replayed noise layer sits inside the
+    // alpha, both color-filter and the noise layers.
+    fail = { _, _, depth -> IllegalStateException("injected").takeIf { depth >= 4 } },
   )
 
   @Test
@@ -207,8 +211,8 @@ class BlurRuntimeShaderFailureAndroidHostTest : ScreenshotTest() {
         colorEffects = listOf(HazeColorEffect.tint(brush)),
       )
     },
-    // The second band styles inside its own layer and the alpha layer.
-    fail = { _, shaders -> IllegalStateException("injected").takeIf { shaders >= 2 } },
+    // The first band styles inside its own layer and the alpha layer.
+    fail = { _, shaders, _ -> IllegalStateException("injected").takeIf { shaders >= 1 } },
   )
 
   @Test
@@ -221,7 +225,7 @@ class BlurRuntimeShaderFailureAndroidHostTest : ScreenshotTest() {
         alpha = 0.8f,
       )
     },
-    fail = { lookups, _ -> IllegalStateException("injected").takeIf { lookups >= 2 } },
+    fail = { lookups, _, _ -> IllegalStateException("injected").takeIf { lookups >= 2 } },
   )
 
   @Test
@@ -248,21 +252,24 @@ class BlurRuntimeShaderFailureAndroidHostTest : ScreenshotTest() {
    */
   private fun assertRestoresCanvas(
     style: (Brush) -> HazeBlurStyle,
-    fail: (lookups: Int, shaders: Int) -> Throwable?,
+    fail: (lookups: Int, shaders: Int, platformContextDepth: Int) -> Throwable?,
   ) = runScreenshotTest {
     var armed by mutableStateOf(true)
     var shaders = 0
     val brush = object : ShaderBrush() {
       override fun createShader(size: Size): Shader {
         if (armed) shaders++
-        fail(0, shaders)?.takeIf { armed }?.let { throw it }
+        fail(0, shaders, -1)?.takeIf { armed }?.let { throw it }
         return fadingShader(size)
       }
     }
     var lookups = 0
-    val failing = FailureDelegateHarness(style(brush)) {
+    val failing = FailureDelegateHarness(
+      style(brush),
+      failOnPlatformContext = { depth -> fail(0, 0, depth)?.takeIf { armed } },
+    ) {
       if (armed) lookups++
-      fail(lookups, 0)?.takeIf { armed }
+      fail(lookups, 0, -1)?.takeIf { armed }
     }
     val fresh = FailureDelegateHarness(style(brush)) { null }
     var current by mutableStateOf(failing)
@@ -421,9 +428,10 @@ private fun style(
   progressive: HazeProgressive? = null,
   colorEffects: List<HazeColorEffect> = emptyList(),
   alpha: Float = 1f,
+  noiseFactor: Float = 0f,
 ) = HazeBlurStyle {
   blurRadius(24.dp)
-  noiseFactor(0f)
+  noiseFactor(noiseFactor)
   colorEffects(colorEffects)
   mask(mask)
   progressive(progressive)
@@ -445,7 +453,11 @@ private fun fadingBrush(): Brush = object : ShaderBrush() {
  * Draws a [RenderEffectBlurVisualEffectDelegate] directly from `drawBehind`, catching what the draw
  * throws and recording the canvas save count around it.
  */
-private class FailureDelegateHarness(style: HazeBlurStyle, failOnLookup: () -> Throwable?) {
+private class FailureDelegateHarness(
+  style: HazeBlurStyle,
+  private val failOnPlatformContext: (layerDepth: Int) -> Throwable? = { null },
+  failOnLookup: () -> Throwable?,
+) {
   private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
   val effect = BlurVisualEffect(
     renderEffectSlotFactory = { FailingBlurRenderEffectSlot { _, _, _, _ -> failOnLookup() } },
@@ -490,7 +502,10 @@ private class FailureDelegateHarness(style: HazeBlurStyle, failOnLookup: () -> T
     override val hasDrawableInput = true
     override val inputSnapshot: HazeEffectInputSnapshot? = null
     override val coroutineScope = CoroutineScope(EmptyCoroutineContext)
-    override fun requirePlatformContext(): PlatformContext = context
+    override fun requirePlatformContext(): PlatformContext {
+      failOnPlatformContext(drawContext.canvas.nativeCanvas.saveCount - saveCountBefore)?.let { throw it }
+      return context
+    }
     override fun requireGraphicsContext(): GraphicsContext = graphics
     override fun requireDensity(): Density = Density(1f)
     override fun <T> currentValueOf(local: CompositionLocal<T>): T = error("Unused by the delegate")
