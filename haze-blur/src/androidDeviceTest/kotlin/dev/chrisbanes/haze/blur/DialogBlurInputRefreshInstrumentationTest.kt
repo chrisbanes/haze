@@ -129,6 +129,7 @@ class DialogBlurInputRefreshInstrumentationTest {
       try {
         val pixel = captureDialogCenterPixel()
         lastPixel = pixel
+        lastCaptureError = null
         if (predicate(pixel)) return pixel
       } catch (e: ComposeTimeoutException) {
         lastCaptureError = e
@@ -138,7 +139,7 @@ class DialogBlurInputRefreshInstrumentationTest {
       }
     }
     throw AssertionError(
-      "Dialog centre pixel did not match after ${MAX_POLLS + 1} captures; " +
+      "Dialog centre pixel did not match after ${MAX_POLLS + 1} capture attempts; " +
         "last pixel: ${lastPixel ?: "none"}",
       lastCaptureError,
     )

@@ -154,6 +154,7 @@ class GlassContainerDialogInputRefreshInstrumentationTest {
       try {
         val pixel = captureDialogCenterPixel()
         lastPixel = pixel
+        lastCaptureError = null
         if (predicate(pixel)) return pixel
       } catch (e: ComposeTimeoutException) {
         lastCaptureError = e
@@ -163,7 +164,7 @@ class GlassContainerDialogInputRefreshInstrumentationTest {
       }
     }
     throw AssertionError(
-      "Dialog centre pixel did not match after ${MAX_POLLS + 1} captures; " +
+      "Dialog centre pixel did not match after ${MAX_POLLS + 1} capture attempts; " +
         "last pixel: ${lastPixel ?: "none"}",
       lastCaptureError,
     )
