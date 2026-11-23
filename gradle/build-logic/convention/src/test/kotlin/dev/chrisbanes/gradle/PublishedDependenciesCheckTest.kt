@@ -34,6 +34,7 @@ class PublishedDependenciesCheckTest {
       {"variants": [{"name": "v", "dependencies": [{"group": "g", "module": "a", "version": {"requires": "$version"}}]}]}
     """.trimIndent()
 
-    assertThat(publishedDependencies(metadata("1"))).containsExactly(*publishedDependencies(metadata("2")).toTypedArray())
+    assertThat(publishedDependencies(metadata("1"))).containsExactly("v g:a")
+    assertThat(publishedDependencies(metadata("2"))).containsExactly("v g:a")
   }
 }
