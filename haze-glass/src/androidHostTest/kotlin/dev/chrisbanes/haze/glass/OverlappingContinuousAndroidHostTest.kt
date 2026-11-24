@@ -55,22 +55,22 @@ class OverlappingContinuousAndroidHostTest : ContextTest() {
     val sources = buildMap {
       for (interaction in flags) for (detail in flags) for (merged in flags) for (outset in flags) {
         val key = "interaction=$interaction detail=$detail merged=$merged outset=$outset"
-        put("fused $key", GlassShaders.buildFused(interaction, detail, merged, continuous = true, coverageOutset = outset))
-        put("fused circular optics $key", GlassShaders.buildFusedWithCircularOptics(interaction, detail, merged, outset))
+        put("fused $key", GlassShaders.buildFused(interaction, detail, merged, continuous = true, overlapping = true, coverageOutset = outset))
+        put("fused circular optics $key", GlassShaders.buildFusedWithCircularOptics(interaction, detail, merged, outset, overlapping = true))
       }
       for (interactive in flags) for (merged in flags) for (outset in flags) {
         val key = "interactive=$interactive merged=$merged outset=$outset"
-        put("optical $key", GlassShaders.buildOptical(interactive, merged, continuous = true, coverageOutset = outset))
-        put("detail circular optics $key", GlassShaders.buildRefractionDetailWithCircularOptics(interactive, merged, outset))
+        put("optical $key", GlassShaders.buildOptical(interactive, merged, continuous = true, overlapping = true, coverageOutset = outset))
+        put("detail circular optics $key", GlassShaders.buildRefractionDetailWithCircularOptics(interactive, merged, outset, overlapping = true))
         for (coverageOnly in flags) {
-          put("detail coverageOnly=$coverageOnly $key", GlassShaders.buildRefractionDetail(interactive, coverageOnly, merged, continuous = true, coverageOutset = outset))
+          put("detail coverageOnly=$coverageOnly $key", GlassShaders.buildRefractionDetail(interactive, coverageOnly, merged, continuous = true, overlapping = true, coverageOutset = outset))
         }
       }
       for (merged in flags) {
-        put("lighting merged=$merged", GlassShaders.buildInteractionLighting(merged, continuous = true))
-        put("rim merged=$merged", GlassShaders.buildRim(merged, continuous = true))
+        put("lighting merged=$merged", GlassShaders.buildInteractionLighting(merged, continuous = true, overlapping = true))
+        put("rim merged=$merged", GlassShaders.buildRim(merged, continuous = true, overlapping = true))
       }
-      put("merged background", GlassShaders.buildMergedBackground(continuous = true))
+      put("merged background", GlassShaders.buildMergedBackground(continuous = true, overlapping = true))
     }
     // SDK 35 enforces its program size limit when it builds a render effect, not when it parses.
     val rejected = sources.mapNotNull { (name, source) ->
@@ -83,23 +83,23 @@ class OverlappingContinuousAndroidHostTest : ContextTest() {
   }
 
   @Test
-  @Config(sdk = [35])
+  @Config(sdk = [35], qualifiers = "mdpi")
   fun sdk35_mergedFieldDrawsOverlappingLeaf() {
-    val source = GlassShaders.buildFused(merged = true, continuous = true)
+    val source = GlassShaders.buildFused(merged = true, continuous = true, overlapping = true)
     assertThat(render("merged-quality", source, merged = true, circularOptics = false)).isEmpty()
   }
 
   @Test
-  @Config(sdk = [35])
+  @Config(sdk = [35], qualifiers = "mdpi")
   fun sdk35_mergedFieldWithCircularOpticsDrawsOverlappingLeaf() {
-    val source = GlassShaders.buildFusedWithCircularOptics(merged = true)
+    val source = GlassShaders.buildFusedWithCircularOptics(merged = true, overlapping = true)
     assertThat(render("merged-circular-optics", source, merged = true, circularOptics = true)).isEmpty()
   }
 
   @Test
-  @Config(sdk = [35])
+  @Config(sdk = [35], qualifiers = "mdpi")
   fun sdk35_standaloneLeafDraws() {
-    val source = GlassShaders.buildFused(continuous = true)
+    val source = GlassShaders.buildFused(continuous = true, overlapping = true)
     assertThat(render("standalone", source, merged = false, circularOptics = false)).isEmpty()
   }
 
@@ -199,6 +199,18 @@ class OverlappingContinuousAndroidHostTest : ContextTest() {
               if (outline.size < 8) outline += "$name ${case.name} ($x, $y) sd ${"%.2f".format(sd)} color $color"
             }
           }
+        }
+      }
+      // These centres are outside the smoothed leaf and more than one pixel inside its circular
+      // control. Check both arcs: a circular silhouette or a missing second corner must show green.
+      for (probe in listOf(Offset(52.5f, 1.5f), Offset(47.5f, 98.5f))) {
+        val smoothed = placed.first().second + probe
+        val smoothedPixel = pixels[(smoothed.x * density).toInt(), (smoothed.y * density).toInt()]
+        if (smoothedPixel.green > 0.5f && smoothedPixel.red < 0.5f) failures += "$name circular silhouette at $probe: $smoothedPixel"
+        if (merged) {
+          val circular = placed[1].second + probe
+          val circularPixel = pixels[(circular.x * density).toInt(), (circular.y * density).toInt()]
+          if (circularPixel.green <= 0.5f || circularPixel.red >= 0.5f) failures += "$name circular control missing tint at $probe: $circularPixel"
         }
       }
       if (merged) {

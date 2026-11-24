@@ -94,6 +94,26 @@ class GlassMergedFieldTest {
   }
 
   @Test
+  fun cornerShader_selectsOverlapWhenOnlyTheLayoutFrameOverlaps() {
+    val drawn = Rect(0f, 0f, 200f, 100f)
+    val radii = CornerRadii(40f, 0f, 40f, 0f, 1f, 0f, 1f, 0f)
+    val member = member(drawn, radii).copy(layoutRect = Rect(0f, 0f, 100f, 100f))
+
+    assertThat(glassCornerShader(radii, drawn.size, null)).isEqualTo(GlassCornerShader.Continuous)
+    assertThat(mergedField(member).cornerShader).isEqualTo(GlassCornerShader.Overlapping)
+  }
+
+  @Test
+  fun cornerShader_mixedFieldWithACircularLeafPreservesBothArcs() {
+    val continuous = member(Rect(0f, 0f, 100f, 100f), CornerRadii(16f, 16f, 16f, 16f, 1f, 1f, 1f, 1f))
+    val circular = member(Rect(100f, 0f, 200f, 100f), CornerRadii(60f, 0f, 60f, 0f))
+
+    assertThat(mergedField(continuous).cornerShader).isEqualTo(GlassCornerShader.Continuous)
+    assertThat(mergedField(circular).cornerShader).isEqualTo(GlassCornerShader.Circular)
+    assertThat(mergedField(continuous, circular).cornerShader).isEqualTo(GlassCornerShader.Overlapping)
+  }
+
+  @Test
   fun withExactCorners_overlappingAdjacentExtentsMakeFieldCircular() {
     // The radii fit (80 <= 100), but the smoothed extents along the top edge (2 x 61) do not.
     val member = member(Rect(0f, 0f, 100f, 60f), CornerRadii(40f, 40f, 0f, 0f, 1f, 1f, 0f, 0f))

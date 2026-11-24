@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.ui.geometry.Size
 import assertk.assertThat
 import assertk.assertions.isEmpty
+import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotNull
@@ -88,7 +89,7 @@ class OverlappingContinuousCornerShaderTest {
   fun sdRoundedRect_firstCornerOnlyFailsInOverlappingCases() {
     // The pre-#1749 helper: a single selected corner. Every smoothed leaf must fail, so the
     // measurement detects a missing second corner.
-    val firstCornerOnly = GlassShaders.buildOptical(continuous = true).let { source ->
+    val firstCornerOnly = GlassShaders.buildOptical(continuous = true, overlapping = true).let { source ->
       val second = "if (corner.z <= 0.0) break;\n        sd = max(sd, roundedCornerSd("
       check(source.split(second).size == 2) { "expected one sdRoundedRect corner loop" }
       source.replace(second, "if (corner.z <= 0.0 || k > 0) break;\n        sd = max(sd, roundedCornerSd(")
@@ -117,7 +118,7 @@ class OverlappingContinuousCornerShaderTest {
     // The diagonal extents (2 x 61.15) exceed the shorter side but not the longer one, so the boxes
     // stay disjoint, as the fit before #1749 also allowed: no contribution may be suppressed.
     val case = OverlapCase("asymmetric100x200", 100.0, 200.0, 40.0, 0.0, 40.0, 0.0, 1.0, rtl = false)
-    val production = GlassShaders.buildOptical(continuous = true)
+    val production = GlassShaders.buildOptical(continuous = true, overlapping = true)
     val suppression = "vec4 cornerWeights = kept * vec4("
     check(production.split(suppression).size == 2) { "expected one suppressed corner weight" }
     val unsuppressed = production.replace(suppression, "vec4 cornerWeights = vec4(")
@@ -184,8 +185,49 @@ class OverlappingContinuousCornerShaderTest {
 
   @Test
   fun edgeRefractionGradient_overlappingCornerMatchesCornerAlone() {
-    val failures = OVERLAPPING_CASES.flatMap { case -> compareWithCornersAlone(case, NORMAL_EDGE_REFRACTION) }
+    val failures = OVERLAPPING_CASES.flatMap { case ->
+      compareWithCornersAlone(case, NORMAL_EDGE_REFRACTION, requireRectangleMargin = true)
+    }
     assertThat(failures).isEmpty()
+  }
+
+  @Test
+  fun edgeRefractionGradient_followsStraightEdgeAsTheOtherCornerBoxEnds() {
+    val leaf = OverlapCase("leaf40x60", 100.0, 100.0, 40.0, 0.0, 60.0, 0.0, 1.0, rtl = false)
+    val image = render(leaf, NORMAL_EDGE_REFRACTION)
+    for (x in 60..61) {
+      val (_, _, normalY) = image.at(x, 12)
+      assertThat(-normalY, "top-edge normal at x=$x").isGreaterThan(ALONE_DOT)
+    }
+  }
+
+  @Test
+  fun edgeRefractionGradient_staysContinuousWhenTheShaderVariantChanges() {
+    val factor = 1.0 + CONTINUOUS_CORNER_EXTENT_FACTOR
+    fun leaf(bottomRightExtent: Double) =
+      OverlapCase("asymmetric-threshold", 100.0, 140.0, 99.0 / factor, 0.0, bottomRightExtent / factor, 0.0, 1.0, rtl = false)
+
+    val before = render(leaf(40.99), NORMAL_EDGE_REFRACTION, GlassShaders.buildOptical(continuous = true))
+    val after = render(leaf(41.01), NORMAL_EDGE_REFRACTION)
+    val (_, ax, ay) = before.at(97, 70)
+    val (_, bx, by) = after.at(97, 70)
+    assertThat(ax * bx + ay * by).isGreaterThan(ALONE_DOT)
+  }
+
+  @Test
+  fun edgeRefractionGradient_widenedCircularOpticsKeepDisjointMemberPrecedence() {
+    val from = mergedMember(0f, 0f, 50f, 50f).copy(
+      cornerRadii = CornerRadii(25f, 0f, 0f, 0f, 1f),
+    )
+    val to = from.copy(cornerRadii = CornerRadii(25f, 0f, 25f, 0f))
+    val member = lerpGlassMergedMember(from, to, 0.6f)
+    assertThat(glassCornerShader(member.cornerRadii, member.rect.size, null)).isEqualTo(GlassCornerShader.Continuous)
+    val case = OverlapCase("disjoint-morph", 50.0, 50.0, 25.0, 0.0, 15.0, 0.0, 0.4, rtl = false)
+    val disjoint = render(case, NORMAL_EDGE_REFRACTION, GlassShaders.buildOptical(continuous = true), radii = member.cornerRadii)
+    val mixedField = render(case, NORMAL_EDGE_REFRACTION, radii = member.cornerRadii)
+    val (_, ax, ay) = disjoint.at(29, 29)
+    val (_, bx, by) = mixedField.at(29, 29)
+    assertThat(ax * bx + ay * by).isGreaterThan(ALONE_DOT)
   }
 
   // --- Harness ---
@@ -204,10 +246,22 @@ class OverlappingContinuousCornerShaderTest {
   private fun render(
     case: OverlapCase,
     normal: String,
-    production: String = GlassShaders.buildOptical(continuous = true),
+    production: String = GlassShaders.buildOptical(continuous = true, overlapping = true),
     only: Int? = null,
+    radii: CornerRadii? = null,
   ): ProbeImage {
-    val extents = FloatArray(4) { if (only == null || only == it) case.extents[it].toFloat() else 0f }
+    val fittedExtents = radii?.extents()
+    val extents = if (fittedExtents != null) {
+      floatArrayOf(fittedExtents.topLeft, fittedExtents.topRight, fittedExtents.bottomRight, fittedExtents.bottomLeft)
+    } else {
+      FloatArray(4) { if (only == null || only == it) case.extents[it].toFloat() else 0f }
+    }
+    val exponents = if (radii != null) {
+      floatArrayOf(radii.topLeftSmoothing, radii.topRightSmoothing, radii.bottomRightSmoothing, radii.bottomLeftSmoothing)
+        .map(::continuousCornerExponent).toFloatArray()
+    } else {
+      FloatArray(4) { case.exponents[it].toFloat() }
+    }
     val source = production.substringBefore("vec4 main(vec2 coord)") + """
       vec4 main(vec2 coord) {
         vec2 p = coord - vec2($PAD.0);
@@ -225,7 +279,7 @@ class OverlappingContinuousCornerShaderTest {
       uniform("materialSize", case.width.toFloat(), case.height.toFloat())
       uniform("sampleStep", SAMPLE_STEP_PX)
       uniform("cornerRadii", extents[0], extents[1], extents[2], extents[3])
-      uniform("cornerExponents", case.exponents[0].toFloat(), case.exponents[1].toFloat(), case.exponents[2].toFloat(), case.exponents[3].toFloat())
+      uniform("cornerExponents", exponents[0], exponents[1], exponents[2], exponents[3])
     }
     val width = case.width.toInt() + 2 * PAD
     val height = case.height.toInt() + 2 * PAD
@@ -332,7 +386,11 @@ class OverlappingContinuousCornerShaderTest {
    * reference's nearest boundary is that corner within the optical band inside the shape, at least
    * [CORNER_MARGIN_PX] nearer than any other piece. Overlapping a corner must not change its normal.
    */
-  private fun compareWithCornersAlone(case: OverlapCase, normal: String): List<String> {
+  private fun compareWithCornersAlone(
+    case: OverlapCase,
+    normal: String,
+    requireRectangleMargin: Boolean = false,
+  ): List<String> {
     val image = render(case, normal)
     val references = nearest(case)
     val failures = mutableListOf<String>()
@@ -343,6 +401,12 @@ class OverlappingContinuousCornerShaderTest {
         val ref = references.getValue(px to py)
         if (ref.piece != corner || ref.signedDistance > 0.0 || ref.signedDistance < -OPTICAL_BAND_PX) return@forEachProbe
         if (ref.otherDistance + ref.signedDistance < CORNER_MARGIN_PX) return@forEachProbe
+        if (requireRectangleMargin) {
+          // The overlap Edge shader blends with the rectangle where its distance approaches the
+          // arc's, including where the rectangle edge is continued into the corner box.
+          val rectangleSd = maxOf(-px, -py, px - case.width, py - case.height)
+          if (ref.signedDistance - rectangleSd < CORNER_MARGIN_PX) return@forEachProbe
+        }
         val x = (px - 0.5).toInt()
         val y = (py - 0.5).toInt()
         val (_, nx, ny) = image.at(x, y)

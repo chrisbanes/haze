@@ -16,6 +16,7 @@ internal object GlassShaders {
     merged: Boolean = false,
     continuous: Boolean = false,
     coverageOutset: Boolean = false,
+    overlapping: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -70,9 +71,9 @@ internal object GlassShaders {
       return clamp(coord, vec2(0.0), materialSize);
     }
 
-    ${sdfHelpers(continuous)}${mergedShapeHelpers(merged, continuous, tint = true)}${if (merged) MERGED_OPTICAL_HELPERS else ""}
+    ${sdfHelpers(continuous, overlapping)}${mergedShapeHelpers(merged, continuous, tint = true)}${if (merged) MERGED_OPTICAL_HELPERS else ""}
 
-    ${surfaceAndDisplacementHelpers(merged, continuous)}
+    ${surfaceAndDisplacementHelpers(merged, continuous, overlapping)}
 
     ${if (interactionOptics) interactionFalloffHelper() else ""}
 
@@ -229,9 +230,11 @@ internal object GlassShaders {
     sharpDetail: Boolean = true,
     merged: Boolean = false,
     coverageOutset: Boolean = false,
+    overlapping: Boolean = false,
   ): String = withCircularOptics(
     buildFused(interactionOptics, sharpDetail, merged, continuous = false, coverageOutset = coverageOutset),
     merged,
+    overlapping,
     if (merged) {
       listOf("memberDistancesAtCoord = memberDistances(localCoord);" to "memberDistancesAtCoord = silhouetteMemberDistances(localCoord);")
     } else {
@@ -249,9 +252,11 @@ internal object GlassShaders {
     interactive: Boolean = false,
     merged: Boolean = false,
     coverageOutset: Boolean = false,
+    overlapping: Boolean = false,
   ): String = withCircularOptics(
     buildRefractionDetail(interactive, coverageOnly = false, merged = merged, continuous = false, coverageOutset = coverageOutset),
     merged,
+    overlapping,
     if (merged) {
       listOf(
         "float outputSd = shapeSd(localCoord);" to
@@ -267,9 +272,10 @@ internal object GlassShaders {
   private const val SILHOUETTE_OUTPUT_SD = "float outputSd = silhouetteSd(localCoord, materialSize, cornerRadii, cornerExponents);"
 
   /** Renames a circular program's corner uniforms and swaps each replacement's distance for the continuous silhouette's. */
-  private fun withCircularOptics(source: String, merged: Boolean, replacements: List<Pair<String, String>>): String {
+  private fun withCircularOptics(source: String, merged: Boolean, overlapping: Boolean, replacements: List<Pair<String, String>>): String {
     var circular = source.replace("cornerRadii", "circularCornerRadii").replace("memberRadii", "memberCircularRadii")
-    val silhouetteSd = CONTINUOUS_SD_ROUNDED_RECT.substringAfter("vec2 cornerNormal")
+    val silhouetteSd = (if (overlapping) OVERLAPPING_SD_ROUNDED_RECT else CONTINUOUS_SD_ROUNDED_RECT)
+      .substringAfter("vec2 cornerNormal")
       .substringAfter("}\n")
       .replace("roundedCornerSd(", "silhouetteCornerSd(")
       .replace("sdRoundedRect(", "silhouetteSd(")
@@ -359,6 +365,7 @@ internal object GlassShaders {
     merged: Boolean = false,
     continuous: Boolean = false,
     coverageOutset: Boolean = false,
+    overlapping: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -396,9 +403,9 @@ internal object GlassShaders {
       return clamp(coord, vec2(0.0), materialSize);
     }
 
-    ${sdfHelpers(continuous)}${mergedShapeHelpers(merged, continuous, tint = true)}${if (merged) MERGED_OPTICAL_HELPERS else ""}
+    ${sdfHelpers(continuous, overlapping)}${mergedShapeHelpers(merged, continuous, tint = true)}${if (merged) MERGED_OPTICAL_HELPERS else ""}
 
-    ${surfaceAndDisplacementHelpers(merged, continuous)}
+    ${surfaceAndDisplacementHelpers(merged, continuous, overlapping)}
 
     ${if (interactive) interactionFalloffHelper() else ""}
 
@@ -518,6 +525,7 @@ internal object GlassShaders {
     merged: Boolean = false,
     continuous: Boolean = false,
     coverageOutset: Boolean = false,
+    overlapping: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -550,9 +558,9 @@ internal object GlassShaders {
     """
   }}
 
-    ${sdfHelpers(continuous)}${mergedShapeHelpers(merged, continuous)}${if (merged) MERGED_OPTICAL_HELPERS else ""}
+    ${sdfHelpers(continuous, overlapping)}${mergedShapeHelpers(merged, continuous)}${if (merged) MERGED_OPTICAL_HELPERS else ""}
 
-    ${surfaceAndDisplacementHelpers(merged, continuous)}
+    ${surfaceAndDisplacementHelpers(merged, continuous, overlapping)}
 
     ${if (interactive) interactionFalloffHelper() else ""}
 
@@ -626,7 +634,7 @@ internal object GlassShaders {
     }
   """
 
-  fun buildInteractionLighting(merged: Boolean = false, continuous: Boolean = false): String = """
+  fun buildInteractionLighting(merged: Boolean = false, continuous: Boolean = false, overlapping: Boolean = false): String = """
     uniform shader content;
     uniform float2 materialOrigin;
     uniform float2 materialSize;
@@ -634,7 +642,7 @@ internal object GlassShaders {
     uniform float edgeSoftness;
     ${if (merged) "" else interactionUniforms(includeRefraction = false, includeWhitePoint = false, includeLighting = true)}
 
-    ${sdfHelpers(continuous)}${if (merged) mergedFieldHelpers(continuous) + MERGED_LIGHTING_HELPERS else ""}
+    ${sdfHelpers(continuous, overlapping)}${if (merged) mergedFieldHelpers(continuous) + MERGED_LIGHTING_HELPERS else ""}
 
     ${if (merged) "" else interactionFalloffHelper()}
 
@@ -668,7 +676,7 @@ internal object GlassShaders {
     }
   """
 
-  fun buildRim(merged: Boolean = false, continuous: Boolean = false): String = """
+  fun buildRim(merged: Boolean = false, continuous: Boolean = false, overlapping: Boolean = false): String = """
     uniform shader content;
     uniform float2 sampleSize;
     uniform float2 materialOrigin;
@@ -694,7 +702,7 @@ internal object GlassShaders {
       return clamp(coord, vec2(0.0), materialSize);
     }
 
-    ${sdfShapeHelpers(continuous)}${mergedShapeHelpers(merged, continuous)}
+    ${sdfShapeHelpers(continuous, overlapping)}${mergedShapeHelpers(merged, continuous)}
 
     float materialSdf(vec2 localCoord) {
       return ${shapeSd(merged, "localCoord", continuous)};
@@ -775,14 +783,14 @@ $OUTLINE_GRADIENT
 """
 
   /** Fills the source with each merged member's background colour, blended across bridges. */
-  fun buildMergedBackground(continuous: Boolean = false): String = """
+  fun buildMergedBackground(continuous: Boolean = false, overlapping: Boolean = false): String = """
     uniform float2 materialOrigin;
     layout(color) uniform vec4 memberBackground0;
     layout(color) uniform vec4 memberBackground1;
     layout(color) uniform vec4 memberBackground2;
     layout(color) uniform vec4 memberBackground3;
 
-    ${sdfShapeHelpers(continuous)}
+    ${sdfShapeHelpers(continuous, overlapping)}
     ${mergedFieldHelpers(continuous)}
 
     vec4 main(vec2 coord) {
@@ -797,10 +805,10 @@ $OUTLINE_GRADIENT
     }
   """
 
-  private fun sdfHelpers(continuous: Boolean): String = """
-    ${sdfShapeHelpers(continuous)}
+  private fun sdfHelpers(continuous: Boolean, overlapping: Boolean): String = """
+    ${sdfShapeHelpers(continuous, overlapping)}
 
-    ${sdfGradientHelpers(continuous)}
+    ${sdfGradientHelpers(continuous, overlapping)}
   """
 
   // A surface covering its node-bound edges extends coverage past the material by a fixed outset
@@ -850,7 +858,7 @@ $OUTLINE_GRADIENT
     SampleClamp.Sample -> "clamp(coord, vec2(0.5), sampleSize - vec2(0.5))"
   }
 
-  private fun sdfShapeHelpers(continuous: Boolean): String = """
+  private fun sdfShapeHelpers(continuous: Boolean, overlapping: Boolean): String = """
     float shapeCoverage(float sd, float pixelWidth) {
       // Pixel coverage is independent of the authored optical edge softness and density.
       // sampleStep is two physical pixels expressed in the current working coordinates.
@@ -871,7 +879,11 @@ $OUTLINE_GRADIENT
       return outside + inside;
     }
 
-    ${if (continuous) CONTINUOUS_SD_ROUNDED_RECT else CIRCULAR_SD_ROUNDED_RECT}
+    ${when {
+    overlapping -> OVERLAPPING_SD_ROUNDED_RECT
+    continuous -> CONTINUOUS_SD_ROUNDED_RECT
+    else -> CIRCULAR_SD_ROUNDED_RECT
+  }}
 
     vec2 safeNormalize(vec2 value, vec2 fallback) {
       float len = length(value);
@@ -879,7 +891,7 @@ $OUTLINE_GRADIENT
     }
   """
 
-  private fun sdfGradientHelpers(continuous: Boolean): String = """
+  private fun sdfGradientHelpers(continuous: Boolean, overlapping: Boolean): String = """
     vec4 reversedSmootherstep(vec4 t) {
       t = clamp(t, 0.0, 1.0);
       return vec4(1.0) - t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
@@ -904,11 +916,11 @@ $OUTLINE_GRADIENT
         max(totalWeight, 0.0001);
     }
 
-    ${if (continuous) CONTINUOUS_GRAD_SD_ROUNDED_RECT else CIRCULAR_GRAD_SD_ROUNDED_RECT}
+    ${if (continuous) continuousGradient(overlapping) else CIRCULAR_GRAD_SD_ROUNDED_RECT}
 
   """
 
-  private fun surfaceAndDisplacementHelpers(merged: Boolean, continuous: Boolean): String = """
+  private fun surfaceAndDisplacementHelpers(merged: Boolean, continuous: Boolean, overlapping: Boolean): String = """
     float circleMap(float x) {
       return 1.0 - sqrt(max(0.0, 1.0 - x * x));
     }
@@ -1022,9 +1034,13 @@ $OUTLINE_GRADIENT
       return mix(heightNorm, foldTarget, foldWeight);
     }
 
-    ${if (continuous) CONTINUOUS_EDGE_REFRACTION_GRADIENT else CIRCULAR_EDGE_REFRACTION_GRADIENT}
+    ${when {
+    overlapping -> OVERLAPPING_EDGE_REFRACTION_GRADIENT
+    continuous -> CONTINUOUS_EDGE_REFRACTION_GRADIENT
+    else -> CIRCULAR_EDGE_REFRACTION_GRADIENT
+  }}
 
-    ${if (merged) MERGED_REFRACTION_GRADIENT else ""}${evaluateRefraction(merged, continuous)}${standaloneRefraction(merged, continuous)}    vec2 refractionDisplacement(vec2 p, float heightNorm, float distance, float multiplier, float weight${sampleDisplacementArgument(merged, declaration = true)}) {
+    ${if (merged) MERGED_REFRACTION_GRADIENT else ""}${evaluateRefraction(merged, continuous)}${standaloneRefraction(merged, overlapping)}    vec2 refractionDisplacement(vec2 p, float heightNorm, float distance, float multiplier, float weight${sampleDisplacementArgument(merged, declaration = true)}) {
       vec2 mergedResult = evaluateRefraction(
         p, heightNorm, distance, multiplier, weight, materialSize, cornerRadii, ${ifContinuous(continuous, "cornerExponents, ")}refractionHeight, $merged${if (merged) ", w" else ""}
       );
@@ -1047,9 +1063,9 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
         float sd = sdRoundedRect(local, size, radii${ifContinuous(continuous, ", exponents")});
         float optical = opticalDistance(local, sd, field, size, refractionHeight);
         float height = surfaceHeightNormFromOpticalDistance(optical);
-        vec2 standalone = ${if (continuous) "evaluateStandaloneRefraction" else "evaluateRefraction"}(
+        vec2 standalone = ${if (overlapping) "evaluateStandaloneRefraction" else "evaluateRefraction"}(
           local, height, edgeRefractionWidth >= 0.0 ? max(-sd, 0.0) : optical,
-          multiplier, field, size, radii, ${ifContinuous(continuous, "exponents, ")}refractionHeight, false${if (continuous) "" else ", w"}
+          multiplier, field, size, radii, ${ifContinuous(continuous, "exponents, ")}refractionHeight, false${if (overlapping) "" else ", w"}
         );
         // Sampling reads through the press transform, so it keeps the unpressed displacement.
         sampleDisplacement += shares[i] * (standalone - mergedResult);
@@ -1127,8 +1143,8 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
    * otherwise expand them, and the two-corner continuous distance leaves no room for that within
    * Android 15's program size limit (#1749).
    */
-  private fun standaloneRefraction(merged: Boolean, continuous: Boolean): String =
-    if (merged && continuous) "    " + evaluateRefraction(merged = false, continuous = true, name = "evaluateStandaloneRefraction") else ""
+  private fun standaloneRefraction(merged: Boolean, overlapping: Boolean): String =
+    if (merged && overlapping) "    " + evaluateRefraction(merged = false, continuous = true, name = "evaluateStandaloneRefraction") else ""
 
   private fun opticalHelpers(merged: Boolean, continuous: Boolean): String = """
     vec2 surfaceGradient(vec2 localCoord, float fieldWeight) {
@@ -1413,13 +1429,8 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
       return sd;
     }"""
 
-  /**
-   * Corner radii carry corner extents and `exponents` their superellipse exponents. The fit keeps
-   * adjacent corner boxes disjoint, so at most two diagonal corners apply at a point (#1749). Android
-   * 15's software pipeline rejects a program whose fully expanded size is too large, so the helper
-   * stays small: see [standaloneRefraction].
-   */
-  private const val CONTINUOUS_SD_ROUNDED_RECT = """// Corner radii are corner extents. An exponent above 2 makes a continuous (superellipse)
+  // Corner radii carry the fitted extents and exponents carry their superellipse exponents.
+  private const val CONTINUOUS_CORNER_HELPERS = """// Corner radii are corner extents. An exponent above 2 makes a continuous (superellipse)
     // corner; 2 keeps the exact circular arc. delta is measured from the corner box's centre.
     float cornerNorm(vec2 delta, float extent, float exponent) {
       if (exponent <= 2.0) return length(delta) / max(extent, 0.0001);
@@ -1442,7 +1453,37 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
       return (norm - 1.0) * extent / max(length(g), 0.0001);
     }
 
-    // Corner k (0 or 1) of those whose boxes contain localCoord, as (delta, extent, exponent), or
+"""
+
+  private const val CONTINUOUS_SD_ROUNDED_RECT = CONTINUOUS_CORNER_HELPERS + """    float sdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents) {
+      float sd = sdRectangle(localCoord, size);
+      // Normalized corner boxes are disjoint, so at most one corner applies.
+      vec2 delta;
+      float extent = 0.0;
+      float exponent = 2.0;
+      if (localCoord.x < radii.x && localCoord.y < radii.x) {
+        delta = localCoord - vec2(radii.x);
+        extent = radii.x;
+        exponent = exponents.x;
+      } else if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
+        delta = localCoord - vec2(size.x - radii.y, radii.y);
+        extent = radii.y;
+        exponent = exponents.y;
+      } else if (localCoord.x > size.x - radii.z && localCoord.y > size.y - radii.z) {
+        delta = localCoord - vec2(size.x - radii.z, size.y - radii.z);
+        extent = radii.z;
+        exponent = exponents.z;
+      } else if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
+        delta = localCoord - vec2(radii.w, size.y - radii.w);
+        extent = radii.w;
+        exponent = exponents.w;
+      } else {
+        return sd;
+      }
+      return max(sd, roundedCornerSd(delta, extent, exponent));
+    }"""
+
+  private const val OVERLAPPING_SD_ROUNDED_RECT = CONTINUOUS_CORNER_HELPERS + """    // Corner k (0 or 1) of those whose boxes contain localCoord, as (delta, extent, exponent), or
     // zero. Adjacent boxes are disjoint and only diagonal boxes can overlap, so there are at most
     // two; the first is the one a single-corner search finds.
     vec4 containingCorner(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents, int k) {
@@ -1518,35 +1559,7 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
       return mix(rectangleGradient, cornerGradient, cornerWeight);
     }"""
 
-  private const val CONTINUOUS_GRAD_SD_ROUNDED_RECT = """// The containing corner whose surface bounds sdRoundedRect at localCoord, or zero: where two
-    // diagonal corner boxes overlap, the one with the larger distance.
-    vec4 boundingCorner(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents) {
-      vec4 first = containingCorner(localCoord, size, radii, exponents, 0);
-      if (!diagonalBoxesOverlap(size, radii)) return first;
-      vec4 second = containingCorner(localCoord, size, radii, exponents, 1);
-      // Distances are compared only where two boxes overlap, so a single corner costs no pow.
-      if (second.z > 0.0 && roundedCornerSd(second.xy, second.z, second.w) > roundedCornerSd(first.xy, first.z, first.w)) {
-        return second;
-      }
-      return first;
-    }
-
-    vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents, float blendWidth) {
-      vec2 rectangleGradient = gradSdRectangle(localCoord, size, blendWidth);
-      vec2 topLeftDelta = min(localCoord - vec2(radii.x), vec2(0.0));
-      vec2 topRightDelta = vec2(
-        max(localCoord.x - (size.x - radii.y), 0.0),
-        min(localCoord.y - radii.y, 0.0)
-      );
-      vec2 bottomRightDelta = max(
-        localCoord - vec2(size.x - radii.z, size.y - radii.z),
-        vec2(0.0)
-      );
-      vec2 bottomLeftDelta = vec2(
-        min(localCoord.x - radii.w, 0.0),
-        max(localCoord.y - (size.y - radii.w), 0.0)
-      );
-      // A corner's clamped delta spans its whole row and column. Where diagonal corner boxes
+  private const val CORNER_WEIGHT_SUPPRESSION = """      // A corner's clamped delta spans its whole row and column. Where diagonal corner boxes
       // overlap, that reaches into the opposite corner's box, so the contribution fades out with
       // depth into that box, unless the corner owns the point: its first-order distance, from the
       // clamped delta that continues as its edge's distance past the box, is the larger. Both fade
@@ -1579,7 +1592,24 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
           kept.yw = mix(vec2(1.0), max(faded.yw, ownership), strength);
         }
       }
-      vec4 cornerWeights = kept * vec4(
+"""
+
+  private fun continuousGradient(overlapping: Boolean): String = """vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, vec4 exponents, float blendWidth) {
+      vec2 rectangleGradient = gradSdRectangle(localCoord, size, blendWidth);
+      vec2 topLeftDelta = min(localCoord - vec2(radii.x), vec2(0.0));
+      vec2 topRightDelta = vec2(
+        max(localCoord.x - (size.x - radii.y), 0.0),
+        min(localCoord.y - radii.y, 0.0)
+      );
+      vec2 bottomRightDelta = max(
+        localCoord - vec2(size.x - radii.z, size.y - radii.z),
+        vec2(0.0)
+      );
+      vec2 bottomLeftDelta = vec2(
+        min(localCoord.x - radii.w, 0.0),
+        max(localCoord.y - (size.y - radii.w), 0.0)
+      );
+${if (overlapping) CORNER_WEIGHT_SUPPRESSION else ""}      vec4 cornerWeights = ${if (overlapping) "kept * " else ""}vec4(
         smootherstep(clamp(cornerNorm(topLeftDelta, radii.x, exponents.x), 0.0, 1.0)),
         smootherstep(clamp(cornerNorm(topRightDelta, radii.y, exponents.y), 0.0, 1.0)),
         smootherstep(clamp(cornerNorm(bottomRightDelta, radii.z, exponents.z), 0.0, 1.0)),
@@ -1643,12 +1673,29 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
         exponents.z > 2.0 ? customRadii.z : widened.z,
         exponents.w > 2.0 ? customRadii.w : widened.w
       );
-      // Where diagonal continuous corner boxes overlap, the bounding corner applies.
-      vec4 bounding = boundingCorner(localCoord, size, radii, exponents);
-      vec2 delta = bounding.xy;
-      float exponent = bounding.w;
+      vec2 delta = vec2(0.0);
+      float exponent = 2.0;
+      bool corner = false;
+      if (localCoord.x < radii.x && localCoord.y < radii.x) {
+        delta = localCoord - vec2(radii.x);
+        exponent = exponents.x;
+        corner = true;
+      } else if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
+        delta = localCoord - vec2(size.x - radii.y, radii.y);
+        exponent = exponents.y;
+        corner = true;
+      } else if (localCoord.x > size.x - radii.z &&
+          localCoord.y > size.y - radii.z) {
+        delta = localCoord - vec2(size.x - radii.z, size.y - radii.z);
+        exponent = exponents.z;
+        corner = true;
+      } else if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
+        delta = localCoord - vec2(radii.w, size.y - radii.w);
+        exponent = exponents.w;
+        corner = true;
+      }
       float blendWidth = max(sampleStep * 0.5, 0.01);
-      if (bounding.z <= 0.0) return gradSdRectangle(localCoord, size, blendWidth);
+      if (!corner) return gradSdRectangle(localCoord, size, blendWidth);
       float cornerDistance = length(delta);
       float axisDistance = min(abs(delta.x), abs(delta.y));
       vec2 normal = exponent > 2.0
@@ -1663,6 +1710,49 @@ ${ifContinuous(continuous, "        vec4 exponents = memberCornerExponents[i];\n
         normal,
         cornerWeight
       );
+    }"""
+
+  private const val OVERLAPPING_EDGE_REFRACTION_GRADIENT = """vec2 edgeCornerGradientOffset(vec4 corner, vec2 rectangle, float blendWidth) {
+      float axisDistance = min(abs(corner.x), abs(corner.y));
+      vec2 normal = safeNormalize(cornerNormal(corner.xy, corner.w), vec2(0.0));
+      return (normal - rectangle) * smootherstep(axisDistance / blendWidth);
+    }
+
+    vec2 edgeRefractionGradient(vec2 localCoord, vec2 size, vec4 customRadii, vec4 exponents) {
+      // Only geometric overlap changes how corner normals compete. Widened optical regions
+      // keep the original first-corner precedence on disjoint members of a mixed field.
+      float blendWidth = max(sampleStep * 0.5, 0.01);
+      float overlap = max(customRadii.x + customRadii.z, customRadii.y + customRadii.w) - max(size.x, size.y);
+      bool continuous = max(max(exponents.x, exponents.y), max(exponents.z, exponents.w)) > 2.0;
+      float strength = continuous ? smootherstep(overlap / blendWidth) : 0.0;
+      vec4 widened = min(customRadii * 1.5, vec4(min(size.x, size.y) * 0.5));
+      vec4 opticalRadii = vec4(
+        exponents.x > 2.0 ? customRadii.x : widened.x,
+        exponents.y > 2.0 ? customRadii.y : widened.y,
+        exponents.z > 2.0 ? customRadii.z : widened.z,
+        exponents.w > 2.0 ? customRadii.w : widened.w
+      );
+      vec4 radii = mix(opticalRadii, customRadii, strength);
+      vec2 rectangle = gradSdRectangle(localCoord, size, blendWidth);
+      vec4 first = containingCorner(localCoord, size, radii, exponents, 0);
+      if (first.z <= 0.0) return rectangle;
+      vec2 firstOffset = edgeCornerGradientOffset(first, rectangle, blendWidth);
+      if (strength <= 0.0) return rectangle + firstOffset;
+      // Fade into the rectangle field when it bounds the shape or the corners tie.
+      float rectangleSd = sdRectangle(localCoord, size);
+      float ownershipWidth = blendWidth * 0.5;
+      float firstSd = roundedCornerSd(first.xy, first.z, first.w);
+      float otherSd = rectangleSd;
+      vec2 secondOffset = vec2(0.0);
+      vec4 second = containingCorner(localCoord, size, radii, exponents, 1);
+      if (second.z > 0.0) {
+        float secondSd = roundedCornerSd(second.xy, second.z, second.w);
+        float secondWeight = smootherstep((secondSd - max(firstSd, rectangleSd)) / ownershipWidth);
+        secondOffset = edgeCornerGradientOffset(second, rectangle, blendWidth) * secondWeight;
+        otherSd = max(rectangleSd, secondSd);
+      }
+      float firstWeight = smootherstep((firstSd - otherSd) / ownershipWidth);
+      return rectangle + firstOffset * mix(1.0, firstWeight, strength) + secondOffset * strength;
     }"""
 
   /**

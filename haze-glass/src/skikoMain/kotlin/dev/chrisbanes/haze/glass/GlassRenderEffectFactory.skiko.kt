@@ -41,13 +41,21 @@ private val GlassContinuousMergedRimEffect by lazyGlassProgram {
 private val GlassContinuousMergedBackgroundEffect by lazyGlassProgram {
   RuntimeEffect.makeForShader(GlassShaders.buildMergedBackground(continuous = true))
 }
+private val GlassOverlappingRimEffect by lazyGlassProgram {
+  RuntimeEffect.makeForShader(GlassShaders.buildRim(continuous = true, overlapping = true))
+}
+private val GlassOverlappingMergedRimEffect by lazyGlassProgram {
+  RuntimeEffect.makeForShader(GlassShaders.buildRim(merged = true, continuous = true, overlapping = true))
+}
+private val GlassOverlappingMergedBackgroundEffect by lazyGlassProgram {
+  RuntimeEffect.makeForShader(GlassShaders.buildMergedBackground(continuous = true, overlapping = true))
+}
 
-internal actual fun createGlassRimBrushProvider(merged: Boolean, continuous: Boolean): GlassRimBrushProvider? {
-  val effect = when {
-    merged && continuous -> GlassContinuousMergedRimEffect
-    merged -> GlassMergedRimEffect
-    continuous -> GlassContinuousRimEffect
-    else -> GlassRimEffect
+internal actual fun createGlassRimBrushProvider(merged: Boolean, corners: GlassCornerShader): GlassRimBrushProvider? {
+  val effect = when (corners) {
+    GlassCornerShader.Circular -> if (merged) GlassMergedRimEffect else GlassRimEffect
+    GlassCornerShader.Continuous -> if (merged) GlassContinuousMergedRimEffect else GlassContinuousRimEffect
+    GlassCornerShader.Overlapping -> if (merged) GlassOverlappingMergedRimEffect else GlassOverlappingRimEffect
   } ?: return null
   return runCatchingGlassRim { SkiaGlassRimBrushProvider(effect) }.getOrNull()
 }
@@ -68,9 +76,13 @@ internal class SkiaGlassRimBrushProvider(internal val effect: RuntimeEffect) : G
 internal actual fun DrawScope.supportsGlassRimBrush(): Boolean = true
 
 internal actual fun createGlassMergedBackgroundShaderProvider(
-  continuous: Boolean,
+  corners: GlassCornerShader,
 ): GlassMergedBackgroundShaderProvider? {
-  val effect = (if (continuous) GlassContinuousMergedBackgroundEffect else GlassMergedBackgroundEffect) ?: return null
+  val effect = when (corners) {
+    GlassCornerShader.Circular -> GlassMergedBackgroundEffect
+    GlassCornerShader.Continuous -> GlassContinuousMergedBackgroundEffect
+    GlassCornerShader.Overlapping -> GlassOverlappingMergedBackgroundEffect
+  } ?: return null
   return runCatchingGlassRim { SkiaGlassMergedBackgroundShaderProvider(effect) }.getOrNull()
 }
 

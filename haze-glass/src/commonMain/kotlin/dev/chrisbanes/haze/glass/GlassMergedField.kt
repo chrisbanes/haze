@@ -72,6 +72,44 @@ internal val GlassMergedField.isContinuous: Boolean
 internal fun continuousCorners(cornerRadii: CornerRadii, mergedField: GlassMergedField?): Boolean =
   mergedField?.isContinuous ?: cornerRadii.isContinuous
 
+internal enum class GlassCornerShader {
+  Circular,
+  Continuous,
+  Overlapping,
+  ;
+
+  val isContinuous: Boolean get() = this != Circular
+  val isOverlapping: Boolean get() = this == Overlapping
+}
+
+internal fun glassCornerShader(radii: CornerRadii, size: Size, field: GlassMergedField?): GlassCornerShader =
+  field?.cornerShader ?: when {
+    radii.isCircular -> GlassCornerShader.Circular
+    radii.diagonalBoxesOverlap(size.maxDimension) -> GlassCornerShader.Overlapping
+    else -> GlassCornerShader.Continuous
+  }
+
+internal val GlassMergedField.cornerShader: GlassCornerShader
+  get() = when {
+    !isContinuous -> GlassCornerShader.Circular
+    members.any { it.diagonalBoxesOverlap() } -> GlassCornerShader.Overlapping
+    else -> GlassCornerShader.Continuous
+  }
+
+private fun GlassMergedMember.diagonalBoxesOverlap(): Boolean {
+  val scale = minOf(rect.width / layoutRect.width, rect.height / layoutRect.height)
+  // Standalone refraction undoes the press scale and evaluates the member in its layout frame.
+  return cornerRadii.diagonalBoxesOverlap(rect.size.maxDimension, layoutRect.size.maxDimension, scale)
+}
+
+private fun CornerRadii.diagonalBoxesOverlap(span: Float, layoutSpan: Float = span, scale: Float = 1f): Boolean {
+  fun overlaps(first: Float, opposite: Float): Boolean =
+    first + opposite > span || (scale != 1f || layoutSpan < span) && first / scale + opposite / scale > layoutSpan
+
+  return overlaps(continuousCornerExtent(topLeft, topLeftSmoothing), continuousCornerExtent(bottomRight, bottomRightSmoothing)) ||
+    overlaps(continuousCornerExtent(topRight, topRightSmoothing), continuousCornerExtent(bottomLeft, bottomLeftSmoothing))
+}
+
 private const val EXTENT_ROUNDING_SLACK_PX = 0.01f
 
 /**
