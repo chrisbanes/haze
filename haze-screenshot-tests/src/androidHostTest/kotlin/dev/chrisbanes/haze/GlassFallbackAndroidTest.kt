@@ -225,7 +225,7 @@ class GlassFallbackAndroidTest : ScreenshotTest() {
 
   @Test
   fun fallback_continuousLeafEdgePixelsAreContinuous_api28() = runScreenshotTest {
-    // Overlapping corner boxes keep their radii and render circular.
+    // Each full-percent corner spans the shorter edge, so the fit leaves it circular.
     assertGlassRoundedEdgePixelsAreContinuous(ContinuousRoundedCornerShape(topStartPercent = 100, bottomEndPercent = 100))
   }
 
@@ -249,7 +249,7 @@ class GlassFallbackAndroidTest : ScreenshotTest() {
   @Test
   @Config(sdk = [32])
   fun fallback_continuousLeafEdgePixelsAreContinuous_api32() = runScreenshotTest {
-    // Overlapping corner boxes keep their radii and render circular.
+    // Each full-percent corner spans the shorter edge, so the fit leaves it circular.
     assertGlassRoundedEdgePixelsAreContinuous(ContinuousRoundedCornerShape(topStartPercent = 100, bottomEndPercent = 100))
   }
 

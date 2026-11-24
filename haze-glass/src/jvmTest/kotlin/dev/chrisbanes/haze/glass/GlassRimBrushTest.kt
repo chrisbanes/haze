@@ -151,7 +151,7 @@ class GlassRimBrushTest {
   @Test
   fun directRim_continuousCorners_edgeOutlineFollowsSmoothedShape() {
     val key = outlineKey().copy(cornerRadii = CornerRadii(18f, 18f, 18f, 18f, 1f, 1f, 1f, 1f))
-    val provider = checkNotNull(createGlassRimBrushProvider(merged = false, continuous = true))
+    val provider = checkNotNull(createGlassRimBrushProvider(corners = GlassCornerShader.Continuous))
     val pixels = drawBrush(checkNotNull(provider(key))).toPixelMap()
     val circular = drawBrush(checkNotNull(createGlassRimBrushProvider()?.invoke(outlineKey()))).toPixelMap()
 
@@ -206,7 +206,7 @@ class GlassRimBrushTest {
   fun directRim_edgeOutlineTopAndBottomStrengthOne_matchesUniformOutline() {
     val smoothed = CornerRadii(18f, 18f, 18f, 18f, 1f, 1f, 1f, 1f)
     for (continuous in listOf(false, true)) {
-      val provider = checkNotNull(createGlassRimBrushProvider(merged = false, continuous = continuous))
+      val provider = checkNotNull(createGlassRimBrushProvider(corners = if (continuous) GlassCornerShader.Continuous else GlassCornerShader.Circular))
       val outline = if (continuous) outlineKey().copy(cornerRadii = smoothed) else outlineKey()
       for (key in listOf(outline, circleOutlineKey())) {
         val expected = drawBrush(checkNotNull(provider(key)))

@@ -93,7 +93,7 @@ class GlassRimHighlightShaderTest {
   }
 
   private fun draw(key: GlassRimEffectKey, merged: Boolean = false): PixelMap {
-    val provider = checkNotNull(createGlassRimBrushProvider(merged, continuousCorners(key.cornerRadii, key.mergedField)))
+    val provider = checkNotNull(createGlassRimBrushProvider(merged, glassCornerShader(key.cornerRadii, key.coordinates.materialSize, key.mergedField)))
     return drawBrush(checkNotNull(provider(key))).toPixelMap()
   }
 

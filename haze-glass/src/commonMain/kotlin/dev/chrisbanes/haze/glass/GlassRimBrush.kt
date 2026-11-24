@@ -17,7 +17,7 @@ internal fun interface GlassRimBrushProvider {
 
 internal expect fun createGlassRimBrushProvider(
   merged: Boolean = false,
-  continuous: Boolean = false,
+  corners: GlassCornerShader = GlassCornerShader.Circular,
 ): GlassRimBrushProvider?
 
 internal expect fun DrawScope.supportsGlassRimBrush(): Boolean
@@ -28,7 +28,7 @@ internal fun interface GlassMergedBackgroundShaderProvider {
 }
 
 internal expect fun createGlassMergedBackgroundShaderProvider(
-  continuous: Boolean = false,
+  corners: GlassCornerShader = GlassCornerShader.Circular,
 ): GlassMergedBackgroundShaderProvider?
 
 internal fun DrawScope.drawGlassRimWithBrush(brush: Brush): Boolean {

@@ -21,8 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Glass supports continuous, iOS-style corners with the new `ContinuousRoundedCornerShape`, passed
   to `GlassStyle`'s `shape`. Masking, refraction, lighting, and the rim all follow the smoothed
-  corners, and the same shape works with `Modifier.clip` and `Modifier.border`
-  ([#1734](https://github.com/chrisbanes/haze/issues/1734)).
+  corners, and the same shape works with `Modifier.clip` and `Modifier.border`. Opposite corners
+  that overlap, as in a leaf, keep their smoothing, alone and in a `hazeGlassContainer`
+  ([#1734](https://github.com/chrisbanes/haze/issues/1734),
+  [#1749](https://github.com/chrisbanes/haze/issues/1749)).
 - Glass styles can draw a thin light band inside a surface's top and bottom edges with
   `rimHighlight(intensity, width, sides)`, where `sides` sets how strongly the left and right edges
   are lit. It follows merged container shapes
