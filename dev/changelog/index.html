@@ -7712,8 +7712,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>
 <p>Glass supports continuous, iOS-style corners with the new <code>ContinuousRoundedCornerShape</code>, passed
   to <code>GlassStyle</code>'s <code>shape</code>. Masking, refraction, lighting, and the rim all follow the smoothed
-  corners, and the same shape works with <code>Modifier.clip</code> and <code>Modifier.border</code>
-  (<a href="https://github.com/chrisbanes/haze/issues/1734">#1734</a>).</p>
+  corners, and the same shape works with <code>Modifier.clip</code> and <code>Modifier.border</code>. Opposite corners
+  that overlap, as in a leaf, keep their smoothing, alone and in a <code>hazeGlassContainer</code>
+  (<a href="https://github.com/chrisbanes/haze/issues/1734">#1734</a>,
+  <a href="https://github.com/chrisbanes/haze/issues/1749">#1749</a>).</p>
 </li>
 <li>Glass styles can draw a thin light band inside a surface's top and bottom edges with
   <code>rimHighlight(intensity, width, sides)</code>, where <code>sides</code> sets how strongly the left and right edges
