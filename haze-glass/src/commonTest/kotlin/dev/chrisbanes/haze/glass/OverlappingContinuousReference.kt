@@ -74,11 +74,6 @@ internal data class OverlapCase(
   fun centreX(i: Int): Double = if (SIGN_X[i] < 0) extents[i] else width - extents[i]
   fun centreY(i: Int): Double = if (SIGN_Y[i] < 0) extents[i] else height - extents[i]
 
-  /** Whether each edge's radii fit, so Compose/Skia normalization leaves the radii unchanged. */
-  val radiiNeedNoNormalization: Boolean
-    get() = radii[0] + radii[1] <= width && radii[3] + radii[2] <= width &&
-      radii[0] + radii[3] <= height && radii[1] + radii[2] <= height
-
   private fun edgeLimit(length: Double, first: Double, second: Double): Double {
     val sum = first + second
     if (sum <= 0.0) return 1.0
@@ -94,33 +89,23 @@ internal data class OverlapCase(
 /** The frozen #1749 cases: six geometries, smoothing 0, 0.5 and 1, LTR and RTL. */
 internal val OVERLAP_CASES: List<OverlapCase> = buildList {
   val geometries = listOf(
-    OverlapGeometry("leaf60", 100.0, 100.0, 60.0, 0.0, 60.0, 0.0),
-    OverlapGeometry("leaf70x55", 100.0, 100.0, 70.0, 0.0, 55.0, 0.0),
-    OverlapGeometry("mirroredLeaf70x55", 100.0, 100.0, 0.0, 70.0, 0.0, 55.0),
-    OverlapGeometry("diagonal40", 100.0, 100.0, 40.0, 0.0, 40.0, 0.0),
-    OverlapGeometry("capsule200x80", 200.0, 80.0, 40.0, 40.0, 40.0, 40.0),
-    OverlapGeometry("control200x100r16", 200.0, 100.0, 16.0, 16.0, 16.0, 16.0),
+    OverlapCase("leaf60", 100.0, 100.0, 60.0, 0.0, 60.0, 0.0, 0.0, false),
+    OverlapCase("leaf70x55", 100.0, 100.0, 70.0, 0.0, 55.0, 0.0, 0.0, false),
+    OverlapCase("mirroredLeaf70x55", 100.0, 100.0, 0.0, 70.0, 0.0, 55.0, 0.0, false),
+    OverlapCase("diagonal40", 100.0, 100.0, 40.0, 0.0, 40.0, 0.0, 0.0, false),
+    OverlapCase("capsule200x80", 200.0, 80.0, 40.0, 40.0, 40.0, 40.0, 0.0, false),
+    OverlapCase("control200x100r16", 200.0, 100.0, 16.0, 16.0, 16.0, 16.0, 0.0, false),
   )
   for (g in geometries) {
     for (s in listOf(0.0, 0.5, 1.0)) {
       for (rtl in listOf(false, true)) {
-        add(OverlapCase(g.name, g.width, g.height, g.topStart, g.topEnd, g.bottomEnd, g.bottomStart, s, rtl))
+        add(g.copy(requestedSmoothing = s, rtl = rtl))
       }
     }
   }
 }
 
-internal data class OverlapGeometry(
-  val name: String,
-  val width: Double,
-  val height: Double,
-  val topStart: Double,
-  val topEnd: Double,
-  val bottomEnd: Double,
-  val bottomStart: Double,
-)
-
-/** The nearest reference boundary point to a query, and the same for the best other boundary piece. */
+/** The nearest reference boundary point to a query, and the distance to the best other boundary piece. */
 internal data class OverlapNearest(
   val signedDistance: Double,
   val normalX: Double,
@@ -128,10 +113,6 @@ internal data class OverlapNearest(
   val piece: Int,
   /** Distance to the nearest point on any other piece, or infinity. */
   val otherDistance: Double,
-  val otherNormalX: Double,
-  val otherNormalY: Double,
-  /** Unsigned distance and signed-distance-gradient normal (x, y) to each reachable piece. */
-  val pieces: List<DoubleArray> = emptyList(),
   /**
    * Each distinct local distance minimum along the boundary, as (distance, normal x, normal y,
    * point x, point y), including two minima on the same piece.
@@ -183,8 +164,6 @@ internal class OverlapReference(val case: OverlapCase) {
     sampleEdge(7, 0.0, h, 0.0, 0.0, -1.0, 0.0)
     for (k in sx.indices step COARSE_STRIDE) coarse += k
   }
-
-  val sampleCount: Int get() = sx.size
 
   private fun add(x: Double, y: Double, nx: Double, ny: Double, piece: Int) {
     if (!inside(x, y, 1e-9)) return
@@ -286,12 +265,7 @@ internal class OverlapReference(val case: OverlapCase) {
       }
     }
     val (nx, ny) = normal(best)
-    val (onx, ony) = if (bestPerPiece[other] < Double.MAX_VALUE) normal(other) else 0.0 to 0.0
-    val pieces = bestPerPiece.indices.filter { bestPerPiece[it] < Double.MAX_VALUE }.map {
-      val (px, py) = normal(it)
-      doubleArrayOf(bestPerPiece[it], px, py)
-    }
-    return OverlapNearest(sign * bestPerPiece[best], nx, ny, best, bestPerPiece[other], onx, ony, pieces, localMinima(x, y, sign, visited))
+    return OverlapNearest(sign * bestPerPiece[best], nx, ny, best, bestPerPiece[other], localMinima(x, y, sign, visited))
   }
 
   /**

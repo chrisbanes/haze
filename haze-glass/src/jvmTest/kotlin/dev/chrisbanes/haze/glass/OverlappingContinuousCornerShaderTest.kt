@@ -330,7 +330,6 @@ class OverlappingContinuousCornerShaderTest {
       distanceMax <= OverlapThresholds.DISTANCE_PX && coverage >= OverlapThresholds.INTERIOR_COVERAGE
     val summary = "${case.name}: crossings $crossings/$referenceCrossings contourMax %.3f distanceMax %.3f coverage %.4f"
       .format(contourMax, distanceMax, coverage)
-    println("1749 $summary")
     return if (passes) null else summary
   }
 
@@ -344,26 +343,21 @@ class OverlappingContinuousCornerShaderTest {
     val references = nearest(case)
     val reference = OverlapReference(case)
     val failures = mutableListOf<String>()
-    var worst = 1.0
-    var probes = 0
     forEachProbe(case) { px, py ->
       val ref = references.getValue(px to py)
       if (ref.signedDistance < -OPTICAL_BAND_PX || ref.signedDistance > OverlapThresholds.DISTANCE_BAND_PX) return@forEachProbe
       if (reference.sharpCorners.any { (cx, cy) -> hypot(px - cx, py - cy) < OverlapThresholds.JOIN_EXCLUSION_PX }) return@forEachProbe
-      probes++
       val (sd, nx, ny) = image.at((px - 0.5).toInt(), (py - 0.5).toInt())
       val nearest = abs(ref.signedDistance)
       val tied = ref.minima.filter { it[0] - nearest < OverlapThresholds.TIE_PX }.map { it[1] to it[2] } + (ref.normalX to ref.normalY)
       val dot = tied.maxOf { (ax, ay) -> nx * ax + ny * ay }
       val between = tied.any { a -> tied.any { b -> isBetween(nx, ny, a, b) } }
-      worst = minOf(worst, if (between) 1.0 else dot)
       if (dot <= OverlapThresholds.NORMAL_DOT && !between && failures.size < 6) {
         failures += "${case.name} (%.1f, %.1f) sd %.2f ref %.2f dot %.4f angle %.1f°".format(
           px, py, sd, ref.signedDistance, dot, Math.toDegrees(atan2(ny, nx)),
         )
       }
     }
-    println("1749 ${case.name}: worst normal dot %.4f over %d probes within %.0f px".format(worst, probes, OPTICAL_BAND_PX))
     return failures
   }
 

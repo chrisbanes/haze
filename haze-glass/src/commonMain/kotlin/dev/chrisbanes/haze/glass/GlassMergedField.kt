@@ -85,7 +85,7 @@ internal enum class GlassCornerShader {
 internal fun glassCornerShader(radii: CornerRadii, size: Size, field: GlassMergedField?): GlassCornerShader =
   field?.cornerShader ?: when {
     radii.isCircular -> GlassCornerShader.Circular
-    radii.diagonalBoxesOverlap(size.maxDimension) -> GlassCornerShader.Overlapping
+    radii.extents().diagonalBoxesOverlap(size) -> GlassCornerShader.Overlapping
     else -> GlassCornerShader.Continuous
   }
 
@@ -96,18 +96,20 @@ internal val GlassMergedField.cornerShader: GlassCornerShader
     else -> GlassCornerShader.Continuous
   }
 
+/** The press scale from the member's layout frame to its drawn frame. */
+private val GlassMergedMember.layoutScale: Float
+  get() = minOf(rect.width / layoutRect.width, rect.height / layoutRect.height)
+
 private fun GlassMergedMember.diagonalBoxesOverlap(): Boolean {
-  val scale = minOf(rect.width / layoutRect.width, rect.height / layoutRect.height)
+  val extents = cornerRadii.extents()
   // Standalone refraction undoes the press scale and evaluates the member in its layout frame.
-  return cornerRadii.diagonalBoxesOverlap(rect.size.maxDimension, layoutRect.size.maxDimension, scale)
+  return extents.diagonalBoxesOverlap(rect.size) || (extents * (1f / layoutScale)).diagonalBoxesOverlap(layoutRect.size)
 }
 
-private fun CornerRadii.diagonalBoxesOverlap(span: Float, layoutSpan: Float = span, scale: Float = 1f): Boolean {
-  fun overlaps(first: Float, opposite: Float): Boolean =
-    first + opposite > span || (scale != 1f || layoutSpan < span) && first / scale + opposite / scale > layoutSpan
-
-  return overlaps(continuousCornerExtent(topLeft, topLeftSmoothing), continuousCornerExtent(bottomRight, bottomRightSmoothing)) ||
-    overlaps(continuousCornerExtent(topRight, topRightSmoothing), continuousCornerExtent(bottomLeft, bottomLeftSmoothing))
+/** Whether a diagonal pair of these corner extents can overlap in [size]. */
+private fun CornerRadii.diagonalBoxesOverlap(size: Size): Boolean {
+  val span = size.maxDimension
+  return topLeft + bottomRight > span || topRight + bottomLeft > span
 }
 
 private const val EXTENT_ROUNDING_SLACK_PX = 0.01f
@@ -124,9 +126,8 @@ internal fun List<GlassMergedMember>.withExactCorners(): List<GlassMergedMember>
     // The shader evaluates corner extents, which equal the radii for circular corners. Fitted
     // extents can fill an edge exactly, so allow float rounding.
     val extents = member.cornerRadii.extents()
-    val scale = minOf(member.rect.width / member.layoutRect.width, member.rect.height / member.layoutRect.height)
     extents.isRadiusDisjoint(member.rect.size, EXTENT_ROUNDING_SLACK_PX) &&
-      (extents * (1f / scale)).isRadiusDisjoint(member.layoutRect.size, EXTENT_ROUNDING_SLACK_PX)
+      (extents * (1f / member.layoutScale)).isRadiusDisjoint(member.layoutRect.size, EXTENT_ROUNDING_SLACK_PX)
   }
   return if (disjoint) this else map { it.copy(cornerRadii = it.cornerRadii.withoutSmoothing()) }
 }

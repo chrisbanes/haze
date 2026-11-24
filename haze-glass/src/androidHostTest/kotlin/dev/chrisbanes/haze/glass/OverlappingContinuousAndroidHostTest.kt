@@ -176,7 +176,6 @@ class OverlappingContinuousAndroidHostTest : ContextTest() {
       check(pixels.width >= node.width.toInt() && pixels.height >= node.height.toInt()) { "$name capture clipped: ${pixels.width}x${pixels.height}" }
       var green = 0
       var checked = 0
-      var mismatches = 0
       val outline = mutableListOf<String>()
       for ((case, origin) in placed) {
         val reference = OverlapReference(case)
@@ -191,11 +190,10 @@ class OverlappingContinuousAndroidHostTest : ContextTest() {
             val px = ((origin.x + x + 0.5) * density).toInt()
             val py = ((origin.y + y + 0.5) * density).toInt()
             val color = pixels[px, py]
-            val tinted = color.green > 0.5f && color.red < 0.5f
+            val tinted = color.isTint()
             checked++
             if (tinted) green++
             if (tinted != (sd < 0)) {
-              mismatches++
               if (outline.size < 8) outline += "$name ${case.name} ($x, $y) sd ${"%.2f".format(sd)} color $color"
             }
           }
@@ -206,11 +204,11 @@ class OverlappingContinuousAndroidHostTest : ContextTest() {
       for (probe in listOf(Offset(52.5f, 1.5f), Offset(47.5f, 98.5f))) {
         val smoothed = placed.first().second + probe
         val smoothedPixel = pixels[(smoothed.x * density).toInt(), (smoothed.y * density).toInt()]
-        if (smoothedPixel.green > 0.5f && smoothedPixel.red < 0.5f) failures += "$name circular silhouette at $probe: $smoothedPixel"
+        if (smoothedPixel.isTint()) failures += "$name circular silhouette at $probe: $smoothedPixel"
         if (merged) {
           val circular = placed[1].second + probe
           val circularPixel = pixels[(circular.x * density).toInt(), (circular.y * density).toInt()]
-          if (circularPixel.green <= 0.5f || circularPixel.red >= 0.5f) failures += "$name circular control missing tint at $probe: $circularPixel"
+          if (!circularPixel.isTint()) failures += "$name circular control missing tint at $probe: $circularPixel"
         }
       }
       if (merged) {
@@ -218,15 +216,16 @@ class OverlappingContinuousAndroidHostTest : ContextTest() {
         val bridge = pixels[(108f * density).toInt(), (165f * density).toInt()]
         if (bridge.green <= 0.5f) failures += "$name bridge midpoint not tinted: $bridge"
         val separate = pixels[(110f * density).toInt(), (55f * density).toInt()]
-        if (separate.green > 0.5f && separate.red < 0.5f) failures += "$name separate midpoint tinted: $separate"
+        if (separate.isTint()) failures += "$name separate midpoint tinted: $separate"
       }
       assertThat(checked, name).isGreaterThan(0)
       if (green == 0) failures += "$name drew no tint (blank)"
       failures += outline
-      println("1749 $name sourceLength ${source.length} tinted $green/$checked mismatches $mismatches")
     }
     return failures
   }
+
+  private fun Color.isTint() = green > 0.5f && red < 0.5f
 
   private companion object {
     const val TAG = "overlap-glass"
