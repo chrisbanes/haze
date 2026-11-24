@@ -18,11 +18,20 @@ import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.ui.PlayerView
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
+import assertk.assertions.prop
 import dev.chrisbanes.haze.test.ContextTest
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
+import org.robolectric.annotation.Config
 
+// Keeps the test off the network without changing the sample.
+@Config(
+  shadows = [ShadowDefaultHttpDataSource::class],
+  instrumentedPackages = ["androidx.media3.datasource"],
+)
 @OptIn(ExperimentalTestApi::class)
 class ExoPlayerSampleTest : ContextTest() {
   @Test
@@ -31,6 +40,7 @@ class ExoPlayerSampleTest : ContextTest() {
     val contextOverride = mutableStateOf<Context?>(null)
     var rootView: View? = null
     val releases = mutableListOf<ExoPlayer>()
+    ShadowDefaultHttpDataSource.requests.clear()
 
     fun playerView(view: View?): PlayerView? = when (view) {
       is PlayerView -> view
@@ -60,6 +70,11 @@ class ExoPlayerSampleTest : ContextTest() {
       },
     )
     assertThat(first.mediaItemCount).isEqualTo(1)
+    // The load reached the intercepted data source, so no connection was opened.
+    assertThat(ShadowDefaultHttpDataSource.requests.poll(10, TimeUnit.SECONDS))
+      .isNotNull()
+      .prop("host") { it.host }
+      .isEqualTo("commondatastorage.googleapis.com")
 
     // A different Context instance yields a new player through the sample's remember key.
     contextOverride.value = ContextWrapper(rootView!!.context)
