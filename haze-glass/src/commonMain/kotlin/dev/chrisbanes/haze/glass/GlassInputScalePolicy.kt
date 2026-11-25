@@ -33,7 +33,7 @@ internal fun HazePerformanceMode.resolveGlassLayerBlurSigma(): Float = when (thi
   is HazePerformanceMode.Fixed -> if (qualityFraction >= 1f) {
     0f
   } else {
-    MIN_LAYER_BLUR_SIGMA + (MAX_LAYER_BLUR_SIGMA - MIN_LAYER_BLUR_SIGMA) * qualityFraction.coerceIn(0f, 1f)
+    MIN_LAYER_BLUR_SIGMA + (MAX_LAYER_BLUR_SIGMA - MIN_LAYER_BLUR_SIGMA) * qualityFraction
   }
 }
 

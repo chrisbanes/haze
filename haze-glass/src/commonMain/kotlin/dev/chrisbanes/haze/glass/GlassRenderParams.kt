@@ -95,13 +95,13 @@ internal fun resolveGlassCoordinates(
   // A side with a margin rounds outwards, only growing the sample. A side without one rounds
   // inwards, under a pixel short of its padding, so the captured layer covers the sample edge:
   // a sub-pixel sliver there would need a margin cell, which replays the whole source to fill it.
-  val originX = if (beforeX < outset) ceil(beforeX - PIXEL_EPSILON) + outset else floor(beforeX + PIXEL_EPSILON)
-  val originY = if (beforeY < outset) ceil(beforeY - PIXEL_EPSILON) + outset else floor(beforeY + PIXEL_EPSILON)
+  val originX = roundSampleEdge(beforeX, beforeX < outset, outset)
+  val originY = roundSampleEdge(beforeY, beforeY < outset, outset)
   // The sample ends with the captured layer, plus any margin; a material clipped by the layer may
   // extend past it.
   val sampleSize = Size(
-    sampleEnd(originX + scaledMaterial.width + afterX, afterX < outset, outset),
-    sampleEnd(originY + scaledMaterial.height + afterY, afterY < outset, outset),
+    roundSampleEdge(originX + scaledMaterial.width + afterX, afterX < outset, outset),
+    roundSampleEdge(originY + scaledMaterial.height + afterY, afterY < outset, outset),
   )
   return GlassCoordinates(
     sampleSize = sampleSize,
@@ -117,8 +117,9 @@ internal fun resolveGlassCoordinates(
   )
 }
 
-private fun sampleEnd(layerEnd: Float, margin: Boolean, outset: Float): Float =
-  if (margin) ceil(layerEnd - PIXEL_EPSILON) + outset else floor(layerEnd + PIXEL_EPSILON)
+/** Rounds a sample edge [position] outwards past an added [outset] margin, or else inwards. */
+private fun roundSampleEdge(position: Float, margin: Boolean, outset: Float): Float =
+  if (margin) ceil(position - PIXEL_EPSILON) + outset else floor(position + PIXEL_EPSILON)
 
 /** Whether the captured layer covers the whole sample, so no margin repeats its edges. */
 internal fun GlassCoordinates.capturesWholeSample(): Boolean {
@@ -1053,6 +1054,9 @@ internal data class GlassPreparedRender(
   val rimKey: GlassRimEffectKey?,
 ) {
   val cornerShader: GlassCornerShader = glassCornerShader(params.cornerRadii, params.coordinates.materialSize, params.mergedField)
+
+  /** See [resolveLayerBlurFactor]; Sources only, as a backdrop input is not the layer's content. */
+  val layerBlurFactor: Float = resolveLayerBlurFactor()
 }
 
 internal fun resolveGlassGroupCompositeSize(

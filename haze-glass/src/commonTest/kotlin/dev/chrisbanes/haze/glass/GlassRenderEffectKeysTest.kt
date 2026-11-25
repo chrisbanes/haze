@@ -611,21 +611,20 @@ class GlassRenderEffectKeysTest {
   }
 
   @Test
-  fun layerBlurFactor_reducesOnlyAWideSourcesBlurBelowQuality() {
+  fun resolveLayerBlurFactor_reducesOnlyAWideBlurBelowQuality() {
     val wide = params().copy(depth = 0.65f, refractionDetailIntensity = 0f, layerBlurSigmaPx = 3f)
     val render = preparedRender(wide)
     assertThat(render.refractionDetailKey).isNull()
-    assertThat(render.layerBlurFactor(backdrop = false, supported = true)).isCloseTo(wide.blurSigmaPx / 3f, 0.0001f)
-    // Backdrop input, Quality, no depth and a blur too small to downsample keep the platform chain.
-    assertThat(render.layerBlurFactor(backdrop = true, supported = true)).isEqualTo(0f)
-    assertThat(preparedRender(wide.copy(layerBlurSigmaPx = 0f)).layerBlurFactor(backdrop = false, supported = true)).isEqualTo(0f)
-    assertThat(preparedRender(wide.copy(depth = 0f)).layerBlurFactor(backdrop = false, supported = true)).isEqualTo(0f)
+    assertThat(render.resolveLayerBlurFactor(supported = true)).isCloseTo(wide.blurSigmaPx / 3f, 0.0001f)
+    // Quality, no depth and a blur too small to downsample keep the platform chain.
+    assertThat(preparedRender(wide.copy(layerBlurSigmaPx = 0f)).resolveLayerBlurFactor(supported = true)).isEqualTo(0f)
+    assertThat(preparedRender(wide.copy(depth = 0f)).resolveLayerBlurFactor(supported = true)).isEqualTo(0f)
     val narrow = wide.copy(blurRadiusPx = 3f, blurSigmaPx = SemanticBlurKernel.radiusToSigma(3f))
-    assertThat(preparedRender(narrow).layerBlurFactor(backdrop = false, supported = true)).isEqualTo(0f)
+    assertThat(preparedRender(narrow).resolveLayerBlurFactor(supported = true)).isEqualTo(0f)
     // A sample whose capture leaves an edge margin repeats that margin from the full-resolution capture.
     val margin = resolveGlassCoordinates(Size(202f, 102f), Offset(1f, 1f), Size(200f, 100f), 1f, alignToPixels = true)
     assertThat(margin.capturesWholeSample()).isFalse()
-    assertThat(preparedRender(wide.copy(coordinates = margin)).layerBlurFactor(backdrop = false, supported = true)).isEqualTo(0f)
+    assertThat(preparedRender(wide.copy(coordinates = margin)).resolveLayerBlurFactor(supported = true)).isEqualTo(0f)
   }
 
   private fun preparedRender(params: GlassRenderParams, previous: GlassPreparedRender? = null) =

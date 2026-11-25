@@ -217,9 +217,8 @@ private class ConfiguredSurface<Style>(
       temporaryFallback = false
       input = nextInput
       backend.attach(anchor.node.surfaceNativeEligible())
-    } else if (this.style == style && this.bounds == bounds && this.members == members && !configurationPending && !trackedScope.localsChanged()) {
-      return false
     } else if (this.style == style && this.bounds.size == bounds.size && this.members == members && !configurationPending && !trackedScope.localsChanged()) {
+      if (this.bounds == bounds) return false
       // Moved without resizing: the renderer configures nothing by position, so only its output is stale.
       retained?.invalidateRetainedOutput()
       this.bounds = bounds

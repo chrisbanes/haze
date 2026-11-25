@@ -1796,11 +1796,7 @@ class GlassRenderParamsTest {
     assertThat(coordinates.materialOrigin).isEqualTo(Offset(30f, 20f))
     assertThat(coordinates.sampleSize).isEqualTo(Size(260f, 140f))
     // The captured layer reaches past every sample edge, so the layer cell is the only cell.
-    val cells = coordinates.captureCellBounds()
-    assertThat(cells.left).isLessThanOrEqualTo(0f)
-    assertThat(cells.top).isLessThanOrEqualTo(0f)
-    assertThat(cells.right).isGreaterThanOrEqualTo(260f)
-    assertThat(cells.bottom).isGreaterThanOrEqualTo(140f)
+    assertThat(coordinates.capturesWholeSample()).isTrue()
   }
 
   @Test

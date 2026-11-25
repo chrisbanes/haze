@@ -104,7 +104,6 @@ internal class RuntimeShaderGlassDelegate(
   private var fusedEffectKey: GlassFusedEffectKey? = null
   internal var fusedShader: MutableRuntimeShaderRenderEffect? = null
     private set
-  private val layerBlur = GlassLayerBlur()
   internal var fusedInputKey: GlassDepthInputKey? = null
     private set
   private var fusedDepthInputShaders: FusedDepthInputShaders? = null
@@ -230,6 +229,9 @@ internal class RuntimeShaderGlassDelegate(
       refreshPreparedAvailability(params, currentRenderEffects)
 
       val blurRequired = !supportsFusedGlassRenderEffect && shouldBlur(params, currentRenderEffects)
+      // A fused layer blur holds its reduced copy in the blurred slot and its sharp share in the
+      // depth-mixed slot, which the fused path otherwise leaves empty.
+      val layerBlurRequired = supportsFusedGlassRenderEffect && currentPreparedRender.layerBlurFactor > 0f
       val depthMixRequired =
         !supportsFusedGlassRenderEffect && shouldDepthMix(params, currentRenderEffects)
       val refractionDetailRequired = !supportsFusedGlassRenderEffect &&
@@ -247,10 +249,10 @@ internal class RuntimeShaderGlassDelegate(
         if (blurEffects.native != null) {
           layers.releaseBlurIntermediates(currentGraphicsContext)
         }
-      } else {
+      } else if (!layerBlurRequired) {
         layers.releaseBlurred(currentGraphicsContext)
       }
-      if (!depthMixRequired) {
+      if (!depthMixRequired && !layerBlurRequired) {
         layers.releaseDepthMixed(currentGraphicsContext)
       }
       if (!refractionDetailRequired) {
@@ -280,6 +282,10 @@ internal class RuntimeShaderGlassDelegate(
         layers.ensureBlurred(currentGraphicsContext)
       }
       if (depthMixRequired) {
+        layers.ensureDepthMixed(currentGraphicsContext)
+      }
+      if (layerBlurRequired) {
+        layers.ensureBlurred(currentGraphicsContext)
         layers.ensureDepthMixed(currentGraphicsContext)
       }
       layers.ensureOptical(currentGraphicsContext)
@@ -544,8 +550,7 @@ internal class RuntimeShaderGlassDelegate(
                   source = source,
                   params = params,
                   renderEffect = effects.optical,
-                  layerBlurFactor = render.layerBlurFactor(backdrop = false),
-                  graphicsContext = context.requireGraphicsContext(),
+                  layerBlurFactor = render.layerBlurFactor,
                 )
               }
             } else {
@@ -1050,7 +1055,6 @@ internal class RuntimeShaderGlassDelegate(
     releaseShaderHandles: Boolean = true,
   ) {
     layers.release(releaseContext)
-    layerBlur.release(releaseContext)
     graphicsContext = null
     blurKey = null
     blurEffects = null
@@ -1362,26 +1366,30 @@ internal class RuntimeShaderGlassDelegate(
     params: GlassRenderParams,
     renderEffect: PlatformRenderEffect,
     layerBlurFactor: Float,
-    graphicsContext: GraphicsContext,
-  ): GraphicsLayer? = layers.optical?.takeUnless { it.isReleased }?.also { layer ->
+  ): GraphicsLayer? {
+    val layer = layers.optical?.takeUnless { it.isReleased } ?: return null
     source.alpha = 1f
     source.blendMode = BlendMode.SrcOver
     layer.alpha = 1f
     layer.blendMode = BlendMode.SrcOver
     layer.compositingStrategy = CompositingStrategy.Auto
     layer.renderEffect = renderEffect.asComposeRenderEffect()
-    val sampleSize = params.coordinates.sampleSize.roundToIntSize()
     if (layerBlurFactor > 0f) {
-      with(layerBlur) {
-        recordDepthInput(layer, source, sampleSize, layerBlurFactor, params.layerBlurSigmaPx, params.depth, graphicsContext)
-      }
+      recordLayerBlurDepthInput(
+        layer = layer,
+        source = source,
+        blurred = layers.blurred?.takeUnless { it.isReleased } ?: return null,
+        sharp = layers.depthMixed?.takeUnless { it.isReleased } ?: return null,
+        params = params,
+        factor = layerBlurFactor,
+      )
     } else {
-      layerBlur.release(graphicsContext)
-      recordGlassLayer(layer, sampleSize) {
+      recordGlassLayer(layer, params.coordinates.sampleSize.roundToIntSize()) {
         drawLayer(source)
       }
     }
     opticalRecordCount++
+    return layer
   }
 
   private fun DrawScope.recordOptical(
@@ -1965,29 +1973,30 @@ internal class RuntimeShaderGlassDelegate(
     }
     val backdropMergedBackground = render.params.mergedBackground.takeIf { backdrop }
     val interaction = render.interactionUniforms.takeIf { render.interactionTopology.hasOptics }
-    val layerBlur = render.layerBlurFactor(backdrop) > 0f
+    // A layer blur draws the blur and depth mix as the optical layer's content: the effect has neither.
+    val layerBlur = !backdrop && render.layerBlurFactor > 0f
+    val blurKey = render.blurKey.takeUnless { layerBlur }
+    val depth = if (layerBlur) 0f else render.params.depth
     val currentFusedKey = fusedEffectKey
     // Compare the components first, so an unchanged frame does not build a key to throw away.
     val fusedKeyChanged = currentFusedKey == null || fusedEffect == null || !currentFusedKey.matches(
-      blur = render.blurKey,
-      depth = render.params.depth,
+      blur = blurKey,
+      depth = depth,
       optical = render.opticalKey,
       detail = render.refractionDetailKey,
       interaction = interaction,
       backdropBackground = backdropBackground,
       backdropMergedBackground = backdropMergedBackground,
-      layerBlur = layerBlur,
     )
     if (fusedKeyChanged) {
       val nextFusedEffectKey = GlassFusedEffectKey(
-        blur = render.blurKey,
-        depth = render.params.depth,
+        blur = blurKey,
+        depth = depth,
         optical = render.opticalKey,
         detail = render.refractionDetailKey,
         interaction = interaction,
         backdropBackground = backdropBackground,
         backdropMergedBackground = backdropMergedBackground,
-        layerBlur = layerBlur,
       )
       fusedEffect = nextFusedEffectKey.let { key ->
         val nextInputKey = key.depthInputKey(interactionOptics = render.interactionTopology.hasOptics, cornerShader = stageShadersCornerShader)
@@ -2013,10 +2022,7 @@ internal class RuntimeShaderGlassDelegate(
         } else {
           null
         }
-        val nextInput = if (inputChanged && key.layerBlur) {
-          // The optical layer's content already holds the blurred depth input; see GlassLayerBlur.
-          backdropInput
-        } else if (inputChanged) {
+        val nextInput = if (inputChanged) {
           updateFusedDepthInputRenderEffect(
             blur = key.blur,
             depth = key.depth,
@@ -2343,8 +2349,6 @@ internal class GlassFusedEffectKey(
   val interaction: GlassInteractionUniforms?,
   val backdropBackground: Color?,
   val backdropMergedBackground: GlassMergedField?,
-  /** The depth input is drawn by a [GlassLayerBlur] rather than chained into the effect. */
-  val layerBlur: Boolean = false,
 )
 
 /**
@@ -2360,15 +2364,13 @@ internal fun GlassFusedEffectKey.matches(
   interaction: GlassInteractionUniforms?,
   backdropBackground: Color?,
   backdropMergedBackground: GlassMergedField?,
-  layerBlur: Boolean = false,
 ): Boolean = this.blur == blur &&
   this.depth.compareTo(depth) == 0 &&
   this.optical == optical &&
   this.detail == detail &&
   this.interaction == interaction &&
   this.backdropBackground == backdropBackground &&
-  this.backdropMergedBackground == backdropMergedBackground &&
-  this.layerBlur == layerBlur
+  this.backdropMergedBackground == backdropMergedBackground
 
 @Poko
 internal class GlassDepthInputKey(
@@ -2385,7 +2387,6 @@ internal class GlassDepthInputKey(
   val coverageOutset: Boolean = false,
   /** Continuous corners drawn by [GlassShaders.buildFusedWithCircularOptics]. */
   val circularOptics: Boolean = false,
-  val layerBlur: Boolean = false,
 )
 
 internal fun GlassFusedEffectKey.depthInputKey(
@@ -2403,7 +2404,6 @@ internal fun GlassFusedEffectKey.depthInputKey(
   cornerShader = cornerShader,
   coverageOutset = optical.coordinates.pixelAligned,
   circularOptics = optical.circularCornerOptics && cornerShader.isContinuous,
-  layerBlur = layerBlur,
 )
 
 private class FusedDepthInputShaders(
@@ -2911,19 +2911,18 @@ internal inline fun requireDrawableMaterialSize(
 }
 
 /**
- * The scale factor at which this render blurs a reduced copy of its source through a
- * [GlassLayerBlur], or 0 to chain the platform blur and depth mix into the fused effect.
+ * The scale factor at which this render blurs a reduced copy of its source, drawn by
+ * [recordLayerBlurDepthInput], or 0 to chain the platform blur and depth mix into the fused effect.
  *
- * Only a Sources surface whose wide blur would itself downsample takes it: the platform blur halves
- * its input until the blur is small, blurs, re-expands it and then mixes it with the sharp source, a
- * pass each. Drawing a reduced copy, and the re-expansion and mix in the optical layer's own content
- * pass, saves those passes.
+ * Only a wide blur that the platform would itself downsample takes it: the platform blur halves its
+ * input until the blur is small, blurs, re-expands it and then mixes it with the sharp source, a pass
+ * each. Drawing a reduced copy, and the re-expansion and mix in the optical layer's own content pass,
+ * saves those passes.
  */
-internal fun GlassPreparedRender.layerBlurFactor(backdrop: Boolean, supported: Boolean = supportsGlassLayerBlur): Float {
-  if (!supported) return 0f
+internal fun GlassPreparedRender.resolveLayerBlurFactor(supported: Boolean = supportsGlassLayerBlur): Float {
   val blur = blurKey ?: return 0f
   val targetSigma = blur.layerBlurSigmaPx
-  if (backdrop || targetSigma <= 0f || refractionDetailKey != null || params.depth <= 0.0001f) return 0f
+  if (!supported || targetSigma <= 0f || refractionDetailKey != null || params.depth <= 0.0001f) return 0f
   val plan = blur.plan
   if (plan.isIdentity || !plan.usesNativeWideBlur || blur.progressive != null) return 0f
   // Margin cells repeat the capture's edges inside the sample; keep the platform chain there.
@@ -2933,55 +2932,39 @@ internal fun GlassPreparedRender.layerBlurFactor(backdrop: Boolean, supported: B
 }
 
 /**
- * The depth input of a [GlassPreparedRender.layerBlurFactor] render, drawn as the optical layer's
- * content: the sharp source at `1 - depth`, plus a copy of it reduced by the factor, blurred at the
- * target sigma, scaled back up and added at `depth`. That sum is the platform depth mix.
+ * Records the depth input of a [GlassPreparedRender.layerBlurFactor] render as [layer]'s content: the
+ * sharp source at `1 - depth`, plus a copy of it reduced by [factor], blurred at the target sigma,
+ * scaled back up and added at `depth`. That sum is the platform depth mix.
  */
-internal class GlassLayerBlur {
-  private var blurred: GraphicsLayer? = null
-  private var sharp: GraphicsLayer? = null
-
-  fun DrawScope.recordDepthInput(
-    layer: GraphicsLayer,
-    source: GraphicsLayer,
-    sampleSize: IntSize,
-    factor: Float,
-    targetSigma: Float,
-    depth: Float,
-    graphicsContext: GraphicsContext,
-  ) {
-    val reduced = IntSize(ceil(sampleSize.width / factor).toInt().coerceAtLeast(1), ceil(sampleSize.height / factor).toInt().coerceAtLeast(1))
-    val blurred = blurred?.takeUnless { it.isReleased } ?: graphicsContext.createGraphicsLayer().also { blurred = it }
-    // Android's blur takes a radius and converts it to sigma as 0.57735 * radius + 0.5.
-    val radius = ((targetSigma - 0.5f) / 0.57735f).coerceAtLeast(0f)
-    blurred.renderEffect = BlurEffect(radius, radius, TileMode.Clamp)
-    val drawsSharp = depth < 0.9999f
-    blurred.alpha = depth.coerceAtMost(1f)
-    // Adds to the sharp share; alone, over nothing, that is a plain draw.
-    blurred.blendMode = if (drawsSharp) BlendMode.Plus else BlendMode.SrcOver
-    blurred.record(reduced) {
-      scale(1f / factor, pivot = Offset.Zero) { drawLayer(source) }
-    }
-    val sharp = if (drawsSharp) {
-      (sharp?.takeUnless { it.isReleased } ?: graphicsContext.createGraphicsLayer().also { sharp = it }).also {
-        // Applies the alpha to each draw, without an offscreen pass.
-        it.compositingStrategy = CompositingStrategy.ModulateAlpha
-        it.alpha = 1f - depth
-        it.record(sampleSize) { drawLayer(source) }
-      }
-    } else {
-      null
-    }
-    recordGlassLayer(layer, sampleSize) {
-      sharp?.let { drawLayer(it) }
-      scale(factor, pivot = Offset.Zero) { drawLayer(blurred) }
-    }
+private fun DrawScope.recordLayerBlurDepthInput(
+  layer: GraphicsLayer,
+  source: GraphicsLayer,
+  blurred: GraphicsLayer,
+  sharp: GraphicsLayer,
+  params: GlassRenderParams,
+  factor: Float,
+) {
+  val sampleSize = params.coordinates.sampleSize.roundToIntSize()
+  val reduced = IntSize(ceil(sampleSize.width / factor).toInt().coerceAtLeast(1), ceil(sampleSize.height / factor).toInt().coerceAtLeast(1))
+  val radius = SemanticBlurKernel.sigmaToRadius(params.layerBlurSigmaPx)
+  val effect = BlurEffect(radius, radius, TileMode.Clamp)
+  // An equal effect leaves the layer's platform effect in place.
+  if (blurred.renderEffect != effect) blurred.renderEffect = effect
+  val drawsSharp = params.depth < 0.9999f
+  blurred.alpha = params.depth
+  // Adds to the sharp share; alone, over nothing, that is a plain draw.
+  blurred.blendMode = if (drawsSharp) BlendMode.Plus else BlendMode.SrcOver
+  blurred.record(reduced) {
+    scale(1f / factor, pivot = Offset.Zero) { drawLayer(source) }
   }
-
-  fun release(graphicsContext: GraphicsContext?) {
-    blurred?.let { graphicsContext?.releaseGraphicsLayer(it) }
-    sharp?.let { graphicsContext?.releaseGraphicsLayer(it) }
-    blurred = null
-    sharp = null
+  if (drawsSharp) {
+    // Applies the alpha to each draw, without an offscreen pass.
+    sharp.compositingStrategy = CompositingStrategy.ModulateAlpha
+    sharp.alpha = 1f - params.depth
+    sharp.record(sampleSize) { drawLayer(source) }
+  }
+  recordGlassLayer(layer, sampleSize) {
+    if (drawsSharp) drawLayer(sharp)
+    scale(factor, pivot = Offset.Zero) { drawLayer(blurred) }
   }
 }
