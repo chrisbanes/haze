@@ -51,6 +51,12 @@ app's enabled state, temporarily disable it with
 processes are gone. Restore it with `adb shell pm enable com.google.android.googlequicksearchbox`
 after the run, including after a failure.
 
+If every method on an Android 17 developer preview fails in Macrobenchmark's trace query (for
+example `Failed to connect to localhost:9001`), check `adb shell dumpsys dropbox --print
+SYSTEM_TOMBSTONE` for a `trace_processor_shell` abort. On `DP11.261030.003`, the trace processor
+shipped with `androidx.benchmark` 1.5.0 crashed on every trace; measuring with 1.6.0-alpha02 set
+locally in `gradle/libs.versions.toml` worked. Record the version you used with the results.
+
 ### Check CPU placement before attributing a regression
 
 Android [fixed-performance mode](https://developer.android.com/games/optimize/adpf/fixed-performance-mode)
@@ -178,12 +184,14 @@ iteration:
 
 | Row | `graphicsLayerDrawCount` per frame | `hazeSourceRecordCount` per frame | `hazeGlassRuntimeDrawCount` |
 | --- | --- | --- | --- |
-| `source_update_independent_2` | 1.8-2.2 (two layers) | 0.9-1.1 | at least 1 every iteration |
-| `source_update_container_2` | 0.9-1.1 (one cluster layer) | 0.9-1.1 | at least 1 every iteration |
+| `source_update_independent_2` | 3.6-4.4 (two Glass layers) | 0.9-1.1 | at least 1 every iteration |
+| `source_update_container_2` | 1.8-2.2 (one cluster layer) | 0.9-1.1 | at least 1 every iteration |
 
 The slice is named by the platform and counts any offscreen Compose layer, so the bands are
-row-specific. They also detect a cluster that failed to form: a container row that shows two layers
-per frame does not exercise the cluster, and the comparison is invalid. `archive_result.py` enforces
+row-specific. Below `Quality`, including these rows' `Default` (`Balanced`), each Glass layer also
+draws a layer holding its reduced blurred source, so the bands count two layers per Glass layer.
+They also detect a cluster that failed to form: a container row that shows four layers per frame
+does not exercise the cluster, and the comparison is invalid. `archive_result.py` enforces
 these bands with `--per-frame` and `--positive`, and fails any archive in which a single-value
 metric has fewer runs than iterations or an iteration recorded fewer than `--min-frames` frames
 (a missing `frameCount` also fails; default 1; `--min-frames 0` disables the floor).
@@ -230,10 +238,10 @@ initialization. Only `effect_attach_container_2` measures it.
 
 | Scenario | Method | Geometry and variable | Per-frame gate | Pairs with |
 | --- | --- | --- | --- | --- |
-| `container_gap_2` | `containerGap2` | Two members with a 24 dp resting gap, between half (16 dp) and the full 32 dp merge distance, so each keeps a standalone weight above 0 | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
+| `container_gap_2` | `containerGap2` | Two members with a 24 dp resting gap, between half (16 dp) and the full 32 dp merge distance, so each keeps a standalone weight above 0 | `graphicsLayerDrawCount` 1.8-2.2 | `source_update_container_2` |
 | `container_join_leave` | `containerJoinLeave` | Four fixed 60×120 dp slots 12 dp apart; the member count steps 2, 3, 4, 3, 2, 3, one change every half second, with `GlassReducedMotionPolicy.Reduced` so the morph runs at any animation scale | none: membership varies | `source_update_container_2` |
-| `container_group_3` | `containerGroup3` | Three members 48 dp apart, beyond the merge distance, sharing one `groupKey` | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
-| `container_press_2` | `containerPress2` | The `container_2` geometry; the first member is pressed and released three times, the second has no interaction source | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
+| `container_group_3` | `containerGroup3` | Three members 48 dp apart, beyond the merge distance, sharing one `groupKey` | `graphicsLayerDrawCount` 1.8-2.2 | `source_update_container_2` |
+| `container_press_2` | `containerPress2` | The `container_2` geometry; the first member is pressed and released three times, the second has no interaction source | `graphicsLayerDrawCount` 1.8-2.2 | `source_update_container_2` |
 | `lazy_independent_scroll` | `lazyIndependentScroll` | The `lazy_container_scroll` grid with independent Glass members and no container | none: one layer per visible member | `lazy_container_scroll` |
 | `effect_attach_container_2` | `effectAttachContainer2` | The two-member container attached at the start of the measured window | none: cold initialization | `effect_attach` (one member, no container) |
 
@@ -260,10 +268,10 @@ The 12 dp gaps and 32 dp merge distance keep all four members in one cluster.
 | Scenario | Method | Comparison | Per-frame gate | Pairs with |
 | --- | --- | --- | --- | --- |
 | `source_update_balanced_continuous` | `sourceUpdateBalancedContinuous` | Continuous corners, one surface | none | `source_update_balanced` |
-| `source_update_container_2_continuous` | `sourceUpdateContainer2Continuous` | Continuous corners, two-member cluster | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
-| `source_update_container_4` | `sourceUpdateContainer4` | Four smaller members in one cluster | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_2` |
-| `source_update_container_4_continuous` | `sourceUpdateContainer4Continuous` | Continuous corners, four-member cluster | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_4` |
-| `source_update_container_4_continuous_performance` | `sourceUpdateContainer4ContinuousPerformance` | Performance mode, four continuous members | `graphicsLayerDrawCount` 0.9-1.1 | `source_update_container_4_continuous` |
+| `source_update_container_2_continuous` | `sourceUpdateContainer2Continuous` | Continuous corners, two-member cluster | `graphicsLayerDrawCount` 1.8-2.2 | `source_update_container_2` |
+| `source_update_container_4` | `sourceUpdateContainer4` | Four smaller members in one cluster | `graphicsLayerDrawCount` 1.8-2.2 | `source_update_container_2` |
+| `source_update_container_4_continuous` | `sourceUpdateContainer4Continuous` | Continuous corners, four-member cluster | `graphicsLayerDrawCount` 1.8-2.2 | `source_update_container_4` |
+| `source_update_container_4_continuous_performance` | `sourceUpdateContainer4ContinuousPerformance` | Performance mode, four continuous members | `graphicsLayerDrawCount` 1.8-2.2 | `source_update_container_4_continuous` |
 
 `gates_for` supplies the container gates; run `sourceUpdateBalancedContinuous` with `gates=()`, like
 its calibration control. The [archived #1766 report](https://github.com/chrisbanes/haze/blob/7a5ff2e1f65fd4f576c70b6b6426e9f80e96408f/docs/agents/evidence/1766/README.md)
@@ -605,11 +613,11 @@ Define the per-method gates once in the shell that runs the loops:
 gates_for() {
   gates=(--per-frame hazeSourceRecordCount=0.9:1.1 --positive hazeGlassRuntimeDrawCount)
   case "$1" in
-    sourceUpdateIndependent2) gates+=(--per-frame graphicsLayerDrawCount=1.8:2.2) ;;
+    sourceUpdateIndependent2) gates+=(--per-frame graphicsLayerDrawCount=3.6:4.4) ;;
     sourceUpdateContainer2|containerGap2|containerPress2|containerGroup3|\
       sourceUpdateContainer2Continuous|sourceUpdateContainer4|sourceUpdateContainer4Continuous|\
       sourceUpdateContainer4ContinuousPerformance)
-      gates+=(--per-frame graphicsLayerDrawCount=0.9:1.1) ;;
+      gates+=(--per-frame graphicsLayerDrawCount=1.8:2.2) ;;
   esac
 }
 ```
