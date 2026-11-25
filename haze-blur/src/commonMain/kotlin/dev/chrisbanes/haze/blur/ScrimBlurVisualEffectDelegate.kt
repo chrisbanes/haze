@@ -16,8 +16,7 @@ import dev.chrisbanes.haze.TrimMemoryLevel
 internal class ScrimBlurVisualEffectDelegate(
   val blurVisualEffect: BlurVisualEffect,
 ) : BlurVisualEffect.Delegate {
-  // Layers kept across draws; each is released when a draw stops using it, on detach and on trim.
-  private val alphaLayer = RetainedGraphicsLayer()
+  // The masked tint layer, kept across draws; released when a draw stops using it, on detach and on trim.
   private val tintLayer = RetainedGraphicsLayer()
 
   override val drawsContentBehind: Boolean get() = true
@@ -28,31 +27,27 @@ internal class ScrimBlurVisualEffectDelegate(
         ?.boostForFallback(blurVisualEffect.blurRadius.takeOrElse { 0.dp })
       ?: return releaseLayers()
 
-    withAlpha(alpha = blurVisualEffect.alpha, retainedLayer = alphaLayer, context = context) {
-      drawScrim(
-        colorEffect = scrimTint,
-        context = context,
-        mask = blurVisualEffect.mask,
-        progressiveMask = blurVisualEffect.progressiveBrush,
-        maskedLayer = tintLayer,
-      )
-    }
+    drawScrim(
+      colorEffect = scrimTint,
+      context = context,
+      mask = blurVisualEffect.mask,
+      progressiveMask = blurVisualEffect.progressiveBrush,
+      maskedLayer = tintLayer,
+      alpha = blurVisualEffect.alpha,
+    )
   }
 
   override fun detach() = releaseLayers()
 
   override fun clearRetainedOutput() = releaseLayers()
 
-  // The layers are re-recorded at the current size on every draw, so a size change must not
-  // release them (the default would forward to [clearRetainedOutput]).
+  // The layer is re-recorded at the current size on every draw, so a size change must not
+  // release it (the default would forward to [clearRetainedOutput]).
   override fun invalidateRetainedOutput() = Unit
 
   override fun onTrimMemory(context: HazeEffectLifecycleScope, level: TrimMemoryLevel) {
     if (level.severity >= TrimMemoryLevel.MODERATE.severity) releaseLayers()
   }
 
-  private fun releaseLayers() {
-    alphaLayer.release()
-    tintLayer.release()
-  }
+  private fun releaseLayers() = tintLayer.release()
 }

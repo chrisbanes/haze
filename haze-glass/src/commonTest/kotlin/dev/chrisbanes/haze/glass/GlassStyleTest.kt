@@ -586,6 +586,50 @@ class GlassStyleTest {
   }
 
   @Test
+  fun edgeOutline_rejectsInvalidTopAndBottomStrengthBeforeWriting() {
+    listOf(-0.01f, 1.01f, Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY).forEach { invalid ->
+      assertEvaluationFailure("edgeOutline.topAndBottomStrength must be finite and in 0f..1f") {
+        edgeOutline(Color.Black, 1.dp, invalid)
+      }
+      val values = GlassStyleValues()
+      assertFailure { GlassStyleScope(values).edgeOutline(Color.Red, 3.dp, invalid) }
+        .isInstanceOf<IllegalArgumentException>()
+      assertThat(values.edgeOutlineColor, "$invalid").isEqualTo(Color.Transparent)
+      assertThat(values.edgeOutlineWidth, "$invalid").isEqualTo(0.dp)
+      assertThat(values.edgeOutlineTopAndBottomStrength, "$invalid").isEqualTo(1f)
+    }
+  }
+
+  @Test
+  fun edgeOutline_storesTopAndBottomStrength() {
+    fun strength(block: GlassStyleScope.() -> Unit) =
+      resolveGlassStyleValues(GlassStyle, GlassStyle(block)).edgeOutlineTopAndBottomStrength
+
+    assertThat(strength { edgeOutline(Color.Black, 1.dp) }).isEqualTo(1f)
+    assertThat(strength { edgeOutline(Color.Black, 1.dp, topAndBottomStrength = 1f) }).isEqualTo(1f)
+    assertThat(strength { edgeOutline(Color.Black, 1.dp, topAndBottomStrength = 0.25f) }).isEqualTo(0.25f)
+    assertThat(
+      strength {
+        edgeOutline(Color.Black, 1.dp, topAndBottomStrength = 0.25f)
+        edgeOutline(Color.Black, 1.dp)
+      },
+    ).isEqualTo(1f)
+  }
+
+  @Test
+  fun edgeOutline_changedTopAndBottomStrengthReplayMarksEdgeOutlineDirty() {
+    var strength = 1f
+    val style = GlassStyle { edgeOutline(Color.Black, 1.dp, strength) }
+    val effect = GlassRuntimeEffect().apply { this.style = style }
+    var dirty = 0
+    effect.onConfigurationChanged = { dirty = dirty or it }
+    strength = 0.25f
+    effect.compositionLocalStyle = GlassStyle
+    assertThat(effect.edgeOutlineTopAndBottomStrength).isEqualTo(0.25f)
+    assertThat(dirty and GlassDirtyFields.EdgeOutline).isEqualTo(GlassDirtyFields.EdgeOutline)
+  }
+
+  @Test
   fun edgeSoftness_rejectsInvalidValuesWhenEvaluated() {
     listOf(Dp.Unspecified, Float.NaN.dp, Float.NEGATIVE_INFINITY.dp, (-1).dp, Float.POSITIVE_INFINITY.dp)
       .forEach { invalid ->
@@ -963,15 +1007,30 @@ class GlassStyleTest {
   )
 
   @Test
-  fun builtInStyles_applySelectedC1EdgesAndTone() {
+  fun builtInStyles_applyIos27EdgesAndTone() {
     val clearLight = resolveGlassStyleValues(GlassStyle, GlassStyle.clearLight)
     for (appearance in GlassSystemAppearance.entries) {
       for ((local, explicit) in defaultResolutions) {
         val values = resolveGlassStyleValues(local, explicit, appearance)
         val clear = explicit === GlassStyle.clear
-        assertThat(values.edgeOutlineColor).isEqualTo(Color.Black.copy(alpha = 0.4f))
+        val dark = !clear && appearance == GlassSystemAppearance.Dark
+        assertThat(values.edgeOutlineColor)
+          .isEqualTo(Color.Black.copy(alpha = if (dark) 0.6f else 0.58f))
         assertThat(values.edgeOutlineWidth).isEqualTo(0.7.dp)
-        assertThat(values.rimHighlightIntensity).isEqualTo(if (clear) 1f else 0.6f)
+        assertThat(values.edgeOutlineTopAndBottomStrength).isEqualTo(
+          when {
+            clear -> 0f
+            dark -> 0.1f
+            else -> 0.42f
+          },
+        )
+        assertThat(values.rimHighlightIntensity).isEqualTo(
+          when {
+            clear -> 1f
+            dark -> 0.25f
+            else -> 0.7f
+          },
+        )
         assertThat(values.rimHighlightWidth).isEqualTo(1.dp)
         assertThat(values.rimHighlightSides).isEqualTo(0f)
         when {
@@ -983,9 +1042,10 @@ class GlassStyleTest {
             assertThat(values.whitePoint).isEqualTo(clearLight.whitePoint)
             assertThat(values.chromaMultiplier).isEqualTo(clearLight.chromaMultiplier)
           }
-          appearance == GlassSystemAppearance.Dark -> {
-            assertThat(values.whitePoint).isEqualTo(-0.10f)
-            assertThat(values.contrast).isEqualTo(0.02f)
+          dark -> {
+            assertThat(values.whitePoint).isEqualTo(-0.23f)
+            assertThat(values.contrast).isEqualTo(-0.31f)
+            assertThat(values.chromaMultiplier).isEqualTo(1.25f)
           }
           else -> {
             assertThat(values.whitePoint).isEqualTo(GlassDefaults.whitePoint)

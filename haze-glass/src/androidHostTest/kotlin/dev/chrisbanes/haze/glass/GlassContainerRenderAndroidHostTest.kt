@@ -84,7 +84,7 @@ class GlassContainerRenderAndroidHostTest : ScreenshotTest() {
     val params = checkNotNull(runtime.preparedRender).params
     assertThat(checkNotNull(params.mergedField).members.size).isEqualTo(2)
     assertThat(continuousCorners(params.cornerRadii, params.mergedField)).isEqualTo(continuous)
-    assertThat((runtime.delegate as RuntimeShaderGlassDelegate).fusedInputKey?.continuous).isEqualTo(continuous)
+    assertThat((runtime.delegate as RuntimeShaderGlassDelegate).fusedInputKey?.cornerShader?.isContinuous).isEqualTo(continuous)
     assertThat(params.coordinates.scaleFactor).isEqualTo(HazePerformanceMode.Balanced.resolveGlassInputScale())
     assertThat((runtime.delegate as RuntimeShaderGlassDelegate).layers.source?.isReleased).isEqualTo(false)
   }

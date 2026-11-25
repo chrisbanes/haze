@@ -27,7 +27,10 @@ import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.test.Test
 import org.jetbrains.skia.RuntimeEffect
 
@@ -148,7 +151,7 @@ class GlassRimBrushTest {
   @Test
   fun directRim_continuousCorners_edgeOutlineFollowsSmoothedShape() {
     val key = outlineKey().copy(cornerRadii = CornerRadii(18f, 18f, 18f, 18f, 1f, 1f, 1f, 1f))
-    val provider = checkNotNull(createGlassRimBrushProvider(merged = false, continuous = true))
+    val provider = checkNotNull(createGlassRimBrushProvider(corners = GlassCornerShader.Continuous))
     val pixels = drawBrush(checkNotNull(provider(key))).toPixelMap()
     val circular = drawBrush(checkNotNull(createGlassRimBrushProvider()?.invoke(outlineKey()))).toPixelMap()
 
@@ -161,6 +164,56 @@ class GlassRimBrushTest {
       cornerDifference = maxOf(cornerDifference, abs(pixels[x, y].alpha - circular[x, y].alpha))
     }
     assertThat(cornerDifference).isGreaterThan(0.1f)
+  }
+
+  @Test
+  fun directRim_edgeOutlineTopAndBottomStrength_weightsCircleByEdgeDirection() {
+    val provider = checkNotNull(createGlassRimBrushProvider())
+    fun alphaAt(strength: Float, degrees: Int): Float {
+      val pixels = drawBrush(checkNotNull(provider(circleOutlineKey().withOutlineStrength(strength)))).toPixelMap()
+      // 1.5px outside the 42px circle centred at (50, 48); 0 degrees is right, 90 is top.
+      val radians = degrees * PI / 180.0
+      return pixels[(50.0 + 43.5 * cos(radians)).toInt(), (48.0 - 43.5 * sin(radians)).toInt()].alpha
+    }
+
+    for (degrees in listOf(0, 180)) {
+      assertThat(alphaAt(0f, degrees), "$degrees").isGreaterThanOrEqualTo(0.9f * alphaAt(1f, degrees))
+    }
+    for (degrees in listOf(90, 270)) {
+      assertThat(alphaAt(1f, degrees), "$degrees").isGreaterThan(0.5f)
+      assertThat(alphaAt(0f, degrees), "$degrees").isLessThanOrEqualTo(0.02f)
+    }
+    val diagonal = alphaAt(0f, 45) / alphaAt(0f, 0)
+    assertThat(diagonal).isGreaterThanOrEqualTo(0.35f)
+    assertThat(diagonal).isLessThanOrEqualTo(0.65f)
+    val quarter = alphaAt(0.25f, 90) / alphaAt(0.25f, 0)
+    assertThat(quarter).isGreaterThanOrEqualTo(0.18f)
+    assertThat(quarter).isLessThanOrEqualTo(0.32f)
+  }
+
+  @Test
+  fun directRim_edgeOutlineTopAndBottomStrength_keepsRectangleSidesOnly() {
+    val provider = checkNotNull(createGlassRimBrushProvider())
+    val pixels = drawBrush(checkNotNull(provider(outlineKey().withOutlineStrength(0f)))).toPixelMap()
+
+    // The material's left edge is at x = 8 and its top at y = 6; each probe is 1.5px outside.
+    assertThat(pixels[6, 48].alpha).isGreaterThanOrEqualTo(0.9f)
+    assertThat(pixels[64, 4].alpha).isLessThanOrEqualTo(0.02f)
+    assertThat(pixels[64, 91].alpha).isLessThanOrEqualTo(0.02f)
+  }
+
+  @Test
+  fun directRim_edgeOutlineTopAndBottomStrengthOne_matchesUniformOutline() {
+    val smoothed = CornerRadii(18f, 18f, 18f, 18f, 1f, 1f, 1f, 1f)
+    for (continuous in listOf(false, true)) {
+      val provider = checkNotNull(createGlassRimBrushProvider(corners = if (continuous) GlassCornerShader.Continuous else GlassCornerShader.Circular))
+      val outline = if (continuous) outlineKey().copy(cornerRadii = smoothed) else outlineKey()
+      for (key in listOf(outline, circleOutlineKey())) {
+        val expected = drawBrush(checkNotNull(provider(key)))
+        val actual = drawBrush(checkNotNull(provider(key.withOutlineStrength(1f))))
+        assertThat(maxChannelDifference(expected, actual), "continuous=$continuous").isEqualTo(0f)
+      }
+    }
   }
 
   @Test
@@ -189,6 +242,7 @@ class GlassRimBrushTest {
       ),
       outlineKey(),
       key.copy(edgeOutline = GlassEdgeOutline(Color(0.1f, 0.2f, 0.9f, 0.7f), 4f)),
+      outlineKey().withOutlineStrength(0.25f),
     )
     for (current in keys) {
       val direct = drawBrush(checkNotNull(provider(current)))
@@ -315,6 +369,14 @@ class GlassRimBrushTest {
     edgeShadow = Color.Transparent,
     edgeOutline = GlassEdgeOutline(Color.Green, 3f),
   )
+
+  private fun circleOutlineKey() = outlineKey().copy(
+    coordinates = GlassCoordinates(Size(128f, 96f), Offset(8f, 6f), Size(84f, 84f), 1f),
+    cornerRadii = CornerRadii(42f, 42f, 42f, 42f),
+  )
+
+  private fun GlassRimEffectKey.withOutlineStrength(strength: Float) =
+    copy(edgeOutline = edgeOutline.copy(topAndBottomStrength = strength))
 
   private fun rimKey() = GlassRimEffectKey(
     coordinates = GlassCoordinates(Size(128f, 96f), Offset(8f, 6f), Size(112f, 84f), 1f),

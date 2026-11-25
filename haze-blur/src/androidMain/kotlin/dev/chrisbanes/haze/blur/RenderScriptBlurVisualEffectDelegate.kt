@@ -9,6 +9,7 @@ package dev.chrisbanes.haze.blur
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.os.Build
+import android.renderscript.RSRuntimeException
 import android.renderscript.RenderScript
 import android.view.Surface
 import androidx.compose.ui.geometry.Offset
@@ -85,6 +86,12 @@ internal class RenderScriptBlurVisualEffectDelegate(
   // Test seam: host tests have no input Surface, so they replace the write to it.
   internal var writeToSurface: (RenderScriptContext, GraphicsLayer, Density) -> Unit =
     { rs, layer, density -> rs.inputSurface.drawGraphicsLayer(layer, density, drawScope) }
+
+  // Test seam: host tests cannot run the blur kernel.
+  internal var applyBlur: (RenderScriptContext, Float) -> Unit = { rs, radius -> rs.applyBlur(radius) }
+
+  // Test seam: host tests inject native allocation failures.
+  internal var createRenderScriptContext: (RenderScript, IntSize) -> RenderScriptContext = ::RenderScriptContext
 
   // Internal so host tests can wait for the update to finish.
   internal var currentJob: Job? = null
@@ -197,14 +204,13 @@ internal class RenderScriptBlurVisualEffectDelegate(
     }
 
     val outputScale = completedCaptureScale ?: return
-    drawPresentation(context, contentLayer, offset, scaleFactor, outputScale)
+    drawPresentation(context, contentLayer, offset, outputScale)
   }
 
   internal fun DrawScope.drawPresentation(
     context: HazeEffectRuntimeDrawScope,
     output: GraphicsLayer?,
     offset: Offset,
-    scaleFactor: Float,
     captureScale: ScaleFactor,
   ) {
     val layer = presentationLayer.acquire(graphicsContext)
@@ -244,7 +250,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
             PaintPool.usePaint { paint ->
               paint.isAntiAlias = true
               paint.alpha = noiseFactor.coerceIn(0f, 1f)
-              paint.shader = noiseShaders.get(platformContext, scaleFactor)
+              paint.shader = noiseShaders.get(platformContext)
               paint.blendMode = BlendMode.SrcAtop
               drawContext.canvas.drawRect(expandedSize.toRect(), paint)
             }
@@ -314,10 +320,8 @@ internal class RenderScriptBlurVisualEffectDelegate(
       currentJob?.cancel()
       releaseRenderScriptContext()
       // Drop this node's reference, which destroys the shared context only if no other node holds
-      // it, then take a new one. If that fails the next use tries again.
+      // it. The next blurred update takes a new one through getRenderScriptContext.
       releaseRenderScript()
-      runCatching { requireRenderScript() }
-        .onFailure { HazeLogger.d(TAG) { "Failed to recreate RenderScript after trim" } }
       // Bump generation so in-flight coroutines know their context is stale
       trimGeneration++
       releaseRetainedOutput()
@@ -337,6 +341,23 @@ internal class RenderScriptBlurVisualEffectDelegate(
     val generationAtStart = trimGeneration
     var outputUpdated = false
 
+    if (!(blurRadius > 0f)) {
+      // Zero radius is a copy of the capture: no padding, context, Surface write or blur. Any
+      // context left by an earlier blurred update is freed; the shared reference is kept.
+      paddedLayer.release()
+      releaseRenderScriptContext()
+      if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return false
+      val outputLayer = contentLayer ?: return false
+      outputLayer.record(
+        density = density,
+        layoutDirection = context.currentValueOf(LocalLayoutDirection),
+        size = content.size,
+      ) {
+        drawLayer(content)
+      }
+      return retainedOutputState.completeOutputUpdate(retainedOutputGenerationAtStart)
+    }
+
     // Pad the content layer to ensure dimensions are multiples of 4, so the RenderScript
     // Allocation surface is fully covered with content (no transparent/black edges).
     val paddedContent = padToMultipleOf4(content, density, context)
@@ -345,44 +366,46 @@ internal class RenderScriptBlurVisualEffectDelegate(
       // If a trim happened before we even started, bail out
       if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@traceAsync
 
-      val rs = getRenderScriptContext(paddedContent.size)
+      try {
+        val rs = getRenderScriptContext(paddedContent.size)
 
-      // If the retained output was cleared while we were getting the context, bail out
-      if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) {
-        releaseRenderScriptContext()
-        return@traceAsync
-      }
-
-      // The trace lambda is crossinline, so it reports failure rather than returning from this block.
-      val surfaceWritten = traceAsync("Haze-RenderScriptBlurEffect-updateSurface-drawLayerToSurface", 0) {
-        try {
-          // Draw the layer (this is async)
-          writeToSurface(rs, paddedContent, density)
-        } catch (e: IllegalStateException) {
-          HazeLogger.d(TAG) { "Surface draw failed, likely destroyed. Releasing context." }
+        // If the retained output was cleared while we were getting the context, bail out
+        if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) {
           releaseRenderScriptContext()
-          return@traceAsync false
+          return@traceAsync
         }
-        // Wait for the layer to be written to the Surface
-        rs.awaitSurfaceWritten()
-        true
-      }
-      // Without output, the capture key stays uncommitted and the next draw retries.
-      if (!surfaceWritten) return@traceAsync
 
-      // If the retained output was cleared during surface operations, bail out before using stale data
-      if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@traceAsync
+        // The trace lambda is crossinline, so it reports failure rather than returning from this block.
+        val surfaceWritten = traceAsync("Haze-RenderScriptBlurEffect-updateSurface-drawLayerToSurface", 0) {
+          try {
+            // Draw the layer (this is async)
+            writeToSurface(rs, paddedContent, density)
+          } catch (e: IllegalStateException) {
+            HazeLogger.d(TAG) { "Surface draw failed, likely destroyed. Releasing context." }
+            releaseRenderScriptContext()
+            return@traceAsync false
+          }
+          // Wait for the layer to be written to the Surface
+          rs.awaitSurfaceWritten()
+          true
+        }
+        // Without output, the capture key stays uncommitted and the next draw retries.
+        if (!surfaceWritten) return@traceAsync
 
-      if (blurRadius > 0f) {
+        // If the retained output was cleared during surface operations, bail out before using stale data
+        if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@traceAsync
+
         // Now apply the blur on a background thread
         traceAsync("Haze-RenderScriptBlurEffect-updateSurface-applyBlur", 0) {
           withContext(Dispatchers.Default) {
-            rs.applyBlur(blurRadius)
+            applyBlur(rs, blurRadius)
           }
         }
 
         trace("Haze-RenderScriptBlurEffect-updateSurface-drawToContentLayer") {
           if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@trace
+
+          trace("Haze-RenderScriptBlurEffect-updateSurface-publishOutput") { rs.publishOutput() }
 
           // Finally draw the updated bitmap to our drawing graphics layer
           val output = rs.outputBitmap
@@ -397,19 +420,12 @@ internal class RenderScriptBlurVisualEffectDelegate(
           }
           outputUpdated = retainedOutputState.completeOutputUpdate(retainedOutputGenerationAtStart)
         }
-      } else {
-        if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@traceAsync
-
-        // If the blur radius is 0, we just copy the input content into our contentLayer
-        val outputLayer = contentLayer ?: return@traceAsync
-        outputLayer.record(
-          density = density,
-          layoutDirection = context.currentValueOf(LocalLayoutDirection),
-          size = paddedContent.size,
-        ) {
-          drawLayer(paddedContent)
-        }
-        outputUpdated = retainedOutputState.completeOutputUpdate(retainedOutputGenerationAtStart)
+      } catch (e: RSRuntimeException) {
+        // Acquire, allocation, buffer receive or blur failed. Nothing was published, so
+        // the capture key stays uncommitted and the next draw retries with a new context.
+        HazeLogger.d(TAG) { "RenderScript update failed: $e. Releasing context." }
+        releaseRenderScriptContext()
+        return@traceAsync
       }
 
       HazeLogger.d(TAG) { "Output updated in layer" }
@@ -471,7 +487,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
     // Release any existing context
     releaseRenderScriptContext()
     // Return a new context and store it
-    return RenderScriptContext(rs = requireRenderScript(), size = size)
+    return createRenderScriptContext(requireRenderScript(), size)
       .also { renderScriptContext = it }
   }
 
@@ -518,8 +534,9 @@ internal class RenderScriptBlurVisualEffectDelegate(
   }
 
   private fun releaseRenderScriptContext() {
-    renderScriptContext?.release()
+    val rs = renderScriptContext ?: return
     renderScriptContext = null
+    rs.release()
   }
 
   internal companion object {

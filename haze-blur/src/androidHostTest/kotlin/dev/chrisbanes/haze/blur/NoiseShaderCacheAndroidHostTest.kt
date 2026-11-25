@@ -21,67 +21,42 @@ class NoiseShaderCacheAndroidHostTest : ContextTest() {
   private val context get() = ApplicationProvider.getApplicationContext<Context>()
 
   @Test
-  fun get_sameTextureAndScale_returnsTheSameShader() {
+  fun get_sameTexture_returnsTheSameShader() {
     val cache = NoiseShaderCache()
 
-    val first = cache.get(context, 0.5f)
-    val second = cache.get(context, 0.5f)
+    val first = cache.get(context)
+    val second = cache.get(context)
 
     assertThat(second).isSameInstanceAs(first)
     assertThat(cache.buildCount).isEqualTo(1)
   }
 
   @Test
-  fun get_changedScale_buildsANewShader() {
-    val cache = NoiseShaderCache()
-
-    val first = cache.get(context, 0.5f)
-    val second = cache.get(context, 0.25f)
-
-    assertThat(second).isNotSameInstanceAs(first)
-    assertThat(cache.buildCount).isEqualTo(2)
-  }
-
-  @Test
-  fun get_nonPositiveScale_sharesTheScaleOneShader() {
-    val cache = NoiseShaderCache()
-
-    val unit = cache.get(context, 1f)
-
-    assertThat(cache.get(context, 0f)).isSameInstanceAs(unit)
-    assertThat(cache.get(context, -2f)).isSameInstanceAs(unit)
-    assertThat(cache.buildCount).isEqualTo(1)
-  }
-
-  @Test
   fun get_afterClear_buildsANewShader() {
     val cache = NoiseShaderCache()
-    val first = cache.get(context, 1f)
+    val first = cache.get(context)
 
     cache.clear()
 
-    assertThat(cache.get(context, 1f)).isNotSameInstanceAs(first)
+    assertThat(cache.get(context)).isNotSameInstanceAs(first)
     assertThat(cache.buildCount).isEqualTo(2)
   }
 
   @Test
   fun get_afterTheTextureIsRecycled_buildsANewShader() {
     val cache = NoiseShaderCache()
-    val first = cache.get(context, 1f)
+    val first = cache.get(context)
 
     context.getNoiseTexture().recycle()
 
-    assertThat(cache.get(context, 1f)).isNotSameInstanceAs(first)
+    assertThat(cache.get(context)).isNotSameInstanceAs(first)
     assertThat(cache.buildCount).isEqualTo(2)
   }
 
   @Test
-  fun cachedShader_hasTheMatrixCreateNoiseShaderGives() {
-    val cache = NoiseShaderCache()
-
-    for (scale in listOf(1f, 0.5f)) {
-      assertThat(cache.get(context, scale).matrix()).isEqualTo(context.createNoiseShader(scale).matrix())
-    }
+  fun cachedShader_hasAnIdentityLocalMatrix() {
+    assertThat(NoiseShaderCache().get(context).matrix()).isEqualTo(Matrix().toShortString())
+    assertThat(context.createNoiseShader().matrix()).isEqualTo(Matrix().toShortString())
   }
 
   private fun android.graphics.Shader.matrix() = Matrix().also { getLocalMatrix(it) }.toShortString()

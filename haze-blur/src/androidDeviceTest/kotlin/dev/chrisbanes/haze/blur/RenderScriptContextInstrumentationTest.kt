@@ -10,7 +10,12 @@ import android.renderscript.RenderScript
 import androidx.compose.ui.unit.IntSize
 import androidx.test.platform.app.InstrumentationRegistry
 import assertk.assertFailure
+import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotEqualTo
+import kotlin.concurrent.thread
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Test
@@ -39,6 +44,45 @@ class RenderScriptContextInstrumentationTest {
         assertFailure { context.applyBlur(radius) }
           .isInstanceOf<IllegalArgumentException>()
       }
+    }
+  }
+
+  @Test
+  fun applyBlur_leavesThePublishedBitmapUntilPublishOutput() {
+    withContext { context ->
+      val bitmap = context.outputBitmap
+      bitmap.eraseColor(Color.RED)
+      val generation = bitmap.generationId
+      writeInput(context)
+
+      thread { context.applyBlur(1f) }.join()
+
+      assertThat(bitmap.getPixel(2, 2)).isEqualTo(Color.RED)
+      assertThat(bitmap.generationId).isEqualTo(generation)
+
+      InstrumentationRegistry.getInstrumentation().runOnMainSync { context.publishOutput() }
+
+      val published = bitmap.getPixel(2, 2)
+      assertThat(Color.blue(published)).isGreaterThan(Color.red(published))
+      assertThat(bitmap.generationId).isNotEqualTo(generation)
+    }
+  }
+
+  @Test
+  fun publishOutput_afterRelease_leavesBitmapUnchanged() {
+    val renderScript = RenderScript.create(
+      InstrumentationRegistry.getInstrumentation().targetContext,
+    )
+    try {
+      val context = RenderScriptContext(renderScript, IntSize(4, 4))
+      context.outputBitmap.eraseColor(Color.RED)
+      context.release()
+
+      InstrumentationRegistry.getInstrumentation().runOnMainSync { context.publishOutput() }
+
+      assertThat(context.outputBitmap.getPixel(2, 2)).isEqualTo(Color.RED)
+    } finally {
+      renderScript.destroy()
     }
   }
 

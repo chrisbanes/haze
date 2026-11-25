@@ -222,6 +222,36 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun buildGlassRenderParams_edgeOutlineTopAndBottomStrength_reachesRimKey() {
+    fun params(strength: Float) = buildGlassRenderParams(
+      resolveGlassStyle(
+        effect = GlassRuntimeEffect().apply { style = GlassStyle { edgeOutline(Color.Black, 3.dp, strength) } },
+        materialSizePx = Size(100f, 100f),
+        density = Density(1f),
+        layoutDirection = LayoutDirection.Ltr,
+      ),
+      GlassCoordinates(
+        sampleSize = Size(50f, 50f),
+        materialOrigin = Offset.Zero,
+        materialSize = Size(50f, 50f),
+        scaleFactor = 0.5f,
+      ),
+    )
+
+    val weighted = params(0.25f)
+    assertThat(weighted.edgeOutline).isEqualTo(GlassEdgeOutline(Color.Black, 1.5f, 0.25f))
+    assertThat(weighted.rimEffectKey()).isNotEqualTo(params(1f).rimEffectKey())
+    // An invisible outline is None whatever its strength.
+    val hidden = resolveGlassStyle(
+      effect = GlassRuntimeEffect().apply { style = GlassStyle { edgeOutline(Color.Transparent, 3.dp, 0f) } },
+      materialSizePx = Size(100f, 100f),
+      density = Density(1f),
+      layoutDirection = LayoutDirection.Ltr,
+    )
+    assertThat(hidden.edgeOutline).isEqualTo(GlassEdgeOutline.None)
+  }
+
+  @Test
   fun reduceTransparency_raisesShallowBlurToMinimum() {
     val effect = GlassRuntimeEffect().apply {
       style = GlassStyle { optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(1.dp))) }
@@ -819,8 +849,13 @@ class GlassRenderParamsTest {
     assertThat(
       resolveGlassStyle(mixed, Size(100f, 80f), Density(1f), LayoutDirection.Ltr).cornerRadii,
     ).isEqualTo(CornerRadii(topLeft = 0f, topRight = 12f, bottomRight = 12f, bottomLeft = 12f))
-    assertThat(RoundedCornerShape(fixedPxCorner(-1f)).hasZeroCornerRadii()).isTrue()
-    assertThat(RoundedCornerShape(fixedPxCorner(Float.NEGATIVE_INFINITY)).hasZeroCornerRadii()).isFalse()
+    // Finite negative corners are drawn square; non-finite ones fall back to the rounded default.
+    val size = Size(100f, 80f)
+    assertThat(RoundedCornerShape(fixedPxCorner(-1f)).resolveCornerRadiiPx(size, Density(1f), LayoutDirection.Ltr).isZero())
+      .isTrue()
+    assertThat(
+      RoundedCornerShape(fixedPxCorner(Float.NEGATIVE_INFINITY)).resolveCornerRadiiPx(size, Density(1f), LayoutDirection.Ltr).isZero(),
+    ).isFalse()
   }
 
   private fun fixedPxCorner(px: Float): CornerSize = object : CornerSize {

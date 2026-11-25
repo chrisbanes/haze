@@ -50,6 +50,29 @@ class GlassShadersGoldenTest {
     assertThat(sources.mapValues { (_, source) -> source.sha256() }).isEqualTo(ADDITIONAL_RECORDED)
   }
 
+  @Test
+  fun disjointContinuousSources_matchPreOverlapDigests() {
+    val sources = mapOf(
+      "fused" to GlassShaders.buildFused(continuous = true),
+      "fused-merged" to GlassShaders.buildFused(merged = true, continuous = true),
+      "fused-merged-circular-optics" to GlassShaders.buildFusedWithCircularOptics(merged = true),
+      "optical-merged" to GlassShaders.buildOptical(merged = true, continuous = true),
+      "rim-merged" to GlassShaders.buildRim(merged = true, continuous = true),
+      "merged-background" to GlassShaders.buildMergedBackground(continuous = true),
+    )
+    // Recorded from cac1ddea5, before overlapping corners changed the continuous programs.
+    assertThat(sources.mapValues { (_, source) -> source.sha256() }).isEqualTo(
+      mapOf(
+        "fused" to "2dc4ddf590e1351ade0bddae5ef2ad289698a58d3132f801533c618df18550ad",
+        "fused-merged" to "31cf81911e2f5e361cff4956f5530455f1730d8a9876cbca2445bf2357ff90df",
+        "fused-merged-circular-optics" to "7dddf3ed9b4eb012b26338cbe2c3365269ce1a222fa4eae237a9dda44f35a646",
+        "optical-merged" to "80410be10e8eb678519f41d6cc5c6bbf3c22b23aa5bff2213bc36ea1b33a10ab",
+        "rim-merged" to "149e1f487deb93098b2fa02dd4865b5858bda31dd83678154c4a7819eb20c2f5",
+        "merged-background" to "2e0d41190f67ca6edfdcae389fd0a591f4c7ae487d03c9eb3aa1bb9b1096083d",
+      ),
+    )
+  }
+
   private fun String.sha256(): String = MessageDigest.getInstance("SHA-256")
     .digest(encodeToByteArray())
     .joinToString("") { "%02x".format(it) }
@@ -60,14 +83,15 @@ class GlassShadersGoldenTest {
     // optical sources when the flat interior lighting gradient was skipped (#1766), and the merged
     // sources when the field began to skip far members (#1766). The rim sources were re-recorded
     // when they gained node-bound edge coverage (#1798), and the standalone rim was re-recorded
-    // when its straight outlines gained centered outer-edge coverage.
+    // when its straight outlines gained centered outer-edge coverage. Both rim sources were
+    // re-recorded when the outline gained topAndBottomStrength (#1755).
     val ADDITIONAL_RECORDED = mapOf(
       "fused-merged" to "954a4f172ef97b5c3ad9c3f043afe0c81b8caf83fe051d5675f77c7e7496f715",
       "fused-merged-no-detail" to "739f78671a686db9f801da7e97f88dd737ae664d149da8f982411e55bec946e6",
       "optical-merged" to "a40dd9d5a3bbcf108f164d0063edcec26fd0be0668066a78b2b47fd88d344cff",
       "detail-merged" to "cfb63dc5bbe3775548bab65eb082dc2f3b2eee3e3e254503e135a006f43a6c44",
       "detail-merged-coverage" to "df2ab0fda95fe2d1e0347d97941959237d6918d7b3a12de9c939f22d7962bf02",
-      "rim-merged" to "5f722dc90cd9189bbd7e82b30251e19b33e77389776c68c62947014bc25a8c51",
+      "rim-merged" to "13a6ae7c129589ac14af9ef17599881c7c21c4cca9c87c40439b061d88de0174",
       "lighting" to "d956b1c8f406d634b73f8d3db694422582afe99427ae71a354073dcb06e53e24",
       "lighting-merged" to "fb4070698512ad824e538a4b657eb5661e58e853f959f10ee397d83e5e8a06ec",
       "merged-background" to "b55ffc3933f7106cf7cdcc47a50cfd41dc07d2c86e207baa979b0e28255d8ee5",
@@ -84,7 +108,7 @@ class GlassShadersGoldenTest {
       "detail-coverage" to "4d835b4c6039dff868a024c3bccc9edb4ac28135830b757dac690e942b1fb950",
       "detail-interactive" to "16052b1e27e9494c1d7c3596074682e5f16cc4a1fc743151e804d8dedebd4972",
       "detail-interactive-coverage" to "03d2bde609e92cf53438759b90a99ecfa4597df91610be182e81c7a77d0b9d35",
-      "rim" to "8b08a634d0aaa5f78ad0ada441cba2a0c3952fbe1fac72bdd86d4fd366764b13",
+      "rim" to "758691b6ead4918e9c7b5fb24f483aadff0e9c73dfa2d5a5a18804adcfbbe623",
     )
   }
 }

@@ -58,7 +58,7 @@ fun ExoPlayerSample(
     ExoPlayer.Builder(context).build()
   }
 
-  DisposableEffect(Unit) {
+  DisposableEffect(exoPlayer) {
     exoPlayer.setMediaItem(MediaItem.fromUri(BIG_BUCK_BUNNY))
     exoPlayer.prepare()
     exoPlayer.play()
@@ -79,6 +79,9 @@ fun ExoPlayerSample(
       },
       update = { playerView ->
         playerView.player = exoPlayer
+      },
+      onRelease = { playerView ->
+        playerView.player = null
       },
       modifier = Modifier
         .fillMaxSize()

@@ -110,7 +110,8 @@ class GlassNodeBoundEdgeCoverageInstrumentationTest {
               style = GlassStyle.regular.then {
                 if (current.continuous) shape(ContinuousRoundedCornerShape(CORNER)) else shape(RoundedCornerShape(CORNER))
                 edgeSoftness(current.softness)
-                if (current.outlined) edgeOutline(Color.White.copy(alpha = 0.5f), 0.7.dp)
+                // Regular's directional outline darkens the corner unevenly, so the unoutlined bar draws none.
+                if (current.outlined) edgeOutline(Color.White.copy(alpha = 0.5f), 0.7.dp) else edgeOutline(Color.Transparent, 0.dp)
                 customOptics?.let { optics(it) }
               },
               performanceMode = performanceMode,
@@ -128,7 +129,7 @@ class GlassNodeBoundEdgeCoverageInstrumentationTest {
     val cornerBox = ceil(with(composeTestRule.density) { (CORNER * 1.6f).toPx() }).toInt()
     for (continuous in listOf(false, true)) {
       for (softness in listOf(0.dp, 1.dp, 4.dp)) {
-        var defaultOutline: PixelMap? = null
+        var withoutOutline: PixelMap? = null
         for (outlined in listOf(false, true)) {
           // A fully covered edge cannot depend on what lies beneath the bar.
           val overMagenta = capture(Configuration(continuous, outlined, softness, Color.Magenta))
@@ -141,16 +142,16 @@ class GlassNodeBoundEdgeCoverageInstrumentationTest {
               .isLessThan(4f / 255f)
           }
           // An outline lies outside the shape, so it cannot tint a covered edge pixel (#1798):
-          // Regular's default dark outline and the white one must leave those pixels identical.
-          val dark = defaultOutline
-          if (dark == null) {
-            defaultOutline = overMagenta
+          // the white outline must leave those pixels identical to a bar without one.
+          val bare = withoutOutline
+          if (bare == null) {
+            withoutOutline = overMagenta
           } else {
             for ((x, y) in overMagenta.nodeBoundEdgePixels(cornerBox)) {
-              val tint = abs(overMagenta[x, y].red - dark[x, y].red) +
-                abs(overMagenta[x, y].green - dark[x, y].green) +
-                abs(overMagenta[x, y].blue - dark[x, y].blue)
-              assertThat(tint, "$variant outline tints ($x, $y): ${overMagenta[x, y]} vs ${dark[x, y]}")
+              val tint = abs(overMagenta[x, y].red - bare[x, y].red) +
+                abs(overMagenta[x, y].green - bare[x, y].green) +
+                abs(overMagenta[x, y].blue - bare[x, y].blue)
+              assertThat(tint, "$variant outline tints ($x, $y): ${overMagenta[x, y]} vs ${bare[x, y]}")
                 .isLessThan(4f / 255f)
             }
           }

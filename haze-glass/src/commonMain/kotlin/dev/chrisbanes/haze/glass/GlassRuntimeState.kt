@@ -157,6 +157,8 @@ internal abstract class GlassRuntimeState {
   internal val edgeSoftness: Dp get() = inheritedStyleValues.edgeSoftness
   internal val edgeOutlineColor: Color get() = inheritedStyleValues.edgeOutlineColor
   internal val edgeOutlineWidth: Dp get() = inheritedStyleValues.edgeOutlineWidth
+  internal val edgeOutlineTopAndBottomStrength: Float
+    get() = inheritedStyleValues.edgeOutlineTopAndBottomStrength
 
   /** How far this Glass draws beyond its shape on every side. */
   internal val drawExtent: Dp get() = inheritedStyleValues.drawExtent
@@ -348,7 +350,11 @@ internal abstract class GlassRuntimeState {
     if (old.drawExtent != new.drawExtent) {
       markDirty(GlassDirtyFields.DrawOutset)
     }
-    if (old.edgeOutlineColor != new.edgeOutlineColor || old.edgeOutlineWidth != new.edgeOutlineWidth) {
+    if (
+      old.edgeOutlineColor != new.edgeOutlineColor ||
+      old.edgeOutlineWidth != new.edgeOutlineWidth ||
+      old.edgeOutlineTopAndBottomStrength != new.edgeOutlineTopAndBottomStrength
+    ) {
       markDirty(GlassDirtyFields.EdgeOutline)
     }
     if (old.contentNormalBlend != new.contentNormalBlend) {

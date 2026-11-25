@@ -22,6 +22,15 @@ pluginManagement {
 
 dependencyResolutionManagement {
   repositories {
+    // Maven Central rate-limits large Robolectric SDK downloads on GitHub Actions (HTTP 429).
+    // Gradle fetches these jars before the offline tests, so prefer the mirror here.
+    if (providers.environmentVariable("GITHUB_ACTIONS").orNull == "true") {
+      maven("https://maven-central.storage-download.googleapis.com/maven2/") {
+        content {
+          includeModule("org.robolectric", "android-all-instrumented")
+        }
+      }
+    }
     mavenCentral()
     google()
 

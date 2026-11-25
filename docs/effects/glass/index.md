@@ -70,17 +70,18 @@ CompositionLocalProvider(LocalGlassStyle provides GlassStyle.material3()) {
 
 [`GlassStyle.regular`][GlassStyle.regular] is the default style. Its blur and depth grow with the surface's shortest
 side: compact controls keep some refracted detail and a curved edge, while larger surfaces fully
-diffuse the backdrop. In dark appearance it uses a darker tone, edge, and lighting response.
-Dark Regular now uses a lighter interior with less backdrop contrast.
+diffuse the backdrop. In dark appearance it uses a darker tone, edge, and lighting response, with
+less backdrop contrast and a fainter rim highlight.
 
 [`GlassStyle.clear`][GlassStyle.clear] keeps more of the background visible. It uses the same shallow blur at every
 size, with refraction concentrated in a band along the edge that forms loops around the corners.
 Clear uses its light response in both system appearances. Fallback renderers simplify its optics;
 on Android 12 and 12L they keep an approximation of blur and tone.
 
-Both styles draw a 0.7 dp black outline at 40% opacity outside the surface and a 1 dp light band
-inside its top and bottom edges. The band is stronger on Clear. Custom styles inherit Regular's
-edges; disable them with later writes when needed:
+Both styles draw a 0.7 dp black outline outside the surface and a 1 dp light band inside its top
+and bottom edges. As on iOS 27, the outline is strongest on the left and right: Regular keeps a
+fainter outline on the top and bottom, and Clear draws none there. The band is stronger on Clear.
+Custom styles inherit Regular's edges; disable them with later writes when needed:
 
 ```kotlin
 val withoutEdges = GlassStyle.regular.then {
@@ -141,21 +142,25 @@ Modifier.hazeGlass(
 - **rimHighlight**(intensity, width, sides): Thin light band just inside the top and bottom edges,
   drawn above content. `sides` scales the left and right edges: `0` lights only the top and bottom,
   `1` lights every edge equally. It ignores `lightPosition`, follows merged container shapes, and is
-  enabled by default at intensity `0.6f` for Regular and `1f` for Clear, with width `1.dp` and
-  sides `0f`. Limited renderers approximate it.
-- **edgeOutline**(color, width): Hard line of `width` drawn just outside the shape, composited with
-  the color's alpha over what lies behind the Glass. It follows merged container shapes, limited
-  renderers draw an equivalent stroke. Both built-ins use black at 40% opacity and width `0.7.dp`.
-  An outer `Modifier.clip()` hides it.
+  enabled by default at intensity `0.7f` for Regular (`0.25f` in dark appearance) and `1f` for
+  Clear, with width `1.dp` and sides `0f`. Limited renderers approximate it.
+- **edgeOutline**(color, width, topAndBottomStrength): Hard line of `width` drawn just outside the
+  shape, composited with the color's alpha over what lies behind the Glass. It follows merged
+  container shapes, limited renderers draw an equivalent stroke. `topAndBottomStrength` scales the
+  top and bottom edges relative to the left and right, blending through corners: `1f` (the default)
+  draws the same line on every edge, `0f` draws only the left and right. Limited renderers draw a
+  uniform outline at the mean of the two strengths. Both built-ins use black, width `0.7.dp`, at
+  58% opacity (60% for dark Regular), with `topAndBottomStrength` `0.42f` for Regular (`0.1f` in
+  dark appearance) and `0f` for Clear. An outer `Modifier.clip()` hides it.
 - **ambientResponse**: Fresnel/edge lift `0..1` (default 0.15).
 - **edgeSoftness**: Soft fade at the edges (default 1.dp). Set to 0.dp for hard edges.
 - **shape** (`RoundedCornerShape` or `ContinuousRoundedCornerShape`): Boundary for refraction and
   masking (default 16.dp continuous corners). `ContinuousRoundedCornerShape` gives continuous,
   iOS-style corners that ease into each edge; its `smoothing` runs from `0f` (circular) to `1f`
   (the default, matching SwiftUI's `.continuous` style). When a corner cannot ease within its edges,
-  as in a capsule, its smoothing is reduced and its radius kept. When corners would overlap, as in a
-  leaf shape, smoothing is removed and the radii kept. Add an outer `Modifier.clip()` with
-  the same shape only when child content also needs clipping.
+  as in a capsule, its smoothing is reduced and its radius kept. Opposite corners may overlap, as
+  in a leaf shape, and keep their smoothing. Add an outer `Modifier.clip()` with the same shape
+  only when child content also needs clipping.
 - **surfaceProfile**: Cross-section for lighting and, with [`RefractionProfile.Surface`][RefractionProfile.Surface], refraction. Options: `Circle` (default), `Squircle`, `Lip`, `Concave`.
 - **lightPosition**: `Alignment` of the light within the surface (default `Alignment.Center`).
   Start and end follow layout direction.

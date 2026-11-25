@@ -33,6 +33,15 @@ revision, selected coverage, results, and missing device evidence accurately. Wh
 update the independent acceptance set in `scripts/verify_screenshot_matrix.py` alongside the catalog
 and tests so discovery cannot silently omit it.
 
-Robolectric runtime jars are resolved by Gradle and tests run offline. A test on a new Robolectric SDK
-level must also add it to `Versions.ROBOLECTRIC_SDKS` in `gradle/build-logic`, or its test class
-fails with `no artifacts found for DependencyJar`.
+Gradle resolves Robolectric runtime jars before tests run; Robolectric itself runs offline using the
+resolved jars. On GitHub Actions (`GITHUB_ACTIONS=true`), Gradle prefers Google's Maven Central
+mirror for `org.robolectric:android-all-instrumented` only, with Maven Central following it. An HTTP
+429 while resolving a jar is a dependency download failure, not a missing SDK in the offline test.
+To diagnose resolution for the library screenshot tests, run:
+
+```shell
+./gradlew :haze-screenshot-tests:writeRobolectricDependencies --no-scan
+```
+
+A test on a new Robolectric SDK level must also add it to `Versions.ROBOLECTRIC_SDKS` in
+`gradle/build-logic`, or its test class fails with `no artifacts found for DependencyJar`.

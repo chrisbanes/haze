@@ -21,9 +21,11 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
+import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.Poko
+import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.createScaledContentLayer
 import dev.chrisbanes.haze.drawScaledContent
@@ -40,6 +42,12 @@ internal class RenderEffectBlurVisualEffectDelegate(
   internal val logicalLayer = RetainedGraphicsLayer()
   internal val logicalSlot = blurVisualEffect.renderEffectSlotFactory()
   internal var logicalPathActive = false
+
+  /**
+   * Set when a runtime shader could not be built, so draws take the API 31–32 routes, which build
+   * none, until [detach].
+   */
+  internal var runtimeShaderFallback = false
   internal var scaledContentLayer: GraphicsLayer? = null
     private set
   private var lastScaledLayerSize: Size? = null
@@ -144,6 +152,24 @@ internal class RenderEffectBlurVisualEffectDelegate(
     context: HazeEffectRuntimeDrawScope,
     scaleFactor: Float,
   ) {
+    try {
+      drawRetainedLayerOnce(layer, context, scaleFactor)
+    } catch (failure: RuntimeShaderRenderEffectException) {
+      if (runtimeShaderFallback) throw failure
+      runtimeShaderFallback = true
+      HazeLogger.d(TAG) { "Runtime shader rendering failed; using runtime-shader-free routes until detach: $failure" }
+      effectSlot.reset()
+      // The failure surfaces while resolving an effect, before the layer is drawn, so redrawing
+      // this frame does not draw it twice.
+      drawRetainedLayerOnce(layer, context, scaleFactor)
+    }
+  }
+
+  private fun DrawScope.drawRetainedLayerOnce(
+    layer: GraphicsLayer,
+    context: HazeEffectRuntimeDrawScope,
+    scaleFactor: Float,
+  ) {
     val clip = blurVisualEffect.shouldClipToNodeBounds()
     layer.clip = clip
     if (drawLogicalCustomStyle(this, layer, context, scaleFactor)) return
@@ -207,6 +233,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
 
   override fun detach() {
     releaseRetainedResources()
+    runtimeShaderFallback = false
   }
 
   override fun onTrimMemory(context: HazeEffectLifecycleScope, level: TrimMemoryLevel) {

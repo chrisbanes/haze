@@ -35,7 +35,7 @@
 - Todo name: `Todo`
 - Todo option ID: `61e4505c`
 - In progress name: `In progress`
-- In progress option ID: `47fc9ee4`
+- In progress option ID: `5f7c7b8b`
 - Done name: `Done`
 - Done option ID: `98236657`
 

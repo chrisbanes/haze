@@ -40,6 +40,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
+import dev.chrisbanes.haze.glass.ContinuousRoundedCornerShape
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
@@ -50,7 +51,7 @@ import dev.chrisbanes.haze.glass.hazeGlassContainer
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import kotlin.math.abs
 
-internal enum class GlassContainerScene { Merged, Separate, MixedColours, MixedKeys, Overflow, Nested, InteractiveRest, InteractivePressed, Overlap, Grouped, InsetLazyRow, RimHighlight, EdgeOutline }
+internal enum class GlassContainerScene { Merged, Separate, MixedColours, MixedKeys, Overflow, Nested, InteractiveRest, InteractivePressed, Overlap, Grouped, InsetLazyRow, RimHighlight, EdgeOutline, EdgeOutlineSidesOnly, EdgeOutlineQuarterTopAndBottom }
 
 /** [fallback] asserts the fallback renderer's hard union, which draws no bridge. */
 internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerScene, fallback: Boolean = false) {
@@ -97,6 +98,8 @@ internal fun ScreenshotUiTest.assertGlassContainerScene(scene: GlassContainerSce
       // The first member's left edge is at x = 40; the outline darkens just outside it.
       assertThat(pixels[38, 100].luminance()).isLessThan(pixels[30, 100].luminance() - 0.1f)
     }
+    GlassContainerScene.EdgeOutlineSidesOnly, GlassContainerScene.EdgeOutlineQuarterTopAndBottom ->
+      assertDirectionalEdgeOutline(pixels, scene, fallback)
     GlassContainerScene.Grouped -> {
       // The members are 120px apart, far beyond the merge distance, so only the group fills the gap.
       // The first member's red tint covers the whole group, including the second member's bounds.
@@ -221,6 +224,48 @@ private fun assertMerged(pixels: PixelMap) {
   assertThat(pixels[220, 110].blue).isGreaterThan(pixels[220, 110].red)
 }
 
+/**
+ * Each probe is half a pixel outside an edge: (side, top) for the rounded, circle, continuous and
+ * merged members, laid out in [GlassContainerScreenshotScene].
+ */
+private val directionalOutlineProbes = listOf(
+  (39 to 90) to (90 to 59),
+  (241 to 90) to (211 to 59),
+  (281 to 90) to (312 to 59),
+  (39 to 192) to (90 to 161),
+)
+
+private fun assertDirectionalEdgeOutline(pixels: PixelMap, scene: GlassContainerScene, fallback: Boolean) {
+  // How much of the backdrop the black outline covers; 1 is a fully opaque line.
+  fun darkening(x: Int, y: Int): Float = 1f - pixels[x, y].red / sceneBackground(x, y).red
+  for ((side, top) in directionalOutlineProbes) {
+    val sideDarkening = darkening(side.first, side.second)
+    val topDarkening = darkening(top.first, top.second)
+    if (fallback) {
+      // Limited renderers draw a uniform outline at the mean of the side and top strengths.
+      val mean = (1f + scene.outlineTopAndBottomStrength) / 2f
+      assertThat(abs(sideDarkening - mean), "side at $side").isLessThan(0.08f)
+      assertThat(abs(topDarkening - sideDarkening), "top at $top").isLessThan(0.03f)
+    } else if (scene == GlassContainerScene.EdgeOutlineSidesOnly) {
+      assertThat(sideDarkening, "side at $side").isGreaterThan(0.5f)
+      assertThat(topDarkening, "top at $top").isLessThan(0.02f)
+    } else {
+      assertThat(sideDarkening, "side at $side").isGreaterThan(0.5f)
+      assertThat(topDarkening / sideDarkening, "top at $top").isGreaterThan(0.15f)
+      assertThat(topDarkening / sideDarkening, "top at $top").isLessThan(0.35f)
+    }
+  }
+  if (!fallback && scene == GlassContainerScene.EdgeOutlineSidesOnly) {
+    // The circle's 45 degree edge blends halfway between its side and top.
+    val diagonal = darkening(232, 68) / darkening(241, 90)
+    assertThat(diagonal).isGreaterThan(0.3f)
+    assertThat(diagonal).isLessThan(0.7f)
+  }
+}
+
+private val GlassContainerScene.outlineTopAndBottomStrength: Float
+  get() = if (this == GlassContainerScene.EdgeOutlineSidesOnly) 0f else 0.25f
+
 private fun PixelMap.colours(): List<Color> = List(width * height) { this[it % width, it / width] }
 
 private fun sceneBackground(x: Int, y: Int): Color =
@@ -318,6 +363,27 @@ private fun GlassContainerScreenshotScene(
             val outline = GlassStyle { edgeOutline(Color.Black, 2.dp) }
             GlassContainerSceneMember(state, 40, 60, 100, 80, sceneStyle(Color.Red).then(outline))
             GlassContainerSceneMember(state, 159, 60, 100, 80, sceneStyle(Color.Blue).then(outline))
+          }
+          GlassContainerScene.EdgeOutlineSidesOnly, GlassContainerScene.EdgeOutlineQuarterTopAndBottom -> {
+            val outline = GlassStyle {
+              edgeOutline(Color.Black, 2.dp, topAndBottomStrength = scene.outlineTopAndBottomStrength)
+            }
+            // Separate members are 41px apart, beyond the merge distance; the bottom pair merges.
+            GlassContainerSceneMember(state, 40, 60, 100, 60, sceneStyle(Color.Red, shape = RoundedCornerShape(16.dp)).then(outline))
+            GlassContainerSceneMember(state, 181, 60, 60, 60, sceneStyle(Color.Blue, shape = RoundedCornerShape(percent = 50)).then(outline))
+            GlassContainerSceneMember(
+              state,
+              282,
+              60,
+              60,
+              60,
+              sceneStyle(Color.Red).then {
+                shape(ContinuousRoundedCornerShape(12.dp))
+                edgeOutline(Color.Black, 2.dp, topAndBottomStrength = scene.outlineTopAndBottomStrength)
+              },
+            )
+            GlassContainerSceneMember(state, 40, 162, 100, 60, sceneStyle(Color.Red).then(outline))
+            GlassContainerSceneMember(state, 159, 162, 100, 60, sceneStyle(Color.Blue).then(outline))
           }
           else -> {
             val mixed = scene == GlassContainerScene.MixedColours
