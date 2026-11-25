@@ -163,7 +163,7 @@ class MergedGlassFusedAndroidHostTest : ContextTest() {
       onNodeWithTag(TAG).captureToImage()
       val delegate = effect.delegate as? RuntimeShaderGlassDelegate
       assertThat(delegate?.fusedShader).isNotNull()
-      assertThat(delegate?.fusedInputKey?.continuous).isEqualTo(continuous)
+      assertThat(delegate?.fusedInputKey?.cornerShader?.isContinuous).isEqualTo(continuous)
       assertThat(delegate?.fusedInputKey?.circularOptics)
         .isEqualTo(continuous && performanceMode.usesCircularCornerOptics())
       assertThat(effect.preparedRender?.opticalKey?.mergedField).isNotNull()

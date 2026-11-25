@@ -158,9 +158,9 @@ Modifier.hazeGlass(
   masking (default 16.dp continuous corners). `ContinuousRoundedCornerShape` gives continuous,
   iOS-style corners that ease into each edge; its `smoothing` runs from `0f` (circular) to `1f`
   (the default, matching SwiftUI's `.continuous` style). When a corner cannot ease within its edges,
-  as in a capsule, its smoothing is reduced and its radius kept. When corners would overlap, as in a
-  leaf shape, smoothing is removed and the radii kept. Add an outer `Modifier.clip()` with
-  the same shape only when child content also needs clipping.
+  as in a capsule, its smoothing is reduced and its radius kept. Opposite corners may overlap, as
+  in a leaf shape, and keep their smoothing. Add an outer `Modifier.clip()` with the same shape
+  only when child content also needs clipping.
 - **surfaceProfile**: Cross-section for lighting and, with [`RefractionProfile.Surface`][RefractionProfile.Surface], refraction. Options: `Circle` (default), `Squircle`, `Lip`, `Concave`.
 - **lightPosition**: `Alignment` of the light within the surface (default `Alignment.Center`).
   Start and end follow layout direction.

@@ -251,7 +251,7 @@ private fun glassMergedMember(
   lightPosition: Offset?,
   lightSize: Float,
 ): GlassMergedMember {
-  val fieldRect = Rect(rect.topLeft - origin, rect.size)
+  val fieldRect = Rect(rect.topLeft - origin, rect.size).withPositiveSize()
   val refractionMultiplier = interaction?.refractionMultiplier ?: 1f
   val whitePointDelta = interaction?.whitePointDelta ?: 0f
   val hasOpticalResponse = refractionMultiplier != 1f || whitePointDelta != 0f

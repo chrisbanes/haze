@@ -1031,7 +1031,9 @@ internal data class GlassPreparedRender(
   val opticalKey: GlassOpticalEffectKey,
   val refractionDetailKey: GlassRefractionDetailEffectKey?,
   val rimKey: GlassRimEffectKey?,
-)
+) {
+  val cornerShader: GlassCornerShader = glassCornerShader(params.cornerRadii, params.coordinates.materialSize, params.mergedField)
+}
 
 internal fun resolveGlassGroupCompositeSize(
   outputSize: IntSize,

@@ -107,26 +107,35 @@ public fun GlassSlider(
       .pointerInput(enabled, width) {
         if (enabled) {
           var press: PressInteraction.Press? = null
-          detectDragGestures(
-            onDragStart = {
-              press = PressInteraction.Press(it)
-              interactionSource.tryEmit(press!!)
-              onStarted?.invoke()
-              updateAt(it.x)
-            },
-            onDragEnd = {
-              press?.let { interactionSource.tryEmit(PressInteraction.Release(it)) }
+          // Restarting this block (resize or disable) cancels the coroutine without onDragCancel.
+          try {
+            detectDragGestures(
+              onDragStart = {
+                press = PressInteraction.Press(it)
+                interactionSource.tryEmit(press!!)
+                onStarted?.invoke()
+                updateAt(it.x)
+              },
+              onDragEnd = {
+                press?.let { interactionSource.tryEmit(PressInteraction.Release(it)) }
+                press = null
+                onFinished?.invoke()
+              },
+              onDragCancel = {
+                press?.let { interactionSource.tryEmit(PressInteraction.Cancel(it)) }
+                press = null
+                onFinished?.invoke()
+              },
+            ) { change, _ ->
+              updateAt(change.position.x)
+              change.consume()
+            }
+          } finally {
+            press?.let {
+              interactionSource.tryEmit(PressInteraction.Cancel(it))
               press = null
               onFinished?.invoke()
-            },
-            onDragCancel = {
-              press?.let { interactionSource.tryEmit(PressInteraction.Cancel(it)) }
-              press = null
-              onFinished?.invoke()
-            },
-          ) { change, _ ->
-            updateAt(change.position.x)
-            change.consume()
+            }
           }
         }
       }

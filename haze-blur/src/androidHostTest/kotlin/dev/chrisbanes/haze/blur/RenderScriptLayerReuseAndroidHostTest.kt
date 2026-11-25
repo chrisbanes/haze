@@ -64,7 +64,6 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
   @Config(sdk = [35])
   fun drawPresentation_nonuniformCaptureScale_usesUnpaddedGeometryAndOffset() = runScreenshotTest {
     val h = Harness(PLAIN)
-    h.factory.scale = 0.5f
     h.factory.captureScale = ScaleFactor(0.6f, 0.3f)
     h.factory.offset = Offset(5f, 7f)
     h.factory.paddedOutput = true
@@ -90,7 +89,6 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
         mask(Brush.verticalGradient(listOf(Color.Black, Color.Transparent), endY = 100f))
       },
     )
-    h.factory.scale = 0.5f
     h.factory.captureScale = ScaleFactor(0.6f, 0.3f)
     h.factory.offset = Offset(5f, 7f)
     h.factory.paddedOutput = true
@@ -211,9 +209,10 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
     repeat(4) { h.redraw(this) }
     assertThat(h.delegate.noiseShaders.buildCount).isEqualTo(1)
 
-    h.factory.scale = 0.5f
+    // The noise does not follow the capture scale, so a new scale keeps the shader.
+    h.factory.captureScale = ScaleFactor(0.5f, 0.5f)
     h.redraw(this)
-    assertThat(h.delegate.noiseShaders.buildCount).isEqualTo(2)
+    assertThat(h.delegate.noiseShaders.buildCount).isEqualTo(1)
   }
 
   @Test
@@ -350,7 +349,6 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
   }
 
   private class PresentationFactory(val effect: BlurVisualEffect) : HazeEffectFactory<Int> {
-    var scale = 1f
     var captureScale = ScaleFactor(1f, 1f)
     var offset = Offset.Zero
     var paddedOutput = false
@@ -407,7 +405,7 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
               },
             )
           } else {
-            drawPresentation(runtime, layer, offset, scale, captureScale)
+            drawPresentation(runtime, layer, offset, captureScale)
           }
         }
         draws++

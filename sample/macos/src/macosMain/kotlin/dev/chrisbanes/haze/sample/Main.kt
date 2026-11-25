@@ -9,14 +9,17 @@ import platform.AppKit.NSApplicationActivationPolicy
 import platform.AppKit.NSApplicationDelegateProtocol
 import platform.darwin.NSObject
 
+// NSApplication.delegate is weak, so a strong reference must outlive the run loop.
+private val appDelegate = object : NSObject(), NSApplicationDelegateProtocol {
+  override fun applicationShouldTerminateAfterLastWindowClosed(sender: NSApplication): Boolean {
+    return true
+  }
+}
+
 fun main() {
   val nsApplication = NSApplication.sharedApplication()
   nsApplication.setActivationPolicy(NSApplicationActivationPolicy.NSApplicationActivationPolicyRegular)
-  nsApplication.delegate = object : NSObject(), NSApplicationDelegateProtocol {
-    override fun applicationShouldTerminateAfterLastWindowClosed(sender: NSApplication): Boolean {
-      return true
-    }
-  }
+  nsApplication.delegate = appDelegate
   Window(
     title = "Haze Sample",
   ) {

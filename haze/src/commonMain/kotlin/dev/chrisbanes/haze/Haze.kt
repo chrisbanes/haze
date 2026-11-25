@@ -31,6 +31,7 @@ import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
+import kotlin.math.roundToInt
 
 /** Creates and remembers a [HazeState] for coordinating Haze sources and effects. */
 @Composable
@@ -218,7 +219,9 @@ internal class HazeArea {
   }
 
   /**
-   * [contentLayer] when it can be drawn: not released and with a non-empty size.
+   * [contentLayer] when it can be drawn: not released, with a non-empty recorded size, and with
+   * logical [size] of at least one rounded pixel. This is the single drawable-input predicate;
+   * preflight checks delegate to it.
    *
    * Also reads [inputBounds]: Skia applies a layer's outsets when a consumer records it, so every
    * consumer that reads the layer must redraw when they change.
@@ -226,6 +229,7 @@ internal class HazeArea {
   internal val drawableContentLayer: GraphicsLayer?
     get() {
       inputBounds
+      if (!size.isSpecified || size.minDimension.roundToInt() < 1) return null
       return contentLayer?.takeUnless { it.isReleased || it.size.width <= 0 || it.size.height <= 0 }
     }
 

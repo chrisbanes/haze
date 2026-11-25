@@ -36,7 +36,7 @@ import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.createShaderRenderEffect
 import dev.chrisbanes.haze.then
 import dev.chrisbanes.haze.trace
-import kotlin.math.abs
+import dev.chrisbanes.haze.wrapRuntimeShaderConstruction
 
 private var noiseTexture: Bitmap? = null
 
@@ -48,14 +48,16 @@ internal actual fun ShaderBrush.createScaledShader(size: Size, scale: ScaleFacto
     return shader.apply { setLocalMatrix(Matrix().apply { setValues(floatArrayOf(scale.scaleX, 0f, offset.x, 0f, scale.scaleY, offset.y, 0f, 0f, 1f)) }) }
   }
   if (Build.VERSION.SDK_INT >= 33) {
-    return RuntimeShader(
-      """
-        uniform shader source;
-        uniform float2 scale;
-        uniform float2 origin;
-        half4 main(float2 coord) { return source.eval((coord - origin) / scale); }
-      """.trimIndent(),
-    ).apply {
+    return wrapRuntimeShaderConstruction {
+      RuntimeShader(
+        """
+          uniform shader source;
+          uniform float2 scale;
+          uniform float2 origin;
+          half4 main(float2 coord) { return source.eval((coord - origin) / scale); }
+        """.trimIndent(),
+      )
+    }.apply {
       setInputShader("source", shader)
       setFloatUniform("scale", scale.scaleX, scale.scaleY)
       setFloatUniform("origin", offset.x, offset.y)
@@ -146,19 +148,8 @@ internal fun Context.getNoiseTexture(): Bitmap {
   }
 }
 
-internal fun Context.createNoiseShader(scale: Float): BitmapShader {
-  val normalizedScale = if (scale > 0f) scale else 1f
-  return BitmapShader(getNoiseTexture(), REPEAT, REPEAT).apply {
-    if (abs(normalizedScale - 1f) >= 0.001f) {
-      setLocalMatrix(
-        Matrix().apply {
-          val reciprocal = 1f / normalizedScale
-          setScale(reciprocal, reciprocal)
-        },
-      )
-    }
-  }
-}
+// One texel per pixel of the surface the noise is drawn on; scaling the texture enlarges the grain.
+internal fun Context.createNoiseShader(): BitmapShader = BitmapShader(getNoiseTexture(), REPEAT, REPEAT)
 
 @RequiresApi(31)
 internal actual fun createCombinedNoiseTintRenderEffectOrNull(
@@ -166,7 +157,6 @@ internal actual fun createCombinedNoiseTintRenderEffectOrNull(
   input: PlatformRenderEffect,
   noiseFactor: Float,
   tintColor: Color,
-  scale: Float,
 ): PlatformRenderEffect? {
   if (Build.VERSION.SDK_INT < 33) return null
 
@@ -177,7 +167,7 @@ internal actual fun createCombinedNoiseTintRenderEffectOrNull(
       shaderNames = arrayOf("content"),
       inputs = arrayOf(null),
     ) {
-      setChildShader("noise", context.createNoiseShader(scale))
+      setChildShader("noise", context.createNoiseShader())
       setFloatUniform("noiseAlpha", noiseFactor.coerceIn(0f, 1f))
       // Keep the packed sRGB tint that the per-effect RuntimeShader received.
       setColorUniform("tintColor", Color(tintColor.toArgb()))
@@ -193,11 +183,9 @@ internal actual fun createNoiseEffect(
   context: PlatformContext,
   noiseFactor: Float,
   mask: Shader?,
-  scale: Float,
 ): PlatformRenderEffect {
-  // Apply scaling through the shader matrix so we can reuse the decoded bitmap.
   val noiseAlpha = noiseFactor.coerceIn(0f, 1f)
-  val baseNoiseEffect = createShaderRenderEffect(context.createNoiseShader(scale))
+  val baseNoiseEffect = createShaderRenderEffect(context.createNoiseShader())
   val noiseEffect = if (noiseAlpha < 1f) {
     val matrix = ColorMatrix().apply { setScale(1f, 1f, 1f, noiseAlpha) }
     createColorFilterRenderEffect(ColorMatrixColorFilter(matrix), baseNoiseEffect)

@@ -1,7 +1,7 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(InternalHazeApi::class, ExperimentalHazeApi::class)
+@file:OptIn(InternalHazeApi::class, ExperimentalHazeApi::class, ExperimentalAtomicApi::class)
 
 package dev.chrisbanes.haze
 
@@ -39,6 +39,8 @@ import androidx.compose.ui.node.updateLayerBlock
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.toSize
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
@@ -117,7 +119,6 @@ internal class HazeSourceNode(
   internal var inputSharing: HazeInputSharing by mutableStateOf(inputSharing)
   internal var inputSharingOutsets: LayerOutsets by mutableStateOf(inputSharingOutsets)
 
-  private var lastCoordinates: LayoutCoordinates? = null
   private var hasCaptureDemand = false
 
   private var preDrawJob: Job? = null
@@ -186,14 +187,18 @@ internal class HazeSourceNode(
     if (snapshotApplyObserver != null || !isAttached) return
 
     val nodeScope = coroutineScope
+    // Per registration: a launch cancelled by detach must not leave a later registration gated.
+    val dispatchPending = AtomicBoolean(false)
 
     // Descendant layer-property changes may not redraw this node, but their snapshot writes
     // still need to refresh effects hosted in another window, and on API 31 effects in the same
     // window too (see observesSameWindowSourceSnapshots).
     snapshotApplyObserver = Snapshot.registerApplyObserver { _, _ ->
       if (!isAttached) return@registerApplyObserver
+      if (!dispatchPending.compareAndSet(false, true)) return@registerApplyObserver
 
       nodeScope.launch {
+        dispatchPending.store(false)
         if (isAttached) {
           schedulePreDraw(snapshotApplied = true)
         }
@@ -282,7 +287,6 @@ internal class HazeSourceNode(
       return
     }
 
-    lastCoordinates = coordinates
     area.updateLayoutCoordinates(coordinates)
     // Write both local and screen positions so effects can use either coordinate space
     area.coordinates.localPosition = coordinates.positionInRoot()

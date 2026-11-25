@@ -60,12 +60,11 @@ internal actual fun DrawScope.supportsGlassRimBrush(): Boolean =
   drawContext.canvas.nativeCanvas.isHardwareAccelerated
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createGlassRimBrushProvider(merged: Boolean, continuous: Boolean): GlassRimBrushProvider? =
-  when {
-    merged && continuous -> GlassDirectDrawPrograms.continuousMergedRim
-    merged -> GlassDirectDrawPrograms.mergedRim
-    continuous -> GlassDirectDrawPrograms.continuousRim
-    else -> GlassDirectDrawPrograms.rim
+internal actual fun createGlassRimBrushProvider(merged: Boolean, corners: GlassCornerShader): GlassRimBrushProvider? =
+  when (corners) {
+    GlassCornerShader.Circular -> if (merged) GlassDirectDrawPrograms.mergedRim else GlassDirectDrawPrograms.rim
+    GlassCornerShader.Continuous -> if (merged) GlassDirectDrawPrograms.continuousMergedRim else GlassDirectDrawPrograms.continuousRim
+    GlassCornerShader.Overlapping -> if (merged) GlassDirectDrawPrograms.overlappingMergedRim else GlassDirectDrawPrograms.overlappingRim
   }?.let { AndroidGlassRimBrushProvider(it.shader, it.brush) }
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -83,10 +82,13 @@ internal class AndroidGlassRimBrushProvider(
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal actual fun createGlassMergedBackgroundShaderProvider(
-  continuous: Boolean,
+  corners: GlassCornerShader,
 ): GlassMergedBackgroundShaderProvider? =
-  (if (continuous) GlassDirectDrawPrograms.continuousMergedBackground else GlassDirectDrawPrograms.mergedBackground)
-    ?.let(::AndroidGlassMergedBackgroundShaderProvider)
+  when (corners) {
+    GlassCornerShader.Circular -> GlassDirectDrawPrograms.mergedBackground
+    GlassCornerShader.Continuous -> GlassDirectDrawPrograms.continuousMergedBackground
+    GlassCornerShader.Overlapping -> GlassDirectDrawPrograms.overlappingMergedBackground
+  }?.let(::AndroidGlassMergedBackgroundShaderProvider)
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal class AndroidGlassMergedBackgroundShaderProvider(
@@ -122,6 +124,15 @@ private object GlassDirectDrawPrograms {
   }
   val continuousMergedBackground by lazyGlassProgram {
     RuntimeShader(GlassShaders.buildMergedBackground(continuous = true))
+  }
+  val overlappingRim by lazyGlassProgram {
+    GlassRimProgram(RuntimeShader(GlassShaders.buildRim(continuous = true, overlapping = true)))
+  }
+  val overlappingMergedRim by lazyGlassProgram {
+    GlassRimProgram(RuntimeShader(GlassShaders.buildRim(merged = true, continuous = true, overlapping = true)))
+  }
+  val overlappingMergedBackground by lazyGlassProgram {
+    RuntimeShader(GlassShaders.buildMergedBackground(continuous = true, overlapping = true))
   }
 }
 

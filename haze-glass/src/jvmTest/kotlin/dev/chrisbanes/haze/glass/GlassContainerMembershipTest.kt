@@ -174,6 +174,44 @@ class GlassContainerMembershipTest : ContextTest() {
   }
 
   @Test
+  fun contentMemberRedraw_doesNotRecluster() = runComposeUiTest {
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
+    val tick = mutableIntStateOf(0)
+    setContent {
+      Box(Modifier.size(360.dp, 240.dp).hazeGlassContainer(40.dp)) {
+        Box(
+          Modifier.offset(40.dp, 60.dp).size(100.dp, 80.dp)
+            .hazeGlass(HazeEffectFactory { first }, HazeInput.Content, containerTestStyle(Color.Transparent), HazePerformanceMode.Quality, true, null)
+            .drawBehind {
+              tick.intValue
+              drawRect(Color.Red)
+            },
+        )
+        Box(
+          Modifier.offset(150.dp, 60.dp).size(100.dp, 80.dp)
+            .hazeGlass(HazeEffectFactory { second }, HazeInput.Content, containerTestStyle(Color.Transparent), HazePerformanceMode.Quality, true, null)
+            .drawBehind { drawRect(Color.Blue) },
+        )
+      }
+    }
+    mainClock.advanceTimeBy(2_000)
+    waitForIdle()
+    val container = container(first)
+    val before = container.reclusterPasses
+
+    // A member's own content redraw changes no geometry, so the container only redraws.
+    mainClock.autoAdvance = false
+    repeat(3) {
+      tick.intValue++
+      mainClock.advanceTimeByFrame()
+      mainClock.advanceTimeByFrame()
+    }
+
+    assertThat(container.reclusterPasses - before).isEqualTo(0)
+  }
+
+  @Test
   fun surfaceNotifications_outsideReconcileStillReclusterTheContainer() = runComposeUiTest {
     val first = GlassRuntimeEffect()
     val second = GlassRuntimeEffect()

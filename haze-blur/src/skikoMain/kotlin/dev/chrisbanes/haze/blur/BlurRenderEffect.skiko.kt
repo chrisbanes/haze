@@ -52,14 +52,12 @@ internal actual fun createCombinedNoiseTintRenderEffectOrNull(
   input: PlatformRenderEffect,
   noiseFactor: Float,
   tintColor: Color,
-  scale: Float,
 ): PlatformRenderEffect? = null
 
 internal actual fun createNoiseEffect(
   context: PlatformContext,
   noiseFactor: Float,
   mask: Shader?,
-  scale: Float,
 ): PlatformRenderEffect {
   val source = createShaderRenderEffect(NOISE_SHADER)
 

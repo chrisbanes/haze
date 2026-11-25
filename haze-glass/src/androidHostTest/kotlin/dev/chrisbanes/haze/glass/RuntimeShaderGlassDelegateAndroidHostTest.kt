@@ -142,24 +142,31 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val effect = GlassRuntimeEffect()
       val circular = GlassStyle.regular.then { shape(RoundedCornerShape(16.dp)) }
       val continuous = GlassStyle.regular.then { shape(ContinuousRoundedCornerShape(16.dp)) }
+      val overlapping = GlassStyle.regular.then {
+        shape(ContinuousRoundedCornerShape(topStartPercent = 60, bottomEndPercent = 60))
+      }
       val style = mutableStateOf(circular)
       setContent {
         Box(Modifier.testTag("variant")) {
           RuntimeGlassTestContent(effect, style = style.value)
         }
       }
-      fun assertFrame(expectContinuous: Boolean) {
+      fun assertFrame(expectedCorners: GlassCornerShader) {
         waitForIdle()
         val pixels = onNodeWithTag("variant").captureToImage().toPixelMap()
         val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
-        assertThat(delegate.fusedInputKey?.continuous).isEqualTo(expectContinuous)
+        assertThat(delegate.fusedInputKey?.cornerShader).isEqualTo(expectedCorners)
         assertThat(pixels[pixels.width / 2, pixels.height / 2].alpha).isGreaterThan(0.5f)
       }
-      assertFrame(expectContinuous = false)
+      assertFrame(GlassCornerShader.Circular)
       style.value = continuous
-      assertFrame(expectContinuous = true)
+      assertFrame(GlassCornerShader.Continuous)
+      style.value = overlapping
+      assertFrame(GlassCornerShader.Overlapping)
+      style.value = continuous
+      assertFrame(GlassCornerShader.Continuous)
       style.value = circular
-      assertFrame(expectContinuous = false)
+      assertFrame(GlassCornerShader.Circular)
     }
 
   @Test
@@ -184,7 +191,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         waitForIdle()
         val pixels = onNodeWithTag("optics").captureToImage().toPixelMap()
         val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
-        assertThat(delegate.fusedInputKey?.continuous).isEqualTo(true)
+        assertThat(delegate.fusedInputKey?.cornerShader?.isContinuous).isEqualTo(true)
         assertThat(delegate.fusedInputKey?.circularOptics).isEqualTo(expectCircularOptics)
         assertThat(pixels[pixels.width / 2, pixels.height / 2].alpha).isGreaterThan(0.5f)
       }

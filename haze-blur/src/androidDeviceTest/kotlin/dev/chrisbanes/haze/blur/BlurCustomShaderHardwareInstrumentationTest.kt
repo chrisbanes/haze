@@ -493,7 +493,7 @@ class BlurCustomShaderHardwareInstrumentationTest {
     val original = input(null)
     val blurred = input(RenderEffect.createBlurEffect(2f, 2f, Shader.TileMode.CLAMP))
     val graph = input(reference)
-    val noise = rule.activity.createNoiseShader(1f)
+    val noise = rule.activity.createNoiseShader()
     val area = android.graphics.RectF(0f, 0f, 25f, 23f)
     fun android.graphics.Canvas.applyMask(shader: Shader) {
       drawPaint(

@@ -291,7 +291,8 @@ private class ConfiguredSurface<Style>(
   private fun resolveEntries(owner: LayoutCoordinates?) {
     // Core members already enforce selection, demand, window boundaries and source ordering.
     // Equal Content inputs still represent distinct areas; Sources shared by members are deduped.
-    val selections = members.map { it.node.surfaceInputEntries(owner) }
+    // Members without drawable geometry have no selection to compare, so they cannot split the cluster.
+    val selections = members.mapNotNull { it.node.surfaceInputEntries(owner) }
     // Equal Sources can still resolve differently (Behind ancestors); never draw one member's exclusions.
     mixedSelection = input !is HazeInput.Content && selections.map { it.mapTo(mutableSetOf()) { entry -> entry.area } }.distinct().size > 1
     entries = selections.flatten().distinctBy { it.area }.sortedBy { it.area.zIndex }
