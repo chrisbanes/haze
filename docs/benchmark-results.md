@@ -736,6 +736,49 @@ overrun) in both builds. CPU frame duration does not measure GPU cost.
     also holds the dry-run XML, per-run device readbacks, the two builds' APK hashes, and the
     trace-analysis scripts.
 
+## Glass blur passes and source capture
+
+Below `Quality`, a wide Glass blur now reads a reduced copy of its source and mixes it with the
+sharp source in the optical layer's own drawing pass, instead of the platform blur's
+downsample, re-expansion and depth-mix passes. The reduction follows the quality fraction
+(sigma 3.5 in its own pixels for `Balanced`, 3 for `Performance`); `Quality` keeps the platform
+blur chain. The same build also captures sources with fractional padding once instead of up to
+nine times, and skips the style update of a container surface that only moved.
+
+This comparison used a Pixel 6 running an Android 17 beta (SDK 37.1) at 60 Hz, with
+fixed-performance mode enabled and normal CPU scheduling. Values are the **pooled P90 of each run**
+(eight iterations); each cell lists every run, alternating builds.
+
+| Workload | Mode | CPU P90 before (ms) | CPU P90 after (ms) | Overrun P90 before (ms) | Overrun P90 after (ms) | Missed frames before | Missed frames after |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `sourceUpdate9` | Balanced | 15.48, 15.23 | 12.16, 12.00 | -0.10, -0.35 | -1.82, -1.91 | 9.4%, 7.8% | 0.8%, 1.5% |
+| `lazyContainerScroll` | Balanced | 134.6, 134.7 | 102.4, 102.1 | 177.5, 177.8 | 131.3, 130.6 | 98.1%, 98.1% | 98.7%, 98.5% |
+| `lazyIndependentScroll` | Balanced | 143.8 | 108.8 | 191.4 | 140.3 | 98.0% | 98.4% |
+| `sourceUpdatePerformance` | Performance | 6.79 | 6.11 | -8.67 | -9.50 | 0% | 0.1% |
+| `sourceUpdateQuality` | Quality | 6.42 | 6.36 | -8.24 | -8.28 | 0% | 0% |
+
+Both lazy grids still miss nearly every frame on this device, but each three-second run drew
+about a quarter more frames (424–432 before, 541–545 after for the container grid). On this
+device the RenderThread spends most of each frame in `QueueSubmit`, which grows with the number
+of render passes: each Glass surface used about eight per frame, and the blur change removes the
+platform blur's downsampling and re-expansion and the separate depth mix.
+
+Static captures of the same scenes on the device stayed within 6–7 levels per channel of the
+previous build for single surfaces, the credit-card sample and photographic backdrops; thin,
+high-contrast converging lines differed by up to 71 levels in a small area, where the reduced copy
+filters differently from the platform blur's 2× halving.
+
+??? info "Measurement details"
+
+    Both builds came from `ae467951f`; the change was applied as an uncommitted diff, and the
+    baseline's benchmark module carried extra trace-section metrics. Every run passed
+    `archive_result.py` with eight iterations and traces, at thermal status 0. Earlier runs
+    isolated each part: the capture rounding alone lowered `sourceUpdate9` CPU P90 to 14.6–14.9 ms
+    and halved its RenderThread `FillRectOp` slices; the container update alone lowered
+    `lazyContainerScroll` to 129–131 ms. Static screenshots were compared pixel for pixel against
+    deterministic baseline captures. Raw JSON, XML and traces were retained locally, outside the
+    repository.
+
 ## Representative workloads
 
 These Glass sample measurements cover paging, an animated timeline, and steady-state scenes

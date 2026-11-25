@@ -43,6 +43,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Below `HazePerformanceMode.Quality`, a wide Glass blur on Android reads a reduced copy of its
+  source, scaled with the quality fraction, and mixes it with the sharp source in fewer render
+  passes. Nine Glass surfaces used about 21% less CPU frame time at P90 on a Pixel 6, and lazy
+  grids of Glass about 24% less. `Quality` keeps the platform blur; thin, high-contrast detail
+  behind Glass can blur slightly differently in `Balanced` and `Performance`.
 - Glass uses continuous 16 dp corners when no shape is authored. Regular and Clear draw a thin dark
   outline, strongest on the left and right and absent from Clear's top and bottom, and a top and
   bottom rim highlight, stronger on Clear; dark Regular has less backdrop contrast and a fainter
@@ -84,6 +89,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Glass surfaces with fractional sample padding no longer replay their source up to nine times
+  each frame to fill sub-pixel slivers at the sample's edges.
+- A Glass container surface that only moves, as when its members scroll, no longer re-runs its
+  style update each frame.
 - The Glass sample bottom tabs no longer throw for an empty tab list, and the Glass sample slider
   finishes an active drag when it is resized or disabled
   ([#1848](https://github.com/chrisbanes/haze/issues/1848)).

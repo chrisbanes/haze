@@ -160,6 +160,12 @@ corners of the same radius, while the silhouette stays exact. For four merged co
 on a Pixel 6 under controlled CPU placement, that left about 1.4 ms more frame headroom in
 `Performance` ([details](benchmark-results.md#continuous-corner-optics)).
 
+On Android, modes below `Quality` also blur a reduced copy of the backdrop for wide Glass blurs,
+as the platform blur does internally, but in fewer render passes; lower quality fractions reduce
+the copy further. For nine Glass surfaces on a Pixel 6, `Balanced` used about 21% less CPU frame
+time at P90 ([details](benchmark-results.md#glass-blur-passes-and-source-capture)). `Quality`
+keeps the platform blur.
+
 !!! note "Measured quality trade-offs"
 
     In a two-pass test on a Pixel 8a (Android 17, 60 Hz, fixed-performance mode) with a changing
