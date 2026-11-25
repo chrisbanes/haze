@@ -56,10 +56,6 @@ internal actual fun createGlassDepthInputRenderEffect(
 
 internal actual val supportsFusedGlassRenderEffect: Boolean = true
 
-// Robolectric 4.17 draws nothing for a blurred layer nested in a layer with its own RenderEffect,
-// so host tests keep the platform blur chain; GlassLayerBlurInstrumentationTest covers devices.
-internal actual val supportsGlassLayerBlur: Boolean = Build.FINGERPRINT != "robolectric"
-
 internal actual fun DrawScope.supportsGlassRimBrush(): Boolean =
   drawContext.canvas.nativeCanvas.isHardwareAccelerated
 

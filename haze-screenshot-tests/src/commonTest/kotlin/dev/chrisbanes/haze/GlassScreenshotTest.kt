@@ -397,7 +397,7 @@ class GlassScreenshotTest : ScreenshotTest() {
       optics(GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(1f), blurRadius = OpticalSizeValue.Fixed(300.dp)))
     }
     waitForIdle()
-    val densityOnePixels = captureRootPixels().snapshot()
+    val densityOnePixels = captureSettledRootPixels().snapshot()
 
     assertThat(
       zeroBlurPixels.changedPixelRatio(densityOnePixels),
@@ -409,7 +409,7 @@ class GlassScreenshotTest : ScreenshotTest() {
       optics(GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(1f), blurRadius = OpticalSizeValue.Fixed(100.dp)))
     }
     waitForIdle()
-    val densityThreePixels = captureRootPixels().snapshot()
+    val densityThreePixels = captureSettledRootPixels().snapshot()
 
     // Allow a narrow rasterization margin while staying well below the blur change above.
     assertThat(

@@ -15,6 +15,7 @@ import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
+import dev.chrisbanes.haze.test.ScreenshotUiTest
 import kotlin.math.abs
 
 private const val PixelTolerance = 1f / 255f
@@ -201,6 +202,15 @@ internal class PixelSnapshot private constructor(
 
 internal fun PixelMap.snapshot(): PixelSnapshot =
   PixelSnapshot.build(width, height) { x, y -> this[x, y] }
+
+/**
+ * Captures the root after one discarded frame. Robolectric draws nothing for a blurred layer newly
+ * added under a layer with its own RenderEffect until the next frame; devices draw it at once.
+ */
+internal fun ScreenshotUiTest.captureSettledRootPixels(): PixelMap {
+  captureRootPixels()
+  return captureRootPixels()
+}
 
 internal fun PixelSnapshot.changedPixelRatio(other: PixelSnapshot): Float {
   requireComparableSnapshot(other)

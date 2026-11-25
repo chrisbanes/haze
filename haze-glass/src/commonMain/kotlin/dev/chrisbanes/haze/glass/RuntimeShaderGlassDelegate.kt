@@ -230,8 +230,11 @@ internal class RuntimeShaderGlassDelegate(
 
       val blurRequired = !supportsFusedGlassRenderEffect && shouldBlur(params, currentRenderEffects)
       // A fused layer blur holds its reduced copy in the blurred slot and its sharp share in the
-      // depth-mixed slot, which the fused path otherwise leaves empty.
-      val layerBlurRequired = supportsFusedGlassRenderEffect && currentPreparedRender.layerBlurFactor > 0f
+      // depth-mixed slot, which the fused path otherwise leaves empty. They are kept for the whole
+      // mode rather than only while the factor is positive: a surface that starts blurring then
+      // re-records its optical layer around layers already drawn, not around new ones, which
+      // Robolectric renders empty for that frame.
+      val layerBlurRequired = supportsFusedGlassRenderEffect && params.layerBlurSigmaPx > 0f
       val depthMixRequired =
         !supportsFusedGlassRenderEffect && shouldDepthMix(params, currentRenderEffects)
       val refractionDetailRequired = !supportsFusedGlassRenderEffect &&
@@ -2475,9 +2478,6 @@ internal fun createGlassBlurRenderEffectWithInput(
 
 internal expect val supportsFusedGlassRenderEffect: Boolean
 
-/** Whether the fused path may draw its depth input through a [GlassLayerBlur]. */
-internal expect val supportsGlassLayerBlur: Boolean
-
 internal fun createRetainedGlassOpticalRenderEffect(
   merged: Boolean = false,
   cornerShader: GlassCornerShader = GlassCornerShader.Circular,
@@ -2919,10 +2919,10 @@ internal inline fun requireDrawableMaterialSize(
  * each. Drawing a reduced copy, and the re-expansion and mix in the optical layer's own content pass,
  * saves those passes.
  */
-internal fun GlassPreparedRender.resolveLayerBlurFactor(supported: Boolean = supportsGlassLayerBlur): Float {
+internal fun GlassPreparedRender.resolveLayerBlurFactor(): Float {
   val blur = blurKey ?: return 0f
   val targetSigma = blur.layerBlurSigmaPx
-  if (!supported || targetSigma <= 0f || refractionDetailKey != null || params.depth <= 0.0001f) return 0f
+  if (targetSigma <= 0f || refractionDetailKey != null || params.depth <= 0.0001f) return 0f
   val plan = blur.plan
   if (plan.isIdentity || !plan.usesNativeWideBlur || blur.progressive != null) return 0f
   // Margin cells repeat the capture's edges inside the sample; keep the platform chain there.
