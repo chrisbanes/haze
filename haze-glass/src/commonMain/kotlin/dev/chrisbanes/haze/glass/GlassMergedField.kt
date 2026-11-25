@@ -72,13 +72,53 @@ internal val GlassMergedField.isContinuous: Boolean
 internal fun continuousCorners(cornerRadii: CornerRadii, mergedField: GlassMergedField?): Boolean =
   mergedField?.isContinuous ?: cornerRadii.isContinuous
 
+internal enum class GlassCornerShader {
+  Circular,
+  Continuous,
+  Overlapping,
+  ;
+
+  val isContinuous: Boolean get() = this != Circular
+  val isOverlapping: Boolean get() = this == Overlapping
+}
+
+internal fun glassCornerShader(radii: CornerRadii, size: Size, field: GlassMergedField?): GlassCornerShader =
+  field?.cornerShader ?: when {
+    radii.isCircular -> GlassCornerShader.Circular
+    radii.extents().diagonalBoxesOverlap(size) -> GlassCornerShader.Overlapping
+    else -> GlassCornerShader.Continuous
+  }
+
+internal val GlassMergedField.cornerShader: GlassCornerShader
+  get() = when {
+    !isContinuous -> GlassCornerShader.Circular
+    members.any { it.diagonalBoxesOverlap() } -> GlassCornerShader.Overlapping
+    else -> GlassCornerShader.Continuous
+  }
+
+/** The press scale from the member's layout frame to its drawn frame. */
+private val GlassMergedMember.layoutScale: Float
+  get() = minOf(rect.width / layoutRect.width, rect.height / layoutRect.height)
+
+private fun GlassMergedMember.diagonalBoxesOverlap(): Boolean {
+  val extents = cornerRadii.extents()
+  // Standalone refraction undoes the press scale and evaluates the member in its layout frame.
+  return extents.diagonalBoxesOverlap(rect.size) || (extents * (1f / layoutScale)).diagonalBoxesOverlap(layoutRect.size)
+}
+
+/** Whether a diagonal pair of these corner extents can overlap in [size]. */
+private fun CornerRadii.diagonalBoxesOverlap(size: Size): Boolean {
+  val span = size.maxDimension
+  return topLeft + bottomRight > span || topRight + bottomLeft > span
+}
+
 private const val EXTENT_ROUNDING_SLACK_PX = 0.01f
 
 /**
- * Removes every member's smoothing when the field has a smoothed member and any member whose corner
- * boxes can overlap, in either frame the shader evaluates. The continuous shaders evaluate one
- * corner per point, which is exact only for disjoint corner boxes; the circular shaders are exact
- * everywhere.
+ * Removes every member's smoothing when the field has a smoothed member and any member whose
+ * adjacent corner boxes can overlap, in either frame the shader evaluates. The continuous shaders
+ * evaluate at most two diagonal corners per point, which is exact unless adjacent corner boxes
+ * overlap; the circular shaders are exact everywhere.
  */
 internal fun List<GlassMergedMember>.withExactCorners(): List<GlassMergedMember> {
   if (none { it.cornerRadii.isContinuous }) return this
@@ -86,9 +126,8 @@ internal fun List<GlassMergedMember>.withExactCorners(): List<GlassMergedMember>
     // The shader evaluates corner extents, which equal the radii for circular corners. Fitted
     // extents can fill an edge exactly, so allow float rounding.
     val extents = member.cornerRadii.extents()
-    val scale = minOf(member.rect.width / member.layoutRect.width, member.rect.height / member.layoutRect.height)
     extents.isRadiusDisjoint(member.rect.size, EXTENT_ROUNDING_SLACK_PX) &&
-      (extents * (1f / scale)).isRadiusDisjoint(member.layoutRect.size, EXTENT_ROUNDING_SLACK_PX)
+      (extents * (1f / member.layoutScale)).isRadiusDisjoint(member.layoutRect.size, EXTENT_ROUNDING_SLACK_PX)
   }
   return if (disjoint) this else map { it.copy(cornerRadii = it.cornerRadii.withoutSmoothing()) }
 }
@@ -257,7 +296,7 @@ internal class GlassMergedField(
   fun scaled(scaleFactor: Float): GlassMergedField = GlassMergedField(
     members = members.map { member ->
       member.copy(
-        rect = member.rect.scaledBy(scaleFactor),
+        rect = member.rect.scaledBy(scaleFactor).withPositiveSize(),
         cornerRadii = member.cornerRadii * scaleFactor,
         lightPosition = member.lightPosition * scaleFactor,
         lightRadius = member.lightRadius * scaleFactor,
@@ -409,3 +448,18 @@ internal fun RuntimeShaderUniformProvider.setMergedFieldUniforms(
 }
 
 private fun Rect.scaledBy(scale: Float) = Rect(left * scale, top * scale, right * scale, bottom * scale)
+
+// Rebasing or scaling a near-zero pressed rect can round its size to zero; keep the smallest positive size.
+internal fun Rect.withPositiveSize(): Rect =
+  if (width > 0f && height > 0f) {
+    this
+  } else {
+    Rect(left, top, if (width > 0f) right else left.nextUpCommon(), if (height > 0f) bottom else top.nextUpCommon())
+  }
+
+// shortcut: common Kotlin has no Float.nextUp; assumes a finite, non-NaN value as field rects are.
+private fun Float.nextUpCommon(): Float = when {
+  this == 0f -> Float.MIN_VALUE
+  this > 0f -> Float.fromBits(toRawBits() + 1)
+  else -> Float.fromBits(toRawBits() - 1)
+}

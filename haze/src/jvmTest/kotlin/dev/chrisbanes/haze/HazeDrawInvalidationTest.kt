@@ -14,10 +14,12 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.compositionLocalWithComputedDefaultOf
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -356,6 +358,43 @@ class HazeDrawInvalidationTest : ContextTest() {
       shift.floatValue = -110f * density.density
       waitForIdle()
       assertHazeInvalidations("effect") { drawInvalidationsExactly(0) }
+    }
+  }
+
+  @Test
+  fun ownContentUpdate_drawsEffectOnceWithOneContentInvalidation() = runComposeUiTest {
+    var draws = 0
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit> {
+        override fun HazeEffectDrawScope.draw(style: Unit) {
+          draws++
+          drawInput()
+        }
+      }
+    }
+    val tick = mutableIntStateOf(0)
+    withHazeInvalidationTracking {
+      setContent {
+        Box(
+          Modifier.size(40.dp)
+            .hazeEffect(factory, HazeInput.Content, Unit)
+            .drawBehind {
+              tick.intValue
+              drawRect(Color.Red)
+            },
+        )
+      }
+      waitForIdle()
+      mainClock.autoAdvance = false
+      repeat(3) { mainClock.advanceTimeByFrame() }
+      clearHazeInvalidations()
+      val initialDraws = draws
+
+      tick.intValue++
+      repeat(5) { mainClock.advanceTimeByFrame() }
+
+      assertThat(draws).isEqualTo(initialDraws + 1)
+      assertThat(hazeInvalidationEvents().map { it.reason }).isEqualTo(listOf(HazeInvalidationReason.Content))
     }
   }
 

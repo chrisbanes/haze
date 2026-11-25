@@ -374,9 +374,13 @@ internal class FallbackGlassDelegate(
 
       prepared.edgeOutlinePath?.let { path ->
         clipPath(path, ClipOp.Difference) {
+          // A uniform stroke can't weight by direction, so it uses the sides' and top/bottom's mean.
+          val directionalMean = (1f + style.edgeOutline.topAndBottomStrength) / 2f
           drawPath(
             path = path,
-            color = style.edgeOutline.color.copy(alpha = style.edgeOutline.color.alpha * style.alpha),
+            color = style.edgeOutline.color.copy(
+              alpha = style.edgeOutline.color.alpha * directionalMean * style.alpha,
+            ),
             style = checkNotNull(prepared.edgeOutlineStroke),
           )
         }

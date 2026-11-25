@@ -61,6 +61,9 @@ public actual fun createBlurRenderEffect(
   input: PlatformRenderEffect?,
   crop: Rect?,
 ): PlatformRenderEffect? {
+  require(radiusX.isFinite() && radiusY.isFinite()) {
+    "Blur radii must be finite: x=$radiusX, y=$radiusY"
+  }
   if (radiusX <= 0f && radiusY <= 0f) {
     return null
   }

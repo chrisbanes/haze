@@ -143,7 +143,12 @@ private fun createAndroidRuntimeShaderRenderEffect(
  * keeps the shared shader from holding on to a child after the effect that set it is gone.
  */
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal class SharedRuntimeShader(sksl: String) {
+internal class SharedRuntimeShader(
+  sksl: String,
+  // A seam so tests can inject a binding failure; Robolectric cannot fail a real RuntimeShader.
+  private val bindChild: (RuntimeShader, String, android.graphics.Shader) -> Unit =
+    { shader, name, child -> shader.setInputShader(name, child) },
+) {
   private val shader = trace("HazeRuntimeShader.construct") { RuntimeShader(sksl) }
   private val intUniformNames = HashSet<String>()
   private val floatUniformSizes = HashMap<String, Int>()
@@ -181,14 +186,14 @@ internal class SharedRuntimeShader(sksl: String) {
       shader.setColorUniform(name, color.packed)
       colorUniforms += name
     }
-    for ((name, child) in uniforms.children) {
-      shader.setInputShader(name, child)
-      childNames += name
-    }
     try {
+      for ((name, child) in uniforms.children) {
+        bindChild(shader, name, child)
+        childNames += name
+      }
       return createAndroidRuntimeShaderRenderEffect(shader, shaderNames, inputs)
     } finally {
-      for (name in childNames) shader.setInputShader(name, EmptyChildShader)
+      for (name in childNames) bindChild(shader, name, EmptyChildShader)
     }
   }
 }

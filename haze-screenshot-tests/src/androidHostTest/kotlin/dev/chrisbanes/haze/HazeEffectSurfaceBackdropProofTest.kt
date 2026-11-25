@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.ReusableContentHost
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -397,6 +398,59 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
       owner.resolveSurfaces = null
       cluster?.dispose()
     }
+  }
+
+  @Test
+  fun nativeBackdrop_temporaryBudgetFallback_inputLeftBeforeDetach_doesNotStayNativeEligible() =
+    assertTemporaryOverrideClearedOnReattach(leaveBackdrop = true)
+
+  @Test
+  fun nativeBackdrop_temporaryBudgetFallback_detach_clearsOverride() =
+    assertTemporaryOverrideClearedOnReattach(leaveBackdrop = false)
+
+  private fun assertTemporaryOverrideClearedOnReattach(leaveBackdrop: Boolean) = runScreenshotTest {
+    val owner = BridgeOwner(allowGroup = false)
+    var preparations = 0
+    val backdrop = HazeInput.Backdrop(HazeState())
+    val input = mutableStateOf<HazeInput>(backdrop)
+    val active = mutableStateOf(true)
+    val first = BridgeFactory(owner) {
+      preparations++
+      redEffect()
+    }
+    val sibling = BridgeFactory(owner, ::blueBlurEffect)
+    setContent {
+      Box(Modifier.size(200.dp, 100.dp).background(Color.White)) {
+        Box(Modifier.size(200.dp, 100.dp).then(BridgeOwnerElement(owner))) {
+          ReusableContentHost(active.value) {
+            Box(Modifier.size(100.dp, 80.dp).hazeEffect(first, input.value, Unit))
+          }
+          Box(Modifier.offset(x = 60.dp).size(100.dp, 80.dp).hazeEffect(sibling, backdrop, Unit))
+        }
+      }
+    }
+    refreshNativeFrame()
+    // The member is in temporary budget fallback.
+    assertThat(owner.groups).isGreaterThan(0)
+    if (leaveBackdrop) {
+      composeTestRule.runOnIdle { input.value = HazeInput.Content }
+      refreshNativeFrame()
+    }
+    composeTestRule.runOnIdle { active.value = false }
+    refreshNativeFrame()
+    HazeFeatureFlags.isPlatformBackdropEnabled = false
+    val before = preparations
+    composeTestRule.runOnIdle {
+      input.value = backdrop
+      active.value = true
+    }
+    refreshNativeFrame()
+    composeTestRule.runOnIdle {
+      owner.allowGroup = true
+      owner.invalidateDraw()
+    }
+    refreshNativeFrame()
+    assertThat(preparations, "native is disabled at reattach, so no native preparation runs").isEqualTo(before)
   }
 
   private fun assertTemporaryRecovery(

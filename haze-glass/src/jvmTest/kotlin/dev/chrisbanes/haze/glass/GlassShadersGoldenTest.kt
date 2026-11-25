@@ -50,6 +50,29 @@ class GlassShadersGoldenTest {
     assertThat(sources.mapValues { (_, source) -> source.sha256() }).isEqualTo(ADDITIONAL_RECORDED)
   }
 
+  @Test
+  fun disjointContinuousSources_matchPreOverlapDigests() {
+    val sources = mapOf(
+      "fused" to GlassShaders.buildFused(continuous = true),
+      "fused-merged" to GlassShaders.buildFused(merged = true, continuous = true),
+      "fused-merged-circular-optics" to GlassShaders.buildFusedWithCircularOptics(merged = true),
+      "optical-merged" to GlassShaders.buildOptical(merged = true, continuous = true),
+      "rim-merged" to GlassShaders.buildRim(merged = true, continuous = true),
+      "merged-background" to GlassShaders.buildMergedBackground(continuous = true),
+    )
+    // Recorded from cac1ddea5, before overlapping corners changed the continuous programs.
+    assertThat(sources.mapValues { (_, source) -> source.sha256() }).isEqualTo(
+      mapOf(
+        "fused" to "2dc4ddf590e1351ade0bddae5ef2ad289698a58d3132f801533c618df18550ad",
+        "fused-merged" to "31cf81911e2f5e361cff4956f5530455f1730d8a9876cbca2445bf2357ff90df",
+        "fused-merged-circular-optics" to "7dddf3ed9b4eb012b26338cbe2c3365269ce1a222fa4eae237a9dda44f35a646",
+        "optical-merged" to "80410be10e8eb678519f41d6cc5c6bbf3c22b23aa5bff2213bc36ea1b33a10ab",
+        "rim-merged" to "149e1f487deb93098b2fa02dd4865b5858bda31dd83678154c4a7819eb20c2f5",
+        "merged-background" to "2e0d41190f67ca6edfdcae389fd0a591f4c7ae487d03c9eb3aa1bb9b1096083d",
+      ),
+    )
+  }
+
   private fun String.sha256(): String = MessageDigest.getInstance("SHA-256")
     .digest(encodeToByteArray())
     .joinToString("") { "%02x".format(it) }

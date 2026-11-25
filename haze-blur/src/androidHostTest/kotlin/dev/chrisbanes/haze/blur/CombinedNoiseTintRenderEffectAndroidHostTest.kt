@@ -69,12 +69,12 @@ class CombinedNoiseTintRenderEffectAndroidHostTest : ScreenshotTest() {
 
   @Test
   fun retainedEffects_keepTheirOwnUniformsAndChildren() = runScreenshotTest {
-    val a = Case(Color.Red.copy(alpha = 0.3f), noise = 0.2f, scale = 1f)
-    val b = Case(Color(0.1f, 0.3f, 0.9f, 0.6f, ColorSpaces.DisplayP3), noise = 0.8f, scale = 0.5f)
+    val a = Case(Color.Red.copy(alpha = 0.3f), noise = 0.2f)
+    val b = Case(Color(0.1f, 0.3f, 0.9f, 0.6f, ColorSpaces.DisplayP3), noise = 0.8f)
     val effectA = candidate(a)
     val effectB = candidate(b)
     // Churn the shared shader with further effects, as animated nodes and cache misses do.
-    repeat(24) { candidate(Case(Color.Green.copy(alpha = it / 24f), noise = it / 23f, scale = if (it % 2 == 0) 1f else 0.5f)) }
+    repeat(24) { candidate(Case(Color.Green.copy(alpha = it / 24f), noise = it / 23f)) }
     render(listOf(effectA, effectB, effectA, reference(a), reference(b)))
     val pixels = captureRootPixels()
     assertMatches(pixels, 0, 3, "A")
@@ -85,9 +85,9 @@ class CombinedNoiseTintRenderEffectAndroidHostTest : ScreenshotTest() {
 
   @Test
   fun controls_tintIsVisibleAndNoiseIsObservable() = runScreenshotTest {
-    val withNoise = candidate(Case(Color.Transparent, noise = 1f, scale = 1f))
-    val noNoise = candidate(Case(Color.Transparent, noise = 0f, scale = 1f))
-    val tinted = candidate(Case(Color.Green.copy(alpha = 0.5f), noise = 0.1f, scale = 1f))
+    val withNoise = candidate(Case(Color.Transparent, noise = 1f))
+    val noNoise = candidate(Case(Color.Transparent, noise = 0f))
+    val tinted = candidate(Case(Color.Green.copy(alpha = 0.5f), noise = 0.1f))
     render(listOf(null, withNoise, noNoise, tinted))
     val pixels = captureRootPixels()
     assertThat(difference(pixels, 1, 2), "noise changes output").isGreaterThan(0.02f)
@@ -98,7 +98,7 @@ class CombinedNoiseTintRenderEffectAndroidHostTest : ScreenshotTest() {
   @Test
   @Config(sdk = [31, 32])
   fun combinedEffect_isUnavailableBeforeApi33() {
-    assertThat(createCombinedNoiseTintRenderEffectOrNull(context, input(), 0.5f, Color.Red, 1f)).isNull()
+    assertThat(createCombinedNoiseTintRenderEffectOrNull(context, input(), 0.5f, Color.Red)).isNull()
   }
 
   @Test
@@ -138,12 +138,12 @@ class CombinedNoiseTintRenderEffectAndroidHostTest : ScreenshotTest() {
   )
 
   private fun candidate(case: Case): RenderEffect =
-    checkNotNull(createCombinedNoiseTintRenderEffectOrNull(context, input(), case.noise, case.tint, case.scale))
+    checkNotNull(createCombinedNoiseTintRenderEffectOrNull(context, input(), case.noise, case.tint))
 
   /** The pre-reuse construction: a fresh RuntimeShader per effect. */
   private fun reference(case: Case): RenderEffect {
     val shader = RuntimeShader(COMBINED_NOISE_TINT_SKSL).apply {
-      setInputShader("noise", context.createNoiseShader(case.scale))
+      setInputShader("noise", context.createNoiseShader())
       setFloatUniform("noiseAlpha", case.noise.coerceIn(0f, 1f))
       setColorUniform("tintColor", case.tint.toArgb())
     }
@@ -201,7 +201,7 @@ class CombinedNoiseTintRenderEffectAndroidHostTest : ScreenshotTest() {
     }
 
   @Poko
-  private class Case(val tint: Color, val noise: Float, val scale: Float, val translucent: Boolean = false)
+  private class Case(val tint: Color, val noise: Float, val translucent: Boolean = false)
 
   private companion object {
     const val TOLERANCE = 2f / 255
@@ -213,20 +213,19 @@ class CombinedNoiseTintRenderEffectAndroidHostTest : ScreenshotTest() {
     val SRGB = Color(0.2f, 0.6f, 0.9f, 0.4f)
     val P3 = Color(0.9f, 0.2f, 0.1f, 0.5f, ColorSpaces.DisplayP3)
     val REFERENCE_CASES = listOf(
-      Case(SRGB, noise = 0.3f, scale = 1f),
-      Case(SRGB, noise = 0.3f, scale = 1f, translucent = true),
-      Case(Color.Red.copy(alpha = 0.25f), noise = 0f, scale = 1f),
-      Case(Color.Red.copy(alpha = 0.25f), noise = 0.1f, scale = 1f),
-      Case(Color.Red.copy(alpha = 0.25f), noise = 0.5f, scale = 1f),
-      Case(Color.Red.copy(alpha = 0.25f), noise = 1f, scale = 1f),
-      Case(Color.Red.copy(alpha = 0.25f), noise = 1.5f, scale = 1f),
-      Case(Color.Red.copy(alpha = 0.25f), noise = -0.5f, scale = 1f),
-      Case(Color.Red.copy(alpha = 0.25f), noise = 0.5f, scale = 0.5f),
-      Case(P3, noise = 0.3f, scale = 1f),
-      Case(P3, noise = 0.3f, scale = 0.5f, translucent = true),
-      Case(Color.Transparent, noise = 1f, scale = 1f),
-      Case(Color.Transparent, noise = 1f, scale = 0.5f, translucent = true),
-      Case(Color.Green, noise = 0.5f, scale = 1f),
+      Case(SRGB, noise = 0.3f),
+      Case(SRGB, noise = 0.3f, translucent = true),
+      Case(Color.Red.copy(alpha = 0.25f), noise = 0f),
+      Case(Color.Red.copy(alpha = 0.25f), noise = 0.1f),
+      Case(Color.Red.copy(alpha = 0.25f), noise = 0.5f),
+      Case(Color.Red.copy(alpha = 0.25f), noise = 1f),
+      Case(Color.Red.copy(alpha = 0.25f), noise = 1.5f),
+      Case(Color.Red.copy(alpha = 0.25f), noise = -0.5f),
+      Case(P3, noise = 0.3f),
+      Case(P3, noise = 0.3f, translucent = true),
+      Case(Color.Transparent, noise = 1f),
+      Case(Color.Transparent, noise = 1f, translucent = true),
+      Case(Color.Green, noise = 0.5f),
     )
   }
 }

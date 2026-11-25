@@ -21,8 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Glass supports continuous, iOS-style corners with the new `ContinuousRoundedCornerShape`, passed
   to `GlassStyle`'s `shape`. Masking, refraction, lighting, and the rim all follow the smoothed
-  corners, and the same shape works with `Modifier.clip` and `Modifier.border`
-  ([#1734](https://github.com/chrisbanes/haze/issues/1734)).
+  corners, and the same shape works with `Modifier.clip` and `Modifier.border`. Opposite corners
+  that overlap, as in a leaf, keep their smoothing, alone and in a `hazeGlassContainer`
+  ([#1734](https://github.com/chrisbanes/haze/issues/1734),
+  [#1749](https://github.com/chrisbanes/haze/issues/1749)).
 - Glass styles can draw a thin light band inside a surface's top and bottom edges with
   `rimHighlight(intensity, width, sides)`, where `sides` sets how strongly the left and right edges
   are lit. It follows merged container shapes
@@ -36,17 +38,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   draw an equivalent stroke ([#1741](https://github.com/chrisbanes/haze/issues/1741),
   [#1798](https://github.com/chrisbanes/haze/issues/1798)).
 - `edgeOutline` accepts `topAndBottomStrength`, which weakens the outline on the top and bottom
-  edges and blends through corners; limited renderers keep a uniform outline
+  edges and blends through corners; limited renderers draw a uniform outline at the mean strength
   ([#1755](https://github.com/chrisbanes/haze/issues/1755)).
 
 ### Changed
 
 - Glass uses continuous 16 dp corners when no shape is authored. Regular and Clear draw a thin dark
-  outline and a top and bottom rim highlight, stronger on Clear; dark Regular has a lighter interior
-  with less backdrop contrast. Custom styles inherit Regular's edges, which can be disabled with
+  outline, strongest on the left and right and absent from Clear's top and bottom, and a top and
+  bottom rim highlight, stronger on Clear; dark Regular has less backdrop contrast and a fainter
+  rim. Clear brightens its left and right edges much less. Values were tuned side by side with
+  iOS 27 Liquid Glass. Custom styles inherit Regular's edges, which can be disabled with
   later `edgeOutline` and `rimHighlight` writes. Authored shapes and
   Clear's appearance-independent ordinary response are preserved
-  ([#1743](https://github.com/chrisbanes/haze/issues/1743)).
+  ([#1736](https://github.com/chrisbanes/haze/issues/1736),
+  [#1743](https://github.com/chrisbanes/haze/issues/1743)).
 - Glass with circular corners does less shader work across the flat interior of a surface, most
   noticeably in merged containers. The rendered result is unchanged
   ([#1766](https://github.com/chrisbanes/haze/issues/1766)).
@@ -56,6 +61,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   continuous Glass corners as circular corners of the same radius. The silhouette and edge softness
   stay exact; `Balanced` and `Quality` are unchanged
   ([#1766](https://github.com/chrisbanes/haze/issues/1766)).
+- Haze sources that feed effects in another window, or same-window effects on Android 12
+  (API 31), queue at most one refresh coroutine for a burst of snapshot applies instead of one per
+  apply. Effects refresh in the same frame as before
+  ([#1843](https://github.com/chrisbanes/haze/issues/1843)).
+- Core `haze` no longer declares a dependency on `androidx.collection`, which nothing in it uses.
+  Consumers still receive it through Compose
+  ([#1845](https://github.com/chrisbanes/haze/issues/1845)).
+- Android 12 and 12L Blur with custom shader brushes no longer rebuilds its mask, tint and noise
+  shaders, or its layer paints, for each progressive band and colour-filter pass when it redraws
+  with an unchanged style ([#1857](https://github.com/chrisbanes/haze/issues/1857)).
+- Unmasked Blur scrim colour filters now receive the effect alpha as input instead of being faded
+  afterwards. A colour filter that replaces alpha, such as `ColorFilter.tint(color, BlendMode.Src)`,
+  therefore no longer fades with the effect's alpha. The default tint and other alpha-preserving
+  filters are unchanged ([#1828](https://github.com/chrisbanes/haze/issues/1828)).
 
 ### Deprecated
 
@@ -65,6 +84,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The Glass sample bottom tabs no longer throw for an empty tab list, and the Glass sample slider
+  finishes an active drag when it is resized or disabled
+  ([#1848](https://github.com/chrisbanes/haze/issues/1848)).
+- Android Blur no longer keeps a previous draw's shader, colour filter or path effect on reused
+  internal paints, and reused paints keep Compose's default antialiasing
+  ([#1844](https://github.com/chrisbanes/haze/issues/1844)).
+- Configured effect surfaces keep drawing a `HazeInput.Sources` cluster as one, instead of
+  splitting it, while a member is zero-size or unplaced
+  ([#1851](https://github.com/chrisbanes/haze/issues/1851)).
+- The Android ExoPlayer sample prepares and releases the player that is current, and detaches it from
+  its view when the sample is left or the player is replaced
+  ([#1847](https://github.com/chrisbanes/haze/issues/1847)).
+- Android Blur falls back instead of crashing when a runtime shader cannot be built: the combined
+  noise and tint pass uses the separate noise and tint effects, and progressive and custom-brush
+  effects draw through the routes Android 12 uses until the effect is detached. A failed custom-brush
+  draw no longer leaves a canvas layer open ([#1836](https://github.com/chrisbanes/haze/issues/1836)).
+- The web sample shows its unsupported-browser message instead of throwing when the browser cannot
+  compile Wasm ([#1849](https://github.com/chrisbanes/haze/issues/1849)).
+- The macOS sample keeps its application delegate alive, so closing the last window quits the app
+  ([#1850](https://github.com/chrisbanes/haze/issues/1850)).
+- Glass containers no longer recluster their members each time a `HazeInput.Content` member's own
+  content redraws ([#1846](https://github.com/chrisbanes/haze/issues/1846)).
+- Blur and Glass effects keep finite layer bounds, and apply their retention policy, while every
+  selected source is still unpositioned ([#1833](https://github.com/chrisbanes/haze/issues/1833)).
+- Pressing a merged Glass container member with a near-zero `scale` no longer crashes while drawing
+  its merged surface ([#1840](https://github.com/chrisbanes/haze/issues/1840)).
+- RenderScript Blur releases its shared RenderScript context on memory trim until the next blurred
+  draw, recovers from native failures without crashing or presenting a failed frame, and skips
+  native work at zero blur radius ([#1835](https://github.com/chrisbanes/haze/issues/1835)).
+- Android Blur noise no longer grows coarser at reduced capture scales. RenderScript and the API
+  31–32 custom-brush path draw the same grain as full resolution; the RenderEffect path draws one
+  noise texel per capture pixel ([#1832](https://github.com/chrisbanes/haze/issues/1832)).
+- RenderScript Blur publishes each blurred frame from the main thread, so the renderer never reads
+  its pixels while a later frame is being written
+  ([#1830](https://github.com/chrisbanes/haze/issues/1830)).
+- Effects keep following a source's size and input-sharing outsets after a static
+  `CompositionLocal` change refreshes their configuration
+  ([#1829](https://github.com/chrisbanes/haze/issues/1829)).
+- Masked and partially transparent Blur scrim tints apply their blend mode against the content
+  behind them, instead of against transparent pixels
+  ([#1828](https://github.com/chrisbanes/haze/issues/1828)).
+- Merged Glass clusters that fall back from `HazeInput.Backdrop` to their source fallback no longer keep
+  redrawing while idle ([#1827](https://github.com/chrisbanes/haze/issues/1827)).
 - Progressive blur avoids long first-render pauses on Windows Direct3D, including when opening a
   new window ([#1260](https://github.com/chrisbanes/haze/issues/1260)).
 - Progressive blur preserves edge opacity by keeping accepted samples inside the captured content
@@ -86,6 +148,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   longer resampled at a sub-pixel offset
   ([#1775](https://github.com/chrisbanes/haze/issues/1775),
   [#1785](https://github.com/chrisbanes/haze/issues/1785)).
+- A `HazeSourceSelection.where` predicate whose state changes on a background thread while its
+  effect is being removed no longer throws "This node does not have an owner"
+  ([#1837](https://github.com/chrisbanes/haze/issues/1837)).
+- Android Blur switches between its RenderEffect and fallback paths when an attached effect's canvas
+  changes between hardware and software acceleration, without needing a style change
+  ([#1834](https://github.com/chrisbanes/haze/issues/1834)).
 
 ## 2.1.0 <small>2026-11-02</small> { id="2.1.0" }
 

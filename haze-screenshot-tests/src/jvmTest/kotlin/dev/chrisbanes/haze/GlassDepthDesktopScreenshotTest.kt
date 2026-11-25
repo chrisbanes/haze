@@ -107,7 +107,7 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
 
   @Test
   fun glass_continuousLeafEdgePixelsAreContinuous() = runScreenshotTest {
-    // Overlapping corner boxes keep their radii and render circular.
+    // Each full-percent corner spans the shorter edge, so the fit leaves it circular.
     assertGlassRoundedEdgePixelsAreContinuous(ContinuousRoundedCornerShape(topStartPercent = 100, bottomEndPercent = 100))
   }
 

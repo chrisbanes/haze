@@ -281,9 +281,10 @@ internal fun continuousCornerExponent(smoothing: Float): Float {
 
 /**
  * Reduces each corner's smoothing, never its radius, so that adjacent corner extents fit along each
- * edge of [size] and diagonal corner boxes cannot overlap. A capsule's corners become exactly
- * circular. When the radii alone overlap, as in a leaf shape or a lerp overshoot, every corner
- * becomes circular so that the shape renders with the exact circular shaders.
+ * edge of [size]. A capsule's corners become exactly circular. Diagonal corner boxes may overlap, as
+ * in a leaf shape, and the shaders evaluate both corners there. When adjacent radii alone overlap,
+ * as in a lerp overshoot, every corner becomes circular so that the shape renders with the exact
+ * circular shaders.
  */
 internal fun CornerRadii.fitSmoothingTo(size: Size): CornerRadii {
   if (isCircular) return this
@@ -292,15 +293,11 @@ internal fun CornerRadii.fitSmoothingTo(size: Size): CornerRadii {
   val right = edgeSmoothingLimit(size.height, topRight, bottomRight)
   val bottom = edgeSmoothingLimit(size.width, bottomRight, bottomLeft)
   val left = edgeSmoothingLimit(size.height, bottomLeft, topLeft)
-  // Diagonal boxes overlap only when their extents exceed both sides.
-  val longest = size.maxDimension
-  val falling = edgeSmoothingLimit(longest, topLeft, bottomRight)
-  val rising = edgeSmoothingLimit(longest, topRight, bottomLeft)
   return copy(
-    topLeftSmoothing = fittedSmoothing(topLeft, topLeftSmoothing, left, top, falling),
-    topRightSmoothing = fittedSmoothing(topRight, topRightSmoothing, top, right, rising),
-    bottomRightSmoothing = fittedSmoothing(bottomRight, bottomRightSmoothing, right, bottom, falling),
-    bottomLeftSmoothing = fittedSmoothing(bottomLeft, bottomLeftSmoothing, bottom, left, rising),
+    topLeftSmoothing = fittedSmoothing(topLeft, topLeftSmoothing, left, top),
+    topRightSmoothing = fittedSmoothing(topRight, topRightSmoothing, top, right),
+    bottomRightSmoothing = fittedSmoothing(bottomRight, bottomRightSmoothing, right, bottom),
+    bottomLeftSmoothing = fittedSmoothing(bottomLeft, bottomLeftSmoothing, bottom, left),
   )
 }
 
@@ -313,16 +310,14 @@ internal fun CornerRadii.extents(): CornerRadii = CornerRadii(
 )
 
 /**
- * Whether no two corner boxes can overlap in [size], judging by the radii alone, allowing [slack]
- * pixels of overlap.
+ * Whether no two adjacent corner boxes can overlap in [size], judging by the radii alone, allowing
+ * [slack] pixels of overlap. Diagonal boxes may overlap: the shaders evaluate both corners there.
  */
 internal fun CornerRadii.isRadiusDisjoint(size: Size, slack: Float = 0f): Boolean {
   val width = size.width + slack
   val height = size.height + slack
-  val longest = size.maxDimension + slack
   return topLeft + topRight <= width && bottomLeft + bottomRight <= width &&
-    topLeft + bottomLeft <= height && topRight + bottomRight <= height &&
-    topLeft + bottomRight <= longest && topRight + bottomLeft <= longest
+    topLeft + bottomLeft <= height && topRight + bottomRight <= height
 }
 
 private fun edgeSmoothingLimit(length: Float, first: Float, second: Float): Float {
@@ -336,8 +331,7 @@ private fun fittedSmoothing(
   smoothing: Float,
   firstEdge: Float,
   secondEdge: Float,
-  diagonal: Float,
-): Float = if (radius <= 0f) 0f else minOf(smoothing, minOf(firstEdge, secondEdge, diagonal))
+): Float = if (radius <= 0f) 0f else minOf(smoothing, firstEdge, secondEdge)
 
 /**
  * The point at [angle] (radians, y down) on a continuous corner's superellipse, relative to the

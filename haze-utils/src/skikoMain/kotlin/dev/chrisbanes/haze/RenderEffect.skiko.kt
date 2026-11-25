@@ -74,6 +74,9 @@ public actual fun createBlurRenderEffect(
   input: PlatformRenderEffect?,
   crop: Rect?,
 ): PlatformRenderEffect? {
+  require(radiusX.isFinite() && radiusY.isFinite()) {
+    "Blur radii must be finite: x=$radiusX, y=$radiusY"
+  }
   if (radiusX <= 0f && radiusY <= 0f) {
     return null
   }
@@ -98,7 +101,7 @@ public actual fun createBlurRenderEffect(
  * This matches the formula used by Compose's BlurEffect.
  */
 private fun radiusToSigma(radius: Float): Float {
-  return (radius * 0.57735f + 0.5f)
+  return if (radius > 0f) (radius * 0.57735f + 0.5f) else 0f
 }
 
 @InternalHazeApi

@@ -13,8 +13,10 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.withSaveLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
@@ -30,7 +32,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
   context: HazeEffectRuntimeDrawScope,
   inputScale: Float,
 ): Boolean {
-  if (Build.VERSION.SDK_INT !in 31..32) return false
+  if (Build.VERSION.SDK_INT !in 31..32 && !runtimeShaderFallback) return false
   val effect = blurVisualEffect
   val progressiveBrush = (effect.progressive as? HazeProgressive.Brush)?.brush
   val custom = effect.mask?.isCustomShaderBrush() == true ||
@@ -84,11 +86,18 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
     )
   }
 
-  fun Brush.logical(): Brush = if (this is ShaderBrush) ShaderBrush(createShader(context.size)) else this
-
-  fun DrawScope.mask(brush: Brush) {
-    drawRect(brush = brush.logical(), topLeft = -offset, size = expandedSize, blendMode = BlendMode.DstIn)
+  // A ShaderBrush keeps the shader it built for the last size, so passing the node size reuses it.
+  fun DrawScope.drawLogicalRect(brush: Brush, alpha: Float, blendMode: BlendMode) {
+    // applyTo drops the shader for an empty size, which would draw an opaque rect.
+    if (brush is ShaderBrush && context.size.isEmpty()) return
+    brush.applyTo(context.size, LogicalRectPaint, alpha)
+    LogicalRectPaint.blendMode = blendMode
+    drawContext.canvas.drawRect(bounds, LogicalRectPaint)
+    // The shared paint must not keep a brush's shader, and its bitmap, alive.
+    LogicalRectPaint.shader = null
   }
+
+  fun DrawScope.mask(brush: Brush) = drawLogicalRect(brush, 1f, BlendMode.DstIn)
 
   fun DrawScope.style(layer: GraphicsLayer, intensity: Float) {
     val effects = style.colorEffects
@@ -101,12 +110,13 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
         if (style.noiseFactor.hasVisibleNoise()) {
           PaintPool.usePaint { paint ->
             paint.blendMode = BlendMode.Softlight
-            canvas.saveLayer(bounds, paint)
-            val noise = ShaderBrush(context.requirePlatformContext().createNoiseShader(inputScale))
-            drawScaledContent(offset = -offset, captureScale = captureScale, clip = false) {
-              drawRect(brush = noise, size = contentLayer.size.toSize(), alpha = style.noiseFactor.coerceIn(0f, 1f))
+            canvas.withSaveLayer(bounds, paint) {
+              // Presentation space, so the grain does not follow the capture scale.
+              val noise = ShaderBrush(LogicalNoiseShaders.get(context.requirePlatformContext()))
+              translate(-offset.x, -offset.y) {
+                drawRect(brush = noise, size = expandedSize, alpha = style.noiseFactor.coerceIn(0f, 1f))
+              }
             }
-            canvas.restore()
           }
         }
         return
@@ -115,13 +125,8 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
       val effect = effects[count - 1]
       val colorEffect = (effect as? TintBrushHazeColorEffect)?.asColorTintOrNull() ?: effect
       when (colorEffect) {
-        is TintBrushHazeColorEffect -> drawRect(
-          brush = colorEffect.brush.logical(),
-          topLeft = -offset,
-          size = expandedSize,
-          alpha = intensity.coerceIn(0f, 1f),
-          blendMode = colorEffect.blendMode,
-        )
+        is TintBrushHazeColorEffect ->
+          drawLogicalRect(colorEffect.brush, intensity.coerceIn(0f, 1f), colorEffect.blendMode)
         is TintColorHazeColorEffect -> {
           colorEffect.resolveColor(intensity)?.let { color ->
             drawRect(color, topLeft = -offset, size = expandedSize, blendMode = colorEffect.blendMode)
@@ -129,14 +134,12 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
         }
         is ColorFilterHazeColorEffect -> PaintPool.usePaint { blend ->
           blend.blendMode = colorEffect.blendMode
-          canvas.saveLayer(bounds, blend)
-          PaintPool.usePaint { filter ->
-            filter.colorFilter = colorEffect.colorFilter
-            canvas.saveLayer(bounds, filter)
-            drawStack(count - 1)
-            canvas.restore()
+          canvas.withSaveLayer(bounds, blend) {
+            PaintPool.usePaint { filter ->
+              filter.colorFilter = colorEffect.colorFilter
+              canvas.withSaveLayer(bounds, filter) { drawStack(count - 1) }
+            }
           }
-          canvas.restore()
         }
       }
     }
@@ -147,36 +150,38 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
     val canvas = drawContext.canvas
     PaintPool.usePaint { alpha ->
       alpha.alpha = style.alpha
-      canvas.saveLayer(bounds, alpha)
-      val progressive = style.progressive
-      if (progressive is HazeProgressive.LinearGradient && shouldDrawProgressiveWithLayers(progressive, inputScale)) {
-        logicalSlot.reset()
-        logicalLayer.release()
-        var band = 0
-        drawProgressiveWithMultipleLayers(progressive, masks = bandMasks) { bandMask, intensity ->
-          val index = band++
-          val layer = bandLayer(index).acquire(context.requireGraphicsContext())
-          prepare(layer, bandSlot(index), intensity)
-          canvas.saveLayer(bounds, Paint())
-          style(layer, intensity)
-          mask(bandMask)
-          canvas.restore()
+      canvas.withSaveLayer(bounds, alpha) {
+        val progressive = style.progressive
+        if (progressive is HazeProgressive.LinearGradient && shouldDrawProgressiveWithLayers(progressive, inputScale)) {
+          logicalSlot.reset()
+          logicalLayer.release()
+          var band = 0
+          drawProgressiveWithMultipleLayers(progressive, masks = bandMasks) { bandMask, intensity ->
+            val index = band++
+            val layer = bandLayer(index).acquire(context.requireGraphicsContext())
+            prepare(layer, bandSlot(index), intensity)
+            canvas.withSaveLayer(bounds, LogicalLayerPaint) {
+              style(layer, intensity)
+              mask(bandMask)
+            }
+          }
+          trimBandSlots(band)
+        } else {
+          trimBandSlots(0)
+          val layer = logicalLayer.acquire(context.requireGraphicsContext())
+          prepare(layer, logicalSlot, 1f)
+          if (progressive is HazeProgressive.LinearGradient) present(contentLayer)
+          if (progressive != null) {
+            canvas.withSaveLayer(bounds, LogicalLayerPaint) {
+              style(layer, 1f)
+              style.progressiveBrush?.let { mask(it) }
+            }
+          } else {
+            style(layer, 1f)
+          }
         }
-        trimBandSlots(band)
-      } else {
-        trimBandSlots(0)
-        val layer = logicalLayer.acquire(context.requireGraphicsContext())
-        prepare(layer, logicalSlot, 1f)
-        if (progressive is HazeProgressive.LinearGradient) present(contentLayer)
-        if (progressive != null) canvas.saveLayer(bounds, Paint())
-        style(layer, 1f)
-        if (progressive != null) {
-          style.progressiveBrush?.let { mask(it) }
-          canvas.restore()
-        }
+        style.mask?.let { mask(it) }
       }
-      style.mask?.let { mask(it) }
-      canvas.restore()
     }
   }
 
@@ -185,6 +190,11 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
   }
   return true
 }
+
+// Draws run on one thread, as for PaintPool. Canvas reads a paint when called, so reuse is safe.
+private val LogicalLayerPaint = Paint()
+private val LogicalRectPaint = Paint()
+internal val LogicalNoiseShaders = NoiseShaderCache()
 
 @Poko
 private class LogicalStyle(

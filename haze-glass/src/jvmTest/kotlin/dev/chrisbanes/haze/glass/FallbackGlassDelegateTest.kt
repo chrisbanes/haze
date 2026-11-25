@@ -163,6 +163,7 @@ class FallbackGlassDelegateTest {
         contrast(0f)
         whitePoint(0f)
         chromaMultiplier(1f)
+        noBuiltInEdges()
       }
       accessibilitySettings = GlassAccessibilitySettings(reduceTransparency = true)
     }
