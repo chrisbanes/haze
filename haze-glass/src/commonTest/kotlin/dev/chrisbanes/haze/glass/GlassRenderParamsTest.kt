@@ -1784,6 +1784,26 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun coordinates_fractionalPaddingCapturesOneCellCoveringTheSample() {
+    val coordinates = resolveGlassCoordinates(
+      layerSize = Size(260.6f, 140.6f),
+      layerOffset = Offset(30.3f, 20.3f),
+      materialSize = Size(200f, 100f),
+      scaleFactor = 1f,
+      alignToPixels = true,
+    )
+    // Rounding inwards leaves no sub-pixel sliver for a margin cell to fill by replaying the source.
+    assertThat(coordinates.materialOrigin).isEqualTo(Offset(30f, 20f))
+    assertThat(coordinates.sampleSize).isEqualTo(Size(260f, 140f))
+    // The captured layer reaches past every sample edge, so the layer cell is the only cell.
+    val cells = coordinates.captureCellBounds()
+    assertThat(cells.left).isLessThanOrEqualTo(0f)
+    assertThat(cells.top).isLessThanOrEqualTo(0f)
+    assertThat(cells.right).isGreaterThanOrEqualTo(260f)
+    assertThat(cells.bottom).isGreaterThanOrEqualTo(140f)
+  }
+
+  @Test
   fun coordinates_subpixelCaptureKeepsFractionalCoverage() {
     for (layerSize in listOf(Size(1f, 40f), Size(40f, 1f))) {
       val coordinates = resolveGlassCoordinates(

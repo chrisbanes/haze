@@ -92,16 +92,19 @@ internal fun resolveGlassCoordinates(
   val beforeY = layerOffset.y * captureScale.scaleY
   val afterX = (layerSize.width - layerOffset.x) * captureScale.scaleX - scaledMaterial.width
   val afterY = (layerSize.height - layerOffset.y) * captureScale.scaleY - scaledMaterial.height
-  // Rounding the origin up only grows the sample, so sampling reach beyond the material holds.
-  val originX = ceil(beforeX - PIXEL_EPSILON) + (if (beforeX < outset) outset else 0f)
-  val originY = ceil(beforeY - PIXEL_EPSILON) + (if (beforeY < outset) outset else 0f)
+  // A side with a margin rounds outwards, only growing the sample. A side without one rounds
+  // inwards, under a pixel short of its padding, so the captured layer covers the sample edge:
+  // a sub-pixel sliver there would need a margin cell, which replays the whole source to fill it.
+  val originX = if (beforeX < outset) ceil(beforeX - PIXEL_EPSILON) + outset else floor(beforeX + PIXEL_EPSILON)
+  val originY = if (beforeY < outset) ceil(beforeY - PIXEL_EPSILON) + outset else floor(beforeY + PIXEL_EPSILON)
+  // The sample ends with the captured layer, plus any margin; a material clipped by the layer may
+  // extend past it.
+  val sampleSize = Size(
+    sampleEnd(originX + scaledMaterial.width + afterX, afterX < outset, outset),
+    sampleEnd(originY + scaledMaterial.height + afterY, afterY < outset, outset),
+  )
   return GlassCoordinates(
-    // The sample ends with the captured layer, plus any margin; a material clipped by the layer may
-    // extend past it.
-    sampleSize = Size(
-      ceil(originX + scaledMaterial.width + afterX - PIXEL_EPSILON) + (if (afterX < outset) outset else 0f),
-      ceil(originY + scaledMaterial.height + afterY - PIXEL_EPSILON) + (if (afterY < outset) outset else 0f),
-    ),
+    sampleSize = sampleSize,
     materialOrigin = Offset(originX, originY),
     materialSize = Size(scaledMaterial.width.toFloat(), scaledMaterial.height.toFloat()),
     scaleFactor = scaleFactor,
@@ -113,6 +116,9 @@ internal fun resolveGlassCoordinates(
     ),
   )
 }
+
+private fun sampleEnd(layerEnd: Float, margin: Boolean, outset: Float): Float =
+  if (margin) ceil(layerEnd - PIXEL_EPSILON) + outset else floor(layerEnd + PIXEL_EPSILON)
 
 /** Where [layerOffset] lands in working space for a pixel-aligned capture. */
 internal fun GlassCoordinates.captureShift(layerOffset: Offset): Offset = Offset(

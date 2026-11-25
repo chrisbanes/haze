@@ -38,7 +38,9 @@ class GlassShadersTest {
       // Refraction reads the captured layer, never the margin an outset sample adds around it.
       assertThat(variant(false)).doesNotContain("captureBounds")
       assertThat(variant(true)).contains("uniform vec4 captureBounds;")
-      assertThat(variant(true)).contains("clamp(coord, captureBounds.xy + vec2(0.5), ")
+      // ...within the sample, which a capture rounded inwards reaches past.
+      assertThat(variant(true)).contains("clamp(coord, max(captureBounds.xy, vec2(0.0)) + vec2(0.5), ")
+      assertThat(variant(true)).contains("min(captureBounds.zw, sampleSize) - vec2(0.5)")
     }
     // The SkSL literal is hard-coded so every platform compiles the same source; it must match.
     assertThat(GLASS_EDGE_COVERAGE_OUTSET_SKSL.toFloat()).isEqualTo(EDGE_COVERAGE_OUTSET)

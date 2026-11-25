@@ -853,8 +853,10 @@ $OUTLINE_GRADIENT
     SampleClamp.Material ->
       "clamp(coord, max(vec2(0.5), materialOrigin + vec2(0.5)), " +
         "min(sampleSize - vec2(0.5), materialOrigin + materialSize - vec2(0.5)))"
+    // A capture rounded inwards reaches past the sample's edges, which the sample does not hold.
     SampleClamp.Capture ->
-      "clamp(coord, captureBounds.xy + vec2(0.5), max(captureBounds.xy + vec2(0.5), captureBounds.zw - vec2(0.5)))"
+      "clamp(coord, max(captureBounds.xy, vec2(0.0)) + vec2(0.5), " +
+        "max(max(captureBounds.xy, vec2(0.0)) + vec2(0.5), min(captureBounds.zw, sampleSize) - vec2(0.5)))"
     SampleClamp.Sample -> "clamp(coord, vec2(0.5), sampleSize - vec2(0.5))"
   }
 
