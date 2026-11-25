@@ -54,6 +54,17 @@ fun Project.configureKotlinMultiplatformAndroidLibrary() {
           }
         }
         minSdk = Versions.MIN_SDK
+
+        project.pluginManager.withPlugin("com.vanniktech.maven.publish") {
+          // AndroidX Compose test and sample dependencies need a newer SDK than Haze consumers.
+          aarMetadata {
+            minCompileSdk {
+              version = release(Versions.COMPILE_SDK) {
+                minorApiLevel = 0
+              }
+            }
+          }
+        }
       }
     }
   }
