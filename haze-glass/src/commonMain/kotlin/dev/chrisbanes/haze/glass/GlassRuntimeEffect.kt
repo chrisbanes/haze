@@ -1049,7 +1049,7 @@ internal class GlassRuntimeEffect() :
           return@buildPlan GlassRetainedLayerPlan(emptyList())
         }
         val outputSize = context.modifierSize.outsetToIntSize(nodeClipOutsetPx())
-        val params = buildGlassRenderParams(style, coordinates, performanceMode.usesCircularCornerOptics())
+        val params = buildGlassRenderParams(style, coordinates, performanceMode.usesCircularCornerOptics(), performanceMode.resolveGlassLayerBlurSigma())
         val interactionPatchSize = resolveGlassInteractionPatchSize(
           params,
           radiusFraction = interaction.radiusFraction,
@@ -1145,15 +1145,17 @@ internal class GlassRuntimeEffect() :
     val previousInteraction = preparedCacheKey?.interaction
     val previousPrepared = preparedRenderCache.takeIf { preparedCacheKey?.backdrop == backdrop }
     val circularCornerOptics = performanceMode.usesCircularCornerOptics()
+    val layerBlurSigma = performanceMode.resolveGlassLayerBlurSigma()
     val params = if (
       previousStyle != null && previousCoordinates != null && previousPrepared != null &&
       coordinates === previousCoordinates &&
       style.hasSameRenderParams(previousStyle) &&
-      previousPrepared.params.circularCornerOptics == circularCornerOptics
+      previousPrepared.params.circularCornerOptics == circularCornerOptics &&
+      previousPrepared.params.layerBlurSigmaPx == layerBlurSigma
     ) {
       previousPrepared.params
     } else {
-      buildGlassRenderParams(style, coordinates, circularCornerOptics)
+      buildGlassRenderParams(style, coordinates, circularCornerOptics, layerBlurSigma)
     }
     val interactionUniforms = if (
       previousCoordinates != null && previousInteraction != null && previousPrepared != null &&

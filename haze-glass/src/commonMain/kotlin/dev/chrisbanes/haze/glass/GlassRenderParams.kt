@@ -120,6 +120,13 @@ internal fun resolveGlassCoordinates(
 private fun sampleEnd(layerEnd: Float, margin: Boolean, outset: Float): Float =
   if (margin) ceil(layerEnd - PIXEL_EPSILON) + outset else floor(layerEnd + PIXEL_EPSILON)
 
+/** Whether the captured layer covers the whole sample, so no margin repeats its edges. */
+internal fun GlassCoordinates.capturesWholeSample(): Boolean {
+  if (!pixelAligned) return true
+  val cells = captureCellBounds()
+  return cells.left <= 0f && cells.top <= 0f && cells.right >= sampleSize.width && cells.bottom >= sampleSize.height
+}
+
 /** Where [layerOffset] lands in working space for a pixel-aligned capture. */
 internal fun GlassCoordinates.captureShift(layerOffset: Offset): Offset = Offset(
   materialOrigin.x - layerOffset.x * captureScale.scaleX,
@@ -332,6 +339,8 @@ internal data class GlassRenderParams(
   val edgeOutline: GlassEdgeOutline = GlassEdgeOutline.None,
   /** See [HazePerformanceMode.usesCircularCornerOptics]. */
   val circularCornerOptics: Boolean = false,
+  /** See [HazePerformanceMode.resolveGlassLayerBlurSigma]. */
+  val layerBlurSigmaPx: Float = 0f,
 )
 
 internal data class GlassBlurEffectKey(
@@ -343,6 +352,8 @@ internal data class GlassBlurEffectKey(
   val sourceIsOpaque: Boolean = false,
   /** A pixel-aligned surface's material, which its taps clamp to (#1775); null otherwise. */
   val tapBounds: Rect? = null,
+  /** See [HazePerformanceMode.resolveGlassLayerBlurSigma]. */
+  val layerBlurSigmaPx: Float = 0f,
 )
 
 internal fun GlassRenderParams.blurEffectKey(): GlassBlurEffectKey {
@@ -362,6 +373,7 @@ internal fun GlassRenderParams.blurEffectKey(): GlassBlurEffectKey {
     maskCoordinateScale = if (progressive != null) 1f / coordinates.scaleFactor else 1f,
     sourceIsOpaque = isSourceOpaque,
     tapBounds = if (coordinates.pixelAligned) Rect(coordinates.materialOrigin, coordinates.materialSize) else null,
+    layerBlurSigmaPx = layerBlurSigmaPx,
   )
 }
 
@@ -797,6 +809,7 @@ internal fun buildGlassRenderParams(
   style: ResolvedGlassStyle,
   coordinates: GlassCoordinates,
   circularCornerOptics: Boolean = false,
+  layerBlurSigmaPx: Float = 0f,
 ): GlassRenderParams {
   val scaleFactor = coordinates.scaleFactor
   val resolvedOptics = style.resolvedOptics
@@ -839,6 +852,7 @@ internal fun buildGlassRenderParams(
     rimHighlight = style.rimHighlight.scaled(scaleFactor),
     edgeOutline = style.edgeOutline.scaled(scaleFactor),
     circularCornerOptics = circularCornerOptics,
+    layerBlurSigmaPx = layerBlurSigmaPx,
   )
 }
 
@@ -1181,7 +1195,8 @@ private fun GlassRenderParams.hasSameBlurEffectInputs(other: GlassRenderParams):
     blurRadiusPx == other.blurRadiusPx &&
     blurSigmaPx == other.blurSigmaPx &&
     isSourceOpaque == other.isSourceOpaque &&
-    progressive == other.progressive
+    progressive == other.progressive &&
+    layerBlurSigmaPx == other.layerBlurSigmaPx
 
 private fun GlassRenderParams.hasSameOpticalEffectInputs(other: GlassRenderParams): Boolean =
   coordinates == other.coordinates &&

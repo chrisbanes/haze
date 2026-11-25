@@ -19,6 +19,24 @@ internal fun HazePerformanceMode.resolveGlassInputScale(): Float = when (this) {
     sqrt(MIN_FIXED_PIXEL_FRACTION + (MAX_FIXED_PIXEL_FRACTION - MIN_FIXED_PIXEL_FRACTION) * qualityFraction)
 }
 
+private const val MIN_LAYER_BLUR_SIGMA = 3f
+private const val MAX_LAYER_BLUR_SIGMA = 4f
+
+/**
+ * The blur sigma, in its own pixels, of the reduced copy a wide Glass blur reads below
+ * [HazePerformanceMode.Quality], or 0 to keep the platform's full-resolution blur chain. A lower
+ * quality fraction blurs a coarser copy; 4 matches the grid the platform blur itself works at.
+ */
+@Suppress("DEPRECATION")
+internal fun HazePerformanceMode.resolveGlassLayerBlurSigma(): Float = when (this) {
+  HazePerformanceMode.Adaptive -> HazePerformanceMode.Default.resolveGlassLayerBlurSigma()
+  is HazePerformanceMode.Fixed -> if (qualityFraction >= 1f) {
+    0f
+  } else {
+    MIN_LAYER_BLUR_SIGMA + (MAX_LAYER_BLUR_SIGMA - MIN_LAYER_BLUR_SIGMA) * qualityFraction.coerceIn(0f, 1f)
+  }
+}
+
 /**
  * Whether continuous corners keep their exact silhouette but refract and light through circular
  * corners (#1766). Only modes below [HazePerformanceMode.Balanced] trade that fidelity, and only the

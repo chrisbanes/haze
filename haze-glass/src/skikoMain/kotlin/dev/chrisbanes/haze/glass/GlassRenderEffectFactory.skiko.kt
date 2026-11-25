@@ -25,6 +25,8 @@ internal actual fun createGlassDepthInputRenderEffect(
 
 internal actual val supportsFusedGlassRenderEffect: Boolean = false
 
+internal actual val supportsGlassLayerBlur: Boolean = false
+
 // Compiled once per process and shared by every provider. A RuntimeEffect is immutable; each provider
 // keeps its own RuntimeShaderBuilder. Never close() these: providers only drop their references.
 private val GlassRimEffect by lazyGlassProgram { RuntimeEffect.makeForShader(GlassShaders.buildRim(false)) }
