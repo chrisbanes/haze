@@ -40,6 +40,7 @@ class GlassContainerSampleTest : ContextTest() {
   }
 
   // Each animation frame renders the whole sample. This test checks state only, so snap transitions.
+  @Suppress("DEPRECATION") // Compose Multiplatform 1.12.2 does not have ComposeUiTestConfig.
   @Test
   fun extraMemberToggle_addsAndRemovesMember() = runComposeUiTest(effectContext = NoMotion) {
     setContent {
