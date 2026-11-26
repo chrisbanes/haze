@@ -138,6 +138,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Masked and partially transparent Blur scrim tints apply their blend mode against the content
   behind them, instead of against transparent pixels
   ([#1828](https://github.com/chrisbanes/haze/issues/1828)).
+- Blur scrim fallback tints using `BlendMode.Modulate`, `SrcIn` or `DstIn` no longer vanish under a
+  mask, progressive effect or alpha below 1. `Clear`, `SrcOut` and `DstAtop` now ignore the mask
+  and alpha there ([#1909](https://github.com/chrisbanes/haze/issues/1909)).
 - Merged Glass clusters that fall back from `HazeInput.Backdrop` to their source fallback no longer keep
   redrawing while idle ([#1827](https://github.com/chrisbanes/haze/issues/1827)).
 - Progressive blur avoids long first-render pauses on Windows Direct3D, including when opening a

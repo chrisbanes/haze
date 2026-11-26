@@ -23,9 +23,15 @@ import dev.chrisbanes.haze.translate
  * the real destination with the effect's blend mode and [alpha]. Blending inside the layer would
  * blend against transparent pixels instead of the content behind the effect.
  *
- * Blend modes that change the destination under a transparent source, such as [BlendMode.Src],
- * would erase the content where the mask or [alpha] removes the effect. Those modes blend inside
- * the layer instead, and the layer is composited with [BlendMode.SrcOver].
+ * Blend modes that change the destination under a transparent source would erase the content
+ * where the mask or [alpha] removes the effect, so a masked or faded effect with one of them takes
+ * its own route towards `(1 − c)·dst + c·blend(src, dst)`, where `c` is the mask coverage times
+ * [alpha]:
+ * - [BlendMode.Src] blends inside the layer, which is composited with [BlendMode.SrcOver].
+ * - [BlendMode.Modulate] and [BlendMode.SrcIn] are exact only for opaque tints.
+ * - [BlendMode.DstIn] is exact for any tint.
+ * - [BlendMode.Clear], [BlendMode.SrcOut] and [BlendMode.DstAtop] are unsupported: they draw at
+ *   full coverage, ignoring the masks and [alpha].
  *
  * @param colorEffect The color effect to draw
  * @param offset Offset to translate the effect by
@@ -40,75 +46,90 @@ internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, offset: Offset = 
     is TintColorHazeColorEffect -> colorEffect.blendMode
     is ColorFilterHazeColorEffect -> colorEffect.blendMode
   }
-  val blendInLayer = blendMode.changesDestinationUnderTransparentSource()
-  val layered = mask != null || progressiveMask != null || (blendInLayer && alpha < 1f)
-  when (colorEffect) {
-    is TintBrushHazeColorEffect -> {
-      if (layered) {
-        drawInSaveLayer(offset, blendMode, blendInLayer, alpha) { layerBlendMode ->
-          drawRect(brush = colorEffect.brush, blendMode = layerBlendMode)
-          drawMasks(progressiveMask, mask)
-        }
-      } else {
-        // Translate rather than offset the rect, so the brush stays node-local like the masked branch.
-        translate(offset) {
-          drawRect(brush = colorEffect.brush, size = size, alpha = alpha, blendMode = colorEffect.blendMode)
-        }
-      }
+  val masked = mask != null || progressiveMask != null
+  if (!masked && !(blendMode.changesDestinationUnderTransparentSource() && alpha < 1f)) {
+    return drawUnlayeredTint(colorEffect, blendMode, offset, expandedSize, alpha)
+  }
+  when (blendMode) {
+    BlendMode.Clear, BlendMode.SrcOut, BlendMode.DstAtop ->
+      drawUnlayeredTint(colorEffect, blendMode, offset, expandedSize, alpha = 1f)
+    BlendMode.Src -> drawInSaveLayer(offset, BlendMode.SrcOver, alpha) {
+      drawTint(colorEffect, BlendMode.Src)
+      drawMasks(progressiveMask, mask)
     }
-    is TintColorHazeColorEffect -> {
-      if (layered) {
-        drawInSaveLayer(offset, blendMode, blendInLayer, alpha) { layerBlendMode ->
-          drawRect(color = colorEffect.color, blendMode = layerBlendMode)
-          drawMasks(progressiveMask, mask)
-        }
-      } else {
-        drawRect(
-          color = colorEffect.color,
-          size = expandedSize,
-          alpha = alpha,
-          blendMode = colorEffect.blendMode,
-        )
-      }
+    // Apply coverage before the White fill, so uncovered pixels modulate the destination by 1.
+    BlendMode.Modulate -> drawInSaveLayer(offset, BlendMode.Modulate, alpha = 1f) {
+      drawTint(colorEffect, BlendMode.SrcOver, alpha)
+      drawMasks(progressiveMask, mask)
+      drawRect(Color.White, blendMode = BlendMode.DstOver)
     }
-    is ColorFilterHazeColorEffect -> {
-      if (layered) {
-        drawInSaveLayer(offset, blendMode, blendInLayer, alpha) { layerBlendMode ->
-          drawRect(color = Color.White, colorFilter = colorEffect.colorFilter, blendMode = layerBlendMode)
-          drawMasks(progressiveMask, mask)
-        }
-      } else {
-        drawRect(
-          color = Color.White,
-          size = expandedSize,
-          alpha = alpha,
-          colorFilter = colorEffect.colorFilter,
-          blendMode = colorEffect.blendMode,
-        )
-      }
+    BlendMode.SrcIn -> drawInSaveLayer(offset, BlendMode.SrcAtop, alpha) {
+      drawTint(colorEffect, BlendMode.SrcOver)
+      drawMasks(progressiveMask, mask)
+    }
+    // The layer holds `1 − srcAlpha`, masked after the tint, and erases that much destination.
+    BlendMode.DstIn -> drawInSaveLayer(offset, BlendMode.DstOut, alpha) {
+      drawRect(Color.Black)
+      drawTint(colorEffect, BlendMode.DstOut)
+      drawMasks(progressiveMask, mask)
+    }
+    else -> drawInSaveLayer(offset, blendMode, alpha) {
+      drawTint(colorEffect, BlendMode.SrcOver)
+      drawMasks(progressiveMask, mask)
     }
   }
 }
 
-/**
- * Draws [block] inside a canvas layer at [offset], composited with [alpha]. [block] receives the
- * blend mode to draw with: [blendMode] when [blendInLayer], otherwise SrcOver, and the layer is
- * composited with the other one.
- */
+private fun DrawScope.drawUnlayeredTint(
+  colorEffect: HazeColorEffect,
+  blendMode: BlendMode,
+  offset: Offset,
+  expandedSize: Size,
+  alpha: Float,
+) {
+  if (colorEffect is TintBrushHazeColorEffect) {
+    // Translate rather than offset the rect, so the brush stays node-local like the layered branch.
+    translate(offset) { drawTint(colorEffect, blendMode, alpha) }
+  } else {
+    drawTint(colorEffect, blendMode, alpha, expandedSize)
+  }
+}
+
+private fun DrawScope.drawTint(
+  colorEffect: HazeColorEffect,
+  blendMode: BlendMode,
+  alpha: Float = 1f,
+  size: Size = this.size,
+) {
+  when (colorEffect) {
+    is TintBrushHazeColorEffect ->
+      drawRect(brush = colorEffect.brush, size = size, alpha = alpha, blendMode = blendMode)
+    is TintColorHazeColorEffect ->
+      drawRect(color = colorEffect.color, size = size, alpha = alpha, blendMode = blendMode)
+    is ColorFilterHazeColorEffect -> drawRect(
+      color = Color.White,
+      size = size,
+      alpha = alpha,
+      colorFilter = colorEffect.colorFilter,
+      blendMode = blendMode,
+    )
+  }
+}
+
+/** Draws [block] inside a canvas layer at [offset], composited with [blendMode] and [alpha]. */
 private inline fun DrawScope.drawInSaveLayer(
   offset: Offset,
   blendMode: BlendMode,
-  blendInLayer: Boolean,
   alpha: Float,
-  block: DrawScope.(layerBlendMode: BlendMode) -> Unit,
+  block: DrawScope.() -> Unit,
 ) {
   translate(offset) {
     PaintPool.usePaint { paint ->
-      paint.blendMode = if (blendInLayer) BlendMode.SrcOver else blendMode
+      paint.blendMode = blendMode
       paint.alpha = alpha
       val canvas = drawContext.canvas
       canvas.saveLayer(Rect(Offset.Zero, size), paint)
-      block(if (blendInLayer) blendMode else BlendMode.SrcOver)
+      block()
       canvas.restore()
     }
   }

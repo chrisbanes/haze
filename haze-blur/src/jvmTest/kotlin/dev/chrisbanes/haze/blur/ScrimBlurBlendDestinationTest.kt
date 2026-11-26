@@ -159,6 +159,83 @@ class ScrimBlurBlendDestinationTest {
     assertThat(pixels[10, 17]).isCloseTo(lerp(DST, SRC, 0.5f), TOLERANCE)
   }
 
+  @Test
+  fun draw_maskedModulateTint_fullAlpha_blendsWithDestination() =
+    assertBlend(solidModulate, alpha = 1f, mask = HARD_STOP_MASK, expected = ::multiply)
+
+  @Test
+  fun draw_maskedModulateTint_halfAlpha_blendsWithDestination() =
+    assertBlend(solidModulate, alpha = 0.5f, mask = HARD_STOP_MASK, expected = ::multiply)
+
+  @Test
+  fun draw_unmaskedModulateTint_halfAlpha_blendsWithDestination() =
+    assertBlend(solidModulate, alpha = 0.5f, mask = null, expected = ::multiply)
+
+  @Test
+  fun draw_maskedModulateBrush_halfAlpha_blendsWithDestination() {
+    val tint = HazeColorEffect.tint(Brush.verticalGradient(listOf(SRC, SRC)), BlendMode.Modulate)
+    assertBlend(tint, alpha = 0.5f, mask = HARD_STOP_MASK, expected = ::multiply)
+  }
+
+  @Test
+  fun draw_maskedModulateColorFilter_halfAlpha_blendsWithDestination() {
+    val tint = HazeColorEffect.colorFilter(ColorFilter.tint(SRC), BlendMode.Modulate)
+    assertBlend(tint, alpha = 0.5f, mask = HARD_STOP_MASK, expected = ::multiply)
+  }
+
+  @Test
+  fun draw_maskedSrcInTint_fullAlpha_blendsWithDestination() =
+    assertBlend(solidSrcIn, alpha = 1f, mask = HARD_STOP_MASK) { k -> lerp(DST, SRC, k) }
+
+  @Test
+  fun draw_maskedSrcInTint_halfAlpha_blendsWithDestination() =
+    assertBlend(solidSrcIn, alpha = 0.5f, mask = HARD_STOP_MASK) { k -> lerp(DST, SRC, k) }
+
+  @Test
+  fun draw_unmaskedSrcInTint_halfAlpha_blendsWithDestination() =
+    assertBlend(solidSrcIn, alpha = 0.5f, mask = null) { k -> lerp(DST, SRC, k) }
+
+  @Test
+  fun draw_maskedTranslucentDstInTint_fullAlpha_blendsWithDestination() =
+    assertBlend(translucentDstIn, alpha = 1f, mask = HARD_STOP_MASK, expected = ::dstIn)
+
+  @Test
+  fun draw_maskedTranslucentDstInTint_halfAlpha_blendsWithDestination() =
+    assertBlend(translucentDstIn, alpha = 0.5f, mask = HARD_STOP_MASK, expected = ::dstIn)
+
+  @Test
+  fun draw_unmaskedTranslucentDstInTint_halfAlpha_blendsWithDestination() =
+    assertBlend(translucentDstIn, alpha = 0.5f, mask = null, expected = ::dstIn)
+
+  @Test
+  fun draw_maskedClearTint_ignoresMaskAndAlpha() = assertIgnoresMaskAndAlpha(BlendMode.Clear)
+
+  @Test
+  fun draw_maskedSrcOutTint_ignoresMaskAndAlpha() = assertIgnoresMaskAndAlpha(BlendMode.SrcOut)
+
+  @Test
+  fun draw_maskedDstAtopTint_ignoresMaskAndAlpha() = assertIgnoresMaskAndAlpha(BlendMode.DstAtop)
+
+  /** Asserts the covered row at coverage `k = alpha`, and the uncovered row: `DST` when masked. */
+  private fun assertBlend(tint: HazeColorEffect, alpha: Float, mask: Brush?, expected: (k: Float) -> Color) {
+    val pixels = Harness(alpha = alpha, mask = mask, tint = tint).draw()
+
+    assertThat(pixels[10, 2]).isCloseTo(expected(alpha), TOLERANCE)
+    if (mask == null) {
+      assertThat(pixels[10, 17]).isCloseTo(expected(alpha), TOLERANCE)
+    } else {
+      assertThat(pixels[10, 17]).isCloseTo(DST, 1f / 255f)
+    }
+  }
+
+  private fun assertIgnoresMaskAndAlpha(blendMode: BlendMode) {
+    val tint = HazeColorEffect.tint(SRC, blendMode)
+    assertSamePixels(
+      Harness(alpha = 0.5f, mask = HARD_STOP_MASK, tint = tint).draw(),
+      Harness(alpha = 1f, mask = null, tint = tint).draw(),
+    )
+  }
+
   private fun assertMaskedMultiply(tint: HazeColorEffect, alpha: Float) {
     val pixels = Harness(alpha = alpha, mask = HARD_STOP_MASK, tint = tint).draw()
 
@@ -227,6 +304,11 @@ class ScrimBlurBlendDestinationTest {
 
     // A shader brush of constant colour, so the expected value matches the solid tint.
     val brushMultiply = HazeColorEffect.tint(Brush.verticalGradient(listOf(SRC, SRC)), BlendMode.Multiply)
+    val solidModulate = HazeColorEffect.tint(SRC, BlendMode.Modulate)
+    val solidSrcIn = HazeColorEffect.tint(SRC, BlendMode.SrcIn)
+
+    // Translucent, because DstIn with an opaque tint leaves the destination unchanged.
+    val translucentDstIn = HazeColorEffect.tint(SRC.copy(alpha = 0.5f), BlendMode.DstIn)
 
     /** Per-channel `SrcOver` at coverage `k`; Compose's `lerp(Color)` interpolates in Oklab instead. */
     fun lerp(dst: Color, src: Color, k: Float) = Color(
@@ -243,6 +325,9 @@ class ScrimBlurBlendDestinationTest {
       blue = DST.blue * (1 - k) + k * SRC.blue * DST.blue,
       colorSpace = UNQUANTIZED,
     )
+
+    /** `dst·(1−k·(1−0.5))`, DstIn with [translucentDstIn] at coverage `k`: only the alpha changes. */
+    fun dstIn(k: Float) = Color(DST.red, DST.green, DST.blue, alpha = 1f - k * 0.5f, colorSpace = UNQUANTIZED)
   }
 }
 
