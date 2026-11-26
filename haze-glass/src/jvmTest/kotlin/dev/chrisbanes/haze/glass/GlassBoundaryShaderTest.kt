@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.skiaPaint
 import androidx.compose.ui.graphics.toPixelMap
@@ -27,10 +28,12 @@ import kotlin.test.Test
 import org.jetbrains.skia.RuntimeEffect
 
 class GlassBoundaryShaderTest {
+  private val fadingBlur = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
+
   @Test
   fun progressiveBlur_preservesFlatBackdrop() {
     val plain = render(false).toPixelMap()
-    val blurred = render(false, progressiveBlur = true).toPixelMap()
+    val blurred = render(false, progressive = fadingBlur).toPixelMap()
     for (y in 0 until plain.height) {
       for (x in 0 until plain.width) {
         assertThat(abs(plain[x, y].red - blurred[x, y].red), "progressive flat red at $x,$y")
@@ -44,10 +47,32 @@ class GlassBoundaryShaderTest {
   @Test
   fun progressiveBlur_preservesTranslucentBackdropAlpha() {
     val plain = render(false, sourceAlpha = 0.4f).toPixelMap()
-    val blurred = render(false, sourceAlpha = 0.4f, progressiveBlur = true).toPixelMap()
+    val blurred = render(false, sourceAlpha = 0.4f, progressive = fadingBlur).toPixelMap()
     for (y in 0 until plain.height) {
       for (x in 0 until plain.width) {
         assertThat(abs(plain[x, y].alpha - blurred[x, y].alpha), "progressive translucent alpha at $x,$y")
+          .isLessThan(2f / 255f)
+      }
+    }
+  }
+
+  @Test
+  fun progressiveBlur_solidColorBrush_blursUniformly() {
+    val sharp = render(false, stripedBackdrop = true).toPixelMap()
+    val solid = render(
+      false,
+      stripedBackdrop = true,
+      progressive = HazeProgressive.Brush(SolidColor(Color.White)),
+    ).toPixelMap()
+    val uniform = render(
+      false,
+      stripedBackdrop = true,
+      progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 1f),
+    ).toPixelMap()
+    assertThat(abs(sharp[96, 96].red - solid[96, 96].red), "solid mask blurs stripes").isGreaterThan(0.1f)
+    for (y in 0 until solid.height) {
+      for (x in 0 until solid.width) {
+        assertThat(abs(uniform[x, y].red - solid[x, y].red), "solid mask red at $x,$y")
           .isLessThan(2f / 255f)
       }
     }
@@ -150,8 +175,9 @@ class GlassBoundaryShaderTest {
     customOptics: Boolean = false,
     pill: Boolean = false,
     sourceAlpha: Float = 1f,
-    progressiveBlur: Boolean = false,
+    progressive: HazeProgressive? = null,
     brightBackdrop: Boolean = false,
+    stripedBackdrop: Boolean = false,
     matte: Color = Color.Transparent,
     baseStyle: GlassStyle = GlassStyle.regular,
   ): ImageBitmap {
@@ -166,9 +192,7 @@ class GlassBoundaryShaderTest {
           tint(Color.Transparent)
         }
         if (customOptics) optics(GlassOptics())
-        if (progressiveBlur) {
-          optics(GlassOptics.regular.copy(progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)))
-        }
+        if (progressive != null) optics(GlassOptics.regular.copy(progressive = progressive))
       }
     }
     val params = buildGlassRenderParams(
@@ -177,7 +201,7 @@ class GlassBoundaryShaderTest {
     )
     val detail = params.activeRefractionDetailEffectKey(params.refractionDetailIntensity)
     val blurKey = params.blurEffectKey()
-    val horizontal = if (progressiveBlur) {
+    val horizontal = if (progressive != null) {
       createRuntimeShaderRenderEffect(
         RuntimeEffect.makeForShader(GlassShaders.buildBlur(horizontal = true, progressive = true)),
         arrayOf("content"),
@@ -189,7 +213,7 @@ class GlassBoundaryShaderTest {
     } else {
       null
     }
-    val vertical = if (progressiveBlur) {
+    val vertical = if (progressive != null) {
       createRuntimeShaderRenderEffect(
         RuntimeEffect.makeForShader(GlassShaders.buildBlur(horizontal = false, progressive = true)),
         arrayOf("content"),
@@ -212,6 +236,11 @@ class GlassBoundaryShaderTest {
         drawRect(bounds, Paint().apply { color = matte })
         saveLayer(bounds, Paint().apply { skiaPaint.imageFilter = filter })
         drawRect(bounds, Paint().apply { color = sourceColor })
+        if (stripedBackdrop) {
+          for (x in 0 until sampleSize.width.toInt() step 8) {
+            drawRect(Rect(x.toFloat(), 0f, x + 4f, sampleSize.height), Paint().apply { color = Color.White })
+          }
+        }
         restore()
         if (detail != null) {
           if (!fused) {
