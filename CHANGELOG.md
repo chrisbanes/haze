@@ -99,6 +99,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   such as `EaseInBack` or an elastic easing, on Android 12 and 12L or after a runtime shader
   failure. Each blur layer's intensity stays within `0f`..`1f`
   ([#1906](https://github.com/chrisbanes/haze/issues/1906)).
+- With `HazeFeatureFlags.isPlatformBackdropEnabled`, a relocated Backdrop effect no longer prepares
+  its platform effect again on every frame while its owner is over the native composition budget,
+  and an effect that declines a frame no longer reports a native capture that forces an isolated
+  layer ([#1913](https://github.com/chrisbanes/haze/issues/1913)).
 - Android Blur's layered linear progressive blur on Android 12 and 12L, or after a runtime shader
   failure, now fades noise and colour filters with the gradient's intensity, matching Android 13+
   ([#1910](https://github.com/chrisbanes/haze/issues/1910)).

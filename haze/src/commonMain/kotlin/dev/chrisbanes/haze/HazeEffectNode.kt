@@ -168,6 +168,9 @@ internal class HazeEffectNode(
   // The last prepared native transform, reused for the capture while over the composition budget.
   private var surfaceNativeTransform: HazeEffectContentTransform? = null
 
+  // True once this owner pass's footprint has called backdropEffect, so its draw does not call it again.
+  private var surfaceBackdropPrepared = false
+
   // Set while a parent has stopped calling place(); the node stays attached with stale coordinates.
   private var isUnplaced = false
 
@@ -941,7 +944,7 @@ internal class HazeEffectNode(
 
     val scope = effectDrawScope()
     val backdrop = try {
-      preparedSurfaceBackdrop ?: with(capability) { scope.backdropEffect(typedEffectStyle) }
+      preparedSurfaceBackdrop ?: if (surfaceBackdropPrepared) null else with(capability) { scope.backdropEffect(typedEffectStyle) }
     } catch (exception: Exception) {
       HazeLogger.d(TAG, exception) { "Backdrop effect preparation failed" }
       activateBackdropFallback(failed = true)
@@ -1765,6 +1768,7 @@ internal class HazeEffectNode(
   }
 
   internal fun surfaceFootprint(scope: DrawScope, owner: LayoutCoordinates?): HazeSurfaceFootprint? {
+    surfaceBackdropPrepared = false
     // Layout cannot change before the owner draws this member in the same pass. Stored before any
     // early return, so a draw never reuses a previous pass's transform.
     surfaceDrawTransform = surfaceTransform(owner)
@@ -1800,6 +1804,7 @@ internal class HazeEffectNode(
     // native, so it reports the cached capture instead of preparing the effect again.
     val awaitingNative = native && surfaceBudgetFallback && surfaceNativeTransform != null
     if (native && !awaitingNative) {
+      surfaceBackdropPrepared = true
       preparedSurfaceBackdrop = try {
         withSurfaceScope(scope, matrix) {
           val capability = typedEffectRenderer as? HazeEffectRendererBackdrop<Any?>
@@ -1820,7 +1825,8 @@ internal class HazeEffectNode(
       withSurfaceScope(scope, matrix) { prepareEffectDraw(effectDrawScope()) }
     }
     val output = matrix.map(layer.transformedBy(interaction))
-    val capture = if (native) {
+    // A declined effect reports no capture: its draw falls back to content for this frame.
+    val capture = if (native && captureTransform != null) {
       // HWUI snapshots the transformed node subset with roundOut(), then filters only that image.
       // Convert that pixel-rounded root footprint back to owner coordinates, including affine scale.
       val inRoot = checkNotNull(lastKnownCoordinates).transformToRoot().map(material.transformedBy(interaction))
@@ -1855,6 +1861,7 @@ internal class HazeEffectNode(
       if (!recoverable) surfaceNativeTransform = null
     }
     preparedSurfaceBackdrop = null
+    surfaceBackdropPrepared = false
   }
 
   internal fun restoreSurfaceInput() {
@@ -1896,6 +1903,7 @@ internal class HazeEffectNode(
       }
     } finally {
       preparedSurfaceBackdrop = null
+      surfaceBackdropPrepared = false
       surfaceDrawTransform = null
       isDrawing = false
     }

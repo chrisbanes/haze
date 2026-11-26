@@ -218,6 +218,59 @@ class HazeEffectSurfaceDrawTest {
   }
 
   @Test
+  fun relocatedBackdrop_declinedEffect_reportsNoCaptureAndPreparesOncePerPass() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val portable = SurfaceFactory(owner)
+    var prepares = 0
+    val native = object : HazeBackdropRenderer {
+      override fun isSupported(canvas: Canvas): Boolean = true
+      override fun configure(bounds: Rect, clip: Rect?, effect: PlatformRenderEffect, alpha: Float): Boolean = true
+      override fun draw(canvas: Canvas): Boolean = true
+      override fun release() = Unit
+    }
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit>, HazeEffectRendererBackdrop<Unit> {
+        override fun attach(scope: HazeEffectLifecycleScope) = scope.surface.relocateTo(owner)
+        override fun HazeEffectDrawScope.draw(style: Unit) = Unit
+        override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit): HazeEffectBackdrop? {
+          prepares++
+          return null
+        }
+      }
+    }
+    val previousFlag = HazeFeatureFlags.isPlatformBackdropEnabled
+    HazeFeatureFlags.isPlatformBackdropEnabled = true
+    try {
+      val effect = HazeEffectNode { native }.apply {
+        explicitInput = HazeInput.Backdrop()
+        updateTypedEffect(factory, Unit, HazeSampling.Default)
+      }
+      setContent {
+        Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+          // The overlapping portable member would require native isolation for a reported capture.
+          Box(Modifier.offset(20.dp, 20.dp).size(20.dp).hazeEffect(portable, HazeInput.Content, Unit))
+          Box(Modifier.offset(20.dp, 20.dp).size(20.dp).then(EffectElement(effect)))
+        }
+      }
+      waitForIdle()
+      runOnIdle {
+        prepares = 0
+        owner.draws = 0
+        owner.nativeCompositionChecks = 0
+        owner.redraw()
+      }
+      waitForIdle()
+      runOnIdle {
+        assertThat(owner.draws).isGreaterThan(0)
+        assertThat(prepares).isEqualTo(owner.draws)
+        assertThat(owner.nativeCompositionChecks).isEqualTo(0)
+      }
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousFlag
+    }
+  }
+
+  @Test
   fun relocatedPortableMembers_prepareWholeBatchBeforeAnyDraw() = runComposeUiTest {
     val owner = SurfaceOwnerNode()
     val first = SurfaceFactory(owner)
