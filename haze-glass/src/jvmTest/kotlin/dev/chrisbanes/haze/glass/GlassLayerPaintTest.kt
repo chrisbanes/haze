@@ -7,6 +7,8 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
@@ -16,6 +18,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotSameInstanceAs
+import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import kotlin.test.Test
 
@@ -69,14 +72,26 @@ class GlassLayerPaintTest {
     assertThat(layers[1].alpha).isEqualTo(high)
   }
 
-  private class RecordedLayer(val paint: Paint, val alpha: Float, val blendMode: BlendMode)
+  @Test
+  fun withLayerPaint_colorFilterAppliesOnlyToItsLayer() {
+    val filter = ColorFilter.tint(Color.Red)
+    val layers = drawLayers {
+      withLayerPaint(low, BlendMode.SrcOver, colorFilter = filter) {}
+      withLayerPaint(high, BlendMode.SrcOver) {}
+    }
+
+    assertThat(layers[0].colorFilter).isEqualTo(filter)
+    assertThat(layers[1].colorFilter).isNull()
+  }
+
+  private class RecordedLayer(val paint: Paint, val alpha: Float, val blendMode: BlendMode, val colorFilter: ColorFilter?)
 
   private fun drawLayers(block: DrawScope.() -> Unit): List<RecordedLayer> {
     val layers = mutableListOf<RecordedLayer>()
     val delegate = Canvas(ImageBitmap(8, 8))
     val canvas = object : Canvas by delegate {
       override fun saveLayer(bounds: Rect, paint: Paint) {
-        layers += RecordedLayer(paint, paint.alpha, paint.blendMode)
+        layers += RecordedLayer(paint, paint.alpha, paint.blendMode, paint.colorFilter)
         delegate.saveLayer(bounds, paint)
       }
     }

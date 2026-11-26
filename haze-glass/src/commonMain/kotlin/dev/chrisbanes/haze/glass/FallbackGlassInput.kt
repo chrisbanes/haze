@@ -12,7 +12,6 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.GraphicsContext
-import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -42,6 +41,8 @@ private data class FallbackGlassInputKey(
   val chromaMultiplier: Float,
 )
 
+private data class FallbackGlassToneKey(val contrast: Float, val whitePoint: Float, val chromaMultiplier: Float)
+
 /** Owns the fallback's capture and filtered outputs. */
 internal class FallbackGlassInput {
   private var source: GraphicsLayer? = null
@@ -50,6 +51,8 @@ internal class FallbackGlassInput {
   private var owner: GraphicsContext? = null
   private var key: FallbackGlassInputKey? = null
   private var filteredEffect: PlatformRenderEffect? = null
+  private var toneKey: FallbackGlassToneKey? = null
+  private var toneFilter: ColorFilter? = null
   internal var lastEffectForTest: PlatformRenderEffect? = null
     private set
   internal var filteredRecordCount: Int = 0
@@ -148,26 +151,33 @@ internal class FallbackGlassInput {
     fun DrawScope.drawOutput(layer: GraphicsLayer) {
       translate(left - offset.x, top - offset.y) { drawLayer(layer) }
     }
-    withLayerPaint(alpha = alpha, blendMode = BlendMode.SrcOver, bounds = bounds) {
-      val canvas = drawContext.canvas
-      val paint = Paint().apply { colorFilter = fallbackToneFilter(style) }
-      canvas.saveLayer(bounds, paint)
-      try {
-        if (progressive == null) {
-          drawOutput(blurred)
-        } else {
-          val mask = progressive.asBrush()
-          withLayerPaint(alpha = 1f, blendMode = BlendMode.SrcOver, bounds = bounds) {
-            drawOutput(capture)
-            drawRect(mask, blendMode = BlendMode.DstOut)
-          }
-          withLayerPaint(alpha = 1f, blendMode = BlendMode.Plus, bounds = bounds) {
-            drawOutput(blurred)
-            drawRect(mask, blendMode = BlendMode.DstIn)
-          }
+    fun DrawScope.drawMix() {
+      if (progressive == null) {
+        drawOutput(blurred)
+      } else {
+        val mask = progressive.asBrush()
+        withLayerPaint(alpha = 1f, blendMode = BlendMode.SrcOver, bounds = bounds) {
+          drawOutput(capture)
+          drawRect(mask, blendMode = BlendMode.DstOut)
         }
-      } finally {
-        canvas.restore()
+        withLayerPaint(alpha = 1f, blendMode = BlendMode.Plus, bounds = bounds) {
+          drawOutput(blurred)
+          drawRect(mask, blendMode = BlendMode.DstIn)
+        }
+      }
+    }
+    val nextToneKey = FallbackGlassToneKey(style.contrast, style.whitePoint, style.chromaMultiplier)
+    if (nextToneKey != toneKey) {
+      toneFilter = fallbackToneFilter(style)
+      toneKey = nextToneKey
+    }
+    val tone = toneFilter
+    // The tone matrix leaves alpha alone, so it shares the outer layer unless the scrim must stay untoned.
+    withLayerPaint(alpha, BlendMode.SrcOver, bounds, colorFilter = if (drawScrim == null) tone else null) {
+      if (tone != null && drawScrim != null) {
+        withLayerPaint(alpha = 1f, blendMode = BlendMode.SrcOver, bounds = bounds, colorFilter = tone) { drawMix() }
+      } else {
+        drawMix()
       }
       drawScrim?.invoke(this)
     }
