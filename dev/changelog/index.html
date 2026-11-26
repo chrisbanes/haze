@@ -7787,6 +7787,9 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   ancestor <code>hazeSource</code>, not only the nearest one.
   As a result, a relocated effect surface whose owner draws outside the enclosing outer source no
   longer samples that source (<a href="https://github.com/chrisbanes/haze/issues/1905">#1905</a>).</li>
+<li>RenderScript Blur on Android 6 to 11 (API 23 to 30) no longer leaks each blur context it
+  releases, with its output bitmap, buffers and input surface, after a resize, an invalidation, a
+  memory trim or a detach (<a href="https://github.com/chrisbanes/haze/issues/1904">#1904</a>).</li>
 <li>Android Blur no longer crashes when a linear progressive blur uses an easing that overshoots,
   such as <code>EaseInBack</code> or an elastic easing, on Android 12 and 12L or after a runtime shader
   failure. Each blur layer's intensity stays within <code>0f</code>..<code>1f</code>
