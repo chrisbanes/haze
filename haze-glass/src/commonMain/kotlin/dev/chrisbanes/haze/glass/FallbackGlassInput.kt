@@ -9,6 +9,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.GraphicsContext
@@ -36,9 +37,8 @@ private data class FallbackGlassInputKey(
   val offset: Offset,
   val bounds: Rect,
   val optics: ResolvedGlassOptics,
-  val contrast: Float,
-  val whitePoint: Float,
-  val chromaMultiplier: Float,
+  val backgroundColor: Color,
+  val memberBackgroundColors: List<Color>?,
 )
 
 private data class FallbackGlassToneKey(val contrast: Float, val whitePoint: Float, val chromaMultiplier: Float)
@@ -97,6 +97,7 @@ internal class FallbackGlassInput {
     bounds: Rect,
     groupSize: IntSize?,
     drawScrim: (DrawScope.() -> Unit)? = null,
+    memberBackgroundColors: List<Color>? = null,
     drawBackground: (DrawScope.(effectOrigin: Offset, padding: Float) -> Unit)? = null,
   ): Boolean {
     if (!canDraw(context, style, bounds) || !prepareForCapture(context, style, bounds, groupSize)) {
@@ -131,9 +132,8 @@ internal class FallbackGlassInput {
       offset,
       bounds,
       optics,
-      style.contrast,
-      style.whitePoint,
-      style.chromaMultiplier,
+      style.backgroundColor,
+      memberBackgroundColors,
     )
     if (nextKey != key) {
       filteredEffect = createFallbackGlassInputEffect(style)

@@ -34,6 +34,7 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
@@ -369,6 +370,79 @@ class FallbackGlassBlurAndroidHostTest : ScreenshotTest() {
     val visibleAgain = captureRootPixels()[150, 100]
     assertThat(visibleAgain.blue).isGreaterThan(visibleAgain.red)
     assertThat(checkNotNull(delegate.filteredInputLayerForTest)).isNotSameInstanceAs(retainedLayers[1])
+  }
+
+  @Test
+  fun hardwareFallback_backgroundColourChangeRecreatesInputEffect() = runScreenshotTest(size = Size(400f, 400f)) {
+    val state = HazeState()
+    val standaloneBackground = mutableStateOf(Color.Blue.copy(alpha = 0.5f))
+    val memberBackground = mutableStateOf(Color.Blue.copy(alpha = 0.5f))
+    val standalone = GlassRuntimeEffect()
+    val members = List(2) { GlassRuntimeEffect() }
+    fun style(background: Color) = GlassStyle {
+      shape(RoundedCornerShape(0.dp))
+      optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(4.dp), depth = OpticalSizeValue.Fixed(1f)))
+      backgroundColor(background)
+      specularIntensity(0f)
+      edgeSoftness(0.dp)
+      edgeShadow(Color.Transparent)
+      ambientResponse(0f)
+      contrast(0f)
+      whitePoint(0f)
+      chromaMultiplier(1f)
+    }
+    setContent {
+      Box(Modifier.pxSize(400, 400).testTag("root").background(Color.White)) {
+        Box(Modifier.pxSize(400, 400).hazeSource(state).background(Color.Red))
+        Box(
+          Modifier.offset { IntOffset(90, 220) }.pxSize(180, 100).hazeGlass(
+            factory = HazeEffectFactory { standalone },
+            input = HazeInput.Sources(state),
+            style = style(standaloneBackground.value),
+            performanceMode = null,
+            expandLayerBounds = true,
+            interactionSource = null,
+          ),
+        )
+        Box(Modifier.pxSize(400, 400).hazeGlassContainer(20.dp)) {
+          listOf(90, 170).forEachIndexed { index, x ->
+            Box(
+              Modifier.offset { IntOffset(x, 40) }.pxSize(100, 100).hazeGlass(
+                factory = HazeEffectFactory { members[index] },
+                input = HazeInput.Sources(state),
+                style = style(if (index == 1) memberBackground.value else Color.Blue.copy(alpha = 0.5f)),
+                performanceMode = null,
+                expandLayerBounds = true,
+                interactionSource = null,
+              ),
+            )
+          }
+        }
+      }
+    }
+    captureRootPixels()
+    val standaloneDelegate = standalone.delegate as FallbackGlassDelegate
+    val standaloneEffect = checkNotNull(standaloneDelegate.filteredInputEffectForTest)
+    standaloneBackground.value = Color.Green.copy(alpha = 0.5f)
+    captureRootPixels()
+    assertThat(standalone.delegate).isSameInstanceAs(standaloneDelegate)
+    // SDK 31 bumps the input snapshot on every apply, which recreates the effect without the key's background colours.
+    val keyedOnBackground = Build.VERSION.SDK_INT == 32
+    if (keyedOnBackground) {
+      assertThat(checkNotNull(standaloneDelegate.filteredInputEffectForTest)).isNotSameInstanceAs(standaloneEffect)
+    }
+
+    val owner = checkNotNull(members.first().memberBindingForTest?.node?.container)
+    val surface = owner.renderer.runtimeSurfaces.single()
+    val mergedDelegate = surface.delegate as FallbackGlassDelegate
+    val mergedEffect = checkNotNull(mergedDelegate.filteredInputEffectForTest)
+    memberBackground.value = Color.Green.copy(alpha = 0.5f)
+    captureRootPixels()
+    assertThat(owner.renderer.runtimeSurfaces.single()).isSameInstanceAs(surface)
+    assertThat(surface.delegate).isSameInstanceAs(mergedDelegate)
+    if (keyedOnBackground) {
+      assertThat(checkNotNull(mergedDelegate.filteredInputEffectForTest)).isNotSameInstanceAs(mergedEffect)
+    }
   }
 
   @Test

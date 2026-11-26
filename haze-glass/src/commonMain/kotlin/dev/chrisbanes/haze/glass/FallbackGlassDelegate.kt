@@ -297,7 +297,16 @@ internal class FallbackGlassDelegate(
             val willBlur = willProcess && style.resolvedOptics.depth > 0f && style.resolvedOptics.blurRadiusPx > 0f
             drawMergedBase(context, mergedPaths, alphaMultiplier, forceInput, visible, willBlur, willProcess) { drawScrim, drawBackground ->
               val filtered = willProcess && with(filteredInput) {
-                draw(context, inputStyle, alphaMultiplier, captureBounds, groupSize, drawScrim, drawBackground)
+                draw(
+                  context,
+                  inputStyle,
+                  alphaMultiplier,
+                  captureBounds,
+                  groupSize,
+                  drawScrim,
+                  mergedPaths.field.members.map { it.backgroundColor },
+                  drawBackground,
+                )
               }
               filteredInputDrawnForTest = filtered
               filtered
