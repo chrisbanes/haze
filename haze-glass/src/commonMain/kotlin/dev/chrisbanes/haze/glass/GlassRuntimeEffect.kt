@@ -1065,6 +1065,8 @@ internal class GlassRuntimeEffect() :
             interactionLightingActive = interactionTopology.hasLighting,
           )
         } else {
+          val refractionDetailActive =
+            params.activeRefractionDetailEffectKey(params.refractionDetailIntensity) != null
           buildGlassLayerPlan(
             sampleSize = coordinates.sampleSize.roundToIntSize(),
             groupCompositeSize = resolveGlassGroupCompositeSize(
@@ -1076,12 +1078,15 @@ internal class GlassRuntimeEffect() :
             blurRadiusPx = params.blurRadiusPx,
             depth = params.depth,
             allowNativeWideBlur = params.progressive == null,
-            refractionDetailActive =
-            params.activeRefractionDetailEffectKey(params.refractionDetailIntensity) != null,
+            refractionDetailActive = refractionDetailActive,
             rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight, params.edgeOutline),
             interactionPatchSize = interactionPatchSize,
             interactionOpticsActive = interactionTopology.hasOptics,
             interactionLightingActive = interactionTopology.hasLighting,
+            layerBlurSize = params.layerBlurSize(
+              blurPlan = if (params.depth > 0f && params.blurRadiusPx > 0f) params.blurEffectKey().plan else null,
+              refractionDetailActive = refractionDetailActive,
+            ),
           )
         }
       }

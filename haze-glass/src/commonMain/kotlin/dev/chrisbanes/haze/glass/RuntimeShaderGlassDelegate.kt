@@ -2916,17 +2916,29 @@ internal inline fun requireDrawableMaterialSize(
  * each. Drawing a reduced copy, and the re-expansion and mix in the optical layer's own content pass,
  * saves those passes.
  */
-internal fun GlassPreparedRender.resolveLayerBlurFactor(): Float {
-  val blur = blurKey ?: return 0f
-  val targetSigma = blur.layerBlurSigmaPx
-  if (targetSigma <= 0f || refractionDetailKey != null || params.depth <= 0.0001f) return 0f
-  val plan = blur.plan
-  if (plan.isIdentity || !plan.usesNativeWideBlur || blur.progressive != null) return 0f
+internal fun GlassPreparedRender.resolveLayerBlurFactor(): Float =
+  params.resolveLayerBlurFactor(blurKey?.plan, refractionDetailActive = refractionDetailKey != null)
+
+/** [GlassPreparedRender.resolveLayerBlurFactor] before the render is prepared, for its layer plan. */
+internal fun GlassRenderParams.resolveLayerBlurFactor(
+  blurPlan: SemanticBlurPlan?,
+  refractionDetailActive: Boolean,
+): Float {
+  val plan = blurPlan ?: return 0f
+  val targetSigma = layerBlurSigmaPx
+  if (targetSigma <= 0f || refractionDetailActive || depth <= 0.0001f) return 0f
+  if (plan.isIdentity || !plan.usesNativeWideBlur || progressive != null) return 0f
   // Margin cells repeat the capture's edges inside the sample; keep the platform chain there.
-  if (!params.coordinates.capturesWholeSample()) return 0f
+  if (!coordinates.capturesWholeSample()) return 0f
   val factor = plan.sigmaPx / targetSigma
   return if (factor > 1f) factor else 0f
 }
+
+/** The size of the reduced copy a [GlassPreparedRender.layerBlurFactor] render blurs. */
+internal fun IntSize.reducedForLayerBlur(factor: Float): IntSize = IntSize(
+  ceil(width / factor).toInt().coerceAtLeast(1),
+  ceil(height / factor).toInt().coerceAtLeast(1),
+)
 
 /**
  * Records the depth input of a [GlassPreparedRender.layerBlurFactor] render as [layer]'s content: the
@@ -2942,10 +2954,7 @@ private fun DrawScope.recordLayerBlurDepthInput(
   factor: Float,
 ) {
   val sampleSize = params.coordinates.sampleSize.roundToIntSize()
-  val reduced = IntSize(
-    ceil(sampleSize.width / factor).toInt().coerceAtLeast(1),
-    ceil(sampleSize.height / factor).toInt().coerceAtLeast(1),
-  )
+  val reduced = sampleSize.reducedForLayerBlur(factor)
   val radius = SemanticBlurKernel.sigmaToRadius(params.layerBlurSigmaPx)
   val effect = BlurEffect(radius, radius, TileMode.Clamp)
   // An equal effect leaves the layer's platform effect in place.
@@ -2954,14 +2963,14 @@ private fun DrawScope.recordLayerBlurDepthInput(
   blurred.alpha = params.depth
   // Adds to the sharp share; alone, over nothing, that is a plain draw.
   blurred.blendMode = if (drawsSharp) BlendMode.Plus else BlendMode.SrcOver
-  blurred.record(reduced) {
+  recordGlassLayer(blurred, reduced) {
     scale(1f / factor, pivot = Offset.Zero) { drawLayer(source) }
   }
   if (drawsSharp) {
     // Applies the alpha to each draw, without an offscreen pass.
     sharp.compositingStrategy = CompositingStrategy.ModulateAlpha
     sharp.alpha = 1f - params.depth
-    sharp.record(sampleSize) { drawLayer(source) }
+    recordGlassLayer(sharp, sampleSize) { drawLayer(source) }
   }
   recordGlassLayer(layer, sampleSize) {
     if (drawsSharp) drawLayer(sharp)

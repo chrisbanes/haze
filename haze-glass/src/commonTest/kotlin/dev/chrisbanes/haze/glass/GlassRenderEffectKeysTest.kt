@@ -7,8 +7,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertThat
 import assertk.assertions.contains
+import assertk.assertions.containsExactly
 import assertk.assertions.doesNotContain
 import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
@@ -625,6 +627,23 @@ class GlassRenderEffectKeysTest {
     val margin = resolveGlassCoordinates(Size(202f, 102f), Offset(1f, 1f), Size(200f, 100f), 1f, alignToPixels = true)
     assertThat(margin.capturesWholeSample()).isFalse()
     assertThat(preparedRender(wide.copy(coordinates = margin)).resolveLayerBlurFactor()).isEqualTo(0f)
+  }
+
+  @Test
+  fun layerBlurPlan_budgetsTheReducedBlurredLayer() {
+    val wide = params().copy(depth = 0.65f, refractionDetailIntensity = 0f, layerBlurSigmaPx = 3f)
+    val render = preparedRender(wide)
+    val blurred = render.plan.layers.filter { it.kind == GlassRetainedLayerKind.Blurred }.map { it.size }
+    if (supportsFusedGlassRenderEffect) {
+      val expected = wide.coordinates.sampleSize.roundToIntSize().reducedForLayerBlur(render.layerBlurFactor)
+      assertThat(blurred).containsExactly(expected)
+      // A different factor changes the reduced layer, so the prepared plan is rebuilt.
+      val reused = preparedRender(wide.copy(layerBlurSigmaPx = 3.5f), previous = render)
+      assertThat(reused.plan.layers.single { it.kind == GlassRetainedLayerKind.Blurred }.size)
+        .isEqualTo(wide.coordinates.sampleSize.roundToIntSize().reducedForLayerBlur(reused.layerBlurFactor))
+    } else {
+      assertThat(render.layerBlurFactor).isGreaterThan(0f)
+    }
   }
 
   private fun preparedRender(params: GlassRenderParams, previous: GlassPreparedRender? = null) =

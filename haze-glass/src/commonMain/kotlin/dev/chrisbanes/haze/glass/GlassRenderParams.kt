@@ -916,12 +916,14 @@ internal fun buildGlassLayerPlan(
   interactionPatchSize: IntSize = sampleSize,
   interactionOpticsActive: Boolean,
   interactionLightingActive: Boolean,
+  layerBlurSize: IntSize? = null,
 ): GlassRetainedLayerPlan {
   val interactionLayersActive =
     interactionPatchSize.width > 0 && interactionPatchSize.height > 0
   if (supportsFusedGlassRenderEffect) {
     return buildGlassFusedLayerPlan(
       sampleSize = sampleSize,
+      layerBlurSize = layerBlurSize,
       rimActive = rimActive,
       interactionPatchSize = interactionPatchSize,
       interactionLightingActive = interactionLayersActive && interactionLightingActive,
@@ -1023,6 +1025,7 @@ private fun buildGlassRetainedLayerPlan(
 
 private fun buildGlassFusedLayerPlan(
   sampleSize: IntSize,
+  layerBlurSize: IntSize?,
   rimActive: Boolean,
   interactionPatchSize: IntSize = IntSize.Zero,
   interactionLightingActive: Boolean = false,
@@ -1030,6 +1033,8 @@ private fun buildGlassFusedLayerPlan(
 ): GlassRetainedLayerPlan = GlassRetainedLayerPlan(
   buildList {
     add(GlassRetainedLayer(GlassRetainedLayerKind.Source, sampleSize))
+    // The reduced copy's blur renders offscreen; its sharp share modulates alpha without one.
+    if (layerBlurSize != null) add(GlassRetainedLayer(GlassRetainedLayerKind.Blurred, layerBlurSize))
     add(GlassRetainedLayer(GlassRetainedLayerKind.Optical, sampleSize))
     if (rimActive) add(GlassRetainedLayer(GlassRetainedLayerKind.Rim, sampleSize))
     if (interactionLightingActive) {
@@ -1058,6 +1063,13 @@ internal data class GlassPreparedRender(
 
   /** See [resolveLayerBlurFactor]; Sources only, as a backdrop input is not the layer's content. */
   val layerBlurFactor: Float = resolveLayerBlurFactor()
+}
+
+/** The reduced layer a fused layer blur retains, or null when the render chains the platform blur. */
+internal fun GlassRenderParams.layerBlurSize(blurPlan: SemanticBlurPlan?, refractionDetailActive: Boolean): IntSize? {
+  if (!supportsFusedGlassRenderEffect) return null
+  val factor = resolveLayerBlurFactor(blurPlan, refractionDetailActive)
+  return if (factor > 0f) coordinates.sampleSize.roundToIntSize().reducedForLayerBlur(factor) else null
 }
 
 internal fun resolveGlassGroupCompositeSize(
@@ -1127,6 +1139,7 @@ internal fun buildGlassPreparedRender(
   } else {
     params.rimEffectKey().takeIf { hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight, params.edgeOutline) }
   }
+  val layerBlurSize = params.layerBlurSize(blurKey?.plan, refractionDetailActive = refractionDetailKey != null)
   val plan = if (
     previous != null && previous.hasSameRetainedLayerPlanInputs(
       params = params,
@@ -1136,6 +1149,7 @@ internal fun buildGlassPreparedRender(
       refractionDetailKey = refractionDetailKey,
       rimKey = rimKey,
       groupCompositeSize = groupCompositeSize,
+      layerBlurSize = layerBlurSize,
     )
   ) {
     previous.plan
@@ -1151,6 +1165,7 @@ internal fun buildGlassPreparedRender(
       interactionPatchSize = interactionPatchSize,
       interactionOpticsActive = topology.hasOptics,
       interactionLightingActive = topology.hasLighting,
+      layerBlurSize = layerBlurSize,
     )
   }
 
@@ -1263,8 +1278,10 @@ private fun GlassPreparedRender.hasSameRetainedLayerPlanInputs(
   refractionDetailKey: GlassRefractionDetailEffectKey?,
   rimKey: GlassRimEffectKey?,
   groupCompositeSize: IntSize?,
+  layerBlurSize: IntSize?,
 ): Boolean =
   this.params.coordinates.sampleSize == params.coordinates.sampleSize &&
+    this.params.layerBlurSize(this.blurKey?.plan, this.refractionDetailKey != null) == layerBlurSize &&
     this.blurKey?.plan?.usesNativeWideBlur == blurKey?.plan?.usesNativeWideBlur &&
     (this.blurKey != null && this.params.depth < 1f) ==
     (blurKey != null && params.depth < 1f) &&
