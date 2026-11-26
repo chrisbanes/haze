@@ -103,8 +103,9 @@ internal fun Rect.visiblePart(visible: Rect?): Rect {
 
 /**
  * Paints for [withLayerPaint], one per nesting depth. A layer keeps its paint for the whole
- * block, so an inner layer takes the next paint instead of changing an enclosing layer's alpha or
- * blend mode. Drawing is single-threaded, so this is not thread-safe, like haze-blur's `PaintPool`.
+ * block, so an inner layer takes the next paint instead of changing an enclosing layer's alpha,
+ * blend mode or colour filter. Drawing is single-threaded, so this is not thread-safe, like
+ * haze-blur's `PaintPool`.
  */
 internal object LayerPaints {
   private val paints = ArrayList<Paint>()

@@ -426,7 +426,7 @@ class FallbackGlassBlurAndroidHostTest : ScreenshotTest() {
     standaloneBackground.value = Color.Green.copy(alpha = 0.5f)
     captureRootPixels()
     assertThat(standalone.delegate).isSameInstanceAs(standaloneDelegate)
-    // SDK 31 bumps the input snapshot on every apply, which recreates the effect without the key's background colours.
+    // On SDK 31 the per-apply input snapshot already recreates the effect, so only SDK 32 isolates the background key.
     val keyedOnBackground = Build.VERSION.SDK_INT == 32
     if (keyedOnBackground) {
       assertThat(checkNotNull(standaloneDelegate.filteredInputEffectForTest)).isNotSameInstanceAs(standaloneEffect)

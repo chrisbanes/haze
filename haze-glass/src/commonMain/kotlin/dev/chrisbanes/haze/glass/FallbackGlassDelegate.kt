@@ -304,7 +304,7 @@ internal class FallbackGlassDelegate(
                   captureBounds,
                   groupSize,
                   drawScrim,
-                  mergedPaths.field.members.map { it.backgroundColor },
+                  memberBackgroundColors = mergedPaths.field.members.map { it.backgroundColor },
                   drawBackground,
                 )
               }
