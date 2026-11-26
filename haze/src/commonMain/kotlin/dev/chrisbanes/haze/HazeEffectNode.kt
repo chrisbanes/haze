@@ -353,7 +353,11 @@ internal class HazeEffectNode(
     captureDemandAreas = desiredAreas
   }
 
-  private val contentDrawArea by lazy { HazeArea() }
+  private val lazyContentDrawArea = lazy { HazeArea() }
+  private val contentDrawArea by lazyContentDrawArea
+
+  /** Whether the content [HazeArea] exists; only [HazeInput.Content] needs one. */
+  internal val hasContentDrawArea: Boolean get() = lazyContentDrawArea.isInitialized()
 
   private var typedEffectFactory: Any? = null
   private var typedEffectStyle: Any? = null
@@ -494,7 +498,8 @@ internal class HazeEffectNode(
   private var trimMemoryCallbackDisposable: DisposableHandle? = null
 
   override fun onAttach() {
-    updateLifecycle(currentValueOf(LocalLifecycleOwner).lifecycle)
+    // The trim-memory callback is bound below, once the renderer is attached.
+    lifecycle = currentValueOf(LocalLifecycleOwner).lifecycle
     val previousSources = resolvedSourcesInput()
     backdropEnabledAtAttach = HazeFeatureFlags.isPlatformBackdropEnabled
     backdropBackendState.attach(backdropEnabledAtAttach)
@@ -533,7 +538,7 @@ internal class HazeEffectNode(
     _areas = emptyList()
     areaTransforms.clear()
     lastSeenStateAreas = emptyList()
-    contentDrawArea.releaseContentLayer(requireGraphicsContext())
+    if (hasContentDrawArea) contentDrawArea.releaseContentLayer(requireGraphicsContext())
     clearRetainedOutput()
     pointerInputDelegate?.let { delegate ->
       val renderer = typedEffectRenderer as? HazeEffectRendererInteraction
