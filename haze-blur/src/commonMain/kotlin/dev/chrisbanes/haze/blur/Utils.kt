@@ -23,10 +23,6 @@ internal fun calculateLength(
   return hypot(endX - startX, endY - startY)
 }
 
-internal fun Size.expand(expansionWidth: Float, expansionHeight: Float): Size {
-  return Size(width = width + expansionWidth, height = height + expansionHeight)
-}
-
 internal fun ceil(size: Size): Size = Size(width = ceil(size.width), height = ceil(size.height))
 
 internal fun Offset.round(): Offset = Offset(x.roundToInt().toFloat(), y.roundToInt().toFloat())

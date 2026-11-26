@@ -51,7 +51,6 @@ import dev.chrisbanes.haze.scaledContentScale
 import dev.chrisbanes.haze.trace
 import dev.chrisbanes.haze.traceAsync
 import dev.chrisbanes.haze.translate
-import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -230,10 +229,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
     }
 
     layer.record(size = size.toIntSize()) {
-      val expandedSize = size.expand(
-        expansionWidth = max(offset.x, 0f) * 2,
-        expansionHeight = max(offset.y, 0f) * 2,
-      )
+      val expandedSize = context.layerSize
       val colorEffects = blurVisualEffect.colorEffects.orEmpty()
 
       // The blurred output, then the noise on top...
