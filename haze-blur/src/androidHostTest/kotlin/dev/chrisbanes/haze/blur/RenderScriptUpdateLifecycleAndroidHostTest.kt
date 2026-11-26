@@ -7,6 +7,7 @@
 package dev.chrisbanes.haze.blur
 
 import android.content.Context
+import android.renderscript.Allocation
 import android.renderscript.BaseObj
 import android.renderscript.RSRuntimeException
 import androidx.compose.foundation.layout.Box
@@ -71,15 +72,17 @@ class RenderScriptUpdateLifecycleAndroidHostTest : ScreenshotTest() {
       delegate.createRenderScriptContext = { rs, size ->
         RenderScriptContext(rs, size) {
           created += it
-          if (created.size == 2) throw RSRuntimeException("injected")
+          // Fails at the output allocation, after the input allocation's buffer listener is set.
+          if (created.size == 3) throw RSRuntimeException("injected")
         }
       }
     }
     setContent { h.Content() }
     h.settle(this)
 
-    assertThat(created).hasSize(2)
+    assertThat(created).hasSize(3)
     assertThat(created.map { it.isDestroyed() }).each { it.isTrue() }
+    assertThat((created[1] as Allocation).bufferNotifier()).isNull()
     assertThat(h.delegate.renderScriptContext).isNull()
     assertThat(h.invalidations).isEqualTo(0)
     assertThat(h.delegate.canDrawRetainedOutput()).isFalse()

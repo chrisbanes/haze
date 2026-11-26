@@ -95,6 +95,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ancestor `hazeSource`, not only the nearest one.
   As a result, a relocated effect surface whose owner draws outside the enclosing outer source no
   longer samples that source ([#1905](https://github.com/chrisbanes/haze/issues/1905)).
+- RenderScript Blur on Android 6 to 11 (API 23 to 30) no longer leaks each blur context it
+  releases, with its output bitmap, buffers and input surface, after a resize, a zero-radius
+  update, an invalidation, a memory trim or a detach
+  ([#1904](https://github.com/chrisbanes/haze/issues/1904)).
 - Android Blur no longer crashes when a linear progressive blur uses an easing that overshoots,
   such as `EaseInBack` or an elastic easing, on Android 12 and 12L or after a runtime shader
   failure. Each blur layer's intensity stays within `0f`..`1f`
