@@ -255,24 +255,22 @@ internal fun clusterGlassMembers(
     }
     val sorted = component.sorted()
     // A merged surface draws at one z-position, so only consecutive registrations may share one;
-    // an intervening surface splits the capped units (ADR-0013: merging never reorders members).
+    // an intervening surface splits the component into runs first, then each run, one drawn
+    // surface, is capped (ADR-0013: merging never reorders members).
     // ponytail: a run linked only through units outside it still shares one field (no false bridge,
     // but no dome); split runs by direct edges if that ever shows.
-    var run = mutableListOf<Int>()
-    for (index in sorted.take(MAX_GLASS_MERGED_MEMBERS)) {
-      if (run.isNotEmpty() && run.last() != index - 1) {
-        surfaces += run.toCluster(units)
-        run = mutableListOf()
-      }
-      run += index
+    var excess = 0
+    var start = 0
+    for (end in 1..sorted.size) {
+      if (end < sorted.size && sorted[end] == sorted[end - 1] + 1) continue
+      val run = sorted.subList(start, end)
+      surfaces += run.take(MAX_GLASS_MERGED_MEMBERS).toCluster(units)
+      run.drop(MAX_GLASS_MERGED_MEMBERS).forEach { surfaces += listOf(it).toCluster(units) }
+      excess += maxOf(0, run.size - MAX_GLASS_MERGED_MEMBERS)
+      start = end
     }
-    surfaces += run.toCluster(units)
-    sorted.drop(MAX_GLASS_MERGED_MEMBERS).forEach { surfaces += listOf(it).toCluster(units) }
-    if (sorted.size > MAX_GLASS_MERGED_MEMBERS) {
-      overflow += GlassClusterOverflow(
-        sorted.flatMap { units[it] }.map { it.identity },
-        sorted.size - MAX_GLASS_MERGED_MEMBERS,
-      )
+    if (excess > 0) {
+      overflow += GlassClusterOverflow(sorted.flatMap { units[it] }.map { it.identity }, excess)
     }
   }
   // An intervening singleton must retain registration order relative to disjoint components.

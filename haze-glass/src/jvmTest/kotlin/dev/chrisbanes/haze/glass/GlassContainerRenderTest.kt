@@ -58,7 +58,7 @@ import kotlin.math.abs
 import kotlin.test.Test
 import kotlinx.coroutines.runBlocking
 
-internal fun containerTestStyle(tint: Color, alpha: Float = 1f, background: Color = Color.Transparent): GlassStyle = GlassStyle {
+internal fun containerTestStyle(tint: Color, alpha: Float = 1f, background: Color = Color.Transparent, contrast: Float = 0f): GlassStyle = GlassStyle {
   optics(GlassOptics(refractionStrength = 0f, refractionDisplacement = 0.dp, refractionDetailIntensity = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp)))
   tint(tint)
   backgroundColor(background)
@@ -68,7 +68,7 @@ internal fun containerTestStyle(tint: Color, alpha: Float = 1f, background: Colo
   specularIntensity(0f)
   ambientResponse(0f)
   chromaticAberrationStrength(0f)
-  contrast(0f)
+  contrast(contrast)
   whitePoint(0f)
   chromaMultiplier(1f)
   noBuiltInEdges()
