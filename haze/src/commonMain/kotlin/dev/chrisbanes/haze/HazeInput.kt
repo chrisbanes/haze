@@ -102,8 +102,9 @@ public sealed interface HazeSourceSelection {
   )
 
   /**
-   * Sources behind the nearest ancestor [hazeSource], or every source when there is no matching
-   * ancestor.
+   * Sources with a lower `zIndex` than the nearest ancestor [hazeSource] using the same state.
+   * A same-state ancestor [hazeSource] is never selected. Selects every source when there is no
+   * such ancestor.
    */
   public data object Behind : HazeSourceSelection
 

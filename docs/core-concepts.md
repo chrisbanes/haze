@@ -18,8 +18,9 @@ LazyColumn(
 ```
 
 Sources can have a `zIndex` and metadata `key`. [`HazeSourceSelection.Behind`][HazeSourceSelection.Behind] is the default. With
-a nearest ancestor `hazeSource` using the same state, it selects lower-z sources; without one, it
-selects every source. [`HazeSourceSelection.All`][HazeSourceSelection.All] bypasses the ancestor relationship.
+an ancestor `hazeSource` using the same state, it selects sources with a lower `zIndex` than the
+nearest such ancestor and never selects a same-state ancestor itself; without one, it selects every
+source. [`HazeSourceSelection.All`][HazeSourceSelection.All] bypasses the ancestor relationship.
 
 Refine either selection with `where`. The predicate receives each source's `key` and `zIndex`.
 Repeated refinements combine with logical AND:
