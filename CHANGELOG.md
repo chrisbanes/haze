@@ -93,6 +93,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   such as `EaseInBack` or an elastic easing, on Android 12 and 12L or after a runtime shader
   failure. Each blur layer's intensity stays within `0f`..`1f`
   ([#1906](https://github.com/chrisbanes/haze/issues/1906)).
+- Glass progressive blur with a `SolidColor` brush, as in
+  `HazeProgressive.Brush(SolidColor(...))`, blurs uniformly instead of reading an unset or stale
+  mask ([#1907](https://github.com/chrisbanes/haze/issues/1907)).
 - Glass surfaces with fractional sample padding no longer replay their source up to nine times
   each frame to fill sub-pixel slivers at the sample's edges.
 - A Glass container surface that only moves, as when its members scroll, no longer re-runs its
