@@ -34,9 +34,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
 
 jobs:
   build_docs:
@@ -54,6 +52,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
 
       - name: Setup JDK
         uses: actions/setup-java@v6
@@ -133,6 +132,8 @@ jobs:
   deploy_docs:
     runs-on: macos-26
     needs: build_docs
+    permissions:
+      contents: write
     if: github.event_name == 'workflow_run' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     environment:
       name: github-pages
