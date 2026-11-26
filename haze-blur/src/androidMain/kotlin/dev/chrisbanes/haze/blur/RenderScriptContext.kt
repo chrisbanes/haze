@@ -30,6 +30,7 @@ internal class RenderScriptContext(
   afterNativeCreate: (BaseObj) -> Unit = {},
 ) {
   private val lock = ReentrantLock()
+  private val type: Type
   private val blurScript: ScriptIntrinsicBlur
 
   private val inputAlloc: Allocation
@@ -60,18 +61,22 @@ internal class RenderScriptContext(
     val width = size.width
     val height = size.height
     val created = mutableListOf<BaseObj>()
+    // Set once the input allocation has a buffer listener, which pins it in a static framework map.
+    var listening: Allocation? = null
     fun <T : BaseObj> T.track(): T = also {
       created += it
       afterNativeCreate(it)
     }
 
     try {
-      val type = Type.Builder(rs, Element.U8_4(rs)).setX(width).setY(height).create()
+      // Allocation.createTyped does not take ownership of the type, so it is destroyed here.
+      type = Type.Builder(rs, Element.U8_4(rs)).setX(width).setY(height).create().track()
 
       val flags = Allocation.USAGE_SCRIPT or Allocation.USAGE_IO_INPUT
 
       inputAlloc = Allocation.createTyped(rs, type, flags).track()
       inputAlloc.setOnBufferAvailableListener { receiveInputBuffer() }
+      listening = inputAlloc
 
       outputBitmap = createBitmap(width, height)
       // Not backed by outputBitmap, so the blur kernel never writes published pixels.
@@ -82,6 +87,9 @@ internal class RenderScriptContext(
       blurScript.setInput(inputAlloc)
     } catch (e: Throwable) {
       // A partial construction is never released by its owner, so destroy what it created here.
+      // Clearing a listener also adds the allocation to the static map, so clear only one that was set.
+      runCatching { listening?.setOnBufferAvailableListener(null) }
+        .onFailure { HazeLogger.d(TAG) { "Failed to clear the input buffer listener: $it" } }
       for (obj in created) {
         runCatching { obj.destroy() }
           .onFailure { HazeLogger.d(TAG) { "Failed to destroy $obj: $it" } }
@@ -139,12 +147,21 @@ internal class RenderScriptContext(
   suspend fun awaitSurfaceWritten() = channel.receive()
 
   fun release() {
+    // The static allocation map pins the input allocation, so drop its listener's reference to this
+    // context. Outside lock: the framework calls the listener while holding the map's monitor.
+    runCatching { inputAlloc.setOnBufferAvailableListener(null) }
+      .onFailure { HazeLogger.d(TAG) { "Failed to clear the input buffer listener: $it" } }
+
     lock.withLock {
       HazeLogger.d(TAG) { "Release resources" }
       isDestroyed = true
 
+      // Before destroy(): getSurface() is cached, but its first call needs a live allocation.
+      runCatching { inputAlloc.surface.release() }
+        .onFailure { HazeLogger.d(TAG) { "Failed to release the input surface: $it" } }
+
       // Destroy each independently, so one failure does not leak the others.
-      for (obj in listOf(blurScript, inputAlloc, outputAlloc)) {
+      for (obj in listOf(blurScript, inputAlloc, outputAlloc, type)) {
         runCatching { obj.destroy() }
           .onFailure { HazeLogger.d(TAG) { "Failed to destroy $obj: $it" } }
       }

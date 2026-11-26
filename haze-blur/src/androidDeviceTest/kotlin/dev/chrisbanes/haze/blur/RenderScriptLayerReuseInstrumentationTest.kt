@@ -490,13 +490,32 @@ class RenderScriptLayerReuseInstrumentationTest {
     h.source = Color.Red
     h.awaitCenter { it.isDominantlyColored(Color.Red) }
     assertThat(h.delegate.presentationLayer.layer).isSameInstanceAs(presentation)
+    val blurred = checkNotNull(h.delegate.renderScriptContext)
 
+    val blurredJob = h.delegate.currentJob
     h.radius = 0.dp
-    composeTestRule.waitUntil(5_000) { h.delegate.renderScriptContext == null }
+    composeTestRule.waitUntil(5_000) {
+      h.delegate.currentJob !== blurredJob &&
+        h.delegate.currentJob?.isActive != true &&
+        h.delegate.canDrawRetainedOutput()
+    }
+    // The context is kept at zero radius: releasing it would destroy the capture being copied.
+    assertThat(h.delegate.renderScriptContext).isSameInstanceAs(blurred)
     h.awaitCenter { it.isDominantlyColored(Color.Red) }
     h.source = Color.Green
     h.awaitCenter { it.isDominantlyColored(Color.Green) }
     assertThat(h.delegate.presentationLayer.layer).isSameInstanceAs(presentation)
+
+    val zeroRadiusJob = h.delegate.currentJob
+    h.radius = 4.dp
+    composeTestRule.waitUntil(5_000) {
+      h.delegate.currentJob !== zeroRadiusJob &&
+        h.delegate.currentJob?.isActive != true &&
+        h.delegate.canDrawRetainedOutput()
+    }
+    h.awaitCenter { it.isDominantlyColored(Color.Green) }
+    // The layer bounds are not expanded, so the blurred update reuses the same-size context.
+    assertThat(h.delegate.renderScriptContext).isSameInstanceAs(blurred)
   }
 
   private fun Color.isDominantlyColored(expected: Color) = when (expected) {

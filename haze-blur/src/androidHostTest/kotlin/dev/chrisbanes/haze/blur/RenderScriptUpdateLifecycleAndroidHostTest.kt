@@ -7,6 +7,7 @@
 package dev.chrisbanes.haze.blur
 
 import android.content.Context
+import android.renderscript.Allocation
 import android.renderscript.BaseObj
 import android.renderscript.RSRuntimeException
 import androidx.compose.foundation.layout.Box
@@ -28,6 +29,7 @@ import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
@@ -71,15 +73,17 @@ class RenderScriptUpdateLifecycleAndroidHostTest : ScreenshotTest() {
       delegate.createRenderScriptContext = { rs, size ->
         RenderScriptContext(rs, size) {
           created += it
-          if (created.size == 2) throw RSRuntimeException("injected")
+          // Fails at the output allocation, after the input allocation's buffer listener is set.
+          if (created.size == 3) throw RSRuntimeException("injected")
         }
       }
     }
     setContent { h.Content() }
     h.settle(this)
 
-    assertThat(created).hasSize(2)
+    assertThat(created).hasSize(3)
     assertThat(created.map { it.isDestroyed() }).each { it.isTrue() }
+    assertThat((created[1] as Allocation).bufferNotifier()).isNull()
     assertThat(h.delegate.renderScriptContext).isNull()
     assertThat(h.invalidations).isEqualTo(0)
     assertThat(h.delegate.canDrawRetainedOutput()).isFalse()
@@ -89,6 +93,77 @@ class RenderScriptUpdateLifecycleAndroidHostTest : ScreenshotTest() {
 
     assertThat(h.delegate.canDrawRetainedOutput()).isTrue()
     assertThat(h.invalidations).isEqualTo(1)
+  }
+
+  @Test
+  fun updateSurface_resize_releasesTheReplacedContextOnceTheNewWriteCompletes() = runScreenshotTest {
+    val h = Harness()
+    setContent { h.Content() }
+    h.settle(this)
+    val old = checkNotNull(h.delegate.renderScriptContext)
+    var oldDestroyedDuringWrite: Boolean? = null
+    h.delegate.writeToSurface = { rs, layer, density ->
+      oldDestroyedDuringWrite = old.isDestroyed()
+      h.defaultWrite(rs, layer, density)
+    }
+
+    h.layerSize = Size(108f, 100f)
+    h.redraw(this)
+
+    val replacement = checkNotNull(h.delegate.renderScriptContext)
+    assertThat(replacement).isNotSameInstanceAs(old)
+    assertThat(replacement.size).isNotEqualTo(old.size)
+    assertThat(oldDestroyedDuringWrite).isNotNull().isFalse()
+    assertThat(old.isDestroyed()).isTrue()
+    assertThat(h.delegate.canDrawRetainedOutput()).isTrue()
+  }
+
+  @Test
+  fun updateSurface_resizeWithHeldWrite_keepsTheReplacedContextUntilTheBufferArrives() = runScreenshotTest {
+    val h = Harness()
+    setContent { h.Content() }
+    h.settle(this)
+    val old = checkNotNull(h.delegate.renderScriptContext)
+    var heldWrite: (() -> Unit)? = null
+    // A write that returns before drawing, as a slow Surface write would.
+    h.delegate.writeToSurface = { rs, layer, density -> heldWrite = { h.defaultWrite(rs, layer, density) } }
+
+    h.layerSize = Size(108f, 100f)
+    frame()
+    waitForIdle()
+
+    assertThat(heldWrite).isNotNull()
+    assertThat(old.isDestroyed()).isFalse()
+
+    checkNotNull(heldWrite).invoke()
+    h.settle(this)
+
+    assertThat(old.isDestroyed()).isTrue()
+    assertThat(h.delegate.renderScriptContext).isNotNull().isNotSameInstanceAs(old)
+    assertThat(h.delegate.canDrawRetainedOutput()).isTrue()
+  }
+
+  @Test
+  fun updateSurface_resizeWriteFails_releasesBothContexts() = runScreenshotTest {
+    val h = Harness()
+    setContent { h.Content() }
+    h.settle(this)
+    val old = checkNotNull(h.delegate.renderScriptContext)
+    var replacement: RenderScriptContext? = null
+    h.delegate.writeToSurface = { rs, _, _ ->
+      replacement = rs
+      throw IllegalStateException("injected")
+    }
+
+    h.layerSize = Size(108f, 100f)
+    h.redraw(this)
+
+    assertThat(replacement).isNotNull().isNotSameInstanceAs(old)
+    assertThat(old.isDestroyed()).isTrue()
+    assertThat(checkNotNull(replacement).isDestroyed()).isTrue()
+    assertThat(h.delegate.renderScriptContext).isNull()
+    // The previous output is kept.
+    assertThat(h.delegate.canDrawRetainedOutput()).isTrue()
   }
 
   @Test
@@ -185,7 +260,7 @@ class RenderScriptUpdateLifecycleAndroidHostTest : ScreenshotTest() {
   }
 
   @Test
-  fun zeroRadius_toAndFromPositiveRadius_createsThenReleasesTheContext() = runScreenshotTest {
+  fun zeroRadius_afterPositiveRadius_keepsTheContextForTheNextBlurredUpdate() = runScreenshotTest {
     val h = Harness(radius = 0.dp)
     setContent { h.Content() }
     h.settle(this)
@@ -197,16 +272,20 @@ class RenderScriptUpdateLifecycleAndroidHostTest : ScreenshotTest() {
 
     h.radius = 0.dp
     h.redraw(this)
-    assertThat(h.delegate.renderScriptContext).isNull()
-    assertThat(blurred.isDestroyed()).isTrue()
+    assertThat(h.delegate.renderScriptContext).isSameInstanceAs(blurred)
+    assertThat(blurred.isDestroyed()).isFalse()
+    assertThat(h.surfaceWrites).hasSize(1)
     assertThat(h.delegate.canDrawRetainedOutput()).isTrue()
-    // Only the per-node context goes; the shared reference is kept.
     assertThat(SharedRenderScript.currentForTest).isNotNull()
 
     h.radius = 8.dp
     h.redraw(this)
-    assertThat(h.delegate.renderScriptContext).isNotNull().isNotSameInstanceAs(blurred)
+    assertThat(h.delegate.renderScriptContext).isSameInstanceAs(blurred)
+    assertThat(h.surfaceWrites.last()).isSameInstanceAs(blurred)
     assertThat(h.delegate.canDrawRetainedOutput()).isTrue()
+
+    h.delegate.onTrimMemory(HostLifecycleScope(context), TrimMemoryLevel.MODERATE)
+    assertThat(blurred.isDestroyed()).isTrue()
   }
 
   @Test

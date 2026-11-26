@@ -7,6 +7,7 @@
 package dev.chrisbanes.haze.blur
 
 import android.content.Context
+import android.renderscript.Allocation
 import android.renderscript.BaseObj
 import android.renderscript.RSIllegalArgumentException
 import android.renderscript.RSRuntimeException
@@ -72,15 +73,22 @@ class RenderScriptReleaseAndroidHostTest : ContextTest() {
   }
 
   @Test
-  fun getRenderScriptContext_newSize_releasesTheOldContextAndStoresTheNewOne() {
+  fun getRenderScriptContext_newSize_keepsTheOldContextUntilTheDelegateReleasesIt() {
     val delegate = delegate()
     val old = delegate.getRenderScriptContext(IntSize(8, 8))
 
     val replacement = delegate.getRenderScriptContext(IntSize(16, 8))
 
     assertThat(replacement).isNotSameInstanceAs(old)
-    assertThat(old.isDestroyed()).isTrue()
+    // The update that asked for the replacement releases the old context after its write.
+    assertThat(old.isDestroyed()).isFalse()
     assertThat(delegate.renderScriptContext).isSameInstanceAs(replacement)
+
+    delegate.invalidateRetainedOutput()
+
+    assertThat(old.isDestroyed()).isTrue()
+    assertThat(replacement.isDestroyed()).isTrue()
+    assertThat(delegate.renderScriptContext).isNull()
   }
 
   @Test
@@ -262,7 +270,8 @@ class RenderScriptReleaseAndroidHostTest : ContextTest() {
   fun renderScriptContext_creationFailsPartway_destroysEveryCreatedObject() {
     val shared = SharedRenderScript.acquire(context)
     try {
-      for (n in 1..3) {
+      // Created in order: type, input allocation, output allocation, blur script.
+      for (n in 1..4) {
         val created = mutableListOf<BaseObj>()
         assertFailure {
           RenderScriptContext(shared, IntSize(8, 8)) {
@@ -273,6 +282,10 @@ class RenderScriptReleaseAndroidHostTest : ContextTest() {
 
         assertThat(created).hasSize(n)
         assertThat(created.map { it.isDestroyed() }).each { it.isTrue() }
+        if (n >= 2) assertThat((created[1] as Allocation).bufferNotifier()).isNull()
+        // Clearing a listener adds the allocation to the map, so one never given a listener stays out.
+        if (n == 2) assertThat(allocationMapValues().filter { it === created[1] }).isEmpty()
+        if (n >= 3) assertThat(allocationMapValues().filter { it === created[2] }).isEmpty()
       }
     } finally {
       SharedRenderScript.release()
@@ -286,14 +299,33 @@ class RenderScriptReleaseAndroidHostTest : ContextTest() {
       created += it
     }
     // Destroying the blur script first makes its destroy() in release() throw.
-    created[2].destroy()
-    assertFailure { created[2].destroy() }.isInstanceOf<RSRuntimeException>()
+    created[3].destroy()
+    assertFailure { created[3].destroy() }.isInstanceOf<RSRuntimeException>()
 
     rsContext.release()
 
     assertThat(created[0].isDestroyed()).isTrue()
     assertThat(created[1].isDestroyed()).isTrue()
+    assertThat(created[2].isDestroyed()).isTrue()
     assertThat(rsContext.isDestroyed()).isTrue()
+  }
+
+  @Test
+  fun release_clearsTheInputBufferListenerAndDestroysTheType() {
+    val created = mutableListOf<BaseObj>()
+    val rsContext = RenderScriptContext(delegate().getRenderScriptContext(IntSize(8, 8)).rs, IntSize(8, 8)) {
+      created += it
+    }
+    val input = created[1] as Allocation
+    assertThat(input.bufferNotifier()).isNotNull()
+
+    rsContext.release()
+
+    // The static allocation map keeps the input allocation, but no longer reaches the context.
+    assertThat(input.bufferNotifier()).isNull()
+    assertThat(created).hasSize(4)
+    assertThat(created.map { it.isDestroyed() }).each { it.isTrue() }
+    assertThat(allocationMapValues().filter { it === created[2] }).isEmpty()
   }
 
   @Test
@@ -343,6 +375,24 @@ internal fun BaseObj.isDestroyed(): Boolean =
   BaseObj::class.java.getDeclaredField("mDestroyed").run {
     isAccessible = true
     getBoolean(this@isDestroyed)
+  }
+
+internal fun Allocation.bufferNotifier(): Any? =
+  Allocation::class.java.getDeclaredField("mBufferNotifier").run {
+    isAccessible = true
+    get(this@bufferNotifier)
+  }
+
+/**
+ * The values of the framework's static map, which pins each allocation given a buffer listener.
+ * Match them by identity: `BaseObj.equals` compares native IDs, which are 0 once destroyed, and
+ * Robolectric gives every object ID 1, so the map holds only the last allocation added.
+ */
+internal fun allocationMapValues(): List<Any?> =
+  Allocation::class.java.getDeclaredField("mAllocationMap").run {
+    isAccessible = true
+    val map = get(null) as Map<*, *>
+    synchronized(map) { map.values.toList() }
   }
 
 /** These tests create no layers, so every call fails loudly. */

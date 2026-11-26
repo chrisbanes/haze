@@ -81,6 +81,10 @@ internal class RenderScriptBlurVisualEffectDelegate(
   @Volatile
   internal var renderScriptContext: RenderScriptContext? = null
     private set
+
+  // A context replaced on resize, kept until the new context's first Surface buffer arrives.
+  private var retiredRenderScriptContext: RenderScriptContext? = null
+
   private val drawScope = CanvasDrawScope()
 
   // Test seam: host tests have no input Surface, so they replace the write to it.
@@ -341,10 +345,10 @@ internal class RenderScriptBlurVisualEffectDelegate(
     var outputUpdated = false
 
     if (!(blurRadius > 0f)) {
-      // Zero radius is a copy of the capture: no padding, context, Surface write or blur. Any
-      // context left by an earlier blurred update is freed; the shared reference is kept.
+      // Zero radius is a copy of the capture: no padding, context, Surface write or blur. A context
+      // left by an earlier blurred update is kept, because its Surface's renderer still parents the
+      // capture copied here; a later blurred update, trim, invalidation or detach releases it.
       paddedLayer.release()
-      releaseRenderScriptContext()
       if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return false
       val outputLayer = contentLayer ?: return false
       outputLayer.record(
@@ -377,16 +381,22 @@ internal class RenderScriptBlurVisualEffectDelegate(
         // The trace lambda is crossinline, so it reports failure rather than returning from this block.
         val surfaceWritten = traceAsync("Haze-RenderScriptBlurEffect-updateSurface-drawLayerToSurface", 0) {
           try {
-            // Draw the layer (this is async)
-            writeToSurface(rs, paddedContent, density)
-          } catch (e: IllegalStateException) {
-            HazeLogger.d(TAG) { "Surface draw failed, likely destroyed. Releasing context." }
-            releaseRenderScriptContext()
-            return@traceAsync false
+            try {
+              // Draw the layer (this is async)
+              writeToSurface(rs, paddedContent, density)
+            } catch (e: IllegalStateException) {
+              HazeLogger.d(TAG) { "Surface draw failed, likely destroyed. Releasing context." }
+              releaseRenderScriptContext()
+              return@traceAsync false
+            }
+            // Wait for the layer to be written to the Surface
+            rs.awaitSurfaceWritten()
+            true
+          } finally {
+            // A received buffer means the new Surface's renderer has synced the capture, so the
+            // replaced context can go. Also release it if the write or the wait failed.
+            releaseRetiredRenderScriptContext()
           }
-          // Wait for the layer to be written to the Surface
-          rs.awaitSurfaceWritten()
-          true
         }
         // Without output, the capture key stays uncommitted and the next draw retries.
         if (!surfaceWritten) return@traceAsync
@@ -483,11 +493,17 @@ internal class RenderScriptBlurVisualEffectDelegate(
     val rs = renderScriptContext
     if (rs != null && rs.size == size) return rs
 
-    // Release any existing context
-    releaseRenderScriptContext()
-    // Return a new context and store it
-    return createRenderScriptContext(requireRenderScript(), size)
-      .also { renderScriptContext = it }
+    // Retire the old context rather than release it: releasing its Surface destroys its renderer,
+    // which wipes the capture just recorded unless another renderer has synced it (API 30).
+    releaseRetiredRenderScriptContext()
+    retiredRenderScriptContext = rs
+    renderScriptContext = null
+    return try {
+      createRenderScriptContext(requireRenderScript(), size)
+    } catch (e: Throwable) {
+      releaseRetiredRenderScriptContext()
+      throw e
+    }.also { renderScriptContext = it }
   }
 
   override fun canDrawRetainedOutput(): Boolean {
@@ -533,8 +549,15 @@ internal class RenderScriptBlurVisualEffectDelegate(
   }
 
   private fun releaseRenderScriptContext() {
+    releaseRetiredRenderScriptContext()
     val rs = renderScriptContext ?: return
     renderScriptContext = null
+    rs.release()
+  }
+
+  private fun releaseRetiredRenderScriptContext() {
+    val rs = retiredRenderScriptContext ?: return
+    retiredRenderScriptContext = null
     rs.release()
   }
 
