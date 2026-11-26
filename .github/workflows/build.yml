@@ -33,6 +33,9 @@ jobs:
       - name: Test verification scripts
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
 
+      - name: Test benchmark scripts
+        run: python3 -m unittest discover -s internal/benchmark -p 'test_*.py'
+
       - name: Detect code changes
         id: changes
         env:
