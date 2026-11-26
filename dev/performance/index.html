@@ -1480,17 +1480,23 @@ subtree, provide <a href="../api/haze/dev.chrisbanes.haze/-local-haze-performanc
 <code>Fixed(1f)</code>. The fraction describes quality, not a percentage reduction in rendering time.</p>
 <p>On Android, modes below <code>Balanced</code> also refract and light continuous Glass corners as circular
 corners of the same radius, while the silhouette stays exact. For four merged continuous surfaces
-on a Pixel 6 under controlled CPU placement, that left about 1.4 ms more frame headroom in
+on a Pixel 8a under controlled CPU placement, that left about 1.2–1.6 ms more frame headroom in
 <code>Performance</code> (<a href="../benchmark-results/#continuous-corner-optics">details</a>).</p>
+<p>On Android, modes below <code>Quality</code> also blur a reduced copy of the backdrop for wide Glass blurs,
+as the platform blur does internally, but in fewer render passes; lower quality fractions reduce
+the copy further. For nine Glass surfaces on a Pixel 6, <code>Balanced</code> used about 21% less CPU frame
+time at P90 (<a href="../benchmark-results/#glass-blur-passes-and-source-capture">details</a>). <code>Quality</code>
+keeps the platform blur.</p>
 <div class="admonition note">
 <p class="admonition-title">Measured quality trade-offs</p>
 <p>In a two-pass test on a Pixel 8a (Android 17, 60 Hz, fixed-performance mode) with a changing
-background, Glass <code>Balanced</code> left about <strong>7.9 ms</strong> of frame-deadline headroom at P90,
-compared with <strong>6.7 ms</strong> for <code>Quality</code>. Glass <code>Performance</code> used roughly <strong>9% less peak GPU
-memory</strong> than <code>Quality</code> in both stable and changing-background tests, comparing each method's
-peak-memory median. Each method ran eight measured iterations in each pass. These are
-reference points, not guaranteed savings or a universal mode ranking. See the <a href="../benchmark-results/#performance-mode-calibration">full mode
-comparison and its limits</a>.</p>
+background, Glass <code>Balanced</code> left about <strong>8.2 ms</strong> of frame-deadline headroom at P90 and
+<code>Performance</code> about <strong>9.1 ms</strong>, compared with <strong>7.2 ms</strong> for <code>Quality</code>. Glass <code>Performance</code>
+used about <strong>14% less peak GPU memory</strong> than <code>Quality</code> in both stable and changing-background
+tests, comparing each method's peak-memory median. Each method ran eight measured iterations
+in each pass. These are reference points, not guaranteed savings or a universal mode ranking.
+See the <a href="../benchmark-results/#performance-mode-calibration">full mode comparison and its
+limits</a>.</p>
 </div>
 <p>Keep a fixed override only when repeated measurements and visual checks show a useful benefit.
 A lower quality setting does not guarantee a lower CPU frame time in every workload.</p>
@@ -1516,14 +1522,14 @@ measure clustered screens against independent surfaces before adopting them. A c
 shares one optical size, so one large member changes the diffusion of the small members next to
 it.</p>
 <p>On a Pixel 8a (Android 17, 60 Hz, fixed-performance mode), in two passes run in opposite orders,
-merging two nearby Regular Glass surfaces into one cluster over a changing source left about 4.6 ms
-less frame deadline margin at P90 and used about 14% more peak GPU memory than drawing them
-independently, with about the same CPU frame duration P90 (4.70 against 4.62 ms). Members resting
-between half and the full merge distance left about 1.4 ms less margin again, and pressing a merged
-member raised CPU frame duration P90 by about 1.5 ms.</p>
-<p>A container around a dense scrolling grid cost more. With 40–45 visible members, its CPU frame
-duration P90 was about 7 ms above the same grid of independent members, and neither met the 60 Hz
-deadline (<a href="../benchmark-results/#glass-containers">conditions and limits</a>).</p>
+merging two nearby Regular Glass surfaces into one cluster over a changing source left about 3.7 ms
+less frame deadline margin at P90 and used about 4% more peak GPU memory than drawing them
+independently, with about the same CPU frame duration P90 (4.58 against 4.61 ms). Members resting
+between half and the full merge distance left about 1.3 ms less margin again, and pressing a merged
+member raised CPU frame duration P90 by about 1.4 ms.</p>
+<p>A container around a dense scrolling grid cost slightly more. With 40–45 visible members, its CPU
+frame duration P90 was about 0.5 ms above the same grid of independent members, and neither met the
+60 Hz deadline (<a href="../benchmark-results/#glass-containers">conditions and limits</a>).</p>
 <p>For styling examples, see the <a href="../effects/glass/">Glass overview</a>.</p>
 <p><a id="backdrop-input"></a></p>
 <h2 id="backdrop-versus-sources">Backdrop versus Sources<a class="headerlink" href="#backdrop-versus-sources" title="Permanent link">¶</a></h2>

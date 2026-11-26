@@ -7735,6 +7735,11 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">¶</a></h3>
 <ul>
+<li>Below <code>HazePerformanceMode.Quality</code>, a wide Glass blur on Android reads a reduced copy of its
+  source, scaled with the quality fraction, and mixes it with the sharp source in fewer render
+  passes. Nine Glass surfaces used about 21% less CPU frame time at P90 on a Pixel 6, and lazy
+  grids of Glass about 24% less. <code>Quality</code> keeps the platform blur; thin, high-contrast detail
+  behind Glass can blur slightly differently in <code>Balanced</code> and <code>Performance</code>.</li>
 <li>Glass uses continuous 16 dp corners when no shape is authored. Regular and Clear draw a thin dark
   outline, strongest on the left and right and absent from Clear's top and bottom, and a top and
   bottom rim highlight, stronger on Clear; dark Regular has less backdrop contrast and a fainter
@@ -7776,6 +7781,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
+<li>Glass surfaces with fractional sample padding no longer replay their source up to nine times
+  each frame to fill sub-pixel slivers at the sample's edges.</li>
+<li>A Glass container surface that only moves, as when its members scroll, no longer re-runs its
+  style update each frame.</li>
 <li>The Glass sample bottom tabs no longer throw for an empty tab list, and the Glass sample slider
   finishes an active drag when it is resized or disabled
   (<a href="https://github.com/chrisbanes/haze/issues/1848">#1848</a>).</li>
