@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
@@ -593,6 +594,48 @@ class FallbackGlassDelegateTest {
     }
 
     assertThat(image.toPixelMap()[60, 60].red).isGreaterThan(0.01f)
+  }
+
+  @Test
+  fun squareShape_drawsNothingOutsideNodeBounds() {
+    val effect = GlassRuntimeEffect().apply {
+      style = style.then {
+        shape(RoundedCornerShape(0.dp))
+        specularIntensity(1f)
+        ambientResponse(1f)
+        edgeSoftness(8.dp)
+        edgeShadow(Color.Black)
+        // The outline intentionally sits half outside the shape.
+        edgeOutline(Color.Transparent, 0.dp)
+        lightPosition(Alignment.TopStart)
+      }
+    }
+    val fallback = FallbackGlassDelegate(effect)
+    val context = FallbackRecordingContext(size = Size(120f, 120f))
+    val image = ImageBitmap(160, 160)
+    CanvasDrawScope().draw(
+      density = Density(1f),
+      layoutDirection = LayoutDirection.Ltr,
+      canvas = Canvas(image),
+      size = context.size,
+    ) {
+      translate(20f, 20f) {
+        with(fallback) {
+          prepareDraw(context)
+          draw(context)
+          drawForeground(context)
+        }
+      }
+    }
+
+    val pixels = image.toPixelMap()
+    assertThat(pixels[30, 30].alpha).isGreaterThan(0f)
+    for (i in 20 until 140) {
+      assertThat(pixels[19, i]).isEqualTo(Color.Transparent)
+      assertThat(pixels[140, i]).isEqualTo(Color.Transparent)
+      assertThat(pixels[i, 19]).isEqualTo(Color.Transparent)
+      assertThat(pixels[i, 140]).isEqualTo(Color.Transparent)
+    }
   }
 
   @Test

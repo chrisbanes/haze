@@ -96,6 +96,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Glass progressive blur with a `SolidColor` brush, as in
   `HazeProgressive.Brush(SolidColor(...))`, blurs uniformly instead of reading an unset or stale
   mask ([#1907](https://github.com/chrisbanes/haze/issues/1907)).
+- Square Glass surfaces on the fallback renderer no longer draw their highlight, interaction light
+  or edge outside their bounds ([#1908](https://github.com/chrisbanes/haze/issues/1908)).
 - Glass surfaces with fractional sample padding no longer replay their source up to nine times
   each frame to fill sub-pixel slivers at the sample's edges.
 - A Glass container surface that only moves, as when its members scroll, no longer re-runs its
