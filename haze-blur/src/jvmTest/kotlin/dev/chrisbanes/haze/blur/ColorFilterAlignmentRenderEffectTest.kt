@@ -87,6 +87,26 @@ class ColorFilterAlignmentRenderEffectTest {
     }
   }
 
+  @Test
+  fun alphaModulatedFilter_scalesFilterBeforeBlend() {
+    val width = 64
+    for (mode in listOf(BlendMode.SrcOver, BlendMode.Src)) {
+      for (m in listOf(1f, 0.5f, 0f)) {
+        val actual = raster(1f, Offset.Zero, effects = listOf(HazeColorEffect.colorFilter(swapFilter, mode)), alphaModulate = m)
+        for (x in listOf(width / 4, width * 3 / 4)) {
+          val original = if (x < width / 2) Color.Red else Color.Blue
+          val swapped = if (x < width / 2) Color.Blue else Color.Red
+          // Src at m = 0 is fully transparent: the filter is composited, not skipped.
+          val expected = when (mode) {
+            BlendMode.Src -> swapped.copy(alpha = m)
+            else -> Color(original.red * (1f - m) + swapped.red * m, 0f, original.blue * (1f - m) + swapped.blue * m)
+          }
+          assertColor(actual[x, width / 2], expected, "mode=$mode alphaModulate=$m x=$x")
+        }
+      }
+    }
+  }
+
   private fun assertBlends(
     scale: Float,
     offset: Offset,
@@ -144,6 +164,7 @@ class ColorFilterAlignmentRenderEffectTest {
     progressive: HazeProgressive? = null,
     mask: Brush? = null,
     filtered: Boolean = true,
+    alphaModulate: Float = 1f,
   ): PixelMap {
     val width = ceil(64f * scale).toInt()
     val effect = if (filtered) {
@@ -157,7 +178,7 @@ class ColorFilterAlignmentRenderEffectTest {
           contentSize = Size(64f, 64f),
           contentOffset = offset,
           colorEffects = effects,
-          colorEffectsAlphaModulate = 1f,
+          colorEffectsAlphaModulate = alphaModulate,
           mask = mask,
           progressive = progressive,
           retainInputWhenMasked = false,
