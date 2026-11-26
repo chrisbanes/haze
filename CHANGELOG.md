@@ -149,6 +149,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RenderScript Blur publishes each blurred frame from the main thread, so the renderer never reads
   its pixels while a later frame is being written
   ([#1830](https://github.com/chrisbanes/haze/issues/1830)).
+- RenderScript Blur (API 23–30, `blurEnabled(true)`) no longer darkens a semi-transparent
+  background when the capture size is not a multiple of 4, and draws tints, colour filters and noise
+  over the effect's actual layer bounds when that layer is clipped or offset
+  ([#1912](https://github.com/chrisbanes/haze/issues/1912)).
 - Effects keep following a source's size and input-sharing outsets after a static
   `CompositionLocal` change refreshes their configuration
   ([#1829](https://github.com/chrisbanes/haze/issues/1829)).
