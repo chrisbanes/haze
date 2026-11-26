@@ -89,6 +89,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Android Blur no longer crashes when a linear progressive blur uses an easing that overshoots,
+  such as `EaseInBack` or an elastic easing, on Android 12 and 12L or after a runtime shader
+  failure. Each blur layer's intensity stays within `0f`..`1f`
+  ([#1906](https://github.com/chrisbanes/haze/issues/1906)).
 - Glass surfaces with fractional sample padding no longer replay their source up to nine times
   each frame to fill sub-pixel slivers at the sample's edges.
 - A Glass container surface that only moves, as when its members scroll, no longer re-runs its

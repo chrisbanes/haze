@@ -344,11 +344,12 @@ internal fun DrawScope.drawProgressiveWithMultipleLayers(
   for (i in seq) {
     val fraction = i / steps.toFloat()
 
+    // Overshooting easings, such as EaseInBack, leave 0..1 and would give a negative blur radius.
     val intensity = lerp(
       progressive.startIntensity,
       progressive.endIntensity,
       progressive.easing.transform(fraction),
-    )
+    ).coerceIn(0f, 1f)
 
     val mask = masks?.maskFor(progressive, steps, i) ?: bandMask(progressive, steps, i)
 
