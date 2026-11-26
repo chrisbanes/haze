@@ -73,15 +73,22 @@ class RenderScriptReleaseAndroidHostTest : ContextTest() {
   }
 
   @Test
-  fun getRenderScriptContext_newSize_releasesTheOldContextAndStoresTheNewOne() {
+  fun getRenderScriptContext_newSize_keepsTheOldContextUntilTheDelegateReleasesIt() {
     val delegate = delegate()
     val old = delegate.getRenderScriptContext(IntSize(8, 8))
 
     val replacement = delegate.getRenderScriptContext(IntSize(16, 8))
 
     assertThat(replacement).isNotSameInstanceAs(old)
-    assertThat(old.isDestroyed()).isTrue()
+    // The update that asked for the replacement releases the old context after its write.
+    assertThat(old.isDestroyed()).isFalse()
     assertThat(delegate.renderScriptContext).isSameInstanceAs(replacement)
+
+    delegate.invalidateRetainedOutput()
+
+    assertThat(old.isDestroyed()).isTrue()
+    assertThat(replacement.isDestroyed()).isTrue()
+    assertThat(delegate.renderScriptContext).isNull()
   }
 
   @Test
