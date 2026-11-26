@@ -3,6 +3,7 @@
 
 
 import dev.chrisbanes.gradle.addDefaultHazeTargets
+import dev.chrisbanes.gradle.checkPublishedDependencies
 import org.gradle.api.tasks.testing.Test
 
 plugins {
@@ -16,6 +17,8 @@ plugins {
   id("dev.drewhamilton.poko")
   id("io.github.takahirom.roborazzi")
 }
+
+checkPublishedDependencies()
 
 kotlin {
   android {
