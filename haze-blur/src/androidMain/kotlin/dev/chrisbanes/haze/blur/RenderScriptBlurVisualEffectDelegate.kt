@@ -283,7 +283,6 @@ internal class RenderScriptBlurVisualEffectDelegate(
           translate(offset = -offset) {
             drawScrim(
               colorEffect = colorEffect,
-              context = context,
               offset = offset,
               expandedSize = expandedSize,
             )
