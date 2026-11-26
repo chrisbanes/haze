@@ -7791,6 +7791,9 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   such as <code>EaseInBack</code> or an elastic easing, on Android 12 and 12L or after a runtime shader
   failure. Each blur layer's intensity stays within <code>0f</code>..<code>1f</code>
   (<a href="https://github.com/chrisbanes/haze/issues/1906">#1906</a>).</li>
+<li>Android Blur's layered linear progressive blur on Android 12 and 12L, or after a runtime shader
+  failure, now fades noise and colour filters with the gradient's intensity, matching Android 13+
+  (<a href="https://github.com/chrisbanes/haze/issues/1910">#1910</a>).</li>
 <li>Glass progressive blur with a <code>SolidColor</code> brush, as in
   <code>HazeProgressive.Brush(SolidColor(...))</code>, blurs uniformly instead of reading an unset or stale
   mask (<a href="https://github.com/chrisbanes/haze/issues/1907">#1907</a>).</li>
