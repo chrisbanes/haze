@@ -397,11 +397,13 @@ internal class FallbackGlassDelegate(
             )
           }
         } else {
-          drawCircle(
-            brush = highlightBrush,
-            radius = prepared.highlightRadius,
-            center = style.lightPosition,
-          )
+          clipRect {
+            drawCircle(
+              brush = highlightBrush,
+              radius = prepared.highlightRadius,
+              center = style.lightPosition,
+            )
+          }
         }
       }
 
@@ -463,7 +465,7 @@ private fun DrawScope.drawInteractionLighting(
   if (shapePath != null) {
     clipPath(shapePath, block = drawHighlight)
   } else {
-    drawHighlight()
+    clipRect(block = drawHighlight)
   }
 }
 
@@ -517,7 +519,7 @@ private fun DrawScope.drawFallbackEdge(
       drawPath(path = shapePath, brush = brush, style = stroke)
     }
   } else {
-    drawRect(brush = brush, style = stroke)
+    clipRect { drawRect(brush = brush, style = stroke) }
   }
 }
 
