@@ -330,7 +330,7 @@ class FallbackGlassBlurAndroidHostTest : ScreenshotTest() {
       get(delegate) as FallbackGlassInput
     }
     val records = delegate.filteredInputRecordCountForTest
-    assertThat(retainedInput.prepareForCapture(IntSize(3000, 3000), progressive = false, groupSize = null)).isFalse()
+    assertThat(retainedInput.prepareForCapture(IntSize(3000, 3000), groupSize = null)).isFalse()
     assertThat(oldLayer.isReleased).isTrue()
     assertThat(delegate.filteredInputLayerForTest).isNull()
     assertThat(delegate.filteredInputRecordCountForTest).isEqualTo(records)
@@ -348,13 +348,13 @@ class FallbackGlassBlurAndroidHostTest : ScreenshotTest() {
 
     progressive.value = HazeProgressive.verticalGradient(startIntensity = 0.5f, endIntensity = 0.5f)
     captureRootPixels()
-    val retainedLayers = listOf("source", "filtered", "sharp").map { name ->
+    val retainedLayers = listOf("source", "filtered").map { name ->
       retainedInput.javaClass.getDeclaredField(name).run {
         isAccessible = true
         checkNotNull(get(retainedInput) as GraphicsLayer?)
       }
     }
-    assertThat(retainedLayers).hasSize(3)
+    assertThat(retainedLayers).hasSize(2)
     retainedLayers.forEach { assertThat(it.isReleased).isFalse() }
 
     opacity.value = 0f

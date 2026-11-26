@@ -9,4 +9,4 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import dev.chrisbanes.haze.PlatformRenderEffect
 
 internal actual fun DrawScope.supportsFallbackGlassBlur(): Boolean = false
-internal actual fun createFallbackGlassInputEffect(style: ResolvedGlassStyle, blurred: Boolean): PlatformRenderEffect? = null
+internal actual fun createFallbackGlassInputEffect(style: ResolvedGlassStyle): PlatformRenderEffect? = null

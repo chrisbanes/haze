@@ -29,7 +29,7 @@ import kotlin.math.ceil
 import kotlin.math.floor
 
 internal expect fun DrawScope.supportsFallbackGlassBlur(): Boolean
-internal expect fun createFallbackGlassInputEffect(style: ResolvedGlassStyle, blurred: Boolean): PlatformRenderEffect?
+internal expect fun createFallbackGlassInputEffect(style: ResolvedGlassStyle): PlatformRenderEffect?
 
 private data class FallbackGlassInputKey(
   val input: HazeEffectInputSnapshot?,
@@ -47,11 +47,9 @@ internal class FallbackGlassInput {
   private var source: GraphicsLayer? = null
   internal var filtered: GraphicsLayer? = null
     private set
-  private var sharp: GraphicsLayer? = null
   private var owner: GraphicsContext? = null
   private var key: FallbackGlassInputKey? = null
   private var filteredEffect: PlatformRenderEffect? = null
-  private var sharpEffect: PlatformRenderEffect? = null
   internal var lastEffectForTest: PlatformRenderEffect? = null
     private set
   internal var filteredRecordCount: Int = 0
@@ -77,17 +75,17 @@ internal class FallbackGlassInput {
           style.contrast != 0f || style.whitePoint != 0f || style.chromaMultiplier != 1f
         ) && !bounds.isEmpty
 
-  fun prepareForCapture(captureSize: IntSize, progressive: Boolean, groupSize: IntSize?): Boolean {
-    if (!fallbackGlassLayersFit(captureSize, progressive, groupSize)) {
+  fun prepareForCapture(captureSize: IntSize, groupSize: IntSize?): Boolean {
+    if (!fallbackGlassLayersFit(captureSize, groupSize)) {
       release()
       return false
     }
-    if (source != null && (source?.size != captureSize || (sharp != null) != progressive)) release()
+    if (source != null && source?.size != captureSize) release()
     return true
   }
 
   fun prepareForCapture(context: HazeEffectRuntimeDrawScope, style: ResolvedGlassStyle, bounds: Rect, groupSize: IntSize?): Boolean =
-    prepareForCapture(captureBounds(context, style, bounds).size.roundToIntSize(), style.resolvedOptics.progressive != null, groupSize)
+    prepareForCapture(captureBounds(context, style, bounds).size.roundToIntSize(), groupSize)
 
   fun DrawScope.draw(
     context: HazeEffectRuntimeDrawScope,
@@ -135,28 +133,18 @@ internal class FallbackGlassInput {
       style.chromaMultiplier,
     )
     if (nextKey != key) {
-      filteredEffect = createFallbackGlassInputEffect(style, blurred = true)
-      sharpEffect = if (optics.progressive != null) createFallbackGlassInputEffect(style, blurred = false) else null
+      filteredEffect = createFallbackGlassInputEffect(style)
       key = nextKey
     }
-    fun output(previous: GraphicsLayer?, blurred: Boolean): GraphicsLayer {
-      val layer = previous?.takeUnless { it.isReleased } ?: graphicsContext.createGraphicsLayer()
-      layer.alpha = 1f
-      layer.blendMode = BlendMode.SrcOver
-      val nativeEffect = if (blurred) filteredEffect else sharpEffect
-      if (blurred) lastEffectForTest = nativeEffect
-      layer.renderEffect = nativeEffect?.asComposeRenderEffect()
-      recordGlassLayer(layer, captureSize) { drawLayer(capture) }
-      return layer
-    }
-    val blurred = output(filtered, blurred = true).also { filtered = it }
+    val blurred = filtered?.takeUnless { it.isReleased } ?: graphicsContext.createGraphicsLayer()
+    blurred.alpha = 1f
+    blurred.blendMode = BlendMode.SrcOver
+    lastEffectForTest = filteredEffect
+    blurred.renderEffect = filteredEffect?.asComposeRenderEffect()
+    recordGlassLayer(blurred, captureSize) { drawLayer(capture) }
+    filtered = blurred
     filteredRecordCount++
     val progressive = optics.progressive
-    if (progressive == null) {
-      releaseLayer(sharp, owner)
-      sharp = null
-    }
-    val unblurred = if (progressive != null) output(sharp, blurred = false).also { sharp = it } else null
     fun DrawScope.drawOutput(layer: GraphicsLayer) {
       translate(left - offset.x, top - offset.y) { drawLayer(layer) }
     }
@@ -170,7 +158,7 @@ internal class FallbackGlassInput {
         } else {
           val mask = progressive.asBrush()
           withLayerPaint(alpha = 1f, blendMode = BlendMode.SrcOver, bounds = bounds) {
-            drawOutput(checkNotNull(unblurred))
+            drawOutput(capture)
             drawRect(mask, blendMode = BlendMode.DstOut)
           }
           withLayerPaint(alpha = 1f, blendMode = BlendMode.Plus, bounds = bounds) {
@@ -189,13 +177,10 @@ internal class FallbackGlassInput {
   fun release() {
     releaseLayer(source, owner)
     releaseLayer(filtered, owner)
-    releaseLayer(sharp, owner)
     source = null
     filtered = null
-    sharp = null
     key = null
     filteredEffect = null
-    sharpEffect = null
     lastEffectForTest = null
     owner = null
   }
@@ -223,9 +208,9 @@ private fun fallbackToneFilter(style: ResolvedGlassStyle): ColorFilter? {
   )
 }
 
-internal fun fallbackGlassLayersFit(captureSize: IntSize, progressive: Boolean, groupSize: IntSize?): Boolean {
+internal fun fallbackGlassLayersFit(captureSize: IntSize, groupSize: IntSize?): Boolean {
   if (!captureSize.fitsGlassLayerBudget() || (groupSize != null && !groupSize.fitsGlassLayerBudget())) return false
   val capturePixels = captureSize.width.toLong() * captureSize.height
   val groupPixels = groupSize?.let { it.width.toLong() * it.height } ?: 0L
-  return capturePixels * (if (progressive) 3 else 2) + groupPixels <= MAX_GLASS_RETAINED_PIXELS
+  return capturePixels * 2 + groupPixels <= MAX_GLASS_RETAINED_PIXELS
 }
