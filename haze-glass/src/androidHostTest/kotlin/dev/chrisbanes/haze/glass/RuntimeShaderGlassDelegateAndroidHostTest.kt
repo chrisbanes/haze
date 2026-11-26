@@ -46,6 +46,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runAndroidComposeUiTest
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
@@ -405,6 +406,52 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       delegates.zip(detailRecordCounts).forEach { (delegate, count) ->
         assertThat(delegate.stageRecordCounts.detail).isEqualTo(count)
       }
+    }
+
+  @Test
+  fun layerBlur_fusedRendererKeepsOnlyReducedBlurredLayer() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = GlassRuntimeEffect()
+      val style = GlassStyle.regular.then {
+        optics(
+          GlassOptics(
+            refractionStrength = 0f,
+            refractionDetailIntensity = 0f,
+            depth = OpticalSizeValue.Fixed(0.65f),
+            blurRadius = OpticalSizeValue.Fixed(38.5.dp),
+          ),
+        )
+        specularIntensity(0f)
+      }
+      var sourceColor by mutableStateOf(Color.Red)
+      setContent {
+        val hazeState = rememberHazeState()
+        Box(Modifier.size(300.dp)) {
+          Box(Modifier.fillMaxSize().background(sourceColor).hazeSource(hazeState))
+          Box(
+            Modifier.align(Alignment.Center).size(120.dp)
+              .testGlassRuntime(effect, HazeInput.Sources(hazeState), style, performanceMode = HazePerformanceMode.Balanced),
+          )
+        }
+      }
+      waitForIdle()
+      drawFrame()
+
+      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      val render = checkNotNull(effect.preparedRender)
+      assertThat(render.layerBlurFactor, "layer blur factor").isGreaterThan(0f)
+      assertThat(delegate.layers.hasBlurred).isTrue()
+      assertThat(delegate.layers.blurred?.size)
+        .isEqualTo(render.params.coordinates.sampleSize.roundToIntSize().reducedForLayerBlur(render.layerBlurFactor))
+      // The sharp share draws the source directly, so the depth-mixed slot stays empty.
+      assertThat(delegate.layers.hasDepthMixed).isFalse()
+
+      // The optical layer must keep re-recording with no depth-mixed slot.
+      val opticalRecords = delegate.opticalRecordCount
+      sourceColor = Color.Blue
+      waitForIdle()
+      drawFrame()
+      assertThat(delegate.opticalRecordCount).isGreaterThan(opticalRecords)
     }
 
   @Test
@@ -1466,13 +1513,14 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     input: HazeInput,
     style: GlassStyle = effect.style,
     measureStableInputReuse: Boolean = false,
+    performanceMode: HazePerformanceMode = HazePerformanceMode.Quality,
   ): Modifier {
     val factory = remember(effect, measureStableInputReuse) { FixedGlassRuntimeFactory(effect, measureStableInputReuse) }
     return hazeGlass(
       factory = factory,
       input = input,
       style = style,
-      performanceMode = HazePerformanceMode.Quality,
+      performanceMode = performanceMode,
       expandLayerBounds = true,
       interactionSource = effect.interactionSource,
       interactionTransformTarget = effect.interactionTransformTarget,
