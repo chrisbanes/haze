@@ -18,11 +18,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -471,8 +473,11 @@ internal class RenderScriptBlurVisualEffectDelegate(
       layoutDirection = context.currentValueOf(LocalLayoutDirection),
       size = IntSize(paddedWidth, paddedHeight),
     ) {
+      // The capture already holds the background, so fill only the strips it leaves uncovered.
       if (bg.isSpecified) {
-        drawRect(bg)
+        clipRect(right = layer.size.width.toFloat(), bottom = layer.size.height.toFloat(), clipOp = ClipOp.Difference) {
+          drawRect(bg)
+        }
       }
       drawLayer(layer)
     }
