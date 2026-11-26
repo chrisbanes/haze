@@ -1739,12 +1739,14 @@ class GlassRenderParamsTest {
     val shift = coordinates.captureShift(layerOffset)
     assertThat(shift.x + layerOffset.x * scale.scaleX).isCloseTo(coordinates.materialOrigin.x, 0.0001f)
     assertThat(shift.y + layerOffset.y * scale.scaleY).isCloseTo(coordinates.materialOrigin.y, 0.0001f)
-    // ...so the captured layer starts at the shift and spans the scaled layer...
+    // ...so the captured layer starts at the shift and spans the scaled layer, within the sample...
+    val layer = Rect(shift, Size(424.6f * scale.scaleX, 95.2f * scale.scaleY))
     val capture = checkNotNull(coordinates.captureBounds)
-    assertThat(capture.left).isCloseTo(shift.x, 0.0001f)
-    assertThat(capture.top).isCloseTo(shift.y, 0.0001f)
-    assertThat(capture.width).isCloseTo(424.6f * scale.scaleX, 0.001f)
-    assertThat(capture.height).isCloseTo(95.2f * scale.scaleY, 0.001f)
+    val expected = layer.intersect(Rect(Offset.Zero, coordinates.sampleSize))
+    assertThat(capture.left).isCloseTo(expected.left, 0.0001f)
+    assertThat(capture.top).isCloseTo(expected.top, 0.0001f)
+    assertThat(capture.right).isCloseTo(expected.right, 0.001f)
+    assertThat(capture.bottom).isCloseTo(expected.bottom, 0.001f)
     // ...and presentation maps the material origin and far edge back onto the node's edges.
     val presentation = coordinates.presentationOffset()
     assertThat(presentation.x + coordinates.materialOrigin.x / scale.scaleX).isCloseTo(0f, 0.0001f)
@@ -1781,6 +1783,22 @@ class GlassRenderParamsTest {
     )
     assertThat(coordinates.captureCellBounds()).isEqualTo(Rect(3f, 3f, 103f, 53f))
     assertThat(coordinates.captureBounds).isEqualTo(Rect(2.5f, 2.5f, 103.5f, 53.5f))
+  }
+
+  @Test
+  fun coordinates_fractionalPaddingCapturesOneCellCoveringTheSample() {
+    val coordinates = resolveGlassCoordinates(
+      layerSize = Size(260.6f, 140.6f),
+      layerOffset = Offset(30.3f, 20.3f),
+      materialSize = Size(200f, 100f),
+      scaleFactor = 1f,
+      alignToPixels = true,
+    )
+    // Rounding inwards leaves no sub-pixel sliver for a margin cell to fill by replaying the source.
+    assertThat(coordinates.materialOrigin).isEqualTo(Offset(30f, 20f))
+    assertThat(coordinates.sampleSize).isEqualTo(Size(260f, 140f))
+    // The captured layer reaches past every sample edge, so the layer cell is the only cell.
+    assertThat(coordinates.capturesWholeSample()).isTrue()
   }
 
   @Test

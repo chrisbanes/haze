@@ -157,18 +157,25 @@ subtree, provide [`LocalHazePerformanceMode`][LocalHazePerformanceMode]; an expl
 
 On Android, modes below `Balanced` also refract and light continuous Glass corners as circular
 corners of the same radius, while the silhouette stays exact. For four merged continuous surfaces
-on a Pixel 6 under controlled CPU placement, that left about 1.4 ms more frame headroom in
+on a Pixel 8a under controlled CPU placement, that left about 1.2–1.6 ms more frame headroom in
 `Performance` ([details](benchmark-results.md#continuous-corner-optics)).
+
+On Android, modes below `Quality` also blur a reduced copy of the backdrop for wide Glass blurs,
+as the platform blur does internally, but in fewer render passes; lower quality fractions reduce
+the copy further. For nine Glass surfaces on a Pixel 6, `Balanced` used about 21% less CPU frame
+time at P90 ([details](benchmark-results.md#glass-blur-passes-and-source-capture)). `Quality`
+keeps the platform blur.
 
 !!! note "Measured quality trade-offs"
 
     In a two-pass test on a Pixel 8a (Android 17, 60 Hz, fixed-performance mode) with a changing
-    background, Glass `Balanced` left about **7.9 ms** of frame-deadline headroom at P90,
-    compared with **6.7 ms** for `Quality`. Glass `Performance` used roughly **9% less peak GPU
-    memory** than `Quality` in both stable and changing-background tests, comparing each method's
-    peak-memory median. Each method ran eight measured iterations in each pass. These are
-    reference points, not guaranteed savings or a universal mode ranking. See the [full mode
-    comparison and its limits](benchmark-results.md#performance-mode-calibration).
+    background, Glass `Balanced` left about **8.2 ms** of frame-deadline headroom at P90 and
+    `Performance` about **9.1 ms**, compared with **7.2 ms** for `Quality`. Glass `Performance`
+    used about **14% less peak GPU memory** than `Quality` in both stable and changing-background
+    tests, comparing each method's peak-memory median. Each method ran eight measured iterations
+    in each pass. These are reference points, not guaranteed savings or a universal mode ranking.
+    See the [full mode comparison and its
+    limits](benchmark-results.md#performance-mode-calibration).
 
 Keep a fixed override only when repeated measurements and visual checks show a useful benefit.
 A lower quality setting does not guarantee a lower CPU frame time in every workload.
@@ -203,15 +210,15 @@ shares one optical size, so one large member changes the diffusion of the small 
 it.
 
 On a Pixel 8a (Android 17, 60 Hz, fixed-performance mode), in two passes run in opposite orders,
-merging two nearby Regular Glass surfaces into one cluster over a changing source left about 4.6 ms
-less frame deadline margin at P90 and used about 14% more peak GPU memory than drawing them
-independently, with about the same CPU frame duration P90 (4.70 against 4.62 ms). Members resting
-between half and the full merge distance left about 1.4 ms less margin again, and pressing a merged
-member raised CPU frame duration P90 by about 1.5 ms.
+merging two nearby Regular Glass surfaces into one cluster over a changing source left about 3.7 ms
+less frame deadline margin at P90 and used about 4% more peak GPU memory than drawing them
+independently, with about the same CPU frame duration P90 (4.58 against 4.61 ms). Members resting
+between half and the full merge distance left about 1.3 ms less margin again, and pressing a merged
+member raised CPU frame duration P90 by about 1.4 ms.
 
-A container around a dense scrolling grid cost more. With 40–45 visible members, its CPU frame
-duration P90 was about 7 ms above the same grid of independent members, and neither met the 60 Hz
-deadline ([conditions and limits](benchmark-results.md#glass-containers)).
+A container around a dense scrolling grid cost slightly more. With 40–45 visible members, its CPU
+frame duration P90 was about 0.5 ms above the same grid of independent members, and neither met the
+60 Hz deadline ([conditions and limits](benchmark-results.md#glass-containers)).
 
 For styling examples, see the [Glass overview](effects/glass/index.md).
 

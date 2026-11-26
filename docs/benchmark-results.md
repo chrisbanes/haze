@@ -21,8 +21,10 @@ Each section records its aggregation method and measurement conditions.
 ## Performance modes
 
 These are the latest source-backed results for `Quality`, `Balanced`, and `Performance` with
-stable and continuously changing source input. They used a Pixel 8a running Android 17 (full SDK
-37.2) at 60 Hz, with fixed-performance mode enabled and normal Android CPU scheduling.
+stable and continuously changing source input. They used a Pixel 8a running an Android 17
+developer preview (full SDK 37.2) at 60 Hz, with fixed-performance mode enabled and normal Android
+CPU scheduling. Glass below `Quality` blurs a reduced copy of its source; see
+[Glass blur passes and source capture](#glass-blur-passes-and-source-capture).
 
 Values are **P90 CPU frame duration / P90 frame overrun**, in milliseconds, computed from the
 frames of two passes of eight measured iterations per method, about 2,880 frames per cell. The
@@ -33,59 +35,61 @@ per-pass P90s. Other style choices stay fixed within each sample.
 
 | Workload | Quality | Balanced | Performance |
 | --- | ---: | ---: | ---: |
-| Stable source | 4.84 / -8.97 | 4.84 / -8.89 | 4.82 / -8.97 |
-| Continuously changing source | 5.24 / -6.14 | 5.37 / -6.85 | 5.41 / -7.21 |
+| Stable source | 4.62 / -9.16 | 4.37 / -9.24 | 4.58 / -9.20 |
+| Continuously changing source | 5.03 / -6.46 | 5.05 / -7.15 | 5.01 / -7.55 |
 
 ### Glass
 
 | Workload | Quality | Balanced | Performance |
 | --- | ---: | ---: | ---: |
-| Stable source | 4.45 / -10.18 | 4.45 / -10.14 | 4.37 / -10.24 |
-| Continuously changing source | 4.80 / -6.65 | 4.60 / -7.86 | 4.64 / -8.96 |
+| Stable source | 4.13 / -10.22 | 4.20 / -10.18 | 4.36 / -10.01 |
+| Continuously changing source | 4.63 / -7.18 | 4.66 / -8.20 | 4.61 / -9.09 |
 
 All configurations had spare time at P90. For changing-input Glass, `Balanced` left about
-7.9 ms of deadline margin, compared with 6.7 ms for `Quality`. `Performance` used roughly
-9% less peak GPU memory than `Quality` in both workloads. This compares each method's
-`memoryGpuMaxKb` median over the 16 iterations: 93,456 KB versus 103,120 KB for the stable
-source, and 93,248 KB versus 103,224 KB for the changing source. CPU frame duration did not
-follow one mode ordering across workloads.
+8.2 ms of deadline margin and `Performance` about 9.1 ms, compared with 7.2 ms for `Quality`.
+`Performance` used about 14% less peak GPU memory than `Quality` in both Glass workloads, and
+`Balanced` about 10% less. This compares each method's `memoryGpuMaxKb` median over the 16
+iterations: 96,736 KB (`Performance`) and 101,992 KB (`Balanced`) versus 113,214 KB for the
+stable source, and 96,740 KB and 102,000 KB versus 113,024 KB for the changing source. CPU frame
+duration did not follow one mode ordering across workloads.
 
 !!! warning "These results are not a universal mode ranking"
 
     Differences of a few tenths of a millisecond in CPU P90 are within the spread between the
-    two passes, which reached 0.5 ms (Blur stable `Balanced`: 5.04 ms in the first pass and
-    4.54 ms in the second). The order of the modes was not consistent across workloads.
+    two passes, which reached 0.78 ms (Blur stable `Performance`: 4.91 ms in the first pass and
+    4.13 ms in the second). The order of the modes was not consistent across workloads.
     CPU placement was not examined, and fixed-performance mode does not fix it. CPU frame
     duration also does not measure GPU shader cost. Check appearance on your screen and
     repeat with reversed run order before choosing an override.
 
 ??? info "Measurement details"
 
-    The `benchmarkRelease` APKs were built from commit `193c0774f` (`2.1.0-SNAPSHOT`). The
-    sample APK SHA-256 was
-    `c78023ad93f68d391686ed46ba210a18b22c285f752b8b7e6d0dba3d9faa66bb` and the benchmark APK
-    `403817b0eebc783331814a04c54bab00274fca67b568c48d253944144eaabc6e`; they were hashed after
-    the second pass from the build outputs, and the installed copies were not read back. The Android
-    build was `CP41.260831.019`. The device was on AC power at 80% charge, thermal status 0 before
-    every method, and a battery temperature at or below 30.0°C before each invocation. Brightness
-    was not recorded.
+    The `benchmarkRelease` APKs were built from commit `9a7901064` (`2.1.0-SNAPSHOT`), with
+    `androidx.benchmark` raised locally to `1.6.0-alpha02`: the `1.5.0` on-device trace processor
+    crashed on this Android build. The sample APK SHA-256 was
+    `ef3290fa3a11d9c56a754bbd61bb180cefcdd8e467aadb930abd75f74d00ef32` and the benchmark APK
+    `0855d56a7d7817b529a8a5b223ecd0dca734664f863e0ed596f6837f106b5d45`, hashed from the build
+    outputs at the start and end of each pass; the installed copies were not read back. The
+    Android build was `DP11.261030.003`. The device was on AC power at 100% charge, reported
+    thermal status 0 at the start and end of each pass, and had a battery temperature at or below
+    30.0°C before each invocation. Brightness was not recorded.
 
     The first pass ran Blur stable, Blur changing, Glass stable, then Glass changing, each in
-    Quality, Balanced, then Performance order. The second pass ran the exact reverse. Each method
-    ran in its own invocation, which produced 192 measured iterations and 192 Perfetto traces
-    across both passes. Method identity, XML success, eight metric runs, and eight distinct
-    non-empty trace references were verified for every archive. Slower completed iterations were
-    retained. The automation dry run was skipped; the archive verification stood in for it.
+    Quality, Balanced, then Performance order. The second pass ran the exact reverse. A script
+    fault re-ran Blur stable `Quality` after the second pass's first method; those runs were
+    discarded, and the pass resumed in reverse order with Blur stable `Quality` in its proper
+    last position. Each method ran in its own invocation, which produced 192 retained measured
+    iterations and 192 Perfetto traces across both passes. Method identity, XML success, eight
+    metric runs, and eight distinct non-empty trace references were verified for every archive.
+    Slower completed iterations were retained.
 
-    The Google app was temporarily disabled to avoid a Chromium trace-producer delay, then
-    re-enabled and read back afterward. Fixed-performance mode was disabled and the sample process
-    stopped. The sample ran under the default CPU scheduling; no affinity mask was applied.
+    The Google app was not running. Fixed-performance mode was disabled and the sample process
+    stopped afterward. The sample ran under the default CPU scheduling; no affinity mask was
+    applied.
 
     Blur rows other than `Quality` did not record GPU memory. Raw JSON, XML, benchmark messages and
     traces are retained locally under
-    `internal/benchmark/build/benchmark-results/modes-2.1.0-vs-2.0.1/`; `pass1-2.1.0/` and
-    `pass2-2.1.0/` hold the results above. The same directory holds an equivalent two-pass run of
-    the `2.0.1` tag, which is not used here.
+    `internal/benchmark/build/benchmark-results/pixel8a-dp11-modes-containers/modes/`.
 
     See [ADR-0004][blur-adr] and [ADR-0005][glass-adr] for adaptive-policy decisions, and
     [ADR-0006][performance-mode-adr] for the public terminology.
@@ -208,13 +212,14 @@ appearance and frame timing on the actual screen under normal scheduling.
 ## Glass containers
 
 These comparisons measure `hazeGlassContainer` against independent Glass surfaces on a Pixel 8a
-running Android 17 (full SDK 37.2) at 60 Hz, with fixed-performance mode enabled and normal CPU
-scheduling. Every row uses [`HazePerformanceMode.Default`][HazePerformanceMode.Default],
-`HazeInput.Sources` and the Regular style, and runs eight measured iterations per pass. The steady
-and animated comparisons use a continuously changing source; the lazy-scroll and first-appearance
-rows use a stationary source. Each per-pass value pools the frames of that pass's eight iterations;
-the tables show the **arithmetic mean of the two per-pass values**. Peak GPU memory uses each
-pass's median `memoryGpuMaxKb`. A second pass ran every method in the reverse order of the first.
+running an Android 17 developer preview (full SDK 37.2) at 60 Hz, with fixed-performance mode
+enabled and normal CPU scheduling. Every row uses
+[`HazePerformanceMode.Default`][HazePerformanceMode.Default], `HazeInput.Sources` and the Regular
+style, and runs eight measured iterations per pass. The steady and animated comparisons use a
+continuously changing source; the lazy-scroll and first-appearance rows use a stationary source.
+Each per-pass value pools the frames of that pass's eight iterations; the tables show the
+**arithmetic mean of the two per-pass values**. Peak GPU memory uses each pass's median
+`memoryGpuMaxKb`. A second pass ran every method in the reverse order of the first.
 
 ### Two members: merged against independent
 
@@ -224,18 +229,19 @@ separately. The container row wraps the same surfaces in `hazeGlassContainer(mer
 
 | Row | CPU frame duration P50 (ms) | CPU frame duration P90 (ms) | Frame overrun P90 (ms) | Peak GPU memory (KB) |
 | --- | ---: | ---: | ---: | ---: |
-| Independent surfaces | 2.70 | 4.62 | -7.18 | 99,476 |
-| One container cluster | 2.64 | 4.70 | -2.54 | 113,264 |
+| Independent surfaces | 2.67 | 4.61 | -6.71 | 104,241 |
+| One container cluster | 2.80 | 4.58 | -2.99 | 107,984 |
 
-HWUI's `drawLayer [graphicsLayer]` slice shows what each row drew: 2.00–2.01 layers per frame for
-the independent surfaces and 1.00–1.01 for the cluster, which draws one layer that covers both
-members and the bridge between them.
+HWUI's `drawLayer [graphicsLayer]` slice shows what each row drew: 4.00–4.01 layers per frame for
+the independent surfaces and 2.00 for the cluster, which draws one Glass layer that covers both
+members and the bridge between them. Each Glass layer also draws a layer holding its reduced
+blurred source, so these counts are twice the number of Glass layers.
 
-CPU frame duration P90 was 0.08 ms higher for the container, within the 0.13 ms spread between the
-independent row's passes. The container row finished about 4.6 ms closer to the frame deadline at P90 and used 13,788 KB (about 14%) more peak GPU
-memory. CPU frame duration does not measure GPU shader cost. These runs did not measure GPU
-timings, so they do not show why the container finished closer to its deadline. Neither row missed
-its deadline at P90.
+CPU frame duration P90 was 0.03 ms lower for the container, within the 0.12 ms spread between the
+independent row's passes. The container row finished about 3.7 ms closer to the frame deadline at
+P90 and used 3,743 KB (about 4%) more peak GPU memory. CPU frame duration does not measure GPU
+shader cost. These runs did not measure GPU timings, so they do not show why the container
+finished closer to its deadline. Neither row missed its deadline at P90.
 
 ### Animated and resting container workloads
 
@@ -246,29 +252,23 @@ share its Glass settings and changing source.
 
 | Workload | What changes | CPU frame duration P90 (ms) | Per-pass CPU P90 (ms) | Frame overrun P90 (ms) | Peak GPU memory (KB) |
 | --- | --- | ---: | --- | ---: | ---: |
-| Resting gap | Two members rest 24 dp apart, between half and the full merge distance | 4.70 | 4.76, 4.65 | -1.17 | 113,264 |
-| Group | Three members 48 dp apart, beyond the merge distance, share one `groupKey` | 4.58 | 4.62, 4.55 | -2.36 | 111,000 |
-| Press | The first member is pressed and released three times | 6.19 | 5.79, 6.59 | -1.60 | 113,484 |
-| Join and leave | Two to four 60 × 120 dp members; one joins or leaves every half second | 5.30 | 5.61, 5.00 | -2.15 | 117,102 |
+| Resting gap | Two members rest 24 dp apart, between half and the full merge distance | 4.60 | 4.57, 4.63 | -1.67 | 107,985 |
+| Group | Three members 48 dp apart, beyond the merge distance, share one `groupKey` | 4.62 | 4.55, 4.68 | -3.96 | 107,972 |
+| Press | The first member is pressed and released three times | 6.02 | 5.79, 6.25 | -1.57 | 107,997 |
+| Join and leave | Two to four 60 × 120 dp members; one joins or leaves every half second | 5.66 | 5.72, 5.61 | -2.74 | 108,134 |
 
-The 12 dp container row's CPU frame duration P90 was 4.70 ms (4.69 and 4.72 ms per pass), with
--2.54 ms frame overrun P90. Every row drew about one Glass layer per frame (0.99–1.02).
+The 12 dp container row's CPU frame duration P90 was 4.58 ms (4.57 and 4.59 ms per pass), with
+-2.99 ms frame overrun P90. Every row drew one Glass layer (2.00–2.02 layers per frame).
 
 - A resting gap between half and the full merge distance matched the 12 dp pair's CPU frame
-  duration and peak GPU memory, but finished about 1.4 ms closer to the deadline at P90. The two
-  passes agreed within 0.01 ms.
-- The three-member group matched the two-member container within pass spread.
-- Pressing a merged member raised CPU frame duration P90 by about 1.5 ms. The join and leave
-  workload raised it by about 0.6 ms, and its P99 was 10.1 ms against 7.1 ms. Both rows were above
-  the container row in both passes, but their passes differed by 0.8 ms and 0.6 ms, so treat the
-  size as approximate.
-- The join and leave workload used 3,838 KB (about 3%) more peak GPU memory than the two-member
-  container. Its member size and count differ from the control, so this compares workloads and does
-  not isolate the cost of membership changes.
-
-CPU placement differed in these two rows. The main thread spent 42–71% of its running time on the
-little cluster in the press and join-and-leave rows, against 81–86% in the other two-member rows,
-so part of their CPU difference may come from where the threads ran rather than from the workload.
+  duration and peak GPU memory, but finished about 1.3 ms closer to the deadline at P90.
+- The three-member group matched the two-member container's CPU frame duration within pass spread.
+- Pressing a merged member raised CPU frame duration P90 by about 1.4 ms. The join and leave
+  workload raised it by about 1.1 ms, and its P99 was 10.4 ms against 6.8 ms. Both rows were above
+  the container row in both passes; the press row's passes differed by 0.46 ms, so treat its size
+  as approximate.
+- Peak GPU memory was within 0.2% across these rows. Join and leave's member size and count differ
+  from the control, so it compares workloads and does not isolate the cost of membership changes.
 
 <a id="glass-container-lazy-scroll"></a>
 
@@ -282,18 +282,12 @@ surfaces, with no container.
 
 | Row | CPU frame duration P50 (ms) | CPU frame duration P90 (ms) | CPU frame duration P99 (ms) | Frame overrun P50 (ms) | Frame overrun P90 (ms) | Peak GPU memory (KB) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Independent members | 16.5 | 25.3 | 31.7 | 7.8 | 17.2 | 159,230 |
-| Container | 24.7 | 32.6 | 36.9 | 16.6 | 25.1 | 179,448 |
+| Independent members | 21.8 | 31.8 | 35.6 | 12.5 | 23.7 | 168,704 |
+| Container | 23.6 | 32.3 | 36.5 | 14.2 | 24.1 | 170,392 |
 
-The container ranked higher in CPU frame duration P90 in both passes, at 33.3 and 31.9 ms against
-22.1 and 28.5 ms for the independent members. The gap was 11.2 ms in the first pass and 3.4 ms in
-the second, so treat the 7.3 ms mean as approximate. Peak GPU memory was about 13% higher.
-
-Mean main-thread running time inside the measured window was about 1,440 ms for the container and
-1,180 ms for the independent members, a 22% increase. RenderThread running time was similar, at
-about 2,020 ms and 2,040 ms. Both rows ran the RenderThread mostly (79–84%) on the big core and
-the main thread almost entirely on the middle and big cores (36–43% on the big core). Placement
-was not controlled.
+The container ranked higher in CPU frame duration P90 in both passes, at 32.5 and 32.0 ms against
+32.2 and 31.3 ms for the independent members, a gap of about 0.5 ms. Its P50 was about 1.8 ms
+higher, and peak GPU memory was about 1% higher. CPU placement was not controlled or examined.
 
 Neither row met the 60 Hz deadline: the median frame overran in both. These runs did not measure
 GPU timings, so they do not show where the remaining frame time goes. The result describes this
@@ -307,12 +301,12 @@ member counts differ.
 
 | Row | CPU frame duration P50 (ms) | CPU frame duration P90 (ms) | Frame overrun P90 (ms) | Peak GPU memory (KB) |
 | --- | ---: | ---: | ---: | ---: |
-| One independent surface | 4.64 | 8.02 | -6.00 | 95,028 |
-| Two-member container | 6.31 | 9.95 | -1.79 | 107,791 |
+| One independent surface | 5.03 | 5.78 | -8.28 | 97,232 |
+| Two-member container | 6.02 | 7.21 | -4.18 | 100,268 |
 
-Each pass recorded only 10 frames across its eight iterations, so these percentiles come from 20
-frames per row and are indicative only. The container had a CPU frame duration P50 about 1.7 ms
-higher and about 4.2 ms less deadline margin at P90. Neither row missed its deadline at P90.
+Each pass recorded only 9 frames across its eight iterations, so these percentiles come from 18
+frames per row and are indicative only. The container had a CPU frame duration P50 about 1.0 ms
+higher and about 4.1 ms less deadline margin at P90. Neither row missed its deadline at P90.
 
 These results describe a few two- and three-member layouts and one dense grid on one device. They
 do not establish the cost of other cluster sizes, other styles, or higher refresh rates. Measure
@@ -320,25 +314,23 @@ clustered screens against independent surfaces before adopting a container.
 
 ??? info "Measurement details"
 
-    The `benchmarkRelease` APKs were built from commit `a4803f6a1` (`2.1.0-SNAPSHOT`). The sample
-    APK SHA-256 was `3936fc8d6608d53a980662f965faf1cbf5cd8b330dcf76b7846712ccb8f061d5` and the
-    benchmark APK SHA-256 was
-    `ff92fbf3289f15c5ddf42ff32da3ef5c1e9b44f5e80da987ca6106c8e1aeaf2f`. The Android build was
-    `CP41.260831.019`. The device was on AC power and reported thermal status 0 throughout.
+    These runs followed the [performance mode](#performance-mode-calibration) passes on the same
+    device, build and APKs: commit `9a7901064` (`2.1.0-SNAPSHOT`) with `androidx.benchmark` raised
+    locally to `1.6.0-alpha02`, sample APK SHA-256
+    `ef3290fa3a11d9c56a754bbd61bb180cefcdd8e467aadb930abd75f74d00ef32` and benchmark APK SHA-256
+    `0855d56a7d7817b529a8a5b223ecd0dca734664f863e0ed596f6837f106b5d45`. The Android build was
+    `DP11.261030.003`. The device was on AC power, reported thermal status 0 at the start and end
+    of each pass, and had a battery temperature at or below 30.0°C before each invocation.
 
     The second pass ran the first pass's ten methods in exactly the opposite order. Each method ran
     eight measured iterations in its own Gradle invocation, which produced 160 iterations and 160
     Perfetto traces. No completed iteration was discarded. The per-frame layer gates passed on the
-    two-member, resting-gap, group and press rows. The Google app was temporarily disabled to
-    prevent its Chromium trace producer from delaying collection.
+    two-member, resting-gap, group and press rows, with bands of 3.6–4.4 layers per frame for the
+    independent row and 1.8–2.2 for the container rows. The Google app was not running.
 
-    CPU placement was not controlled. In the steady two-member rows the main thread ran 81–86% on
-    the little cluster. The RenderThread ran 11–23% on the big core in every container row and
-    27–31% in the independent row, with similar total running time (352–371 ms). Two lazy-scroll
-    traces had no scheduler data and are excluded from the running-time means.
-
-    Raw JSON, traces and device readbacks are retained locally under
-    `internal/benchmark/build/benchmark-results/container-2.1.9TQlOX/`.
+    CPU placement was not controlled or examined. Raw JSON, traces and condition logs are
+    retained locally under
+    `internal/benchmark/build/benchmark-results/pixel8a-dp11-modes-containers/containers/`.
 
 <a id="continuous-corner-optics"></a>
 
@@ -349,7 +341,8 @@ the same radius, keeping the exact continuous silhouette. This comparison measur
 in [`HazePerformanceMode.Performance`][HazePerformanceMode.Performance] for four Regular Glass
 surfaces with `ContinuousRoundedCornerShape` corners, merged by one `hazeGlassContainer` (a 2 × 2
 grid with 12 dp gaps and a 32 dp merge distance), over a continuously changing source. It used a
-Pixel 6 running an Android 17 beta at 90 Hz, with fixed-performance mode enabled.
+Pixel 8a running an Android 17 developer preview (full SDK 37.2) at 60 Hz, with fixed-performance
+mode enabled.
 
 !!! warning "Controlled CPU placement"
 
@@ -360,29 +353,36 @@ Each value is the median of eight iterations' P50 frame overrun.
 
 | Corner optics | First pass (ms) | Second pass (ms) |
 | --- | ---: | ---: |
-| Exact continuous | -8.20 | -8.26 |
-| Circular | -9.60 | -9.62 |
+| Exact continuous | -5.96 | -6.18 |
+| Circular | -7.35 | -7.57 |
 
-Circular optics left 1.36–1.40 ms more frame-deadline headroom; the largest spread between
-iterations in any run was 0.07 ms. These runs did not record GPU timings, and the result does not
-cover a single surface, other devices or normal scheduling.
+Circular optics left 1.17–1.61 ms more frame-deadline headroom. The median P90 CPU frame duration
+was 2.57–2.61 ms in every run, so the difference is not CPU recording or submission cost. The
+spread between iterations within a run reached 3.43 ms, so treat the size as approximate. These
+runs did not record GPU timings, and the result does not cover a single surface, other devices or
+normal scheduling.
 
 ??? info "Measurement details"
 
-    Both builds were release builds from the same tree; the exact-optics build forced the
-    performance-mode check off. The circular build predates a fix that gives the separate
-    refraction-detail pass the same circular optics, so its detail pass still used the exact
-    corners. Runs alternated exact, circular, circular, exact, and every
-    Perfetto trace confirmed that main and RenderThread executed only on CPUs 4–5. Each run passed
-    its source-record, Glass-draw and layer-draw gates. Runs started at thermal status 0 with a
-    battery temperature of 21–22°C. The sample APK SHA-256 prefixes were `7ae1b7fb3d83` (exact)
-    and `1b6e6a35993a` (circular). Raw JSON, XML, traces, the pre-registered rules and device
-    readbacks are retained locally under
-    `internal/benchmark/build/benchmark-results/1766-optics/`, in `performance/` for this table.
+    Both builds were `benchmarkRelease` builds of commit `9a7901064` (`2.1.0-SNAPSHOT`), with
+    `androidx.benchmark` raised locally to `1.6.0-alpha02`; the exact-optics build also forced the
+    performance-mode check off. Runs alternated exact, circular, circular, exact. The
+    `haze.cpuAffinityMask=f0` argument restricted the sample to CPUs 4–7; the sample fails a run
+    when it cannot apply the mask, but placement was not read back from the traces. Each run
+    passed its source-record, Glass-draw and layer-draw gates, with 1.8–2.2 layers per frame.
+    Runs started at thermal status 0 with a battery temperature of 27.2–27.9°C, on Android build
+    `DP11.261030.003`. The sample APK SHA-256 prefixes were `23b84cbe51b3` (exact) and
+    `ef3290fa3a11` (circular).
 
-    With the same change forced on in `Balanced`, the gain was 0.91–1.12 ms; `Balanced` keeps
-    exact optics. Desktop and iOS draw Glass through a different shader path, which still uses
-    exact continuous optics in every mode.
+    An earlier alternating set was replaced because the first iteration of its first exact run
+    recorded only 24 frames and failed the source-record gate. Its three passing runs agreed with
+    these results: -5.49 ms exact and -7.10 and -7.25 ms circular. Raw JSON, XML, traces and
+    condition logs for both sets are retained locally under
+    `internal/benchmark/build/benchmark-results/pixel8a-dp11-optics/`, in `published-set/` for
+    this table and `rejected-set/` for the earlier set.
+
+    Desktop and iOS draw Glass through a different shader path, which still uses exact continuous
+    optics in every mode.
 
 <a id="blur-noise-tint"></a>
 
@@ -735,6 +735,49 @@ overrun) in both builds. CPU frame duration does not measure GPU cost.
     for the `before-903b02e9` and `after-1f1c8a3a` builds, each with two passes. The retained set
     also holds the dry-run XML, per-run device readbacks, the two builds' APK hashes, and the
     trace-analysis scripts.
+
+## Glass blur passes and source capture
+
+Below `Quality`, a wide Glass blur now reads a reduced copy of its source and mixes it with the
+sharp source in the optical layer's own drawing pass, instead of the platform blur's
+downsample, re-expansion and depth-mix passes. The reduction follows the quality fraction
+(sigma 3.5 in its own pixels for `Balanced`, 3 for `Performance`); `Quality` keeps the platform
+blur chain. The same build also captures sources with fractional padding once instead of up to
+nine times, and skips the style update of a container surface that only moved.
+
+This comparison used a Pixel 6 running an Android 17 beta (SDK 37.1) at 60 Hz, with
+fixed-performance mode enabled and normal CPU scheduling. Values are the **pooled P90 of each run**
+(eight iterations); each cell lists every run, alternating builds.
+
+| Workload | Mode | CPU P90 before (ms) | CPU P90 after (ms) | Overrun P90 before (ms) | Overrun P90 after (ms) | Missed frames before | Missed frames after |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `sourceUpdate9` | Balanced | 15.48, 15.23 | 12.16, 12.00 | -0.10, -0.35 | -1.82, -1.91 | 9.4%, 7.8% | 0.8%, 1.5% |
+| `lazyContainerScroll` | Balanced | 134.6, 134.7 | 102.4, 102.1 | 177.5, 177.8 | 131.3, 130.6 | 98.1%, 98.1% | 98.7%, 98.5% |
+| `lazyIndependentScroll` | Balanced | 143.8 | 108.8 | 191.4 | 140.3 | 98.0% | 98.4% |
+| `sourceUpdatePerformance` | Performance | 6.79 | 6.11 | -8.67 | -9.50 | 0% | 0.1% |
+| `sourceUpdateQuality` | Quality | 6.42 | 6.36 | -8.24 | -8.28 | 0% | 0% |
+
+Both lazy grids still miss nearly every frame on this device, but each three-second run drew
+about a quarter more frames (424–432 before, 541–545 after for the container grid). On this
+device the RenderThread spends most of each frame in `QueueSubmit`, which grows with the number
+of render passes: each Glass surface used about eight per frame, and the blur change removes the
+platform blur's downsampling and re-expansion and the separate depth mix.
+
+Static captures of the same scenes on the device stayed within 6–7 levels per channel of the
+previous build for single surfaces, the credit-card sample and photographic backdrops; thin,
+high-contrast converging lines differed by up to 71 levels in a small area, where the reduced copy
+filters differently from the platform blur's 2× halving.
+
+??? info "Measurement details"
+
+    Both builds came from `ae467951f`; the change was applied as an uncommitted diff, and the
+    baseline's benchmark module carried extra trace-section metrics. Every run passed
+    `archive_result.py` with eight iterations and traces, at thermal status 0. Earlier runs
+    isolated each part: the capture rounding alone lowered `sourceUpdate9` CPU P90 to 14.6–14.9 ms
+    and halved its RenderThread `FillRectOp` slices; the container update alone lowered
+    `lazyContainerScroll` to 129–131 ms. Static screenshots were compared pixel for pixel against
+    deterministic baseline captures. Raw JSON, XML and traces were retained locally, outside the
+    repository.
 
 ## Representative workloads
 

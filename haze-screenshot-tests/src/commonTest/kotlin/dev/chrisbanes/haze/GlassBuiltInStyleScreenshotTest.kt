@@ -106,7 +106,7 @@ class GlassBuiltInStyleScreenshotTest : ScreenshotTest() {
     blurEnabled = true
     waitForIdle()
     if (isRuntimeShaderRenderEffectSupported()) {
-      val blurred = captureRootPixels().snapshot()
+      val blurred = captureSettledRootPixels().snapshot()
       // The previous 38.5px source-space cap retained about a third of this 32dp pattern.
       regions.forEach { (name, bounds) ->
         val sharpEnergy = sharp.highFrequencyEnergy(bounds)

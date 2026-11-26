@@ -7,9 +7,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertThat
 import assertk.assertions.contains
+import assertk.assertions.containsExactly
 import assertk.assertions.doesNotContain
+import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
@@ -607,6 +610,40 @@ class GlassRenderEffectKeysTest {
     assertThat(actual.groupCompositeSize, "$name composite").isEqualTo(expected.groupCompositeSize)
     assertThat(actual.interactionPatchSize, "$name patch").isEqualTo(expected.interactionPatchSize)
     assertThat(actual.interactionUniforms, "$name interaction").isEqualTo(expected.interactionUniforms)
+  }
+
+  @Test
+  fun resolveLayerBlurFactor_reducesOnlyAWideBlurBelowQuality() {
+    val wide = params().copy(depth = 0.65f, refractionDetailIntensity = 0f, layerBlurSigmaPx = 3f)
+    val render = preparedRender(wide)
+    assertThat(render.refractionDetailKey).isNull()
+    assertThat(render.resolveLayerBlurFactor()).isCloseTo(wide.blurSigmaPx / 3f, 0.0001f)
+    // Quality, no depth and a blur too small to downsample keep the platform chain.
+    assertThat(preparedRender(wide.copy(layerBlurSigmaPx = 0f)).resolveLayerBlurFactor()).isEqualTo(0f)
+    assertThat(preparedRender(wide.copy(depth = 0f)).resolveLayerBlurFactor()).isEqualTo(0f)
+    val narrow = wide.copy(blurRadiusPx = 3f, blurSigmaPx = SemanticBlurKernel.radiusToSigma(3f))
+    assertThat(preparedRender(narrow).resolveLayerBlurFactor()).isEqualTo(0f)
+    // A sample whose capture leaves an edge margin repeats that margin from the full-resolution capture.
+    val margin = resolveGlassCoordinates(Size(202f, 102f), Offset(1f, 1f), Size(200f, 100f), 1f, alignToPixels = true)
+    assertThat(margin.capturesWholeSample()).isFalse()
+    assertThat(preparedRender(wide.copy(coordinates = margin)).resolveLayerBlurFactor()).isEqualTo(0f)
+  }
+
+  @Test
+  fun layerBlurPlan_budgetsTheReducedBlurredLayer() {
+    val wide = params().copy(depth = 0.65f, refractionDetailIntensity = 0f, layerBlurSigmaPx = 3f)
+    val render = preparedRender(wide)
+    val blurred = render.plan.layers.filter { it.kind == GlassRetainedLayerKind.Blurred }.map { it.size }
+    if (supportsFusedGlassRenderEffect) {
+      val expected = wide.coordinates.sampleSize.roundToIntSize().reducedForLayerBlur(render.layerBlurFactor)
+      assertThat(blurred).containsExactly(expected)
+      // A different factor changes the reduced layer, so the prepared plan is rebuilt.
+      val reused = preparedRender(wide.copy(layerBlurSigmaPx = 3.5f), previous = render)
+      assertThat(reused.plan.layers.single { it.kind == GlassRetainedLayerKind.Blurred }.size)
+        .isEqualTo(wide.coordinates.sampleSize.roundToIntSize().reducedForLayerBlur(reused.layerBlurFactor))
+    } else {
+      assertThat(render.layerBlurFactor).isGreaterThan(0f)
+    }
   }
 
   private fun preparedRender(params: GlassRenderParams, previous: GlassPreparedRender? = null) =

@@ -9,6 +9,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
@@ -16,6 +17,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -227,6 +229,9 @@ internal class RuntimeShaderGlassDelegate(
       refreshPreparedAvailability(params, currentRenderEffects)
 
       val blurRequired = !supportsFusedGlassRenderEffect && shouldBlur(params, currentRenderEffects)
+      // A fused layer blur holds its reduced copy in the blurred slot and its sharp share in the
+      // depth-mixed slot, which the fused path otherwise leaves empty.
+      val layerBlurRequired = supportsFusedGlassRenderEffect && currentPreparedRender.layerBlurFactor > 0f
       val depthMixRequired =
         !supportsFusedGlassRenderEffect && shouldDepthMix(params, currentRenderEffects)
       val refractionDetailRequired = !supportsFusedGlassRenderEffect &&
@@ -244,10 +249,10 @@ internal class RuntimeShaderGlassDelegate(
         if (blurEffects.native != null) {
           layers.releaseBlurIntermediates(currentGraphicsContext)
         }
-      } else {
+      } else if (!layerBlurRequired) {
         layers.releaseBlurred(currentGraphicsContext)
       }
-      if (!depthMixRequired) {
+      if (!depthMixRequired && !layerBlurRequired) {
         layers.releaseDepthMixed(currentGraphicsContext)
       }
       if (!refractionDetailRequired) {
@@ -277,6 +282,10 @@ internal class RuntimeShaderGlassDelegate(
         layers.ensureBlurred(currentGraphicsContext)
       }
       if (depthMixRequired) {
+        layers.ensureDepthMixed(currentGraphicsContext)
+      }
+      if (layerBlurRequired) {
+        layers.ensureBlurred(currentGraphicsContext)
         layers.ensureDepthMixed(currentGraphicsContext)
       }
       layers.ensureOptical(currentGraphicsContext)
@@ -541,6 +550,7 @@ internal class RuntimeShaderGlassDelegate(
                   source = source,
                   params = params,
                   renderEffect = effects.optical,
+                  layerBlurFactor = render.layerBlurFactor,
                 )
               }
             } else {
@@ -1355,17 +1365,31 @@ internal class RuntimeShaderGlassDelegate(
     source: GraphicsLayer,
     params: GlassRenderParams,
     renderEffect: PlatformRenderEffect,
-  ): GraphicsLayer? = layers.optical?.takeUnless { it.isReleased }?.also { layer ->
+    layerBlurFactor: Float,
+  ): GraphicsLayer? {
+    val layer = layers.optical?.takeUnless { it.isReleased } ?: return null
     source.alpha = 1f
     source.blendMode = BlendMode.SrcOver
     layer.alpha = 1f
     layer.blendMode = BlendMode.SrcOver
     layer.compositingStrategy = CompositingStrategy.Auto
     layer.renderEffect = renderEffect.asComposeRenderEffect()
-    recordGlassLayer(layer, params.coordinates.sampleSize.roundToIntSize()) {
-      drawLayer(source)
+    if (layerBlurFactor > 0f) {
+      recordLayerBlurDepthInput(
+        layer = layer,
+        source = source,
+        blurred = layers.blurred?.takeUnless { it.isReleased } ?: return null,
+        sharp = layers.depthMixed?.takeUnless { it.isReleased } ?: return null,
+        params = params,
+        factor = layerBlurFactor,
+      )
+    } else {
+      recordGlassLayer(layer, params.coordinates.sampleSize.roundToIntSize()) {
+        drawLayer(source)
+      }
     }
     opticalRecordCount++
+    return layer
   }
 
   private fun DrawScope.recordOptical(
@@ -1949,11 +1973,15 @@ internal class RuntimeShaderGlassDelegate(
     }
     val backdropMergedBackground = render.params.mergedBackground.takeIf { backdrop }
     val interaction = render.interactionUniforms.takeIf { render.interactionTopology.hasOptics }
+    // A layer blur draws the blur and depth mix as the optical layer's content: the effect has neither.
+    val layerBlur = !backdrop && render.layerBlurFactor > 0f
+    val blurKey = render.blurKey.takeUnless { layerBlur }
+    val depth = if (layerBlur) 0f else render.params.depth
     val currentFusedKey = fusedEffectKey
     // Compare the components first, so an unchanged frame does not build a key to throw away.
     val fusedKeyChanged = currentFusedKey == null || fusedEffect == null || !currentFusedKey.matches(
-      blur = render.blurKey,
-      depth = render.params.depth,
+      blur = blurKey,
+      depth = depth,
       optical = render.opticalKey,
       detail = render.refractionDetailKey,
       interaction = interaction,
@@ -1962,8 +1990,8 @@ internal class RuntimeShaderGlassDelegate(
     )
     if (fusedKeyChanged) {
       val nextFusedEffectKey = GlassFusedEffectKey(
-        blur = render.blurKey,
-        depth = render.params.depth,
+        blur = blurKey,
+        depth = depth,
         optical = render.opticalKey,
         detail = render.refractionDetailKey,
         interaction = interaction,
@@ -2877,4 +2905,75 @@ internal inline fun requireDrawableMaterialSize(
     return null
   }
   return size
+}
+
+/**
+ * The scale factor at which this render blurs a reduced copy of its source, drawn by
+ * [recordLayerBlurDepthInput], or 0 to chain the platform blur and depth mix into the fused effect.
+ *
+ * Only a wide blur that the platform would itself downsample takes it: the platform blur halves its
+ * input until the blur is small, blurs, re-expands it and then mixes it with the sharp source, a pass
+ * each. Drawing a reduced copy, and the re-expansion and mix in the optical layer's own content pass,
+ * saves those passes.
+ */
+internal fun GlassPreparedRender.resolveLayerBlurFactor(): Float =
+  params.resolveLayerBlurFactor(blurKey?.plan, refractionDetailActive = refractionDetailKey != null)
+
+/** [GlassPreparedRender.resolveLayerBlurFactor] before the render is prepared, for its layer plan. */
+internal fun GlassRenderParams.resolveLayerBlurFactor(
+  blurPlan: SemanticBlurPlan?,
+  refractionDetailActive: Boolean,
+): Float {
+  val plan = blurPlan ?: return 0f
+  val targetSigma = layerBlurSigmaPx
+  if (targetSigma <= 0f || refractionDetailActive || depth <= 0.0001f) return 0f
+  if (plan.isIdentity || !plan.usesNativeWideBlur || progressive != null) return 0f
+  // Margin cells repeat the capture's edges inside the sample; keep the platform chain there.
+  if (!coordinates.capturesWholeSample()) return 0f
+  val factor = plan.sigmaPx / targetSigma
+  return if (factor > 1f) factor else 0f
+}
+
+/** The size of the reduced copy a [GlassPreparedRender.layerBlurFactor] render blurs. */
+internal fun IntSize.reducedForLayerBlur(factor: Float): IntSize = IntSize(
+  ceil(width / factor).toInt().coerceAtLeast(1),
+  ceil(height / factor).toInt().coerceAtLeast(1),
+)
+
+/**
+ * Records the depth input of a [GlassPreparedRender.layerBlurFactor] render as [layer]'s content: the
+ * sharp source at `1 - depth`, plus a copy of it reduced by [factor], blurred at the target sigma,
+ * scaled back up and added at `depth`. That sum is the platform depth mix.
+ */
+private fun DrawScope.recordLayerBlurDepthInput(
+  layer: GraphicsLayer,
+  source: GraphicsLayer,
+  blurred: GraphicsLayer,
+  sharp: GraphicsLayer,
+  params: GlassRenderParams,
+  factor: Float,
+) {
+  val sampleSize = params.coordinates.sampleSize.roundToIntSize()
+  val reduced = sampleSize.reducedForLayerBlur(factor)
+  val radius = SemanticBlurKernel.sigmaToRadius(params.layerBlurSigmaPx)
+  val effect = BlurEffect(radius, radius, TileMode.Clamp)
+  // An equal effect leaves the layer's platform effect in place.
+  if (blurred.renderEffect != effect) blurred.renderEffect = effect
+  val drawsSharp = params.depth < 0.9999f
+  blurred.alpha = params.depth
+  // Adds to the sharp share; alone, over nothing, that is a plain draw.
+  blurred.blendMode = if (drawsSharp) BlendMode.Plus else BlendMode.SrcOver
+  recordGlassLayer(blurred, reduced) {
+    scale(1f / factor, pivot = Offset.Zero) { drawLayer(source) }
+  }
+  if (drawsSharp) {
+    // Applies the alpha to each draw, without an offscreen pass.
+    sharp.compositingStrategy = CompositingStrategy.ModulateAlpha
+    sharp.alpha = 1f - params.depth
+    recordGlassLayer(sharp, sampleSize) { drawLayer(source) }
+  }
+  recordGlassLayer(layer, sampleSize) {
+    if (drawsSharp) drawLayer(sharp)
+    scale(factor, pivot = Offset.Zero) { drawLayer(blurred) }
+  }
 }

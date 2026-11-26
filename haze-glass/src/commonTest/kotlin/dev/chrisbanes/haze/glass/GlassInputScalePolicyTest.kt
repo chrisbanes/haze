@@ -39,6 +39,14 @@ class GlassInputScalePolicyTest {
   }
 
   @Test
+  fun resolveGlassLayerBlurSigma_keepsPlatformBlurAtQualityAndCoarsensBelowIt() {
+    assertThat(HazePerformanceMode.Quality.resolveGlassLayerBlurSigma()).isEqualTo(0f)
+    assertThat(HazePerformanceMode.Balanced.resolveGlassLayerBlurSigma()).isEqualTo(3.5f)
+    assertThat(HazePerformanceMode.Performance.resolveGlassLayerBlurSigma()).isEqualTo(3f)
+    assertThat(HazePerformanceMode.Fixed(0.75f).resolveGlassLayerBlurSigma()).isEqualTo(3.75f)
+  }
+
+  @Test
   @Suppress("DEPRECATION")
   fun adaptiveCompatibilityAlias_usesBalancedProfile() {
     assertThat(HazePerformanceMode.Adaptive.resolveGlassInputScale())

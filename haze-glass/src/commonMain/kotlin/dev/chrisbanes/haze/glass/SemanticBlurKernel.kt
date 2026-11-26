@@ -40,6 +40,9 @@ internal data class SemanticBlurKernel(
     fun radiusToSigma(radiusPx: Float): Float =
       radiusPx * 0.57735f + 0.5f * radiusPx.coerceIn(0f, 1f)
 
+    /** The blur radius Android's platform blur converts to [sigmaPx], as `0.57735 * radius + 0.5`. */
+    fun sigmaToRadius(sigmaPx: Float): Float = ((sigmaPx - 0.5f) / 0.57735f).coerceAtLeast(0f)
+
     fun create(radiusPx: Float): SemanticBlurKernel = when {
       !radiusPx.isFinite() || radiusPx <= 0f -> SemanticBlurKernel(1f, emptyList())
       else -> createForSigma(radiusToSigma(radiusPx))
