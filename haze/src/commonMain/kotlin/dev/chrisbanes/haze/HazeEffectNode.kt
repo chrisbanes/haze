@@ -1101,20 +1101,19 @@ internal class HazeEffectNode(
 
         val unfilteredAreas = stateAreas.orEmpty()
         val selection = checkNotNull(resolvedSourcesInput()).selection
-        val ancestorSourceNode = if (selection.baseSelection() == HazeSourceSelection.Behind) {
-          var result: HazeSourceNode? = null
+        // Behind: the nearest same-state ancestor sets the z threshold, and every same-state
+        // ancestor is excluded because it records this effect.
+        var nearestAncestorZIndex: Float? = null
+        val ancestorAreas = mutableListOf<HazeArea>()
+        if (selection.baseSelection() == HazeSourceSelection.Behind) {
           traverseAncestors(HazeTraversableNodeKeys.Source) { node ->
             val sourceNode = node as? HazeSourceNode
             if (sourceNode?.state === state) {
-              result = sourceNode
-              false
-            } else {
-              true
+              if (nearestAncestorZIndex == null) nearestAncestorZIndex = sourceNode.zIndex
+              ancestorAreas += sourceNode.area
             }
+            true
           }
-          result
-        } else {
-          null
         }
 
         HazeLogger.d(TAG) { "Background Areas observing: $unfilteredAreas" }
@@ -1123,7 +1122,8 @@ internal class HazeEffectNode(
           val relationshipMatches = when (selection.baseSelection()) {
             HazeSourceSelection.All -> true
             HazeSourceSelection.Behind -> {
-              ancestorSourceNode == null || metadata.zIndex < ancestorSourceNode.zIndex
+              area !in ancestorAreas &&
+                (nearestAncestorZIndex == null || metadata.zIndex < nearestAncestorZIndex)
             }
             else -> error("Unexpected base HazeSourceSelection")
           }

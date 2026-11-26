@@ -342,6 +342,24 @@ class HazeEffectInputTest {
   }
 
   @Test
+  fun sourcesWhere_behindExcludesEveryMatchingAncestor() = runComposeUiTest {
+    val state = HazeState()
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        source(state, "outer", 0f, Color.Red) {
+          source(state, "inner", 1f, Color.Green) {
+            source(state, "lower", -1f, Color.Yellow)
+            effect(state, HazeSourceSelection.Behind)
+          }
+        }
+      }
+    }
+
+    assertThat(effectCenterColor()).isEqualTo(Color.Yellow)
+  }
+
+  @Test
   fun sourcesWhere_reactsToPredicateStateChanges() = runComposeUiTest {
     val state = HazeState()
     val selectedKey = mutableStateOf("first")

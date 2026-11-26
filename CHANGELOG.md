@@ -89,6 +89,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A `hazeEffect` nested inside two `hazeSource`s that use the same state, where the outer source has
+  the lower `zIndex`, no longer throws on its first draw with `HazeSourceSelection.Behind`, under
+  `HazeInput.Sources` or while Backdrop falls back to sources. `Behind` now excludes every same-state
+  ancestor `hazeSource`, not only the nearest one.
+  As a result, a relocated effect surface whose owner draws outside the enclosing outer source no
+  longer samples that source ([#1905](https://github.com/chrisbanes/haze/issues/1905)).
 - Android Blur no longer crashes when a linear progressive blur uses an easing that overshoots,
   such as `EaseInBack` or an elastic easing, on Android 12 and 12L or after a runtime shader
   failure. Each blur layer's intensity stays within `0f`..`1f`
