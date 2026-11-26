@@ -117,6 +117,7 @@ internal class HazeEffectNode(
   private var backdropRenderer: HazeBackdropRenderer? = null
   private val captureConsumer = Any()
   private var captureDemandAreas: List<HazeArea> = emptyList()
+  private var preDrawListenerAreas: List<HazeArea> = emptyList()
 
   private fun resolvedSourcesInput(): HazeInput.Sources? = when (val input = explicitInput) {
     is HazeInput.Sources -> input
@@ -325,15 +326,6 @@ internal class HazeEffectNode(
       if (value != field) {
         HazeLogger.d(TAG) { "backgroundAreas changed. Current $field. New: $value" }
         dirtyTracker += DirtyFields.Areas
-
-        // Remove the pre-draw listener from the current areas
-        for (area in field) {
-          area.preDrawListeners -= areaPreDrawListener
-        }
-        // Add the pre-draw listener to all of the new areas
-        for (area in value) {
-          area.preDrawListeners += areaPreDrawListener
-        }
         field = value
         surfaceInputsChanged = true
         syncCaptureDemand()
@@ -341,6 +333,17 @@ internal class HazeEffectNode(
     }
 
   internal val areas: List<HazeArea> get() = _areas
+
+  private fun syncPreDrawListeners() {
+    val desiredAreas = if (isAttached && shouldUsePreDrawListener()) _areas else emptyList()
+    for (area in preDrawListenerAreas) {
+      if (area !in desiredAreas) area.preDrawListeners -= areaPreDrawListener
+    }
+    for (area in desiredAreas) {
+      if (area !in preDrawListenerAreas) area.preDrawListeners += areaPreDrawListener
+    }
+    preDrawListenerAreas = desiredAreas
+  }
 
   private fun syncCaptureDemand() {
     val desiredAreas = if (resolvedSourcesInput() != null) _areas else emptyList()
@@ -536,6 +539,7 @@ internal class HazeEffectNode(
     lifecycle = null
     resetPendingInvalidations()
     _areas = emptyList()
+    syncPreDrawListeners()
     areaTransforms.clear()
     lastSeenStateAreas = emptyList()
     if (hasContentDrawArea) contentDrawArea.releaseContentLayer(requireGraphicsContext())
@@ -1094,11 +1098,6 @@ internal class HazeEffectNode(
       }
 
       if (DirtyFields.Areas in dirtyTracker) {
-        _areas.forEach { area ->
-          // Remove our pre draw listener from the current areas
-          area.preDrawListeners -= areaPreDrawListener
-        }
-
         val unfilteredAreas = stateAreas.orEmpty()
         val selection = checkNotNull(resolvedSourcesInput()).selection
         // Behind: the nearest same-state ancestor sets the z threshold, and every same-state
@@ -1189,6 +1188,7 @@ internal class HazeEffectNode(
       contentDrawArea.coordinates.screenPosition = position
       contentDrawArea.windowId = windowId
     }
+    syncPreDrawListeners()
     val state = this.state
 
     // Different Compose roots can share one window but cannot share root-local coordinates.
@@ -1224,18 +1224,6 @@ internal class HazeEffectNode(
     if (dirtyTracker.any(AreaTransformsDirtyFields)) {
       effectRoot = localEffectRoot()
       updateAreaTransforms(effectRoot)
-    }
-
-    if (shouldUsePreDrawListener()) {
-      for (area in areas) {
-        area.preDrawListeners += areaPreDrawListener
-      }
-    } else {
-      // Always remove the listener when it should no longer be active,
-      // even if DirtyFields.Areas was not set this frame.
-      for (area in areas) {
-        area.preDrawListeners -= areaPreDrawListener
-      }
     }
 
     if (dirtyTracker.any(LayerBoundsDirtyFields)) {

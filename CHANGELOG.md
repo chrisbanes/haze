@@ -89,6 +89,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `HazeEffectNode` no longer drops or churns source `preDrawListeners` when `DirtyFields.Areas`
+  re-evaluates to an unchanged area set or hits the unplaced position-strategy early return
+  ([#1929](https://github.com/chrisbanes/haze/issues/1929)).
 - A `hazeEffect` nested inside two `hazeSource`s that use the same state, where the outer source has
   the lower `zIndex`, no longer throws on its first draw with `HazeSourceSelection.Behind`, under
   `HazeInput.Sources` or while Backdrop falls back to sources. `Behind` now excludes every same-state
