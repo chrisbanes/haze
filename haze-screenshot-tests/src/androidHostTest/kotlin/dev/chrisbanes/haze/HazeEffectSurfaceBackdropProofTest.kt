@@ -530,7 +530,8 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
     var memberPreparations = 0
     val failingEffect = {
       failedPreparations++
-      if (unavailable && !configured && failedPreparations <= 2) {
+      // A relocated member prepares once per pass, so its first decline selects the source fallback.
+      if (unavailable && !configured && failedPreparations == 1) {
         null
       } else {
         check(unavailable || failedPreparations != 1) { "real native preparation failure" }
@@ -585,7 +586,7 @@ class HazeEffectSurfaceBackdropProofTest : ScreenshotTest() {
       val bounds = onNodeWithTag("probe").fetchSemanticsNode().boundsInRoot
       val pixel = captureRootPixels()[(bounds.left + bounds.width * 30f / 200f).roundToInt(), (bounds.top + bounds.height * 50f / 100f).roundToInt()]
       assertThat(pixel).isEqualTo(if (sourceFallback) Color.Green else Color.White)
-      val expectedPreparations = if (unavailable) (if (configured) 0 else 2) else 1
+      val expectedPreparations = if (unavailable && configured) 0 else 1
       assertThat(failedPreparations, "a real failure or unavailable capability must stay attachment-sticky").isEqualTo(expectedPreparations)
     }
     assertFallback()
