@@ -5,6 +5,8 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.compose.animation.core.EaseInBack
+import androidx.compose.animation.core.EaseOutBack
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.ui.geometry.Offset
@@ -23,6 +25,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.each
+import assertk.assertions.isBetween
 import assertk.assertions.isCloseTo
 import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.HazeProgressive
@@ -106,6 +110,23 @@ class ProgressiveBlurMaskTest {
         assertThat(result.pixels[x, y].alpha, "${probe.name} coverage at ($x, $y)")
           .isGreaterThan(0.95f)
       }
+    }
+  }
+
+  @Test
+  fun layeredIntensities_clampOvershootingEasingToUnitRange() {
+    listOf("EaseInBack" to EaseInBack, "EaseOutBack" to EaseOutBack).forEach { (name, easing) ->
+      val result = rasterize(
+        HazeProgressive.LinearGradient(
+          easing = easing,
+          start = Offset(0f, 0f),
+          startIntensity = 0f,
+          end = Offset(0f, 128f),
+          endIntensity = 1f,
+        ),
+      )
+
+      assertThat(result.intensities, name).each { it.isBetween(0f, 1f) }
     }
   }
 
