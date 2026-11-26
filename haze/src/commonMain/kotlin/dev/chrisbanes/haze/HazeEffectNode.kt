@@ -95,6 +95,7 @@ internal class HazeEffectNode(
         val previousSources = resolvedSourcesInput()
         field = value
         surfaceInputsChanged = true
+        surfaceNativeTransform = null
         if (previousInput is HazeInput.Backdrop && value !is HazeInput.Backdrop) {
           releaseBackdropRenderer()
           if (surfaceBudgetFallback) {
@@ -163,6 +164,9 @@ internal class HazeEffectNode(
   internal val surface = HazeEffectSurface(this)
   private var preparedSurfaceBackdrop: HazeEffectBackdrop? = null
   private var surfaceBudgetFallback = false
+
+  // The last prepared native transform, reused for the capture while over the composition budget.
+  private var surfaceNativeTransform: HazeEffectContentTransform? = null
 
   // Set while a parent has stopped calling place(); the node stays attached with stale coordinates.
   private var isUnplaced = false
@@ -559,6 +563,7 @@ internal class HazeEffectNode(
     releaseBackdropRenderer()
     backdropBackendState.reset()
     surfaceBudgetFallback = false
+    surfaceNativeTransform = null
     disposeTypedRenderer()
     typedEffectRenderer = null
   }
@@ -1779,17 +1784,22 @@ internal class HazeEffectNode(
         val renderer = backdropRenderer ?: createBackdropRenderer()?.also { backdropRenderer = it }
         if (renderer?.isSupported(scope.drawContext.canvas) != true || typedEffectRenderer !is HazeEffectRendererBackdrop<*>) {
           surfaceBudgetFallback = false
+          surfaceNativeTransform = null
           activateBackdropFallback(failed = false)
           native = false
         }
       } catch (exception: Exception) {
         surfaceBudgetFallback = false
+        surfaceNativeTransform = null
         HazeLogger.d(TAG, exception) { "Relocated backdrop support check failed" }
         activateBackdropFallback(failed = true)
         native = false
       }
     }
-    if (native) {
+    // A temporarily rejected member keeps drawing its portable fallback until the owner restores
+    // native, so it reports the cached capture instead of preparing the effect again.
+    val awaitingNative = native && surfaceBudgetFallback && surfaceNativeTransform != null
+    if (native && !awaitingNative) {
       preparedSurfaceBackdrop = try {
         withSurfaceScope(scope, matrix) {
           val capability = typedEffectRenderer as? HazeEffectRendererBackdrop<Any?>
@@ -1802,8 +1812,10 @@ internal class HazeEffectNode(
         native = false
         null
       }
-      preparedSurfaceBackdrop?.let { material = material.transformedBy(it.materialTransform) }
+      surfaceNativeTransform = preparedSurfaceBackdrop?.materialTransform
     }
+    val captureTransform = if (awaitingNative) surfaceNativeTransform else preparedSurfaceBackdrop?.materialTransform
+    captureTransform?.let { material = material.transformedBy(it) }
     if (!native && shouldPrepareEffectDraw()) {
       withSurfaceScope(scope, matrix) { prepareEffectDraw(effectDrawScope()) }
     }
@@ -1840,6 +1852,7 @@ internal class HazeEffectNode(
         activateBackdropFallback(failed = failed)
       }
       surfaceBudgetFallback = recoverable
+      if (!recoverable) surfaceNativeTransform = null
     }
     preparedSurfaceBackdrop = null
   }

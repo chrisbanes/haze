@@ -61,6 +61,7 @@ import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
@@ -136,6 +137,80 @@ class HazeEffectSurfaceDrawTest {
         assertThat(preparedBounds).isNotEmpty()
         assertThat(drawnBounds).isNotEmpty()
         assertThat(drawnBounds.first()).isEqualTo(preparedBounds.first())
+      }
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousFlag
+    }
+  }
+
+  @Test
+  fun relocatedBackdrop_overBudget_reusesCachedTransformWithoutRepreparing() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val portable = SurfaceFactory(owner)
+    var prepares = 0
+    var configures = 0
+    val native = object : HazeBackdropRenderer {
+      override fun isSupported(canvas: Canvas): Boolean = true
+      override fun configure(bounds: Rect, clip: Rect?, effect: PlatformRenderEffect, alpha: Float): Boolean {
+        configures++
+        return true
+      }
+      override fun draw(canvas: Canvas): Boolean = true
+      override fun release() = Unit
+    }
+    val factory = HazeEffectFactory<Unit> {
+      object : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit>, HazeEffectRendererBackdrop<Unit> {
+        override fun attach(scope: HazeEffectLifecycleScope) = scope.surface.relocateTo(owner)
+        override fun HazeEffectDrawScope.draw(style: Unit) = Unit
+        override fun HazeEffectRuntimeDrawScope.backdropEffect(style: Unit): HazeEffectBackdrop {
+          prepares++
+          return HazeEffectBackdrop(ImageFilter.makeBlur(0f, 0f, FilterTileMode.CLAMP))
+        }
+      }
+    }
+    val previousFlag = HazeFeatureFlags.isPlatformBackdropEnabled
+    HazeFeatureFlags.isPlatformBackdropEnabled = true
+    try {
+      val effect = HazeEffectNode { native }.apply {
+        explicitInput = HazeInput.Backdrop()
+        updateTypedEffect(factory, Unit, HazeSampling.Default)
+      }
+      setContent {
+        Box(Modifier.size(80.dp).then(OwnerElement(owner))) {
+          // The overlapping portable member makes the component require native isolation.
+          Box(Modifier.offset(20.dp, 20.dp).size(20.dp).hazeEffect(portable, HazeInput.Content, Unit))
+          Box(Modifier.offset(20.dp, 20.dp).size(20.dp).then(EffectElement(effect)))
+        }
+      }
+      waitForIdle()
+      runOnIdle {
+        owner.canComposeNative = false
+        owner.redraw()
+      }
+      waitForIdle()
+      var overBudgetPrepares = 0
+      var checksBefore = 0
+      runOnIdle {
+        overBudgetPrepares = prepares
+        checksBefore = owner.nativeCompositionChecks
+      }
+      repeat(3) {
+        runOnIdle { owner.redraw() }
+        waitForIdle()
+      }
+      var configuresBefore = 0
+      runOnIdle {
+        assertThat(prepares).isEqualTo(overBudgetPrepares)
+        // The cached capture keeps the component isolated, so the owner re-asks its budget.
+        assertThat(owner.nativeCompositionChecks - checksBefore).isGreaterThanOrEqualTo(3)
+        configuresBefore = configures
+        owner.canComposeNative = true
+        owner.redraw()
+      }
+      waitForIdle()
+      runOnIdle {
+        assertThat(prepares).isGreaterThan(overBudgetPrepares)
+        assertThat(configures).isGreaterThan(configuresBefore)
       }
     } finally {
       HazeFeatureFlags.isPlatformBackdropEnabled = previousFlag
@@ -2106,7 +2181,12 @@ class HazeEffectSurfaceDrawTest {
       releases++
       if (isAttached) invalidateDraw()
     }
-    override fun canComposeNativeSurfaces(bounds: Rect): Boolean = true
+    var canComposeNative = true
+    var nativeCompositionChecks = 0
+    override fun canComposeNativeSurfaces(bounds: Rect): Boolean {
+      nativeCompositionChecks++
+      return canComposeNative
+    }
     override fun ContentDrawScope.draw() {
       draws++
       beforeRecord()
