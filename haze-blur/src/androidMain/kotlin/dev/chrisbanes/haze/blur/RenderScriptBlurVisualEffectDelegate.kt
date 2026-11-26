@@ -82,7 +82,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
   internal var renderScriptContext: RenderScriptContext? = null
     private set
 
-  // A context replaced on resize, kept until the new context's first Surface write returns.
+  // A context replaced on resize, kept until the new context's first Surface buffer arrives.
   private var retiredRenderScriptContext: RenderScriptContext? = null
 
   private val drawScope = CanvasDrawScope()
@@ -382,20 +382,22 @@ internal class RenderScriptBlurVisualEffectDelegate(
         // The trace lambda is crossinline, so it reports failure rather than returning from this block.
         val surfaceWritten = traceAsync("Haze-RenderScriptBlurEffect-updateSurface-drawLayerToSurface", 0) {
           try {
-            // Draw the layer (this is async)
-            writeToSurface(rs, paddedContent, density)
-          } catch (e: IllegalStateException) {
-            HazeLogger.d(TAG) { "Surface draw failed, likely destroyed. Releasing context." }
-            releaseRenderScriptContext()
-            return@traceAsync false
+            try {
+              // Draw the layer (this is async)
+              writeToSurface(rs, paddedContent, density)
+            } catch (e: IllegalStateException) {
+              HazeLogger.d(TAG) { "Surface draw failed, likely destroyed. Releasing context." }
+              releaseRenderScriptContext()
+              return@traceAsync false
+            }
+            // Wait for the layer to be written to the Surface
+            rs.awaitSurfaceWritten()
+            true
           } finally {
-            // Release the replaced context once the new Surface's renderer has synced the capture,
-            // or the write failed.
+            // A received buffer means the new Surface's renderer has synced the capture, so the
+            // replaced context can go. Also release it if the write or the wait failed.
             releaseRetiredRenderScriptContext()
           }
-          // Wait for the layer to be written to the Surface
-          rs.awaitSurfaceWritten()
-          true
         }
         // Without output, the capture key stays uncommitted and the next draw retries.
         if (!surfaceWritten) return@traceAsync

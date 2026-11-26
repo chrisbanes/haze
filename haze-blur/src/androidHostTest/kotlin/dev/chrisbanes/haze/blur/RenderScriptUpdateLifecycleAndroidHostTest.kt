@@ -96,7 +96,7 @@ class RenderScriptUpdateLifecycleAndroidHostTest : ScreenshotTest() {
   }
 
   @Test
-  fun updateSurface_resize_releasesTheReplacedContextAfterTheNewWrite() = runScreenshotTest {
+  fun updateSurface_resize_releasesTheReplacedContextOnceTheNewWriteCompletes() = runScreenshotTest {
     val h = Harness()
     setContent { h.Content() }
     h.settle(this)
@@ -115,6 +115,31 @@ class RenderScriptUpdateLifecycleAndroidHostTest : ScreenshotTest() {
     assertThat(replacement.size).isNotEqualTo(old.size)
     assertThat(oldDestroyedDuringWrite).isNotNull().isFalse()
     assertThat(old.isDestroyed()).isTrue()
+    assertThat(h.delegate.canDrawRetainedOutput()).isTrue()
+  }
+
+  @Test
+  fun updateSurface_resizeWithHeldWrite_keepsTheReplacedContextUntilTheBufferArrives() = runScreenshotTest {
+    val h = Harness()
+    setContent { h.Content() }
+    h.settle(this)
+    val old = checkNotNull(h.delegate.renderScriptContext)
+    var heldWrite: (() -> Unit)? = null
+    // A write that returns before drawing, as a slow Surface write would.
+    h.delegate.writeToSurface = { rs, layer, density -> heldWrite = { h.defaultWrite(rs, layer, density) } }
+
+    h.layerSize = Size(108f, 100f)
+    frame()
+    waitForIdle()
+
+    assertThat(heldWrite).isNotNull()
+    assertThat(old.isDestroyed()).isFalse()
+
+    checkNotNull(heldWrite).invoke()
+    h.settle(this)
+
+    assertThat(old.isDestroyed()).isTrue()
+    assertThat(h.delegate.renderScriptContext).isNotNull().isNotSameInstanceAs(old)
     assertThat(h.delegate.canDrawRetainedOutput()).isTrue()
   }
 
