@@ -1,0 +1,10 @@
+androidApiElements-published dev.chrisbanes.haze:haze-glass
+androidApiElements-published org.jetbrains.kotlin:kotlin-stdlib
+androidRuntimeElements-published dev.chrisbanes.haze:haze-glass
+androidRuntimeElements-published org.jetbrains.compose.material3:material3
+androidRuntimeElements-published org.jetbrains.kotlin:kotlin-stdlib
+jvmApiElements-published dev.chrisbanes.haze:haze-glass
+jvmApiElements-published org.jetbrains.kotlin:kotlin-stdlib
+jvmRuntimeElements-published dev.chrisbanes.haze:haze-glass
+jvmRuntimeElements-published org.jetbrains.compose.material3:material3
+jvmRuntimeElements-published org.jetbrains.kotlin:kotlin-stdlib

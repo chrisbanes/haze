@@ -1,0 +1,12 @@
+androidApiElements-published dev.chrisbanes.haze:haze-blur
+androidApiElements-published org.jetbrains.kotlin:kotlin-stdlib
+androidRuntimeElements-published dev.chrisbanes.haze:haze-blur
+androidRuntimeElements-published dev.chrisbanes.haze:haze-utils
+androidRuntimeElements-published org.jetbrains.compose.material3:material3
+androidRuntimeElements-published org.jetbrains.kotlin:kotlin-stdlib
+jvmApiElements-published dev.chrisbanes.haze:haze-blur
+jvmApiElements-published org.jetbrains.kotlin:kotlin-stdlib
+jvmRuntimeElements-published dev.chrisbanes.haze:haze-blur
+jvmRuntimeElements-published dev.chrisbanes.haze:haze-utils
+jvmRuntimeElements-published org.jetbrains.compose.material3:material3
+jvmRuntimeElements-published org.jetbrains.kotlin:kotlin-stdlib

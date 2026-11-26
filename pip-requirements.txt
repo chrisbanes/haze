@@ -1,7 +1,7 @@
-properdocs
-mkdocs-material
-mkdocs-material[imaging]
-mkdocs-redirects
-mkdocs-video
-mike
-mdx-gh-links
+properdocs==1.6.7
+mkdocs-material==9.8.2
+mkdocs-material[imaging]==9.8.2
+mkdocs-redirects==1.2.3
+mkdocs-video==1.5.0
+mike==2.2.0
+mdx-gh-links==0.4
