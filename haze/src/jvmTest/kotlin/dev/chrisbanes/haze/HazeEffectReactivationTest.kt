@@ -35,6 +35,7 @@ import assertk.assertThat
 import assertk.assertions.doesNotContain
 import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotEmpty
@@ -251,6 +252,31 @@ class HazeEffectReactivationTest : ContextTest() {
 
     assertThat(factory.renderers).isEqualTo(2)
     assertThat(factory.attaches).isEqualTo(2)
+  }
+
+  @Test
+  fun detach_sourcesInput_doesNotCreateContentArea() = runComposeUiTest {
+    val state = HazeState()
+    val shown = mutableStateOf(true)
+    var node: HazeEffectNode? = null
+    setContent {
+      Box(Modifier.size(100.dp).hazeSource(state).background(Color.Blue))
+      if (shown.value) {
+        Box(
+          Modifier.size(50.dp)
+            .hazeEffect(TestEffectFactory, HazeInput.Sources(state), Unit)
+            .captureEffectNode { node = it },
+        )
+      }
+    }
+    waitForIdle()
+    val effect = checkNotNull(node)
+
+    runOnIdle { shown.value = false }
+    waitForIdle()
+
+    assertThat(effect.isAttached).isFalse()
+    assertThat(effect.hasContentDrawArea).isFalse()
   }
 
   @Test
