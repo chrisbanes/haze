@@ -211,7 +211,7 @@ private fun PlatformRenderEffect.withColorEffect(
   return when (effect) {
     is TintBrushHazeColorEffect -> withBrushTint(effect, size, scale, offset, alphaModulate, mask)
     is TintColorHazeColorEffect -> withColorTint(effect, alphaModulate, mask)
-    is ColorFilterHazeColorEffect -> withColorFilter(effect, mask)
+    is ColorFilterHazeColorEffect -> withColorFilter(effect, alphaModulate, mask)
   }
 }
 
@@ -296,16 +296,28 @@ internal fun TintColorHazeColorEffect.resolveColor(alphaModulate: Float): Color?
 /**
  * Applies a color filter effect with optional mask.
  *
- * Order: colorFilter → mask → blend
+ * Order: colorFilter → alphaModulate → mask → blend
  */
 private fun PlatformRenderEffect.withColorFilter(
   effect: ColorFilterHazeColorEffect,
+  alphaModulate: Float,
   mask: Shader?,
 ): PlatformRenderEffect {
-  val filterEffect = createColorFilterRenderEffect(
+  val unmodulated = createColorFilterRenderEffect(
     colorFilter = effect.colorFilter.toPlatformColorFilter(),
     input = this,
   )
+  val filterEffect = if (alphaModulate >= 1f) {
+    unmodulated
+  } else {
+    createColorFilterRenderEffect(
+      colorFilter = createBlendColorFilter(
+        color = Color.Black.copy(alpha = alphaModulate).toArgb(),
+        blendMode = BlendMode.DstIn,
+      ),
+      input = unmodulated,
+    )
+  }
 
   val maskedFilter = if (mask != null) {
     createBlendRenderEffect(

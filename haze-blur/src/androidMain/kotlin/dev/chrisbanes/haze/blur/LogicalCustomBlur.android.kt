@@ -107,14 +107,15 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
     fun DrawScope.drawStack(count: Int) {
       if (count == 0) {
         present(layer)
-        if (style.noiseFactor.hasVisibleNoise()) {
+        val noiseFactor = style.noiseFactor * intensity
+        if (noiseFactor.hasVisibleNoise()) {
           PaintPool.usePaint { paint ->
             paint.blendMode = BlendMode.Softlight
             canvas.withSaveLayer(bounds, paint) {
               // Presentation space, so the grain does not follow the capture scale.
               val noise = ShaderBrush(LogicalNoiseShaders.get(context.requirePlatformContext()))
               translate(-offset.x, -offset.y) {
-                drawRect(brush = noise, size = expandedSize, alpha = style.noiseFactor.coerceIn(0f, 1f))
+                drawRect(brush = noise, size = expandedSize, alpha = noiseFactor.coerceIn(0f, 1f))
               }
             }
           }
@@ -134,6 +135,8 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
         }
         is ColorFilterHazeColorEffect -> PaintPool.usePaint { blend ->
           blend.blendMode = colorEffect.blendMode
+          // The composite, not the filtered layer, fades, as the RenderEffect route's DstIn does.
+          blend.alpha = intensity
           canvas.withSaveLayer(bounds, blend) {
             PaintPool.usePaint { filter ->
               filter.colorFilter = colorEffect.colorFilter
