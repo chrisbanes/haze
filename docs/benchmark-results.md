@@ -258,8 +258,7 @@ share its Glass settings and changing source.
 | Join and leave | Two to four 60 × 120 dp members; one joins or leaves every half second | 5.66 | 5.72, 5.61 | -2.74 | 108,134 |
 
 The 12 dp container row's CPU frame duration P90 was 4.58 ms (4.57 and 4.59 ms per pass), with
--2.99 ms frame overrun P90. Every row drew 2.00–2.02 layers per frame: one Glass layer and its
-reduced blurred source.
+-2.99 ms frame overrun P90. Every row drew one Glass layer (2.00–2.02 layers per frame).
 
 - A resting gap between half and the full merge distance matched the 12 dp pair's CPU frame
   duration and peak GPU memory, but finished about 1.3 ms closer to the deadline at P90.

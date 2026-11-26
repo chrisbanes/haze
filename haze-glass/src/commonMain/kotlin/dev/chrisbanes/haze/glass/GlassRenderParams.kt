@@ -36,8 +36,8 @@ private const val MAX_REFRACTION_DISPLACEMENT_PX = 16_384f
  * Working-space placement of a Glass surface. [scaleFactor] scales optics. A [pixelAligned] surface
  * places its material on whole working pixels, capturing and presenting with the per-axis
  * [captureScale], and extends its coverage [EDGE_COVERAGE_OUTSET] working pixels past the
- * material; others use [scaleFactor] on both axes. [captureBounds] is where the captured layer
- * lies in a pixel-aligned sample, which may add a margin around it.
+ * material; others use [scaleFactor] on both axes. [captureBounds] is the part of a pixel-aligned
+ * sample the captured layer covers; the sample may add a margin around it.
  */
 internal data class GlassCoordinates(
   val sampleSize: Size,
@@ -110,10 +110,11 @@ internal fun resolveGlassCoordinates(
     scaleFactor = scaleFactor,
     captureScale = captureScale,
     pixelAligned = true,
+    // A side rounded inwards leaves the layer past the sample, which does not hold that part.
     captureBounds = Rect(
       Offset(originX - beforeX, originY - beforeY),
       Size(layerSize.width * captureScale.scaleX, layerSize.height * captureScale.scaleY),
-    ),
+    ).intersect(Rect(Offset.Zero, sampleSize)),
   )
 }
 

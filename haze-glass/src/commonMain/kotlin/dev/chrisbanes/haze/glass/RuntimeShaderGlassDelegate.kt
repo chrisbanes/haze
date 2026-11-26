@@ -230,11 +230,8 @@ internal class RuntimeShaderGlassDelegate(
 
       val blurRequired = !supportsFusedGlassRenderEffect && shouldBlur(params, currentRenderEffects)
       // A fused layer blur holds its reduced copy in the blurred slot and its sharp share in the
-      // depth-mixed slot, which the fused path otherwise leaves empty. They are kept for the whole
-      // mode rather than only while the factor is positive: a surface that starts blurring then
-      // re-records its optical layer around layers already drawn, not around new ones, which
-      // Robolectric renders empty for that frame.
-      val layerBlurRequired = supportsFusedGlassRenderEffect && params.layerBlurSigmaPx > 0f
+      // depth-mixed slot, which the fused path otherwise leaves empty.
+      val layerBlurRequired = supportsFusedGlassRenderEffect && currentPreparedRender.layerBlurFactor > 0f
       val depthMixRequired =
         !supportsFusedGlassRenderEffect && shouldDepthMix(params, currentRenderEffects)
       val refractionDetailRequired = !supportsFusedGlassRenderEffect &&
@@ -2945,7 +2942,10 @@ private fun DrawScope.recordLayerBlurDepthInput(
   factor: Float,
 ) {
   val sampleSize = params.coordinates.sampleSize.roundToIntSize()
-  val reduced = IntSize(ceil(sampleSize.width / factor).toInt().coerceAtLeast(1), ceil(sampleSize.height / factor).toInt().coerceAtLeast(1))
+  val reduced = IntSize(
+    ceil(sampleSize.width / factor).toInt().coerceAtLeast(1),
+    ceil(sampleSize.height / factor).toInt().coerceAtLeast(1),
+  )
   val radius = SemanticBlurKernel.sigmaToRadius(params.layerBlurSigmaPx)
   val effect = BlurEffect(radius, radius, TileMode.Clamp)
   // An equal effect leaves the layer's platform effect in place.
