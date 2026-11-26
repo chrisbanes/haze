@@ -18,6 +18,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.platform.LocalDensity
@@ -137,6 +138,7 @@ private class PresentationFactory(
   override fun createRenderer(): HazeEffectRenderer<Int> = object : HazeEffectRenderer<Int> {
     private var delegate: RenderScriptBlurVisualEffectDelegate? = null
     private var output: GraphicsLayer? = null
+    private var outputOwner: GraphicsContext? = null
 
     override fun HazeEffectLayoutScope.calculateLayerBounds(style: Int): Rect = bounds()
 
@@ -149,12 +151,18 @@ private class PresentationFactory(
         .also { delegate = it }
       val layer = output ?: graphicsContext.createGraphicsLayer().apply {
         record(runtime.layerSize.roundToIntSize()) { drawRect(GREY) }
-      }.also { output = it }
+      }.also {
+        output = it
+        outputOwner = graphicsContext
+      }
       with(current) { drawPresentation(runtime, layer, runtime.layerOffset, scaledContentScale(runtime.layerSize, 1f)) }
     }
 
     override fun dispose() {
       delegate?.detach()
+      // The delegate does not own the output layer, so release it with the context that created it.
+      output?.let { outputOwner?.releaseGraphicsLayer(it) }
+      output = null
     }
   }
 }
