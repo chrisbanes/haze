@@ -336,6 +336,7 @@ internal class HazeEffectNode(
 
   private fun syncPreDrawListeners() {
     val desiredAreas = if (isAttached && shouldUsePreDrawListener()) _areas else emptyList()
+    if (desiredAreas === preDrawListenerAreas) return
     for (area in preDrawListenerAreas) {
       if (area !in desiredAreas) area.preDrawListeners -= areaPreDrawListener
     }
