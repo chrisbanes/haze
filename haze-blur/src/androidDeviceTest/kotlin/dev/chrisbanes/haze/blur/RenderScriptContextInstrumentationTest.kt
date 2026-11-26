@@ -12,9 +12,12 @@ import androidx.test.platform.app.InstrumentationRegistry
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isSameInstanceAs
+import assertk.assertions.isTrue
 import kotlin.concurrent.thread
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -81,6 +84,27 @@ class RenderScriptContextInstrumentationTest {
       InstrumentationRegistry.getInstrumentation().runOnMainSync { context.publishOutput() }
 
       assertThat(context.outputBitmap.getPixel(2, 2)).isEqualTo(Color.RED)
+    } finally {
+      renderScript.destroy()
+    }
+  }
+
+  @Test
+  fun release_releasesTheInputSurface() {
+    val renderScript = RenderScript.create(
+      InstrumentationRegistry.getInstrumentation().targetContext,
+    )
+    try {
+      val context = RenderScriptContext(renderScript, IntSize(4, 4))
+      writeInput(context)
+      val surface = context.inputSurface
+      // release() can only release the Surface that writers used if the allocation caches it.
+      assertThat(context.inputSurface).isSameInstanceAs(surface)
+      assertThat(surface.isValid).isTrue()
+
+      context.release()
+
+      assertThat(surface.isValid).isFalse()
     } finally {
       renderScript.destroy()
     }
