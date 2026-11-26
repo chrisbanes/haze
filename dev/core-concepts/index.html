@@ -1491,8 +1491,9 @@ structural policies such as performance mode and layer expansion.</p>
 <span class="p">}</span>
 </code></pre></div>
 <p>Sources can have a <code>zIndex</code> and metadata <code>key</code>. <a href="../api/haze/dev.chrisbanes.haze/-haze-source-selection/-behind/"><code>HazeSourceSelection.Behind</code></a> is the default. With
-a nearest ancestor <code>hazeSource</code> using the same state, it selects lower-z sources; without one, it
-selects every source. <a href="../api/haze/dev.chrisbanes.haze/-haze-source-selection/-all/"><code>HazeSourceSelection.All</code></a> bypasses the ancestor relationship.</p>
+an ancestor <code>hazeSource</code> using the same state, it selects sources with a lower <code>zIndex</code> than the
+nearest such ancestor and never selects a same-state ancestor itself; without one, it selects every
+source. <a href="../api/haze/dev.chrisbanes.haze/-haze-source-selection/-all/"><code>HazeSourceSelection.All</code></a> bypasses the ancestor relationship.</p>
 <p>Refine either selection with <code>where</code>. The predicate receives each source's <code>key</code> and <code>zIndex</code>.
 Repeated refinements combine with logical AND:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">selection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceSelection</span><span class="p">.</span><span class="na">Behind</span>
