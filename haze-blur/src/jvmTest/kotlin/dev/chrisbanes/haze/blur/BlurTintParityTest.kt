@@ -5,20 +5,17 @@
 
 package dev.chrisbanes.haze.blur
 
-import androidx.compose.runtime.CompositionLocal
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.skiaPaint
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.unit.Density
@@ -26,15 +23,11 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isCloseTo
-import dev.chrisbanes.haze.HazeEffectInputSnapshot
-import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
-import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.translate
 import kotlin.test.Test
-import kotlinx.coroutines.CoroutineScope
 
 /**
  * Pins the analytic tint model that the RenderScript delegate must share with RenderEffect: an
@@ -53,7 +46,6 @@ class BlurTintParityTest {
       translate(Offset(-20f, -20f)) {
         drawScrim(
           colorEffect = gradientTint,
-          context = UnusedDrawContext,
           offset = Offset(20f, 20f),
           expandedSize = Size(140f, 140f),
         )
@@ -133,26 +125,3 @@ class BlurTintParityTest {
     const val TOLERANCE = 0.02f
   }
 }
-
-/** The unmasked [drawScrim] branches never touch the context, so every member is unused. */
-private object UnusedDrawContext :
-  HazeEffectRuntimeDrawScope,
-  DrawScope by CanvasDrawScope() {
-  override val modifierBounds: Rect get() = unused()
-  override val sampling: HazeSampling get() = unused()
-  override val modifierSize: Size get() = unused()
-  override val layerSize: Size get() = unused()
-  override val layerOffset: Offset get() = unused()
-  override val hasDrawableInput: Boolean get() = unused()
-  override val inputSnapshot: HazeEffectInputSnapshot? get() = unused()
-  override val coroutineScope: CoroutineScope get() = unused()
-
-  override fun requirePlatformContext(): PlatformContext = unused()
-  override fun requireGraphicsContext(): GraphicsContext = unused()
-  override fun invalidateDraw() = unused()
-  override fun drawInput() = unused()
-  override fun DrawScope.drawInput() = unused()
-  override fun <T> currentValueOf(local: CompositionLocal<T>): T = unused()
-}
-
-private fun unused(): Nothing = error("Unused by unmasked drawScrim")

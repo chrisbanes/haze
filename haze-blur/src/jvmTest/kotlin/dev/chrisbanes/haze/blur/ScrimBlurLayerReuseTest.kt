@@ -13,10 +13,9 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
-import dev.chrisbanes.haze.TrimMemoryLevel
 import kotlin.test.Test
 
-/** The Scrim fallback keeps its masked-tint layer across draws; SrcOver tints apply alpha without a layer. */
+/** The Scrim fallback draws masked and faded tints without an intermediate graphics layer. */
 class ScrimBlurLayerReuseTest {
 
   private val verticalMask = Brush.verticalGradient(listOf(Color.Black, Color.Transparent))
@@ -25,13 +24,13 @@ class ScrimBlurLayerReuseTest {
   private val colorFilterTint = HazeColorEffect.colorFilter(ColorFilter.tint(Color.Red.copy(alpha = 0.5f)))
 
   @Test
-  fun draw_alphaAndMaskedBrushTint_createsTheTintLayerOnce() = assertTintLayerCreatedOnce(brushTint)
+  fun draw_alphaAndMaskedBrushTint_createsNoLayer() = assertCreatesNoLayer(brushTint)
 
   @Test
-  fun draw_alphaAndMaskedColorTint_createsTheTintLayerOnce() = assertTintLayerCreatedOnce(colorTint)
+  fun draw_alphaAndMaskedColorTint_createsNoLayer() = assertCreatesNoLayer(colorTint)
 
   @Test
-  fun draw_alphaAndMaskedColorFilterTint_createsTheTintLayerOnce() = assertTintLayerCreatedOnce(colorFilterTint)
+  fun draw_alphaAndMaskedColorFilterTint_createsNoLayer() = assertCreatesNoLayer(colorFilterTint)
 
   @Test
   fun draw_unmaskedTint_withAlpha_createsNoLayer() {
@@ -41,101 +40,6 @@ class ScrimBlurLayerReuseTest {
 
     assertThat(h.context.createdLayers).isEqualTo(0)
     assertThat(h.context.releasedLayers).isEqualTo(0)
-  }
-
-  @Test
-  fun draw_alphaChange_keepsTheMaskedTintLayer() {
-    val h = Harness(alpha = 0.5f, mask = verticalMask, tint = colorTint)
-    h.draw()
-
-    h.update(alpha = 1f, mask = verticalMask, tint = colorTint)
-    h.draw()
-    h.update(alpha = 0.5f, mask = verticalMask, tint = colorTint)
-    h.draw()
-
-    assertThat(h.context.createdLayers).isEqualTo(1)
-    assertThat(h.context.releasedLayers).isEqualTo(0)
-  }
-
-  @Test
-  fun draw_maskRemoved_releasesTheTintLayer() {
-    val h = Harness(alpha = 1f, mask = verticalMask, tint = colorTint)
-    h.draw()
-    assertThat(h.context.createdLayers).isEqualTo(1)
-
-    h.update(alpha = 1f, mask = null, tint = colorTint)
-    h.draw()
-
-    assertThat(h.context.releasedLayers).isEqualTo(1)
-  }
-
-  @Test
-  fun draw_noTint_releasesTheTintLayer() {
-    val h = Harness(alpha = 0.5f, mask = verticalMask, tint = colorTint)
-    h.draw()
-
-    h.update(alpha = 0.5f, mask = verticalMask, tint = null)
-    h.draw()
-
-    assertThat(h.context.releasedLayers).isEqualTo(1)
-  }
-
-  @Test
-  fun detach_releasesTheTintLayer() {
-    val h = Harness(alpha = 0.5f, mask = verticalMask, tint = colorTint)
-    h.draw()
-
-    h.delegate.detach()
-
-    assertThat(h.context.releasedLayers).isEqualTo(1)
-  }
-
-  @Test
-  fun clearRetainedOutput_throughBlurVisualEffect_releasesTheTintLayer() {
-    val h = Harness(alpha = 0.5f, mask = verticalMask, tint = colorTint)
-    h.draw()
-
-    h.effect.clearRetainedOutput()
-
-    assertThat(h.context.releasedLayers).isEqualTo(1)
-    h.draw()
-    assertThat(h.context.createdLayers).isEqualTo(2)
-  }
-
-  @Test
-  fun invalidateRetainedOutput_throughBlurVisualEffect_keepsTheLayers() {
-    val h = Harness(alpha = 0.5f, mask = verticalMask, tint = colorTint)
-    h.draw()
-
-    h.effect.invalidateRetainedOutput()
-    h.draw()
-
-    assertThat(h.context.releasedLayers).isEqualTo(0)
-    assertThat(h.context.createdLayers).isEqualTo(1)
-  }
-
-  @Test
-  fun onTrimMemory_background_keepsTheLayers() {
-    val h = Harness(alpha = 0.5f, mask = verticalMask, tint = colorTint)
-    h.draw()
-
-    h.delegate.onTrimMemory(RecordingLifecycleScope(), TrimMemoryLevel.BACKGROUND)
-    h.draw()
-
-    assertThat(h.context.releasedLayers).isEqualTo(0)
-    assertThat(h.context.createdLayers).isEqualTo(1)
-  }
-
-  @Test
-  fun onTrimMemory_moderate_releasesTheLayersAndTheNextDrawRecreatesThem() {
-    val h = Harness(alpha = 0.5f, mask = verticalMask, tint = colorTint)
-    h.draw()
-
-    h.delegate.onTrimMemory(RecordingLifecycleScope(), TrimMemoryLevel.MODERATE)
-    assertThat(h.context.releasedLayers).isEqualTo(1)
-
-    h.draw()
-    assertThat(h.context.createdLayers).isEqualTo(2)
   }
 
   @Test
@@ -166,12 +70,12 @@ class ScrimBlurLayerReuseTest {
     assertSamePixels(reused, fresh)
   }
 
-  private fun assertTintLayerCreatedOnce(tint: HazeColorEffect) {
+  private fun assertCreatesNoLayer(tint: HazeColorEffect) {
     val h = Harness(alpha = 0.5f, mask = verticalMask, tint = tint)
 
     repeat(5) { h.draw() }
 
-    assertThat(h.context.createdLayers).isEqualTo(1)
+    assertThat(h.context.createdLayers).isEqualTo(0)
     assertThat(h.context.releasedLayers).isEqualTo(0)
   }
 
@@ -185,7 +89,7 @@ class ScrimBlurLayerReuseTest {
     }
   }
 
-  private class Harness(alpha: Float, mask: Brush?, tint: HazeColorEffect?) {
+  private class Harness(alpha: Float, mask: Brush?, tint: HazeColorEffect) {
     val effect = BlurVisualEffect()
     val delegate = ScrimBlurVisualEffectDelegate(effect)
     val context = RecordingDrawContext()
@@ -195,7 +99,7 @@ class ScrimBlurLayerReuseTest {
       update(alpha, mask, tint)
     }
 
-    fun update(alpha: Float, mask: Brush?, tint: HazeColorEffect?) {
+    fun update(alpha: Float, mask: Brush?, tint: HazeColorEffect) {
       effect.update(
         BlurLifecycleScope,
         BlurConfiguration(
