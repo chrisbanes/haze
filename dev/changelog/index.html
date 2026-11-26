@@ -7794,6 +7794,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   such as <code>EaseInBack</code> or an elastic easing, on Android 12 and 12L or after a runtime shader
   failure. Each blur layer's intensity stays within <code>0f</code>..<code>1f</code>
   (<a href="https://github.com/chrisbanes/haze/issues/1906">#1906</a>).</li>
+<li>With <code>HazeFeatureFlags.isPlatformBackdropEnabled</code>, a relocated Backdrop effect no longer prepares
+  its platform effect again on every frame while its owner is over the native composition budget,
+  and an effect that declines a frame no longer reports a native capture that forces an isolated
+  layer (<a href="https://github.com/chrisbanes/haze/issues/1913">#1913</a>).</li>
 <li>Android Blur's layered linear progressive blur on Android 12 and 12L, or after a runtime shader
   failure, now fades noise and colour filters with the gradient's intensity, matching Android 13+
   (<a href="https://github.com/chrisbanes/haze/issues/1910">#1910</a>).</li>
@@ -7841,6 +7845,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>RenderScript Blur publishes each blurred frame from the main thread, so the renderer never reads
   its pixels while a later frame is being written
   (<a href="https://github.com/chrisbanes/haze/issues/1830">#1830</a>).</li>
+<li>RenderScript Blur (API 23–30, <code>blurEnabled(true)</code>) no longer darkens a semi-transparent
+  background when the capture size is not a multiple of 4, and draws tints, colour filters and noise
+  over the effect's actual layer bounds when that layer is clipped or offset
+  (<a href="https://github.com/chrisbanes/haze/issues/1912">#1912</a>).</li>
 <li>Effects keep following a source's size and input-sharing outsets after a static
   <code>CompositionLocal</code> change refreshes their configuration
   (<a href="https://github.com/chrisbanes/haze/issues/1829">#1829</a>).</li>
