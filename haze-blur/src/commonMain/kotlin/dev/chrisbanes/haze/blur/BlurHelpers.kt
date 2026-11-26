@@ -28,7 +28,7 @@ import dev.chrisbanes.haze.translate
  * its own route towards `(1 − c)·dst + c·blend(src, dst)`, where `c` is the mask coverage times
  * [alpha]:
  * - [BlendMode.Src] blends inside the layer, which is composited with [BlendMode.SrcOver].
- * - [BlendMode.Modulate] and [BlendMode.SrcIn] are exact only for opaque tints.
+ * - [BlendMode.Src], [BlendMode.Modulate] and [BlendMode.SrcIn] are exact only for opaque tints.
  * - [BlendMode.DstIn] is exact for any tint.
  * - [BlendMode.Clear], [BlendMode.SrcOut] and [BlendMode.DstAtop] are unsupported: they draw at
  *   full coverage, ignoring the masks and [alpha].
@@ -47,9 +47,8 @@ internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, offset: Offset = 
     is ColorFilterHazeColorEffect -> colorEffect.blendMode
   }
   val masked = mask != null || progressiveMask != null
-  if (!masked && !(blendMode.changesDestinationUnderTransparentSource() && alpha < 1f)) {
-    return drawUnlayeredTint(colorEffect, blendMode, offset, expandedSize, alpha)
-  }
+  val layered = masked || (blendMode.changesDestinationUnderTransparentSource() && alpha < 1f)
+  if (!layered) return drawUnlayeredTint(colorEffect, blendMode, offset, expandedSize, alpha)
   when (blendMode) {
     BlendMode.Clear, BlendMode.SrcOut, BlendMode.DstAtop ->
       drawUnlayeredTint(colorEffect, blendMode, offset, expandedSize, alpha = 1f)
@@ -67,7 +66,7 @@ internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, offset: Offset = 
       drawTint(colorEffect, BlendMode.SrcOver)
       drawMasks(progressiveMask, mask)
     }
-    // The layer holds `1 − srcAlpha`, masked after the tint, and erases that much destination.
+    // The layer holds `1 − srcAlpha` times coverage (masks after the Black fill) and erases that much destination.
     BlendMode.DstIn -> drawInSaveLayer(offset, BlendMode.DstOut, alpha) {
       drawRect(Color.Black)
       drawTint(colorEffect, BlendMode.DstOut)

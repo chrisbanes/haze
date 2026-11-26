@@ -84,7 +84,7 @@ class ScrimBlurBlendDestinationTest {
   }
 
   @Test
-  fun draw_blendModeChangeOnRetainedLayer_matchesAFreshDelegate() {
+  fun draw_blendModeChange_matchesAFreshDelegate() {
     val solidScreen = HazeColorEffect.tint(SRC, BlendMode.Screen)
     val reused = Harness(alpha = 0.5f, mask = HARD_STOP_MASK, tint = solidMultiply)
     val multiplied = reused.draw()

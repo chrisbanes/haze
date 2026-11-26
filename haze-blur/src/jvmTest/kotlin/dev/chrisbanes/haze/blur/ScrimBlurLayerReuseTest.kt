@@ -89,7 +89,7 @@ class ScrimBlurLayerReuseTest {
     }
   }
 
-  private class Harness(alpha: Float, mask: Brush?, tint: HazeColorEffect?) {
+  private class Harness(alpha: Float, mask: Brush?, tint: HazeColorEffect) {
     val effect = BlurVisualEffect()
     val delegate = ScrimBlurVisualEffectDelegate(effect)
     val context = RecordingDrawContext()
@@ -99,7 +99,7 @@ class ScrimBlurLayerReuseTest {
       update(alpha, mask, tint)
     }
 
-    fun update(alpha: Float, mask: Brush?, tint: HazeColorEffect?) {
+    fun update(alpha: Float, mask: Brush?, tint: HazeColorEffect) {
       effect.update(
         BlurLifecycleScope,
         BlurConfiguration(

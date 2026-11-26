@@ -283,7 +283,7 @@ internal fun resolveHazeBlurStyle(
  *
  * When Blur draws its scrim fallback with a mask, a progressive effect or an alpha below 1, some
  * blend modes are limited:
- * - [BlendMode.Modulate] and [BlendMode.SrcIn] are exact only for opaque tints.
+ * - [BlendMode.Src], [BlendMode.Modulate] and [BlendMode.SrcIn] are exact only for opaque tints.
  * - [BlendMode.DstIn] is exact for any tint.
  * - [BlendMode.Clear], [BlendMode.SrcOut] and [BlendMode.DstAtop] are unsupported there, and draw
  *   at full coverage, ignoring the mask, progressive effect and alpha.
