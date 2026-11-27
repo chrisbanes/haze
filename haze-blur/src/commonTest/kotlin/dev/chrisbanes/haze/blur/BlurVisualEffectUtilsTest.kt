@@ -59,7 +59,7 @@ class BlurVisualEffectUtilsTest {
   }
 
   @Test
-  fun renderEffectCacheKey_colorFilterTracksOffsetButNotSize() {
+  fun renderEffectCacheKey_colorFilterIgnoresGeometry() {
     val colorEffects = listOf(
       HazeColorEffect.colorFilter(ColorFilter.tint(Color.Red)),
     )
@@ -72,7 +72,7 @@ class BlurVisualEffectUtilsTest {
         contentSize = Size(800f, 600f),
       ).renderEffectCacheKey(Density(2f)),
     )
-    assertThat(key).isNotEqualTo(
+    assertThat(key).isEqualTo(
       renderEffectParams(
         colorEffects = colorEffects,
         contentOffset = Offset(24f, 12f),
