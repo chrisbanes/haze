@@ -222,8 +222,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An invisible Glass rim highlight, with zero intensity or zero width, no longer keeps otherwise
   identical `hazeGlassContainer` members from merging
   ([#1916](https://github.com/chrisbanes/haze/issues/1916)).
-- Square Glass surfaces with no edge softness now clip to their node when Increase Contrast or Show
-  Borders softens their edge ([#1916](https://github.com/chrisbanes/haze/issues/1916)).
+- Standalone square Glass surfaces with no edge softness now clip to their node when Increase
+  Contrast or Show Borders softens their edge ([#1916](https://github.com/chrisbanes/haze/issues/1916)).
 
 ## 2.1.0 <small>2026-11-02</small> { id="2.1.0" }
 

@@ -5,12 +5,16 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
+import assertk.assertThat
+import assertk.assertions.contains
+import assertk.assertions.isEqualTo
+import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 
 /** Records each array uniform by reference in [arrays], and accepts every other uniform. */
-internal class ArrayCapturingUniforms(
-  val arrays: MutableMap<String, FloatArray> = mutableMapOf(),
-) : RuntimeShaderUniformProvider {
+internal class ArrayCapturingUniforms : RuntimeShaderUniformProvider {
+  val arrays = mutableMapOf<String, FloatArray>()
+
   override fun setColorUniform(name: String, color: Color) = Unit
 
   override fun setFloatUniform(name: String, value: Float) = Unit
@@ -28,8 +32,17 @@ internal class ArrayCapturingUniforms(
   override fun setChildShader(name: String, shader: Shader) = Unit
 }
 
-/** A four-member merged field, then a two-member one, for checking that array uploads are reused. */
-internal val scratchReuseFields = listOf(
-  mergedField(*Array(4) { mergedMember(it * 20f, 0f, 10f, 10f, radius = 3f) }),
-  mergedField(*Array(2) { mergedMember(it * 20f, 0f, 10f, 10f, radius = 3f) }),
-)
+/**
+ * Asserts that [upload] sends the same merged-field arrays through [uniforms] for a four-member field
+ * and then a two-member one.
+ */
+internal fun assertReusesMergedFieldArrays(uniforms: ArrayCapturingUniforms, upload: (GlassMergedField) -> Unit) {
+  val uploads = listOf(4, 2).map { count ->
+    uniforms.arrays.clear()
+    upload(mergedField(*Array(count) { mergedMember(it * 20f, 0f, 10f, 10f, radius = 3f) }))
+    uniforms.arrays.toMap()
+  }
+  assertThat(uploads[0].keys).contains("memberRects")
+  assertThat(uploads[1].keys).isEqualTo(uploads[0].keys)
+  for ((name, array) in uploads[0]) assertThat(uploads[1].getValue(name), name).isSameInstanceAs(array)
+}

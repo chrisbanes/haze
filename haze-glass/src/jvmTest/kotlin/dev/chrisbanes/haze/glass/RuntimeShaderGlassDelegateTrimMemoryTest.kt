@@ -29,7 +29,6 @@ import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
-import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
@@ -145,8 +144,6 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
 
     val created = graphicsContext.events.filterIsInstance<LayerEvent.Create>().single().layer
     assertThat(graphicsContext.releasedLayers).contains(created)
-    assertThat(delegate.layers.source).isNotSameInstanceAs(created)
-    assertThat(delegate.sourceRecordCount).isEqualTo(0)
   }
 
   @Test

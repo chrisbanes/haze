@@ -218,28 +218,16 @@ class GlassSharedRimShaderAndroidHostTest : ScreenshotTest() {
     val uniforms = ArrayCapturingUniforms()
     val shader = rimProvider(merged = true).shader
     val provider = AndroidGlassRimBrushProvider(shader, ShaderBrush(shader), uniforms = uniforms)
-    val uploads = scratchReuseFields.map { field ->
-      uniforms.arrays.clear()
-      provider(rimKey(Color.Red).copy(mergedField = field))
-      uniforms.arrays.toMap()
-    }
 
-    assertThat(uploads[1].keys).isEqualTo(uploads[0].keys)
-    for ((name, array) in uploads[0]) assertThat(uploads[1].getValue(name), name).isSameInstanceAs(array)
+    assertReusesMergedFieldArrays(uniforms) { field -> provider(rimKey(Color.Red).copy(mergedField = field)) }
   }
 
   @Test
   fun mergedBackgroundProvider_reusesScratchAcrossCalls() {
     val uniforms = ArrayCapturingUniforms()
     val provider = AndroidGlassMergedBackgroundShaderProvider(mergedBackgroundProvider().shader, uniforms = uniforms)
-    val uploads = scratchReuseFields.map { field ->
-      uniforms.arrays.clear()
-      provider(Offset.Zero, field)
-      uniforms.arrays.toMap()
-    }
 
-    assertThat(uploads[1].keys).isEqualTo(uploads[0].keys)
-    for ((name, array) in uploads[0]) assertThat(uploads[1].getValue(name), name).isSameInstanceAs(array)
+    assertReusesMergedFieldArrays(uniforms) { field -> provider(Offset.Zero, field) }
   }
 
   private fun rimProvider(merged: Boolean): AndroidGlassRimBrushProvider {

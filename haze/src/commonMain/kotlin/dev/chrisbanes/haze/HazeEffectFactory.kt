@@ -439,7 +439,8 @@ public fun scaledContentScale(layerSize: Size, scaleFactor: Float): ScaleFactor 
  * replays the block after dropping the layer's display list. Produce the shader there, rather than
  * capturing one, so a shader whose uniforms are shared is configured and drawn in the same call.
  *
- * Returns null without creating a layer when the scaled [layerSize] is empty.
+ * Returns null without creating a layer when the scaled [layerSize] is empty. If recording throws, a
+ * layer this call created is released; [existingLayer] stays the caller's.
  * When [fillCapture] is true, the input fills the rounded allocation independently on each axis;
  * present that capture with the matching [drawScaledContent] overload and [scaledContentScale].
  */

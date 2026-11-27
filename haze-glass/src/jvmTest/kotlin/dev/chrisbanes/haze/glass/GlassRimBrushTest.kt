@@ -305,28 +305,16 @@ class GlassRimBrushTest {
   fun rimBrushProvider_reusesScratchAcrossCalls() {
     val uniforms = ArrayCapturingUniforms()
     val provider = SkiaGlassRimBrushProvider(rimProvider(merged = true).effect, uniforms = uniforms)
-    val uploads = scratchReuseFields.map { field ->
-      uniforms.arrays.clear()
-      provider(rimKey().copy(mergedField = field))
-      uniforms.arrays.toMap()
-    }
 
-    assertThat(uploads[1].keys).isEqualTo(uploads[0].keys)
-    for ((name, array) in uploads[0]) assertThat(uploads[1].getValue(name), name).isSameInstanceAs(array)
+    assertReusesMergedFieldArrays(uniforms) { field -> provider(rimKey().copy(mergedField = field)) }
   }
 
   @Test
   fun mergedBackgroundProvider_reusesScratchAcrossCalls() {
     val uniforms = ArrayCapturingUniforms()
     val provider = SkiaGlassMergedBackgroundShaderProvider(mergedBackgroundProvider().effect, uniforms = uniforms)
-    val uploads = scratchReuseFields.map { field ->
-      uniforms.arrays.clear()
-      provider(Offset.Zero, field)
-      uniforms.arrays.toMap()
-    }
 
-    assertThat(uploads[1].keys).isEqualTo(uploads[0].keys)
-    for ((name, array) in uploads[0]) assertThat(uploads[1].getValue(name), name).isSameInstanceAs(array)
+    assertReusesMergedFieldArrays(uniforms) { field -> provider(Offset.Zero, field) }
   }
 
   private fun rimProvider(merged: Boolean): SkiaGlassRimBrushProvider {
