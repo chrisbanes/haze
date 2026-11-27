@@ -47,7 +47,6 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlin.math.abs
 import kotlin.math.ceil
-import kotlin.math.max
 import org.junit.Rule
 import org.junit.Test
 
@@ -63,6 +62,8 @@ class GlassLayerBlurInstrumentationTest {
 
   @get:Rule
   val composeTestRule = createAndroidComposeRule<ComponentActivity>()
+
+  private val scene = mutableStateOf<Scene?>(null)
 
   @Test
   fun layerBlur_balanced_diffusesStripesAndRestoresThem() = assertBlurToggles(HazePerformanceMode.Balanced)
@@ -124,13 +125,12 @@ class GlassLayerBlurInstrumentationTest {
   fun layerBlurInterior_performance_matchesQuality() = assertInteriorMatchesQuality(HazePerformanceMode.Performance)
 
   // At 176 dp and above Regular's depth is 1, so no sharp share hides a partly empty reduced edge.
+  // Below that, the sharp share does hide it; that case guards the composed mix instead.
   @Test
   fun layerBlurEdges_depthOne_balanced_matchesQuality() = assertEdgesMatchQuality(startSize = 200.dp, depthOne = true)
 
   @Test
   fun layerBlurEdges_depthBelowOne_balanced_matchesQuality() = assertEdgesMatchQuality(startSize = 100.dp, depthOne = false)
-
-  private val scene = mutableStateOf<Scene?>(null)
 
   private fun assertInteriorMatchesQuality(mode: HazePerformanceMode) {
     setScene()
@@ -142,10 +142,11 @@ class GlassLayerBlurInstrumentationTest {
 
     // Clear of the corners, outline and rim.
     val inset = (20f * composeTestRule.density.density).toInt()
-    val region = (inset until tested.width - inset).flatMap { x -> (inset until tested.height - inset).map { y -> x to y } }
-    val difference = tested.differenceFrom(quality, region)
-    Log.i(TAG, "interior $mode vs Quality: $difference over ${region.size} px")
-    assertThat(difference.max, "$mode interior max channel difference (x255)").isLessThanOrEqualTo(2f)
+    val difference = tested.maxDifferenceFrom(quality) { x, y ->
+      x in inset until tested.width - inset && y in inset until tested.height - inset
+    }
+    Log.i(TAG, "interior $mode vs Quality: max $difference")
+    assertThat(difference, "$mode interior max channel difference (x255)").isLessThanOrEqualTo(2f)
   }
 
   private fun assertEdgesMatchQuality(startSize: Dp, depthOne: Boolean) {
@@ -154,8 +155,7 @@ class GlassLayerBlurInstrumentationTest {
     var balanced = capture(Scene(SceneKind.Edges, HazePerformanceMode.Balanced, size))
     assertThat(balanced.second.layerBlurFactor, "layer blur factor").isGreaterThan(0f)
     // Fixture calibration: the edge fault needs a fractional reduced size on both axes.
-    for (attempt in 1 until EDGE_SIZE_ATTEMPTS) {
-      if (balanced.second.hasFractionalReducedSize()) break
+    while (!balanced.second.hasFractionalReducedSize() && size < startSize + EDGE_SIZE_STEPS.dp) {
       size += 1.dp
       balanced = capture(Scene(SceneKind.Edges, HazePerformanceMode.Balanced, size))
     }
@@ -173,13 +173,15 @@ class GlassLayerBlurInstrumentationTest {
 
     // The clamp deficit reaches about 2 sigma of the reduced copy into the sample.
     val band = ceil(2f * render.params.layerBlurSigmaPx * factor / render.params.coordinates.scaleFactor).toInt() + 1
-    val region = (0 until tested.width).flatMap { x -> (0 until tested.height).map { y -> x to y } }
-      .filter { (x, y) -> x >= tested.width - band || y >= tested.height - band }
-    val difference = tested.differenceFrom(quality, region)
-    val variant = "size=$size depth=${render.params.depth} factor=$factor sample=$sample band=$band"
-    Log.i(TAG, "edges $variant Balanced vs Quality: $difference")
-    assertThat(difference.mean, "$variant edge mean channel difference (x255)").isLessThanOrEqualTo(4f)
-    assertThat(difference.max, "$variant edge max channel difference (x255)").isLessThanOrEqualTo(12f)
+    // The outermost pixels hold the rim and antialiasing, which differ with each mode's input scale.
+    val rim = ceil(2f * composeTestRule.density.density).toInt()
+    val difference = tested.maxDifferenceFrom(quality) { x, y ->
+      x in rim until tested.width - rim && y in rim until tested.height - rim &&
+        (x >= tested.width - band || y >= tested.height - band)
+    }
+    val variant = "size=$size depth=${render.params.depth} factor=$factor sample=$sample band=$band rim=$rim"
+    Log.i(TAG, "edges $variant Balanced vs Quality: max $difference")
+    assertThat(difference, "$variant edge max channel difference (x255)").isLessThanOrEqualTo(EDGE_TOLERANCE)
   }
 
   private fun GlassPreparedRender.hasFractionalReducedSize(): Boolean {
@@ -210,7 +212,7 @@ class GlassLayerBlurInstrumentationTest {
               // The black rect covers the glass plus the blur extent on every side.
               Canvas(Modifier.fillMaxSize().hazeSource(state)) {
                 drawRect(Color.White)
-                val rect = (64.dp + 40.dp * 2).toPx()
+                val rect = (current.size + 40.dp * 2).toPx()
                 drawRect(Color.Black, center - Offset(rect / 2f, rect / 2f), Size(rect, rect))
               }
               Box(Modifier.size(current.size).testTag("glass").then(glass))
@@ -235,23 +237,19 @@ class GlassLayerBlurInstrumentationTest {
 
   private fun captureGlass(): PixelMap = composeTestRule.onNodeWithTag("glass").captureToImage().toPixelMap()
 
-  /** Per-channel absolute differences from [other] over [pixels], in 1/255 steps. */
-  private fun PixelMap.differenceFrom(other: PixelMap, pixels: List<Pair<Int, Int>>): Difference {
-    var total = 0f
+  /** The largest per-channel absolute difference from [other] over pixels in [region], in 1/255 steps. */
+  private inline fun PixelMap.maxDifferenceFrom(other: PixelMap, region: (x: Int, y: Int) -> Boolean): Float {
     var maximum = 0f
-    for ((x, y) in pixels) {
-      val a = this[x, y]
-      val b = other[x, y]
-      for (channel in listOf(a.red - b.red, a.green - b.green, a.blue - b.blue, a.alpha - b.alpha)) {
-        val step = abs(channel) * 255f
-        total += step
-        maximum = max(maximum, step)
+    for (x in 0 until width) {
+      for (y in 0 until height) {
+        if (!region(x, y)) continue
+        val a = this[x, y]
+        val b = other[x, y]
+        maximum = maxOf(maximum, abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
       }
     }
-    return Difference(mean = total / (pixels.size * 4), max = maximum)
+    return maximum * 255f
   }
-
-  private data class Difference(val mean: Float, val max: Float)
 
   private enum class SceneKind { Interior, Edges }
 
@@ -277,6 +275,9 @@ class GlassLayerBlurInstrumentationTest {
 
   private companion object {
     const val TAG = "GlassLayerBlurTest"
-    const val EDGE_SIZE_ATTEMPTS = 24
+    const val EDGE_SIZE_STEPS = 24
+
+    // Below half the 11/255 Robolectric measured inside the rim at depth 1 before the fix (#1903).
+    const val EDGE_TOLERANCE = 4f
   }
 }
