@@ -98,6 +98,9 @@ internal class RenderScriptBlurVisualEffectDelegate(
   // Test seam: host tests inject native allocation failures.
   internal var createRenderScriptContext: (RenderScript, IntSize) -> RenderScriptContext = ::RenderScriptContext
 
+  // Test seam: tests compare each presented scale with the scale this draw recorded the capture at.
+  internal var onPresentForTest: ((presented: ScaleFactor, captured: ScaleFactor) -> Unit)? = null
+
   // Internal so host tests can wait for the update to finish.
   internal var currentJob: Job? = null
     private set
@@ -209,6 +212,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
     }
 
     val outputScale = completedCaptureScale ?: return
+    onPresentForTest?.invoke(outputScale, captureScale)
     drawPresentation(context, contentLayer, offset, outputScale)
   }
 

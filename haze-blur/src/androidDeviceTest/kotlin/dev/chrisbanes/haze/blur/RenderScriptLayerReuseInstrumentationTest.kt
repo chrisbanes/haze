@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.blur
 
 import android.os.Build
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -253,6 +255,33 @@ class RenderScriptLayerReuseInstrumentationTest {
       assertThat(h.delegate.renderScriptContext).isSameInstanceAs(ctx)
       assertThat(ctx.outputBitmap).isSameInstanceAs(bitmap)
       previous = next
+    }
+  }
+
+  @Test
+  fun zeroRadiusToPositiveRadius_presentsNoMisScaledFrames() {
+    val h = Harness(widthPx = 100, heightPx = 100)
+    h.show()
+    h.awaitCenter { it.blue > it.red }
+    // Written and read on the main thread only.
+    val pairs = mutableListOf<Pair<ScaleFactor, ScaleFactor>>()
+
+    composeTestRule.runOnIdle {
+      h.delegate.onPresentForTest = { presented, captured -> pairs += presented to captured }
+      // 40dp is above RenderScript's 25px cap, so the capture scale changes with the step.
+      h.radius = 40.dp
+    }
+    composeTestRule.waitUntil(5_000) {
+      h.delegate.renderScriptContext != null &&
+        h.delegate.canDrawRetainedOutput() &&
+        h.delegate.currentJob?.isActive != true
+    }
+    composeTestRule.waitForIdle()
+
+    composeTestRule.runOnIdle {
+      val misScaled = pairs.count { it.first != it.second }
+      Log.i(TAG, "mis-scaled frames: $misScaled of ${pairs.size} presentations")
+      assertThat(misScaled, "mis-scaled frames of ${pairs.size}").isEqualTo(0)
     }
   }
 
