@@ -40,6 +40,7 @@ import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isLessThanOrEqualTo
+import assertk.assertions.isNotEmpty
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
@@ -281,6 +282,7 @@ class RenderScriptLayerReuseInstrumentationTest {
     composeTestRule.runOnIdle {
       val misScaled = pairs.count { it.first != it.second }
       Log.i(TAG, "mis-scaled frames: $misScaled of ${pairs.size} presentations")
+      assertThat(pairs).isNotEmpty()
       assertThat(misScaled, "mis-scaled frames of ${pairs.size}").isEqualTo(0)
     }
   }

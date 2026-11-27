@@ -64,8 +64,9 @@ import org.robolectric.annotation.Config
 
 /**
  * The RenderScript presentation block runs through [RenderScriptBlurVisualEffectDelegate.drawPresentation]
- * so it can be driven without a RenderScript surface. The capture and padded layers need the surface
- * and are covered by the device test.
+ * so it can be driven without a RenderScript surface. With [PresentationFactory.fullDrawSize] set, the
+ * delegate's whole draw runs instead; tests that reach the Surface replace its write and the blur.
+ * Blurred pixels need the surface and are covered by the device test.
  */
 class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
   private val context get() = ApplicationProvider.getApplicationContext<android.content.Context>()
