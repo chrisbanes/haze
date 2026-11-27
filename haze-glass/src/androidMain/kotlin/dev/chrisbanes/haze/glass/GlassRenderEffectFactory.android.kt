@@ -71,11 +71,12 @@ internal actual fun createGlassRimBrushProvider(merged: Boolean, corners: GlassC
 internal class AndroidGlassRimBrushProvider(
   internal val shader: RuntimeShader,
   private val brush: Brush,
+  private val uniforms: RuntimeShaderUniformProvider = GlassRimUniformProvider(shader),
 ) : GlassRimBrushProvider {
-  private val uniforms = GlassRimUniformProvider(shader)
+  private val scratch = MergedFieldUniformScratch()
 
   override fun invoke(key: GlassRimEffectKey): Brush {
-    uniforms.setRimUniforms(key)
+    uniforms.setRimUniforms(key, scratch = scratch)
     return brush
   }
 }
@@ -93,12 +94,13 @@ internal actual fun createGlassMergedBackgroundShaderProvider(
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal class AndroidGlassMergedBackgroundShaderProvider(
   internal val shader: RuntimeShader,
+  private val uniforms: RuntimeShaderUniformProvider = GlassRimUniformProvider(shader),
 ) : GlassMergedBackgroundShaderProvider {
-  private val uniforms = GlassRimUniformProvider(shader)
+  private val scratch = MergedFieldUniformScratch()
 
   override fun invoke(materialOrigin: Offset, field: GlassMergedField): Shader {
     uniforms.setFloatUniform("materialOrigin", materialOrigin.x, materialOrigin.y)
-    uniforms.setMergedFieldUniforms(field, includeBackground = true)
+    uniforms.setMergedFieldUniforms(field, includeBackground = true, scratch = scratch)
     return shader
   }
 }

@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.asComposeShader
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformRenderEffect
+import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 import dev.chrisbanes.haze.asUniformProvider
 import org.jetbrains.skia.RuntimeEffect
 import org.jetbrains.skia.RuntimeShaderBuilder
@@ -60,12 +61,15 @@ internal actual fun createGlassRimBrushProvider(merged: Boolean, corners: GlassC
   return runCatchingGlassRim { SkiaGlassRimBrushProvider(effect) }.getOrNull()
 }
 
-internal class SkiaGlassRimBrushProvider(internal val effect: RuntimeEffect) : GlassRimBrushProvider {
-  private val builder = RuntimeShaderBuilder(effect)
-  private val uniforms = builder.asUniformProvider()
+internal class SkiaGlassRimBrushProvider(
+  internal val effect: RuntimeEffect,
+  private val builder: RuntimeShaderBuilder = RuntimeShaderBuilder(effect),
+  private val uniforms: RuntimeShaderUniformProvider = builder.asUniformProvider(),
+) : GlassRimBrushProvider {
+  private val scratch = MergedFieldUniformScratch()
 
   override fun invoke(key: GlassRimEffectKey): Brush? {
-    uniforms.setRimUniforms(key)
+    uniforms.setRimUniforms(key, scratch = scratch)
     return runCatchingGlassRim {
       // Skia snapshots the uniforms, so each recorded rim needs its own shader.
       ShaderBrush(builder.makeShader().asComposeShader())
@@ -88,13 +92,14 @@ internal actual fun createGlassMergedBackgroundShaderProvider(
 
 internal class SkiaGlassMergedBackgroundShaderProvider(
   internal val effect: RuntimeEffect,
+  private val builder: RuntimeShaderBuilder = RuntimeShaderBuilder(effect),
+  private val uniforms: RuntimeShaderUniformProvider = builder.asUniformProvider(),
 ) : GlassMergedBackgroundShaderProvider {
-  private val builder = RuntimeShaderBuilder(effect)
-  private val uniforms = builder.asUniformProvider()
+  private val scratch = MergedFieldUniformScratch()
 
   override fun invoke(materialOrigin: Offset, field: GlassMergedField): Shader? {
     uniforms.setFloatUniform("materialOrigin", materialOrigin.x, materialOrigin.y)
-    uniforms.setMergedFieldUniforms(field, includeBackground = true)
+    uniforms.setMergedFieldUniforms(field, includeBackground = true, scratch = scratch)
     return runCatchingGlassRim { builder.makeShader().asComposeShader() }.getOrNull()
   }
 }
