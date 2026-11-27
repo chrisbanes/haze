@@ -713,7 +713,7 @@ internal fun resolveGlassStyle(
     },
     fallbackColor = if (effect.fallbackColor.isSpecified) effect.fallbackColor else automaticColor.copy(alpha = automaticAlpha),
     drawOutsetPx = with(density) { effect.drawExtent.toPx() }.finiteOrZero().coerceAtLeast(0f),
-    // An invisible outline is None, so it neither separates members nor rebuilds the rim.
+    // An invisible outline or rim highlight is None, so it neither separates members nor rebuilds the rim.
     edgeOutline = GlassEdgeOutline(
       color = effect.edgeOutlineColor,
       widthPx = with(density) { effect.edgeOutlineWidth.toPx() }.finiteOrZero().coerceAtLeast(0f),
@@ -723,7 +723,7 @@ internal fun resolveGlassStyle(
       intensity = effect.rimHighlightIntensity,
       widthPx = with(density) { effect.rimHighlightWidth.toPx() }.finiteOrZero().coerceAtLeast(0f),
       sides = effect.rimHighlightSides,
-    ),
+    ).takeIf { it.isVisible } ?: GlassRimHighlight.None,
   ).withAccessibility(
     settings = effect.accessibilitySettings,
     minimumBorderSoftnessPx = defaultEdgeSoftnessPx,

@@ -219,6 +219,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   mis-scaled content for a frame or more when the blur radius steps up from 0 and the capture scale
   changes, such as a radius above 25 px or a performance-mode change
   ([#1923](https://github.com/chrisbanes/haze/issues/1923)).
+- An invisible Glass rim highlight, with zero intensity or zero width, no longer keeps otherwise
+  identical `hazeGlassContainer` members from merging
+  ([#1916](https://github.com/chrisbanes/haze/issues/1916)).
 
 ## 2.1.0 <small>2026-11-02</small> { id="2.1.0" }
 
