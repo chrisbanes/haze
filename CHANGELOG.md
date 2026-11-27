@@ -215,6 +215,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A relocated effect with `HazeSourceRetention.ClearWhenUnavailable`, such as an unmerged
   `hazeGlassContainer` member, no longer prepares its effect and then clears it on every redraw while
   none of its sources are available ([#1924](https://github.com/chrisbanes/haze/issues/1924)).
+- RenderScript Blur (Android 6 to 11, API 23 to 30, with `blurEnabled(true)`) no longer presents
+  mis-scaled content for a frame or more when the blur radius steps up from 0 and the capture scale
+  changes, such as a radius above 25 px or a performance-mode change
+  ([#1923](https://github.com/chrisbanes/haze/issues/1923)).
 - Merged `hazeGlassContainer` clusters with `HazeInput.Sources` and
   `HazeSourceRetention.ClearWhenUnavailable` no longer prepare their effect while no source is
   available ([#1950](https://github.com/chrisbanes/haze/issues/1950)).

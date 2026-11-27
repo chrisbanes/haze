@@ -116,6 +116,12 @@ Read the relevant guide before starting that work:
   or [#1332](https://github.com/chrisbanes/haze/pull/1332). For pull requests by non-maintainers, include
   the contributor's name or username linked to their GitHub profile, and verify the author and
   maintainer status before attributing them.
+- During a GitHub Project `drain`, a ticket PR may defer its `CHANGELOG.md` entries under
+  `## Unreleased` to one batch PR opened after the source PRs merge; this is the repository's only
+  batched post-merge update. The ticket PR leaves `CHANGELOG.md` unchanged and records each entry
+  verbatim in a `Deferred updates` section of its body. The batch PR adds only the recorded entries
+  of merged PRs, edits nothing outside `## Unreleased`, and passes `./scripts/build_docs.sh build`.
+  Keep the entry in the ticket PR when the entry is itself the ticket's deliverable.
 
 | Task | Guidance |
 | --- | --- |

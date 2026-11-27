@@ -98,12 +98,17 @@ internal class RenderScriptBlurVisualEffectDelegate(
   // Test seam: host tests inject native allocation failures.
   internal var createRenderScriptContext: (RenderScript, IntSize) -> RenderScriptContext = ::RenderScriptContext
 
+  // Test seam: tests compare each presented scale with the capture scale this draw resolves, which
+  // is the scale the capture was recorded at whenever this draw starts an update.
+  internal var onPresentForTest: ((presented: ScaleFactor, captured: ScaleFactor) -> Unit)? = null
+
   // Internal so host tests can wait for the update to finish.
   internal var currentJob: Job? = null
     private set
   private var drawSkipped: Boolean = false
   private var completedCaptureKey: InputCaptureKey? = null
   private var completedCaptureScale: ScaleFactor? = null
+  private var outputIsLiveCapture = false
   private val retainedOutputState = BlurRetainedOutputState()
 
   @Volatile
@@ -163,6 +168,8 @@ internal class RenderScriptBlurVisualEffectDelegate(
         fillCapture = true,
       )?.let { layer ->
         layer.clip = blurVisualEffect.shouldClipToNodeBounds()
+        // A zero-radius output draws this capture layer live, so present it at the scale just used.
+        if (outputIsLiveCapture) completedCaptureScale = captureScale
         if (contentLayer == null || contentLayer!!.isReleased) {
           contentLayer = graphicsContext.createGraphicsLayer()
         }
@@ -185,6 +192,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
             // Publish geometry with its successful output, never with a pending or cancelled capture.
             completedCaptureKey = captureKey
             completedCaptureScale = captureScale
+            outputIsLiveCapture = !(blurRadiusPx > 0f)
           }
           if (outputUpdated || drawSkipped) {
             // Present the completed output, or catch up with input changed during the update.
@@ -209,6 +217,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
     }
 
     val outputScale = completedCaptureScale ?: return
+    onPresentForTest?.invoke(outputScale, captureScale)
     drawPresentation(context, contentLayer, offset, outputScale)
   }
 
@@ -544,6 +553,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
     retainedOutputState.clear()
     completedCaptureKey = null
     completedCaptureScale = null
+    outputIsLiveCapture = false
     contentLayer?.let(graphicsContext::releaseGraphicsLayer)
     contentLayer = null
     releaseRenderScriptContext()
