@@ -1,7 +1,6 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:Suppress("NOTHING_TO_INLINE")
 @file:OptIn(InternalHazeApi::class)
 
 package dev.chrisbanes.haze.blur
@@ -81,7 +80,7 @@ internal actual fun BlurVisualEffect.constrainInputScaleForBrushes(scale: Float)
 internal fun BlurVisualEffect.hasCustomShaderBrush(): Boolean =
   mask?.isCustomShaderBrush() == true ||
     (progressive as? HazeProgressive.Brush)?.brush?.isCustomShaderBrush() == true ||
-    colorEffects.orEmpty().any { it is TintBrushHazeColorEffect && it.brush.isCustomShaderBrush() }
+    colorEffects.any { it is TintBrushHazeColorEffect && it.brush.isCustomShaderBrush() }
 
 internal const val COMBINED_NOISE_TINT_SKSL = """
   uniform shader content;

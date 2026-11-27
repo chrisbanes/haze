@@ -211,7 +211,7 @@ internal class BlurVisualEffect(
   internal val noiseFactor: Float get() = resolvedStyle.noiseFactor
   internal val mask: Brush? get() = resolvedStyle.mask
   internal val backgroundColor: Color get() = resolvedStyle.backgroundColor
-  internal val colorEffects: List<HazeColorEffect>? get() = resolvedStyle.colorEffects
+  internal val colorEffects: List<HazeColorEffect> get() = resolvedStyle.colorEffects
   internal val fallbackTint: HazeColorEffect? get() = resolvedStyle.fallbackColorEffect
   internal val alpha: Float get() = resolvedStyle.alpha
   internal val progressive: HazeProgressive? get() = resolvedStyle.progressive

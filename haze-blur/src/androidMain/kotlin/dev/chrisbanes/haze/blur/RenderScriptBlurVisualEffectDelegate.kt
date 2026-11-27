@@ -243,7 +243,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
     layer.record(size = size.toIntSize()) {
       val expandedSize = context.layerSize
-      val colorEffects = blurVisualEffect.colorEffects.orEmpty()
+      val colorEffects = blurVisualEffect.colorEffects
 
       // The blurred output, then the noise on top...
       fun DrawScope.drawOutputAndNoise() {
