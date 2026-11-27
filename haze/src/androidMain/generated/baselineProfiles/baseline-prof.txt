@@ -1282,7 +1282,6 @@ HSPLdev/chrisbanes/haze/blur/TintColorHazeColorEffect;->hashCode()I
 Ldev/chrisbanes/haze/blur/UtilsKt;
 HSPLdev/chrisbanes/haze/blur/UtilsKt;->ceil-uvyYCjk(J)J
 HSPLdev/chrisbanes/haze/blur/UtilsKt;->expand-Pq9zytI(JFF)J
-HSPLdev/chrisbanes/haze/blur/UtilsKt;->round-k-4lQ0M(J)J
 Ldev/chrisbanes/haze/blur/materials/HazeMaterials;
 HSPLdev/chrisbanes/haze/blur/materials/HazeMaterials;-><clinit>()V
 HSPLdev/chrisbanes/haze/blur/materials/HazeMaterials;-><init>()V

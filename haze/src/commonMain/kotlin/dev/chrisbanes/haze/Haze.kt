@@ -20,7 +20,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
-import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.LayerOutsets
 import androidx.compose.ui.graphics.Matrix
@@ -98,19 +97,7 @@ internal class HazeCoordinates(
     -> localPosition
     HazePositionStrategy.Screen -> screenPosition
   }
-
-  internal fun boundsFor(strategy: HazePositionStrategy, size: Size): Rect? {
-    val position = positionFor(strategy)
-    return if (position.isSpecified && size.isSpecified) Rect(position, size) else null
-  }
 }
-
-/**
- * Returns `true` if either [HazeCoordinates.localPosition] or [HazeCoordinates.screenPosition]
- * is [Offset.Unspecified].
- */
-internal val HazeCoordinates.isUnspecified: Boolean
-  get() = localPosition.isUnspecified || screenPosition.isUnspecified
 
 @Stable
 internal class HazeArea {
