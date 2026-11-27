@@ -2078,7 +2078,69 @@ class HazeEffectSurfaceDrawTest {
   }
 
   @Test
-  fun configuredSources_clearWhenUnavailable_transitionsSourceAvailability() = runComposeUiTest {
+  fun configuredBackdropFallback_clearWhenUnavailableWithoutSources_preparesClearsAndSkipsDraw() = runComposeUiTest {
+    val previousFlag = HazeFeatureFlags.isPlatformBackdropEnabled
+    HazeFeatureFlags.isPlatformBackdropEnabled = false
+    try {
+      val owner = SurfaceOwnerNode()
+      val first = SurfaceFactory(owner)
+      val second = SurfaceFactory(owner)
+      val cluster = DrawableInputRenderer()
+      val state = HazeState()
+      val input = HazeInput.Backdrop(
+        fallback = HazeInput.Sources(state, retention = HazeSourceRetention.ClearWhenUnavailable),
+      )
+      var configured: HazeConfiguredEffectSurface<Unit>? = null
+      owner.resolveSurfaces = {
+        configured = configured ?: first.surface.createConfiguredSurface(
+          HazeEffectFactory<Unit> { cluster },
+          Unit,
+          Rect(0f, 0f, 100f, 100f),
+          listOf(first.surface, second.surface),
+        )
+        listOf(checkNotNull(configured).surface)
+      }
+      setContent {
+        Box(Modifier.size(100.dp)) {
+          Box(Modifier.fillMaxSize().then(OwnerElement(owner))) {
+            Box(Modifier.size(50.dp).hazeEffect(first, input, Unit))
+            Box(Modifier.size(50.dp).hazeEffect(second, input, Unit))
+          }
+        }
+      }
+      waitForIdle()
+      runOnIdle {
+        cluster.prepares = 0
+        cluster.draws.clear()
+        cluster.clears = 0
+        owner.draws = 0
+      }
+      repeat(3) {
+        runOnIdle { owner.redraw() }
+        waitForIdle()
+      }
+      runOnIdle {
+        assertThat(owner.draws).isGreaterThanOrEqualTo(3)
+        assertThat(cluster.prepares).isGreaterThanOrEqualTo(3)
+        assertThat(cluster.draws).isEmpty()
+        assertThat(cluster.clears).isGreaterThan(0)
+        configured?.dispose()
+        owner.resolveSurfaces = null
+      }
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousFlag
+    }
+  }
+
+  @Test
+  fun configuredSources_clearWhenUnavailable_transitionsSourceAvailability() {
+    for (merged in listOf(false, true)) {
+      clearWhenUnavailableSourceTransitions(merged)
+    }
+  }
+
+  private fun clearWhenUnavailableSourceTransitions(merged: Boolean) = runComposeUiTest {
+    val label = "merged=$merged"
     val owner = SurfaceOwnerNode()
     val first = SurfaceFactory(owner)
     val second = SurfaceFactory(owner)
@@ -2087,15 +2149,21 @@ class HazeEffectSurfaceDrawTest {
     val input = HazeInput.Sources(state, retention = HazeSourceRetention.ClearWhenUnavailable)
     val sourcePresent = mutableStateOf(false)
     var configured: HazeConfiguredEffectSurface<Unit>? = null
-    owner.resolveSurfaces = {
-      configured = configured ?: first.surface.createConfiguredSurface(
-        HazeEffectFactory<Unit> { cluster },
-        Unit,
-        Rect(0f, 0f, 100f, 100f),
-        listOf(first.surface, second.surface),
-      )
-      listOf(checkNotNull(configured).surface)
+    if (merged) {
+      owner.resolveSurfaces = {
+        configured = configured ?: first.surface.createConfiguredSurface(
+          HazeEffectFactory<Unit> { cluster },
+          Unit,
+          Rect(0f, 0f, 100f, 100f),
+          listOf(first.surface, second.surface),
+        )
+        listOf(checkNotNull(configured).surface)
+      }
     }
+    fun prepares() = if (merged) cluster.prepares else first.prepares
+    fun draws() = if (merged) cluster.draws.size else first.draws
+    fun clears() = if (merged) cluster.clears else first.clears
+
     setContent {
       Box(Modifier.size(100.dp)) {
         if (sourcePresent.value) {
@@ -2103,46 +2171,68 @@ class HazeEffectSurfaceDrawTest {
         }
         Box(Modifier.fillMaxSize().then(OwnerElement(owner))) {
           Box(Modifier.size(50.dp).hazeEffect(first, input, Unit))
-          Box(Modifier.size(50.dp).hazeEffect(second, input, Unit))
+          if (merged) {
+            Box(Modifier.size(50.dp).hazeEffect(second, input, Unit))
+          }
         }
       }
     }
     waitForIdle()
     runOnIdle {
-      assertThat(cluster.prepares).isEqualTo(0)
-      assertThat(cluster.draws).isEmpty()
-      assertThat(cluster.clears).isGreaterThan(0)
+      assertThat(prepares(), "$label initial prepares").isEqualTo(0)
+      assertThat(draws(), "$label initial draws").isEqualTo(0)
+      assertThat(clears(), "$label initial clears").isGreaterThan(0)
     }
 
     sourcePresent.value = true
     waitForIdle()
     runOnIdle {
-      assertThat(cluster.prepares).isGreaterThan(0)
-      assertThat(cluster.draws).contains(true)
+      assertThat(prepares(), "$label after source added prepares").isGreaterThan(0)
+      assertThat(draws(), "$label after source added draws").isGreaterThan(0)
+      if (merged) {
+        assertThat(cluster.draws, "$label after source added drawable").contains(true)
+      }
     }
 
+    var preparesBeforeRemoval = 0
+    var drawsBeforeRemoval = 0
+    var clearsBeforeRemoval = 0
+    runOnIdle {
+      preparesBeforeRemoval = prepares()
+      drawsBeforeRemoval = draws()
+      clearsBeforeRemoval = clears()
+    }
     sourcePresent.value = false
     waitForIdle()
     runOnIdle {
-      cluster.prepares = 0
-      cluster.draws.clear()
-      cluster.clears = 0
+      assertThat(prepares(), "$label removal frame prepares").isEqualTo(preparesBeforeRemoval)
+      assertThat(draws(), "$label removal frame draws").isEqualTo(drawsBeforeRemoval)
+      assertThat(clears(), "$label removal frame clears").isGreaterThan(clearsBeforeRemoval)
     }
     repeat(2) {
       runOnIdle { owner.redraw() }
       waitForIdle()
     }
     runOnIdle {
-      assertThat(cluster.prepares).isEqualTo(0)
-      assertThat(cluster.draws).isEmpty()
-      assertThat(cluster.clears).isGreaterThan(0)
+      assertThat(prepares(), "$label sourceless redraw prepares").isEqualTo(preparesBeforeRemoval)
+      assertThat(draws(), "$label sourceless redraw draws").isEqualTo(drawsBeforeRemoval)
+      assertThat(clears(), "$label sourceless redraw clears").isGreaterThan(clearsBeforeRemoval)
     }
 
+    var preparesBeforeReturn = 0
+    var drawsBeforeReturn = 0
+    runOnIdle {
+      preparesBeforeReturn = prepares()
+      drawsBeforeReturn = draws()
+    }
     sourcePresent.value = true
     waitForIdle()
     runOnIdle {
-      assertThat(cluster.prepares).isGreaterThan(0)
-      assertThat(cluster.draws).contains(true)
+      assertThat(prepares(), "$label after source return prepares").isGreaterThan(preparesBeforeReturn)
+      assertThat(draws(), "$label after source return draws").isGreaterThan(drawsBeforeReturn)
+      if (merged) {
+        assertThat(cluster.draws.drop(drawsBeforeReturn), "$label after source return drawable").contains(true)
+      }
       configured?.dispose()
       owner.resolveSurfaces = null
     }
