@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +32,7 @@ import assertk.assertThat
 import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
@@ -43,6 +45,7 @@ import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.hazeEffect
@@ -201,6 +204,28 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
   }
 
   @Test
+  @Config(sdk = [30])
+  fun drawPresentation_progressiveContentInput_drawsTheInputAtTheClearEnd() = runScreenshotTest {
+    val h = Harness(PROGRESSIVE, contentColor = Color.Green)
+    // Stretch the 256px output across the whole 100dp node.
+    val nodePx = 100 * context.resources.displayMetrics.density
+    h.factory.captureScale = ScaleFactor(256 / nodePx, 256 / nodePx)
+    setContent { h.Content() }
+    val pixels = frame()
+
+    // Sample mid-height at 5% and 95% of the node.
+    val y = (nodePx / 2).toInt()
+
+    // Core does not draw the content behind this delegate, so the clear end must show the input.
+    val clear = pixels[(nodePx * 0.05f).toInt(), y]
+    assertThat(clear.green).isGreaterThan(0.8f)
+    assertThat(clear.red).isLessThan(0.2f)
+    assertThat(clear.blue).isLessThan(0.2f)
+    // The blurred end shows the output gradient, whose blue is 1 throughout, not the green input.
+    assertThat(pixels[(nodePx * 0.95f).toInt(), y].blue).isGreaterThan(0.8f)
+  }
+
+  @Test
   @Config(sdk = [35])
   fun drawPresentation_withNoise_buildsTheShaderOnce() = runScreenshotTest {
     val h = Harness(NOISY)
@@ -305,8 +330,11 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
     assertThat(h.delegate.noiseShaders.buildCount).isEqualTo(2)
   }
 
-  /** Draws the presentation of one RenderScript delegate with a Blur runtime styled by [update]. */
-  private inner class Harness(initial: HazeBlurStyle) {
+  /**
+   * Draws the presentation of one RenderScript delegate with a Blur runtime styled by [update], over
+   * an optional [contentColor] input.
+   */
+  private inner class Harness(initial: HazeBlurStyle, private val contentColor: Color? = null) {
     val effect = BlurVisualEffect()
     val factory = PresentationFactory(effect)
     private var tick by mutableStateOf(0)
@@ -341,7 +369,7 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
               factory = factory,
               input = HazeInput.Content,
               style = tick,
-            ),
+            ).then(contentColor?.let { Modifier.background(it) } ?: Modifier),
           )
         }
       }
@@ -423,6 +451,11 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
 
 private val PLAIN = HazeBlurStyle {
   noiseFactor(0f)
+}
+
+private val PROGRESSIVE = HazeBlurStyle {
+  noiseFactor(0f)
+  progressive(HazeProgressive.horizontalGradient(easing = LinearEasing, startIntensity = 0f, endIntensity = 1f))
 }
 
 private val HALF_ALPHA = HazeBlurStyle {
