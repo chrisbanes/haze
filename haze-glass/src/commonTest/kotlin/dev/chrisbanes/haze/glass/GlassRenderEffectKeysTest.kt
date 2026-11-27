@@ -155,11 +155,11 @@ class GlassRenderEffectKeysTest {
   @Test
   fun interactionValues_doNotChangeBaseStageKeys() {
     val params = params()
-    val idle = params.interactionUniforms(
+    val idle = resolveGlassInteraction(
       GlassInteractionRenderState(position = Offset(20f, 20f)),
       radiusFraction = 0.7f,
-    )
-    val pressed = params.interactionUniforms(
+    ).uniforms(params.coordinates)
+    val pressed = resolveGlassInteraction(
       GlassInteractionRenderState(
         position = Offset(80f, 60f),
         lightingIntensity = 1f,
@@ -169,7 +169,7 @@ class GlassRenderEffectKeysTest {
         scaleY = 0.98f,
       ),
       radiusFraction = 0.7f,
-    )
+    ).uniforms(params.coordinates)
     val topology = GlassInteractionTopology(
       hasOptics = true,
       hasLighting = true,
@@ -482,20 +482,31 @@ class GlassRenderEffectKeysTest {
 
   @Test
   fun retainedLayerPlan_detailLayersFollowActiveRefractionDetailKey() {
-    val idle = GlassInteractionUniforms(Offset.Zero, 0f, 0f, 1f, 0f)
-
     listOf(0f to false, .008f to false, .009f to true).forEach { (strength, expectedActive) ->
       val params = params().copy(refractionStrength = strength)
-      val kinds = buildGlassRetainedLayerPlan(params, idle).layers.map { it.kind }
+      val detailKey = params.activeRefractionDetailEffectKey(params.refractionDetailIntensity)
+      val kinds = buildGlassLayerPlan(
+        sampleSize = params.coordinates.sampleSize.roundToIntSize(),
+        blurRadiusPx = params.blurRadiusPx,
+        depth = params.depth,
+        allowNativeWideBlur = true,
+        refractionDetailActive = detailKey != null,
+        rimActive = false,
+        interactionPatchSize = IntSize.Zero,
+        interactionOpticsActive = false,
+        interactionLightingActive = false,
+      ).layers.map { it.kind }
 
-      val key = assertThat(params.activeRefractionDetailEffectKey(params.refractionDetailIntensity))
+      val key = assertThat(detailKey)
       if (expectedActive) key.isNotNull() else key.isNull()
+      // The fused effect renders detail in its own pass, so it retains no detail layers.
+      val expectedLayers = expectedActive && !supportsFusedGlassRenderEffect
       listOf(
         GlassRetainedLayerKind.RefractionDetail,
         GlassRetainedLayerKind.RefractionDetailCoverage,
         GlassRetainedLayerKind.RefractionComposite,
       ).forEach { kind ->
-        if (expectedActive) assertThat(kinds).contains(kind) else assertThat(kinds).doesNotContain(kind)
+        if (expectedLayers) assertThat(kinds).contains(kind) else assertThat(kinds).doesNotContain(kind)
       }
     }
   }

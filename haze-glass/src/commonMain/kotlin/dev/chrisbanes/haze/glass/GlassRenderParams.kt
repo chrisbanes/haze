@@ -626,11 +626,6 @@ internal fun resolveGlassInteraction(
   whitePointDelta = state.whitePointDelta.finiteOr(0f).coerceIn(-1f, 1f),
 )
 
-internal fun GlassRenderParams.interactionUniforms(
-  state: GlassInteractionRenderState,
-  radiusFraction: Float,
-): GlassInteractionUniforms = resolveGlassInteraction(state, radiusFraction).uniforms(coordinates)
-
 internal data class ResolvedGlassStyle(
   val resolvedOptics: ResolvedGlassOptics,
   val specularIntensity: Float,
@@ -855,38 +850,6 @@ internal fun buildGlassRenderParams(
     edgeOutline = style.edgeOutline.scaled(scaleFactor),
     circularCornerOptics = circularCornerOptics,
     layerBlurSigmaPx = layerBlurSigmaPx,
-  )
-}
-
-internal fun buildGlassRetainedLayerPlan(
-  params: GlassRenderParams,
-  interaction: GlassInteractionUniforms,
-  interactionTopology: GlassInteractionTopology = GlassInteractionTopology(
-    hasOptics = interaction.hasOptics,
-    hasLighting = interaction.hasLighting,
-    maxRefractionMultiplier = interaction.refractionMultiplier,
-  ),
-): GlassRetainedLayerPlan {
-  val sampleSize = params.coordinates.sampleSize.roundToIntSize()
-  val blurActive = params.depth > 0f && params.blurRadiusPx > 0f
-  val blurPlan = if (blurActive) params.blurEffectKey().plan else null
-  val interactionPatchSize = calculateGlassInteractionPatchSize(
-    params,
-    radiusFraction = interaction.radiusPx / params.coordinates.materialSize.minDimension,
-    topology = interactionTopology,
-  )
-  val interactionLayersActive = interactionPatchSize.width > 0 && interactionPatchSize.height > 0
-  return buildGlassRetainedLayerPlan(
-    sampleSize = sampleSize,
-    blurActive = blurPlan != null,
-    nativeBlurActive = blurPlan?.usesNativeWideBlur == true,
-    depthMixActive = blurActive && params.depth < 1f,
-    refractionDetailActive = params.activeRefractionDetailEffectKey(params.refractionDetailIntensity) != null,
-    rimActive = hasGlassRim(params.specularIntensity, params.edgeShadow, params.rimHighlight, params.edgeOutline),
-    interactionPatchSize = interactionPatchSize,
-    interactionOpticsActive = interactionLayersActive && interactionTopology.hasOptics,
-    interactionLightingActive = interactionLayersActive && interactionTopology.hasLighting,
-    groupCompositeSize = null,
   )
 }
 

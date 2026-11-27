@@ -996,11 +996,19 @@ class GlassRenderParamsTest {
 
   @Test
   fun retainedPlan_depthZeroOmitsBlurAndDepthLayers() {
-    val plan = buildGlassRetainedLayerPlan(
-      params = testRenderParams(depth = 0f, blurRadiusPx = 0f),
-      interaction = GlassInteractionUniforms(Offset.Zero, 0f, 0f, 1f, 0f),
+    val plan = buildGlassLayerPlan(
+      sampleSize = IntSize(100, 100),
+      blurRadiusPx = 0f,
+      depth = 0f,
+      allowNativeWideBlur = true,
+      refractionDetailActive = false,
+      rimActive = true,
+      interactionPatchSize = IntSize.Zero,
+      interactionOpticsActive = false,
+      interactionLightingActive = false,
     )
 
+    // Fused and multi-pass plans agree when there is no blur, detail or interaction.
     assertThat(plan.layers.map { it.kind }).isEqualTo(
       listOf(GlassRetainedLayerKind.Source, GlassRetainedLayerKind.Optical, GlassRetainedLayerKind.Rim),
     )
@@ -1008,69 +1016,104 @@ class GlassRenderParamsTest {
 
   @Test
   fun retainedPlan_partialDepthCountsBlurAndDepthLayers() {
-    val params = testRenderParams(depth = 0.5f, blurRadiusPx = 12f)
-    val plan = buildGlassRetainedLayerPlan(
-      params = params,
-      interaction = GlassInteractionUniforms(Offset.Zero, 0f, 0f, 1f, 0f),
+    val layerBlurSize = IntSize(50, 50)
+    val plan = buildGlassLayerPlan(
+      sampleSize = IntSize(100, 100),
+      blurRadiusPx = 12f,
+      depth = 0.5f,
+      allowNativeWideBlur = true,
+      refractionDetailActive = false,
+      rimActive = true,
+      interactionPatchSize = IntSize.Zero,
+      interactionOpticsActive = false,
+      interactionLightingActive = false,
+      layerBlurSize = layerBlurSize,
     )
 
-    assertThat(plan.layers.map { it.kind }).isEqualTo(
-      listOf(
-        GlassRetainedLayerKind.Source,
-        GlassRetainedLayerKind.Blurred,
-        GlassRetainedLayerKind.DepthMixed,
-        GlassRetainedLayerKind.Optical,
-        GlassRetainedLayerKind.Rim,
-      ),
-    )
+    if (supportsFusedGlassRenderEffect) {
+      // The fused effect mixes depth itself and retains only the reduced layer blur.
+      assertThat(plan.layers).isEqualTo(
+        listOf(
+          GlassRetainedLayer(GlassRetainedLayerKind.Source, IntSize(100, 100)),
+          GlassRetainedLayer(GlassRetainedLayerKind.Blurred, layerBlurSize),
+          GlassRetainedLayer(GlassRetainedLayerKind.Optical, IntSize(100, 100)),
+          GlassRetainedLayer(GlassRetainedLayerKind.Rim, IntSize(100, 100)),
+        ),
+      )
+    } else {
+      assertThat(plan.layers.map { it.kind }).isEqualTo(
+        listOf(
+          GlassRetainedLayerKind.Source,
+          GlassRetainedLayerKind.Blurred,
+          GlassRetainedLayerKind.DepthMixed,
+          GlassRetainedLayerKind.Optical,
+          GlassRetainedLayerKind.Rim,
+        ),
+      )
+    }
   }
 
   @Test
   fun retainedPlan_interactionCountsCompositeGraph() {
-    val plan = buildGlassRetainedLayerPlan(
-      params = testRenderParams(
-        blurRadiusPx = 0f,
-        refractionStrength = 0.5f,
-        refractionScalePx = 20f,
-      ),
-      interaction = GlassInteractionUniforms(Offset.Zero, 20f, 1f, 1.1f, 0f),
+    val plan = buildGlassLayerPlan(
+      sampleSize = IntSize(100, 100),
+      blurRadiusPx = 0f,
+      depth = 0f,
+      allowNativeWideBlur = true,
+      refractionDetailActive = true,
+      rimActive = true,
+      interactionPatchSize = IntSize(48, 48),
+      interactionOpticsActive = true,
+      interactionLightingActive = true,
     )
 
-    assertThat(plan.layers.map { it.kind }).containsExactly(
-      GlassRetainedLayerKind.Source,
-      GlassRetainedLayerKind.Optical,
-      GlassRetainedLayerKind.RefractionDetail,
-      GlassRetainedLayerKind.RefractionDetailCoverage,
-      GlassRetainedLayerKind.RefractionComposite,
-      GlassRetainedLayerKind.Rim,
-      GlassRetainedLayerKind.InteractionOptical,
-      GlassRetainedLayerKind.InteractionDetail,
-      GlassRetainedLayerKind.InteractionDetailCoverage,
-      GlassRetainedLayerKind.InteractionComposite,
-      GlassRetainedLayerKind.InteractionLighting,
-    )
+    if (supportsFusedGlassRenderEffect) {
+      // The fused effect renders detail and interaction optics in its own pass.
+      assertThat(plan.layers.map { it.kind }).containsExactly(
+        GlassRetainedLayerKind.Source,
+        GlassRetainedLayerKind.Optical,
+        GlassRetainedLayerKind.Rim,
+        GlassRetainedLayerKind.InteractionLighting,
+      )
+    } else {
+      assertThat(plan.layers.map { it.kind }).containsExactly(
+        GlassRetainedLayerKind.Source,
+        GlassRetainedLayerKind.Optical,
+        GlassRetainedLayerKind.RefractionDetail,
+        GlassRetainedLayerKind.RefractionDetailCoverage,
+        GlassRetainedLayerKind.RefractionComposite,
+        GlassRetainedLayerKind.Rim,
+        GlassRetainedLayerKind.InteractionOptical,
+        GlassRetainedLayerKind.InteractionDetail,
+        GlassRetainedLayerKind.InteractionDetailCoverage,
+        GlassRetainedLayerKind.InteractionComposite,
+        GlassRetainedLayerKind.InteractionLighting,
+      )
+    }
   }
 
   @Test
   fun retainedPlan_usesFullSampleSizeForNativeWideBlur() {
-    val params = testRenderParams(
-      coordinates = GlassCoordinates(
-        sampleSize = Size(1_000f, 500f),
-        materialOrigin = Offset.Zero,
-        materialSize = Size(100f, 100f),
-        scaleFactor = 1f,
-      ),
-      depth = 1f,
+    val plan = buildGlassLayerPlan(
+      sampleSize = IntSize(1_000, 500),
       blurRadiusPx = 100f,
+      depth = 1f,
+      allowNativeWideBlur = true,
+      refractionDetailActive = false,
+      rimActive = true,
+      interactionPatchSize = IntSize.Zero,
+      interactionOpticsActive = false,
+      interactionLightingActive = false,
     )
-    val plan = buildGlassRetainedLayerPlan(
-      params = params,
-      interaction = GlassInteractionUniforms(Offset.Zero, 0f, 0f, 1f, 0f),
-    )
+    // Without a reduced layer blur, the fused effect chains the platform blur and retains none.
     assertThat(
       plan.layers.filter { it.kind.name.startsWith("Blur") },
     ).isEqualTo(
-      listOf(GlassRetainedLayer(GlassRetainedLayerKind.Blurred, IntSize(1_000, 500))),
+      if (supportsFusedGlassRenderEffect) {
+        emptyList()
+      } else {
+        listOf(GlassRetainedLayer(GlassRetainedLayerKind.Blurred, IntSize(1_000, 500)))
+      },
     )
   }
 
@@ -1098,10 +1141,12 @@ class GlassRenderParamsTest {
         materialSize = Size(200f, 100f),
         scaleFactor = 2f,
       ),
-    ).interactionUniforms(
-      state = GlassInteractionRenderState(position = Offset.Unspecified),
-      radiusFraction = 0f,
-    )
+    ).let { params ->
+      resolveGlassInteraction(
+        state = GlassInteractionRenderState(position = Offset.Unspecified),
+        radiusFraction = 0f,
+      ).uniforms(params.coordinates)
+    }
 
     assertThat(uniforms.position).isEqualTo(Offset(140f, 110f))
   }

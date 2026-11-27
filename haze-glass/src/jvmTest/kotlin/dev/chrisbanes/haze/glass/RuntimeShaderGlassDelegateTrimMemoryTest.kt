@@ -783,27 +783,6 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   }
 
   @Test
-  fun prepareRefractionDetail_activeAllocatesLayerBeforeDraw() {
-    val layers = GlassLayers()
-    val graphicsContext = TestGraphicsContext()
-
-    layers.prepareRefractionDetail(required = true, graphicsContext)
-
-    assertThat(layers.hasRefractionDetail).isTrue()
-  }
-
-  @Test
-  fun prepareRefractionDetail_inactiveReleasesLayer() {
-    val layers = GlassLayers()
-    val graphicsContext = TestGraphicsContext()
-    layers.refractionDetail = graphicsContext.createGraphicsLayer()
-
-    layers.prepareRefractionDetail(required = false, graphicsContext)
-
-    assertThat(layers.hasRefractionDetail).isFalse()
-  }
-
-  @Test
   fun prepareBackdrop_releasesSourceAndOutputLayers() {
     val layers = GlassLayers()
     val graphicsContext = TestGraphicsContext()

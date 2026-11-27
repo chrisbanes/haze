@@ -148,13 +148,6 @@ internal class GlassLayers {
   fun ensureRefractionComposite(graphicsContext: GraphicsContext): GraphicsLayer =
     ensure(GlassRetainedLayerKind.RefractionComposite, graphicsContext)
 
-  fun prepareRefractionDetail(
-    required: Boolean,
-    graphicsContext: GraphicsContext,
-  ) {
-    if (required) ensureRefractionDetail(graphicsContext) else releaseRefractionDetail(graphicsContext)
-  }
-
   fun ensureRim(graphicsContext: GraphicsContext): GraphicsLayer =
     ensure(GlassRetainedLayerKind.Rim, graphicsContext)
 
