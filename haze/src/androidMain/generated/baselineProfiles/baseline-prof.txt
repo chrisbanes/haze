@@ -455,8 +455,6 @@ HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->access$extendedToAreas(Landroidx/comp
 HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->access$getObservedLayoutCoordinates(Ldev/chrisbanes/haze/HazeArea;)Landroidx/compose/ui/layout/LayoutCoordinates;
 HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->access$hasSameValues-JiSxe2E([F[F)Z
 HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->extendedToAreas(Landroidx/compose/ui/geometry/Rect;FFFF)Landroidx/compose/ui/geometry/Rect;
-HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->getAreaTransformsDirtyFields()I
-HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->getLayerBoundsDirtyFields()I
 HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->getObservedLayoutCoordinates(Ldev/chrisbanes/haze/HazeArea;)Landroidx/compose/ui/layout/LayoutCoordinates;
 HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->hasSameValues-JiSxe2E([F[F)Z
 HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->isTranslationOnly-58bKbWc([F)Z
