@@ -80,7 +80,23 @@ class GlassClustersTest {
       .containsExactly(listOf(0), listOf(1), listOf(2))
     val capped = listOf(member(0), member(1), member(2), other.copy(identity = 3), member(4, 330f), member(5, 440f))
     assertThat(clusterGlassMembers(capped, 40f).surfaces.map { surface -> surface.members.map { it.identity } })
-      .containsExactly(listOf(0, 1, 2), listOf(3), listOf(4), listOf(5))
+      .containsExactly(listOf(0, 1, 2), listOf(3), listOf(4, 5))
+    assertThat(clusterGlassMembers(capped, 40f).overflow).isEmpty()
+  }
+
+  @Test
+  fun clusterGlassMembers_interveningSurface_capsEachRunAtFour() {
+    val x = member(1, 0f, 100f).copy(identity = "x", key = key.copy(alpha = 0.4f))
+    val result = clusterGlassMembers(listOf(member(0), x) + (1..5).map { member(it) }, 40f)
+    assertThat(result.surfaces.map { surface -> surface.members.map { it.identity } })
+      .containsExactly(listOf(0), listOf("x"), listOf(1, 2, 3, 4), listOf(5))
+    assertThat(result.overflow.single().excessCount).isEqualTo(1)
+
+    // Two over-long runs in one component sum their excess.
+    val twoRuns = clusterGlassMembers((0..4).map { member(it) } + x + (5..9).map { member(it) }, 40f)
+    assertThat(twoRuns.surfaces.map { surface -> surface.members.map { it.identity } })
+      .containsExactly(listOf(0, 1, 2, 3), listOf(4), listOf("x"), listOf(5, 6, 7, 8), listOf(9))
+    assertThat(twoRuns.overflow.single().excessCount).isEqualTo(2)
   }
 
   @Test

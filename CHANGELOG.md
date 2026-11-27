@@ -92,6 +92,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `HazeEffectNode` no longer drops or churns source `preDrawListeners` when `DirtyFields.Areas`
   re-evaluates to an unchanged area set or hits the unplaced position-strategy early return
   ([#1929](https://github.com/chrisbanes/haze/issues/1929)).
+- In a Glass container, a set of compatible members split by an intervening surface now merges
+  up to four members in each drawn run. Later members are no longer left unmerged, and a cap
+  overflow that didn't happen is no longer logged
+  ([#1915](https://github.com/chrisbanes/haze/issues/1915)).
+- A `groupKey` member whose style differs from its group's only in a value such as contrast no
+  longer widens the group's container optical size
+  ([#1915](https://github.com/chrisbanes/haze/issues/1915)).
 - A `hazeEffect` nested inside two `hazeSource`s that use the same state, where the outer source has
   the lower `zIndex`, no longer throws on its first draw with `HazeSourceSelection.Behind`, under
   `HazeInput.Sources` or while Backdrop falls back to sources. `Behind` now excludes every same-state

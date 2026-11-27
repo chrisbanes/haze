@@ -202,6 +202,13 @@ class GlassContainerGroupRenderTest : ContextTest() {
   }
 
   @Test
+  fun opticalSizes_groupMemberWithDifferentContrast_doesNotInflateOpticalSize() = runComposeUiTest {
+    // Any differing merge-key value draws the member on its own, not only alpha or optics.
+    val small = opticalGroup(grouped = true, secondContrast = 0.5f)
+    assertThat(small.opticalSizeOverride).isEqualTo(Size(40f, 40f))
+  }
+
+  @Test
   fun materialChangeFollowedByPlacement_rebuildsGroupOptics() = runComposeUiTest {
     val alpha = mutableStateOf(1f)
     val shift = mutableStateOf(0)
@@ -402,7 +409,7 @@ class GlassContainerGroupRenderTest : ContextTest() {
   }
 
   /** Two stacked 100x40 members and a separate 30x30 member; returns the small member's runtime. */
-  private fun ComposeUiTest.opticalGroup(grouped: Boolean, rotateSecond: Float = 0f, scaleSecond: Float = 1f, secondAlpha: Float = 1f): GlassRuntimeEffect {
+  private fun ComposeUiTest.opticalGroup(grouped: Boolean, rotateSecond: Float = 0f, scaleSecond: Float = 1f, secondAlpha: Float = 1f, secondContrast: Float = 0f): GlassRuntimeEffect {
     val effects = List(3) { GlassRuntimeEffect() }
     val state = HazeState()
     setContent {
@@ -421,7 +428,7 @@ class GlassContainerGroupRenderTest : ContextTest() {
                 }.hazeGlass(
                   HazeEffectFactory { effects[index] },
                   HazeInput.Sources(state),
-                  containerTestStyle(Color.Red, alpha = if (index == 1) secondAlpha else 1f),
+                  containerTestStyle(Color.Red, alpha = if (index == 1) secondAlpha else 1f, contrast = if (index == 1) secondContrast else 0f),
                   HazePerformanceMode.Quality,
                   true,
                   null,

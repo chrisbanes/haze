@@ -618,10 +618,10 @@ internal class GlassContainerNode(
 
   /**
    * Each member's [localSize], except that a run of consecutive members sharing a non-null group
-   * key counts once, at the size of the union of their layout rects. A member whose input,
-   * `expandLayerBounds`, optics or authored alpha differ from the run's first draws apart from it,
-   * so it starts a run of its own. Fading and pressed members stay in their run, so the optical
-   * size does not jump when a fade ends or a press starts.
+   * key counts once, at the size of the union of their layout rects. A member whose merge key
+   * differs from the run's first, apart from optics resolved from the optical size and transition
+   * alpha, draws apart from it, so it starts a run of its own. Fading and pressed members stay in
+   * their run, so the optical size does not jump when a fade ends or a press starts.
    */
   private fun opticalSizes(nodes: Collection<GlassMemberNode>): List<Size> {
     val owner = surfaceCoordinates
@@ -657,9 +657,12 @@ internal class GlassContainerNode(
   private fun GlassMemberNode.drawsWithGroupOf(first: GlassMemberNode): Boolean {
     val runtime = binding.runtime
     val firstRuntime = first.binding.runtime
-    return runtime != null && firstRuntime != null &&
-      binding.input == first.binding.input && binding.expandLayerBounds == first.binding.expandLayerBounds &&
-      runtime.optics == firstRuntime.optics && runtime.styleAlpha == firstRuntime.styleAlpha
+    val key = binding.key
+    val firstKey = first.binding.key
+    // Optics resolved from the optical size itself, and the transition part of alpha, never split a run.
+    return runtime != null && firstRuntime != null && key != null && firstKey != null &&
+      runtime.styleAlpha == firstRuntime.styleAlpha &&
+      key.copy(resolvedOptics = firstKey.resolvedOptics, alpha = firstKey.alpha) == firstKey
   }
 
   private fun liveSnapshots(): Map<GlassMemberNode, GlassMemberSnapshot> = members.mapNotNull { member ->

@@ -132,9 +132,9 @@ two circles become one capsule that spans the row, although they are far apart. 
   bounds, so it can bridge with a neighbouring member. It also counts as one member towards the
   four-member limit.
 - **Optical size.** The group's bounds count once toward the container's
-  [optical size](#optical-size). A member left out of the group because its input, layer-bounds
-  setting, optics or `alpha` differ counts on its own, and doesn't widen the group's size. Fading and
-  pressed members still count with their group.
+  [optical size](#optical-size). A member left out of the group because its input or material
+  differs counts on its own, and doesn't widen the group's size. Fading and pressed members still
+  count with their group.
 - **Transitions.** Members of the same group are neighbours at any distance, and another member
   is a neighbour when it is within the merge distance of the group's bounds. With the default
   `MatchedGeometry`, a member that attaches grows the group's bounds, and one that detaches shrinks

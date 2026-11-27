@@ -32,7 +32,9 @@ member's glass behind its own children. A member's own style still sets its shap
 - A cluster merges at most four members, because shapes reach the shader as fixed-size uniform
   arrays. Beyond four, the extra members draw on their own without a bridge, in a deterministic
   order. Where an extra member overlaps the cluster, blur and tint apply twice in the overlap,
-  which is the visible cost of the cap.
+  which is the visible cost of the cap. (The cap applies to each drawn surface, a run of
+  consecutive compatible members, after the layout-order split below; see the
+  [amendment](#amendment-cap-each-layout-order-run-and-compare-the-full-merge-key-for-optical-size-2026-11-26).)
 - A cluster draws at one z-position, so only members next to each other in layout order share a
   surface. A member between two compatible neighbours in that order splits them, even when it is far
   away, so merging never reorders members.
@@ -190,7 +192,9 @@ order draw as one Glass shape over the bounding box of their rects:
 - **Proximity.** A group counts as one member for `mergeDistance` clustering, measured from its
   bounds, and for the four-member cap.
 - **Optical size.** The group's bounds count as one member in the container-wide optical size. A
-  member whose input, `expandLayerBounds`, optics or authored alpha differ counts on its own.
+  member whose merge key differs from the first member's, apart from optics resolved at the optical
+  size and transition alpha, counts on its own. (This first compared only input,
+  `expandLayerBounds`, optics and authored alpha; see the [amendment](#amendment-cap-each-layout-order-run-and-compare-the-full-merge-key-for-optical-size-2026-11-26).)
 - **Transitions.** Members of the same group are transition neighbours at any distance, so a
   `MatchedGeometry` member that attaches or detaches animates the group's bounds through
   `transitionSpec`. A fading member leaves the group while it fades. Another member is a neighbour
@@ -226,3 +230,21 @@ scaling is opt-in. Author a pressed scale below 1 to shrink the member or above 
   group merges by its drawn group rect: its layout union scaled about the pressed member's pivot,
   mapped into the group.
 - **Transitions.** Transition-neighbour checks keep using rest (layout) geometry.
+
+## Amendment: cap each layout-order run and compare the full merge key for optical size (2026-11-26)
+
+Both follow decisions 3 and 4 of [#1902](https://github.com/chrisbanes/haze/issues/1902), fixed in
+[#1915](https://github.com/chrisbanes/haze/issues/1915).
+
+- **Cap per drawn surface.** A component of compatible members is split into runs of consecutive
+  members in layout order first, and then each run is capped at four. The cap exists because each
+  drawn surface takes fixed-size uniform arrays, so it counts the members of one surface. Capping
+  the component before the split left later members of a run unmerged and reported an overflow
+  that no surface had. The first four members of an over-long run still merge, its extra members
+  draw on their own in registration order, and the reported excess is the sum over the runs.
+- **Full merge key for optical size.** A group member counts with its group's bounds only when
+  its whole merge key equals the first member's, ignoring the optics resolved at the optical size
+  and the transition part of alpha. Any value that keeps the member from drawing with its group,
+  such as contrast, now also keeps it from widening the group's optical size. Fading and pressed
+  members still count with their group. Ignoring the resolved optics keeps the optical size from
+  feeding back into the comparison.
