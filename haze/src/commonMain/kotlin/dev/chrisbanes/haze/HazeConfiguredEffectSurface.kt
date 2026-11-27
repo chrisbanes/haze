@@ -338,6 +338,17 @@ private class ConfiguredSurface<Style>(
     }
   }
 
+  private fun sourceInput(): HazeInput.Sources? = when (val input = input) {
+    is HazeInput.Sources -> input
+    is HazeInput.Backdrop -> input.fallback.takeIf { backend.usesFallback }
+    HazeInput.Content -> null
+  }
+
+  private fun shouldPreparePortableDraw(): Boolean {
+    val sourceInput = sourceInput() ?: return true
+    return entries.isNotEmpty() || sourceInput.retention.keepsLastFrame()
+  }
+
   private inline fun <T> inSurface(scope: DrawScope, block: DrawScope.() -> T): T {
     var result: T? = null
     scope.translate(bounds.left, bounds.top) {
@@ -406,7 +417,9 @@ private class ConfiguredSurface<Style>(
             null
           }
         } else {
-          hooks?.let { with(it) { runtime.prepareDraw(style) } }
+          if (shouldPreparePortableDraw()) {
+            hooks?.let { with(it) { runtime.prepareDraw(style) } }
+          }
           null
         }
       }
@@ -454,11 +467,7 @@ private class ConfiguredSurface<Style>(
       if (mixedSelection || drawsMembersOnDecline) members.forEach { it.draw(scope) }
       return
     }
-    val sourceInput = when (val input = input) {
-      is HazeInput.Sources -> input
-      is HazeInput.Backdrop -> input.fallback.takeIf { backend.usesFallback }
-      HazeInput.Content -> null
-    }
+    val sourceInput = sourceInput()
     if (input is HazeInput.Backdrop && backend.usesFallback && sourceInput == null) return
     val drawable = entries.isNotEmpty()
     if (sourceInput != null && !drawable) {
