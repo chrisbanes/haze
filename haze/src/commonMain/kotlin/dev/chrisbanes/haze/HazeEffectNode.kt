@@ -842,12 +842,7 @@ internal class HazeEffectNode(
       clearRetainedOutput()
     }
 
-    val shouldDrawEffect = shouldPrepareDraw && if (retainOutputWhenSourceUnavailable) {
-      areas.isNotEmpty() || shouldDrawRetainedOutput()
-    } else {
-      hasDrawableSourceLayers
-    }
-    val scope = if (shouldDrawEffect) effectDrawScope() else null
+    val scope = if (shouldDrawEffect(shouldPrepareDraw, hasDrawableSourceLayers)) effectDrawScope() else null
     if (scope != null) {
       prepareEffectDraw(scope)
     }
@@ -864,6 +859,15 @@ internal class HazeEffectNode(
       }
     }
   }
+
+  /** Whether a draw prepares and draws the effect. Inputs without a source state are not gated on sources. */
+  private fun shouldDrawEffect(shouldPrepareDraw: Boolean, hasDrawableSourceLayers: Boolean = hasDrawableSourceLayers()): Boolean =
+    shouldPrepareDraw &&
+      when {
+        state == null -> true
+        retainOutputWhenSourceUnavailable -> areas.isNotEmpty() || shouldDrawRetainedOutput()
+        else -> hasDrawableSourceLayers
+      }
 
   private fun ContentDrawScope.drawContentEffect() {
     recordSurfaceContent()
@@ -1750,7 +1754,7 @@ internal class HazeEffectNode(
     val matrix = surfaceDrawTransform ?: return false
     if (layerBoundsRefreshPending || (isAttached && typedLifecycleScope.localsChanged())) refreshObservedReads(notifySurface = false)
     if (!layerSize.isSpecified || layerSize.minDimension <= 0f) return false
-    if (shouldPrepareEffectDraw()) {
+    if (shouldDrawEffect(shouldPrepareEffectDraw())) {
       withSurfaceScope(scope, matrix) { prepareEffectDraw(effectDrawScope()) }
     }
     return true
@@ -1810,7 +1814,7 @@ internal class HazeEffectNode(
     }
     val captureTransform = if (awaitingNative) surfaceNativeTransform else preparedSurfaceBackdrop?.materialTransform
     captureTransform?.let { material = material.transformedBy(it) }
-    if (!native && shouldPrepareEffectDraw()) {
+    if (!native && shouldDrawEffect(shouldPrepareEffectDraw())) {
       withSurfaceScope(scope, matrix) { prepareEffectDraw(effectDrawScope()) }
     }
     val output = matrix.map(layer.transformedBy(interaction))
