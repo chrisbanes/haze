@@ -721,7 +721,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   }
 
   @Test
-  fun detach_clearsSuccessfulCacheMetadata() {
+  fun release_clearsSuccessfulCacheMetadata() {
     val delegate = RuntimeShaderGlassDelegate(GlassRuntimeEffect())
     val context = RecordingVisualEffectContext()
     delegate.layers.populate(context.graphicsContext)
@@ -729,7 +729,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.setGraphicsContextForTest(context.graphicsContext)
     delegate.seedSuccessfulCacheMetadata()
 
-    delegate.detach()
+    delegate.release()
 
     assertThat(context.graphicsContext.releasedLayers).containsExactly(*retainedLayers.toTypedArray())
     assertThat(delegate.layers.isEmpty).isTrue()
