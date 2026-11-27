@@ -7781,6 +7781,9 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
+<li><code>HazeEffectNode</code> no longer drops or churns source <code>preDrawListeners</code> when <code>DirtyFields.Areas</code>
+  re-evaluates to an unchanged area set or hits the unplaced position-strategy early return
+  (<a href="https://github.com/chrisbanes/haze/issues/1929">#1929</a>).</li>
 <li>A <code>hazeEffect</code> nested inside two <code>hazeSource</code>s that use the same state, where the outer source has
   the lower <code>zIndex</code>, no longer throws on its first draw with <code>HazeSourceSelection.Behind</code>, under
   <code>HazeInput.Sources</code> or while Backdrop falls back to sources. <code>Behind</code> now excludes every same-state
