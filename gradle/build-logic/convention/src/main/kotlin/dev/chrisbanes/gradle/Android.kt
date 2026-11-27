@@ -16,7 +16,11 @@ import org.gradle.kotlin.dsl.withType
 
 fun Project.configureAndroidApplication() {
   extensions.configure<ApplicationExtension> {
-    compileSdk = Versions.COMPILE_SDK
+    compileSdk {
+      version = release(Versions.COMPILE_SDK) {
+        minorApiLevel = Versions.COMPILE_SDK_MINOR
+      }
+    }
 
     defaultConfig {
       minSdk = Versions.MIN_SDK
@@ -43,8 +47,23 @@ fun Project.configureKotlinMultiplatformAndroidLibrary() {
   kotlin {
     targets.configureEach {
       if (this is KotlinMultiplatformAndroidLibraryTarget) {
-        compileSdk = Versions.COMPILE_SDK
+        compileSdk {
+          version = release(Versions.COMPILE_SDK) {
+            minorApiLevel = Versions.COMPILE_SDK_MINOR
+          }
+        }
         minSdk = Versions.MIN_SDK
+
+        project.pluginManager.withPlugin("com.vanniktech.maven.publish") {
+          // AndroidX Compose test and sample dependencies need a newer SDK than Haze consumers.
+          aarMetadata {
+            minCompileSdk {
+              version = release(Versions.COMPILE_SDK) {
+                minorApiLevel = 0
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -52,7 +71,11 @@ fun Project.configureKotlinMultiplatformAndroidLibrary() {
 
 fun Project.configureAndroidTest() {
   extensions.configure<TestExtension> {
-    compileSdk = Versions.COMPILE_SDK
+    compileSdk {
+      version = release(Versions.COMPILE_SDK) {
+        minorApiLevel = Versions.COMPILE_SDK_MINOR
+      }
+    }
 
     defaultConfig {
       minSdk = Versions.MIN_SDK
