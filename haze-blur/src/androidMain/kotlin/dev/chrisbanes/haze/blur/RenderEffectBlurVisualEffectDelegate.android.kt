@@ -10,9 +10,8 @@ import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.dp
@@ -119,7 +118,10 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
   val layerSize = contentLayer.size.toSize()
   val compositeLayer = userMask != null || alpha < 1f
   if (compositeLayer) {
-    drawContext.canvas.saveLayer(Rect(Offset.Zero, layerSize), Paint().apply { this.alpha = alpha })
+    PaintPool.usePaint { paint ->
+      paint.alpha = alpha
+      drawContext.canvas.saveLayer(Rect(Offset.Zero, layerSize), paint)
+    }
   }
   try {
     var band = 0
@@ -162,12 +164,26 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
     if (userMask != null) {
       val captureScale = scaledContentScale(context.layerSize, inputScale)
       val offset = Offset(context.layerOffset.x * captureScale.scaleX, context.layerOffset.y * captureScale.scaleY)
-      val brush = if (userMask is ShaderBrush) {
-        ShaderBrush(userMask.createScaledShader(context.size, captureScale, offset))
-      } else {
-        userMask
+      // Resolve the mask at the content size, positioned by the capture transform, and cover the
+      // whole layer so the expanded margin is masked too.
+      withTransform({
+        translate(offset.x, offset.y)
+        scale(captureScale.scaleX, captureScale.scaleY, pivot = Offset.Zero)
+      }) {
+        PaintPool.usePaint { paint ->
+          userMask.applyTo(context.size, paint, 1f)
+          paint.blendMode = BlendMode.DstIn
+          drawContext.canvas.drawRect(
+            Rect(
+              left = -offset.x / captureScale.scaleX,
+              top = -offset.y / captureScale.scaleY,
+              right = (layerSize.width - offset.x) / captureScale.scaleX,
+              bottom = (layerSize.height - offset.y) / captureScale.scaleY,
+            ),
+            paint,
+          )
+        }
       }
-      drawRect(brush = brush, size = layerSize, blendMode = BlendMode.DstIn)
     }
   } finally {
     if (compositeLayer) drawContext.canvas.restore()
