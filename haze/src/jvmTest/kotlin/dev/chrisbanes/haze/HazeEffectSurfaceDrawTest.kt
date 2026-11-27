@@ -1872,6 +1872,47 @@ class HazeEffectSurfaceDrawTest {
     assertThat(onNodeWithTag("root").captureToImage().toPixelMap()[50, 50]).isEqualTo(Color.White)
   }
 
+  @Test
+  fun relocatedSources_clearWhenUnavailableWithoutSources_portableBatchDoesNotPrepare() =
+    clearWhenUnavailableWithoutSources(withBackdropNeighbour = false)
+
+  @Test
+  fun relocatedSources_clearWhenUnavailableWithoutSources_footprintBatchDoesNotPrepare() =
+    clearWhenUnavailableWithoutSources(withBackdropNeighbour = true)
+
+  private fun clearWhenUnavailableWithoutSources(withBackdropNeighbour: Boolean) = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val member = SurfaceFactory(owner)
+    val state = HazeState()
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Box(Modifier.fillMaxSize().then(OwnerElement(owner))) {
+          Box(Modifier.fillMaxSize().hazeEffect(member, HazeInput.Sources(state, retention = HazeSourceRetention.ClearWhenUnavailable), Unit))
+          // A Backdrop member routes the batch through footprints instead of portable preparation.
+          if (withBackdropNeighbour) Box(Modifier.size(20.dp).hazeEffect(SurfaceFactory(owner), HazeInput.Backdrop(), Unit))
+        }
+      }
+    }
+    waitForIdle()
+    runOnIdle {
+      member.prepares = 0
+      member.draws = 0
+      member.clears = 0
+      owner.draws = 0
+    }
+    repeat(3) {
+      runOnIdle { owner.redraw() }
+      waitForIdle()
+    }
+    runOnIdle {
+      assertThat(owner.draws).isGreaterThanOrEqualTo(3)
+      assertThat(member.prepares).isEqualTo(0)
+      assertThat(member.draws).isEqualTo(0)
+      // The member still reaches the sourceless clear, so it was drawn rather than skipped.
+      assertThat(member.clears).isGreaterThan(0)
+    }
+  }
+
   @OptIn(ExperimentalHazeApi::class)
   @Test
   fun drawableContentLayer_subpixelLogicalBoundsAgreeForBuiltInAndConfigured() = runComposeUiTest {
@@ -2128,6 +2169,7 @@ class HazeEffectSurfaceDrawTest {
     lateinit var scope: HazeEffectLifecycleScope
     var draws = 0
     var prepares = 0
+    var clears = 0
     var updates = 0
     var layouts = 0
     var onPrepare: () -> Unit = {}
@@ -2139,6 +2181,7 @@ class HazeEffectSurfaceDrawTest {
       var retained = false
       override fun canDrawRetainedOutput(): Boolean = retained
       override fun clearRetainedOutput() {
+        clears++
         retained = false
       }
       override fun attach(scope: HazeEffectLifecycleScope) {
