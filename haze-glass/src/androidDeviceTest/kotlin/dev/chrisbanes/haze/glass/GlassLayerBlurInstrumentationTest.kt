@@ -124,6 +124,11 @@ class GlassLayerBlurInstrumentationTest {
   @Test
   fun layerBlurInterior_performance_matchesQuality() = assertInteriorMatchesQuality(HazePerformanceMode.Performance)
 
+  // Glass's default background is transparent, so a translucent source stays translucent.
+  @Test
+  fun layerBlurInterior_translucentSource_balanced_matchesQuality() =
+    assertInteriorMatchesQuality(HazePerformanceMode.Balanced, SceneKind.TranslucentInterior)
+
   // At 176 dp and above Regular's depth is 1, so no sharp share hides a partly empty reduced edge.
   // Below that, the sharp share does hide it; that case guards the composed mix instead.
   @Test
@@ -132,12 +137,12 @@ class GlassLayerBlurInstrumentationTest {
   @Test
   fun layerBlurEdges_depthBelowOne_balanced_matchesQuality() = assertEdgesMatchQuality(startSize = 100.dp, depthOne = false)
 
-  private fun assertInteriorMatchesQuality(mode: HazePerformanceMode) {
+  private fun assertInteriorMatchesQuality(mode: HazePerformanceMode, kind: SceneKind = SceneKind.Interior) {
     setScene()
-    val (tested, testedRender) = capture(Scene(SceneKind.Interior, mode, 64.dp))
+    val (tested, testedRender) = capture(Scene(kind, mode, 64.dp))
     assertThat(testedRender.layerBlurFactor, "$mode layer blur factor").isGreaterThan(0f)
     assertThat(testedRender.params.depth, "$mode depth").isLessThan(1f)
-    val (quality, qualityRender) = capture(Scene(SceneKind.Interior, HazePerformanceMode.Quality, 64.dp))
+    val (quality, qualityRender) = capture(Scene(kind, HazePerformanceMode.Quality, 64.dp))
     assertThat(qualityRender.layerBlurFactor, "Quality layer blur factor").isEqualTo(0f)
 
     // Clear of the corners, outline and rim.
@@ -145,7 +150,7 @@ class GlassLayerBlurInstrumentationTest {
     val difference = tested.maxDifferenceFrom(quality) { x, y ->
       x in inset until tested.width - inset && y in inset until tested.height - inset
     }
-    Log.i(TAG, "interior $mode vs Quality: max $difference")
+    Log.i(TAG, "interior $kind $mode vs Quality: max $difference")
     assertThat(difference, "$mode interior max channel difference (x255)").isLessThanOrEqualTo(2f)
   }
 
@@ -217,6 +222,13 @@ class GlassLayerBlurInstrumentationTest {
               }
               Box(Modifier.size(current.size).testTag("glass").then(glass))
             }
+            SceneKind.TranslucentInterior -> {
+              // The black window shows how opaque the Glass is; it is not part of the capture.
+              Box(Modifier.fillMaxSize().background(Color.Black)) {
+                Canvas(Modifier.fillMaxSize().hazeSource(state)) { drawRect(Color.Red.copy(alpha = 0.5f)) }
+              }
+              Box(Modifier.size(current.size).testTag("glass").then(glass))
+            }
             SceneKind.Edges -> {
               Box(Modifier.fillMaxSize().hazeSource(state).background(Color(0xFF3366CC)))
               // An opaque underlay shows through any see-through edge.
@@ -251,7 +263,7 @@ class GlassLayerBlurInstrumentationTest {
     return maximum * 255f
   }
 
-  private enum class SceneKind { Interior, Edges }
+  private enum class SceneKind { Interior, TranslucentInterior, Edges }
 
   private class Scene(val kind: SceneKind, val mode: HazePerformanceMode, val size: Dp) {
     val effect = GlassRuntimeEffect()

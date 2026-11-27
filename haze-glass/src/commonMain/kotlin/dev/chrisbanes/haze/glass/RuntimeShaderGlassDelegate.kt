@@ -2940,8 +2940,8 @@ internal fun IntSize.reducedForLayerBlur(factor: Float): IntSize = IntSize(
 
 /**
  * Records the depth input of a [GlassPreparedRender.layerBlurFactor] render as [layer]'s content: the
- * sharp source, drawn opaque, then a copy of it reduced by [factor], blurred at the target sigma,
- * scaled back up and drawn over it at `depth`. Over an opaque source that is the platform depth mix.
+ * sharp source at `1 - depth`, plus a copy of it reduced by [factor], blurred at the target sigma,
+ * scaled back up and added at `depth`. That sum is the platform depth mix, translucent sources too.
  */
 private fun DrawScope.recordLayerBlurDepthInput(
   layer: GraphicsLayer,
@@ -2957,7 +2957,7 @@ private fun DrawScope.recordLayerBlurDepthInput(
   // An equal effect leaves the layer's platform effect in place.
   if (blurred.renderEffect != effect) blurred.renderEffect = effect
   blurred.alpha = params.depth
-  blurred.blendMode = BlendMode.SrcOver
+  blurred.blendMode = BlendMode.Plus
   // Per-axis scales fill the whole rounded-up reduced layer, so its clamped edges repeat content.
   val scaleX = reduced.width / sampleSize.width.toFloat()
   val scaleY = reduced.height / sampleSize.height.toFloat()
@@ -2965,7 +2965,12 @@ private fun DrawScope.recordLayerBlurDepthInput(
     scale(scaleX, scaleY, pivot = Offset.Zero) { drawLayer(source) }
   }
   recordGlassLayer(layer, sampleSize) {
-    if (params.depth < 0.9999f) drawLayer(source)
+    if (params.depth < 0.9999f) {
+      drawLayer(source)
+      // The fused effect renders this layer into its own empty target, so this scales just the
+      // source, without the offscreen pass or per-draw alpha a translucent source layer would need.
+      drawRect(Color.Black.copy(alpha = 1f - params.depth), blendMode = BlendMode.DstIn)
+    }
     scale(1f / scaleX, 1f / scaleY, pivot = Offset.Zero) { drawLayer(blurred) }
   }
 }

@@ -12,6 +12,7 @@ import android.os.Looper
 import android.view.PixelCopy
 import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -25,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -35,6 +37,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
@@ -53,6 +56,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
@@ -80,6 +84,7 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.test.ContextTest
+import kotlin.math.abs
 import kotlin.test.Test
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -412,17 +417,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   fun layerBlur_fusedRendererKeepsOnlyReducedBlurredLayer() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = GlassRuntimeEffect()
-      val style = GlassStyle.regular.then {
-        optics(
-          GlassOptics(
-            refractionStrength = 0f,
-            refractionDetailIntensity = 0f,
-            depth = OpticalSizeValue.Fixed(0.65f),
-            blurRadius = OpticalSizeValue.Fixed(38.5.dp),
-          ),
-        )
-        specularIntensity(0f)
-      }
+      val style = layerBlurStyle()
       var sourceColor by mutableStateOf(Color.Red)
       setContent {
         val hazeState = rememberHazeState()
@@ -452,6 +447,50 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       waitForIdle()
       drawFrame()
       assertThat(delegate.opticalRecordCount).isGreaterThan(opticalRecords)
+    }
+
+  // A uniform source pins the mix's alpha only; the device stripe tests cover the blur itself.
+  @Test
+  fun layerBlur_translucentSource_matchesQuality() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      var mode by mutableStateOf(HazePerformanceMode.Balanced)
+      val effects = mutableMapOf<HazePerformanceMode, GlassRuntimeEffect>()
+      setContent {
+        // A fresh state and effect per mode keeps each capture independent of the previous one.
+        key(mode) {
+          val effect = remember { GlassRuntimeEffect().also { effects[mode] = it } }
+          val hazeState = rememberHazeState()
+          // The black window shows how opaque the Glass is; it is not part of the capture.
+          Box(Modifier.size(300.dp).background(Color.Black)) {
+            Canvas(Modifier.fillMaxSize().hazeSource(hazeState)) { drawRect(Color.Red.copy(alpha = 0.5f)) }
+            Box(
+              Modifier.align(Alignment.Center).size(120.dp).testTag("glass")
+                .testGlassRuntime(effect, HazeInput.Sources(hazeState), layerBlurStyle(), performanceMode = mode),
+            )
+          }
+        }
+      }
+      fun capture(): PixelMap {
+        waitForIdle()
+        return onNodeWithTag("glass").captureToImage().toPixelMap()
+      }
+      val balanced = capture()
+      assertThat(checkNotNull(effects.getValue(mode).preparedRender).layerBlurFactor, "Balanced layer blur factor").isGreaterThan(0f)
+      mode = HazePerformanceMode.Quality
+      val quality = capture()
+      assertThat(checkNotNull(effects.getValue(mode).preparedRender).layerBlurFactor, "Quality layer blur factor").isEqualTo(0f)
+
+      // Clear of the corners, outline and rim.
+      val inset = (20 * density.density).toInt()
+      var difference = 0f
+      for (x in inset until balanced.width - inset) {
+        for (y in inset until balanced.height - inset) {
+          val a = balanced[x, y]
+          val b = quality[x, y]
+          difference = maxOf(difference, abs(a.red - b.red), abs(a.green - b.green), abs(a.blue - b.blue), abs(a.alpha - b.alpha))
+        }
+      }
+      assertThat(difference * 255f, "interior max channel difference (x255)").isLessThanOrEqualTo(2f)
     }
 
   @Test
@@ -1363,6 +1402,19 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       interactionPositionAnimationSpec(tween(1))
     }
     interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+  }
+
+  /** A wide, unrefracted blur at depth 0.5, which takes the fused layer blur below Quality. */
+  private fun layerBlurStyle() = GlassStyle.regular.then {
+    optics(
+      GlassOptics(
+        refractionStrength = 0f,
+        refractionDetailIntensity = 0f,
+        depth = OpticalSizeValue.Fixed(0.5f),
+        blurRadius = OpticalSizeValue.Fixed(38.5.dp),
+      ),
+    )
+    specularIntensity(0f)
   }
 
   private fun retainedBlurEffect(
