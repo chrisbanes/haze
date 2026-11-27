@@ -320,7 +320,8 @@ internal class GlassContainerNode(
    */
   private fun layoutOrderChanged(): Boolean {
     if (registrations.count { it is GlassMemberNode } <= 1) return false
-    // Registration indices are distinct, so the order differs exactly when one decreases.
+    // Registration indices are distinct, so the order differs exactly when one decreases. Each
+    // member is searched for only after the previous one's index, so an unchanged order is linear.
     var previous = -1
     var changed = false
     traverseDescendants(GlassMemberTraversalKey) { node ->
@@ -328,18 +329,20 @@ internal class GlassContainerNode(
       if ((node as GlassMemberNode).container !== this@GlassContainerNode) {
         return@traverseDescendants TraverseDescendantsAction.ContinueTraversal
       }
-      // A removed member can still be in the layout, with its slot held by a ghost or gone.
-      val index = registrations.indexOfFirst { it === node }
+      var index = previous + 1
+      while (index < registrations.size && registrations[index] !== node) index++
       when {
-        index < 0 -> TraverseDescendantsAction.ContinueTraversal
-        index < previous -> {
-          changed = true
-          TraverseDescendantsAction.CancelTraversal
-        }
-        else -> {
+        index < registrations.size -> {
           previous = index
           TraverseDescendantsAction.ContinueTraversal
         }
+        // Registered, but not after the previous member, so before it.
+        registrations.any { it === node } -> {
+          changed = true
+          TraverseDescendantsAction.CancelTraversal
+        }
+        // A removed member can still be in the layout, with its slot held by a ghost or gone.
+        else -> TraverseDescendantsAction.ContinueTraversal
       }
     }
     return changed
