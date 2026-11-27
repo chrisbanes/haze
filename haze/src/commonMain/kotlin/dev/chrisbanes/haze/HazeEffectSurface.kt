@@ -166,9 +166,7 @@ public fun ContentDrawScope.drawHazeEffectSurfaces(
   for (component in components) {
     val isolate = component.any { footprints[it]?.needsIsolation == true } ||
       (component.size > 1 && component.any { footprints[it]?.nativeCapture != null })
-    val bounds = component.map { checkNotNull(footprints[it]).output }.reduce { a, b ->
-      Rect(minOf(a.left, b.left), minOf(a.top, b.top), maxOf(a.right, b.right), maxOf(a.bottom, b.bottom))
-    }
+    val bounds = component.map { checkNotNull(footprints[it]).output }.reduce(::unionSurfaceBounds)
     if (isolate && !owner.canComposeNativeSurfaces(bounds)) {
       component.forEach { current[it].usePortableInput() }
       component.forEach { current[it].draw(this) }

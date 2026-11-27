@@ -297,6 +297,14 @@ internal class RenderScriptBlurVisualEffectDelegate(
       if (progressiveMask != null) {
         HazeLogger.d(TAG) { "Drawing progressive mask, canvas size=$size" }
         drawRect(brush = progressiveMask, size = size, blendMode = BlendMode.DstIn)
+        // Core draws nothing behind this delegate, so draw the input behind the masked blur.
+        PaintPool.usePaint { paint ->
+          paint.blendMode = BlendMode.DstOver
+          val canvas = drawContext.canvas
+          canvas.saveLayer(Rect(-offset, expandedSize), paint)
+          translate(offset = -offset) { with(context) { this@translate.drawInput() } }
+          canvas.restore()
+        }
       }
       if (userMask != null) {
         HazeLogger.d(TAG) { "Drawing mask, canvas size=$size" }

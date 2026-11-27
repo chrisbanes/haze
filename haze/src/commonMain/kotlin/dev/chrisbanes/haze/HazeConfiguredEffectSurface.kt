@@ -442,12 +442,7 @@ private class ConfiguredSurface<Style>(
     val output = local.translate(bounds.topLeft)
     val captureTransform = if (awaitingNative) nativeTransform else preparedBackdrop?.materialTransform
     val capture = if (native && captureTransform != null) {
-      val material = Rect(
-        captureTransform.pivot.x + (local.left - captureTransform.pivot.x) * captureTransform.scaleX,
-        captureTransform.pivot.y + (local.top - captureTransform.pivot.y) * captureTransform.scaleY,
-        captureTransform.pivot.x + (local.right - captureTransform.pivot.x) * captureTransform.scaleX,
-        captureTransform.pivot.y + (local.bottom - captureTransform.pivot.y) * captureTransform.scaleY,
-      ).translate(bounds.topLeft)
+      val material = local.scaledByContentTransform(captureTransform).translate(bounds.topLeft)
       val matrix = owner.surfaceCoordinates!!.transformToRoot()
       val root = matrix.map(material)
       matrix.invert()
@@ -585,4 +580,12 @@ internal fun unionSurfaceBounds(a: Rect, b: Rect): Rect = Rect(
   minOf(a.top, b.top),
   maxOf(a.right, b.right),
   maxOf(a.bottom, b.bottom),
+)
+
+/** Scales about [transform]'s pivot in this rect's space, unlike haze-glass's top-left-relative `transformedBy`. */
+internal fun Rect.scaledByContentTransform(transform: HazeEffectContentTransform): Rect = Rect(
+  transform.pivot.x + (left - transform.pivot.x) * transform.scaleX,
+  transform.pivot.y + (top - transform.pivot.y) * transform.scaleY,
+  transform.pivot.x + (right - transform.pivot.x) * transform.scaleX,
+  transform.pivot.y + (bottom - transform.pivot.y) * transform.scaleY,
 )
