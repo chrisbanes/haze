@@ -7907,6 +7907,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>A relocated effect with <code>HazeSourceRetention.ClearWhenUnavailable</code>, such as an unmerged
   <code>hazeGlassContainer</code> member, no longer prepares its effect and then clears it on every redraw while
   none of its sources are available (<a href="https://github.com/chrisbanes/haze/issues/1924">#1924</a>).</li>
+<li>RenderScript Blur (Android 6 to 11, API 23 to 30, with <code>blurEnabled(true)</code>) no longer presents
+  mis-scaled content for a frame or more when the blur radius steps up from 0 and the capture scale
+  changes, such as a radius above 25 px or a performance-mode change
+  (<a href="https://github.com/chrisbanes/haze/issues/1923">#1923</a>).</li>
 </ul>
 <h2 id="2.1.0">2.1.0 <small>2026-11-02</small><a class="headerlink" href="#2.1.0" title="Permanent link">¶</a></h2>
 <h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">¶</a></h3>
