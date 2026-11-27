@@ -2031,6 +2031,167 @@ class HazeEffectSurfaceDrawTest {
   }
 
   @Test
+  fun configuredSources_clearWhenUnavailableWithoutSources_doesNotPrepare() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val first = SurfaceFactory(owner)
+    val second = SurfaceFactory(owner)
+    val cluster = DrawableInputRenderer()
+    val state = HazeState()
+    val input = HazeInput.Sources(state, retention = HazeSourceRetention.ClearWhenUnavailable)
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    owner.resolveSurfaces = {
+      configured = configured ?: first.surface.createConfiguredSurface(
+        HazeEffectFactory<Unit> { cluster },
+        Unit,
+        Rect(0f, 0f, 100f, 100f),
+        listOf(first.surface, second.surface),
+      )
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Box(Modifier.fillMaxSize().then(OwnerElement(owner))) {
+          Box(Modifier.size(50.dp).hazeEffect(first, input, Unit))
+          Box(Modifier.size(50.dp).hazeEffect(second, input, Unit))
+        }
+      }
+    }
+    waitForIdle()
+    runOnIdle {
+      cluster.prepares = 0
+      cluster.draws.clear()
+      cluster.clears = 0
+      owner.draws = 0
+    }
+    repeat(3) {
+      runOnIdle { owner.redraw() }
+      waitForIdle()
+    }
+    runOnIdle {
+      assertThat(owner.draws).isGreaterThanOrEqualTo(3)
+      assertThat(cluster.prepares).isEqualTo(0)
+      assertThat(cluster.draws).isEmpty()
+      assertThat(cluster.clears).isGreaterThan(0)
+      configured?.dispose()
+      owner.resolveSurfaces = null
+    }
+  }
+
+  @Test
+  fun configuredSources_clearWhenUnavailable_transitionsSourceAvailability() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val first = SurfaceFactory(owner)
+    val second = SurfaceFactory(owner)
+    val cluster = DrawableInputRenderer()
+    val state = HazeState()
+    val input = HazeInput.Sources(state, retention = HazeSourceRetention.ClearWhenUnavailable)
+    val sourcePresent = mutableStateOf(false)
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    owner.resolveSurfaces = {
+      configured = configured ?: first.surface.createConfiguredSurface(
+        HazeEffectFactory<Unit> { cluster },
+        Unit,
+        Rect(0f, 0f, 100f, 100f),
+        listOf(first.surface, second.surface),
+      )
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        if (sourcePresent.value) {
+          Box(Modifier.fillMaxSize().hazeSource(state).background(Color.Red))
+        }
+        Box(Modifier.fillMaxSize().then(OwnerElement(owner))) {
+          Box(Modifier.size(50.dp).hazeEffect(first, input, Unit))
+          Box(Modifier.size(50.dp).hazeEffect(second, input, Unit))
+        }
+      }
+    }
+    waitForIdle()
+    runOnIdle {
+      assertThat(cluster.prepares).isEqualTo(0)
+      assertThat(cluster.draws).isEmpty()
+      assertThat(cluster.clears).isGreaterThan(0)
+    }
+
+    sourcePresent.value = true
+    waitForIdle()
+    runOnIdle {
+      assertThat(cluster.prepares).isGreaterThan(0)
+      assertThat(cluster.draws).contains(true)
+    }
+
+    sourcePresent.value = false
+    waitForIdle()
+    runOnIdle {
+      cluster.prepares = 0
+      cluster.draws.clear()
+      cluster.clears = 0
+    }
+    repeat(2) {
+      runOnIdle { owner.redraw() }
+      waitForIdle()
+    }
+    runOnIdle {
+      assertThat(cluster.prepares).isEqualTo(0)
+      assertThat(cluster.draws).isEmpty()
+      assertThat(cluster.clears).isGreaterThan(0)
+    }
+
+    sourcePresent.value = true
+    waitForIdle()
+    runOnIdle {
+      assertThat(cluster.prepares).isGreaterThan(0)
+      assertThat(cluster.draws).contains(true)
+      configured?.dispose()
+      owner.resolveSurfaces = null
+    }
+  }
+
+  @Test
+  fun configuredSources_keepLastFrameWithoutSources_stillPrepares() = runComposeUiTest {
+    val owner = SurfaceOwnerNode()
+    val first = SurfaceFactory(owner)
+    val second = SurfaceFactory(owner)
+    val cluster = DrawableInputRenderer()
+    val state = HazeState()
+    val input = HazeInput.Sources(state, retention = HazeSourceRetention.KeepLastFrame)
+    var configured: HazeConfiguredEffectSurface<Unit>? = null
+    owner.resolveSurfaces = {
+      configured = configured ?: first.surface.createConfiguredSurface(
+        HazeEffectFactory<Unit> { cluster },
+        Unit,
+        Rect(0f, 0f, 100f, 100f),
+        listOf(first.surface, second.surface),
+      )
+      listOf(checkNotNull(configured).surface)
+    }
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Box(Modifier.fillMaxSize().then(OwnerElement(owner))) {
+          Box(Modifier.size(50.dp).hazeEffect(first, input, Unit))
+          Box(Modifier.size(50.dp).hazeEffect(second, input, Unit))
+        }
+      }
+    }
+    waitForIdle()
+    runOnIdle {
+      cluster.prepares = 0
+      owner.draws = 0
+    }
+    repeat(2) {
+      runOnIdle { owner.redraw() }
+      waitForIdle()
+    }
+    runOnIdle {
+      assertThat(owner.draws).isGreaterThanOrEqualTo(2)
+      assertThat(cluster.prepares).isGreaterThanOrEqualTo(2)
+      configured?.dispose()
+      owner.resolveSurfaces = null
+    }
+  }
+
+  @Test
   fun configuredSources_translationOrder_matchesDirectCoordinatesAndPixels() = configuredSourceOrderProof(HazePositionStrategy.Local, transformed = false)
 
   @Test
@@ -2213,12 +2374,17 @@ class HazeEffectSurfaceDrawTest {
     }
   }
 
-  private class DrawableInputRenderer : HazeEffectRenderer<Unit>, HazeEffectRendererRetainedOutput {
+  private class DrawableInputRenderer : HazeEffectRenderer<Unit>, HazeEffectRendererRetainedOutput, HazeEffectRendererDrawHooks<Unit> {
     /** One entry per draw: whether it had drawable input. */
     val draws = mutableListOf<Boolean>()
+    var prepares = 0
     var disagreements = 0
     var clears = 0
     private var retained = false
+
+    override fun HazeEffectRuntimeDrawScope.prepareDraw(style: Unit) {
+      prepares++
+    }
 
     override fun HazeEffectDrawScope.draw(style: Unit) {
       val scope = this as HazeEffectRuntimeDrawScope
