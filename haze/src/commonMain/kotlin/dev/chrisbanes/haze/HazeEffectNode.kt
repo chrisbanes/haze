@@ -1813,33 +1813,26 @@ internal class HazeEffectNode(
       surfaceNativeTransform = preparedSurfaceBackdrop?.materialTransform
     }
     val captureTransform = if (awaitingNative) surfaceNativeTransform else preparedSurfaceBackdrop?.materialTransform
-    captureTransform?.let { material = material.transformedBy(it) }
+    captureTransform?.let { material = material.scaledByContentTransform(it) }
     if (!native && shouldDrawEffect(shouldPrepareEffectDraw())) {
       withSurfaceScope(scope, matrix) { prepareEffectDraw(effectDrawScope()) }
     }
-    val output = matrix.map(layer.transformedBy(interaction))
+    val output = matrix.map(layer.scaledByContentTransform(interaction))
     // A declined effect reports no capture: its draw falls back to content for this frame.
     val capture = if (native && captureTransform != null) {
       // HWUI snapshots the transformed node subset with roundOut(), then filters only that image.
       // Convert that pixel-rounded root footprint back to owner coordinates, including affine scale.
-      val inRoot = checkNotNull(lastKnownCoordinates).transformToRoot().map(material.transformedBy(interaction))
+      val inRoot = checkNotNull(lastKnownCoordinates).transformToRoot().map(material.scaledByContentTransform(interaction))
       val rounded = Rect(floor(inRoot.left), floor(inRoot.top), ceil(inRoot.right), ceil(inRoot.bottom))
       checkNotNull(owner).transformToRoot().also { it.invert() }.map(rounded)
     } else {
       null
     }
     return HazeSurfaceFootprint(
-      output = if (capture != null) Rect(minOf(output.left, capture.left), minOf(output.top, capture.top), maxOf(output.right, capture.right), maxOf(output.bottom, capture.bottom)) else output,
+      output = if (capture != null) unionSurfaceBounds(output, capture) else output,
       nativeCapture = capture,
     )
   }
-
-  private fun Rect.transformedBy(transform: HazeEffectContentTransform): Rect = Rect(
-    transform.pivot.x + (left - transform.pivot.x) * transform.scaleX,
-    transform.pivot.y + (top - transform.pivot.y) * transform.scaleY,
-    transform.pivot.x + (right - transform.pivot.x) * transform.scaleX,
-    transform.pivot.y + (bottom - transform.pivot.y) * transform.scaleY,
-  )
 
   internal fun usePortableSurfaceInput(failed: Boolean = false, temporary: Boolean = true) {
     if (explicitInput is HazeInput.Backdrop) {
