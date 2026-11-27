@@ -12,7 +12,8 @@ import kotlin.test.Test
  * Pins the circular shader sources, which must stay identical to those before continuous corners,
  * apart from the rim sources, which gained the rim highlight and edge outline afterwards, the
  * fused and optical sources, which skip the flat interior lighting gradient (#1766), and the
- * merged sources, whose field skips far members (#1766).
+ * merged sources, whose field skips far members (#1766). The fused and optical sources were
+ * re-recorded when their Fresnel term clamped its dot product (#1916).
  * Pixel and profile regressions cover their rendering behavior.
  */
 class GlassShadersGoldenTest {
@@ -60,13 +61,14 @@ class GlassShadersGoldenTest {
       "rim-merged" to GlassShaders.buildRim(merged = true, continuous = true),
       "merged-background" to GlassShaders.buildMergedBackground(continuous = true),
     )
-    // Recorded from cac1ddea5, before overlapping corners changed the continuous programs.
+    // Recorded from cac1ddea5, before overlapping corners changed the continuous programs. The fused
+    // and optical sources were re-recorded when their Fresnel term clamped its dot product (#1916).
     assertThat(sources.mapValues { (_, source) -> source.sha256() }).isEqualTo(
       mapOf(
-        "fused" to "2dc4ddf590e1351ade0bddae5ef2ad289698a58d3132f801533c618df18550ad",
-        "fused-merged" to "31cf81911e2f5e361cff4956f5530455f1730d8a9876cbca2445bf2357ff90df",
-        "fused-merged-circular-optics" to "7dddf3ed9b4eb012b26338cbe2c3365269ce1a222fa4eae237a9dda44f35a646",
-        "optical-merged" to "80410be10e8eb678519f41d6cc5c6bbf3c22b23aa5bff2213bc36ea1b33a10ab",
+        "fused" to "a9776aa7fd021d3f757b274a9cdf0def06293fe512c499438b0cb44e2ab43587",
+        "fused-merged" to "d043ed0113c0e841fed1ada342ed6b31debe19f4eb1a5f7411ec2bf6c6c56cac",
+        "fused-merged-circular-optics" to "d4e9b05ad255bc7dea6e453ce87f7e8679c0773042dd7e43c80f85746a5e8ab8",
+        "optical-merged" to "47c93aaeda450cc805a1b1bffde02628e103417daccdcb54d4fd964e425b01be",
         "rim-merged" to "149e1f487deb93098b2fa02dd4865b5858bda31dd83678154c4a7819eb20c2f5",
         "merged-background" to "2e0d41190f67ca6edfdcae389fd0a591f4c7ae487d03c9eb3aa1bb9b1096083d",
       ),
@@ -84,11 +86,12 @@ class GlassShadersGoldenTest {
     // sources when the field began to skip far members (#1766). The rim sources were re-recorded
     // when they gained node-bound edge coverage (#1798), and the standalone rim was re-recorded
     // when its straight outlines gained centered outer-edge coverage. Both rim sources were
-    // re-recorded when the outline gained topAndBottomStrength (#1755).
+    // re-recorded when the outline gained topAndBottomStrength (#1755). The fused and optical sources
+    // were re-recorded when their Fresnel term clamped its dot product (#1916).
     val ADDITIONAL_RECORDED = mapOf(
-      "fused-merged" to "954a4f172ef97b5c3ad9c3f043afe0c81b8caf83fe051d5675f77c7e7496f715",
-      "fused-merged-no-detail" to "739f78671a686db9f801da7e97f88dd737ae664d149da8f982411e55bec946e6",
-      "optical-merged" to "a40dd9d5a3bbcf108f164d0063edcec26fd0be0668066a78b2b47fd88d344cff",
+      "fused-merged" to "e49200ea52330a1f1ddb502e918f2f5031e7cf707b8fd1ec207d4bf2783005d7",
+      "fused-merged-no-detail" to "4cb50af7436e5a6a16d2b81293dd5bae2140262ecc41f465e979c1232a861672",
+      "optical-merged" to "fda1424e43135ce8b97ff334c6b885f4e1385b782148af851ea940df3908b528",
       "detail-merged" to "cfb63dc5bbe3775548bab65eb082dc2f3b2eee3e3e254503e135a006f43a6c44",
       "detail-merged-coverage" to "df2ab0fda95fe2d1e0347d97941959237d6918d7b3a12de9c939f22d7962bf02",
       "rim-merged" to "13a6ae7c129589ac14af9ef17599881c7c21c4cca9c87c40439b061d88de0174",
@@ -98,12 +101,12 @@ class GlassShadersGoldenTest {
     )
 
     val RECORDED = mapOf(
-      "fused" to "bdf71f6f93e48bd77b03a4bc38bb5dbb4af7e743c3e5667ff8b1694b3c8c7fbc",
-      "fused-no-detail" to "7bb8f78e7db3e8dbea98b6f31ee77801459f2d794673b100c217111f6b03815d",
-      "fused-interaction" to "9ef44b4ee400e8b77b02cbbca7ff66f1a67d32f642b7eb83f9038bf6ea1ef981",
-      "fused-interaction-no-detail" to "e6d78484d294cdf7da1743add8a60a3c23ff6c444c45661773cf3c293293f6e3",
-      "optical" to "60d3da6d53a34abd0a71cd2d30376437e9ca3abdb0c7975aedef3d45da3cb431",
-      "optical-interactive" to "c65e5f2a413abf52ff2d20495cbe54d6735704c50420395838c2dd58c7a8b52d",
+      "fused" to "cc7345e430be7c14027d8568c6f4efb3571c036490901a993f7911df16044da8",
+      "fused-no-detail" to "ea3dbbdc883a302013f8e8a607c017c93903ee18e5fd40a59e78f8879f911431",
+      "fused-interaction" to "f61dc1327ec7c7d67c3a502b09778b8c51f538a0e05109127138a4675401f6f9",
+      "fused-interaction-no-detail" to "914fd95338c6cc12a1f37908e8a5fcd263d9d6502a52080cdb5ebe53d244d0a5",
+      "optical" to "4c821b24b92176adbd4f28013815809eaa26b4807b57042b6d0734718e2810d0",
+      "optical-interactive" to "ae55d635792f7f8463f05d5631e22cb7d515552382992fce03f1d1f733c30507",
       "detail" to "c608bf4734727c99432fb016ad5be44c23099060d2e50748d73d78faadcca091",
       "detail-coverage" to "4d835b4c6039dff868a024c3bccc9edb4ac28135830b757dac690e942b1fb950",
       "detail-interactive" to "16052b1e27e9494c1d7c3596074682e5f16cc4a1fc743151e804d8dedebd4972",

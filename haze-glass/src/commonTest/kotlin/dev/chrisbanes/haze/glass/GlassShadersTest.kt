@@ -20,6 +20,23 @@ import kotlin.test.Test
 class GlassShadersTest {
 
   @Test
+  fun fresnel_clampsDotBeforePow() {
+    // A normal's z component can exceed 1 by float error, which would make pow's base negative.
+    for (source in listOf(GlassShaders.buildFused(), GlassShaders.buildOptical())) {
+      assertThat(source).contains("1.0 - clamp(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0, 1.0)")
+      assertThat(source).doesNotContain("max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0)")
+    }
+  }
+
+  @Test
+  fun materialClamp_neverInvertsBounds() {
+    assertThat(GlassShaders.buildBlur(horizontal = true, clampToMaterial = true)).contains(
+      "max(max(vec2(0.5), materialOrigin + vec2(0.5)), " +
+        "min(sampleSize - vec2(0.5), materialOrigin + materialSize - vec2(0.5)))",
+    )
+  }
+
+  @Test
   fun coverageOutsetVariant_addsOnlyCaptureBoundsAndOnlyOutsetProgramsExtendCoverage() {
     // The outset is a constant, so outset programs declare the uniforms the original ones do, plus
     // the captured layer's bounds, and other surfaces compile the original source unchanged (#1775).
