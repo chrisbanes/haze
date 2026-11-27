@@ -71,12 +71,17 @@ internal actual fun BlurVisualEffect.constrainInputScaleForBrushes(scale: Float)
 
   // API 31–32 cannot transform an arbitrary shader without changing its local matrices.
   // Keep capture and filtering at the same full resolution for these brushes.
-  val progressiveBrush = (progressive as? HazeProgressive.Brush)?.brush
-  val hasCustomBrush = mask?.isCustomShaderBrush() == true ||
-    progressiveBrush?.isCustomShaderBrush() == true ||
-    colorEffects.orEmpty().any { it is TintBrushHazeColorEffect && it.brush.isCustomShaderBrush() }
-  return if (hasCustomBrush) BLUR_FULL_RESOLUTION_SCALE else scale
+  return if (hasCustomShaderBrush()) BLUR_FULL_RESOLUTION_SCALE else scale
 }
+
+/**
+ * Whether a mask, progressive brush or brush tint uses a custom shader, which API 31–32 and the
+ * runtime-shader fallback draw logically.
+ */
+internal fun BlurVisualEffect.hasCustomShaderBrush(): Boolean =
+  mask?.isCustomShaderBrush() == true ||
+    (progressive as? HazeProgressive.Brush)?.brush?.isCustomShaderBrush() == true ||
+    colorEffects.orEmpty().any { it is TintBrushHazeColorEffect && it.brush.isCustomShaderBrush() }
 
 internal const val COMBINED_NOISE_TINT_SKSL = """
   uniform shader content;

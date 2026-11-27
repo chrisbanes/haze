@@ -34,11 +34,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
 ): Boolean {
   if (Build.VERSION.SDK_INT !in 31..32 && !runtimeShaderFallback) return false
   val effect = blurVisualEffect
-  val progressiveBrush = (effect.progressive as? HazeProgressive.Brush)?.brush
-  val custom = effect.mask?.isCustomShaderBrush() == true ||
-    progressiveBrush?.isCustomShaderBrush() == true ||
-    effect.colorEffects.orEmpty().any { it is TintBrushHazeColorEffect && it.brush.isCustomShaderBrush() }
-  if (!custom) return false
+  if (!effect.hasCustomShaderBrush()) return false
   val style = LogicalStyle(
     mask = effect.mask,
     progressive = effect.progressive,
