@@ -229,8 +229,8 @@ internal class RuntimeShaderGlassDelegate(
       refreshPreparedAvailability(params, currentRenderEffects)
 
       val blurRequired = !supportsFusedGlassRenderEffect && shouldBlur(params, currentRenderEffects)
-      // A fused layer blur holds its reduced copy in the blurred slot and its sharp share in the
-      // depth-mixed slot, which the fused path otherwise leaves empty.
+      // A fused layer blur holds its reduced copy in the blurred slot, which the fused path
+      // otherwise leaves empty, and draws its sharp share straight from the source.
       val layerBlurRequired = supportsFusedGlassRenderEffect && currentPreparedRender.layerBlurFactor > 0f
       val depthMixRequired =
         !supportsFusedGlassRenderEffect && shouldDepthMix(params, currentRenderEffects)
@@ -252,7 +252,7 @@ internal class RuntimeShaderGlassDelegate(
       } else if (!layerBlurRequired) {
         layers.releaseBlurred(currentGraphicsContext)
       }
-      if (!depthMixRequired && !layerBlurRequired) {
+      if (!depthMixRequired) {
         layers.releaseDepthMixed(currentGraphicsContext)
       }
       if (!refractionDetailRequired) {
@@ -286,7 +286,6 @@ internal class RuntimeShaderGlassDelegate(
       }
       if (layerBlurRequired) {
         layers.ensureBlurred(currentGraphicsContext)
-        layers.ensureDepthMixed(currentGraphicsContext)
       }
       layers.ensureOptical(currentGraphicsContext)
       if (refractionDetailRequired) {
@@ -1379,7 +1378,6 @@ internal class RuntimeShaderGlassDelegate(
         layer = layer,
         source = source,
         blurred = layers.blurred?.takeUnless { it.isReleased } ?: return null,
-        sharp = layers.depthMixed?.takeUnless { it.isReleased } ?: return null,
         params = params,
         factor = layerBlurFactor,
       )
@@ -2942,14 +2940,13 @@ internal fun IntSize.reducedForLayerBlur(factor: Float): IntSize = IntSize(
 
 /**
  * Records the depth input of a [GlassPreparedRender.layerBlurFactor] render as [layer]'s content: the
- * sharp source at `1 - depth`, plus a copy of it reduced by [factor], blurred at the target sigma,
- * scaled back up and added at `depth`. That sum is the platform depth mix.
+ * sharp source, drawn opaque, then a copy of it reduced by [factor], blurred at the target sigma,
+ * scaled back up and drawn over it at `depth`. Over an opaque source that is the platform depth mix.
  */
 private fun DrawScope.recordLayerBlurDepthInput(
   layer: GraphicsLayer,
   source: GraphicsLayer,
   blurred: GraphicsLayer,
-  sharp: GraphicsLayer,
   params: GlassRenderParams,
   factor: Float,
 ) {
@@ -2959,21 +2956,16 @@ private fun DrawScope.recordLayerBlurDepthInput(
   val effect = BlurEffect(radius, radius, TileMode.Clamp)
   // An equal effect leaves the layer's platform effect in place.
   if (blurred.renderEffect != effect) blurred.renderEffect = effect
-  val drawsSharp = params.depth < 0.9999f
   blurred.alpha = params.depth
-  // Adds to the sharp share; alone, over nothing, that is a plain draw.
-  blurred.blendMode = if (drawsSharp) BlendMode.Plus else BlendMode.SrcOver
+  blurred.blendMode = BlendMode.SrcOver
+  // Per-axis scales fill the whole rounded-up reduced layer, so its clamped edges repeat content.
+  val scaleX = reduced.width / sampleSize.width.toFloat()
+  val scaleY = reduced.height / sampleSize.height.toFloat()
   recordGlassLayer(blurred, reduced) {
-    scale(1f / factor, pivot = Offset.Zero) { drawLayer(source) }
-  }
-  if (drawsSharp) {
-    // Applies the alpha to each draw, without an offscreen pass.
-    sharp.compositingStrategy = CompositingStrategy.ModulateAlpha
-    sharp.alpha = 1f - params.depth
-    recordGlassLayer(sharp, sampleSize) { drawLayer(source) }
+    scale(scaleX, scaleY, pivot = Offset.Zero) { drawLayer(source) }
   }
   recordGlassLayer(layer, sampleSize) {
-    if (drawsSharp) drawLayer(sharp)
-    scale(factor, pivot = Offset.Zero) { drawLayer(blurred) }
+    if (params.depth < 0.9999f) drawLayer(source)
+    scale(1f / scaleX, 1f / scaleY, pivot = Offset.Zero) { drawLayer(blurred) }
   }
 }

@@ -1033,7 +1033,7 @@ private fun buildGlassFusedLayerPlan(
 ): GlassRetainedLayerPlan = GlassRetainedLayerPlan(
   buildList {
     add(GlassRetainedLayer(GlassRetainedLayerKind.Source, sampleSize))
-    // The reduced copy's blur renders offscreen; its sharp share modulates alpha without one.
+    // The reduced copy's blur renders offscreen; its sharp share draws the source directly.
     if (layerBlurSize != null) add(GlassRetainedLayer(GlassRetainedLayerKind.Blurred, layerBlurSize))
     add(GlassRetainedLayer(GlassRetainedLayerKind.Optical, sampleSize))
     if (rimActive) add(GlassRetainedLayer(GlassRetainedLayerKind.Rim, sampleSize))
