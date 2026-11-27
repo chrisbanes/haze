@@ -25,15 +25,20 @@ import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.layout.ScaleFactor
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import assertk.assertThat
+import assertk.assertions.each
 import assertk.assertions.isCloseTo
+import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
+import assertk.assertions.isNotEmpty
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
@@ -52,13 +57,16 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import dev.chrisbanes.haze.test.runScreenshotTest
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import org.robolectric.annotation.Config
 
 /**
  * The RenderScript presentation block runs through [RenderScriptBlurVisualEffectDelegate.drawPresentation]
- * so it can be driven without a RenderScript surface. The capture and padded layers need the surface
- * and are covered by the device test.
+ * so it can be driven without a RenderScript surface. With [PresentationFactory.fullDrawSize] set, the
+ * delegate's whole draw runs instead; tests that reach the Surface replace its write and the blur.
+ * Blurred pixels need the surface and are covered by the device test.
  */
 class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
   private val context get() = ApplicationProvider.getApplicationContext<android.content.Context>()
@@ -288,7 +296,7 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
     val padded = h.delegate.paddedLayer.acquire(graphicsContext, key = 1L)
 
     // An empty layer creates no capture, so the full draw stops before it starts an update.
-    h.factory.drawsEmptyLayer = true
+    h.factory.fullDrawSize = Size.Zero
     h.delegate.invalidateRetainedOutput()
     h.redraw(this)
 
@@ -296,6 +304,75 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
     assertThat(padded.isReleased).isTrue()
     assertThat(h.delegate.captureLayer.layer).isNull()
     assertThat(h.delegate.paddedLayer.layer).isNull()
+  }
+
+  @Test
+  @Config(sdk = [35])
+  fun draw_zeroRadiusTo40Dp_presentsTheLiveCaptureAtItsRecordedScale() = runScreenshotTest {
+    val h = Harness(redCapture(0.dp))
+    h.factory.fullDrawSize = Size(100f, 100f)
+    setContent { h.Content() }
+    frame()
+    val presented = h.recordPresentations()
+    var held = CountDownLatch(1)
+    h.delegate.applyBlur = { _, _ -> held.await(10, TimeUnit.SECONDS) }
+    try {
+      // 40dp is above RenderScript's 25px cap at this density, so the capture scale drops.
+      h.update(redCapture(40.dp))
+      val step = h.redraw(this)
+      repeat(2) { h.redraw(this) }
+
+      assertThat(h.delegate.currentJob?.isActive).isEqualTo(true)
+      assertThat(presented.filter { it.first != it.second }, "mis-scaled presentations").isEmpty()
+      // The capture now covers about 23px; presented at the old scale, this pixel would stay white.
+      assertThat(step[60, 50].red).isCloseTo(1f, 0.05f)
+      assertThat(step[60, 50].green).isCloseTo(0f, 0.05f)
+
+      held.countDown()
+      h.awaitJob(this)
+      h.redraw(this)
+      assertThat(h.delegate.canDrawRetainedOutput()).isTrue()
+      val (scale40, captured40) = presented.last()
+      assertThat(scale40).isEqualTo(captured40)
+
+      // A blurred output keeps presenting its own scale while the next capture is in flight.
+      held = CountDownLatch(1)
+      val before = presented.size
+      h.update(redCapture(80.dp))
+      repeat(2) { h.redraw(this) }
+      val pending = presented.drop(before)
+      assertThat(pending).isNotEmpty()
+      assertThat(pending.map { it.first }).each { it.isEqualTo(scale40) }
+      assertThat(pending.map { it.second }).each { it.isNotEqualTo(scale40) }
+    } finally {
+      held.countDown()
+    }
+  }
+
+  @Test
+  @Config(sdk = [35])
+  fun invalidateRetainedOutput_afterZeroRadius_presentsNothingUntilTheNextOutput() = runScreenshotTest {
+    val h = Harness(redCapture(0.dp))
+    h.factory.fullDrawSize = Size(100f, 100f)
+    setContent { h.Content() }
+    frame()
+    val presented = h.recordPresentations()
+    val held = CountDownLatch(1)
+    h.delegate.applyBlur = { _, _ -> held.await(10, TimeUnit.SECONDS) }
+    try {
+      h.delegate.invalidateRetainedOutput()
+      h.update(redCapture(40.dp))
+      repeat(2) { h.redraw(this) }
+      assertThat(presented).isEmpty()
+
+      held.countDown()
+      h.awaitJob(this)
+      h.redraw(this)
+      assertThat(presented).isNotEmpty()
+      assertThat(presented.filter { it.first != it.second }, "mis-scaled presentations").isEmpty()
+    } finally {
+      held.countDown()
+    }
   }
 
   @Test
@@ -354,6 +431,27 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
       )
     }
 
+    /**
+     * Simulates the Surface write and records every presentation as (presented, captured) scales.
+     * Call after the first frame, which builds the delegate.
+     */
+    fun recordPresentations(): List<Pair<ScaleFactor, ScaleFactor>> {
+      val presented = mutableListOf<Pair<ScaleFactor, ScaleFactor>>()
+      delegate.writeToSurface = { rs, _, _ -> rs.receiveInputBuffer {} }
+      delegate.onPresentForTest = { output, capture -> presented += output to capture }
+      return presented
+    }
+
+    /** Waits for the update in flight: its later steps resume off the frame. */
+    fun awaitJob(test: ScreenshotUiTest) = test.run {
+      val deadline = System.nanoTime() + 10_000_000_000L
+      while (delegate.currentJob?.isActive == true && System.nanoTime() < deadline) {
+        waitForIdle()
+        Thread.sleep(10)
+      }
+      assertThat(delegate.currentJob?.isActive == true).isFalse()
+    }
+
     /** Forces the next frame to run the renderer's draw again. */
     fun redraw(test: ScreenshotUiTest) = test.run {
       tick++
@@ -381,8 +479,8 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
     var offset = Offset.Zero
     var paddedOutput = false
 
-    /** Runs the delegate's whole draw, over an empty layer, instead of only its presentation. */
-    var drawsEmptyLayer = false
+    /** When set, runs the delegate's whole draw over a layer of this size instead of only its presentation. */
+    var fullDrawSize: Size? = null
     var draws = 0
       private set
 
@@ -425,10 +523,11 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
           outputOwner = graphicsContext
         }
         with(current) {
-          if (drawsEmptyLayer) {
+          val fullDrawSize = fullDrawSize
+          if (fullDrawSize != null) {
             draw(
               object : HazeEffectRuntimeDrawScope by runtime {
-                override val layerSize: Size = Size.Zero
+                override val layerSize: Size = fullDrawSize
                 override val hasDrawableInput: Boolean = true
               },
             )
@@ -447,6 +546,12 @@ class RenderScriptLayerReuseAndroidHostTest : ScreenshotTest() {
       }
     }
   }
+}
+
+private fun redCapture(radius: Dp) = HazeBlurStyle {
+  noiseFactor(0f)
+  backgroundColor(Color.Red)
+  blurRadius(radius)
 }
 
 private val PLAIN = HazeBlurStyle {
