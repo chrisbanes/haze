@@ -345,7 +345,7 @@ private class ConfiguredSurface<Style>(
   }
 
   private fun shouldPreparePortableDraw(): Boolean {
-    val sourceInput = sourceInput() ?: return true
+    val sourceInput = input as? HazeInput.Sources ?: return true
     return entries.isNotEmpty() || sourceInput.retention.keepsLastFrame()
   }
 
