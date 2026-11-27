@@ -116,3 +116,34 @@ val prepareGlassMetalProfile by tasks.registering {
   outputs.file(outputFile)
   doLast { outputFile.get().asFile.writeText(classpath.files.joinToString(File.pathSeparator)) }
 }
+
+// Compile once, then launch fresh probe JVMs without Gradle startup in the timing loop.
+tasks.register("prepareWindowsGlassProbe") {
+  group = "verification"
+  val runtimeClasspath = tasks.named<Test>("jvmTest").get().classpath
+  val classpathFile = layout.buildDirectory.file("windows-glass-probe-classpath.txt")
+  inputs.files(runtimeClasspath)
+  outputs.file(classpathFile)
+  dependsOn(runtimeClasspath)
+  doLast {
+    classpathFile.get().asFile.writeText(runtimeClasspath.asPath)
+  }
+}
+
+tasks.register<Zip>("packageWindowsGlassRepro") {
+  group = "verification"
+  archiveFileName.set("windows-glass-repro.zip")
+  destinationDirectory.set(layout.buildDirectory.dir("outputs"))
+  from(rootProject.file("docs/agents/investigations/1767-repro")) {
+    exclude("build/**", ".gradle/**", ".kotlin/**")
+  }
+  from(rootProject.projectDir) {
+    include("gradlew", "gradlew.bat", "gradle/wrapper/**", "LICENSE")
+  }
+}
+
+// WindowsGlassProbeTest checks the frozen reproducer fixtures byte for byte.
+tasks.named<Test>("jvmTest") {
+  inputs.dir(rootProject.file("docs/agents/investigations/1767-repro/src/main/resources"))
+    .withPathSensitivity(PathSensitivity.RELATIVE)
+}
