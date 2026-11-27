@@ -110,7 +110,7 @@ class CombinedNoiseTintRenderEffectAndroidHostTest : ScreenshotTest() {
     assertThat(params(listOf(tint), mask = SolidColor(Color.Black)).combinedNoiseTintColor()).isNull()
     assertThat(params(listOf(tint), progressiveMask = SolidColor(Color.Black)).combinedNoiseTintColor()).isNull()
     assertThat(params(listOf(tint), progressive = HazeProgressive.verticalGradient()).combinedNoiseTintColor()).isNull()
-    assertThat(params(listOf(HazeColorEffect.tint(SolidColor(Color.Red)))).combinedNoiseTintColor()).isNull()
+    assertThat(params(listOf(HazeColorEffect.tint(SolidColor(Color.Red)))).combinedNoiseTintColor()).isEqualTo(Color.Red)
     assertThat(params(listOf(tint, tint)).combinedNoiseTintColor()).isNull()
     assertThat(params(listOf(HazeColorEffect.tint(Color.Red, BlendMode.Multiply))).combinedNoiseTintColor()).isNull()
     assertThat(params(listOf(tint), modulate = 0.5f).combinedNoiseTintColor()).isEqualTo(Color.Red.copy(alpha = 0.25f))

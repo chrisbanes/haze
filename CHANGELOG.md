@@ -89,6 +89,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Blur's scrim fallback and Android's RenderScript blur now draw
+  `HazeColorEffect.tint(SolidColor(color))` exactly like `HazeColorEffect.tint(color)`. The scrim
+  fallback strengthens the tint with the blur radius, and RenderScript tints the whole blurred area
+  instead of only the node's bounds ([#1921](https://github.com/chrisbanes/haze/issues/1921)).
 - `HazeEffectNode` no longer drops or churns source `preDrawListeners` when `DirtyFields.Areas`
   re-evaluates to an unchanged area set or hits the unplaced position-strategy early return
   ([#1929](https://github.com/chrisbanes/haze/issues/1929)).

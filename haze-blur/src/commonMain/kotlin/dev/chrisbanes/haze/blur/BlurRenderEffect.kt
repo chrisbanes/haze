@@ -228,24 +228,10 @@ private fun PlatformRenderEffect.withBrushTint(
   alphaModulate: Float,
   mask: Shader?,
 ): PlatformRenderEffect {
-  effect.asColorTintOrNull()?.let { return withColorTint(it, alphaModulate, mask) }
   val tintBrush = effect.brush.toShader(size, scale, offset) ?: return this
 
-  val brushEffect = if (alphaModulate >= 1f) {
-    createShaderRenderEffect(tintBrush)
-  } else {
-    // If we need to modulate the alpha, wrap it in a ColorFilter
-    createColorFilterRenderEffect(
-      colorFilter = createBlendColorFilter(
-        color = Color.Black.copy(alpha = alphaModulate).toArgb(),
-        blendMode = BlendMode.DstIn,
-      ),
-      input = createShaderRenderEffect(tintBrush),
-    )
-  }
-
   return applyMaskAndBlend(
-    baseEffect = brushEffect,
+    baseEffect = createShaderRenderEffect(tintBrush).withAlphaModulate(alphaModulate),
     blendMode = effect.blendMode,
     mask = mask,
   )
@@ -282,9 +268,6 @@ private fun PlatformRenderEffect.withColorTint(
   )
 }
 
-internal fun TintBrushHazeColorEffect.asColorTintOrNull(): TintColorHazeColorEffect? =
-  (brush as? SolidColor)?.let { TintColorHazeColorEffect(it.value, blendMode) }
-
 internal fun TintColorHazeColorEffect.resolveColor(alphaModulate: Float): Color? {
   val resolved = when {
     alphaModulate < 1f -> color.copy(alpha = color.alpha * alphaModulate)
@@ -303,21 +286,10 @@ private fun PlatformRenderEffect.withColorFilter(
   alphaModulate: Float,
   mask: Shader?,
 ): PlatformRenderEffect {
-  val unmodulated = createColorFilterRenderEffect(
+  val filterEffect = createColorFilterRenderEffect(
     colorFilter = effect.colorFilter.toPlatformColorFilter(),
     input = this,
-  )
-  val filterEffect = if (alphaModulate >= 1f) {
-    unmodulated
-  } else {
-    createColorFilterRenderEffect(
-      colorFilter = createBlendColorFilter(
-        color = Color.Black.copy(alpha = alphaModulate).toArgb(),
-        blendMode = BlendMode.DstIn,
-      ),
-      input = unmodulated,
-    )
-  }
+  ).withAlphaModulate(alphaModulate)
 
   val maskedFilter = if (mask != null) {
     createBlendRenderEffect(
@@ -332,6 +304,18 @@ private fun PlatformRenderEffect.withColorFilter(
   return blendForeground(
     foreground = maskedFilter,
     blendMode = effect.blendMode,
+  )
+}
+
+/** Scales this effect's alpha by [alphaModulate], adding no node when it is at least 1. */
+private fun PlatformRenderEffect.withAlphaModulate(alphaModulate: Float): PlatformRenderEffect {
+  if (alphaModulate >= 1f) return this
+  return createColorFilterRenderEffect(
+    colorFilter = createBlendColorFilter(
+      color = Color.Black.copy(alpha = alphaModulate).toArgb(),
+      blendMode = BlendMode.DstIn,
+    ),
+    input = this,
   )
 }
 
