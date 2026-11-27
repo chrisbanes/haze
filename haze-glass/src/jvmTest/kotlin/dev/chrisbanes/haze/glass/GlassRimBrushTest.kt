@@ -301,6 +301,22 @@ class GlassRimBrushTest {
     assertThat(maxChannelDifference(drawBrush(brushA), drawFilter(keyA2))).isLessThanOrEqualTo(1f / 255f)
   }
 
+  @Test
+  fun rimBrushProvider_reusesScratchAcrossCalls() {
+    val uniforms = ArrayCapturingUniforms()
+    val provider = SkiaGlassRimBrushProvider(rimProvider(merged = true).effect, uniforms = uniforms)
+
+    assertReusesMergedFieldArrays(uniforms) { field -> provider(rimKey().copy(mergedField = field)) }
+  }
+
+  @Test
+  fun mergedBackgroundProvider_reusesScratchAcrossCalls() {
+    val uniforms = ArrayCapturingUniforms()
+    val provider = SkiaGlassMergedBackgroundShaderProvider(mergedBackgroundProvider().effect, uniforms = uniforms)
+
+    assertReusesMergedFieldArrays(uniforms) { field -> provider(Offset.Zero, field) }
+  }
+
   private fun rimProvider(merged: Boolean): SkiaGlassRimBrushProvider {
     val provider = checkNotNull(createGlassRimBrushProvider(merged))
     assertThat(provider).isInstanceOf<SkiaGlassRimBrushProvider>()

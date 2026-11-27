@@ -161,7 +161,7 @@ internal object GlassShaders {
             normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend));
           }
           float fresnelBase =
-            1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0);
+            1.0 - clamp(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0, 1.0);
           float fresnel = fresnelExponent == 3.0
             ? fresnelBase * fresnelBase * fresnelBase
             : pow(fresnelBase, fresnelExponent);
@@ -488,7 +488,7 @@ internal object GlassShaders {
             vec3 contentNormal = computeContentNormal(refractCoord, refractedCenterSample);
             normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend));
           }
-          float fresnelBase = 1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0);
+          float fresnelBase = 1.0 - clamp(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0, 1.0);
           float fresnel = fresnelExponent == 3.0
             ? fresnelBase * fresnelBase * fresnelBase
             : pow(fresnelBase, fresnelExponent);
@@ -852,7 +852,8 @@ $OUTLINE_GRADIENT
   private fun clampSampleExpression(clamp: SampleClamp): String = when (clamp) {
     SampleClamp.Material ->
       "clamp(coord, max(vec2(0.5), materialOrigin + vec2(0.5)), " +
-        "min(sampleSize - vec2(0.5), materialOrigin + materialSize - vec2(0.5)))"
+        "max(max(vec2(0.5), materialOrigin + vec2(0.5)), " +
+        "min(sampleSize - vec2(0.5), materialOrigin + materialSize - vec2(0.5))))"
     SampleClamp.Capture ->
       "clamp(coord, captureBounds.xy + vec2(0.5), max(captureBounds.xy + vec2(0.5), captureBounds.zw - vec2(0.5)))"
     SampleClamp.Sample -> "clamp(coord, vec2(0.5), sampleSize - vec2(0.5))"

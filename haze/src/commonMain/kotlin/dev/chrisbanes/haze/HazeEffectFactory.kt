@@ -439,7 +439,8 @@ public fun scaledContentScale(layerSize: Size, scaleFactor: Float): ScaleFactor 
  * replays the block after dropping the layer's display list. Produce the shader there, rather than
  * capturing one, so a shader whose uniforms are shared is configured and drawn in the same call.
  *
- * Returns null without creating a layer when the scaled [layerSize] is empty.
+ * Returns null without creating a layer when the scaled [layerSize] is empty. If recording throws, a
+ * layer this call created is released; [existingLayer] stays the caller's.
  * When [fillCapture] is true, the input fills the rounded allocation independently on each axis;
  * present that capture with the matching [drawScaledContent] overload and [scaledContentScale].
  */
@@ -459,21 +460,29 @@ public fun DrawScope.createScaledContentLayer(
     return null
   }
 
-  val layer = existingLayer?.takeUnless { it.isReleased }
-    ?: context.requireGraphicsContext().createGraphicsLayer()
+  val existing = existingLayer?.takeUnless { it.isReleased }
+  val created = existing == null
+  val layer = existing ?: context.requireGraphicsContext().createGraphicsLayer()
 
-  layer.record(size = scaledLayerSize) {
-    val shader = backgroundShader?.invoke()
-    if (shader != null) {
-      drawRect(ShaderBrush(shader))
-    } else if (backgroundColor.alpha > 0f) {
-      drawRect(backgroundColor)
-    }
+  try {
+    layer.record(size = scaledLayerSize) {
+      val shader = backgroundShader?.invoke()
+      if (shader != null) {
+        drawRect(ShaderBrush(shader))
+      } else if (backgroundColor.alpha > 0f) {
+        drawRect(backgroundColor)
+      }
 
-    val actualScale = if (fillCapture) scaledContentScale(layerSize, scaleFactor) else ScaleFactor(scaleFactor, scaleFactor)
-    scale(scaleX = actualScale.scaleX, scaleY = actualScale.scaleY, pivot = Offset.Zero) {
-      with(context) { this@record.drawInput() }
+      val actualScale = if (fillCapture) scaledContentScale(layerSize, scaleFactor) else ScaleFactor(scaleFactor, scaleFactor)
+      scale(scaleX = actualScale.scaleX, scaleY = actualScale.scaleY, pivot = Offset.Zero) {
+        with(context) { this@record.drawInput() }
+      }
     }
+  } catch (t: Throwable) {
+    // A layer created here is never returned, so it is released here. A reused layer stays with
+    // its owner.
+    if (created) context.requireGraphicsContext().releaseGraphicsLayer(layer)
+    throw t
   }
 
   // Refresh the outline when a retained layer is resized. Round it outward independently of the

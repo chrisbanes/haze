@@ -193,6 +193,23 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun resolveGlassStyle_invisibleRimHighlight_resolvesToNone() {
+    fun resolve(style: GlassStyle) = resolveGlassStyle(
+      effect = GlassRuntimeEffect().apply { this.style = style },
+      materialSizePx = Size(100f, 100f),
+      density = Density(2f),
+      layoutDirection = LayoutDirection.Ltr,
+    )
+
+    assertThat(resolve(GlassStyle { rimHighlight(0.8f, 3.dp, 0.5f) }).rimHighlight)
+      .isEqualTo(GlassRimHighlight(0.8f, 6f, 0.5f))
+    listOf(0f to 1.dp, 0.8f to 0.dp).forEach { (intensity, width) ->
+      val hidden = resolve(GlassStyle { rimHighlight(intensity, width, 0.5f) })
+      assertThat(hidden.rimHighlight, "$intensity $width").isEqualTo(GlassRimHighlight.None)
+    }
+  }
+
+  @Test
   fun buildGlassRenderParams_edgeOutline_scalesWidthAndKeepsRimForOutlineOnly() {
     val style = resolveGlassStyle(
       effect = GlassRuntimeEffect().apply {

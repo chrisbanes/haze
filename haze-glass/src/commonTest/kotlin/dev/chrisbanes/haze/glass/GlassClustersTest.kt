@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import assertk.Assert
 import assertk.assertThat
 import assertk.assertions.containsExactly
@@ -217,6 +218,28 @@ class GlassClustersTest {
         40f,
       ).surfaces.size,
     ).isEqualTo(2)
+  }
+
+  @Test
+  fun mergeKey_invisibleRimHighlight_mergesWithNoRim() {
+    val invisibleRimEffect = GlassRuntimeEffect().apply { style = GlassStyle { rimHighlight(0f, 1.dp, 0.5f) } }
+    val invisibleRim = resolveGlassStyle(invisibleRimEffect, Size(100f, 40f), Density(1f), LayoutDirection.Ltr)
+    val invisibleRimKey =
+      glassMergeKey(HazeInput.Content, true, 0.5f, invisibleRimEffect, invisibleRim, LayoutDirection.Ltr)
+    // The default style draws a rim highlight, so compare with the same material without one.
+    val noRim = material.copy(rimHighlight = GlassRimHighlight.None)
+    val noRimKey = glassMergeKey(HazeInput.Content, true, 0.5f, effect, noRim, LayoutDirection.Ltr)
+
+    assertThat(invisibleRimKey).isEqualTo(noRimKey)
+    assertThat(
+      clusterGlassMembers(
+        listOf(
+          member(0).copy(key = noRimKey, material = noRim),
+          member(1).copy(key = invisibleRimKey, material = invisibleRim),
+        ),
+        40f,
+      ).surfaces.size,
+    ).isEqualTo(1)
   }
 
   @Test

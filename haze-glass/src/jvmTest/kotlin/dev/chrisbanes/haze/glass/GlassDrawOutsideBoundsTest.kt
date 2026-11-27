@@ -333,6 +333,25 @@ class GlassDrawOutsideBoundsTest {
   }
 
   @Test
+  fun accessibilityBorders_squareSurfaceClipsToNode_runtime() = runComposeUiTest {
+    val accessibility = mutableStateOf(GlassAccessibilitySettings())
+    val fixture = cornerClipSurface(ContinuousRoundedCornerShape(0f), accessibility = accessibility)
+    fixture.capture()
+    fixture.assertCapture(Rect(40f, 40f, 60f, 60f), clipsToNode = false)
+    // Show Borders and Increase Contrast soften the edge, so the surface clips to its node.
+    for (settings in listOf(GlassAccessibilitySettings(showBorders = true), GlassAccessibilitySettings(increaseContrast = true))) {
+      accessibility.value = settings
+      waitForIdle()
+      fixture.capture()
+      fixture.assertCapture(Rect(0f, 0f, 100f, 100f), clipsToNode = true)
+    }
+    accessibility.value = GlassAccessibilitySettings()
+    waitForIdle()
+    fixture.capture()
+    fixture.assertCapture(Rect(40f, 40f, 60f, 60f), clipsToNode = false)
+  }
+
+  @Test
   fun interpolatedContinuousCorners_densityUpdatesClipAtFixedPixelSize_runtime() = runComposeUiTest {
     // 10 dp → 10% at 1.5 resolves to 5 px at density 2 and to square corners at density 4.
     val shape = Interpolatable.lerp(ContinuousRoundedCornerShape(10.dp), ContinuousRoundedCornerShape(10), 1.5f)
@@ -431,7 +450,12 @@ class GlassDrawOutsideBoundsTest {
      * An opaque red surface at (50, 50) in a 200 × 200 px blue root, over a 20 × 20 px green source
      * at its centre. Sizes are in pixels, kept fixed across [density] changes.
      */
-    fun ComposeUiTest.cornerClipSurface(shape: ContinuousRoundedCornerShape, sizePx: Int = 100, density: Float = 1f): CornerClipFixture {
+    fun ComposeUiTest.cornerClipSurface(
+      shape: ContinuousRoundedCornerShape,
+      sizePx: Int = 100,
+      density: Float = 1f,
+      accessibility: MutableState<GlassAccessibilitySettings> = mutableStateOf(GlassAccessibilitySettings()),
+    ): CornerClipFixture {
       val effect = GlassRuntimeEffect()
       val size = mutableStateOf(sizePx)
       val densityState = mutableStateOf(density)
@@ -446,7 +470,10 @@ class GlassDrawOutsideBoundsTest {
           Box(Modifier.offset { IntOffset(sourceOffset, sourceOffset) }.size(20.dp).hazeSource(state).background(Color.Green))
           // The parent fixes the pixel size, so a density change leaves the surface's modifiers equal.
           Box(Modifier.offset { IntOffset(50, 50) }.size(nodeSize.dp)) {
-            CompositionLocalProvider(LocalDensity provides Density(densityState.value)) {
+            CompositionLocalProvider(
+              LocalDensity provides Density(densityState.value),
+              LocalGlassAccessibilitySettings provides accessibility.value,
+            ) {
               Box(
                 Modifier.fillMaxSize().hazeGlass(
                   HazeEffectFactory { effect }, HazeInput.Sources(state), style,

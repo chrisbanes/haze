@@ -882,7 +882,9 @@ internal class GlassRuntimeEffect() :
 
   // Resolved as the renderer resolves them, so square clipping matches the drawn corners (#1808).
   private fun updateClipCache(size: Size, density: Density, layoutDirection: LayoutDirection) {
+    // Mirrors withAccessibility, which gives Increase Contrast and Show Borders a softened edge.
     shouldClipToNodeBoundsCache = edgeSoftness > 0.dp ||
+      accessibilitySettings.increaseContrast || accessibilitySettings.showBorders ||
       !shape.resolveCornerRadiiPx(size, density, layoutDirection).isZero()
   }
 

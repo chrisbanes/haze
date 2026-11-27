@@ -24,6 +24,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -210,6 +211,23 @@ class GlassSharedRimShaderAndroidHostTest : ScreenshotTest() {
       }
       drawLayer(layer)
     }
+  }
+
+  @Test
+  fun rimBrushProvider_reusesScratchAcrossCalls() {
+    val uniforms = ArrayCapturingUniforms()
+    val shader = rimProvider(merged = true).shader
+    val provider = AndroidGlassRimBrushProvider(shader, ShaderBrush(shader), uniforms = uniforms)
+
+    assertReusesMergedFieldArrays(uniforms) { field -> provider(rimKey(Color.Red).copy(mergedField = field)) }
+  }
+
+  @Test
+  fun mergedBackgroundProvider_reusesScratchAcrossCalls() {
+    val uniforms = ArrayCapturingUniforms()
+    val provider = AndroidGlassMergedBackgroundShaderProvider(mergedBackgroundProvider().shader, uniforms = uniforms)
+
+    assertReusesMergedFieldArrays(uniforms) { field -> provider(Offset.Zero, field) }
   }
 
   private fun rimProvider(merged: Boolean): AndroidGlassRimBrushProvider {
