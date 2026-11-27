@@ -183,12 +183,10 @@ public object FluentMaterials {
     darkLuminosityOpacity = 1f,
   )
 
-  @ReadOnlyComposable
-  @Composable
   private fun hazeMaterial(
-    containerColor: Color = MaterialTheme.colorScheme.surface,
-    isDark: Boolean = containerColor.luminance() < 0.5f,
-    fallbackColor: Color = containerColor,
+    containerColor: Color,
+    isDark: Boolean,
+    fallbackColor: Color,
     blurRadius: Dp,
     noiseFactor: Float,
     lightTintOpacity: Float,
@@ -251,12 +249,10 @@ public object FluentMaterials {
     fallbackColorEffect(HazeColorEffect.tint(fallbackColor))
   }
 
-  @ReadOnlyComposable
-  @Composable
   private fun hazeAcrylicMaterial(
-    containerColor: Color = MaterialTheme.colorScheme.surface,
+    containerColor: Color,
     fallbackColor: Color = containerColor,
-    isDark: Boolean = containerColor.luminance() < 0.5f,
+    isDark: Boolean,
     lightTintOpacity: Float,
     lightLuminosityOpacity: Float,
     darkTintOpacity: Float,
@@ -273,8 +269,8 @@ public object FluentMaterials {
 
   private fun hazeAcrylicMaterialStyle(
     containerColor: Color,
-    fallbackColor: Color = containerColor,
-    isDark: Boolean = containerColor.luminance() < 0.5f,
+    fallbackColor: Color,
+    isDark: Boolean,
     lightTintOpacity: Float,
     lightLuminosityOpacity: Float,
     darkTintOpacity: Float,
@@ -291,12 +287,10 @@ public object FluentMaterials {
     noiseFactor = 0.02f,
   )
 
-  @ReadOnlyComposable
-  @Composable
   private fun hazeMicaMaterial(
-    containerColor: Color = MaterialTheme.colorScheme.surface,
+    containerColor: Color,
     fallbackColor: Color = containerColor,
-    isDark: Boolean = containerColor.luminance() < 0.5f,
+    isDark: Boolean,
     lightTintOpacity: Float,
     lightLuminosityOpacity: Float,
     darkTintOpacity: Float,

@@ -8,7 +8,6 @@ import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import com.android.build.api.dsl.TestExtension
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.api.variant.HasUnitTestBuilder
-import com.android.build.api.variant.KotlinMultiplatformAndroidComponentsExtension
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
 import org.gradle.api.tasks.testing.Test
@@ -46,14 +45,6 @@ fun Project.configureKotlinMultiplatformAndroidLibrary() {
       if (this is KotlinMultiplatformAndroidLibraryTarget) {
         compileSdk = Versions.COMPILE_SDK
         minSdk = Versions.MIN_SDK
-      }
-    }
-  }
-
-  extensions.configure(KotlinMultiplatformAndroidComponentsExtension::class.java) {
-    beforeVariants(selector().withBuildType("release")) { variantBuilder ->
-      (variantBuilder as? HasUnitTestBuilder)?.apply {
-        enableUnitTest = false
       }
     }
   }

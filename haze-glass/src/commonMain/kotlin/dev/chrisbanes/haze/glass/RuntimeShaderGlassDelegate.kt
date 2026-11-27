@@ -1034,10 +1034,6 @@ internal class RuntimeShaderGlassDelegate(
     recordedRimSupportsDirectDrawing = false
   }
 
-  override fun detach() {
-    releaseRetainedResources(releaseShaderHandles = false)
-  }
-
   override fun release() {
     releaseRetainedResources(releaseShaderHandles = true)
   }

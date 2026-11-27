@@ -23,8 +23,16 @@ class GlassClearAppearanceTest {
       whitePoint(-0.18f)
       chromaMultiplier(1f)
     }
+    val formerDark = GlassStyle.clearLight.then {
+      specularIntensity(0.42f)
+      edgeShadow(Color.Black.copy(alpha = 0.25f))
+      ambientResponse(0.22f)
+      contrast(0.12f)
+      whitePoint(-0.18f)
+      chromaMultiplier(1f)
+    }
     for (appearance in GlassSystemAppearance.entries) {
-      val former = resolveGlassStyleValues(GlassStyle, GlassStyle.clearDark, appearance)
+      val former = resolveGlassStyleValues(GlassStyle, formerDark, appearance)
       former.isClear = true
       assertThat(resolveGlassStyleValues(GlassStyle, legacy, appearance)).isEqualTo(former)
     }

@@ -138,15 +138,6 @@ public sealed interface GlassStyle {
       rimHighlight(1f, 1.dp, 0f)
     }
 
-    internal val clearDark: GlassStyle = clearLight.then {
-      specularIntensity(0.42f)
-      edgeShadow(Color.Black.copy(alpha = 0.25f))
-      ambientResponse(0.22f)
-      contrast(0.12f)
-      whitePoint(-0.18f)
-      chromaMultiplier(1f)
-    }
-
     /**
      * A built-in Glass style that prioritizes visibility of content behind the material.
      *

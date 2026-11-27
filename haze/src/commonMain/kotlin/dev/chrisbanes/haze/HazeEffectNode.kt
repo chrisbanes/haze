@@ -185,7 +185,6 @@ internal class HazeEffectNode(
   // Source movement re-runs only the geometry pass, through its own read scope (#1456).
   private val geometryObserver = delegate(
     HazeEffectGeometryObserverNode {
-      dirtyTracker += DirtyFields.AreaPositionReads
       refreshGeometry(fromObserver = true)
     },
   )
@@ -235,7 +234,6 @@ internal class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "position changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.Position
         field = value
       }
     }
@@ -246,7 +244,6 @@ internal class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "rootBounds changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.Position
         field = value
       }
     }
@@ -315,7 +312,6 @@ internal class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "resolvedPositionStrategy changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.Position
         field = value
       }
     }
@@ -592,7 +588,6 @@ internal class HazeEffectNode(
   }
 
   override fun onObservedReadsChanged() {
-    dirtyTracker += DirtyFields.AreaPositionReads
     refreshObservedReads()
   }
 
@@ -635,8 +630,6 @@ internal class HazeEffectNode(
   /** Runs [updateGeometry] in its own read scope, outside any enclosing observation. */
   private fun observeGeometry(): Boolean {
     var completed = false
-    // Each pass replaces the observer's read scope, so it must re-read all source geometry.
-    dirtyTracker += DirtyFields.AreaPositionReads
     Snapshot.withoutReadObservation {
       geometryObserver.observe { completed = updateGeometry() }
     }
@@ -737,9 +730,6 @@ internal class HazeEffectNode(
       coordinates = coordinates,
       source = if (fromPlacement) "onPlaced" else "onGloballyPositioned",
     )
-    // Sources placed earlier in this pass have not notified observers yet (#1437), so the geometry
-    // pass always re-reads them.
-    dirtyTracker += DirtyFields.AreaPositionReads
     // Glass resolves its style against the effect size (ADR-0011). A pending refresh also needs the
     // configuration reads that an early exit dropped.
     if (!observedUpdateCompleted || _size != previousSize) {
@@ -1230,100 +1220,94 @@ internal class HazeEffectNode(
       }
     }
 
-    // Resolved lazily on first use; layout cannot re-root the effect during an update.
-    // The configuration pass's updateTypedRenderer can dirty the layer bounds alone, so that block
-    // resolves it if needed.
-    var effectRoot: LayoutCoordinates? = null
-    if (dirtyTracker.any(AreaTransformsDirtyFields)) {
-      effectRoot = localEffectRoot()
-      updateAreaTransforms(effectRoot)
+    // Every pass re-reads all source geometry: each replaces the observer's read scope, and sources
+    // placed earlier in a layout pass have not notified observers yet (#1437).
+    // Layout cannot re-root the effect during an update.
+    val effectRoot = localEffectRoot()
+    updateAreaTransforms(effectRoot)
+
+    // Requests made before this point are consumed by the calculation below.
+    layerBoundsRefreshPending = false
+    val rootInEffect = rootBoundsInEffect(effectRoot)
+    val canUseSources = state != null && size.isSpecified && position.isSpecified
+    var left = Float.POSITIVE_INFINITY
+    var top = Float.POSITIVE_INFINITY
+    var right = Float.NEGATIVE_INFINITY
+    var bottom = Float.NEGATIVE_INFINITY
+    // Keep reading every area's size here so placing a source re-runs geometry.
+    if (canUseSources) {
+      for (area in areas) {
+        val bounds = areaBoundsInEffect(area) ?: continue
+        left = min(left, bounds.left)
+        top = min(top, bounds.top)
+        right = max(right, bounds.right)
+        bottom = max(bottom, bounds.bottom)
+      }
     }
-
-    if (dirtyTracker.any(LayerBoundsDirtyFields)) {
-      // Requests made before this point are consumed by the calculation below.
-      layerBoundsRefreshPending = false
-      if (effectRoot == null) effectRoot = localEffectRoot()
-      val rootInEffect = rootBoundsInEffect(effectRoot)
-      val canUseSources = state != null && size.isSpecified && position.isSpecified
-      var left = Float.POSITIVE_INFINITY
-      var top = Float.POSITIVE_INFINITY
-      var right = Float.NEGATIVE_INFINITY
-      var bottom = Float.NEGATIVE_INFINITY
-      // Keep reading every area's size here so placing a source re-runs geometry.
-      if (canUseSources) {
-        for (area in areas) {
-          val bounds = areaBoundsInEffect(area) ?: continue
-          left = min(left, bounds.left)
-          top = min(top, bounds.top)
-          right = max(right, bounds.right)
-          bottom = max(bottom, bounds.bottom)
-        }
-      }
-      // An inverted union means every selected source is unpositioned: treat it as no sources.
-      if (canUseSources && left <= right && top <= bottom) {
-        val nodeRect = Rect(Offset.Zero, size)
-        val expanded = if (shouldExpandLayer()) {
-          calculateEffectLayerBounds(nodeRect, requireDensity())
-        } else {
-          nodeRect.inflate(nodeClipOutsetPx())
-        }
-        val clippedLayerBounds = expanded
-          .letIf(shouldClipToAreaBounds()) { rect ->
-            rect.intersect(left, top, right, bottom)
-          }
-          .intersect(rootInEffect.extendedToAreas(left, top, right, bottom))
-
-        _layerSize = Size(
-          width = clippedLayerBounds.width.coerceAtLeast(0f),
-          height = clippedLayerBounds.height.coerceAtLeast(0f),
-        )
-        _layerOffset = Offset.Zero - clippedLayerBounds.topLeft
-      } else if (shouldDrawRetainedOutput()) {
-        // Keep the previous layer bounds for source transition gaps. Recomputing
-        // bounds with no areas collapses to the node size and clears the retained layer.
-      } else if (
-        explicitInput is HazeInput.Backdrop &&
-        size.isSpecified
-      ) {
-        val rect = size.toRect()
-        val expanded = if (shouldExpandLayer()) {
-          calculateEffectLayerBounds(rect, requireDensity())
-        } else {
-          rect.inflate(nodeClipOutsetPx())
-        }
-        val clippedLayerBounds = expanded.intersect(rootInEffect)
-        _layerSize = Size(
-          width = clippedLayerBounds.width.coerceAtLeast(0f),
-          height = clippedLayerBounds.height.coerceAtLeast(0f),
-        )
-        _layerOffset = rect.topLeft - clippedLayerBounds.topLeft
-      } else if (
-        explicitInput === HazeInput.Content &&
-        size.isSpecified &&
-        !shouldClipEffectToNodeBounds() &&
-        shouldExpandLayer()
-      ) {
-        val rect = size.toRect()
-        val expanded = calculateEffectLayerBounds(rect, requireDensity())
-        _layerSize = expanded.size
-        _layerOffset = rect.topLeft - expanded.topLeft
-      } else if (
-        explicitInput === HazeInput.Content &&
-        size.isSpecified &&
-        nodeClipOutsetPx() > 0f
-      ) {
-        // Clipping or not, a layer that does not expand still reaches the draw outset.
-        val expanded = size.toRect().inflate(nodeClipOutsetPx())
-        _layerSize = expanded.size
-        _layerOffset = -expanded.topLeft
+    // An inverted union means every selected source is unpositioned: treat it as no sources.
+    if (canUseSources && left <= right && top <= bottom) {
+      val nodeRect = Rect(Offset.Zero, size)
+      val expanded = if (shouldExpandLayer()) {
+        calculateEffectLayerBounds(nodeRect, requireDensity())
       } else {
-        _layerSize = size
-        _layerOffset = Offset.Zero
+        nodeRect.inflate(nodeClipOutsetPx())
       }
-      if (_layerSize.isSpecified) {
-        val visible = Rect(Offset.Zero - _layerOffset, _layerSize).intersect(rootInEffect)
-        visibleLayerBounds = if (visible.isEmpty) Rect.Zero else visible
+      val clippedLayerBounds = expanded
+        .letIf(shouldClipToAreaBounds()) { rect ->
+          rect.intersect(left, top, right, bottom)
+        }
+        .intersect(rootInEffect.extendedToAreas(left, top, right, bottom))
+
+      _layerSize = Size(
+        width = clippedLayerBounds.width.coerceAtLeast(0f),
+        height = clippedLayerBounds.height.coerceAtLeast(0f),
+      )
+      _layerOffset = Offset.Zero - clippedLayerBounds.topLeft
+    } else if (shouldDrawRetainedOutput()) {
+      // Keep the previous layer bounds for source transition gaps. Recomputing
+      // bounds with no areas collapses to the node size and clears the retained layer.
+    } else if (
+      explicitInput is HazeInput.Backdrop &&
+      size.isSpecified
+    ) {
+      val rect = size.toRect()
+      val expanded = if (shouldExpandLayer()) {
+        calculateEffectLayerBounds(rect, requireDensity())
+      } else {
+        rect.inflate(nodeClipOutsetPx())
       }
+      val clippedLayerBounds = expanded.intersect(rootInEffect)
+      _layerSize = Size(
+        width = clippedLayerBounds.width.coerceAtLeast(0f),
+        height = clippedLayerBounds.height.coerceAtLeast(0f),
+      )
+      _layerOffset = rect.topLeft - clippedLayerBounds.topLeft
+    } else if (
+      explicitInput === HazeInput.Content &&
+      size.isSpecified &&
+      !shouldClipEffectToNodeBounds() &&
+      shouldExpandLayer()
+    ) {
+      val rect = size.toRect()
+      val expanded = calculateEffectLayerBounds(rect, requireDensity())
+      _layerSize = expanded.size
+      _layerOffset = rect.topLeft - expanded.topLeft
+    } else if (
+      explicitInput === HazeInput.Content &&
+      size.isSpecified &&
+      nodeClipOutsetPx() > 0f
+    ) {
+      // Clipping or not, a layer that does not expand still reaches the draw outset.
+      val expanded = size.toRect().inflate(nodeClipOutsetPx())
+      _layerSize = expanded.size
+      _layerOffset = -expanded.topLeft
+    } else {
+      _layerSize = size
+      _layerOffset = Offset.Zero
+    }
+    if (_layerSize.isSpecified) {
+      val visible = Rect(Offset.Zero - _layerOffset, _layerSize).intersect(rootInEffect)
+      visibleLayerBounds = if (visible.isEmpty) Rect.Zero else visible
     }
 
     invalidateIfNeeded()
@@ -1858,7 +1842,6 @@ internal class HazeEffectNode(
     backdropBackendState.attach(backdropEnabledAtAttach)
     refreshResolvedSourcesInput(previousSources)
     // Reached while the owner draws its surfaces, so it is not notified here.
-    dirtyTracker += DirtyFields.AreaPositionReads
     refreshObservedReads(notifySurface = false)
   }
 
@@ -2076,10 +2059,8 @@ internal fun HazeEffectNode.shouldUsePreDrawListener(): Boolean {
 
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 internal object DirtyFields {
-  const val Position: Int = 0b1
-  const val AreaTransforms: Int = Position shl 1
-  const val AreaPositionReads: Int = AreaTransforms shl 1
-  const val Size: Int = AreaPositionReads shl 1
+  const val AreaTransforms: Int = 0b1
+  const val Size: Int = AreaTransforms shl 1
   const val Areas: Int = Size shl 1
   const val LayerSize: Int = Areas shl 1
   const val LayerOffset: Int = LayerSize shl 1
@@ -2099,9 +2080,7 @@ internal object DirtyFields {
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
-      if (Position in dirtyTracker) add("Position")
       if (AreaTransforms in dirtyTracker) add("AreaTransforms")
-      if (AreaPositionReads in dirtyTracker) add("AreaPositionReads")
       if (Size in dirtyTracker) add("Size")
       if (LayerSize in dirtyTracker) add("LayerSize")
       if (LayerOffset in dirtyTracker) add("LayerOffset")
@@ -2113,22 +2092,6 @@ internal object DirtyFields {
     return params.joinToString(separator = ", ", prefix = "[", postfix = "]")
   }
 }
-
-/** Dirty fields that warrant recomputing area transforms. */
-internal val AreaTransformsDirtyFields: Int =
-  DirtyFields.Position or
-    DirtyFields.Areas or
-    DirtyFields.AreaPositionReads
-
-/** Dirty fields that warrant recomputing layer bounds. */
-internal val LayerBoundsDirtyFields: Int =
-  DirtyFields.Position or
-    DirtyFields.AreaTransforms or
-    DirtyFields.AreaPositionReads or
-    DirtyFields.Size or
-    DirtyFields.Areas or
-    DirtyFields.ExpandLayer or
-    DirtyFields.VisualEffectLayerBounds
 
 /** Whether this matrix only translates in x and y, by its [Matrix.TranslateX] and [Matrix.TranslateY] values. */
 internal fun Matrix.isTranslationOnly(): Boolean {

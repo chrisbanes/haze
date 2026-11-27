@@ -146,7 +146,7 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
           captureSize = contentLayer.size.toSize(),
           blurRadius = blurRadius * intensity,
           noiseFactor = noiseFactor * intensity,
-          colorEffects = colorEffects.orEmpty(),
+          colorEffects = colorEffects,
           colorEffectsAlphaModulate = intensity,
           mask = mask,
           slot = slot,

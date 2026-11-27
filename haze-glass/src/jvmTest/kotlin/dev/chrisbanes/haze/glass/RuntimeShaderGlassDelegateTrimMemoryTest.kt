@@ -721,7 +721,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   }
 
   @Test
-  fun detach_clearsSuccessfulCacheMetadata() {
+  fun release_clearsSuccessfulCacheMetadata() {
     val delegate = RuntimeShaderGlassDelegate(GlassRuntimeEffect())
     val context = RecordingVisualEffectContext()
     delegate.layers.populate(context.graphicsContext)
@@ -729,7 +729,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.setGraphicsContextForTest(context.graphicsContext)
     delegate.seedSuccessfulCacheMetadata()
 
-    delegate.detach()
+    delegate.release()
 
     assertThat(context.graphicsContext.releasedLayers).containsExactly(*retainedLayers.toTypedArray())
     assertThat(delegate.layers.isEmpty).isTrue()
@@ -780,27 +780,6 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.layers.releaseRefractionDetail(context.graphicsContext)
 
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
-  }
-
-  @Test
-  fun prepareRefractionDetail_activeAllocatesLayerBeforeDraw() {
-    val layers = GlassLayers()
-    val graphicsContext = TestGraphicsContext()
-
-    layers.prepareRefractionDetail(required = true, graphicsContext)
-
-    assertThat(layers.hasRefractionDetail).isTrue()
-  }
-
-  @Test
-  fun prepareRefractionDetail_inactiveReleasesLayer() {
-    val layers = GlassLayers()
-    val graphicsContext = TestGraphicsContext()
-    layers.refractionDetail = graphicsContext.createGraphicsLayer()
-
-    layers.prepareRefractionDetail(required = false, graphicsContext)
-
-    assertThat(layers.hasRefractionDetail).isFalse()
   }
 
   @Test

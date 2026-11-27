@@ -40,7 +40,7 @@ internal fun BlurVisualEffect.getOrCreateRenderEffect(
   captureScale: ScaleFactor = ScaleFactor(inputScale, inputScale),
   blurRadius: Dp = this.blurRadius.takeOrElse { 0.dp },
   noiseFactor: Float = this.noiseFactor,
-  colorEffects: List<HazeColorEffect> = this.colorEffects.orEmpty(),
+  colorEffects: List<HazeColorEffect> = this.colorEffects,
   colorEffectsAlphaModulate: Float = 1f,
   backgroundColor: Color = Color.Transparent,
   contentSize: Size = context.size,

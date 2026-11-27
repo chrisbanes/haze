@@ -348,12 +348,11 @@ private fun PlatformRenderEffect.withMask(
   size: Size,
   scale: ScaleFactor,
   offset: Offset,
-  blendMode: BlendMode = BlendMode.DstIn,
 ): PlatformRenderEffect {
   val shader = brush?.toShader(size, scale, offset) ?: return this
   return blendForeground(
     foreground = createShaderRenderEffect(shader),
-    blendMode = blendMode,
+    blendMode = BlendMode.DstIn,
     offset = Offset.Zero,
   )
 }

@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeProgressive
-import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.drawScaledContent
 import dev.chrisbanes.haze.scaledContentScale
 
@@ -35,14 +34,6 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
   if (Build.VERSION.SDK_INT !in 31..32 && !runtimeShaderFallback) return false
   val effect = blurVisualEffect
   if (!effect.hasCustomShaderBrush()) return false
-  val style = LogicalStyle(
-    mask = effect.mask,
-    progressive = effect.progressive,
-    progressiveBrush = effect.progressiveBrush,
-    colorEffects = effect.colorEffects.orEmpty(),
-    noiseFactor = effect.noiseFactor,
-    alpha = effect.alpha,
-  )
 
   if (!logicalPathActive) {
     effectSlot.apply(contentLayer, null)
@@ -96,14 +87,14 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
   fun DrawScope.mask(brush: Brush) = drawLogicalRect(brush, 1f, BlendMode.DstIn)
 
   fun DrawScope.style(layer: GraphicsLayer, intensity: Float) {
-    val effects = style.colorEffects
+    val effects = effect.colorEffects
     val canvas = drawContext.canvas
 
     // shortcut: stacked color filters replay prior draws exponentially; retain stages if this becomes common.
     fun DrawScope.drawStack(count: Int) {
       if (count == 0) {
         present(layer)
-        val noiseFactor = style.noiseFactor * intensity
+        val noiseFactor = effect.noiseFactor * intensity
         if (noiseFactor.hasVisibleNoise()) {
           PaintPool.usePaint { paint ->
             paint.blendMode = BlendMode.Softlight
@@ -119,22 +110,21 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
         return
       }
       drawStack(count - 1)
-      val effect = effects[count - 1]
-      when (effect) {
+      when (val colorEffect = effects[count - 1]) {
         is TintBrushHazeColorEffect ->
-          drawLogicalRect(effect.brush, intensity.coerceIn(0f, 1f), effect.blendMode)
+          drawLogicalRect(colorEffect.brush, intensity.coerceIn(0f, 1f), colorEffect.blendMode)
         is TintColorHazeColorEffect -> {
-          effect.resolveColor(intensity)?.let { color ->
-            drawRect(color, topLeft = -offset, size = expandedSize, blendMode = effect.blendMode)
+          colorEffect.resolveColor(intensity)?.let { color ->
+            drawRect(color, topLeft = -offset, size = expandedSize, blendMode = colorEffect.blendMode)
           }
         }
         is ColorFilterHazeColorEffect -> PaintPool.usePaint { blend ->
-          blend.blendMode = effect.blendMode
+          blend.blendMode = colorEffect.blendMode
           // The composite, not the filtered layer, fades, as the RenderEffect route's DstIn does.
           blend.alpha = intensity
           canvas.withSaveLayer(bounds, blend) {
             PaintPool.usePaint { filter ->
-              filter.colorFilter = effect.colorFilter
+              filter.colorFilter = colorEffect.colorFilter
               canvas.withSaveLayer(bounds, filter) { drawStack(count - 1) }
             }
           }
@@ -147,9 +137,9 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
   fun DrawScope.drawOutput() {
     val canvas = drawContext.canvas
     PaintPool.usePaint { alpha ->
-      alpha.alpha = style.alpha
+      alpha.alpha = effect.alpha
       canvas.withSaveLayer(bounds, alpha) {
-        val progressive = style.progressive
+        val progressive = effect.progressive
         if (progressive is HazeProgressive.LinearGradient && shouldDrawProgressiveWithLayers(progressive, inputScale)) {
           logicalSlot.reset()
           logicalLayer.release()
@@ -172,13 +162,13 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
           if (progressive != null) {
             canvas.withSaveLayer(bounds, LogicalLayerPaint) {
               style(layer, 1f)
-              style.progressiveBrush?.let { mask(it) }
+              effect.progressiveBrush?.let { mask(it) }
             }
           } else {
             style(layer, 1f)
           }
         }
-        style.mask?.let { mask(it) }
+        effect.mask?.let { mask(it) }
       }
     }
   }
@@ -193,13 +183,3 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
 private val LogicalLayerPaint = Paint()
 private val LogicalRectPaint = Paint()
 internal val LogicalNoiseShaders = NoiseShaderCache()
-
-@Poko
-private class LogicalStyle(
-  val mask: Brush?,
-  val progressive: HazeProgressive?,
-  val progressiveBrush: Brush?,
-  val colorEffects: List<HazeColorEffect>,
-  val noiseFactor: Float,
-  val alpha: Float,
-)

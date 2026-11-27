@@ -7,7 +7,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import kotlin.math.ceil
 import kotlin.math.hypot
-import kotlin.math.roundToInt
 
 internal fun calculateLength(
   start: Offset,
@@ -24,5 +23,3 @@ internal fun calculateLength(
 }
 
 internal fun ceil(size: Size): Size = Size(width = ceil(size.width), height = ceil(size.height))
-
-internal fun Offset.round(): Offset = Offset(x.roundToInt().toFloat(), y.roundToInt().toFloat())

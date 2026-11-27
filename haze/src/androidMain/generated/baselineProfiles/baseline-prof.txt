@@ -455,8 +455,6 @@ HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->access$extendedToAreas(Landroidx/comp
 HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->access$getObservedLayoutCoordinates(Ldev/chrisbanes/haze/HazeArea;)Landroidx/compose/ui/layout/LayoutCoordinates;
 HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->access$hasSameValues-JiSxe2E([F[F)Z
 HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->extendedToAreas(Landroidx/compose/ui/geometry/Rect;FFFF)Landroidx/compose/ui/geometry/Rect;
-HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->getAreaTransformsDirtyFields()I
-HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->getLayerBoundsDirtyFields()I
 HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->getObservedLayoutCoordinates(Ldev/chrisbanes/haze/HazeArea;)Landroidx/compose/ui/layout/LayoutCoordinates;
 HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->hasSameValues-JiSxe2E([F[F)Z
 HSPLdev/chrisbanes/haze/HazeEffectNodeKt;->isTranslationOnly-58bKbWc([F)Z
@@ -900,8 +898,6 @@ HSPLdev/chrisbanes/haze/blur/BlurRenderEffectKt;->hasVisibleNoise(F)Z
 HSPLdev/chrisbanes/haze/blur/BlurRenderEffectKt;->resolveColor(Ldev/chrisbanes/haze/blur/TintColorHazeColorEffect;F)Landroidx/compose/ui/graphics/Color;
 SPLdev/chrisbanes/haze/blur/BlurRenderEffectKt;->toShader-12SF9DM$default(Landroidx/compose/ui/graphics/Brush;JFILjava/lang/Object;)Landroid/graphics/Shader;
 SPLdev/chrisbanes/haze/blur/BlurRenderEffectKt;->toShader-12SF9DM(Landroidx/compose/ui/graphics/Brush;JF)Landroid/graphics/Shader;
-HSPLdev/chrisbanes/haze/blur/BlurRenderEffectKt;->withMask-8qE-ZwE$default(Landroid/graphics/RenderEffect;Landroidx/compose/ui/graphics/Brush;JFJIILjava/lang/Object;)Landroid/graphics/RenderEffect;
-HSPLdev/chrisbanes/haze/blur/BlurRenderEffectKt;->withMask-8qE-ZwE(Landroid/graphics/RenderEffect;Landroidx/compose/ui/graphics/Brush;JFJI)Landroid/graphics/RenderEffect;
 Ldev/chrisbanes/haze/blur/BlurRenderEffectSlot;
 HSPLdev/chrisbanes/haze/blur/BlurRenderEffectSlot;-><clinit>()V
 HSPLdev/chrisbanes/haze/blur/BlurRenderEffectSlot;-><init>()V
@@ -1282,7 +1278,6 @@ HSPLdev/chrisbanes/haze/blur/TintColorHazeColorEffect;->hashCode()I
 Ldev/chrisbanes/haze/blur/UtilsKt;
 HSPLdev/chrisbanes/haze/blur/UtilsKt;->ceil-uvyYCjk(J)J
 HSPLdev/chrisbanes/haze/blur/UtilsKt;->expand-Pq9zytI(JFF)J
-HSPLdev/chrisbanes/haze/blur/UtilsKt;->round-k-4lQ0M(J)J
 Ldev/chrisbanes/haze/blur/materials/HazeMaterials;
 HSPLdev/chrisbanes/haze/blur/materials/HazeMaterials;-><clinit>()V
 HSPLdev/chrisbanes/haze/blur/materials/HazeMaterials;-><init>()V

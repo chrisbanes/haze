@@ -259,7 +259,7 @@ private class HazeBlurStyleAccumulator : HazeBlurStyleScope {
     blurRadius = blurRadius,
     noiseFactor = noiseFactor,
     backgroundColor = backgroundColor,
-    colorEffects = colorEffects.toList(),
+    colorEffects = colorEffects,
     fallbackColorEffect = fallbackColorEffect,
     alpha = alpha,
     mask = mask,
