@@ -301,6 +301,34 @@ class GlassRimBrushTest {
     assertThat(maxChannelDifference(drawBrush(brushA), drawFilter(keyA2))).isLessThanOrEqualTo(1f / 255f)
   }
 
+  @Test
+  fun rimBrushProvider_reusesScratchAcrossCalls() {
+    val uniforms = ArrayCapturingUniforms()
+    val provider = SkiaGlassRimBrushProvider(rimProvider(merged = true).effect, uniforms = uniforms)
+    val uploads = scratchReuseFields.map { field ->
+      uniforms.arrays.clear()
+      provider(rimKey().copy(mergedField = field))
+      uniforms.arrays.toMap()
+    }
+
+    assertThat(uploads[1].keys).isEqualTo(uploads[0].keys)
+    for ((name, array) in uploads[0]) assertThat(uploads[1].getValue(name), name).isSameInstanceAs(array)
+  }
+
+  @Test
+  fun mergedBackgroundProvider_reusesScratchAcrossCalls() {
+    val uniforms = ArrayCapturingUniforms()
+    val provider = SkiaGlassMergedBackgroundShaderProvider(mergedBackgroundProvider().effect, uniforms = uniforms)
+    val uploads = scratchReuseFields.map { field ->
+      uniforms.arrays.clear()
+      provider(Offset.Zero, field)
+      uniforms.arrays.toMap()
+    }
+
+    assertThat(uploads[1].keys).isEqualTo(uploads[0].keys)
+    for ((name, array) in uploads[0]) assertThat(uploads[1].getValue(name), name).isSameInstanceAs(array)
+  }
+
   private fun rimProvider(merged: Boolean): SkiaGlassRimBrushProvider {
     val provider = checkNotNull(createGlassRimBrushProvider(merged))
     assertThat(provider).isInstanceOf<SkiaGlassRimBrushProvider>()
