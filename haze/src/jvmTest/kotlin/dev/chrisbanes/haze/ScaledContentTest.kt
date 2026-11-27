@@ -27,6 +27,7 @@ import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -34,6 +35,7 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
+import assertk.assertions.isTrue
 import assertk.assertions.prop
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
@@ -172,6 +174,30 @@ class ScaledContentTest {
   }
 
   @Test
+  fun createScaledContentLayer_recordingThrows_releasesCreatedLayer() {
+    val context = FakeRuntimeDrawScope(
+      onDrawInput = { throw RuntimeShaderRenderEffectException(IllegalStateException("record")) },
+    )
+    fun capture(existing: GraphicsLayer?) = context.createScaledContentLayer(
+      context = context,
+      backgroundColor = Color.Red,
+      scaleFactor = 1f,
+      layerSize = Size(10f, 10f),
+      existingLayer = existing,
+    )
+
+    assertFailure { capture(existing = null) }.isInstanceOf<RuntimeShaderRenderEffectException>()
+    assertThat(context.graphicsContext.created.single().isReleased).isTrue()
+
+    // A live layer the caller passed in stays the caller's to release.
+    val existing = context.graphicsContext.createGraphicsLayer()
+    assertFailure { capture(existing = existing) }.isInstanceOf<RuntimeShaderRenderEffectException>()
+    assertThat(existing.isReleased).isFalse()
+    assertThat(context.createdLayers).isEqualTo(2)
+    context.graphicsContext.releaseGraphicsLayer(existing)
+  }
+
+  @Test
   fun createScaledContentLayer_reusesALiveLayerAndReplacesAReleasedOne() {
     val context = FakeRuntimeDrawScope()
     fun capture(existing: GraphicsLayer?): GraphicsLayer = checkNotNull(
@@ -296,10 +322,10 @@ class ScaledContentTest {
 
   private class CountingGraphicsContext : GraphicsContext {
     private val delegate = SkiaGraphicsContext()
-    var createdLayers = 0
-      private set
+    val created = mutableListOf<GraphicsLayer>()
+    val createdLayers: Int get() = created.size
 
-    override fun createGraphicsLayer(): GraphicsLayer = delegate.createGraphicsLayer().also { createdLayers++ }
+    override fun createGraphicsLayer(): GraphicsLayer = delegate.createGraphicsLayer().also { created += it }
 
     override fun releaseGraphicsLayer(layer: GraphicsLayer) = delegate.releaseGraphicsLayer(layer)
   }

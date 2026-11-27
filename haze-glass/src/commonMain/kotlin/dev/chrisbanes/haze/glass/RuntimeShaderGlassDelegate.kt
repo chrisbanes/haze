@@ -1194,62 +1194,70 @@ internal class RuntimeShaderGlassDelegate(
     val coordinates = params.coordinates
     val sampleSize = coordinates.sampleSize.roundToIntSize()
     if (sampleSize.width <= 0 || sampleSize.height <= 0) return null
-    val layer = layers.source?.takeUnless { it.isReleased }
-      ?: context.requireGraphicsContext().createGraphicsLayer()
+    val existing = layers.source?.takeUnless { it.isReleased }
+    val created = existing == null
+    val layer = existing ?: context.requireGraphicsContext().createGraphicsLayer()
     // Only single surfaces are pixel-aligned, so there is never a merged background to draw.
     val backgroundColor = params.sourceBackgroundColor
     val shift = coordinates.captureShift(context.layerOffset)
     val captureScale = coordinates.captureScale
-    layer.record(size = sampleSize) {
-      if (backgroundColor.alpha > 0f) drawRect(backgroundColor)
-      fun drawInputAt(offset: Offset) = translate(offset) {
-        scale(scaleX = captureScale.scaleX, scaleY = captureScale.scaleY, pivot = Offset.Zero) {
-          with(context) { this@record.drawInput() }
+    try {
+      layer.record(size = sampleSize) {
+        if (backgroundColor.alpha > 0f) drawRect(backgroundColor)
+        fun drawInputAt(offset: Offset) = translate(offset) {
+          scale(scaleX = captureScale.scaleX, scaleY = captureScale.scaleY, pivot = Offset.Zero) {
+            with(context) { this@record.drawInput() }
+          }
+        }
+        // The coverage outset may reach beyond the captured layer. Each axis splits into the margin
+        // before the layer, the layer and the margin after it. The layer cell draws the source once,
+        // clipped so a translucent source is never composited twice; each margin cell copies the band
+        // just inside its edge, so blur and refraction there read content rather than transparency.
+        val cells = coordinates.captureCellBounds()
+        val left = cells.left
+        val top = cells.top
+        val right = cells.right
+        val bottom = cells.bottom
+        val width = sampleSize.width.toFloat()
+        val height = sampleSize.height.toFloat()
+
+        // Cell i of an axis spans bound(i) to bound(i + 1): margin, layer, margin.
+        fun bound(i: Int, start: Float, end: Float, extent: Float) = when (i) {
+          0 -> 0f
+          1 -> start
+          2 -> end
+          else -> extent
+        }
+
+        // How far a cell moves the source so the band just inside the layer edge fills it.
+        fun copyShift(i: Int, start: Float, end: Float, extent: Float) = when (i) {
+          0 -> -start
+          1 -> 0f
+          else -> extent - end
+        }
+
+        // Margin cells only exist where a margin was added; sub-pixel slivers at the far edge of the
+        // sample padding are out of the coverage outset's reach, so they are left as they are.
+        fun isCell(i: Int, from: Float, to: Float) = to > from && (i == 1 || to - from >= 1f)
+        for (column in 0..2) {
+          val x0 = bound(column, left, right, width)
+          val x1 = bound(column + 1, left, right, width)
+          if (!isCell(column, x0, x1)) continue
+          val dx = copyShift(column, left, right, width)
+          for (row in 0..2) {
+            val y0 = bound(row, top, bottom, height)
+            val y1 = bound(row + 1, top, bottom, height)
+            if (!isCell(row, y0, y1)) continue
+            val dy = copyShift(row, top, bottom, height)
+            clipRect(x0, y0, x1, y1) { drawInputAt(Offset(shift.x + dx, shift.y + dy)) }
+          }
         }
       }
-      // The coverage outset may reach beyond the captured layer. Each axis splits into the margin
-      // before the layer, the layer and the margin after it. The layer cell draws the source once,
-      // clipped so a translucent source is never composited twice; each margin cell copies the band
-      // just inside its edge, so blur and refraction there read content rather than transparency.
-      val cells = coordinates.captureCellBounds()
-      val left = cells.left
-      val top = cells.top
-      val right = cells.right
-      val bottom = cells.bottom
-      val width = sampleSize.width.toFloat()
-      val height = sampleSize.height.toFloat()
-
-      // Cell i of an axis spans bound(i) to bound(i + 1): margin, layer, margin.
-      fun bound(i: Int, start: Float, end: Float, extent: Float) = when (i) {
-        0 -> 0f
-        1 -> start
-        2 -> end
-        else -> extent
-      }
-
-      // How far a cell moves the source so the band just inside the layer edge fills it.
-      fun copyShift(i: Int, start: Float, end: Float, extent: Float) = when (i) {
-        0 -> -start
-        1 -> 0f
-        else -> extent - end
-      }
-
-      // Margin cells only exist where a margin was added; sub-pixel slivers at the far edge of the
-      // sample padding are out of the coverage outset's reach, so they are left as they are.
-      fun isCell(i: Int, from: Float, to: Float) = to > from && (i == 1 || to - from >= 1f)
-      for (column in 0..2) {
-        val x0 = bound(column, left, right, width)
-        val x1 = bound(column + 1, left, right, width)
-        if (!isCell(column, x0, x1)) continue
-        val dx = copyShift(column, left, right, width)
-        for (row in 0..2) {
-          val y0 = bound(row, top, bottom, height)
-          val y1 = bound(row + 1, top, bottom, height)
-          if (!isCell(row, y0, y1)) continue
-          val dy = copyShift(row, top, bottom, height)
-          clipRect(x0, y0, x1, y1) { drawInputAt(Offset(shift.x + dx, shift.y + dy)) }
-        }
-      }
+    } catch (t: Throwable) {
+      // A layer created here is never returned or adopted, so it is released here. A reused layer
+      // stays with its owner.
+      if (created) context.requireGraphicsContext().releaseGraphicsLayer(layer)
+      throw t
     }
     layer.setRectOutline(size = Size(sampleSize.width.toFloat(), sampleSize.height.toFloat()))
     layers.adoptSource(layer, context.requireGraphicsContext())

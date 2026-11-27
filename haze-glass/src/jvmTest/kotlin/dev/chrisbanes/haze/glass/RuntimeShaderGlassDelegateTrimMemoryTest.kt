@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.GraphicsContext
+import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -20,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertFailure
 import assertk.assertThat
+import assertk.assertions.contains
 import assertk.assertions.containsExactly
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
@@ -27,6 +29,7 @@ import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
@@ -118,6 +121,32 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
 
     assertThat(delegate.layers.groupAlpha.layer).isNull()
     assertThat(first in context.graphicsContext.releasedLayers).isTrue()
+  }
+
+  @Test
+  fun draw_sourceRecordingThrows_releasesCreatedSourceLayer() {
+    val effect = GlassRuntimeEffect()
+    val delegate = RuntimeShaderGlassDelegate(effect)
+    val graphicsContext = TestGraphicsContext(SkiaGraphicsContext())
+    val context = RecordingVisualEffectContext(
+      size = Size(100f, 100f),
+      layerSize = Size(100f, 100f),
+      graphicsContext = graphicsContext,
+      onDrawInput = { throw RuntimeShaderRenderEffectException(IllegalStateException("record")) },
+    )
+    delegate.prepareDrawForTest(context, effect)
+    // A single surface over its content records its source on the pixel-aligned path.
+    assertThat(checkNotNull(effect.preparedRender).params.coordinates.pixelAligned).isTrue()
+    // Without a live prepared source, the recording creates its own layer.
+    graphicsContext.releaseGraphicsLayer(checkNotNull(delegate.layers.source))
+    graphicsContext.events.clear()
+
+    assertFailure { delegate.drawForTest(context) }.isInstanceOf<RuntimeShaderRenderEffectException>()
+
+    val created = graphicsContext.events.filterIsInstance<LayerEvent.Create>().single().layer
+    assertThat(graphicsContext.releasedLayers).contains(created)
+    assertThat(delegate.layers.source).isNotSameInstanceAs(created)
+    assertThat(delegate.sourceRecordCount).isEqualTo(0)
   }
 
   @Test
@@ -935,6 +964,12 @@ private fun RuntimeShaderGlassDelegate.prepareDrawForTest(
   }
 }
 
+private fun RuntimeShaderGlassDelegate.drawForTest(context: RecordingVisualEffectContext) {
+  with(CanvasDrawScope()) {
+    with(this@drawForTest) { draw(context) }
+  }
+}
+
 private fun GlassRuntimeEffect.prepareDrawForTest(context: RecordingVisualEffectContext) {
   val configuration = configuration()
   with(this) {
@@ -1035,6 +1070,7 @@ private class RecordingVisualEffectContext(
   override val layerSize: Size = Size.Zero,
   private val failIfBuildRenderParamsReached: Boolean = false,
   val graphicsContext: TestGraphicsContext = TestGraphicsContext(),
+  private val onDrawInput: DrawScope.() -> Unit = {},
 ) : HazeEffectRuntimeDrawScope,
   HazeEffectLifecycleScope,
   androidx.compose.ui.graphics.drawscope.DrawScope by CanvasDrawScope() {
@@ -1065,7 +1101,7 @@ private class RecordingVisualEffectContext(
 
   override fun drawInput() = Unit
 
-  override fun androidx.compose.ui.graphics.drawscope.DrawScope.drawInput() = Unit
+  override fun androidx.compose.ui.graphics.drawscope.DrawScope.drawInput() = this@RecordingVisualEffectContext.onDrawInput(this)
 
   override fun invalidateDraw() {
     invalidateDrawCalls++
@@ -1078,18 +1114,22 @@ private class RecordingVisualEffectContext(
 private object TestInputSnapshot : HazeEffectInputSnapshot
 
 @OptIn(InternalComposeUiApi::class)
-private class TestGraphicsContext : GraphicsContext {
+private class TestGraphicsContext(
+  // Unsafe-allocated layers never run their record blocks; give a context whose layers do.
+  private val delegate: GraphicsContext? = null,
+) : GraphicsContext {
   val releasedLayers = mutableListOf<GraphicsLayer>()
   val events = mutableListOf<LayerEvent>()
 
   override fun createGraphicsLayer(): GraphicsLayer =
-    (unsafe.allocateInstance(GraphicsLayer::class.java) as GraphicsLayer).also {
+    (delegate?.createGraphicsLayer() ?: unsafe.allocateInstance(GraphicsLayer::class.java) as GraphicsLayer).also {
       events += LayerEvent.Create(it)
     }
 
   override fun releaseGraphicsLayer(layer: GraphicsLayer) {
     releasedLayers += layer
     events += LayerEvent.Release(layer)
+    delegate?.releaseGraphicsLayer(layer)
   }
 }
 
