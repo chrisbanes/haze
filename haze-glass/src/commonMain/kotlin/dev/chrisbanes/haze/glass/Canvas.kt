@@ -7,6 +7,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.inset
@@ -61,11 +62,12 @@ internal inline fun DrawScope.withLayerPaint(
   alpha: Float,
   blendMode: BlendMode,
   bounds: Rect = Rect(Offset.Zero, size),
+  colorFilter: ColorFilter? = null,
   block: DrawScope.() -> Unit,
 ) {
   val canvas = drawContext.canvas
   glassLayerBoundsForTest?.invoke(bounds)
-  val paint = LayerPaints.acquire(alpha, blendMode)
+  val paint = LayerPaints.acquire(alpha, blendMode, colorFilter)
   try {
     canvas.saveLayer(bounds, paint)
     try {
@@ -101,18 +103,20 @@ internal fun Rect.visiblePart(visible: Rect?): Rect {
 
 /**
  * Paints for [withLayerPaint], one per nesting depth. A layer keeps its paint for the whole
- * block, so an inner layer takes the next paint instead of changing an enclosing layer's alpha or
- * blend mode. Drawing is single-threaded, so this is not thread-safe, like haze-blur's `PaintPool`.
+ * block, so an inner layer takes the next paint instead of changing an enclosing layer's alpha,
+ * blend mode or colour filter. Drawing is single-threaded, so this is not thread-safe, like
+ * haze-blur's `PaintPool`.
  */
 internal object LayerPaints {
   private val paints = ArrayList<Paint>()
   private var depth = 0
 
-  fun acquire(alpha: Float, blendMode: BlendMode): Paint {
+  fun acquire(alpha: Float, blendMode: BlendMode, colorFilter: ColorFilter?): Paint {
     if (depth == paints.size) paints += Paint()
     return paints[depth++].also {
       it.alpha = alpha
       it.blendMode = blendMode
+      it.colorFilter = colorFilter
     }
   }
 

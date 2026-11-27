@@ -15,9 +15,9 @@ import dev.chrisbanes.haze.createBlurRenderEffect
 internal actual fun DrawScope.supportsFallbackGlassBlur(): Boolean =
   Build.VERSION.SDK_INT in 31..32 && drawContext.canvas.nativeCanvas.isHardwareAccelerated
 
-internal actual fun createFallbackGlassInputEffect(style: ResolvedGlassStyle, blurred: Boolean): PlatformRenderEffect? {
+internal actual fun createFallbackGlassInputEffect(style: ResolvedGlassStyle): PlatformRenderEffect? {
   val optics = style.resolvedOptics
-  return if (blurred && optics.blurRadiusPx > 0f && optics.depth > 0f) {
+  return if (optics.blurRadiusPx > 0f && optics.depth > 0f) {
     createGlassDepthInputRenderEffect(
       sharp = null,
       blur = createBlurRenderEffect(optics.blurRadiusPx, optics.blurRadiusPx, TileMode.Clamp),
