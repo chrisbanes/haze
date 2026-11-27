@@ -11,6 +11,7 @@ import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -313,11 +314,18 @@ public sealed interface HazeColorEffect {
 
     /**
      * Creates a brush-based tint effect.
+     *
+     * A [SolidColor] brush with a specified color creates the same effect as
+     * `tint(color = brush.value, blendMode = blendMode)`.
      */
     public fun tint(
       brush: Brush,
       blendMode: BlendMode = BlendMode.SrcOver,
-    ): HazeColorEffect = TintBrushHazeColorEffect(brush, blendMode)
+    ): HazeColorEffect = if (brush is SolidColor && brush.value.isSpecified) {
+      TintColorHazeColorEffect(brush.value, blendMode)
+    } else {
+      TintBrushHazeColorEffect(brush, blendMode)
+    }
   }
 }
 

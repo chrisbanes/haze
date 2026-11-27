@@ -5,8 +5,10 @@ package dev.chrisbanes.haze.blur
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
@@ -329,5 +331,29 @@ class HazeBlurStyleTest {
         },
       )
     }.isInstanceOf<IllegalArgumentException>()
+  }
+
+  @Test
+  fun tintSolidColorBrush_equalsColorTint() {
+    for (color in listOf(Color.Red, Color.Green.copy(alpha = 0.25f), Color.Transparent)) {
+      for (blendMode in listOf(BlendMode.SrcOver, BlendMode.Multiply)) {
+        assertThat(HazeColorEffect.tint(SolidColor(color), blendMode))
+          .isEqualTo(HazeColorEffect.tint(color, blendMode))
+      }
+    }
+    assertThat(HazeColorEffect.tint(SolidColor(Color.Red))).isEqualTo(HazeColorEffect.tint(Color.Red))
+  }
+
+  @Test
+  fun tintUnspecifiedSolidColorBrush_doesNotThrow() {
+    val effect = HazeColorEffect.tint(SolidColor(Color.Unspecified))
+    assertThat(effect).isInstanceOf<TintBrushHazeColorEffect>()
+    assertThat(effect.boostForFallback(16.dp)).isEqualTo(effect)
+  }
+
+  @Test
+  fun tintGradientBrush_staysBrushTint() {
+    assertThat(HazeColorEffect.tint(Brush.verticalGradient(listOf(Color.Red, Color.Blue))))
+      .isInstanceOf<TintBrushHazeColorEffect>()
   }
 }

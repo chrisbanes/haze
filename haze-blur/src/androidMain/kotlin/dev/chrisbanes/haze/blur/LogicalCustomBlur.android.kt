@@ -124,22 +124,21 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawLogicalCustomStyle(
       }
       drawStack(count - 1)
       val effect = effects[count - 1]
-      val colorEffect = (effect as? TintBrushHazeColorEffect)?.asColorTintOrNull() ?: effect
-      when (colorEffect) {
+      when (effect) {
         is TintBrushHazeColorEffect ->
-          drawLogicalRect(colorEffect.brush, intensity.coerceIn(0f, 1f), colorEffect.blendMode)
+          drawLogicalRect(effect.brush, intensity.coerceIn(0f, 1f), effect.blendMode)
         is TintColorHazeColorEffect -> {
-          colorEffect.resolveColor(intensity)?.let { color ->
-            drawRect(color, topLeft = -offset, size = expandedSize, blendMode = colorEffect.blendMode)
+          effect.resolveColor(intensity)?.let { color ->
+            drawRect(color, topLeft = -offset, size = expandedSize, blendMode = effect.blendMode)
           }
         }
         is ColorFilterHazeColorEffect -> PaintPool.usePaint { blend ->
-          blend.blendMode = colorEffect.blendMode
+          blend.blendMode = effect.blendMode
           // The composite, not the filtered layer, fades, as the RenderEffect route's DstIn does.
           blend.alpha = intensity
           canvas.withSaveLayer(bounds, blend) {
             PaintPool.usePaint { filter ->
-              filter.colorFilter = colorEffect.colorFilter
+              filter.colorFilter = effect.colorFilter
               canvas.withSaveLayer(bounds, filter) { drawStack(count - 1) }
             }
           }
