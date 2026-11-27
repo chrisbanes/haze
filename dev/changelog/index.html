@@ -7781,6 +7781,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
+<li>Blur's scrim fallback and Android's RenderScript blur now draw
+  <code>HazeColorEffect.tint(SolidColor(color))</code> exactly like <code>HazeColorEffect.tint(color)</code>. The scrim
+  fallback strengthens the tint with the blur radius, and RenderScript tints the whole blurred area
+  instead of only the node's bounds (<a href="https://github.com/chrisbanes/haze/issues/1921">#1921</a>).</li>
 <li><code>HazeEffectNode</code> no longer drops or churns source <code>preDrawListeners</code> when <code>DirtyFields.Areas</code>
   re-evaluates to an unchanged area set or hits the unplaced position-strategy early return
   (<a href="https://github.com/chrisbanes/haze/issues/1929">#1929</a>).</li>
