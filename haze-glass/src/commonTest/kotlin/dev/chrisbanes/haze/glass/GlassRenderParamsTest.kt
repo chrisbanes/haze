@@ -1133,20 +1133,17 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun interactionUniforms_invalidPositionUsesMaterialCenterInExpandedSampleCoordinates() {
-    val uniforms = testRenderParams(
-      coordinates = GlassCoordinates(
-        sampleSize = Size(300f, 220f),
-        materialOrigin = Offset(40f, 60f),
-        materialSize = Size(200f, 100f),
-        scaleFactor = 2f,
-      ),
-    ).let { params ->
-      resolveGlassInteraction(
-        state = GlassInteractionRenderState(position = Offset.Unspecified),
-        radiusFraction = 0f,
-      ).uniforms(params.coordinates)
-    }
+  fun uniforms_invalidPositionUsesMaterialCenterInExpandedSampleCoordinates() {
+    val coordinates = GlassCoordinates(
+      sampleSize = Size(300f, 220f),
+      materialOrigin = Offset(40f, 60f),
+      materialSize = Size(200f, 100f),
+      scaleFactor = 2f,
+    )
+    val uniforms = resolveGlassInteraction(
+      state = GlassInteractionRenderState(position = Offset.Unspecified),
+      radiusFraction = 0f,
+    ).uniforms(coordinates)
 
     assertThat(uniforms.position).isEqualTo(Offset(140f, 110f))
   }
