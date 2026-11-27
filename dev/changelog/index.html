@@ -7784,6 +7784,13 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li><code>HazeEffectNode</code> no longer drops or churns source <code>preDrawListeners</code> when <code>DirtyFields.Areas</code>
   re-evaluates to an unchanged area set or hits the unplaced position-strategy early return
   (<a href="https://github.com/chrisbanes/haze/issues/1929">#1929</a>).</li>
+<li>In a Glass container, a set of compatible members split by an intervening surface now merges
+  up to four members in each drawn run. Later members are no longer left unmerged, and a cap
+  overflow that didn't happen is no longer logged
+  (<a href="https://github.com/chrisbanes/haze/issues/1915">#1915</a>).</li>
+<li>A <code>groupKey</code> member whose style differs from its group's only in a value such as contrast no
+  longer widens the group's container optical size
+  (<a href="https://github.com/chrisbanes/haze/issues/1915">#1915</a>).</li>
 <li>A <code>hazeEffect</code> nested inside two <code>hazeSource</code>s that use the same state, where the outer source has
   the lower <code>zIndex</code>, no longer throws on its first draw with <code>HazeSourceSelection.Behind</code>, under
   <code>HazeInput.Sources</code> or while Backdrop falls back to sources. <code>Behind</code> now excludes every same-state
