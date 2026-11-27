@@ -319,8 +319,30 @@ internal class GlassContainerNode(
    * no placement callback reaches the container; the draw checks for it.
    */
   private fun layoutOrderChanged(): Boolean {
-    val (slots, visited) = layoutOrderedSlots()
-    return slots.indices.any { registrations[slots[it]] !== visited[it] }
+    if (registrations.count { it is GlassMemberNode } <= 1) return false
+    // Registration indices are distinct, so the order differs exactly when one decreases.
+    var previous = -1
+    var changed = false
+    traverseDescendants(GlassMemberTraversalKey) { node ->
+      // Members of a nested container register with that container.
+      if ((node as GlassMemberNode).container !== this@GlassContainerNode) {
+        return@traverseDescendants TraverseDescendantsAction.ContinueTraversal
+      }
+      // A removed member can still be in the layout, with its slot held by a ghost or gone.
+      val index = registrations.indexOfFirst { it === node }
+      when {
+        index < 0 -> TraverseDescendantsAction.ContinueTraversal
+        index < previous -> {
+          changed = true
+          TraverseDescendantsAction.CancelTraversal
+        }
+        else -> {
+          previous = index
+          TraverseDescendantsAction.ContinueTraversal
+        }
+      }
+    }
+    return changed
   }
 
   private fun layoutOrderedSlots(): Pair<List<Int>, List<GlassMemberNode>> {
