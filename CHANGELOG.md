@@ -101,6 +101,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RenderScript Blur on Android 6 to 11 (API 23 to 30) no longer leaks each blur context it
   releases, with its output bitmap, buffers and input surface, after a resize, an invalidation, a
   memory trim or a detach ([#1904](https://github.com/chrisbanes/haze/issues/1904)).
+- RenderScript Blur on Android 6 to 11 (API 23 to 30, `blurEnabled(true)`) now keeps the clear end
+  of a progressive blur over `HazeInput.Content`, instead of erasing the content there
+  ([#1922](https://github.com/chrisbanes/haze/issues/1922)).
 - Android Blur no longer crashes when a linear progressive blur uses an easing that overshoots,
   such as `EaseInBack` or an elastic easing, on Android 12 and 12L or after a runtime shader
   failure. Each blur layer's intensity stays within `0f`..`1f`
