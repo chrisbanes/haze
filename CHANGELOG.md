@@ -48,6 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   passes. Nine Glass surfaces used about 21% less CPU frame time at P90 on a Pixel 6, and lazy
   grids of Glass about 24% less. `Quality` keeps the platform blur; thin, high-contrast detail
   behind Glass can blur slightly differently in `Balanced` and `Performance`.
+- On Android, a Glass change that affects only its optics, such as a press response or a tint
+  animation, replaces the surface's final effect instead of re-recording its layers, so they are no
+  longer re-rendered every frame. Nine pressed Glass surfaces used 33–40% less CPU frame time at P90
+  on a Pixel 8a ([#1918](https://github.com/chrisbanes/haze/issues/1918)).
 - Glass uses continuous 16 dp corners when no shape is authored. Regular and Clear draw a thin dark
   outline, strongest on the left and right and absent from Clear's top and bottom, and a top and
   bottom rim highlight, stronger on Clear; dark Regular has less backdrop contrast and a fainter

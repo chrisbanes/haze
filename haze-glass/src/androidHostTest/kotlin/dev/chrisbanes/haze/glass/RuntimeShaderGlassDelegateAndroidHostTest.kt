@@ -449,6 +449,95 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.opticalRecordCount).isGreaterThan(opticalRecords)
     }
 
+  @Test
+  fun layerBlur_opticsOnlyChange_replacesEffectWithoutReRecording() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = GlassRuntimeEffect()
+      var tintColor by mutableStateOf(Color.Transparent)
+      setContent {
+        val hazeState = rememberHazeState()
+        Box(Modifier.size(300.dp)) {
+          Box(Modifier.fillMaxSize().background(Color.Red).hazeSource(hazeState))
+          Box(
+            Modifier.align(Alignment.Center).size(120.dp).testGlassRuntime(
+              effect = effect,
+              input = HazeInput.Sources(hazeState),
+              style = layerBlurStyle().then { tint(tintColor) },
+              performanceMode = HazePerformanceMode.Balanced,
+            ),
+          )
+        }
+      }
+      waitForIdle()
+      drawFrame()
+
+      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      val render = checkNotNull(effect.preparedRender)
+      assertThat(render.layerBlurFactor, "layer blur factor").isGreaterThan(0f)
+      val blurred = checkNotNull(delegate.layers.blurred)
+      // Settle first: an unchanged frame must record nothing.
+      drawFrame()
+      val counts = delegate.stageRecordCounts
+      drawFrame()
+      assertThat(delegate.stageRecordCounts).isEqualTo(counts)
+      val renderEffect = delegate.layers.optical?.renderEffect
+
+      tintColor = Color.Blue.copy(alpha = 0.5f)
+      waitForIdle()
+      drawFrame()
+
+      assertThat(checkNotNull(effect.preparedRender).opticalKey).isNotEqualTo(render.opticalKey)
+      assertThat(delegate.stageRecordCounts).isEqualTo(counts)
+      assertThat(delegate.layers.blurred).isSameInstanceAs(blurred)
+      assertThat(delegate.layers.optical?.renderEffect).isNotSameInstanceAs(renderEffect)
+    }
+
+  // The blur key changes with the factor, and here so do the coordinates; any of them must re-record.
+  @Test
+  fun layerBlur_factorChangeWithEqualOptics_reRecordsOptical() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = GlassRuntimeEffect()
+      var blurRadius by mutableStateOf(38.5.dp)
+      setContent {
+        val hazeState = rememberHazeState()
+        Box(Modifier.size(300.dp)) {
+          Box(Modifier.fillMaxSize().background(Color.Red).hazeSource(hazeState))
+          Box(
+            Modifier.align(Alignment.Center).size(120.dp).testGlassRuntime(
+              effect = effect,
+              input = HazeInput.Sources(hazeState),
+              style = layerBlurStyle().then {
+                optics(
+                  GlassOptics(
+                    refractionStrength = 0f,
+                    refractionDetailIntensity = 0f,
+                    depth = OpticalSizeValue.Fixed(0.5f),
+                    blurRadius = OpticalSizeValue.Fixed(blurRadius),
+                  ),
+                )
+              },
+              performanceMode = HazePerformanceMode.Balanced,
+            ),
+          )
+        }
+      }
+      waitForIdle()
+      drawFrame()
+
+      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      val render = checkNotNull(effect.preparedRender)
+      assertThat(render.layerBlurFactor, "layer blur factor").isGreaterThan(0f)
+      val opticalRecords = delegate.opticalRecordCount
+
+      blurRadius = 24.dp
+      waitForIdle()
+      drawFrame()
+
+      val updated = checkNotNull(effect.preparedRender)
+      assertThat(updated.layerBlurFactor).isNotEqualTo(render.layerBlurFactor)
+      assertThat(delegate.opticalRecordCount).isGreaterThan(opticalRecords)
+    }
+
   // A uniform source pins the mix's alpha only; the device stripe tests cover the blur itself.
   @Test
   fun layerBlur_translucentSource_matchesQuality() =

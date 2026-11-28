@@ -171,10 +171,13 @@ class RuntimeShaderGlassDelegateSourceAndroidRegressionTest : ScreenshotTest() {
       factory.renderer.pendingAction = { context, runtime, current ->
         val input = checkNotNull(context.inputSnapshot)
         val counts = current.stageRecordCounts
+        val renderEffect = current.layers.optical?.renderEffect
         runtime.style = runtime.style.then { ambientResponse(0.6f) }
         prepareAndDraw(context, runtime, current)
         assertThat(context.inputSnapshot).isSameInstanceAs(input)
-        assertThat(current.stageRecordCounts).isEqualTo(counts.copy(optical = counts.optical + 1))
+        // An optics-only change replaces the optical layer's effect without re-recording it (#1918).
+        assertThat(current.stageRecordCounts).isEqualTo(counts)
+        assertThat(current.layers.optical?.renderEffect).isNotSameInstanceAs(renderEffect)
       }
     }
     captureHardware(factory)
