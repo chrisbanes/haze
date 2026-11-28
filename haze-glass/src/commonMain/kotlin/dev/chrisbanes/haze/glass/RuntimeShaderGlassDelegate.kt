@@ -166,6 +166,11 @@ internal class RuntimeShaderGlassDelegate(
     private set
   internal var opticalRecordCount: Int = 0
     private set
+
+  // What the last fused record drew, for canReuseFusedRecording.
+  private var fusedRecordLayerBlurFactor: Float = Float.NaN
+  private var fusedRecordCoordinates: GlassCoordinates? = null
+  private var fusedRecordBlurred: GraphicsLayer? = null
   internal var detailRecordCount: Int = 0
     private set
   internal var rimRecordCount: Int = 0
@@ -538,12 +543,16 @@ internal class RuntimeShaderGlassDelegate(
         )
         if (supportsFusedGlassRenderEffect) {
           val baseInputsChanged = previousInputs == null || !previousInputs.hasSameBaseAs(currentInputs)
+          val reuseRecording = !shouldRecordSource && retainedOutputAvailable && previousInputs != null && (
+            !baseInputsChanged ||
+              canReuseFusedRecording(previousInputs, currentInputs, render.layerBlurFactor, params.coordinates)
+            )
           val completedOptical = requireRetainedStage(
-            if (
-              shouldRecordSource ||
-              baseInputsChanged ||
-              !retainedOutputAvailable
-            ) {
+            if (reuseRecording) {
+              layers.optical?.takeUnless { it.isReleased }?.also { optical ->
+                if (baseInputsChanged) optical.renderEffect = effects.optical.asComposeRenderEffect()
+              }
+            } else {
               trace(GlassTraceSection.Optical) {
                 recordFusedOutput(
                   source = source,
@@ -552,8 +561,6 @@ internal class RuntimeShaderGlassDelegate(
                   layerBlurFactor = render.layerBlurFactor,
                 )
               }
-            } else {
-              layers.optical?.takeUnless { it.isReleased }
             },
             ::clearRetainedOutput,
           ) ?: return
@@ -969,6 +976,8 @@ internal class RuntimeShaderGlassDelegate(
     backdropOutputAvailable = false
     lastSuccessfulSourceSnapshot = null
     lastSuccessfulStageInputs = null
+    fusedRecordCoordinates = null
+    fusedRecordBlurred = null
   }
 
   private fun clearInteractionLayerMetadata() {
@@ -1377,11 +1386,13 @@ internal class RuntimeShaderGlassDelegate(
     layer.blendMode = BlendMode.SrcOver
     layer.compositingStrategy = CompositingStrategy.Auto
     layer.renderEffect = renderEffect.asComposeRenderEffect()
+    var blurred: GraphicsLayer? = null
     if (layerBlurFactor > 0f) {
+      blurred = layers.blurred?.takeUnless { it.isReleased } ?: return null
       recordLayerBlurDepthInput(
         layer = layer,
         source = source,
-        blurred = layers.blurred?.takeUnless { it.isReleased } ?: return null,
+        blurred = blurred,
         params = params,
         factor = layerBlurFactor,
       )
@@ -1391,8 +1402,31 @@ internal class RuntimeShaderGlassDelegate(
       }
     }
     opticalRecordCount++
+    fusedRecordLayerBlurFactor = layerBlurFactor
+    fusedRecordCoordinates = params.coordinates
+    fusedRecordBlurred = blurred
     return layer
   }
+
+  /**
+   * Whether a change of [current] from [previous] alters only the fused effect, so the last fused
+   * record stays valid and the optical layer needs only its new effect. HWUI then applies that
+   * effect to the retained layers without re-rendering them, which a re-record would force (#1918).
+   *
+   * The record draws the source, the depth and, through [layerBlurFactor], the reduced blurred copy
+   * at [coordinates], so each of those must match what it last drew.
+   */
+  private fun canReuseFusedRecording(
+    previous: GlassStageInputs,
+    current: GlassStageInputs,
+    layerBlurFactor: Float,
+    coordinates: GlassCoordinates,
+  ): Boolean = previous.blur == current.blur &&
+    previous.depth.compareTo(current.depth) == 0 &&
+    previous.detail == current.detail &&
+    fusedRecordLayerBlurFactor.compareTo(layerBlurFactor) == 0 &&
+    fusedRecordCoordinates == coordinates &&
+    (layerBlurFactor <= 0f || fusedRecordBlurred.let { it != null && it === layers.blurred && !it.isReleased })
 
   private fun DrawScope.recordOptical(
     input: GraphicsLayer,
